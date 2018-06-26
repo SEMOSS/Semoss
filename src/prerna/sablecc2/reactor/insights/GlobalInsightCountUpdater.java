@@ -1,15 +1,9 @@
 package prerna.sablecc2.reactor.insights;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import org.apache.solr.client.solrj.SolrServerException;
-
-import prerna.solr.SolrIndexEngine;
+import prerna.auth.SecurityUpdateUtils;
 
 public class GlobalInsightCountUpdater {
 
@@ -18,16 +12,16 @@ public class GlobalInsightCountUpdater {
 	 * This is necessary since we will get version conflicts
 	 * if you run 2 insights at the same time
 	 */
-	
+
 	private static GlobalInsightCountUpdater singleton;
 
-	private BlockingQueue<String> queue;
+	private BlockingQueue<String[]> queue;
 	private CountUpdater updater;
-	
+
 	private GlobalInsightCountUpdater() {
-		queue = new ArrayBlockingQueue<String>(50);
+		queue = new ArrayBlockingQueue<String[]>(50);
 		updater = new CountUpdater(queue);
-		
+
 		new Thread(updater).start();
 	}
 
@@ -38,30 +32,26 @@ public class GlobalInsightCountUpdater {
 		return singleton;
 	}
 
-	public void addToQueue(String engineName, String id) {
-		String solrId = SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, id);
-		queue.add(solrId);
+	public void addToQueue(String engineId, String id) {
+		queue.add(new String[]{engineId, id});
 	}
 
 }
 
 class CountUpdater implements Runnable {
 
-	protected BlockingQueue<String> queue = null;
+	protected BlockingQueue<String[]> queue = null;
 
-	public CountUpdater(BlockingQueue<String> queue) {
+	public CountUpdater(BlockingQueue<String[]> queue) {
 		this.queue = queue;
 	}
 
 	public void run() {
 		try {
-			String solrId = null;
-			while( (solrId = queue.take()) != null) {
-				SolrIndexEngine.getInstance().updateViewedInsight(solrId);
+			String[] update = null;
+			while( (update = queue.take()) != null) {
+				SecurityUpdateUtils.updateExecutionCount(update[0], update[1]);
 			}
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-				| IOException e) {
-			e.printStackTrace();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

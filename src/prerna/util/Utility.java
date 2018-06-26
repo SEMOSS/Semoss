@@ -113,8 +113,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.solr.SolrIndexEngine;
-import prerna.solr.SolrUtility;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -2305,74 +2303,60 @@ public class Utility {
 		// get the engine id
 		String engineId = engineToAdd.getEngineId();
 
-		// get the solr instance
-		SolrIndexEngine solrE = SolrIndexEngine.getInstance();
-		// if the solr is active...
-		if (solrE.serverActive()) {
-			/*
-			 * Here is the logic to determine if we need to load the engine into solr
-			 * 
-			 * 1) if the database is hidden -> do NOT add to solr
-			 * Given that the database if not hidden, do the following
-			 * 2) the user can define in the SMSS file a boolean value SOLR_RELOAD
-			 * 		-> if the value is true, then we add the engine into solr
-			 * 3) if a developer has hard coded to reload all solr values based on a hard coded boolean in abstract engine
-			 * 		-> if the value is true, then we add the engine into solr
-			 * 		-> note: this should be false whenever we make a build/deploy... 
-			 * 					this is purely for ease in testing new development code
+		/*
+		 * Here is the logic to determine if we need to load the engine into solr
+		 * 
+		 * 1) if the database is hidden -> do NOT add to solr
+		 * Given that the database if not hidden, do the following
+		 * 2) the user can define in the SMSS file a boolean value SOLR_RELOAD
+		 * 		-> if the value is true, then we add the engine into solr
+		 * 3) if a developer has hard coded to reload all solr values based on a hard coded boolean in abstract engine
+		 * 		-> if the value is true, then we add the engine into solr
+		 * 		-> note: this should be false whenever we make a build/deploy... 
+		 * 					this is purely for ease in testing new development code
 
-			 * 4) check to see if solr already contains the engine
-			 * 		-> if the value is false, then we add the engine into solr
-			 * 
-			 * ****Decision Logic****
-			 * Given that the engine is not hidden (i.e. 1 is false), then
-			 * 		if a developer has hard coded to reload all solr values in abstract engine (2 is true) or 
-			 * 		if the user has hard reloaded (2 is true) or 
-			 * 		if solr doesn't contain the engine (3 is false), then
-			 * 			add the engine into solr
-			 */
+		 * 4) check to see if solr already contains the engine
+		 * 		-> if the value is false, then we add the engine into solr
+		 * 
+		 * ****Decision Logic****
+		 * Given that the engine is not hidden (i.e. 1 is false), then
+		 * 		if a developer has hard coded to reload all solr values in abstract engine (2 is true) or 
+		 * 		if the user has hard reloaded (2 is true) or 
+		 * 		if solr doesn't contain the engine (3 is false), then
+		 * 			add the engine into solr
+		 */
 
-			// 1) get the boolean is the database is hidden
-			// 		default value is false if it is not found in the SMSS file
-			String hiddenString = engineToAdd.getProperty(Constants.HIDDEN_DATABASE);
-			boolean hidden = false;
-			if (hiddenString != null) {
-				hidden = Boolean.parseBoolean(hiddenString);
-			}
-			// 2) check if the user has set a hard reload to the SOLR_RELOAD boolean
-			//		default value is false if it is not found in the SMSS file
-			String smssPropString = engineToAdd.getProperty(Constants.SOLR_RELOAD);
-			boolean smssProp = false;
-			if (smssPropString != null) {
-				smssProp = Boolean.parseBoolean(smssPropString);
-			}
-			// this if statement corresponds to the decision logic in comment block above
-			// 3) and 4) are checked within the if statement
-			if (!hidden && (smssProp || !solrE.containsEngine(engineId))) {
-				// alright, we are going to load the engines insights into solr
-				LOGGER.info(engineToAdd.getEngineId() + " has solr force reload value of " + smssProp );
-				LOGGER.info(engineToAdd.getEngineId() + " is reloading solr");
-//				try {
-//					// add the instances into solr
-//					addToSolrInstanceCore(engineToAdd);
-					// add the insights into solr
-					SolrUtility.addToSolrInsightCore(engineId);
-					// add for security
-					SecurityUpdateUtils.addApp(engineId);
-//				} catch (ParseException e) {
-//					e.printStackTrace();
-//				}
-			}
-			// if the engine is hidden, delete it from solr
-			else if(hidden){
-				SolrUtility.deleteFromSolr(engineId);
-			}
-			// if the smss prop was set to true -> i.e. a hard solr reload for that specific engine
-			// then we want to change the boolean to be false such that this is only a one time solr reload
-			if(smssProp){
-				LOGGER.info(engineToAdd.getEngineId() + " is changing solr boolean on smss");
-				changePropMapFileValue(fileName, Constants.SOLR_RELOAD, "false");
-			}
+		// 1) get the boolean is the database is hidden
+		// 		default value is false if it is not found in the SMSS file
+		String hiddenString = engineToAdd.getProperty(Constants.HIDDEN_DATABASE);
+		boolean hidden = false;
+		if (hiddenString != null) {
+			hidden = Boolean.parseBoolean(hiddenString);
+		}
+		// 2) check if the user has set a hard reload to the SOLR_RELOAD boolean
+		//		default value is false if it is not found in the SMSS file
+		String smssPropString = engineToAdd.getProperty(Constants.RELOAD_INSIGHTS);
+		boolean smssProp = false;
+		if (smssPropString != null) {
+			smssProp = Boolean.parseBoolean(smssPropString);
+		}
+		// this if statement corresponds to the decision logic in comment block above
+		// 3) and 4) are checked within the if statement
+		if (!hidden && smssProp) {
+			// alright, we are going to load the engines insights into solr
+			LOGGER.info(engineToAdd.getEngineId() + " has solr force reload value of " + smssProp );
+			LOGGER.info(engineToAdd.getEngineId() + " is reloading solr");
+			SecurityUpdateUtils.addApp(engineId, true);
+		}
+		// if the engine is hidden, delete it from solr
+		else if(hidden){
+			SecurityUpdateUtils.addApp(engineId, false);
+		}
+		// if the smss prop was set to true -> i.e. a hard solr reload for that specific engine
+		// then we want to change the boolean to be false such that this is only a one time solr reload
+		if(smssProp){
+			LOGGER.info(engineToAdd.getEngineId() + " is changing solr boolean on smss");
+			changePropMapFileValue(fileName, Constants.RELOAD_INSIGHTS, "false");
 		}
 
 		// return the newly loaded engine
@@ -2443,7 +2427,7 @@ public class Utility {
 			} else if(!isLocal){ // never add local master to itself...
 				DeleteFromMasterDB deleter = new DeleteFromMasterDB();
 				deleter.deleteEngineRDBMS(engineId);
-				SolrUtility.deleteFromSolr(engineId);
+				SecurityUpdateUtils.deleteApp(engineId);
 			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();
