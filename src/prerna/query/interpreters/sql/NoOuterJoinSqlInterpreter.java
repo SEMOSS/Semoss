@@ -1,0 +1,1452 @@
+package prerna.query.interpreters.sql;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
+
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.interpreters.AbstractQueryInterpreter;
+import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryArithmeticSelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
+import prerna.util.sql.SQLQueryUtil;
+
+public class NoOuterJoinSqlInterpreter extends AbstractQueryInterpreter {	
+	
+	// keep track of processed tables used to ensure we don't re-add tables into the from string
+	protected Hashtable<String, String> tablesProcessed = new Hashtable<String, String>();
+	
+	// we will keep track of the conceptual names to physical names so we don't re-query the owl multiple times
+	protected transient Hashtable<String, String> conceptualConceptToPhysicalMap = new Hashtable<String, String>();
+	// need to also keep track of the properties
+	protected transient Hashtable<String, String> conceptualPropertyToPhysicalMap = new Hashtable<String, String>();
+	protected transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
+	// need to keep track of the primary key for tables
+	protected transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
+
+	// we can create a statement without an engine... 
+	// but everything needs to be the physical schema
+	protected transient IEngine engine; 
+	protected transient ITableDataFrame frame;
+	
+	protected Set<String> selectorOrderedList = new LinkedHashSet<String>();
+	// keep selector alias
+	protected List<String> selectorAliases = new Vector<String>();
+	protected List<String> groupBySelectors = new Vector<String>();
+	protected List<String> orderBySelectors = new Vector<String>();
+	// keep list of selectors for tables
+	protected Map<String, LinkedHashSet<String>> retTableToSelectors = new HashMap<String, LinkedHashSet<String>>();
+	// keep list of filters for tables
+	protected Map<String, List<String>> retTableToFilters = new HashMap<String, List<String>>();
+	protected Map<String, List<String>> retTableToHavingFilters = new HashMap<String, List<String>>();
+	// keep list of traversed tables
+	protected Set<String> traversedTables = new HashSet<String>();
+	protected List<String[]> froms = new Vector<String[]>(); 
+	// store the joins in the object for easy use
+	protected SqlJoinStructList joinStructList = new SqlJoinStructList();
+	protected List<String> jTypeList = new Vector<String>();
+	protected SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
+	
+	public NoOuterJoinSqlInterpreter() {
+		
+	}
+
+	public NoOuterJoinSqlInterpreter(IEngine engine) {
+		this.engine = engine;
+		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
+	}
+	
+	public NoOuterJoinSqlInterpreter(ITableDataFrame frame) {
+		this.frame = frame;
+	}
+
+	/**
+	 * Main method to invoke to take the QueryStruct to compose the appropriate SQL query
+	 */
+	@Override
+	public String composeQuery()
+	{
+		if(this.qs instanceof HardSelectQueryStruct) {
+			return ((HardSelectQueryStruct)this.qs).getQuery();
+		}
+		/*
+		 * Need to create the query... 
+		 * This to consider:
+		 * 1) the user is going to be using the conceptual names as defined by the OWL (if present
+		 * and OWL is the improved version). This has a few consequences:
+		 * 1.a) when a user enters a table name, we need to determine what the primary key is
+		 * 		for that table
+		 * 1.b) need to consider what tables are used within joins and which are not. this will
+		 * 		determine when we add it to the from clause or if the table will be defined via 
+		 * 		the join 
+		 */
+		
+		//if there are no outer joins requested, then call the SQL interpreter instead
+		
+		boolean outerJoinsRequested = qs.getRelationsSet().stream().anyMatch(s -> s[1].equalsIgnoreCase("outer.join"));
+		if(!outerJoinsRequested) {
+			SqlInterpreter interp = new SqlInterpreter(this.engine);
+			interp.setQueryStruct(this.qs);
+			interp.setLogger(this.logger);
+			return interp.composeQuery();
+		}
+		
+		addJoins();
+		addSelectors();
+		addFilters();
+		addHavingFilters();
+		addGroupBy();
+		addOrderBy();
+		
+		String derivedTableName = "";
+		String jQueryStr = "";
+		StringBuilder query = new StringBuilder();
+		StringBuilder subquery = new StringBuilder();
+		String distinct = "";
+		if (this.qs.isDistinct()) {
+			distinct = "DISTINCT ";
+		}
+		
+		//need to traverse in the order of the requested joins
+		for (int i = 0; i < jTypeList.size(); i++){
+			//clear the subquery sb 
+			subquery.setLength(0);
+			//get the current join type
+			String jType = jTypeList.get(i);
+			int nextOuterJoinIndex = jTypeList.subList(i, jTypeList.size()).indexOf("outer join");
+			if (!jType.equals("outer join") && i < nextOuterJoinIndex){
+				//process joins thru to just before the next outer join or if no more outer joins then to the last join
+				int endSubsetIndex = (nextOuterJoinIndex == -1) ? jTypeList.size()-1 : nextOuterJoinIndex-1;
+				SqlJoinStructList subQJoinStructList = joinStructList.getSubsetJoinStructList(i, endSubsetIndex);
+				String subQJSyntax = subQJoinStructList.getJoinSyntax(derivedTableName, traversedTables, retTableToSelectors);
+				String[] subQSelectorsFilters = determineH2JoinSelectorsFilters(subQJSyntax, derivedTableName);
+				subquery.append("SELECT ").append(distinct).append(subQSelectorsFilters[0]).append(" FROM ");
+				if (jQueryStr.isEmpty()){
+					subquery.append(subQJSyntax);
+				} else {
+					subquery.append(jQueryStr).append(subQJSyntax);
+				}
+				if (!subQSelectorsFilters[1].isEmpty()){
+					//subquery filters to process
+					subquery.append(" WHERE ").append(subQSelectorsFilters[1]);
+				}
+				//set the i == endSubsetIndex
+				i = endSubsetIndex;
+			} else if (jType.equals("outer join")){
+				//process outer join individually
+				String[] subQJSyntax = joinStructList.getOuterJoinSyntax(derivedTableName, traversedTables, retTableToSelectors, i);
+				String[] subQSelectorsFilters = determineOuterJoinSelectorsFilters(subQJSyntax[0], derivedTableName);
+				String filterClause = "";
+				if (!subQSelectorsFilters[2].isEmpty()){
+					//subquery filters to process
+					filterClause = " WHERE " + subQSelectorsFilters[2];
+				}
+				subquery.append("(SELECT ").append(distinct).append(subQSelectorsFilters[0]).append(" FROM ").append(jQueryStr)
+					.append(subQJSyntax[0]).append(filterClause).append(") UNION (SELECT ").append(distinct).append(subQSelectorsFilters[1])
+					.append(" FROM ").append(jQueryStr).append(subQJSyntax[1]).append(filterClause).append(") ");
+			}
+			//assign the processed joins to a derived table
+			derivedTableName = getDerivedTableName();
+			subquery.insert(0, "(");
+			subquery.append(") "). append(derivedTableName).append(" ");
+			//set aside the sql statement processed up to this point to jQueryStr
+			jQueryStr = subquery.toString();
+		}
+		
+		//once all the joins have been processed, select for just the columns user requested for
+		String finalDerivedTableName = derivedTableName;
+		String requestedSelectors = selectorAliases.stream().map(a -> finalDerivedTableName + "." + a).collect(Collectors.joining(" , "));
+		query.append("SELECT ").append(distinct).append(requestedSelectors).append(" FROM ").append(jQueryStr);
+	
+		
+		// add remaining where clause filters (would only be value-to-value type filters if there the map isn't empty)
+		if (!retTableToFilters.isEmpty()){
+			String filtersStr = retTableToFilters.values().stream().flatMap(Collection::stream).collect(Collectors.joining(" AND "));
+			query.append(" WHERE ").append(filtersStr);
+		}
+		
+		// add group by
+		if (!groupBySelectors.isEmpty()){
+			String groupByStr = String.join(" , ", groupBySelectors);
+			query.append(" GROUP BY ").append(groupByStr.replaceAll("[^ ]*\\.", ""));
+		}
+		
+		// add having filters
+		if (!retTableToHavingFilters.isEmpty()){
+			String havingFiltersStr = retTableToHavingFilters.values().stream().flatMap(Collection::stream).collect(Collectors.joining(" AND "));
+			query.append(" HAVING ").append(havingFiltersStr.replaceAll("[^ (]*\\.", ""));
+		}
+		
+		// add order by
+		if (!orderBySelectors.isEmpty()){
+			String orderByStr = String.join(" , ", orderBySelectors);
+			query.append(" ORDER BY ").append(orderByStr.replaceAll("[^ ]*\\.", ""));
+		}
+		
+		long limit = qs.getLimit();
+		long offset = qs.getOffset();
+		
+		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
+		
+		if(query.length() > 500) {
+			logger.info("SQL (H2) QUERY....  " + query.substring(0,  500) + "...");
+		} else {
+			logger.info("SQL (H2) QUERY....  " + query);
+		}
+		
+		return query.toString();
+	}
+
+	//////////////////////////// adding selectors //////////////////////////////////////////
+	
+	/**
+	 * Loops through the selectors defined in the QS to add them to the selector string
+	 * and considers if the table should be added to the from string
+	 */
+	public void addSelectors() {
+		List<IQuerySelector> selectorData = qs.getSelectors();
+		for(IQuerySelector selector : selectorData) {
+			processSelector(selector, true);
+		}
+	}
+	
+	/**
+	 * Method is used to generate the appropriate syntax for each type of selector
+	 * Note, this returns everything without the alias since this is called again from
+	 * the base methods it calls to allow for complex math expressions
+	 * @param selector
+	 * @return
+	 */
+	protected String processSelector(IQuerySelector selector, boolean requestedSelector) {
+		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
+		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
+			return processConstantSelector((QueryConstantSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+			return processColumnSelector((QueryColumnSelector) selector, requestedSelector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) { 
+			return processFunctionSelector((QueryFunctionSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+			return processArithmeticSelector((QueryArithmeticSelector) selector);
+		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.OPAQUE) {
+			return processOpaqueSelector((QueryOpaqueSelector) selector);
+		}
+		return null;
+	}
+
+	protected String processConstantSelector(QueryConstantSelector selector) {
+		Object constant = selector.getConstant();
+		if(constant instanceof Number) {
+			return constant.toString();
+		} else {
+			return "\"" + constant + "\"";
+		}
+	}
+
+	/**
+	 * The second
+	 * @param selector
+	 * @param isTrueColumn
+	 * @return
+	 */
+	protected String processColumnSelector(QueryColumnSelector selector, boolean requestedSelector) {
+		String table = selector.getTable();
+		String colName = selector.getColumn();
+		String tableAlias = selector.getTableAlias();
+		if(tableAlias == null) {
+			tableAlias = getPhysicalTableNameFromConceptualName(table);
+		}
+		// will be getting the physical column name
+		String physicalColName = colName;
+		// if engine is not null, get the info from the engine
+		if(engine != null && !engine.isBasic()) {
+			// if the colName is the primary key placeholder
+			// we will go ahead and grab the primary key from the table
+			if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+				physicalColName = getPrimKey4Table(table);
+				// the display name is defaulted to the table name
+			} else {
+				// default assumption is the info being passed is the conceptual name
+				// get the physical from the conceptual
+				physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+			}
+		}
+		
+		//keep track of columns by their selector reference syntax
+		String tableCol = tableAlias + "." + physicalColName;
+		String colAlias = selector.getAlias().toUpperCase();
+		//if the column is a foreign key column, then need to ensure that its alias is unique
+		if (colAlias.endsWith("_FK")){
+			colAlias = tableAlias.toUpperCase() + "$$" + colAlias ;
+		}
+		this.retTableToSelectors.putIfAbsent(tableAlias, new LinkedHashSet<String>());
+		this.retTableToSelectors.get(tableAlias).add(tableCol + " AS " + "\"" + colAlias +"\"");
+		//if the selector is one that user-requested, then update selectorAliases 
+		if (requestedSelector) {
+			selectorAliases.add(selector.getAlias());
+		}
+		
+		return tableCol;
+	}
+	
+	protected String processFunctionSelector(QueryFunctionSelector selector) {
+		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
+		String function = selector.getFunction();
+		
+		StringBuilder expression = new StringBuilder();
+		expression.append(QueryFunctionHelper.convertFunctionToSqlSyntax(function)).append("(");
+		if(selector.isDistinct()) {
+			expression.append("DISTINCT ");
+		}
+		int size = innerSelectors.size();	
+		for(int i = 0; i< size; i++) {
+			if(i == 0) {
+				expression.append(processSelector(innerSelectors.get(i), false));
+			} else {
+				expression.append(",").append(processSelector(innerSelectors.get(i), false));
+			}
+		}
+		expression.append(")");
+		return expression.toString();
+	}
+	
+	protected String processArithmeticSelector(QueryArithmeticSelector selector) {
+		IQuerySelector leftSelector = selector.getLeftSelector();
+		IQuerySelector rightSelector = selector.getRightSelector();
+		String mathExpr = selector.getMathExpr();
+		
+		if(mathExpr.equals("/")) {
+			return "(" + processSelector(leftSelector, false) + " " + mathExpr + " NULLIF(" + processSelector(rightSelector, false) + ",0))";
+		} else {
+			return "(" + processSelector(leftSelector, false) + " " + mathExpr + " " + processSelector(rightSelector, false) + ")";
+		}
+	}
+	
+	protected String processOpaqueSelector(QueryOpaqueSelector selector) {
+		if(this.joinStructList.isEmpty() && selector.getTable() != null) {
+			addFrom(selector.getTable(), selector.getTable());
+		}
+		return selector.getQuerySelectorSyntax();
+	}
+
+	//////////////////////////////////// end adding selectors /////////////////////////////////////
+
+	/////////////////////////////////// adding from ////////////////////////////////////////////////
+
+	/**
+	 * Adds the form statement for each table
+	 * @param conceptualTableName			The name of the table
+	 */
+	protected void addFrom(String conceptualTableName, String alias) {
+		// need to determine if we can have multiple froms or not
+		// we don't want to add the from table multiple times as this is invalid in sql
+		if(!tablesProcessed.containsKey(conceptualTableName)) {
+			tablesProcessed.put(conceptualTableName, "true");
+			
+			// we want to use the physical table name
+			String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
+			
+			froms.add(new String[]{physicalTableName, alias});
+		}
+	}
+
+	////////////////////////////////////// end adding from ///////////////////////////////////////
+	
+	////////////////////////////////////// adding joins /////////////////////////////////////////////
+	
+	/**
+	 * Adds the joins for the query
+	 */
+	public void addJoins() {
+		Set<String[]> relationsSet = qs.getRelationsSet();
+		for (String[] eachRelation : relationsSet){
+			String startConceptProperty = eachRelation[0];
+			String comparator = eachRelation[1];
+			String endConceptProperty = eachRelation[2];
+			addJoin(startConceptProperty, comparator, endConceptProperty);
+		}
+	}
+
+	/**
+	 * Adds the join to the relationHash which gets added to the query in composeQuery
+	 * @param fromCol					The starting column, this can be just a table
+	 * 									or table__column
+	 * @param thisComparator			The comparator for the type of join
+	 * @param toCol						The ending column, this can be just a table
+	 * 									or table__column
+	 */
+	protected void addJoin(String fromCol, String thisComparator, String toCol) {
+		// get the parts of the join
+		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
+		String targetTable = relConProp[0];
+		String targetColumn = relConProp[1];
+		String sourceTable = relConProp[2];
+		String sourceColumn = relConProp[3];
+		
+		String compName = thisComparator.replace(".", " ");
+		if (!fromCol.equals(sourceTable)) {
+			if (compName.startsWith("left")){
+				compName = compName.replace("left", "right");
+			} else if (compName.startsWith("right")){
+				compName = compName.replace("right", "left");
+			}
+		}
+		jTypeList.add(compName);
+		
+		SqlJoinStruct jStruct = new SqlJoinStruct();
+		jStruct.setJoinType(compName);
+		// add source
+		jStruct.setSourceTable(sourceTable);
+		jStruct.setSourceTableAlias(sourceTable);
+		jStruct.setSourceCol(sourceColumn);
+		// add target
+		jStruct.setTargetTable(targetTable);
+		jStruct.setTargetTableAlias(targetTable);
+		jStruct.setTargetCol(targetColumn);
+		
+		joinStructList.addJoin(jStruct);
+		
+		//need to add the join keys to the retTableToSelectors map
+		for (int i=0; i < relConProp.length; i+=2){
+			QueryColumnSelector selector = new QueryColumnSelector();
+			selector.setTable(relConProp[i]);
+			selector.setColumn(relConProp[i+1]);
+			processColumnSelector(selector, false);
+		}
+	}
+	
+	////////////////////////////////////////// end adding joins ///////////////////////////////////////
+	
+	
+	////////////////////////////////////////// adding filters ////////////////////////////////////////////
+	
+	public void addHavingFilters() {
+		List<IQueryFilter> filters = qs.getHavingFilters().getFilters();
+		for(IQueryFilter filter : filters) {
+			Set<String> filterColumnAliases = filter.getAllUsedColumns();
+			//for having filters, the columns that the filters are applied on must 
+			//be among the selectors the users requested 
+			if (selectorAliases.containsAll(filterColumnAliases)) {
+				StringBuilder filterSyntax = processFilter(filter);
+				String filterKey = String.join("__", filter.getAllUsedTables());
+				retTableToHavingFilters.putIfAbsent(filterKey, new Vector<String>());
+				retTableToHavingFilters.get(filterKey).add(filterSyntax.toString());
+			}
+		}
+	}
+	
+	public void addFilters() {
+		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
+		for(IQueryFilter filter : filters) {
+			StringBuilder filterSyntax = processFilter(filter);
+			String filterKey = (!filter.getAllUsedTables().isEmpty()) ? String.join("__", filter.getAllUsedTables()) : "tempReference";
+			retTableToFilters.putIfAbsent(filterKey, new Vector<String>());
+			retTableToFilters.get(filterKey).add(filterSyntax.toString());
+			//TODO add to map
+			//TODO value to value filter!
+			
+//			String tempReference = "tempReference" + Utility.getRandomString(4);
+//			filterTypeMap.putIfAbsent(tempReference, new Vector<String>());
+//			filterTypeMap.get(tempReference).add(filterBuilder.toString());
+		}
+	}
+	
+	protected StringBuilder processFilter(IQueryFilter filter) {
+		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
+		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			return processSimpleQueryFilter((SimpleQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+			return processAndQueryFilter((AndQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+			return processOrQueryFilter((OrQueryFilter) filter);
+		}
+		return null;
+	}
+	
+	protected StringBuilder processOrQueryFilter(OrQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" OR ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+
+	protected StringBuilder processAndQueryFilter(AndQueryFilter filter) {
+		StringBuilder filterBuilder = new StringBuilder();
+		List<IQueryFilter> filterList = filter.getFilterList();
+		int numAnds = filterList.size();
+		for(int i = 0; i < numAnds; i++) {
+			if(i == 0) {
+				filterBuilder.append("(");
+			} else {
+				filterBuilder.append(" AND ");
+			}
+			filterBuilder.append(processFilter(filterList.get(i)));
+		}
+		filterBuilder.append(")");
+		return filterBuilder;
+	}
+		
+	protected StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
+		NounMetadata leftComp = filter.getLComparison();
+		NounMetadata rightComp = filter.getRComparison();
+		String thisComparator = filter.getComparator();
+		
+		FILTER_TYPE fType = filter.getFilterType();
+		if(fType == FILTER_TYPE.COL_TO_COL) {
+			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
+			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.COL_TO_QUERY) {
+			return addSelectorToQueryFilter(leftComp, rightComp, thisComparator);
+		} else if(fType == FILTER_TYPE.QUERY_TO_COL) {
+			return addSelectorToQueryFilter(leftComp, rightComp, IQueryFilter.getReverseNumericalComparator(thisComparator));
+		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+			// WHY WOULD YOU DO THIS!!!
+			return addValueToValueFilter(rightComp, leftComp, thisComparator);
+		}
+		return null;
+	}
+	
+	protected StringBuilder addSelectorToQueryFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftSelectorExpression = processSelector(leftSelector, false);
+		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
+		SqlInterpreter innerInterpreter = new SqlInterpreter();
+		if(this.frame != null) {
+			subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
+		}
+		innerInterpreter.setQueryStruct(subQs);
+		innerInterpreter.setLogger(this.logger);
+		String innerQuery = innerInterpreter.composeQuery();
+		
+		StringBuilder filterBuilder = new StringBuilder(leftSelectorExpression);
+		if(thisComparator.trim().equals("==")) {
+			filterBuilder .append(" IN ( ").append(innerQuery).append(" ) ");
+		} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
+			filterBuilder.append(" NOT IN ( ").append(innerQuery).append(" ) ");
+		} else {
+			filterBuilder.append(" ").append(thisComparator).append(" (").append(innerQuery).append(")");
+		}
+		
+		return filterBuilder;
+	}
+
+	/**
+	 * Add filter for a column to values
+	 * @param filters 
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 */
+	protected StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		thisComparator = thisComparator.trim();
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftSelectorExpression = processSelector(leftSelector, false);
+		String leftDataType = leftSelector.getDataType();
+		
+		// if it is null, then we know we have a column
+		// need to grab from metadata
+		if(leftDataType == null) {
+			String left_concept_property = leftSelector.getQueryStructName();
+			String[] leftConProp = getConceptProperty(left_concept_property);
+			String leftConcept = leftConProp[0];
+			String leftProperty = leftConProp[1];
+	
+			if(engine != null && !engine.isBasic()) {
+				leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Concept/" + leftProperty + "/" + leftConcept);
+				// ugh, need to try if it is a property
+				if(leftDataType == null) {
+					leftDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftProperty + "/" + leftConcept);
+				}
+				if(leftDataType != null) {
+					leftDataType = leftDataType.replace("TYPE:", "");
+				}
+			} else if(frame != null) {
+				leftDataType = this.frame.getMetaData().getHeaderTypeAsString(left_concept_property);
+			}
+		}
+		
+		List<Object> objects = new Vector<Object>();
+		// ugh... this is gross
+		if(rightComp.getValue() instanceof List) {
+			objects.addAll( (List) rightComp.getValue());
+		} else {
+			objects.add(rightComp.getValue());
+		}
+		
+		// need to account for null inputs
+		boolean addNullCheck = false;
+		if(objects.contains(null)) {
+			addNullCheck = true;
+			objects.remove(null);
+		}
+		
+		StringBuilder filterBuilder = null;
+		// add the null check now
+		if(addNullCheck) {
+			// can only work if comparator is == or !=
+			if(thisComparator.equals("==")) {
+				filterBuilder = new StringBuilder();
+				filterBuilder.append("( (").append(leftSelectorExpression).append(") IS NULL ");
+			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+				filterBuilder = new StringBuilder();
+				filterBuilder.append("( (").append(leftSelectorExpression).append(") IS NOT NULL ");
+			}
+		}
+		// if there are other instances as well
+		// also add that
+		if(!objects.isEmpty()) {
+			if(filterBuilder == null) {
+				filterBuilder = new StringBuilder();
+			} else {
+				// we added a null check above
+				filterBuilder.append("OR ");
+			}
+			if(thisComparator.trim().equals("?like")) {
+				// like requires OR statements for multiple
+				// cannot use same logic as IN :(
+				int i = 0;
+				int size = objects.size();
+				List<Object> newObjects = new Vector<Object>();
+				newObjects.add(objects.get(i));
+				// always process as string
+				String myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
+				filterBuilder.append("( LOWER(");
+				boolean cast = SemossDataType.convertStringToDataType(leftDataType) != SemossDataType.STRING;
+				if(cast) {
+					filterBuilder.append("CAST(").append(leftSelectorExpression).append(" as CHAR(50))");
+				} else {
+					filterBuilder.append(leftSelectorExpression);
+				}
+				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+				i++;
+				for(; i < size; i++) {
+					newObjects = new Vector<Object>();
+					newObjects.add(objects.get(i));
+					// always process as string
+					myFilterFormatted = getFormatedObject("STRING", newObjects, thisComparator);
+					filterBuilder.append(" OR LOWER(");
+					if(cast) {
+						filterBuilder.append("CAST(").append(leftSelectorExpression).append(" as CHAR(50))");
+					} else {
+						filterBuilder.append(leftSelectorExpression);
+					}
+					filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+				}
+				filterBuilder.append(")");
+			} else {
+				filterBuilder.append("(").append(leftSelectorExpression).append(")");
+				String myFilterFormatted = getFormatedObject(leftDataType, objects, thisComparator);
+	
+				if(thisComparator.trim().equals("==")) {
+					filterBuilder.append(" IN ( ").append(myFilterFormatted).append(" ) ");
+				} else if(thisComparator.trim().equals("!=") || thisComparator.equals("<>")) {
+					filterBuilder.append(" NOT IN ( ").append(myFilterFormatted).append(" ) ");
+				} else {
+					filterBuilder.append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+				}
+			}
+		}
+		
+		if(addNullCheck) {
+			filterBuilder.append(" )");
+		}
+		
+		return filterBuilder;
+	}
+
+	/**
+	 * Add filter for column to column
+	 * @param leftComp
+	 * @param rightComp
+	 * @param thisComparator
+	 */
+	protected StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+		// get the left & right sides
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
+		String lSelectorPhysicalName = processSelector(leftSelector, false);
+		String rSelectorPhysicalName = processSelector(rightSelector, false);
+
+		//Add the filter syntax here once we have the correct physical names
+		StringBuilder filterBuilder = new StringBuilder();
+		filterBuilder.append(lSelectorPhysicalName);
+		if(thisComparator.equals("==")) {
+			thisComparator = "=";
+		} else if(thisComparator.equals("<>")) {
+			thisComparator = "!=";
+		}
+		filterBuilder.append(" ").append(thisComparator).append(" ").append(rSelectorPhysicalName);
+		
+		return filterBuilder;
+	}
+	
+	protected StringBuilder addValueToValueFilter(NounMetadata leftComp, NounMetadata rightComp, String comparator) {
+		// WE ARE COMPARING A CONSTANT TO ANOTHER CONSTANT
+		// ... what is the point of this... this is a dumb thing... you are dumb
+
+		PixelDataType lCompType = leftComp.getNounType();
+		List<Object> leftObjects = new Vector<Object>();
+		// ugh... this is gross
+		if(leftComp.getValue() instanceof List) {
+			leftObjects.addAll( (List) leftComp.getValue());
+		} else {
+			leftObjects.add(leftComp.getValue());
+		}
+		String leftDataType = null;
+		if(lCompType == PixelDataType.CONST_DECIMAL) {
+			leftDataType = "NUMBER";
+		} else {
+			leftDataType = "STRING";
+		}
+		//TODO: NEED TO CONSIDER DATES!!!
+		String leftFilterFormatted = getFormatedObject(leftDataType, leftObjects, comparator);
+		
+		
+		PixelDataType rCompType = rightComp.getNounType();
+		List<Object> rightObjects = new Vector<Object>();
+		// ugh... this is gross
+		if(rightComp.getValue() instanceof List) {
+			rightObjects.addAll( (List) rightComp.getValue());
+		} else {
+			rightObjects.add(rightComp.getValue());
+		}
+		
+		String rightDataType = null;
+		if(rCompType == PixelDataType.CONST_DECIMAL) {
+			rightDataType = "NUMBER";
+		} else {
+			rightDataType = "STRING";
+		}
+		//TODO: NEED TO CONSIDER DATES!!!
+		String rightFilterFormatted = getFormatedObject(rightDataType, rightObjects, comparator);
+
+		//Add the filter syntax here once we have the correct physical names
+		StringBuilder filterBuilder = new StringBuilder();
+		filterBuilder.append(leftFilterFormatted.toString());
+		if(comparator.equals("==")) {
+			comparator = "=";
+		} else if(comparator.equals("<>")) {
+			comparator = "!=";
+		}
+		filterBuilder.append(" ").append(comparator).append(" ").append(rightFilterFormatted);
+		
+		return filterBuilder;
+	}
+
+	/**
+	 * This is an optimized version when we know we can get all the objects into 
+	 * the proper sql query string in one go
+	 * @param dataType
+	 * @param objects
+	 * @param comparator
+	 * @return
+	 */
+	protected String getFormatedObject(String dataType, List<Object> objects, String comparator) {
+		// this will hold the sql acceptable format of the object
+		StringBuilder myObj = new StringBuilder();
+		
+		// defining variables for looping
+		int i = 0;
+		int size = objects.size();
+		if(size == 0) {
+			return "";
+		}
+		// if we can get the data type from the OWL, lets just use that
+		// if we dont have it, we will do type casting...
+		if(dataType != null) {
+			dataType = dataType.toUpperCase();
+			SemossDataType type = SemossDataType.convertStringToDataType(dataType);
+			if(SemossDataType.INT == type || SemossDataType.DOUBLE == type) {
+				// get the first value
+				myObj.append(objects.get(0));
+				i++;
+				// loop through all the other values
+				for(; i < size; i++) {
+					myObj.append(" , ").append(objects.get(i));
+				}
+			} else if(SemossDataType.DATE == type) {
+				String leftWrapper = null;
+				String rightWrapper = null;
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
+				} else {
+					leftWrapper = "'%";
+					rightWrapper = "%'";
+				}
+				
+				// get the first value
+				String val = objects.get(0).toString();
+				String d = Utility.getDate(val);
+				// get the first value
+				myObj.append(leftWrapper).append(d).append(rightWrapper);
+				i++;
+				for(; i < size; i++) {
+					val = objects.get(i).toString();
+					d = Utility.getDate(val);
+					// get the first value
+					myObj.append(" , ").append(leftWrapper).append(d).append(rightWrapper);
+				}
+			} else {
+				String leftWrapper = null;
+				String rightWrapper = null;
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
+				} else {
+					leftWrapper = "'%";
+					rightWrapper = "%'";
+				}
+				
+				// get the first value
+				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
+				// get the first value
+				myObj.append(leftWrapper).append(val).append(rightWrapper);
+				i++;
+				for(; i < size; i++) {
+					val = objects.get(i).toString().replace("\"", "").replaceAll("'", "''").trim();
+					// get the first value
+					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
+				}
+			}
+		} 
+		else {
+			// do it based on type casting
+			// can't have mixed types
+			// so only using first value
+			Object object = objects.get(0);
+			if(object instanceof Number) {
+				// get the first value
+				myObj.append(objects.get(0));
+				i++;
+				// loop through all the other values
+				for(; i < size; i++) {
+					myObj.append(" , ").append(objects.get(i));
+				}
+			} else if(object instanceof java.util.Date || object instanceof java.sql.Date) {
+				String leftWrapper = null;
+				String rightWrapper = null;
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
+				} else {
+					leftWrapper = "'%";
+					rightWrapper = "%'";
+				}
+				
+				// get the first value
+				String val = objects.get(0).toString();
+				String d = Utility.getDate(val);
+				// get the first value
+				myObj.append(leftWrapper).append(d).append(rightWrapper);
+				i++;
+				for(; i < size; i++) {
+					val = objects.get(i).toString();
+					d = Utility.getDate(val);
+					// get the first value
+					myObj.append(" , ").append(leftWrapper).append(d).append(rightWrapper);
+				}
+			} else {
+				String leftWrapper = null;
+				String rightWrapper = null;
+				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
+					leftWrapper = "\'";
+					rightWrapper = "\'";
+				} else {
+					leftWrapper = "'%";
+					rightWrapper = "%'";
+				}
+				
+				// get the first value
+				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
+				// get the first value
+				myObj.append(leftWrapper).append(val).append(rightWrapper);
+				i++;
+				for(; i < size; i++) {
+					val = objects.get(i).toString().replace("\"", "").replaceAll("'", "''").trim();
+					// get the first value
+					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
+				}
+			}
+		}
+		
+		return myObj.toString();
+	}
+
+	////////////////////////////////////// end adding filters ////////////////////////////////////////////
+
+	
+	//////////////////////////////////////append order by  ////////////////////////////////////////////
+	
+	protected void addOrderBy(){
+		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
+		for(QueryColumnOrderBySelector orderBySelector : orderBy) {
+			String tableConceptualName = orderBySelector.getTable();
+			String colAlias = orderBySelector.getAlias().toUpperCase();
+			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
+			
+			//if the groupBy selector is not among the user-requested selectors, then 
+			//cannot be used as a groupBy selector
+			if (selectorAliases.contains(colAlias)){
+				orderBySelectors.add(tableConceptualName + "." + colAlias);
+			} else {
+				continue;
+			}
+		}	
+	}
+	
+	//////////////////////////////////////end append order by////////////////////////////////////////////
+	
+	
+	//////////////////////////////////////append group by  ////////////////////////////////////////////
+	
+	protected void addGroupBy(){
+		List<QueryColumnSelector> groupBy = qs.getGroupBy();
+		for(QueryColumnSelector groupBySelector : groupBy) {
+			String tableConceptualName = groupBySelector.getTable();
+			String colAlias = groupBySelector.getAlias().toUpperCase();
+			
+			//if the groupBy selector is not among the user-requested selectors, then 
+			//cannot be used as a groupBy selector
+			if (selectorAliases.contains(colAlias)){
+				groupBySelectors.add(tableConceptualName + "." + colAlias);
+			} else {
+				continue;
+			}
+		}
+	}
+	
+	//////////////////////////////////////end append group by////////////////////////////////////////////
+	
+	//////////////////////////////////// caching utility methods /////////////////////////////////////////
+	
+	/**
+	 * Get the physical name of the 
+	 * @param conceptualTableName
+	 * @return
+	 */
+	protected String getPhysicalTableNameFromConceptualName(String conceptualTableName) {
+		// if engine present
+		// get the appropriate physical storage name for the table
+		if(engine != null && !engine.isBasic()) {
+			// if we already have it, just grab from hash
+			if(conceptualConceptToPhysicalMap.containsKey(conceptualTableName)) {
+				return conceptualConceptToPhysicalMap.get(conceptualTableName);
+			}
+			
+			// we dont have it.. so query for it
+			String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualTableName;
+			String tableURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
+			
+			// table name is the instance name of the URI
+			String tableName = Utility.getInstanceName(tableURI);
+			
+			// since we also have the URI, just store the primary key as well if we haven't already
+			if(!primaryKeyCache.containsKey(conceptualTableName)) {
+				// will most likely be used
+				String primKey = Utility.getClassName(tableURI);
+				primaryKeyCache.put(conceptualTableName, primKey);
+			}
+			
+			// store the physical name as well in case we get it later
+			conceptualConceptToPhysicalMap.put(conceptualTableName, tableName);
+			return tableName;
+		} else {
+			// no engine is defined, just return the value
+			return conceptualTableName;
+		}
+	}
+	
+	/**
+	 * Get the physical name for a property
+	 * @param columnConceptualName					The conceptual name of the property
+	 * @return										The physical name of the property
+	 */
+	protected String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
+		if(engine != null && !engine.isBasic()) {
+			// if we already have it, just grab from hash
+			if(conceptualPropertyToPhysicalMap.containsKey(columnConceptualName)) {
+				return conceptualPropertyToPhysicalMap.get(columnConceptualName);
+			}
+			
+			String tablePhysicalName = getPhysicalTableNameFromConceptualName(tableConceptualName);
+			
+			// we don't have it... so query for it
+			String propertyConceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + columnConceptualName + "/" + tablePhysicalName;
+			String colURI = this.engine.getPhysicalUriFromConceptualUri(propertyConceptualURI);
+			String colName = null;
+			
+			// the class is the name of the column
+			colName = Utility.getClassName(colURI);
+			
+			conceptualPropertyToPhysicalMap.put(columnConceptualName, colName);
+			return colName;
+		} else {
+			// no engine is defined, just return the value
+			return columnConceptualName;
+		}
+	}
+	
+	/**
+	 * Get the primary key from the conceptual table name
+	 * @param table						The conceptual table name
+	 * @return							The physical table name
+	 */
+	protected String getPrimKey4Table(String conceptualTableName){
+		if(primaryKeyCache.containsKey(conceptualTableName)){
+			return primaryKeyCache.get(conceptualTableName);
+		}
+		else if (engine != null && !engine.isBasic()) {
+			// we dont have it.. so query for it
+			String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualTableName;
+			String tableURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
+			
+			// since we also have the URI, just store the primary key as well
+			// will most likely be used
+			String primKey = Utility.getClassName(tableURI);
+			primaryKeyCache.put(conceptualTableName, primKey);
+			return primKey;
+		}
+		return conceptualTableName;
+	}
+	
+	
+	////////////////////////////// end caching utility methods //////////////////////////////////////
+	
+	//////////////////////////////////// traversal assistance /////////////////////////////////////
+	
+	protected String[] determineOuterJoinSelectorsFilters(String subqueryJoinSyntax, String derivedTableName) {
+		//string @ index 0 will be the left join syntax
+		//string @ index 1 will be the right join syntax
+		//string @ index 2 will be the filters, if available
+		String[] outerJoinSelectors = new String[3];
+		String[] joinKeys = new String[2];
+		Set<String> leftTables = new HashSet<String>();
+		Set<String> rightTables = new HashSet<String>();
+		String leftTableSelector = null;
+		String rightTableSelector = null;
+		
+		Pattern p = Pattern.compile("[^ ]*=[^ ]*+");
+		Matcher m = p.matcher(subqueryJoinSyntax);
+		while (m.find()){
+			joinKeys = m.group(0).split("=");
+			String lTableCol = joinKeys[0];
+			String rTableCol = joinKeys[1];
+			String lTable = lTableCol.split("\\.")[0];
+			String rTable = rTableCol.split("\\.")[0];
+			
+			//if there had been prior joins before this outer join, it's possible that 
+			//the left table is a derived table reference
+			if (!lTable.startsWith("derivedTempTable")){
+				leftTables.add(lTable);
+				leftTableSelector = parseTableColAlias(this.retTableToSelectors.get(lTable).stream()
+					.filter(v -> v.split(" AS")[0].equals(lTableCol))
+					.collect(Collectors.joining("")));
+			} else {
+				leftTableSelector =
+						parseTableColAlias(this.retTableToSelectors.entrySet().stream()
+						.map(e -> e.getValue().stream().filter(v -> v.split("\"")[1].equals(lTableCol.split("\\.")[1]))
+										.collect(Collectors.joining("")))
+						.collect(Collectors.joining("")));
+				
+			}
+			
+			//right table won't be a derived table reference
+			rightTables.add(rTable);
+			rightTableSelector = parseTableColAlias(this.retTableToSelectors.get(rTable).stream()
+				.filter(v -> v.split(" AS")[0].equals(rTableCol))
+				.collect(Collectors.joining("")));
+		}
+		
+		//IDENTIFY RELEVANT FILTERS
+		String subQueryFilter = getSubqueryFilters(derivedTableName, Stream.of(leftTableSelector.split("\\.")[0]).collect(Collectors.toSet()), rightTables);
+		outerJoinSelectors[2] = subQueryFilter;
+		
+		//IDENTIFY RELEVANT SELECTORS
+		//set left selectors
+		String leftSelector = getSubquerySelectors(derivedTableName, leftTables, rightTables);
+		outerJoinSelectors[0] = leftSelector;
+		//set right selectors
+		String leftKeyAlias = leftTableSelector.split("\\.")[1];
+		String escapedleftJoinKey = joinKeys[0].replaceAll("([\\.\\$])", "\\\\$1");
+		String rightSelector = leftSelector.replaceAll("(?:^|)" + escapedleftJoinKey + "(?:$|\\s)[^,]*", 
+				Matcher.quoteReplacement(joinKeys[1] + " AS \"" + leftKeyAlias + "\" "));
+		outerJoinSelectors[1] = rightSelector;
+		
+		return outerJoinSelectors;
+	}
+
+	protected String[] determineH2JoinSelectorsFilters(String subqueryJoinSyntax, String derivedTableName){
+		//string @ index 0 will be the selectors & string @ index 1 will be the filters
+		String[] selectorsFilters = new String[2];
+		Set<String> leftTables = new HashSet<String>();
+		Set<String> rightTables = new HashSet<String>();
+		
+		Pattern p = Pattern.compile("[^ ]*=[^ ]*+");
+		Matcher m = p.matcher(subqueryJoinSyntax);
+		while (m.find()){
+			String[] joinKeys = m.group(0).split("=");
+			String lTableCol = joinKeys[0];
+			String rTableCol = joinKeys[1];
+			String lTable = lTableCol.split("\\.")[0];
+			String rTable = rTableCol.split("\\.")[0];
+			
+			if (!lTable.startsWith("derivedTempTable")){
+				leftTables.add(lTable);
+			}
+			if (!rTable.startsWith("derivedTempTable")){
+				rightTables.add(rTable);
+			}
+		}
+		
+		//IDENTIFY RELEVANT FILTERS
+		String subQueryFilter = getSubqueryFilters(derivedTableName, leftTables, rightTables);
+		selectorsFilters[1] = subQueryFilter;
+		//IDENTIFY RELEVANT SELECTORS
+		String subQuerySelector = getSubquerySelectors(derivedTableName, leftTables, rightTables);
+		selectorsFilters[0] = subQuerySelector;
+		return selectorsFilters;
+	}
+	
+	protected String getSubqueryFilters(String derivedTableName, Set<String> leftTables, Set<String> rightTables){
+		StringBuilder subFilters = new StringBuilder();
+		String filterStatement = "";
+		Iterator it = this.retTableToFilters.entrySet().iterator();
+		while (it.hasNext()){
+			Map.Entry entry = (Map.Entry) it.next();
+			List<String> keyList = new ArrayList(Arrays.asList(((String) entry.getKey()).split("__")));
+			List<String> derivedReferenceReplace = new ArrayList<String>(keyList);
+
+			keyList.removeAll(leftTables);
+			keyList.removeAll(rightTables);
+			keyList.removeAll(traversedTables);
+			if (keyList.isEmpty()){
+				if (!traversedTables.isEmpty()){
+					derivedReferenceReplace.retainAll(traversedTables);
+					String regex = "\\b" + String.join("\\\\b\\\\.|\\\\b", derivedReferenceReplace) + "\\.\\b";
+			        List<String> modifiedFilters = ((List<String>) entry.getValue()).stream()
+			        		.map(i -> i.replaceAll(regex, derivedTableName + ".")).collect(Collectors.toList());
+			        filterStatement = String.join(" AND ", modifiedFilters);
+				} else {
+					filterStatement = String.join(" AND ", ((List<String>) entry.getValue()));
+				}
+				
+		        if (subFilters.length() == 0){
+		        	subFilters.append(filterStatement);
+		        }else {
+		        	subFilters.append(" AND ").append(filterStatement);
+		        }
+		        
+		        it.remove();
+			}
+		}
+		return subFilters.toString();
+	}
+	
+	protected String getSubquerySelectors(String derivedTableName, Set<String> leftTables, Set<String> rightTables){
+		Set<String> subquerySelectorList = new LinkedHashSet<String>();
+		String subSelectors = "";
+		
+		//first, update the selectors already in selectorOrderSet with the derived table name
+		subSelectors = String.join(" , ", selectorOrderedList);
+		subSelectors = subSelectors.replaceAll("[^ ]*\\.", derivedTableName + ".");
+
+		//second, find/add the new selectors to the selectorOrderedSet
+		for (String leftTable : leftTables){
+			if (!traversedTables.contains(leftTable)) {
+				subquerySelectorList.addAll(this.retTableToSelectors.get(leftTable));
+				Set<String> leftTableCols = parseTableColAlias(this.retTableToSelectors.get(leftTable));
+				selectorOrderedList.addAll(leftTableCols);
+				traversedTables.add(leftTable);
+			}
+		}
+		for (String rightTable : rightTables){
+			if (!traversedTables.contains(rightTable)) {
+				subquerySelectorList.addAll(this.retTableToSelectors.get(rightTable));
+				Set<String> rightTableCols = parseTableColAlias(this.retTableToSelectors.get(rightTable));
+				selectorOrderedList.addAll(rightTableCols);
+				traversedTables.add(rightTable);
+			}
+		}
+		if (subSelectors.length() > 0) {
+			subSelectors = subSelectors + " , " + String.join(" , ", subquerySelectorList);
+		} else {
+			subSelectors = String.join(" , ", subquerySelectorList);
+		}
+		return subSelectors;
+	}
+	
+	protected Set<String> parseTableColAlias(Set<String> selectorList){
+		Set<String> tableColAlias = new LinkedHashSet<String>();
+		for (String s : selectorList){
+			tableColAlias.add(parseTableColAlias(s));
+		}
+		return tableColAlias;
+	}
+	
+	protected String parseTableColAlias(String selector){
+		if (!selector.isEmpty() && selector.contains("AS")){
+			return selector.split("\\.")[0] + "." + selector.split("\"")[1];
+		} else {
+			//otherwise selector is an empty string
+			return selector;
+		}
+	}
+	
+	////////////////////////////////// end traversal assistance ///////////////////////////////////
+	
+	/////////////////////////////// other utility methods /////////////////////////////////////////
+	
+	/**
+	 * Gets the 4 parts needed to define a relationship
+	 * 1) the start table
+	 * 2) the start tables column
+	 * 3) the end table
+	 * 4) the end tables column
+	 * 
+	 * We have 3 situations
+	 * 1) If all 4 parts are defined within the fromString and toString parameters by utilizing
+	 * a "__", then it just converts to the physical names and is done
+	 * 2) If startTable and start column is defined but endTable/endColumn is not, it assumes the input
+	 * for endString is a concept and should bind on its primary key.  This is analogous for when endTable
+	 * and end column are defined but the startString is not.
+	 * 3) Neither are defined, so we must use the OWL to define the relationship between the 2 tables
+	 * 
+	 * @param fromString				The start string defining the table/column
+	 * @param toString					The end string defining the table/column
+	 * @return							String[] of length 4 where the indices are
+	 * 									[startTable, startCol, endTable, endCol]
+	 */
+	protected String[] getRelationshipConceptProperties(String fromString, String toString){
+		if(relationshipConceptPropertiesMap.containsKey(fromString + "__" + toString)) {
+			return relationshipConceptPropertiesMap.get(fromString + "__" + toString);
+		}
+		
+		String fromTable = null;
+		String fromCol = null;
+		String toTable = null;
+		String toCol = null;
+		
+		// see if both the table name and column name are specified for the fromString
+		if(fromString.contains("__")){
+			String fromConceptualTable = fromString.substring(0, fromString.indexOf("__"));
+			String fromConceptualColumn = fromString.substring(fromString.indexOf("__")+2);
+			
+			// need to make these the physical names
+			if(engine != null && !engine.isBasic()) {
+				fromTable = getPhysicalTableNameFromConceptualName(fromConceptualTable);
+				fromCol = getPhysicalPropertyNameFromConceptualName(fromConceptualTable, fromConceptualColumn);
+			} else {
+				fromTable = fromConceptualTable;
+				fromCol = fromConceptualColumn;
+			}
+		}
+		
+		// see if both the table name and column name are specified for the toString
+		if(toString.contains("__")){
+			String toConceptualTable = toString.substring(0, toString.indexOf("__"));
+			String toConceptualColumn = toString.substring(toString.indexOf("__")+2);
+			
+			// need to make these the physical names
+			if(engine != null && !engine.isBasic()) {
+				toTable = getPhysicalTableNameFromConceptualName(toConceptualTable);
+				toCol = getPhysicalPropertyNameFromConceptualName(toConceptualTable, toConceptualColumn);
+			} else {
+				toTable = toConceptualTable;
+				toCol = toConceptualColumn;
+			}
+		}
+		
+		// if both have table and property defined, then we know exactly what we need to do
+		// for the join... so we are done!
+		
+		// however, if one has a property specified and the other doesn't
+		// then we want to connect the one table with col specified to the other table 
+		// using the primary key of that table
+		// lets try this for both cases of either toTable or fromTable not being specified 
+		if(fromTable != null && toTable == null){
+			String[] toConProp = getConceptProperty(toString);
+			toTable = toConProp[0];
+			toCol = toConProp[1];
+		}
+		
+		else if(fromTable == null && toTable != null){
+			String[] fromConProp = getConceptProperty(fromString);
+			fromTable = fromConProp[0];
+			fromCol = fromConProp[1];
+		}
+		
+		// if neither has a property specified, use owl to look up foreign key relationship
+		else if(engine != null && !engine.isBasic() && (fromCol == null && toCol == null)) // in this case neither has a property specified. time to go to owl to get fk relationship
+		{
+			String fromURI = null;
+			String toURI = null;
+			
+			String fromConceptual = "http://semoss.org/ontologies/Concept/" + fromString;
+			String toConceptual = "http://semoss.org/ontologies/Concept/" + toString;
+			
+			fromURI = this.engine.getPhysicalUriFromConceptualUri(fromConceptual);
+			toURI = this.engine.getPhysicalUriFromConceptualUri(toConceptual);
+
+			// need to figure out what the predicate is from the owl
+			// also need to determine the direction of the relationship -- if it is forward or backward
+			String query = "SELECT ?relationship WHERE {<" + fromURI + "> ?relationship <" + toURI + "> } ORDER BY DESC(?relationship)";
+			System.out.println(query);
+			TupleQueryResult res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
+			String predURI = " unable to get pred from owl for " + fromURI + " and " + toURI;
+			try {
+				if(res.hasNext()){
+					predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
+				}
+				else {
+					query = "SELECT ?relationship WHERE {<" + toURI + "> ?relationship <" + fromURI + "> } ORDER BY DESC(?relationship)";
+					System.out.println(query);
+					res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
+					if(res.hasNext()){
+						predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
+					}
+				}
+			} catch (QueryEvaluationException e) {
+				System.out.println(predURI);
+			}
+			String[] predPieces = Utility.getInstanceName(predURI).split("[.]");
+			if(predPieces.length == 4)
+			{	
+				fromTable = predPieces[0];
+				fromCol = predPieces[1];
+				toTable = predPieces[2];
+				toCol = predPieces[3];
+			}
+			else if(predPieces.length == 6) // this is coming in with the schema
+			{
+				// EHUB_CLM_SDS . EHUB_CLM_EVNT . CLM_EVNT_KEY . EHUB_CLM_SDS . EHUB_CLM_PROV_DMGRPHC . CLM_EVNT_KEY
+				// [0]               [1]            [2]             [3]             [4]                    [5]
+				fromTable = predPieces[0] + "." + predPieces[1];
+				fromCol = predPieces[2];
+				toTable = predPieces[3] + "." + predPieces[4];
+				toCol = predPieces[5];
+			}
+		}
+		
+		String[] retArr = new String[]{fromTable, fromCol, toTable, toCol};
+		relationshipConceptPropertiesMap.put(fromString + "__" + toString, retArr);
+		
+		return retArr;
+	}
+	
+	
+	/**
+	 * Returns the physical concept name and property name for a given input
+	 * If the input contains a "__" it returns the physical from both the 
+	 * the concept and the property
+	 * If the input doesn't contain a "__", get the concept and the primary key 
+	 * @param concept_property				The input string
+	 * @return								String[] containing the concept physical
+	 * 										at index 0 and property physical at index 1
+	 */
+	protected String[] getConceptProperty(String concept_property) {
+		String conceptPhysical = null;
+		String propertyPhysical = null;
+		
+		// if it contains a "__"
+		// break the string and get the physical for both parts
+		if(concept_property.contains("__")) {
+			String concept = concept_property.substring(0, concept_property.indexOf("__"));
+			String property = concept_property.substring(concept_property.indexOf("__")+2);
+			
+			conceptPhysical = getPhysicalTableNameFromConceptualName(concept);
+			propertyPhysical = getPhysicalPropertyNameFromConceptualName(concept, property);
+		} else {
+			// if it doesn't contain a "__", then it is just a concept
+			// get the physical and the prim key
+			conceptPhysical = getPhysicalTableNameFromConceptualName(concept_property);
+			propertyPhysical = getPrimKey4Table(concept_property);
+		}
+		
+		return new String[]{conceptPhysical, propertyPhysical};
+	}
+	
+	protected String getDerivedTableName(){
+		return "derivedTempTable" + Utility.getRandomString(4);
+	}
+	
+	////////////////////////////////////////// end other utility methods ///////////////////////////////////////////
+	
+	
+	///////////////////////////////////////// test method /////////////////////////////////////////////////
+	
+	public static void main(String[] args) {
+//		// load in the engine
+//		TestUtilityMethods.loadDIHelper();
+//
+//		//TODO: put in correct path for your database
+//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+//		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
+//		coreEngine.setEngineId("Movie_RDBMS");
+//		coreEngine.openDB(engineProp);
+//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+		
+//		String str = "curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\", curTabl.col as \"alias\"";
+//		Pattern p = Pattern.compile("[^ ]*\\.");
+//		Matcher m = p.matcher(str);
+//		while (m.find()){
+//			System.out.println(m.group(0));
+//		}
+//		String str1 = str.replaceAll("[^ ]*\\.", "tempTABLE.");
+//		System.out.println(str1);
+		
+	}
+
+	///////////////////////////////////////// end test methods //////////////////////////////////////////////
+	
+}
