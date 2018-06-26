@@ -24,7 +24,15 @@ public class SetAppTagsReactor extends AbstractReactor {
 		organizeKeys();
 		String appName = this.keyValue.get(this.keysToGet[0]);
 		List<String> tags = getTags();
-		SecurityUtils.setEngineMeta(appName, "tags", tags);
+		if(this.securityEnabled()) {
+			if(this.getUserAppFilters().contains(appName)) {
+				SecurityUtils.setEngineMeta(appName, "tags", tags);
+			} else {
+				throw new IllegalArgumentException("App does not exist or user does not have access to database");
+			}
+		} else {
+			SecurityUtils.setEngineMeta(appName, "tags", tags);
+		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
 	}
 	
