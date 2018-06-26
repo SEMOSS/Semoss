@@ -54,6 +54,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			reloadInsights = Boolean.parseBoolean(booleanStr);
 		}
 		
+		boolean global = true;
+		if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
+			global = false;
+		}
 		
 		boolean engineExists = containsEngineId(appId);
 		if(engineExists && !reloadInsights) {
@@ -72,7 +76,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// need to add engine into the security db
 		if(!engineExists) {
 			String[] typeAndCost = getAppTypeAndCost(prop);
-			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], false);
+			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 		} else {
 			//TODO: do i need to update the global tag ???
 		}
