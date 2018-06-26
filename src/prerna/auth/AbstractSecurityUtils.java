@@ -28,6 +28,22 @@ public abstract class AbstractSecurityUtils {
 	
 	public static void loadSecurityDatabase() {
 		securityDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
+		// TODO: testing code!!!!
+		// TODO: testing code!!!!
+		// TODO: testing code!!!!
+		// TODO: testing code!!!!
+		// TODO: testing code!!!!
+		// TODO: testing code!!!!
+		// TODO: testing code!!!!
+		// TODO: testing code!!!!
+		String deleteQuery = "DELETE FROM ENGINE WHERE 1-1";
+		securityDb.removeData(deleteQuery);
+		deleteQuery = "DELETE FROM INSIGHT WHERE 1-1";
+		securityDb.removeData(deleteQuery);
+		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE 1-1";
+		securityDb.removeData(deleteQuery);
+		deleteQuery = "DELETE FROM ENGINEMETA WHERE 1-1";
+		securityDb.removeData(deleteQuery);
 	}
 
 	/**
@@ -99,15 +115,15 @@ public abstract class AbstractSecurityUtils {
 		return values;
 	}
 	
-	static List<Map<String, String>> flushRsToMap(IRawSelectWrapper wrapper) {
-		List<Map<String, String>> result = new Vector<Map<String, String>>();
+	static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
+		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
 		while(wrapper.hasNext()) {
 			IHeadersDataRow headerRow = wrapper.next();
 			String[] headers = headerRow.getHeaders();
 			Object[] values = headerRow.getValues();
-			Map<String, String> map = new HashMap<String, String>();
+			Map<String, Object> map = new HashMap<String, Object>();
 			for(int i = 0; i < headers.length; i++) {
-				map.put(headers[i], values[i].toString());
+				map.put(headers[i], values[i]);
 			}
 			result.add(map);
 		}
