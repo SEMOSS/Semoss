@@ -102,7 +102,7 @@ import com.ibm.icu.math.BigDecimal;
 import com.ibm.icu.text.DecimalFormat;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityUpdateUtils;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -2358,7 +2358,7 @@ public class Utility {
 					// add the insights into solr
 					SolrUtility.addToSolrInsightCore(engineId);
 					// add for security
-					SecurityUtils.addApp(engineId);
+					SecurityUpdateUtils.addApp(engineId);
 //				} catch (ParseException e) {
 //					e.printStackTrace();
 //				}
