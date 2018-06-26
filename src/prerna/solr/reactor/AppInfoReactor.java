@@ -36,7 +36,7 @@ public class AppInfoReactor extends AbstractReactor {
 			baseInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUserId(), appId);
 		} else {
 			// just grab the info
-			baseInfo = SecurityQueryUtils.getUserDatabaseList(appId);
+			baseInfo = SecurityQueryUtils.getAllDatabaseList();
 		}
 		
 		if(baseInfo.isEmpty()) {
