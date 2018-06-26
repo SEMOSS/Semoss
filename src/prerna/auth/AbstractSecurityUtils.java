@@ -112,12 +112,12 @@ public abstract class AbstractSecurityUtils {
 
 		// ACCESSREQUEST
 		colNames = new String[] { "id", "submittedby", "submittedto", "engine", "permission" };
-		types = new String[] { "integer", "varchar(800)", "varchar(800)", "integer", "integer" };
+		types = new String[] { "integer", "varchar(255)", "varchar(255)", "integer", "integer" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("ACCESSREQUEST", colNames, types));
 
 		// ENGINE
 		colNames = new String[] { "name", "id", "global", "type", "cost" };
-		types = new String[] { "varchar(800)", "varchar(800)", "boolean", "varchar(800)", "varchar(800)" };
+		types = new String[] { "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("ENGINE", colNames, types));
 
 		// ENGINEGROUPMEMBERVISIBILITY
@@ -127,27 +127,27 @@ public abstract class AbstractSecurityUtils {
 
 		// ENGINEMETA
 		colNames = new String[] { "engineid", "key", "value" };
-		types = new String[] { "varchar(800)", "varchar(800)", "varchar(800)" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("ENGINEMETA", colNames, types));
 
 		// ENGINEPERMISSION
 		colNames = new String[] { "id", "user", "permission", "engine", "visibility" };
-		types = new String[] { "integer", "varchar(800)", "integer", "varchar(800)", "boolean" };
+		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "boolean" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("ENGINEPERMISSION", colNames, types));
 
 		// GROUPENGINEPERMISSION
 		colNames = new String[] { "groupid", "permission", "engine", "id" };
-		types = new String[] { "integer", "integer", "varchar(800)", "integer" };
+		types = new String[] { "integer", "integer", "varchar(255)", "integer" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
 
 		// GROUPINSIGHTPERMISSION
 		colNames = new String[] { "groupid", "engineid", "insightid" };
-		types = new String[] { "integer", "integer", "varchar(800)" };
+		types = new String[] { "integer", "integer", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("GROUPINSIGHTPERMISSION", colNames, types));
 
 		// GROUPMEMBERS
 		colNames = new String[] { "groupid", "memberid", "id" };
-		types = new String[] { "integer", "varchar(800)", "integer" };
+		types = new String[] { "integer", "varchar(255)", "integer" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS", colNames, types));
 
 		// GROUPSEEDPERMISSION
@@ -156,43 +156,43 @@ public abstract class AbstractSecurityUtils {
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
 
 		// INSIGHT
-		colNames = new String[] { "engineid", "insightid", "insightname", "global" };
-		types = new String[] { "varchar(800)", "varchar(800)", "varchar(800)", "boolean" };
+		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
 
 		// INSIGHTEXECUTION
 		colNames = new String[] { "user", "database", "insight", "count", "lastexecuted", "session" };
-		types = new String[] { "varchar(800)", "varchar(800)", "varchar(800)", "integer", "date", "varchar(800)" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer", "date", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION", colNames, types));
 
 		// PERMISSION
 		colNames = new String[] { "id", "name" };
-		types = new String[] { "integer", "varchar(800)" };
+		types = new String[] { "integer", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("PERMISSION", colNames, types));
 
 		// SEED
 		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
-		types = new String[] { "integer", "varchar(800)", "integer", "varchar(800)", "varchar(800)", "varchar(800)", "clob", "varchar(800)" };
+		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", "clob", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
 
 		// USER
 		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
-		types = new String[] { "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
 
 		// USERGROUP
 		colNames = new String[] { "id", "name", "owner" };
-		types = new String[] { "integer", "varchar(800)", "varchar(800)" };
+		types = new String[] { "integer", "varchar(255)", "varchar(255)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
 
 		// USERINSIGHTPERMISSION
 		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
-		types = new String[] { "varchar(800)", "varchar(800)", "varchar(800)", "integer" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("USERINSIGHTPERMISSION", colNames, types));
 
 		// USERSEEDPERMISSION
 		colNames = new String[] { "userid", "seedid" };
-		types = new String[] { "varchar(800)", "integer" };
+		types = new String[] { "varchar(255)", "integer" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("USERSEEDPERMISSION", colNames, types));
 	}
 	
