@@ -34,14 +34,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -54,9 +49,9 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.solr.client.solrj.SolrServerException;
 import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -76,8 +71,6 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
-import prerna.solr.SolrIndexEngine;
-import prerna.solr.SolrUtility;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
@@ -1122,15 +1115,11 @@ public abstract class AbstractEngine implements IEngine {
 	
 	@Deprecated
 	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
-		try {
-			// if solr doesn't have this engine
-			// do not add anything yet
-			// let it get added later
-			if(!SolrIndexEngine.getInstance().containsEngine(this.engineId)) {
-				return;
-			}
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e3) {
-			e3.printStackTrace();
+		// if solr doesn't have this engine
+		// do not add anything yet
+		// let it get added later
+		if(!SecurityUpdateUtils.containsEngineId(this.engineId)) {
+			return;
 		}
 		boolean tableExists = false;
 		ResultSet rs = null;
@@ -1178,14 +1167,7 @@ public abstract class AbstractEngine implements IEngine {
 					// drop the old insight
 					oldId = it1.next().getValues()[0].toString();
 					admin.dropInsight(oldId);
-					try {
-						List<String> rList = new Vector<String>();
-						rList.add(this.engineId + "_" + oldId);
-						SolrIndexEngine.getInstance().removeInsight(rList);
-					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-							| IOException e1) {
-						e1.printStackTrace();
-					}
+					SecurityUpdateUtils.deleteInsight(this.engineId, oldId);
 				}
 			} catch(Exception e) {
 				// if we have a db that doesn't actually have this table (forms, local master, etc.)
@@ -1207,28 +1189,7 @@ public abstract class AbstractEngine implements IEngine {
 						insightIdToSave = oldId;
 					}
 					
-					Map<String, Object> solrInsights = new HashMap<>();
-					DateFormat dateFormat = SolrIndexEngine.getDateFormat();
-					Date date = new Date();
-					String currDate = dateFormat.format(date);
-					solrInsights.put(SolrIndexEngine.APP_ID, this.engineId);
-					solrInsights.put(SolrIndexEngine.APP_NAME, this.engineName);
-					solrInsights.put(SolrIndexEngine.APP_INSIGHT_ID, insightIdToSave);
-					solrInsights.put(SolrIndexEngine.STORAGE_NAME, "Explore an instance of a selected node type");
-					solrInsights.put(SolrIndexEngine.TAGS, "Explore");
-					solrInsights.put(SolrIndexEngine.LAYOUT, "Graph");
-					solrInsights.put(SolrIndexEngine.CREATED_ON, currDate);
-					solrInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
-					solrInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
-					solrInsights.put(SolrIndexEngine.DESCRIPTION, "");
-					solrInsights.put(SolrIndexEngine.USER_ID, "Default");
-
-					try {
-						SolrIndexEngine.getInstance().addInsight(this.engineId + "_" + insightIdToSave, solrInsights);
-					} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-							| IOException e1) {
-						e1.printStackTrace();
-					}
+					SecurityUpdateUtils.addInsight(this.engineId, insightIdToSave, "Explore an instance of a selected node type", true, "Graph");
 				} else {
 					// right now, delete and re add it
 					// only need to to do this on the recipe

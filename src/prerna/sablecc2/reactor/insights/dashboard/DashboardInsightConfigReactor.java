@@ -16,7 +16,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.solr.SolrIndexEngine;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -46,8 +45,8 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			Insight insight = getInsight(insightStrings.get(i));
 			insightMap.put("name", insight.getInsightName());
 			// keys below match those in solr
-			insightMap.put(SolrIndexEngine.APP_ID, insight.getEngineId());
-			insightMap.put(SolrIndexEngine.APP_INSIGHT_ID, insight.getRdbmsId());
+			insightMap.put("app_id", insight.getEngineId());
+			insightMap.put("app_insight_id", insight.getRdbmsId());
 			insightMap.put("recipe", getInsightRecipe(insight));
 			
 			// TODO: delete this once we update ids

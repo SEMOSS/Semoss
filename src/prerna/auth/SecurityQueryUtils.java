@@ -142,11 +142,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
-				+ "LEFT JOIN USERINSIGHTPERMISSION ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
 				+ "AND (USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE) "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm + "%' " : "")
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
@@ -160,10 +160,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ ", CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
-				+ "LEFT JOIN USERINSIGHTPERMISSION ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm + "%' " : "")
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
@@ -223,4 +223,38 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 
 	
+	//////////////////////////////////////////////////////////////////
+	
+	/*
+	 * For autocompletion of user searching
+	 */
+	
+	public static List<String> predictUserInsightSearch(String userId, String searchTerm, String limit, String offset) {
+		String query = "SELECT DISTINCT "
+				+ "INSIGHT.INSIGHTNAME as \"name\" "
+				+ "FROM INSIGHT "
+				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
+				+ "WHERE "
+				+ "(USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE) "
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
+				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+				;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushToListString(wrapper);
+	}
+	
+	public static List<String> predictInsightSearch(String searchTerm, String limit, String offset) {
+		String query = "SELECT DISTINCT INSIGHT.INSIGHTNAME as \"name\" "
+				+ "FROM INSIGHT "
+				+ "WHERE "
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
+				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+				;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushToListString(wrapper);
+	}
 }
