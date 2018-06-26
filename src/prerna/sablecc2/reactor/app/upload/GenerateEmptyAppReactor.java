@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
-import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
@@ -44,7 +44,7 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to provide a name for the app");
 		}
 		// need to make sure the app is unique
-		if(SecurityUtils.containsEngine(appName)) {
+		if(SecurityUpdateUtils.containsEngine(appName)) {
 			throw new IllegalArgumentException("App name already exists.  Please provide a unique app name");
 		}
 		
@@ -90,7 +90,7 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		logger.info("Done generating temp smss");
 
 		logger.info("Add app security defaults");
-		SecurityUtils.addApp(appId);
+		SecurityUpdateUtils.addApp(appId);
 		logger.info("Done adding security defaults");
 
 		AppEngine appEng = new AppEngine();

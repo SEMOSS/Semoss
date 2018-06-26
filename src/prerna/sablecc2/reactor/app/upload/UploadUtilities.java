@@ -14,7 +14,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityUpdateUtils;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -68,7 +68,7 @@ public class UploadUtilities {
 	 */
 	public static void updateMetadata(String appId) throws Exception {
 		Utility.synchronizeEngineMetadata(appId);
-		SecurityUtils.addApp(appId);
+		SecurityUpdateUtils.addApp(appId);
 		SolrUtility.addToSolrInsightCore(appId);
 	}
 
@@ -87,7 +87,7 @@ public class UploadUtilities {
 			throw new IllegalArgumentException("Need to provide a name for the app");
 		}
 		// need to make sure the app is unique
-		boolean containsApp = SecurityUtils.containsEngine(appName);
+		boolean containsApp = SecurityUpdateUtils.containsEngine(appName);
 		if(containsApp) {
 			throw new IOException("App name already exists.  Please provide a unique app name");
 		}

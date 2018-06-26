@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -34,10 +34,10 @@ public class AppInfoReactor extends AbstractReactor {
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
 			// user has access!i
-			baseInfo = SecurityUtils.getUserDatabaseList(this.insight.getUserId(), appId);
+			baseInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUserId(), appId);
 		} else {
 			// just grab the info
-			baseInfo = SecurityUtils.getUserDatabaseList(appId);
+			baseInfo = SecurityQueryUtils.getUserDatabaseList(appId);
 		}
 		
 		if(baseInfo.isEmpty()) {
@@ -45,7 +45,7 @@ public class AppInfoReactor extends AbstractReactor {
 		}
 		
 		Map<String, String> appInfo = baseInfo.get(0);
-		Map<String, List<String>> additionalMeta = SecurityUtils.getAggregateEngineMetadata(appId);
+		Map<String, List<String>> additionalMeta = SecurityQueryUtils.getAggregateEngineMetadata(appId);
 
 		// combine into return object
 		Map<String, Object> data = new HashMap<String, Object>();
