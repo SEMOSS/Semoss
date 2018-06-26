@@ -147,12 +147,12 @@ public class POIBlock {
 				
 				//System.out.println("Range Start Row, Col - " + col2Rows.get(startCol).getMin() + "," + startCol);
 				//System.out.println("Range Start Row, Col - " + col2Rows.get(startCol).getMax() + "," + endCol);
-				if(ranges.size() == 0)
-					startCol--;
+				//if(ranges.size() == 0)
+				//	startCol--;
 				
 				if(col2Rows.containsKey(startCol))
 				{
-					Range r = new Range(startCol, endCol, new Double(col2Rows.get(startCol).getMin()).intValue(), new Double(col2Rows.get(startCol).getMax()).intValue());
+					Range r = new Range(startCol+1, endCol, new Double(col2Rows.get(startCol).getMin()).intValue(), new Double(col2Rows.get(startCol).getMax()).intValue());
 					ranges.add(r);
 					r.print();
 				}
@@ -160,7 +160,7 @@ public class POIBlock {
 				startCol = 0;
 				endCol = 0;
 			}
-			else if(col2Rows.containsKey(col))
+			else if(col2Rows.containsKey(col) && !started)
 			{
 				started = true;
 				startCol = col;
