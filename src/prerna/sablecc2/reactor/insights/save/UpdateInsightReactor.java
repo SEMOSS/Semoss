@@ -1,20 +1,14 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.apache.solr.client.solrj.SolrServerException;
 
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -24,7 +18,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
-import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
@@ -94,11 +87,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info("2) Update insight to solr...");
-			editExistingInsightInSolr(engine.getEngineId(), engine.getEngineName(), existingId, insightName, layout, "", new ArrayList<String>(), "");
+			editExistingInsightInSolr(engine.getEngineId(), existingId, insightName, layout, "", new ArrayList<String>());
 			logger.info("2) Done...");
 		} else {
-			dropInsightInSolr(appId, existingId);
-			logger.info("2) Insight is hidden ... do not add to solr");
+//			dropInsightInSolr(appId, existingId);
+//			logger.info("2) Insight is hidden ... do not add to solr");
 		}
 		
 		//update recipe text file
@@ -112,10 +105,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		returnMap.put(SolrIndexEngine.STORAGE_NAME, insightName);
-		returnMap.put(SolrIndexEngine.APP_INSIGHT_ID, existingId);
-		returnMap.put(SolrIndexEngine.APP_NAME, engine.getEngineName());
-		returnMap.put(SolrIndexEngine.APP_ID, engine.getEngineId());
+		returnMap.put("name", insightName);
+		returnMap.put("app_insight_id", existingId);
+		returnMap.put("app_name", engine.getEngineName());
+		returnMap.put("app_id", engine.getEngineId());
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		return noun;
 	}
@@ -132,36 +125,19 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param userId
 	 * @param imageURL
 	 */
-	private void editExistingInsightInSolr(String appId, String appName, String existingRdbmsId, String insightName, String layout, String description, List<String> tags, String userId) {
-		Map<String, Object> solrModifyInsights = new HashMap<>();
-		DateFormat dateFormat = SolrIndexEngine.getDateFormat();
-		Date date = new Date();
-		String currDate = dateFormat.format(date);
-		solrModifyInsights.put(SolrIndexEngine.STORAGE_NAME, insightName);
-		solrModifyInsights.put(SolrIndexEngine.TAGS, tags);
-		solrModifyInsights.put(SolrIndexEngine.DESCRIPTION, description);
-		solrModifyInsights.put(SolrIndexEngine.LAYOUT, layout);
-		solrModifyInsights.put(SolrIndexEngine.MODIFIED_ON, currDate);
-		solrModifyInsights.put(SolrIndexEngine.LAST_VIEWED_ON, currDate);
-		solrModifyInsights.put(SolrIndexEngine.APP_ID, appId);
-		solrModifyInsights.put(SolrIndexEngine.APP_NAME, appName);
-
-		try {
-			SolrIndexEngine.getInstance().modifyInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(appId, existingRdbmsId), solrModifyInsights);
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-				| IOException e1) {
-			e1.printStackTrace();
-		}
+	private void editExistingInsightInSolr(String appId, String existingRdbmsId, String insightName, String layout, String description, List<String> tags) {
+		SecurityUpdateUtils.updateInsight(appId, existingRdbmsId, insightName, false, layout);
+		//TODO: update tags and stuff
 	}
 	
-	private void dropInsightInSolr(String engineName, String rdbmsId) {
-		try {
-			SolrIndexEngine.getInstance().removeInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, rdbmsId));
-		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-				| IOException e1) {
-			e1.printStackTrace();
-		}
-	}
+//	private void dropInsightInSolr(String engineName, String rdbmsId) {
+//		try {
+//			SolrIndexEngine.getInstance().removeInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, rdbmsId));
+//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
+//				| IOException e1) {
+//			e1.printStackTrace();
+//		}
+//	}
 
 	/**
 	 * Update recipe: delete the old file and save as new

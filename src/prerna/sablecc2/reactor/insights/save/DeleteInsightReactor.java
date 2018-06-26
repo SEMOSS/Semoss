@@ -2,15 +2,12 @@ package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.solr.client.solrj.SolrServerException;
 
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.GenRowStruct;
@@ -19,7 +16,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.solr.SolrIndexEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -77,27 +73,8 @@ public class DeleteInsightReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 
-			// delete from solr
-			if (solrIDList != null) {
-				SolrIndexEngine solrE;
-				try {
-					solrE = SolrIndexEngine.getInstance();
-					if (solrE.serverActive()) {
-						solrE.removeInsight(solrIDList);
-					}
-				} catch (SolrServerException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				} catch (KeyManagementException e) {
-					e.printStackTrace();
-				} catch (NoSuchAlgorithmException e) {
-					e.printStackTrace();
-				} catch (KeyStoreException e) {
-					e.printStackTrace();
-				}
-			}
-
+			SecurityUpdateUtils.deleteInsight(engineName, insightIDList.toArray(new String[insightIDList.size()]));
+			
 			// delete insight .mosfet file, if it exists
 			String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + Constants.DB + "\\" + engineName + "\\version\\";
 			for (int i = 0; i < insightIDList.size(); i++) {
@@ -115,7 +92,6 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		// unable to delete
 		return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
-
 	}
 
 }
