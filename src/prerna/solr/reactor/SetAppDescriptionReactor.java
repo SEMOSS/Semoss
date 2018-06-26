@@ -25,7 +25,15 @@ public class SetAppDescriptionReactor extends AbstractReactor {
 		String descriptions = this.keyValue.get(this.keysToGet[1]);
 		List<String> descList = new ArrayList<String>();
 		descList.add(descriptions);
-		SecurityUtils.setEngineMeta(appName, "description", descList);
+		if(this.securityEnabled()) {
+			if(this.getUserAppFilters().contains(appName)) {
+				SecurityUtils.setEngineMeta(appName, "description", descList);
+			} else {
+				throw new IllegalArgumentException("App does not exist or user does not have access to database");
+			}
+		} else {
+			SecurityUtils.setEngineMeta(appName, "description", descList);
+		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
 	}
 }
