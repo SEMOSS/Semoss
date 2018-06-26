@@ -44,6 +44,16 @@ public abstract class AbstractListFilter implements IQueryFilter {
 		return usedCols;
 	}
 	
+
+	@Override
+	public Set<String> getAllUsedTables() {
+		Set<String> usedCols = new HashSet<String>();
+		for(IQueryFilter f : this.filterList) {
+			usedCols.addAll(f.getAllUsedTables());
+		}
+		return usedCols;
+	}
+	
 	@Override
 	public boolean containsColumn(String column) {
 		for(IQueryFilter f : this.filterList) {

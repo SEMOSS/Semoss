@@ -53,6 +53,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.NoOuterJoinSqlInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -752,6 +753,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	
 	@Override
 	public IQueryInterpreter getQueryInterpreter(){
+		if(dbType == null || dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
+			return new NoOuterJoinSqlInterpreter(this);
+		}
 		// defualt ansi sql 
 		return new SqlInterpreter(this);
 	}
