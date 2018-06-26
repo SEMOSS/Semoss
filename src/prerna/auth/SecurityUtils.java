@@ -29,8 +29,6 @@ public class SecurityUtils {
 	private static final Logger LOGGER = Logger.getLogger(SecurityUtils.class);
 	
 	private static RDBMSNativeEngine securityDb;
-	// escape quote
-	private static final String EQ = "\"";
 	
 	/**
 	 * Only used for static references
@@ -148,7 +146,7 @@ public class SecurityUtils {
 	 * @param prop
 	 * @return
 	 */
-	private static String[] getAppTypeAndCost(Properties prop) {
+	public static String[] getAppTypeAndCost(Properties prop) {
 		String app_type = null;
 		String app_cost = null;
 		// the whole app cost stuff is completely made up...
@@ -208,6 +206,8 @@ public class SecurityUtils {
 		securityDb.removeData(deleteQuery);
 		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE ENGINE='" + appId + "'";
 		securityDb.removeData(deleteQuery);
+		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINE='" + appId + "'";
+		securityDb.removeData(deleteQuery);
 	}
 	
 	
@@ -248,6 +248,41 @@ public class SecurityUtils {
 		securityDb.commit();
 	}
 	
+	/**
+	 * 
+	 * @param appId
+	 * @param metaValues
+	 * @param metaType
+	 * @throws SQLException
+	 */
+	public static void setEngineMeta(String engineId, String metaType, List<String> metaValues) {
+		metaType = metaType.toLowerCase();
+		// first delete existing values
+		String deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + engineId + "' AND KEY='" + metaType + "'";
+		securityDb.removeData(deleteQuery);
+		// second set new values
+		try {
+			PreparedStatement ps = securityDb.bulkInsertPreparedStatement(new Object[]{"ENGINEMETA", "ENGINEID", "KEY", "VALUE"});
+			boolean added = false;
+			for (String val : metaValues) {
+				if(val == null || val.isEmpty()) {
+					continue;
+				}
+				ps.setString(1, engineId);
+				ps.setString(2, metaType);
+				ps.setString(3, val);
+				ps.addBatch();
+				added = true;
+			}
+			if(added) {
+				ps.executeBatch();
+			}
+			ps.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
@@ -284,6 +319,65 @@ public class SecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
+	
+	/**
+	 * Get the list of the engine information that the user has access to
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, String>> getUserDatabaseList(String userId, String... engineFilter) {
+		String filter = createFilter(engineFilter); 
+		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+				+ "FROM ENGINE "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
+				+ "WHERE "
+				+ (!filter.isEmpty() ? ("ENGINE.ID " + filter) : "")
+				+ "(ENGINEPERMISSION.USER='" + userId + "' OR ENGINE.GLOBAL=TRUE) "
+				+ "ORDER BY ENGINE.NAME";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
+	 * Get the list of the engine information that the user has access to
+	 * @param userId
+	 * @return
+	 */
+	public static List<Map<String, String>> getAllDatabaseList(String... engineFilter) {
+		String filter = createFilter(engineFilter); 
+		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+				+ "FROM ENGINE "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
+ 				+ (!filter.isEmpty() ? ("WHERE ENGINE.ID " + filter + " ") : "")
+				+ "ORDER BY ENGINE.NAME";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	public static Map<String, List<String>> getAggregateEngineMetadata(String engineId) {
+		Map<String, List<String>> engineMeta = new HashMap<String, List<String>>();
+		String query = "SELECT KEY, VALUE FROM ENGINEMETA WHERE ENGINEID='" + engineId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		while(wrapper.hasNext()) {
+			Object[] data = wrapper.next().getValues();
+			String key = data[0].toString();
+			String value = data[1].toString();
+			if(!engineMeta.containsKey(key)) {
+				engineMeta.put(key, new Vector<String>());
+			}
+			engineMeta.get(key).add(value);
+		}
+		return engineMeta;
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Single return methods
+	 * Low level
+	 */
 	
 	/**
 	 * Get user engines + global engines 
@@ -328,25 +422,11 @@ public class SecurityUtils {
 		return flushToSetString(wrapper, false);
 	}
 	
-	public static Map<String, List<String>> getAggregateEngineMetadata(String engineId) {
-		Map<String, List<String>> engineMeta = new HashMap<String, List<String>>();
-		String query = "SELECT KEY, VALUE FROM ENGINEMETA WHERE ENGINEID='" + engineId + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			String key = data[0].toString();
-			String value = data[1].toString();
-			if(!engineMeta.containsKey(key)) {
-				engineMeta.put(key, new Vector<String>());
-			}
-			engineMeta.get(key).add(value);
-		}
-		return engineMeta;
-	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
+	
 	
 	/*
 	 * Utility methods
@@ -398,5 +478,17 @@ public class SecurityUtils {
 			result.add(map);
 		}
 		return result;
+	}
+	
+	private static String createFilter(String... filterValues) {
+		StringBuilder b = new StringBuilder();
+		if(filterValues.length > 0) {
+			b.append(" IN (");
+			b.append("'").append(filterValues[0]).append("'");
+			for(int i = 1; i < filterValues.length; i++) {
+				b.append(", '").append(filterValues[i]).append("'");
+			}
+		}
+		return b.toString();
 	}
 }
