@@ -17,9 +17,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	/*
-	 * Querying data
+	 * Querying engine data
 	 */
-	
+
 	/**
 	 * Get the list of the engine information that the user has access to
 	 * @param userId
@@ -60,7 +60,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
 				+ "WHERE "
-				+ (!filter.isEmpty() ? ("ENGINE.ID " + filter) : "")
+				+ (!filter.isEmpty() ? ("ENGINE.ID " + filter + " AND ") : "")
 				+ "(ENGINEPERMISSION.USER='" + userId + "' OR ENGINE.GLOBAL=TRUE) "
 				+ "ORDER BY ENGINE.NAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -99,13 +99,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return engineMeta;
 	}
 	
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	
 	/*
-	 * Single return methods
-	 * Low level
+	 * Lower level querying
 	 */
 	
 	/**
@@ -129,6 +124,49 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT ID FROM ENGINE WHERE GLOBAL=TRUE";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushToSetString(wrapper, false);
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Querying insight data
+	 */
+	
+	public static List<Map<String, String>> searchUserInsights(String engineId, String userId, String searchTerm, String limit, String offset) {
+		String query = "SELECT DISTINCT INSIGHT.ENGINEID AS \"app_id\", INSIGHT.INSIGHTID as \"app_insight_id\", INSIGHT.INSIGHTNAME as \"name\""
+				+ ", CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+				+ "FROM INSIGHT "
+				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "LEFT JOIN USERINSIGHTPERMISSION ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "WHERE "
+				+ "INSIGHT.ENGINEID='" + engineId + "' "
+				+ "AND (USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE) "
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm + "%' " : "")
+				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+				;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	public static List<Map<String, String>> searchInsights(String engineId, String searchTerm, String limit, String offset) {
+		String query = "SELECT DISTINCT INSIGHT.ENGINEID AS \"app_id\", INSIGHT.INSIGHTID as \"app_insight_id\", INSIGHT.INSIGHTNAME as \"name\" "
+				+ ", CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+				+ "FROM INSIGHT "
+				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "LEFT JOIN USERINSIGHTPERMISSION ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "WHERE "
+				+ "INSIGHT.ENGINEID='" + engineId + "' "
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm + "%' " : "")
+				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+				;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
 	}
 
 	/**
