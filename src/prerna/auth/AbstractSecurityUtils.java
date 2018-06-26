@@ -40,13 +40,13 @@ public abstract class AbstractSecurityUtils {
 		// TODO: testing code!!!!
 		// TODO: testing code!!!!
 		// TODO: testing code!!!!
-		String deleteQuery = "DELETE FROM ENGINE WHERE 1-1";
+		String deleteQuery = "DELETE FROM ENGINE WHERE 1=1";
 		securityDb.removeData(deleteQuery);
-		deleteQuery = "DELETE FROM INSIGHT WHERE 1-1";
+		deleteQuery = "DELETE FROM INSIGHT WHERE 1=1";
 		securityDb.removeData(deleteQuery);
-		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE 1-1";
+		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE 1=1";
 		securityDb.removeData(deleteQuery);
-		deleteQuery = "DELETE FROM ENGINEMETA WHERE 1-1";
+		deleteQuery = "DELETE FROM ENGINEMETA WHERE 1=1";
 		securityDb.removeData(deleteQuery);
 	}
 
