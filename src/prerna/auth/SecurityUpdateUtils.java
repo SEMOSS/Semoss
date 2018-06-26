@@ -38,7 +38,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		// does security db contain the engine
 		if(containsEngine(appId)) {
-			LOGGER.info("Security DB already contains app");
+			LOGGER.info("Security database already contains app");
 			return;
 		}
 		
