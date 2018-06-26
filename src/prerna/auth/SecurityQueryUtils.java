@@ -25,7 +25,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, String>> getUserDatabaseList(String userId) {
+	public static List<Map<String, Object>> getUserDatabaseList(String userId) {
 		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
@@ -40,7 +40,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, String>> getAllDatabaseList() {
+	public static List<Map<String, Object>> getAllDatabaseList() {
 		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
@@ -54,7 +54,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, String>> getUserDatabaseList(String userId, String... engineFilter) {
+	public static List<Map<String, Object>> getUserDatabaseList(String userId, String... engineFilter) {
 		String filter = createFilter(engineFilter); 
 		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
@@ -72,7 +72,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, String>> getAllDatabaseList(String... engineFilter) {
+	public static List<Map<String, Object>> getAllDatabaseList(String... engineFilter) {
 		String filter = createFilter(engineFilter); 
 		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
@@ -134,9 +134,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * Querying insight data
 	 */
 	
-	public static List<Map<String, String>> searchUserInsights(String engineId, String userId, String searchTerm, String limit, String offset) {
-		String query = "SELECT DISTINCT INSIGHT.ENGINEID AS \"app_id\", INSIGHT.INSIGHTID as \"app_insight_id\", INSIGHT.INSIGHTNAME as \"name\""
-				+ ", CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+	public static List<Map<String, Object>> searchUserInsights(String engineId, String userId, String searchTerm, String limit, String offset) {
+		String query = "SELECT DISTINCT "
+				+ "INSIGHT.ENGINEID AS \"app_id\", "
+				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
+				+ "INSIGHT.INSIGHTNAME as \"name\", "
+				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON ENGINE.ID=INSIGHT.ENGINEID "
@@ -152,7 +155,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 	
-	public static List<Map<String, String>> searchInsights(String engineId, String searchTerm, String limit, String offset) {
+	public static List<Map<String, Object>> searchInsights(String engineId, String searchTerm, String limit, String offset) {
 		String query = "SELECT DISTINCT INSIGHT.ENGINEID AS \"app_id\", INSIGHT.INSIGHTID as \"app_insight_id\", INSIGHT.INSIGHTNAME as \"name\" "
 				+ ", CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
@@ -169,6 +172,36 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 
+	/**
+	 * Return top executed insights for engine as a map
+	 * TODO: THIS IS A WEIRD FORMAT BUT CURRENTLY WHAT FE IS EXEPCTING....
+	 * @param engineId
+	 * @param limit
+	 * @return
+	 */
+	public static Map<String, List<String>> getTopExecutedInsightsForEngine(String engineId, long limit) {
+		String query = "SELECT DISTINCT INSIGHT.INSIGHTID, INSIGHT.INSIGHTNAME, INSIGHT.EXECUTIONCOUNT "
+				+ "FROM INSIGHT "
+				+ "WHERE INSIGHT.ENGINEID='" + engineId + "'"
+				+ "ORDER BY INSIGHT.EXECUTIONCOUNT"
+				;
+		
+		Vector<String> ids = new Vector<String>();
+		Vector<String> names = new Vector<String>();
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		while(wrapper.hasNext()) {
+			Object[] row = wrapper.next().getValues();
+			ids.add(row[0].toString());
+			names.add(row[1].toString());
+		}
+		
+		Map<String, List<String>> retMap = new HashMap<String, List<String>>();
+		retMap.put("rdbmsId", ids);
+		retMap.put("insightName", names);
+		return retMap;
+	}
+	
 	/**
 	 * Get user insights + global insights in engine
 	 * @param userId

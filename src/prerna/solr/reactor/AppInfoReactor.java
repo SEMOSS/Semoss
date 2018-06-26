@@ -1,6 +1,5 @@
 package prerna.solr.reactor;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +25,7 @@ public class AppInfoReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an app id");
 		}
 		
-		List<Map<String, String>> baseInfo = null;
+		List<Map<String, Object>> baseInfo = null;
 		if(this.securityEnabled()) {
 			// make sure valid id for user
 			if(!this.getUserAppFilters().contains(appId)) {
@@ -44,17 +43,16 @@ public class AppInfoReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Could not find any app data");
 		}
 		
-		Map<String, String> appInfo = baseInfo.get(0);
+		// we filtered to a single app
+		Map<String, Object> appInfo = baseInfo.get(0);
 		Map<String, List<String>> additionalMeta = SecurityQueryUtils.getAggregateEngineMetadata(appId);
 
 		// combine into return object
-		Map<String, Object> data = new HashMap<String, Object>();
-		data.putAll(appInfo);
 		if(additionalMeta.containsKey("description")) {
-			data.put("app_description", additionalMeta.get("description").get(0));
+			appInfo.put("app_description", additionalMeta.get("description").get(0));
 		}
-		data.put("app_tags", additionalMeta.get("tags"));
-		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
+		appInfo.put("app_tags", additionalMeta.get("tags"));
+		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
 	}
 
 }

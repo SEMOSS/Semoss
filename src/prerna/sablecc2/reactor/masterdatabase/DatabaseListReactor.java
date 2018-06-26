@@ -13,7 +13,7 @@ public class DatabaseListReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		List<Map<String, String>> retList = null;
+		List<Map<String, Object>> retList = null;
 		if(securityEnabled()) {
 			retList = SecurityQueryUtils.getUserDatabaseList(this.insight.getUserId());
 		} else {

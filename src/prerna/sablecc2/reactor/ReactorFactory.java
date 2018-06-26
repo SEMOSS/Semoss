@@ -296,8 +296,8 @@ import prerna.solr.reactor.AppInsightsReactor;
 import prerna.solr.reactor.MyAppsReactor;
 import prerna.solr.reactor.SetAppDescriptionReactor;
 import prerna.solr.reactor.SetAppTagsReactor;
-import prerna.solr.reactor.SetInsightDescriptionReactor;
-import prerna.solr.reactor.SetInsightTagsReactor;
+//import prerna.solr.reactor.SetInsightDescriptionReactor;
+//import prerna.solr.reactor.SetInsightTagsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ga.reactors.UpdateGAHistoricalDataReactor;
@@ -705,8 +705,8 @@ public class ReactorFactory {
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
 		reactorHash.put("GetAppWidgets", GetAppWidgetsReactor.class);
 		// Insight Metadata
-		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
-		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
+//		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
+//		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
 
 		// Insight Comments
 		reactorHash.put("AddInsightComment", AddInsightCommentReactor.class);

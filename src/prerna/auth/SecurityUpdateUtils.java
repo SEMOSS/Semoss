@@ -3,6 +3,7 @@ package prerna.auth;
 import java.io.File;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
 
@@ -62,12 +63,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		rne.makeConnection(jdbcURL, userName, password);
 		
 		// make a prepared statement
-		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL"});
+		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(
+				new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT", "CREATEDON","LASTMODIFIEDON","LAYOUT"});
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
 		int count = 0;
-					
-		String query = "SELECT DISTINCT ID, QUESTION_NAME FROM QUESTION_ID";
+		
+		LocalDateTime now = LocalDateTime.now();
+		
+		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT FROM QUESTION_ID";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
@@ -76,6 +80,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.setString(2, row[0].toString());
 				ps.setString(3, row[1].toString());
 				ps.setBoolean(4, true);
+				ps.setLong(5, 0);
+				ps.setTimestamp(6, java.sql.Timestamp.valueOf(now));
+				ps.setTimestamp(7, java.sql.Timestamp.valueOf(now));
+				ps.setString(8, row[2].toString());
 				ps.addBatch();
 				
 				// batch commit based on size
