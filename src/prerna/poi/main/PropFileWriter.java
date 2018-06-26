@@ -196,7 +196,7 @@ public class PropFileWriter {
 			// replacing dbname with the engine name
 			// @ENGINE@
 			pw.write(Constants.RDBMS_INSIGHTS + "\tdb" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database" + "\n");
-			pw.write(Constants.SOLR_RELOAD + "\tfalse\n");
+			pw.write(Constants.RELOAD_INSIGHTS + "\tfalse\n");
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
 				if(this.queryUtil == null) {
