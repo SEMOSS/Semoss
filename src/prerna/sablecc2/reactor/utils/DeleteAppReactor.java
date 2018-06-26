@@ -6,7 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -86,7 +86,7 @@ public class DeleteAppReactor extends AbstractReactor {
 
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(engineId);
-		SecurityUtils.deleteApp(engineId);
+		SecurityUpdateUtils.deleteApp(engineId);
 
 		SolrIndexEngine solrE;
 		try {

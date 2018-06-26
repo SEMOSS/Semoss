@@ -13,7 +13,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 
-import prerna.auth.SecurityUtils;
+import prerna.auth.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -31,9 +31,9 @@ public class MyAppsReactor extends AbstractReactor {
 		List<Map> appInfo = new Vector<Map>();
 
 		if(this.securityEnabled()) {
-			appInfo.addAll(SecurityUtils.getUserDatabaseList(this.insight.getUserId()));
+			appInfo.addAll(SecurityQueryUtils.getUserDatabaseList(this.insight.getUserId()));
 		} else {
-			appInfo.addAll(SecurityUtils.getAllDatabaseList());
+			appInfo.addAll(SecurityQueryUtils.getAllDatabaseList());
 		}
 		
 		Map<String, SolrDocumentList> imageMap = null;
