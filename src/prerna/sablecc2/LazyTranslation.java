@@ -40,6 +40,7 @@ import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AImplicitRel;
 import prerna.sablecc2.node.AJavaOp;
 import prerna.sablecc2.node.AList;
+import prerna.sablecc2.node.AListRegTerm;
 import prerna.sablecc2.node.AMainCommentRoutine;
 import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapEntry;
@@ -85,6 +86,7 @@ import prerna.sablecc2.reactor.expression.filter.OpAnd;
 import prerna.sablecc2.reactor.expression.filter.OpFilter;
 import prerna.sablecc2.reactor.expression.filter.OpOr;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
+import prerna.sablecc2.reactor.list.ListReactor;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
@@ -413,7 +415,20 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultOut(node);
     	deInitReactor();
     }
-	
+    
+    @Override
+    public void inAListRegTerm(AListRegTerm node) {
+    	defaultIn(node);
+    	ListReactor listR = new ListReactor();
+    	initReactor(listR);
+    }
+    
+    @Override
+    public void outAListRegTerm(AListRegTerm node) {
+    	defaultOut(node);
+    	deInitReactor();
+    }
+    
     // accumulating secondary structures
     // the values of each of these are generic rows
     @Override

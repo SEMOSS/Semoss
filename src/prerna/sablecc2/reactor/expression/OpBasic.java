@@ -48,7 +48,7 @@ public abstract class OpBasic extends OpReactor {
 		} else if(valType == PixelDataType.CONST_INT) {
 			obj = ((Number) val.getValue()).intValue(); 
 		} else if(valType == PixelDataType.VECTOR) {
-			List<NounMetadata> nouns = (List<NounMetadata>)val.getValue();
+			List<NounMetadata> nouns = (List<NounMetadata>) val.getValue();
 			Object[] objArray = new Object[nouns.size()];
 			for(int i = 0; i < nouns.size(); i++) {
 				objArray[i] = evaluateNoun(nouns.get(i));
