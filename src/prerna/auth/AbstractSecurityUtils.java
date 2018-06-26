@@ -123,6 +123,7 @@ public abstract class AbstractSecurityUtils {
 				b.append(", '").append(filterValues[i]).append("'");
 			}
 		}
+		b.append(")");
 		return b.toString();
 	}
 }
