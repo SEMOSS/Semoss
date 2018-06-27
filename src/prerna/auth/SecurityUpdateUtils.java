@@ -2,7 +2,9 @@ package prerna.auth;
 
 import java.io.File;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
@@ -240,6 +242,53 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				+ "VALUES ('" + engineName + "', '" + engineId + "', '" + engineType + "', '" + engineCost + "', " + global + ")";
 		securityDb.insertData(query);
 		securityDb.commit();
+	}
+	
+	/**
+	 * Adds user as owner for a given engine, giving him/her all permissions.
+	 * 
+	 * @param engineName	Name of engine user is being added as owner for
+	 * @param userId		ID of user being made owner
+	 * @return				true or false for successful addition
+	 */
+	public static Boolean addEngineAndOwner(String engineId, String engineName, String userId) {
+		//Add the engine to the ENGINE table
+		//String engineID = UUID.randomUUID().toString();
+		String query = "INSERT INTO Engine(NAME, ID) VALUES ('" + engineName + "','" + engineId + "');";
+		Statement stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
+		int id = -1;
+		ResultSet rs = null;
+		try {
+			rs = stmt.getGeneratedKeys();
+			while (rs.next()) 
+			{
+			   id = rs.getInt(1);
+			   if(id < 1) {
+				   return false;
+			   }
+			}
+		} catch(SQLException e) {
+			e.printStackTrace();
+			return false;
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		//Add the user to the permissions table as the owner for the engine
+		query = "INSERT INTO EnginePermission (USER, PERMISSION, ENGINE) VALUES ('" + userId + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "');";
+		Statement stmt2 = securityDb.execUpdateAndRetrieveStatement(query, true);
+		if(stmt2 != null) {
+			securityDb.commit();
+			return true;
+		}
+
+		return false;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
