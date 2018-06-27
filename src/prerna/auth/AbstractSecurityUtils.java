@@ -105,20 +105,14 @@ public abstract class AbstractSecurityUtils {
 		String[] colNames = null;
 		String[] types = null;
 
-		// ACCESSREQUEST
-		colNames = new String[] { "id", "submittedby", "submittedto", "engine", "permission" };
-		types = new String[] { "integer", "varchar(255)", "varchar(255)", "integer", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ACCESSREQUEST", colNames, types));
-
+		/*
+		 * Currently used
+		 */
+		
 		// ENGINE
 		colNames = new String[] { "name", "id", "global", "type", "cost" };
 		types = new String[] { "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINE", colNames, types));
-
-		// ENGINEGROUPMEMBERVISIBILITY
-		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
-		types = new String[] { "integer", "integer", "integer", "boolean" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEGROUPMEMBERVISIBILITY", colNames, types));
 
 		// ENGINEMETA
 		colNames = new String[] { "engineid", "key", "value" };
@@ -129,6 +123,54 @@ public abstract class AbstractSecurityUtils {
 		colNames = new String[] { "id", "user", "permission", "engine", "visibility" };
 		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "boolean" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEPERMISSION", colNames, types));
+
+		// INSIGHT
+		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
+
+		// USER
+		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
+
+		// PERMISSION
+		colNames = new String[] { "id", "name" };
+		types = new String[] { "integer", "varchar(255)" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("PERMISSION", colNames, types));
+		boolean addrows = true;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
+		if(wrapper.hasNext()) {
+			if( ((Number) wrapper.next().getValues()[0]).intValue() > 3) {
+				addrows = false;
+			}
+		}
+		if(addrows) {
+			securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+			securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+			securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+		}
+		
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		
+		/*
+		 * Tables accounted for that we are not using yet...
+		 */
+		
+		// ACCESSREQUEST
+		colNames = new String[] { "id", "submittedby", "submittedto", "engine", "permission" };
+		types = new String[] { "integer", "varchar(255)", "varchar(255)", "integer", "integer" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ACCESSREQUEST", colNames, types));
+
+
+		// ENGINEGROUPMEMBERVISIBILITY
+		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
+		types = new String[] { "integer", "integer", "integer", "boolean" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEGROUPMEMBERVISIBILITY", colNames, types));
+
 
 		// GROUPENGINEPERMISSION
 		colNames = new String[] { "groupid", "permission", "engine", "id" };
@@ -150,30 +192,15 @@ public abstract class AbstractSecurityUtils {
 		types = new String[] { "integer", "integer" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
 
-		// INSIGHT
-		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
-
 		// INSIGHTEXECUTION
 		colNames = new String[] { "user", "database", "insight", "count", "lastexecuted", "session" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer", "date", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION", colNames, types));
 
-		// PERMISSION
-		colNames = new String[] { "id", "name" };
-		types = new String[] { "integer", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("PERMISSION", colNames, types));
-
 		// SEED
 		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
 		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", "clob", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
-
-		// USER
-		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
 
 		// USERGROUP
 		colNames = new String[] { "id", "name", "owner" };
