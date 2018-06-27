@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.task.lambda.flatmap;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -7,6 +8,7 @@ import prerna.auth.User;
 
 public abstract class AbstractFlatMapLambda implements IFlatMapLambda {
 
+	protected Map params = new HashMap();
 	protected List<Map<String, Object>> headerInfo;
 	protected User user;
 	
@@ -20,9 +22,8 @@ public abstract class AbstractFlatMapLambda implements IFlatMapLambda {
 		this.user = user;
 	}
 	
-	public void setParams(Map params)
-	{
-		
+	public void setParams(Map params) {
+		this.params = params;
 	}
 
 }
