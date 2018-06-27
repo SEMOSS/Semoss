@@ -88,7 +88,6 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 	// after creation and loaded back through smss watcher
 	// or if process will handle load that portion
 	protected boolean autoLoad = true;
-	protected Hashtable<String,String> displayNamesHash = new Hashtable<String,String>();
 	protected Hashtable<String, String[]> baseRelations = new Hashtable<String, String[]>();
 
 	public abstract IEngine importFileWithOutConnection(ImportOptions options) throws Exception;
