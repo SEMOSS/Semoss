@@ -311,7 +311,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "WHERE "
 				+ "REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i') " 
 				+ "AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "
-				+ "ORDER BY INSIGHT.EXECUTIONCOUNT "
+				+ "ORDER BY INSIGHT.EXECUTIONCOUNT DESC "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "");
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
