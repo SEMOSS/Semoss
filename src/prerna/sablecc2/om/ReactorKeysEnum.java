@@ -62,6 +62,7 @@ public enum ReactorKeysEnum {
 	LAYOUT_KEY("layout", 									"The layout of the insight, used as a tag"),
 	LIMIT("limit", 											"Limit to add for the query results"),
 	LOGICAL_NAME("logicalNames", 							"Column alias to be added to the master database"),
+	METAMODEL("metamodel", 									"The metamodel map for a database."),
 	NEW_COLUMN("newCol", 									"Name of the new column being created"),
 	NEW_HEADER_NAMES("newHeaders", 							"New header names for a file"),
 	NEW_VALUE("newValue", 									"New value used to replace an existing value"),
