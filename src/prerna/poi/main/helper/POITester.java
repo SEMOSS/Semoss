@@ -1,8 +1,10 @@
-package prerna.test;
+package prerna.poi.main.helper;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
@@ -16,6 +18,9 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
+
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.ISelectWrapper;
 
 public class POITester {
 	/*
@@ -51,11 +56,38 @@ public class POITester {
 	public static void main(String [] args)
 	{
 		POITester tester = new POITester();
+		String fileName = "c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\shifted.xlsx";
 		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\Tax.xlsx");
 		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\SEMOSS Sprint Tasks.xlsx");
 		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\RMF.xlsx");
-		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\shifted.xlsx");
-		tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\ExcelTest.xlsx");
+		tester.processFile(fileName);
+		//tester.processFile("c:\\users\\pkapaleeswaran\\workspacej3\\datasets\\ExcelTest.xlsx");
+		tester.testIterator(fileName);
+	}
+	
+	public void testIterator(String fileName)
+	{
+		try {
+			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+			System.out.println("Please enter range");
+			String range = br.readLine();
+			
+			IRawSelectWrapper wrapper = getRange(fileName, "Sheet1", range);
+			printRow(wrapper.getHeaders());
+			
+			while(wrapper.hasNext())
+				printRow(wrapper.next().getValues());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void printRow(Object [] row)
+	{
+		for(int colIndex = 0;colIndex < row.length;colIndex++)
+			System.out.print(row[colIndex] + " , ");
+		System.out.println("");
 	}
 	
 	// get information as x and y
@@ -316,18 +348,6 @@ public class POITester {
 		return retBlock;
 	}
 	
-	public void checkBlocks()
-	{
-		// For every block
-		// see what hte start column and end column is
-		// and see if there is a column that is consistently blank
-		// if so these are 2 separate tables
-		
-		
-		
-		
-	}
-	
 	
 	
 	public String getCell(Cell thisCell) {
@@ -344,9 +364,25 @@ public class POITester {
 	}
 
 	
-	public void getHeaderRow(Sheet sheet)
+	public IRawSelectWrapper getRange(String fileName, String sheetName, String range)
 	{
 		Hashtable sheetNameToRow = new Hashtable();
+		
+		// the range is typically of the form row:column<>row:column
+		String [] fromTo = range.split(":");
+		
+		int startCol = Range.getExcelColumnNumber(fromTo[0].replaceAll("[0-9]*", ""));
+		startCol--;
+		int startRow = Integer.parseInt(fromTo[0].replaceAll("[^0-9\\.-]", ""));
+		startRow--;
+		
+		int endCol = Range.getExcelColumnNumber(fromTo[1].replaceAll("[0-9]*", ""));
+		int endRow = Integer.parseInt(fromTo[1].replaceAll("[^0-9\\.-]", ""));
+		
+		IRawSelectWrapper retWrapper = new POIWrapper(fileName, sheetName, startCol, startRow, endCol, endRow);
+		retWrapper.execute();
+		
+		return retWrapper;
 		
 	}
 	
@@ -381,6 +417,8 @@ public class POITester {
 			}
 		}
 	}
+	
+	
 	
 	
 }
