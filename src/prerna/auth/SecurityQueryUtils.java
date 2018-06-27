@@ -287,4 +287,58 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushToListString(wrapper);
 	}
+	
+	/**
+	 * 
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @param sortOrder
+	 * @param sortField
+	 * @param engineFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getInsightDataByName(String searchTerm, String limit, String offset, String[] engineFilter) {
+		String filter = createFilter(engineFilter); 
+		String query = "SELECT DISTINCT "
+				+ "INSIGHT.ENGINEID AS \"app_id\", "
+				+ "ENGINE.NAME as \"app_name\", "
+				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
+				+ "INSIGHT.LAYOUT as \"layout\", "
+				+ "INSIGHT.INSIGHTNAME as \"name\", "
+				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\" "
+				+ "FROM INSIGHT LEFT JOIN ENGINE ON INSIGHT.ENGINEID=ENGINE.ID "
+				+ "WHERE "
+				+ "LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' "
+				+ " AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "
+				+ "ORDER BY INSIGHT.EXECUTIONCOUNT "
+				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "");
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
+	 * 
+	 * @param searchTerm
+	 * @param engineFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getInsightFacetDataByName(String searchTerm, String[] engineFilter) {
+		String filter = createFilter(engineFilter); 
+		String query = "SELECT DISTINCT "
+				+ "ENGINEID, "
+				+ "LAYOUT, "
+				+ "COUNT(ENGINEID) "
+				+ "FROM INSIGHT LEFT JOIN ENGINE ON INSIGHT.ENGINEID=ENGINE.ID "
+				+ "WHERE "
+				+ "LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' "
+				+ "AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "
+				+ "GROUP BY LAYOUT, ENGINEID;";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	
+	
 }
