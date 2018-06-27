@@ -278,8 +278,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static List<String> predictInsightSearch(String searchTerm, String limit, String offset) {
 		String query = "SELECT DISTINCT INSIGHT.INSIGHTNAME as \"name\" "
 				+ "FROM INSIGHT "
-				+ "WHERE "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
