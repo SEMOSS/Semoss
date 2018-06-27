@@ -362,14 +362,18 @@ public abstract class AbstractSecurityUtils {
 	
 	static String createFilter(String... filterValues) {
 		StringBuilder b = new StringBuilder();
+		boolean hasData = false;
 		if(filterValues.length > 0) {
+			hasData = true;
 			b.append(" IN (");
 			b.append("'").append(filterValues[0]).append("'");
 			for(int i = 1; i < filterValues.length; i++) {
 				b.append(", '").append(filterValues[i]).append("'");
 			}
 		}
-		b.append(")");
+		if(hasData) {
+			b.append(")");
+		}
 		return b.toString();
 	}
 	
