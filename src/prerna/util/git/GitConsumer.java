@@ -6,9 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -291,10 +288,10 @@ public class GitConsumer {
 			fileIn = new FileInputStream(smssLocation);
 			prop.load(fileIn);
 			logger.info("Start synchronizing app metadata...");
-			IEngine engine = Utility.loadWebEngine(smssLocation, prop);
+			IEngine engine = Utility.loadEngine(smssLocation, prop);
 			logger.info("Done synchronizing app metadata");
 			return engine;
-		} catch(IOException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
+		} catch(IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Error with loading app metadata");
 		} finally {

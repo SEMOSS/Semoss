@@ -33,14 +33,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param appId
 	 */
 	public static void addApp(String appId) {
-		addApp(appId, true);
-	}
-	
-	/**
-	 * Add an entire engine into the security db
-	 * @param appId
-	 */
-	public static void addApp(String appId, boolean globalApp) {
 		if(ignoreEngine(appId)) {
 			// dont add local master or security db to security db
 			return;
@@ -135,6 +127,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		LOGGER.info("Finished adding engine = " + appId);
 	}
 	
 	/**

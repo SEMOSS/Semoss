@@ -2297,73 +2297,6 @@ public class Utility {
 		return fileName + ext;
 	}
 
-	public static IEngine loadWebEngine(String fileName, Properties prop) throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-		// load the engine
-		IEngine engineToAdd = loadEngine(fileName, prop);
-		// get the engine id
-		String engineId = engineToAdd.getEngineId();
-
-		/*
-		 * Here is the logic to determine if we need to load the engine into solr
-		 * 
-		 * 1) if the database is hidden -> do NOT add to solr
-		 * Given that the database if not hidden, do the following
-		 * 2) the user can define in the SMSS file a boolean value SOLR_RELOAD
-		 * 		-> if the value is true, then we add the engine into solr
-		 * 3) if a developer has hard coded to reload all solr values based on a hard coded boolean in abstract engine
-		 * 		-> if the value is true, then we add the engine into solr
-		 * 		-> note: this should be false whenever we make a build/deploy... 
-		 * 					this is purely for ease in testing new development code
-
-		 * 4) check to see if solr already contains the engine
-		 * 		-> if the value is false, then we add the engine into solr
-		 * 
-		 * ****Decision Logic****
-		 * Given that the engine is not hidden (i.e. 1 is false), then
-		 * 		if a developer has hard coded to reload all solr values in abstract engine (2 is true) or 
-		 * 		if the user has hard reloaded (2 is true) or 
-		 * 		if solr doesn't contain the engine (3 is false), then
-		 * 			add the engine into solr
-		 */
-
-		// 1) get the boolean is the database is hidden
-		// 		default value is false if it is not found in the SMSS file
-		String hiddenString = engineToAdd.getProperty(Constants.HIDDEN_DATABASE);
-		boolean hidden = false;
-		if (hiddenString != null) {
-			hidden = Boolean.parseBoolean(hiddenString);
-		}
-		// 2) check if the user has set a hard reload to the SOLR_RELOAD boolean
-		//		default value is false if it is not found in the SMSS file
-		String smssPropString = engineToAdd.getProperty(Constants.RELOAD_INSIGHTS);
-		boolean smssProp = false;
-		if (smssPropString != null) {
-			smssProp = Boolean.parseBoolean(smssPropString);
-		}
-		// this if statement corresponds to the decision logic in comment block above
-		// 3) and 4) are checked within the if statement
-		if (!hidden && smssProp) {
-			// alright, we are going to load the engines insights into solr
-			LOGGER.info(engineToAdd.getEngineId() + " has solr force reload value of " + smssProp );
-			LOGGER.info(engineToAdd.getEngineId() + " is reloading solr");
-			SecurityUpdateUtils.addApp(engineId, true);
-		}
-		// if the engine is hidden, delete it from solr
-		else if(hidden){
-			SecurityUpdateUtils.addApp(engineId, false);
-		}
-		// if the smss prop was set to true -> i.e. a hard solr reload for that specific engine
-		// then we want to change the boolean to be false such that this is only a one time solr reload
-		if(smssProp){
-			LOGGER.info(engineToAdd.getEngineId() + " is changing solr boolean on smss");
-			changePropMapFileValue(fileName, Constants.RELOAD_INSIGHTS, "false");
-		}
-
-		// return the newly loaded engine
-		return engineToAdd;
-	}
-
-
 	/**
 	 * Loads an engine - sets the core properties, loads base data engine and ontology file.
 	 * @param 	Filename.
@@ -2393,16 +2326,6 @@ public class Utility {
 				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.OWL, prop.getProperty(Constants.OWL));
 			}
 			
-			//TODO: NEED TO REMOVE THIS CODE
-			if(engineClass.equals("prerna.rdf.engine.impl.RDBMSNativeEngine")){
-				engineClass = "prerna.engine.impl.rdbms.RDBMSNativeEngine";
-				changePropMapFileValue(fileName, Constants.ENGINE_TYPE, engineClass);
-			}
-			else if(engineClass.startsWith("prerna.rdf.engine.impl.")){
-				engineClass = engineClass.replace("prerna.rdf.engine.impl.", "prerna.engine.impl.rdf.");
-				changePropMapFileValue(fileName, Constants.ENGINE_TYPE, engineClass);
-			}
-			
 			// create and open the class
 			engine = (IEngine)Class.forName(engineClass).newInstance();
 			engine.setEngineId(engineId);
@@ -2412,22 +2335,17 @@ public class Utility {
 			DIHelper.getInstance().setLocalProperty(engineId, engine);
 
 			// Append the engine name to engines if not already present
-			if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) 
-			{
+			if(!(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId))) {
 				engines = engines + ";" + engineId;
 				DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engines);
 			}
 
-			// now add or remove based on if it is hidden to local master
-			boolean hidden = (prop.getProperty(Constants.HIDDEN_DATABASE) != null && Boolean.parseBoolean(prop.getProperty(Constants.HIDDEN_DATABASE)));
 			boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
-			if(!hidden && !isLocal) {
+			boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
+			if(!isLocal & !isSecurity) {
 				// sync up the engine metadata now
 				synchronizeEngineMetadata(engineId);
-			} else if(!isLocal){ // never add local master to itself...
-				DeleteFromMasterDB deleter = new DeleteFromMasterDB();
-				deleter.deleteEngineRDBMS(engineId);
-				SecurityUpdateUtils.deleteApp(engineId);
+				SecurityUpdateUtils.addApp(engineId);
 			}
 		} catch (InstantiationException e) {
 			e.printStackTrace();
@@ -2493,9 +2411,6 @@ public class Utility {
 		String engineRdbmsDbTime = "Dummy";
 		if(rdbmsDate != null) {
 			engineRdbmsDbTime = df.format(rdbmsDate);
-		}
-		if(engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) {
-			System.out.println("Success.. !!");
 		}
 		
 		if(rdbmsDate == null) {
@@ -2589,14 +2504,8 @@ public class Utility {
 						Properties daProp = new Properties();
 						fis = new FileInputStream(smssFile);
 						daProp.load(fis);
-						engine = Utility.loadWebEngine(smssFile, daProp);
+						engine = Utility.loadEngine(smssFile, daProp);
 						System.out.println("Loaded the engine.. !!!!! " + engineId);
-					} catch (KeyManagementException e) {
-						e.printStackTrace();
-					} catch (NoSuchAlgorithmException e) {
-						e.printStackTrace();
-					} catch (KeyStoreException e) {
-						e.printStackTrace();
 					} catch (IOException e) {
 						e.printStackTrace();
 					} finally {
