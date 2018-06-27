@@ -1,10 +1,13 @@
 package prerna.sablecc2.reactor.app.upload;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -23,6 +26,7 @@ import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
@@ -175,10 +179,14 @@ public class UploadUtilities {
 	
 	/**
 	 * Create a temporary smss file for a rdbms engine
-	 * @param rdmbsType
+	 * 
+	 * @param appId
 	 * @param appName
+	 * @param owlFile
+	 * @param rdbmsType
 	 * @param file
 	 * @return
+	 * @throws IOException
 	 */
 	public static File createTemporaryRdbmsSmss(String appId, String appName, File owlFile, String rdbmsType, String file) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
@@ -263,8 +271,11 @@ public class UploadUtilities {
 	
 	/**
 	 * Generate the SMSS for the empty app
+	 * 
+	 * @param appId
 	 * @param appName
-	 * @throws IOException 
+	 * @return
+	 * @throws IOException
 	 */
 	public static File createTemporaryAppSmss(String appId, String appName) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
@@ -314,7 +325,8 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * Create a temporary smss file for a rdbms engine
+	 * Create a temporary smss file for a tinker engine
+	 * 
 	 * @param appId
 	 * @param appName
 	 * @param owlFile
@@ -380,11 +392,87 @@ public class UploadUtilities {
 
 		return appTempSmss;
 	}
-
 	
+	/**
+	 * Create a temporary smss file for a rdf engine
+	 * 
+	 * @param appId
+	 * @param appName
+	 * @param owlFile
+	 * @return
+	 * @throws IOException
+	 */
+	public static File createTemporaryRdfSmss(String appId, String appName, File owlFile) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempSmssLoc);
+		if (appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+
+		FileReader fileRead = null;
+		BufferedReader bufferedReader = null;
+
+		try {
+			writer = new FileWriter(appTempSmss);
+			bufferedWriter = new BufferedWriter(writer);
+
+			String engineClassName = BigDataEngine.class.getName();
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
+			// get additional RDF default properties
+			String defaultDBPropName = "db" + DIR_SEPARATOR + "Default" + DIR_SEPARATOR + "Default.properties";
+			String jnlName = "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(appName, appId) + System.getProperty("file.separator") + appName + ".jnl";
+			String rdfDefaultProps = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + System.getProperty("file.separator") + defaultDBPropName;
+
+			fileRead = new FileReader(rdfDefaultProps);
+			bufferedReader = new BufferedReader(fileRead);
+			String currentLine;
+			while ((currentLine = bufferedReader.readLine()) != null) {
+				if (currentLine.contains("@FileName@")) {
+					currentLine = currentLine.replace("@FileName@", jnlName);
+				}
+				bufferedWriter.write(currentLine + "\n");
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IOException("Could not generate temporary smss file for app");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+				if (fileRead != null) {
+					fileRead.close();
+				}
+				if (bufferedReader != null) {
+					bufferedReader.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return appTempSmss;
+	}
+
 	
 	/**
 	 * Generate a tinker smss
+	 * 
 	 * @param appId
 	 * @param appName
 	 * @param owlFile
@@ -430,23 +518,23 @@ public class UploadUtilities {
 			// name map
 			json = gson.toJson(nameMap);
 			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
-			
+
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate app smss file");
 		} finally {
 			try {
-				if(bufferedWriter != null) {
+				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
-				if(writer != null) {
+				if (writer != null) {
 					writer.close();
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-		
+
 		return appTempSmss;
 	}
 
@@ -529,7 +617,74 @@ public class UploadUtilities {
 	}
 	
 	/**
+	 * Create a temporary smss file for an external rdbms engine
+	 * @param appId
+	 * @param appName
+	 * @param owlFile
+	 * @param engineClassName
+	 * @param dbType
+	 * @param host
+	 * @param port
+	 * @param schema
+	 * @param username
+	 * @param password
+	 * @param additionalParams
+	 * @return
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	public static File createTemporaryExternalRdbmsSmss(String appId, String appName, File owlFile,
+			String engineClassName, String dbType, String host, String port, String schema, String username,
+			String password, String additionalParams) throws IOException, SQLException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempSmssLoc);
+		if (appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		try {
+			writer = new FileWriter(appTempSmss);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
+			String dbDriver = RdbmsConnectionHelper.getDriver(dbType);
+			bufferedWriter.write(Constants.RDBMS_TYPE + "\t" + dbType + "\n");
+			bufferedWriter.write(Constants.DRIVER + "\t" + dbDriver + "\n");
+			bufferedWriter.write(Constants.USERNAME + "\t" + username + "\n");
+			bufferedWriter.write(Constants.PASSWORD + "\t" + password + "\n");
+			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RdbmsConnectionHelper.getConnectionUrl(dbType, host, port, schema, additionalParams) + "\n");
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IOException("Could not generate temporary smss file for app");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return appTempSmss;
+	}
+	
+	/**
 	 * Get the app temporary smss location
+	 * 
+	 * @param appId
 	 * @param appName
 	 * @return
 	 */

@@ -32,6 +32,7 @@ import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
@@ -48,7 +49,7 @@ public class UploadTinkerEngine extends AbstractRdbmsUploadReactor {
 
 	public UploadTinkerEngine() {
 		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER, DATA_TYPE_MAP, NEW_HEADERS, "rdfProp",
-				TINKER_DRIVER_TYPE, "metamodel", ADDITIONAL_TYPES };
+				TINKER_DRIVER_TYPE, ReactorKeysEnum.METAMODEL.getKey(), ADDITIONAL_TYPES };
 	}
 
 	@Override
@@ -167,10 +168,62 @@ public class UploadTinkerEngine extends AbstractRdbmsUploadReactor {
 		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
 		return newAppId;
 	}
+	
+	//TODO
+	//TODO
+	//TODO
+	//TODO
+	//TODO
+	//TODO
+	@Override
+	public String addToExistingApp(String appId, String filePath, Logger logger) {
+		appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+		IEngine engine = Utility.getEngine(appId);
+		CSVFileHelper helper = UploadUtilities.getHelper(filePath, UploadInputUtility.getDelimiter(this.store),
+				getDataTypeMap(), getNewHeaders());
+
+		try {
+			// // load the prop file for the CSV file
+			// TODO open prop file
+			// get the user selected datatypes for each header
+			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, getDataTypeMap(),
+					getAdditionalTypes());
+			String[] headers = (String[]) headerTypesArr[0];
+			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+			// TODO
+			String[] additionalTypes = (String[]) headerTypesArr[2];
+
+			OWLER owler = new OWLER(engine, engine.getOWL());
+
+			List<String> relationList = new ArrayList<String>();
+			List<String> nodePropList = new ArrayList<String>();
+			List<String> relPropList = new ArrayList<String>();
+			parseMetadata(getMetamodel(), owler, relationList, nodePropList, relPropList);
+			processRelationShips(engine, owler, helper, logger, relationList, nodePropList, relPropList, headers, types);
+			owler.commit();
+			try {
+				owler.export();
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+			engine.commit();
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			if (helper != null) {
+				helper.clear();
+			}
+
+		}
+
+		return appId;
+	}
 
 	/**
 	 * 
-	 * @param owler 
+	 * @param owler
 	 * @param fileNames
 	 * @param owlFileLocation
 	 * @param logger
@@ -178,54 +231,39 @@ public class UploadTinkerEngine extends AbstractRdbmsUploadReactor {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void insertData(IEngine engine, OWLER owler, String fileNames, Logger logger)
-			throws FileNotFoundException, IOException {
-
-		// String[] files = prepareCsvReader(fileNames, customBase, owlFileLocation, smssLocation, propertyFiles);
-		String[] files = fileNames.trim().split(";");
-
+	public void insertData(IEngine engine, OWLER owler, String fileName, Logger logger) throws FileNotFoundException, IOException {
 		try {
-//			openTinkerEngineWithoutConnection(appName, appID);
-			for (int i = 0; i < files.length; i++) {
-				CSVFileHelper helper = null;
-				try {
-					String fileName = files[i];
-					// open the csv file
-					// and get the headers
-					helper = UploadUtilities.getHelper(fileName, UploadInputUtility.getDelimiter(this.store), getDataTypeMap(), getNewHeaders());
-					// load the prop file for the CSV file
-//					if (propFileExist) {
-//						// if we have multiple files, load the correct one
-//						if (propFiles != null) {
-//							propFile = propFiles[i];
-//						}
-//						openProp(propFile);
-//					} else {
-//						rdfMap = rdfMapArr[i];
-//					}
-					
-					
-					// get the user selected datatypes for each header
-//					preParseRdfCSVMetaData(rdfMap);
-					Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, getDataTypeMap(), getAdditionalTypes());
-					String[] headers = (String[]) headerTypesArr[0];
-					SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-					//TODO
-					String[] additionalTypes = (String[]) headerTypesArr[2];
-					List<String> relationList = new ArrayList<String>();
-					List<String> nodePropList = new ArrayList<String>();
-					List<String> relPropList = new ArrayList<String>();
-					parseMetadata(getMetamodel(), owler, relationList, nodePropList, relPropList);
-					processRelationShips(engine, owler, helper, logger, relationList, nodePropList, relPropList, headers, types);
-				} finally {
-//					closeCSVFile();
-					if(helper != null) {
-					helper.clear();
-					}
+			// open the csv file
+			CSVFileHelper helper = UploadUtilities.getHelper(fileName, UploadInputUtility.getDelimiter(this.store), getDataTypeMap(), getNewHeaders());
+			try {
+				// TODO load the prop file for the CSV file
+				// if (propFileExist) {
+				// // if we have multiple files, load the correct one
+				// if (propFiles != null) {
+				// propFile = propFiles[i];
+				// }
+				// openProp(propFile);
+				// } else {
+				// rdfMap = rdfMapArr[i];
+				// }
 
+				// get the user selected datatypes for each header
+				Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, getDataTypeMap(), getAdditionalTypes());
+				String[] headers = (String[]) headerTypesArr[0];
+				SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+				// TODO
+				String[] additionalTypes = (String[]) headerTypesArr[2];
+				List<String> relationList = new ArrayList<String>();
+				List<String> nodePropList = new ArrayList<String>();
+				List<String> relPropList = new ArrayList<String>();
+				parseMetadata(getMetamodel(), owler, relationList, nodePropList, relPropList);
+				processRelationShips(engine, owler, helper, logger, relationList, nodePropList, relPropList, headers, types);
+			} finally {
+				if (helper != null) {
+					helper.clear();
 				}
+
 			}
-			// loadMetadataIntoEngine();
 			owler.commit();
 			try {
 				owler.export();
@@ -238,15 +276,8 @@ public class UploadTinkerEngine extends AbstractRdbmsUploadReactor {
 		} catch (IOException e) {
 			throw new IOException(e.getMessage());
 		} finally {
-//			if (error || autoLoad) {
-//				closeDB();
-//				closeOWL();
-//			} else {
-//				commitDB();
-//				
-//			}
 			engine.commit();
-		
+
 		}
 
 	}
@@ -489,13 +520,13 @@ public class UploadTinkerEngine extends AbstractRdbmsUploadReactor {
 	private void parseMetadata(Map<String, Object> metamodel, OWLER owler, List<String> relationList,
 			List<String> nodePropList, List<String> relPropList) {
 		Set<String> concepts = new HashSet<>();
-		if (metamodel.get("edges") != null) {
-			List<Map<String, Object>> edgeList = (List<Map<String, Object>>) metamodel.get("edges");
+		if (metamodel.get(Constants.RELATION) != null) {
+			List<Map<String, Object>> edgeList = (List<Map<String, Object>>) metamodel.get(Constants.RELATION_PROP);
 			// process each relationship
 			for (Map relMap : edgeList) {
-				String subject = (String) relMap.get("fromTable");
-				String object = (String) relMap.get("toTable");
-				String predicate = (String) relMap.get("relName");
+				String subject = (String) relMap.get(Constants.FROM_TABLE);
+				String object = (String) relMap.get(Constants.TO_TABLE);
+				String predicate = (String) relMap.get(Constants.REL_NAME);
 				owler.addConcept(subject);
 				concepts.add(subject);
 				owler.addConcept(object);
@@ -506,8 +537,8 @@ public class UploadTinkerEngine extends AbstractRdbmsUploadReactor {
 			}
 		}
 
-		if (metamodel.get("nodes") != null) {
-			Map<String, Object> nodeProps = (Map<String, Object>) metamodel.get("nodes");
+		if (metamodel.get(Constants.NODE_PROP) != null) {
+			Map<String, Object> nodeProps = (Map<String, Object>) metamodel.get(Constants.NODE_PROP);
 			for (String concept : nodeProps.keySet()) {
 				List<String> conceptProps = (List<String>) nodeProps.get(concept);
 				for (String property : conceptProps) {
@@ -519,8 +550,8 @@ public class UploadTinkerEngine extends AbstractRdbmsUploadReactor {
 			}
 		}
 
-		if (metamodel.get("RELATION_PROP") != null) {
-			Map<String, Object> relProps = (Map<String, Object>) metamodel.get("RELATION_PROP");
+		if (metamodel.get(Constants.RELATION_PROP) != null) {
+			Map<String, Object> relProps = (Map<String, Object>) metamodel.get(Constants.RELATION_PROP);
 			for (String relation : relProps.keySet()) {
 				relPropList.add(relation);
 			}
@@ -654,48 +685,12 @@ public class UploadTinkerEngine extends AbstractRdbmsUploadReactor {
 	}
 
 	private Map<String, Object> getMetamodel() {
-		GenRowStruct grs = this.store.getNoun("metamodel");
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.METAMODEL.getKey());
 		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
 
 		return (Map<String, Object>) grs.get(0);
-	}
-
-
-
-	//TODO
-	//TODO
-	//TODO
-	//TODO
-	//TODO
-	//TODO
-	@Override
-	public String addToExistingApp(String appId, String filePath, Logger logger) {
-		appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
-			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
-		}
-		if(!(engine instanceof TinkerEngine)) {
-			throw new IllegalArgumentException("App must be using a Tinker database");
-		}
-		// get existing owl
-		OWLER owler = new OWLER(engine, engine.getOWL());
-		// need to get existing relationships
-		try {
-			insertData( engine, owler, filePath, logger);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-
-		try {
-			UploadUtilities.updateMetadata(appId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		return appId;
 	}
 
 }
