@@ -16,6 +16,36 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	
+	/**
+	 * Try to reconcile and get the engine id
+	 * @return
+	 */
+	public static String testUserEngineIdForAlias(String user, String potentialId) {
+		List<String> ids = new Vector<String>();
+		String query = "SELECT DISTINCT ENGINEPERMISSION.ENGINE "
+				+ "FROM ENGINEPERMISSION INNER JOIN ENGINE ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
+				+ "WHERE ENGINE.NAME='" + potentialId + "' AND ENGINEPERMISSION.USER='" + user + "'";
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		ids = flushToListString(wrapper);
+		if(ids.isEmpty()) {
+			query = "SELECT DISTINCT ENGINE.ID FROM ENGINE WHERE ENGINE.NAME='" + potentialId + "' AND ENGINE.GLOBAL=TRUE";
+			ids = flushToListString(wrapper);
+		}
+		
+		if(ids.size() == 1) {
+			potentialId = ids.get(0);
+		} else if(ids.size() > 1) {
+			throw new IllegalArgumentException("There are 2 databases with the name " + potentialId + ". Please pass in the correct id to know which source you want to load from");
+		}
+		
+		return potentialId;
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
 	/*
 	 * Querying engine data
 	 */
