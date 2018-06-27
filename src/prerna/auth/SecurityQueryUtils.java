@@ -30,6 +30,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		ids = flushToListString(wrapper);
 		if(ids.isEmpty()) {
 			query = "SELECT DISTINCT ENGINE.ID FROM ENGINE WHERE ENGINE.NAME='" + potentialId + "' AND ENGINE.GLOBAL=TRUE";
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			ids = flushToListString(wrapper);
 		}
 		
