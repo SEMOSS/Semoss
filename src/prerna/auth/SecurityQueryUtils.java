@@ -176,7 +176,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
 				+ "AND (USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE) "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
@@ -193,7 +193,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
@@ -266,7 +266,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "(USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE) "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
@@ -278,7 +278,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static List<String> predictInsightSearch(String searchTerm, String limit, String offset) {
 		String query = "SELECT DISTINCT INSIGHT.INSIGHTNAME as \"name\" "
 				+ "FROM INSIGHT "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' " : "")
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
@@ -308,8 +308,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\" "
 				+ "FROM INSIGHT LEFT JOIN ENGINE ON INSIGHT.ENGINEID=ENGINE.ID "
 				+ "WHERE "
-				+ "LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' "
-				+ " AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "
+				+ "REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i') " 
+				+ "AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "
 				+ "ORDER BY INSIGHT.EXECUTIONCOUNT "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "");
@@ -331,13 +331,19 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "COUNT(ENGINEID) "
 				+ "FROM INSIGHT LEFT JOIN ENGINE ON INSIGHT.ENGINEID=ENGINE.ID "
 				+ "WHERE "
-				+ "LOWER(INSIGHT.INSIGHTNAME) LIKE '%" + searchTerm.trim().toLowerCase() + "%' "
+				+ "REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i') " 
 				+ "AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "
 				+ "GROUP BY LAYOUT, ENGINEID;";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
 	
+	private static String escapeRegexCharacters(String s) {
+		s = s.trim();
+		s = s.replace("(", "\\(");
+		s = s.replace(")", "\\)");
+		return s;
+	}
 	
 	
 }
