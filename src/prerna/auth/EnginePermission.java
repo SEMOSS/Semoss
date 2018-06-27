@@ -1,9 +1,10 @@
 package prerna.auth;
 
 public enum EnginePermission {
-	OWNER (1, "Owner"),
-	READ_ONLY (2, "Read Only"),
-	EDIT (3, "Edit");
+	
+	OWNER (1, "OWNER"),
+	EDIT (2, "EDIT"),
+	READ_ONLY (3, "READ_ONLY");
 	
 	private final int id;
 	private final String permission;
