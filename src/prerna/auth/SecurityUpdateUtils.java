@@ -41,6 +41,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
+
+		String appName = prop.getProperty(Constants.ENGINE_ALIAS);
+		if(appName == null) {
+			appName = appId;
+		}
 		
 		boolean reloadInsights = false;
 		if(prop.containsKey(Constants.RELOAD_INSIGHTS)) {
@@ -53,26 +58,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			global = false;
 		}
 		
+		String[] typeAndCost = getAppTypeAndCost(prop);
 		boolean engineExists = containsEngineId(appId);
 		if(engineExists && !reloadInsights) {
-			LOGGER.info("Security database already contains app");
+			LOGGER.info("Security database already contains app with alias = " + appName);
+			// update engine properties anyway ... in case global was shifted for example
+			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 			return;
+		} else if(!engineExists) {
+			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 		} else if(engineExists) {
 			// delete values if currently present
 			deleteInsightsForRecreation(appId);
-		}
-		
-		String appName = prop.getProperty(Constants.ENGINE_ALIAS);
-		if(appName == null) {
-			appName = appId;
-		}
-		
-		// need to add engine into the security db
-		if(!engineExists) {
-			String[] typeAndCost = getAppTypeAndCost(prop);
-			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
-		} else {
-			//TODO: do i need to update the global tag ???
+			// update engine properties anyway ... in case global was shifted for example
+			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 		}
 		
 		File dbfile = SmssUtilities.getInsightsRdbmsFile(prop);
@@ -240,6 +239,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static void addEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
 		String query = "INSERT INTO ENGINE (NAME, ID, TYPE, COST, GLOBAL) "
 				+ "VALUES ('" + engineName + "', '" + engineId + "', '" + engineType + "', '" + engineCost + "', " + global + ")";
+		securityDb.insertData(query);
+		securityDb.commit();
+	}
+	
+	public static void updateEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
+		String query = "UPDATE ENGINE SET "
+				+ "NAME='" + engineName 
+				+ "', TYPE='" + engineType 
+				+ "', COST='" + engineCost 
+				+ "', GLOBAL=" + global
+				+ " WHERE ID='" + engineId + "'";
 		securityDb.insertData(query);
 		securityDb.commit();
 	}
