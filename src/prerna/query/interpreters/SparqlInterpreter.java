@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
 
@@ -335,18 +334,19 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		//ignoring for now... old logic doesn't account for it so i will get to this later
 		
 		// create a random variable name that is unique
-		String randomRelVarName = Utility.getRandomString(6);
-		this.relationshipWhereClause.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">} ");
+//		String randomRelVarName = Utility.getRandomString(6);
 		if(joinType.equals("inner.join")) {
 			addNodeSelectorTriple(fromNodeVarName, fromNode);
 			addNodeSelectorTriple(toNodeVarName, toNode);
-			this.relationshipWhereClause.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("} ");
+//			this.relationshipWhereClause.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">}");
+			this.relationshipWhereClause.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?").append(toNodeVarName).append("}");
 		
 		} else if(joinType.equals("left.outer.join")) {
 			addNodeSelectorTriple(fromNodeVarName, fromNode);
 			this.relationshipWhereClause.append("OPTIONAL {")
+//				.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">}")
 				.append("{?").append(toNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(toURI).append(">} ")
-				.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("}")
+				.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?").append(toNodeVarName).append("}")
 				.append("}");
 			
 			this.addedSelectors.put(toNodeVarName, toURI);
@@ -354,8 +354,9 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		} else if(joinType.equals("right.outer.join")) {
 			addNodeSelectorTriple(toNodeVarName, toNode);
 			this.relationshipWhereClause.append("OPTIONAL {")
+//			.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">}")
 				.append("{?").append(fromNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(fromURI).append(">} ")
-				.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("}")
+				.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?").append(toNodeVarName).append("}")
 				.append("}");
 			
 			this.addedSelectors.put(fromNodeVarName, fromURI);
@@ -364,7 +365,8 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			addNodeSelectorTriple(fromNodeVarName, fromNode);
 			addNodeSelectorTriple(toNodeVarName, toNode);
 			this.relationshipWhereClause.append("OPTIONAL {")
-				.append("{?").append(fromNodeVarName).append(" ?").append(randomRelVarName).append(" ?").append(toNodeVarName).append("}")
+//				.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">}")
+				.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?").append(toNodeVarName).append("}")
 				.append("}");
 		}
 	}
