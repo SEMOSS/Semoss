@@ -53,8 +53,11 @@ import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.UploadTinkerEngine;
+import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsCsvUploadReactor;
+import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsExternalUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsFlatExcelUploadReactor;
+import prerna.sablecc2.reactor.app.upload.rdf.RdfCsvUploadReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.DropBoxUploaderReactor;
@@ -412,6 +415,11 @@ public class ReactorFactory {
 		// Database Uploading
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
 		reactorHash.put("RdbmsUploadExcelData", RdbmsFlatExcelUploadReactor.class);
+		reactorHash.put("RdbmsCsvUpload", RdbmsCsvUploadReactor.class);
+		reactorHash.put("RdfCsvUpload", RdfCsvUploadReactor.class);
+		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
+		
+
 		// external graph engine
 		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
 		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);

@@ -544,4 +544,12 @@ public class Constants {
 	public static final String DESCRIPTION = "description";
 	public static final String TAG = "tag";
 	public static final String LINK = "link";
+	
+	// Metamodel keys
+	public static final String NODE_PROP = "nodeProp";
+	public static final String RELATION = "relation";
+	public static final String RELATION_PROP = "relationProp";
+	public static final String FROM_TABLE = "fromTable";
+	public static final String TO_TABLE = "toTable";
+	public static final String REL_NAME = "relname";
 }
