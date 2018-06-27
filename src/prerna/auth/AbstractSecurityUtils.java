@@ -40,14 +40,14 @@ public abstract class AbstractSecurityUtils {
 		// TODO: testing code!!!!
 		// TODO: testing code!!!!
 		// TODO: testing code!!!!
-		String deleteQuery = "DELETE FROM ENGINE WHERE 1=1";
-		securityDb.removeData(deleteQuery);
-		deleteQuery = "DELETE FROM INSIGHT WHERE 1=1";
-		securityDb.removeData(deleteQuery);
-		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE 1=1";
-		securityDb.removeData(deleteQuery);
-		deleteQuery = "DELETE FROM ENGINEMETA WHERE 1=1";
-		securityDb.removeData(deleteQuery);
+//		String deleteQuery = "DELETE FROM ENGINE WHERE 1=1";
+//		securityDb.removeData(deleteQuery);
+//		deleteQuery = "DELETE FROM INSIGHT WHERE 1=1";
+//		securityDb.removeData(deleteQuery);
+//		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE 1=1";
+//		securityDb.removeData(deleteQuery);
+//		deleteQuery = "DELETE FROM ENGINEMETA WHERE 1=1";
+//		securityDb.removeData(deleteQuery);
 	}
 
 	/**
@@ -120,8 +120,8 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEMETA", colNames, types));
 
 		// ENGINEPERMISSION
-		colNames = new String[] { "id", "user", "permission", "engine", "visibility" };
-		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "boolean" };
+		colNames = new String[] { "user", "permission", "engine", "visibility" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEPERMISSION", colNames, types));
 
 		// INSIGHT
