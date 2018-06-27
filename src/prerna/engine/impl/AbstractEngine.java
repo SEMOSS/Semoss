@@ -1118,7 +1118,9 @@ public abstract class AbstractEngine implements IEngine {
 		// if solr doesn't have this engine
 		// do not add anything yet
 		// let it get added later
-		if(!SecurityUpdateUtils.containsEngineId(this.engineId)) {
+		if(!SecurityUpdateUtils.containsEngineId(this.engineId) 
+				|| this.engineId.equals(Constants.LOCAL_MASTER_DB_NAME)
+				|| this.engineId.equals(Constants.SECURITY_DB)) {
 			return;
 		}
 		boolean tableExists = false;

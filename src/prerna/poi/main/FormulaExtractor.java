@@ -435,37 +435,6 @@ public class FormulaExtractor extends AbstractFileReader {
 					}
 				}
 			}
-
-			//display names next
-			XSSFSheet displayNamesSheet = workbook.getSheet("DisplayNames");
-			if (displayNamesSheet != null) {
-				lastRow = displayNamesSheet.getLastRowNum();
-				for (int rIndex = 0; rIndex <= lastRow; rIndex++) {
-					XSSFRow row = displayNamesSheet.getRow(rIndex);
-					// check to make sure cell is not null
-					if (row != null) {
-						XSSFCell type = row.getCell(0);
-						XSSFCell node = row.getCell(1);
-						String displayName = null;
-						XSSFCell property = null;
-						String subject = "";
-						if(type.getStringCellValue().equalsIgnoreCase("Node")){
-							displayName = Utility.cleanString(row.getCell(2).toString(),true);
-							subject = node.getStringCellValue();
-						} else if(type.getStringCellValue().equalsIgnoreCase("Property")){
-							property = row.getCell(2);
-							displayName = Utility.cleanString(row.getCell(3).toString(),true);
-							subject = node.getStringCellValue() + "%" + property.getStringCellValue();
-						} else {
-							continue;
-						}
-						if(!displayNamesHash.contains(displayName) && !displayNamesHash.containsKey(subject)){
-							displayNamesHash.put(subject, displayName);
-						}
-					}
-				}
-			}
-
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {

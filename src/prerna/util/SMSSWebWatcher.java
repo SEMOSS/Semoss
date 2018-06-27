@@ -30,9 +30,6 @@ package prerna.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Properties;
 
@@ -87,9 +84,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				LOGGER.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
-				Utility.loadWebEngine(fileName, prop);
+				Utility.loadEngine(fileName, prop);
 			}
-		}catch(IOException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException e){
+		}catch(IOException e){
 			e.printStackTrace();
 		}finally{
 			try{
@@ -140,7 +137,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					engineNames = engineNames + ";" + engineId;
 					DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 				}
-				
 
 				// the issue with remote engines is it needs to be loaded to get the insights and the owl file
 				// TODO need something that will modify this for the remote engines
@@ -162,32 +158,28 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						e.printStackTrace();
 					}
 				}
+			
+				// we want to ignore AppEngine
+				// since it contains no data / owl
+				if(!engineTypeString.equals("APP")) {
+					// THIS IS BECAUSE WE HAVE MADE A LOT OF MODIFICATIONS TO THE OWL
+					// GOTTA MAKE SURE IT IS MODERNIZED VERSION
+					// AS TIME GOES ON, THIS CODE CAN BE REMOVED
+					// IF IT DOES CHANGE THE OWL, THE TIMESTAMP WILL CHAGNE AND LOCAL MASTER
+					// WILL AUTOMATICALLY UPDATE
+					OwlConceptualNameModernizer modernizer = new OwlConceptualNameModernizer(prop);
+					modernizer.run();
+					
+					// get that metadata I say
+					Utility.synchronizeEngineMetadata(engineId);
+				}
 				
-				if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
-					// if the database is a hidden database
-					// do not add anything
-					// we return null and we will 
-					LOGGER.info("Engine " + engineId + " is a hidden database. Do not load into local master or solr.");
-					SecurityUpdateUtils.addApp(engineId, false);
-					return null;
-				} else {
-					// we want to ignore AppEngine
-					// since it contains no data / owl
-					if(!engineTypeString.equals("APP")) {
-						// THIS IS BECAUSE WE HAVE MADE A LOT OF MODIFICATIONS TO THE OWL
-						// GOTTA MAKE SURE IT IS MODERNIZED VERSION
-						// AS TIME GOES ON, THIS CODE CAN BE REMOVED
-						// IF IT DOES CHANGE THE OWL, THE TIMESTAMP WILL CHAGNE AND LOCAL MASTER
-						// WILL AUTOMATICALLY UPDATE
-						OwlConceptualNameModernizer modernizer = new OwlConceptualNameModernizer(prop);
-						modernizer.run();
-						
-						// get that metadata I say
-						Utility.synchronizeEngineMetadata(engineId);
-					}
-					// add to security
-					SecurityUpdateUtils.addApp(engineId, true);
-					LOGGER.info("Loaded Engine.. " + fileName);
+				boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
+				boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
+				if(!isLocal & !isSecurity) {
+					// sync up the engine metadata now
+					Utility.synchronizeEngineMetadata(engineId);
+					SecurityUpdateUtils.addApp(engineId);
 				}
 			}
 		}catch(Exception e){
