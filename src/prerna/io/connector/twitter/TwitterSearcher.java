@@ -3,6 +3,7 @@ package prerna.io.connector.twitter;
 import java.util.Hashtable;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AppTokens;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
@@ -33,7 +34,14 @@ public class TwitterSearcher implements IConnectorIOp{
 			params = new Hashtable();
 		}
 		
-		AccessToken twitToken = user.getAccessToken(AuthProvider.TWITTER);
+		AccessToken twitToken = null;
+		if(user != null) {
+			twitToken = user.getAccessToken(AuthProvider.TWITTER);
+		}
+		if(twitToken == null) {
+			twitToken = AppTokens.getInstance().getAccessToken(AuthProvider.TWITTER);
+		}
+		
 		String accessToken = twitToken.getAccess_token();
 				
 		// make the API call
