@@ -87,7 +87,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private BasicDataSource dataSource = null;
 	Connection engineConn = null;
 	private boolean useConnectionPooling = false;
-	int tableCount = 0;
 	public PersistentHash conceptIdHash = null;
 	
 //	private DriverManager manager = null;
@@ -702,42 +701,25 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	// does not account for a pooled connection need to ensure
-	public Connection makeConnection()
-	{
+	public Connection makeConnection() {
 		Connection retObject = getConnection();
-		if(conceptIdHash == null)
-		{
-			conceptIdHash = new PersistentHash();
+		if(conceptIdHash == null) {
+			conceptIdHash = new PersistentHash(this.engineId);
 			try {
-				
 				conceptIdHash.setConnection(retObject);
-				String checkQuery = "select count(*) from information_schema.tables where table_schema='PUBLIC'";
-				ResultSet rs = engineConn.createStatement().executeQuery(checkQuery);
-				
-				while(rs.next())
-					tableCount = rs.getInt(1);
-				if(tableCount >= 7)
-					conceptIdHash.load();
-			}catch(Exception ex)
-			{
+				conceptIdHash.load();
+			} catch(Exception ex) {
 				ex.printStackTrace();
 			}
 		}
 		return retObject;
 	}
 	
-	public int getTableCount()
-	{
-		return this.tableCount;
-	}
-	
-	public PersistentHash getConceptIdHash()
-	{
+	public PersistentHash getConceptIdHash() {
 		return this.conceptIdHash;
 	}
 	
-	public void commitRDBMS()
-	{
+	public void commitRDBMS() {
 		System.out.println("Before commit.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
 		conceptIdHash.persistBack();
 		System.out.println("Once committed.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
