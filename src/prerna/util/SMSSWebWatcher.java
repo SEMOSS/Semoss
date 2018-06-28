@@ -169,9 +169,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					// WILL AUTOMATICALLY UPDATE
 					OwlConceptualNameModernizer modernizer = new OwlConceptualNameModernizer(prop);
 					modernizer.run();
-					
-					// get that metadata I say
-					Utility.synchronizeEngineMetadata(engineId);
 				}
 				
 				boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
