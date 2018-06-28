@@ -288,6 +288,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushToListString(wrapper);
 	}
 	
+	/*
+	 * For searching in search bar
+	 */
+	
 	/**
 	 * 
 	 * @param searchTerm
