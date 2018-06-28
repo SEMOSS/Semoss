@@ -13,29 +13,42 @@ public class PersistentHash {
 	// simple hash table that saves and gets values from the database
 	private final String tableName = "kvstore";
 	private Connection conn = null;
+	private String engineId = null;
+	private boolean validEngine = false;
+	
 	public Hashtable<String, String> thisHash = new Hashtable<String, String>();
 	boolean dirty = false;
+	
+	public PersistentHash(String engineId) {
+		this.engineId = engineId;
+		this.validEngine = Constants.LOCAL_MASTER_DB_NAME.equals(this.engineId);
+	}
 	
 	public void setConnection(Connection conn) {
 		this.conn = conn;
 	}
 
 	public void load() {
-		try {
-			if(conn != null) {
-				ResultSet rs = conn.createStatement().executeQuery("SELECT K, V from " + this.tableName);
-				while(rs.next()) {
-					this.thisHash.put(rs.getString(1),rs.getString(2));
-				}	
+		// this is only for local master!!!
+		if(validEngine) {
+			try {
+				if(conn != null) {
+					ResultSet rs = conn.createStatement().executeQuery("SELECT K, V from " + this.tableName);
+					while(rs.next()) {
+						this.thisHash.put(rs.getString(1),rs.getString(2));
+					}	
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
 		}
 	}
 	
 	public void put(String key, String value) {
-		this.thisHash.put(key, value);
-		dirty = true;
+		if(validEngine) {
+			this.thisHash.put(key, value);
+			dirty = true;
+		}
 	}
 	
 	public boolean containsKey(String key) {
@@ -48,7 +61,7 @@ public class PersistentHash {
 	}
 
 	public void persistBack() {
-		if(this.dirty) {
+		if(this.validEngine && this.dirty) {
 			try {
 				String [] colNames = {"K","V"};
 				String [] types = {"varchar(800)", "varchar(800)"};
