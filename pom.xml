@@ -1394,7 +1394,7 @@
 			</exclusions>
 		</dependency>
 		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-schemas</artifactId>
 			<version>3.15</version>
@@ -1404,7 +1404,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency-->
+		</dependency>
 		<!-- cleanup -->
 		<!--dependency>
 			<groupId>gov.sandia.foundry</groupId>
@@ -1801,8 +1801,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency-->
-		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
 			<version>2.6.0</version>
@@ -1812,7 +1811,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency-->
+		</dependency>
 		<!-- cleanup -->
 		<!--dependency>
 			<groupId>xpp3</groupId>
