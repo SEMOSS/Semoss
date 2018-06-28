@@ -827,7 +827,7 @@
 			</exclusions>
 		</dependency>
 		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>com.hp.hpl.jena</groupId>
 			<artifactId>iri</artifactId>
 			<version>0.6</version>
@@ -837,7 +837,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency-->
+		</dependency>
 		<dependency>
 			<groupId>com.itextpdf</groupId>
 			<artifactId>itextpdf</artifactId>
@@ -977,7 +977,7 @@
 			</exclusions>
 		</dependency>
 		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-iri</artifactId>
 			<version>0.9.4</version>
@@ -987,7 +987,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency-->
+		</dependency>
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-larq</artifactId>
@@ -1000,7 +1000,7 @@
 			</exclusions>
 		</dependency>
 		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-tdb</artifactId>
 			<version>0.9.4</version>
@@ -1010,7 +1010,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency-->
+		</dependency>
 		<!-- cleanup -->
 		<!--dependency>
 			<groupId>jep</groupId>
@@ -1237,6 +1237,18 @@
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-core</artifactId>
 			<version>3.6.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-analyzers-common -->
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-analyzers-common</artifactId>
+			<version>7.4.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2529,6 +2541,18 @@
 			<groupId>org.jodd</groupId>
 			<artifactId>jodd-core</artifactId>
 			<version>3.6.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.semarglproject/semargl-rdf -->
+		<dependency>
+			<groupId>org.semarglproject</groupId>
+			<artifactId>semargl-rdf</artifactId>
+			<version>0.6.1</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.semarglproject/semargl-sesame -->
+		<dependency>
+			<groupId>org.semarglproject</groupId>
+			<artifactId>semargl-sesame</artifactId>
+			<version>0.6</version>
 		</dependency>
 	</dependencies>
 </project>
