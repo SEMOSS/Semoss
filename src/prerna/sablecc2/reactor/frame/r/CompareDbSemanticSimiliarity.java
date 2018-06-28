@@ -136,18 +136,20 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 							File newFile = Utility.writeResultToFile(newFileLoc, iterator, typesMap, "\t");
 							String loadFileRScript = rTempTable + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");\n";
 							sb.append(loadFileRScript);
-							newFile.delete();
 
 							// get random subset of column data
+							sb.append("if(nrow(" + rTempTable + ") > 20) {");
 							sb.append(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),20),c(");
 							sb.append("\"" + database + "$" + table + "$" + col + "\"");
-							sb.append(")];\n");
+							sb.append(")];}\n");
 
 							// execute script to get descriptions for this column
 							sb.append(rTempTable + "<-as.data.frame(" + rTempTable + ");\n");
 							logger.info("Adding " + col + " from table " + table + " and database " + database + " to the local master index...");
 							sb.append("errorResults <- column_doc_mgr(" + rTempTable + ",\"column-desc-set\");\n");
 							this.rJavaTranslator.runR(sb.toString());
+							
+							newFile.delete();
 							String checkNull = "is.null(errorResults)";
 							boolean nullResults = true; 
 							nullResults = this.rJavaTranslator.getBoolean(checkNull);
