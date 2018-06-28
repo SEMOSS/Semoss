@@ -3,6 +3,7 @@ package prerna.io.connector.google;
 import java.util.Hashtable;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AppTokens;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
@@ -26,7 +27,14 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 			params = new Hashtable();
 		}
 
-		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP);
+		AccessToken googToken = null;
+		if(user != null) {
+			googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP);
+		}
+		if(googToken == null) {
+			googToken = AppTokens.getInstance().getAccessToken(AuthProvider.GOOGLE_MAP);
+		}
+		
 		String accessToken = googToken.getAccess_token();
 		// you fill what you want to send on the API call
 		// the other thing it needs is an address
