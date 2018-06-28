@@ -25,4 +25,4 @@ build_deploy:
     - mvn $MAVEN_CLI_OPTS deploy -P deploy
   artifacts:
     paths:
-      - target/
+      - target/semoss-0.0.1-SNAPSHOT.jar
