@@ -128,6 +128,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		
+		if(reloadInsights) {
+			LOGGER.info("Modifying force reload to false");
+			Utility.changePropMapFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");	
+		}
+		
 		LOGGER.info("Finished adding engine = " + appId);
 	}
 	
