@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.apache.solr.util.FileUtils;
+import org.apache.commons.io.FileUtils;
 
 import com.hp.hpl.jena.vocabulary.RDFS;
 
