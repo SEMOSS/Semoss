@@ -481,30 +481,28 @@ public class AddToMasterDB {
 		java.util.Date retDate = null;
 		RDBMSNativeEngine localMaster = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = getConnection(localMaster);
-		if(localMaster.getTableCount() > 0) {
-			Statement stmt = null;
-			ResultSet rs = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				java.sql.Timestamp modDate = rs.getTimestamp(1);
+				retDate = new java.util.Date(modDate.getTime());
+			}
+		} catch(Exception ex) {
+			ex.printStackTrace();
+		} finally {
 			try {
-				String query = "select modifieddate from engine e where e.id = '" + engineId + "'";
-				stmt = conn.createStatement();
-				rs = stmt.executeQuery(query);
-				while(rs.next()) {
-					java.sql.Timestamp modDate = rs.getTimestamp(1);
-					retDate = new java.util.Date(modDate.getTime());
-				}
-			} catch(Exception ex) {
-				ex.printStackTrace();
-			} finally {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
+				rs.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				stmt.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
 		}
 		return retDate;
