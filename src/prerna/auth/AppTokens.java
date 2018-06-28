@@ -27,11 +27,11 @@ public class AppTokens extends AbstractValueObject{
 		accessTokens.put(name, value);
 	}
 	
-	public AccessToken getAccessToken(String name) {
+	public AccessToken getAccessToken(AuthProvider name) {
 		return accessTokens.get(name);
 	}
 	
-	public void dropAccessToken(String name) {
+	public void dropAccessToken(AuthProvider name) {
 		accessTokens.remove(name);
 	}
 
