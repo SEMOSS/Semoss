@@ -694,7 +694,7 @@ public class MasterDatabaseUtility {
 	public static Map<String, HashMap> getConceptProperties(List<String> conceptLogicalNames, String engineFilter) {
 		// get the bindings based on the input list
 		String conceptString = makeListToString(conceptLogicalNames);
-		String engineString = " and e.enginename= '" + engineFilter +"' ";
+		String engineString = " and e.id= '" + engineFilter +"' ";
 		if(engineFilter == null || engineFilter.isEmpty()) {
 			engineString = "";
 		}
@@ -704,6 +704,7 @@ public class MasterDatabaseUtility {
 				+ "(select physicalnameid from engineconcept ec where localconceptid in (select localconceptid from concept where conceptualname in" +  conceptString.toString() + ") )" 
 				+ engineString
 				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
+		System.out.println(propQuery);
 	
 		Map<String, HashMap> returnHash = new HashMap<String, HashMap>();;
 		Map<String, Map<String, ArrayList<String>>> queryData = new HashMap<String, Map<String, ArrayList<String>>>();
@@ -746,6 +747,7 @@ public class MasterDatabaseUtility {
 						propList = new ArrayList<>();
 					}
 					propList.add(propName);
+					System.out.println(propName);
 					// add to the engine map
 					engineMap.put(parentName, propList);
 				}
