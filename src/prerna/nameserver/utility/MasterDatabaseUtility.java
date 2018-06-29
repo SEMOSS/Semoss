@@ -704,7 +704,6 @@ public class MasterDatabaseUtility {
 				+ "(select physicalnameid from engineconcept ec where localconceptid in (select localconceptid from concept where conceptualname in" +  conceptString.toString() + ") )" 
 				+ engineString
 				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
-		System.out.println(propQuery);
 	
 		Map<String, HashMap> returnHash = new HashMap<String, HashMap>();;
 		Map<String, Map<String, ArrayList<String>>> queryData = new HashMap<String, Map<String, ArrayList<String>>>();
@@ -747,7 +746,6 @@ public class MasterDatabaseUtility {
 						propList = new ArrayList<>();
 					}
 					propList.add(propName);
-					System.out.println(propName);
 					// add to the engine map
 					engineMap.put(parentName, propList);
 				}
