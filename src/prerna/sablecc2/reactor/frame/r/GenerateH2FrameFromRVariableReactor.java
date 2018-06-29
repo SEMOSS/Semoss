@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r;
 
 import prerna.ds.h2.H2Frame;
 import prerna.query.querystruct.CsvQueryStruct;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -20,21 +21,28 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	 */
 	
 	public GenerateH2FrameFromRVariableReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		init();
+		organizeKeys();
 		// get rFrameName
 		String varName = getVarName();
 		H2Frame newTable = new H2Frame(varName);
 
 		//sync R dataframe to H2Frame
 		syncFromR(this.rJavaTranslator,varName, newTable);
-		
-		this.insight.setDataMaker(newTable);
-		return new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		if(overrideFrame()) {
+			this.insight.setDataMaker(newTable);
+		}
+		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		// add the alias as a noun by default
+		if(varName != null && !varName.isEmpty()) {
+			this.insight.getVarStore().put(varName, noun);
+		}
+		return noun;
 	}
 
 	/**
@@ -77,7 +85,21 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	 * @return
 	 */
 	private String getVarName() {
-		return this.curRow.get(0).toString();
+		// key based
+		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.VARIABLE.getKey());
+		if(overrideGrs != null && !overrideGrs.isEmpty()) {
+			return  (String) overrideGrs.get(0);
+		}
+		// first input
+		return this.curRow.get(0).toString();	}
+	
+	private boolean overrideFrame() {
+		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.OVERRIDE.getKey());
+		if(overrideGrs != null && !overrideGrs.isEmpty()) {
+			return (boolean) overrideGrs.get(0);
+		}
+		// default is to override
+		return true;
 	}
 	
 	///////////////////////// KEYS /////////////////////////////////////
