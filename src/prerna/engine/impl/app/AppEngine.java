@@ -5,6 +5,7 @@ import java.util.Properties;
 import java.util.Vector;
 
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -20,12 +21,14 @@ public class AppEngine extends AbstractEngine {
 		this.baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		this.prop = Utility.loadProperties(propFile);
 		
+		// get engineName
+		this.engineName = this.prop.getProperty(Constants.ENGINE_ALIAS);
 		// since the URL is most likely parameterized for sharing
 		// create the param hash to fill it in
 		Hashtable <String, String> paramHash = new Hashtable <String, String>();
 		paramHash.put("BaseFolder", baseFolder);
 		if(this.engineName != null) {
-			paramHash.put("engine", getEngineId());
+			paramHash.put(Constants.ENGINE, SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		}
 		
 		String insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
