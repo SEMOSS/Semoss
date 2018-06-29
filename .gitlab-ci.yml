@@ -18,9 +18,24 @@ cache:
     - .m2/repository/
   key: ${CI_BUILD_REF_NAME}
 
+# Does not push to maven central
+build_dev:
+  stage: build
+  # See https://docs.gitlab.com/ee/ci/yaml/#only-and-except-simplified
+  only:
+    - pushes
+  script:
+    - mvn $MAVEN_CLI_OPTS clean install
+  artifacts:
+    paths:
+      - target/semoss-0.0.1-SNAPSHOT.jar
+
 # Pushes to maven central
 build_deploy:
   stage: build
+  only:
+    - triggers
+    - web
   script:
     - mvn $MAVEN_CLI_OPTS deploy -P deploy
   artifacts:
