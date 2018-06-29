@@ -1,7 +1,6 @@
 image: maven:3.5-jdk-8
 
 stages:
-  - setup
   - build
   
 variables:
@@ -12,14 +11,6 @@ cache:
   paths:
     - .m2/repository/
   key: ${CI_BUILD_REF_NAME}
-
-setup:
-  stage: setup
-  script:
-    - apt-get update
-    - apt-get install -y openjfx
-    - apt-get install -y gnupg2
-    - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
   
 # Does not push to maven central
 build_dev:
@@ -28,6 +19,8 @@ build_dev:
   only:
     - pushes
   script:
+    - apt-get update
+    - apt-get install -y openjfx
     - mvn $MAVEN_CLI_OPTS clean install
   artifacts:
     paths:
@@ -40,6 +33,10 @@ build_deploy:
     - triggers
     - web
   script:
+    - apt-get update
+    - apt-get install -y openjfx
+    - apt-get install -y gnupg2
+    - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
     - mvn $MAVEN_CLI_OPTS deploy -P deploy
   artifacts:
     paths:
