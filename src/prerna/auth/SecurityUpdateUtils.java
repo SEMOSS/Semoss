@@ -219,7 +219,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		securityDb.removeData(deleteQuery);
 		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE ENGINE='" + appId + "'";
 		securityDb.removeData(deleteQuery);
-		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINE='" + appId + "'";
+		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + appId + "'";
 		securityDb.removeData(deleteQuery);
 		
 		//TODO: add the other tables...
