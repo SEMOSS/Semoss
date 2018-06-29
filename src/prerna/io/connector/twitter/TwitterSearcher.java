@@ -8,6 +8,10 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.Viewpoint;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
 
@@ -40,6 +44,12 @@ public class TwitterSearcher implements IConnectorIOp{
 		}
 		if(twitToken == null) {
 			twitToken = AppTokens.getInstance().getAccessToken(AuthProvider.TWITTER);
+		}
+		
+		if(twitToken == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to twiiter", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
 		}
 		
 		String accessToken = twitToken.getAccess_token();
