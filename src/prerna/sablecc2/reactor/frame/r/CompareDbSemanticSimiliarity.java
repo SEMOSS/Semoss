@@ -1,8 +1,12 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +15,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -66,6 +71,8 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         String rMasterTable1 = "semanticMasterTable1";
         String rTempTable = "semanticTempTable";
         String resultsTable = "semResults";
+        String seperator = "$";
+
         // frame name
         String finalResultFrame = "semanticResults";
         // frame column names
@@ -91,7 +98,6 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         rsb.append(sourceScript2);
         this.rJavaTranslator.runR(rsb.toString());
         ArrayList<String> failedColArray = new ArrayList<String>();
-        
         // indexing: skip if user already indexed this db and doesnt want to update the data
         boolean addFlag = getUpdatedBool();
 		if(addFlag){
@@ -111,11 +117,17 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 						String dataType = tableCol[2] + "";
 						if (dataType.equals(SemossDataType.STRING.toString())) {
 							count++;
-							QueryColumnSelector colSelector = new QueryColumnSelector();
-							colSelector.setTable(table);
-							colSelector.setColumn(col);
-							colSelector.setAlias(engine.getEngineName() + "$" + table + "$" + col);
-							typesMap.put(col, dataType);
+							// we will fill this in once we figure out if it is a concept or property
+							QueryColumnSelector colSelector = null;
+							// this is a hack we used in advanced federate
+							if(engine.getParentOfProperty(col + "/" + table) == null) {
+								// we couldn't find a parent for this property
+								// this means it is a concept itself
+								// and we should only use table
+								colSelector = new QueryColumnSelector(table);
+							} else {
+								colSelector = new QueryColumnSelector(table + "__" + col);
+							}
 							qs.addSelector(colSelector);
 							
 							// select only non-null values from database
@@ -126,21 +138,21 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 							IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 							if(!iterator.hasNext()){
 								// all values are null in this column
-								failedColArray.add(database + "$" + table + "$" + col );
+								failedColArray.add(database + seperator + table + seperator + col );
 								continue;
 							}
 							StringBuilder sb = new StringBuilder();
 
 							// write to csv and read into R
 							String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
-							File newFile = Utility.writeResultToFile(newFileLoc, iterator, typesMap, "\t");
+							File newFile = writeResultToFile(newFileLoc, iterator, engine.getEngineName() + seperator + table + seperator + col);
 							String loadFileRScript = rTempTable + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");\n";
 							sb.append(loadFileRScript);
 
 							// get random subset of column data
 							sb.append("if(nrow(" + rTempTable + ") > 20) {");
 							sb.append(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),20),c(");
-							sb.append("\"" + database + "$" + table + "$" + col + "\"");
+							sb.append("\"" + database + seperator + table + seperator + col + "\"");
 							sb.append(")];}\n");
 
 							// execute script to get descriptions for this column
@@ -157,7 +169,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 							
 							// keep track of any columns that fail
 							if (nullResults){
-								failedColArray.add(database + "$" + table + "$" + col );							
+								failedColArray.add(database + seperator + table + seperator + col );							
 							}
 						}
 					} 
@@ -181,7 +193,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR(rTempTable + "<-as.data.frame(" + rTempTable + ");");
 			this.rJavaTranslator.runR("column_lsi_mgr(\"column-desc-set\",\"X4\",\"score\",0.8)");
 			this.rJavaTranslator.runR("compute_column_desc_sim(\"column-desc-set\")");
-			logger.debug("THESE COLUMNS FAILED!!! " + failedColArray);
+			logger.info("THESE COLUMNS FAILED!!! " + failedColArray);
 		}
 
 		// The scripts creates 3 separate files one for columns vs LM, tables vs LM,
@@ -212,7 +224,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         // compute and read in similar tables set
         String tablesResults = "semanticResultsTables";
         rsb.append("\n\n");
-        rsb.append("compute_entity_sim(\"column-desc-set\",\"table-desc-set\", sep=\"$\");\n");
+        rsb.append("compute_entity_sim(\"column-desc-set\",\"table-desc-set\", sep=\"" + seperator + "\");\n");
         String rTableRDS = "tableRDS";
         rsb.append(rTableRDS + "<-readRDS(\"table-desc-set-sim.rds\");\n");
         rsb.append(tablesResults + "<-as.data.table(as.table(" + rTableRDS + "));\n");
@@ -229,13 +241,13 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         rsb.append(tablesResults + "$N[" + tablesResults + "$N==\"NaN\"] <- 0;\n");
         
         // clean up dollar sign from end of database name
-        rsb.append(tablesResults + "$" + database + "<-gsub(\"$\",\"\"," + tablesResults + "$" + database + ");\n");
+        rsb.append(tablesResults + "$" + database + "<-gsub(\"" + seperator + "\",\"\"," + tablesResults + "$" + database + ");\n");
         rsb.append("\n\n");
         
         // compute and read in similar databases set
         String dbResults = "semanticResultsDb";
         String rDbRDS = "dbRDS";
-        String databaseScript = "compute_entity_sim(\"column-desc-set\",\"database-desc-set\",\"database\", sep=\"$\");\n";
+        String databaseScript = "compute_entity_sim(\"column-desc-set\",\"database-desc-set\",\"database\", sep=\"" + seperator + "\");\n";
         rsb.append(databaseScript);
         rsb.append(rDbRDS + "<-readRDS(\"database-desc-set-sim.rds\");\n");
         
@@ -253,14 +265,14 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         // clean data for dbResults
         rsb.append(dbResults + "[" + dbResults + "< 0,]= 0;\n");
         rsb.append(dbResults + "$N[" + dbResults + "$N==\"NaN\"] <- 0;\n");
-        rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"" + lmColumns + "\", sep=\"$\", direction=\"wide\", drop = FALSE);\n");
-        rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"" + database + "\", sep=\"$\", direction=\"wide\", drop = FALSE);\n");
+        rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"" + lmColumns + "\", sep=\"" + seperator + "\", direction=\"wide\", drop = FALSE);\n");
+        rsb.append(resultsTable + "<-cSplit(" + resultsTable + ", \"" + database + "\", sep=\"" + seperator + "\", direction=\"wide\", drop = FALSE);\n");
         rsb.append("colnames("+resultsTable+")[4] <- \"" + lmDatabases + "\";\n");
         
         // create unique ids so we can merge together the 3 result 
         // frames (column data, table data, and database data)
-        rsb.append(resultsTable + "$tableid1 <- apply( " + resultsTable + "[ , c('" + lmDatabases + "','" + lmColumns + "_2') ] , 1 , paste , collapse = \"$\" );\n");
-        rsb.append(resultsTable + "$tableid2 <- apply( " + resultsTable + "[ , c('" + database + "_1','" + database + "_2') ] , 1 , paste , collapse = \"$\" );\n");
+        rsb.append(resultsTable + "$tableid1 <- apply( " + resultsTable + "[ , c('" + lmDatabases + "','" + lmColumns + "_2') ] , 1 , paste , collapse = \"" + seperator + "\" );\n");
+        rsb.append(resultsTable + "$tableid2 <- apply( " + resultsTable + "[ , c('" + database + "_1','" + database + "_2') ] , 1 , paste , collapse = \"" + seperator + "\" );\n");
         rsb.append(resultsTable + "$tableid <- apply( " + resultsTable + "[ , c('tableid1','tableid2') ] , 1 , paste , collapse = \"===\" );\n");
         rsb.append("colnames("+resultsTable+")[3] <- \""+"NCol"+"\";\n");
         rsb.append(resultsTable + " <- " + resultsTable + "[,c('NCol','" + database + "','" + lmColumns + "', 'tableid', '" + lmDatabases + "')];\n");
@@ -319,5 +331,61 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 			}
 		}
 		return true;
+	}
+	
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, String header) {
+		long start = System.currentTimeMillis();
+
+		// make sure file is empty so we are only inserting the new values
+		File f = new File(fileLocation);
+		if (f.exists()) {
+			System.out.println("File currently exists.. deleting file");
+			f.delete();
+		}
+		try {
+			f.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+
+		try {
+			writer = new FileWriter(f);
+			bufferedWriter = new BufferedWriter(writer);
+
+			StringBuilder builder = new StringBuilder();
+			// add header
+			builder.append("\"").append(header).append("\"\n");
+			// now loop through all the data
+			while (it.hasNext()) {
+				IHeadersDataRow row = it.next();
+				// generate the data row
+				Object[] dataRow = row.getValues();
+				// assumes all are strings
+				builder.append("\"").append(dataRow[0]).append("\"\n");
+			}
+			bufferedWriter.write(builder.toString());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		long end = System.currentTimeMillis();
+		System.out.println("Time to output file = " + (end - start) + " ms");
+
+		return f;
 	}
 }
