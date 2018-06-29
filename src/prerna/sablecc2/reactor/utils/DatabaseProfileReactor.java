@@ -77,23 +77,25 @@ public class DatabaseProfileReactor extends AbstractReactor {
 						frame.addRow(tableName, cells, headers, dataTypes);
 					}
 				}
-
-				// now get property profile data
-				List<String> properties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(concept, engineId);
-				for (String prop : properties) {
-					// check property data type
-					String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
-					if (Utility.isNumericType(dataType)) {
-						String[] cells = getNumericalProfileData(engine, concept, prop);
-						frame.addRow(tableName, cells, headers, dataTypes);
-					} else {
-						if (Utility.isStringType(dataType)) {
-							String[] cells = getStringProfileData(engine, concept, prop);
-							frame.addRow(tableName, cells, headers, dataTypes);
+				if (conceptMap != null) {
+					// now get property profile data
+					List<String> properties = conceptMap.get(concept);
+					if (properties != null) {
+						for (String prop : properties) {
+							// check property data type
+							String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
+							if (Utility.isNumericType(dataType)) {
+								String[] cells = getNumericalProfileData(engine, concept, prop);
+								frame.addRow(tableName, cells, headers, dataTypes);
+							} else {
+								if (Utility.isStringType(dataType)) {
+									String[] cells = getStringProfileData(engine, concept, prop);
+									frame.addRow(tableName, cells, headers, dataTypes);
+								}
+							}
 						}
 					}
 				}
-
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
@@ -104,7 +106,18 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		// table name
 		retRow[0] = concept;
 		// column name
-		retRow[1] = primKey;
+		if (primKey.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+			// we dont have it.. so query for it
+			String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
+			String tableURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
+			// since we also have the URI, just store the primary key as well
+			// will most likely be used
+			primKey = Utility.getClassName(tableURI);
+			retRow[1] = primKey;
+		} else {
+			// property
+			retRow[1] = primKey;
+		}
 		// num of blanks
 		SelectQueryStruct qs2 = new SelectQueryStruct();
 		SelectQueryStruct qs_nulls = new SelectQueryStruct();
