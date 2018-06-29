@@ -10,6 +10,7 @@ import org.apache.commons.io.FileUtils;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -76,7 +77,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			SecurityUpdateUtils.deleteInsight(engineName, insightIDList.toArray(new String[insightIDList.size()]));
 			
 			// delete insight .mosfet file, if it exists
-			String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + Constants.DB + "\\" + engineName + "\\version\\";
+			String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + Constants.DB + "\\" + SmssUtilities.getUniqueName(engine.getEngineName(), engine.getEngineId()) + "\\version\\";
 			for (int i = 0; i < insightIDList.size(); i++) {
 				File dir = new File(recipePath + insightIDList.get(i));
 				// if it exists then delete all files inside
