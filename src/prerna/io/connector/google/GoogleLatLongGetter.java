@@ -8,6 +8,10 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.GeoLocation;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
 
@@ -35,6 +39,12 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 			googToken = AppTokens.getInstance().getAccessToken(AuthProvider.GOOGLE_MAP);
 		}
 		
+		if(googToken == null) {
+			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+
 		String accessToken = googToken.getAccess_token();
 		// you fill what you want to send on the API call
 		// the other thing it needs is an address
