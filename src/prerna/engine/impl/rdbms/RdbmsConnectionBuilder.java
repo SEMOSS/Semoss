@@ -142,5 +142,63 @@ public class RdbmsConnectionBuilder {
 		this.columnToTypesMap = columnToTypesMap;
 		return this;
 	}
+
+	////////////////////////////////////////////////////////
+	
+	/*
+	 * Getters
+	 */
+	
+	public Connection getConn() {
+		return conn;
+	}
+
+	public BasicDataSource getDs() {
+		return ds;
+	}
+
+	public CONN_TYPE getType() {
+		return type;
+	}
+
+	public String getDriver() {
+		return driver;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public String getConnectionUrl() {
+		return connectionUrl;
+	}
+
+	public String getHost() {
+		return host;
+	}
+
+	public String getPort() {
+		return port;
+	}
+
+	public String getSchema() {
+		return schema;
+	}
+
+	public String getAdditionalProps() {
+		return additionalProps;
+	}
+
+	public String getFileLocation() {
+		return fileLocation;
+	}
+
+	public Map<String, String> getColumnToTypesMap() {
+		return columnToTypesMap;
+	}
 	
 }

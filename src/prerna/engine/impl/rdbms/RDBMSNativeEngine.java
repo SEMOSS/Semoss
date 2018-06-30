@@ -72,6 +72,8 @@ import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 
+	private static final Logger LOGGER = LogManager.getLogger(RDBMSNativeEngine.class.getName());
+	
 	public static final String STATEMENT_OBJECT = "STATEMENT_OBJECT";
 	public static final String RESULTSET_OBJECT = "RESULTSET_OBJECT";
 	public static final String CONNECTION_OBJECT = "CONNECTION_OBJECT";
@@ -80,7 +82,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
 
-	static final Logger logger = LogManager.getLogger(RDBMSNativeEngine.class.getName());
 	boolean engineConnected = false;
 	boolean datasourceConnected = false;
 	private SQLQueryUtil.DB_TYPE dbType;
@@ -88,9 +89,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	Connection engineConn = null;
 	private boolean useConnectionPooling = false;
 	public PersistentHash conceptIdHash = null;
-	
-//	private DriverManager manager = null;
-//	Hashtable tablePresent = new Hashtable();
 	
 	private RdbmsConnectionBuilder connBuilder;
 	private String fileDB = null;
@@ -109,10 +107,10 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					engineConn = getConnection();
 					this.engineConnected = true;
 				} catch (Exception e){
-					logger.error("error RDBMS opening database", e);
+					LOGGER.error("error RDBMS opening database", e);
 				}
 			} else {
-				logger.info("using engine connection");
+				LOGGER.info("using engine connection");
 			}
 		} else {
 			// will mostly be sent the connection string and I will connect here
@@ -189,6 +187,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			connBuilder.setPassword(this.password);
 			connBuilder.setDriver(this.driver);
 			
+			init(connBuilder);
+			
 			try {
 				this.engineConn = connBuilder.build();
 				if(useConnectionPooling) {
@@ -201,7 +201,17 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 		}
 	}	
-		
+	
+	/**
+	 * This is for when there are other engines that extend
+	 * the base RDBMSNativeEngine that need to do additional processing
+	 * before a connection can be made
+	 * @param connBuilder
+	 */
+	protected void init(RdbmsConnectionBuilder connBuilder) {
+		// default does nothing
+	}
+
 	private void makeConnection(String driver, String userName, String password, String url, String createString) {
 		try {
 			Class.forName("org.h2.Driver");
@@ -236,10 +246,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			engineConnected = true;
 
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -247,7 +255,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private Connection getConnection(){
 		Connection connObj = null;
 		if(isConnected()){
-			//System.out.println("use engine connection");
 			return engineConn;
 		}
 		if(this.dataSource!=null){
@@ -257,7 +264,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				e.printStackTrace();
 			}
 		}
-		//System.out.println("use datasource connection");
 		return connObj;
 	}
 
@@ -270,7 +276,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		try {
 			conn = getConnection();
 			stmt = conn.createStatement();
-			logger.debug("Executing RDBMS query: " + query);
+			LOGGER.debug("Executing RDBMS query: " + query);
 			if(query.startsWith("CREATE") && !(query.startsWith("CREATE DATABASE"))){ // this is create statement"
 				stmt.execute(query);
 			} else {
@@ -491,7 +497,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		logger.info("Found " + retVector.size() + " elements in result set");
+		LOGGER.info("Found " + retVector.size() + " elements in result set");
 		return retVector;
 	}
 
@@ -512,7 +518,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			rs = stmt.executeQuery(query);
 			// return to pool
 		} catch (Exception e) {
-			logger.error("Error occured in getResults method of RDBMSNativeEngine", e);
+			LOGGER.error("Error occured in getResults method of RDBMSNativeEngine", e);
 		}
 		return rs;
 	}
@@ -529,7 +535,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			stmt.execute(query);
 			// return to pool
 		} catch (Exception e) {
-			logger.error("Error occured in getResults method of RDBMSNativeEngine", e);
+			LOGGER.error("Error occured in getResults method of RDBMSNativeEngine", e);
 		}
 		return;
 	}
@@ -541,6 +547,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void commitRDBMS() {
+		System.out.println("Before commit.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
+		conceptIdHash.persistBack();
+		System.out.println("Once committed.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
 	}
 
 	// traverse from a type to a type
@@ -612,7 +624,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 
 	public void deleteDB() {
-		logger.debug("Deleting RDBMS Engine: " + this.engineName);
+		LOGGER.debug("Deleting RDBMS Engine: " + this.engineName);
 
 		// If this DB is not an H2, just delete the schema the data was added into, not the existing DB instance
 		//WHY ARE WE DELETING THE SOURCE DATABSE????
@@ -717,20 +729,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	
 	public PersistentHash getConceptIdHash() {
 		return this.conceptIdHash;
-	}
-	
-	public void commitRDBMS() {
-		System.out.println("Before commit.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
-		conceptIdHash.persistBack();
-		System.out.println("Once committed.. concept id hash size is.. "+ conceptIdHash.thisHash.size());
-		/*try {
-			engineConn.commit();
-			engineConn.close();
-			localCheater = null;
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
 	}
 	
 	@Override

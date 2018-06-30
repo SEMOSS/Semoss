@@ -91,7 +91,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		LocalDateTime now = LocalDateTime.now();
 		
-		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT FROM QUESTION_ID";
+		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT FROM QUESTION_ID";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
@@ -99,7 +99,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.setString(1, appId);
 				ps.setString(2, row[0].toString());
 				ps.setString(3, row[1].toString());
-				ps.setBoolean(4, true);
+				ps.setBoolean(4, !((boolean) row[3]));
 				ps.setLong(5, 0);
 				ps.setTimestamp(6, java.sql.Timestamp.valueOf(now));
 				ps.setTimestamp(7, java.sql.Timestamp.valueOf(now));
@@ -221,7 +221,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		securityDb.removeData(deleteQuery);
 		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + appId + "'";
 		securityDb.removeData(deleteQuery);
-		
+
 		//TODO: add the other tables...
 	}
 	
