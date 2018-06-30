@@ -165,6 +165,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * Querying insight data
 	 */
 	
+	/**
+	 * User has access to specific insights within a database
+	 * User can access if:
+	 * 	1) Is Owner, Editer, or Reader of insight
+	 * 	2) Insight is global
+	 * 	3) Is Owner of database
+	 * 
+	 * @param engineId
+	 * @param userId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
 	public static List<Map<String, Object>> searchUserInsights(String engineId, String userId, String searchTerm, String limit, String offset) {
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.ENGINEID AS \"app_id\", "
@@ -173,10 +187,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
-				+ "AND (USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE) "
+				+ "AND (USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE OR (ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER='" + userId + "') ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
@@ -264,9 +279,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.INSIGHTNAME as \"name\" "
 				+ "FROM INSIGHT "
+				+ "LEFT JOIN ENGINEPERMISSION ON INSIGHT.ENGINEID=ENGINEPERMISSION.ENGINE "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
-				+ "(USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE) "
+				+ "(USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE OR (ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER='" + userId + "') ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
