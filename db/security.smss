@@ -1,17 +1,14 @@
 Base Properties 
 ENGINE	security
-ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
+ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
 RDBMS_TYPE	H2_DB
 OWL	db/security/security_OWL.OWL
+PIXEL_UPDATE	true
 RDBMS_INSIGHTS	db/security/insights_database
-DREAMER	db/security/security_Questions.properties
-
-HIDDEN_DATABASE	true
-FILL_EMPTY_DATATYPES	false
 
 DRIVER	org.h2.Driver
 USERNAME	sa
 PASSWORD	
-CONNECTION_URL	jdbc:h2:@BaseFolder@/db/@ENGINE@/database
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database
 USE_OUTER_JOINS	false
 # USE_CONNECTION_POOLING	true
