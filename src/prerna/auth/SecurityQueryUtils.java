@@ -275,6 +275,19 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * For autocompletion of user searching
 	 */
 	
+	/**
+	 * User will see specific insight predictions for their searches
+	 * User can see records if:
+	 * 	1) Is Owner, Editer, or Reader of insight
+	 * 	2) Insight is global
+	 * 	3) Is Owner of database
+	 * 
+	 * @param userId
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
 	public static List<String> predictUserInsightSearch(String userId, String searchTerm, String limit, String offset) {
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.INSIGHTNAME as \"name\" "
