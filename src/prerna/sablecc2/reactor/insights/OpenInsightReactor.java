@@ -43,7 +43,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		if(this.securityEnabled()) {
-			if(!SecurityQueryUtils.userCanViewInsight(this.insight.getUserId(), appId, rdbmsId)) {
+			if(!SecurityQueryUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
 				throw new IllegalArgumentException("User does not have access to this insight");
 			}
 		}
