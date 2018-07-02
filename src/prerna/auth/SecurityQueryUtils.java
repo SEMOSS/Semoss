@@ -507,22 +507,59 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param engineFilter
 	 * @return
 	 */
-	public static List<Map<String, Object>> getInsightDataByName(String searchTerm, String limit, String offset, String[] engineFilter) {
-		String filter = createFilter(engineFilter); 
+	public static List<Map<String, Object>> searchUserInsightDataByName(User user, String searchTerm, String limit, String offset) {
+		String userFilters = getUserFilters(user);
+
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.ENGINEID AS \"app_id\", "
-				+ "ENGINE.NAME as \"app_name\", "
+				+ "ENGINE.NAME AS \"app_name\", "
 				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
-				+ "INSIGHT.LAYOUT as \"layout\", "
 				+ "INSIGHT.INSIGHTNAME as \"name\", "
-				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\" "
-				+ "FROM INSIGHT LEFT JOIN ENGINE ON INSIGHT.ENGINEID=ENGINE.ID "
+				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\", "
+				+ "INSIGHT.LAYOUT as \"layout\", "
+				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+				+ "FROM INSIGHT "
+				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
+				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
-				+ "REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i') " 
-				+ "AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "
-				+ "ORDER BY INSIGHT.EXECUTIONCOUNT DESC, ENGINE.NAME, INSIGHT.INSIGHTNAME  "
+				+ "(USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
+						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER IN " + userFilters + ") ) "
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
+				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
-				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "");
+				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+				;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
+	 * 
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @param sortOrder
+	 * @param sortField
+	 * @param engineFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> searchAllInsightDataByName(String searchTerm, String limit, String offset) {
+		String query = "SELECT DISTINCT "
+				+ "INSIGHT.ENGINEID AS \"app_id\", "
+				+ "ENGINE.NAME AS \"app_name\", "
+				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
+				+ "INSIGHT.INSIGHTNAME as \"name\", "
+				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\", "
+				+ "INSIGHT.LAYOUT as \"layout\", "
+				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+				+ "FROM INSIGHT INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "WHERE "
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
+				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+				;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
