@@ -332,6 +332,27 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushToSetString(wrapper, false);
 	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Querying user data
+	 */
+	public static boolean userExists(String userId) {
+		String query = "SELECT ID FROM USER WHERE ID='" + userId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if(wrapper.hasNext()) {
+				return true;
+			} else {
+				return false;
+			}
+		}finally {
+
+		}
+	}
 
 	
 	//////////////////////////////////////////////////////////////////

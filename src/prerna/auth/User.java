@@ -61,4 +61,7 @@ public class User extends AbstractValueObject {
 		return loggedInProfiles;
 	}
 
+	public boolean isLoggedIn() {
+		return !this.loggedInProfiles.isEmpty();
+	}
 }
