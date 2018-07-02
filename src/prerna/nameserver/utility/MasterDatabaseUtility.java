@@ -21,7 +21,6 @@ import com.google.gson.GsonBuilder;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.sablecc2.reactor.IReactor;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -769,10 +768,10 @@ public class MasterDatabaseUtility {
 	 * @param engineId		optional filter for the properties
 	 * @return
 	 */
-	public static Map<String, Object[]> getConceptPropertiesRDBMS(List<String> conceptLogicalNames, String engineFilter) {
+	public static Map<String, Object[]> getConceptPropertiesRDBMS(List<String> conceptLogicalNames, List<String> engineFilter) {
 		// get the bindings based on the input list
 		String conceptString = makeListToString(conceptLogicalNames);
-		String engineString = " and ec.engine= '" + engineFilter +"' ";
+		String engineString = " and ec.engine in " + makeListToString(engineFilter) +" ";
 		if(engineFilter == null || engineFilter.isEmpty()) {
 			engineString = "";
 		}
@@ -847,20 +846,18 @@ public class MasterDatabaseUtility {
 		return returnHash;
 	}
 	
-	private static String makeListToString(List <String> conceptLogicalNames)
-	{
+	private static String makeListToString(List<String> filterList) {
 		StringBuilder conceptString = new StringBuilder("(");
-		for(int logIndex = 0;logIndex < conceptLogicalNames.size();logIndex++)
-		{
-			if(logIndex > 0) {
-				conceptString.append(",");
+		if(filterList != null) {
+			for(int i = 0; i < filterList.size(); i++) {
+				if(i > 0) {
+					conceptString.append(",");
+				}
+				conceptString.append("'" + filterList.get(i) + "'");
 			}
-			conceptString.append("'" + conceptLogicalNames.get(logIndex) + "'");
 		}
 		conceptString.append(")");
-		
 		return conceptString.toString();
-
 	}
 
 	/**
@@ -873,9 +870,11 @@ public class MasterDatabaseUtility {
 	 * @param conceptType
 	 * @return
 	 */
-	public static Map getConnectedConceptsRDBMS(List<String> conceptLogicalNames) {
+	public static Map getConnectedConceptsRDBMS(List<String> conceptLogicalNames, List<String> engineFilters) {
 		// get the bindings based on the input list
 		String conceptString = makeListToString(conceptLogicalNames);
+		String engineString = makeListToString(engineFilters);
+		
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
@@ -899,6 +898,7 @@ public class MasterDatabaseUtility {
 		String conceptMasterQuery = "select ec.engine, c.conceptualname, ec.physicalnameid, ec.physicalname "
 				+ "from concept c, engineconcept ec "
 				+ "where c.logicalname in " + conceptString
+				+ (engineFilters != null ? (" and ec.engine in " + engineString) + " " : "")
 				+ "and c.localconceptid=ec.localconceptid";
 		try {
 			stmt = conn.createStatement();
@@ -943,7 +943,9 @@ public class MasterDatabaseUtility {
 		String downstreamQuery = "select distinct ec.engine, er.sourceconceptid, 'upstream' as upstream, "
 				+ "er.relationname, c.conceptualname , er.engine, er.targetconceptid, ec.physicalname "
 				+ "from enginerelation er, engineconcept ec, concept c "
-				+ "where er.sourceconceptid in (select physicalnameid from engineconcept where localconceptid in "
+				+ "where "
+				+ (engineFilters != null ? (" ec.engine in " + engineString + " and ") : "")
+				+ "er.sourceconceptid in (select physicalnameid from engineconcept where localconceptid in "
 				+ "(select localconceptid from concept where logicalname in " + conceptString + ")) "
 				+ "and ec.physicalnameid=er.targetconceptid and c.localconceptid=ec.localconceptid;";
 
@@ -989,7 +991,9 @@ public class MasterDatabaseUtility {
 		String upstreamQuery = "select distinct ec.engine, er.targetconceptid, 'downstream' as downstream,  "
 				+ "er.relationname,  c.conceptualname , er.engine, er.sourceconceptid, ec.physicalname "
 				+ "from enginerelation er, engineconcept ec, concept c "
-				+ "where er.targetconceptid in (select physicalnameid from engineconcept where localconceptid in "
+				+ "where "
+				+ (engineFilters != null ? (" ec.engine in " + engineString + " and ") : "")
+				+ "er.targetconceptid in (select physicalnameid from engineconcept where localconceptid in "
 				+ "(select localconceptid from concept where logicalname in " + conceptString + ")) "
 				+ "and ec.physicalnameid=er.sourceconceptid and c.localconceptid=ec.localconceptid";
 		try {
