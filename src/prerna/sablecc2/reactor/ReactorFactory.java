@@ -704,7 +704,6 @@ public class ReactorFactory {
 		reactorHash.put("SyncAppO", SyncAppOAuth.class);
 		reactorHash.put("SyncAppFilesO", SyncAppFilesOAuth.class);
 		
-		// Solr Metadata
 		// App Metadata
 		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("AppInfo", AppInfoReactor.class);
