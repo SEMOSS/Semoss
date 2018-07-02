@@ -15,7 +15,7 @@ public class DatabaseListReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<Map<String, Object>> retList = null;
 		if(securityEnabled()) {
-			retList = SecurityQueryUtils.getUserDatabaseList(this.insight.getUserId());
+			retList = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser());
 		} else {
 			retList = SecurityQueryUtils.getAllDatabaseList();
 		}

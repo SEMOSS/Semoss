@@ -43,7 +43,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// security
 		if(this.securityEnabled()) {
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUserId(), appId)) {
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the app");
 			}
 		}

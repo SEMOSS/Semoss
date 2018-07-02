@@ -20,11 +20,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * Try to reconcile and get the engine id
 	 * @return
 	 */
-	public static String testUserEngineIdForAlias(String user, String potentialId) {
+	public static String testUserEngineIdForAlias(User user, String potentialId) {
+		String userFilters = getUserFilters(user);
 		List<String> ids = new Vector<String>();
 		String query = "SELECT DISTINCT ENGINEPERMISSION.ENGINE "
 				+ "FROM ENGINEPERMISSION INNER JOIN ENGINE ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
-				+ "WHERE ENGINE.NAME='" + potentialId + "' AND ENGINEPERMISSION.USER='" + user + "'";
+				+ "WHERE ENGINE.NAME='" + potentialId + "' AND ENGINEPERMISSION.USER IN " + userFilters;
 		
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		ids = flushToListString(wrapper);
@@ -66,11 +67,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(String userId) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user) {
+		String userFilters = getUserFilters(user);
 		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
-				+ "WHERE (ENGINEPERMISSION.USER='" + userId + "' OR ENGINE.GLOBAL=TRUE) "
+				+ "WHERE (ENGINEPERMISSION.USER IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
 				+ "ORDER BY ENGINE.NAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
@@ -95,14 +97,15 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getUserDatabaseList(String userId, String... engineFilter) {
+	public static List<Map<String, Object>> getUserDatabaseList(User user, String... engineFilter) {
+		String userFilters = getUserFilters(user);
 		String filter = createFilter(engineFilter); 
 		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
 				+ "WHERE "
 				+ (!filter.isEmpty() ? ("ENGINE.ID " + filter + " AND ") : "")
-				+ "(ENGINEPERMISSION.USER='" + userId + "' OR ENGINE.GLOBAL=TRUE) "
+				+ "(ENGINEPERMISSION.USER IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
 				+ "ORDER BY ENGINE.NAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
@@ -145,8 +148,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<String> getUserEngines(String userId) {
-		String query = "SELECT DISTINCT ENGINE FROM ENGINEPERMISSION WHERE USER='" + userId + "'";
+	public static List<String> getUserEngines(User user) {
+		String userFilters = getUserFilters(user);
+		String query = "SELECT DISTINCT ENGINE FROM ENGINEPERMISSION WHERE USER IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String> engineList = flushToListString(wrapper);
 		engineList.addAll(getGlobalEngineIds());
@@ -174,9 +178,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return
 	 */
-	public static boolean userIsOwner(String userId, String engineId) {
+	public static boolean userIsOwner(User user, String engineId) {
+		String userFilters = getUserFilters(user);
+		return userIsOwner(userFilters, engineId);
+	}
+	
+	/**
+	 * Determine if the user is the owner
+	 * @param userId
+	 * @param engineId
+	 * @return
+	 */
+	private static boolean userIsOwner(String userFilters, String engineId) {
 		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINE='" + engineId + "' AND USER='" + userId + "'";
+				+ "WHERE ENGINE='" + engineId + "' AND USER IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		while(wrapper.hasNext()) {
 			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
@@ -193,9 +208,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static boolean userCanEditEngine(String userId, String engineId) {
+	public static boolean userCanEditEngine(User user, String engineId) {
+		String userFilters = getUserFilters(user);
 		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINE='" + engineId + "' AND USER='" + userId + "'";
+				+ "WHERE ENGINE='" + engineId + "' AND USER IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		while(wrapper.hasNext()) {
 			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
@@ -214,16 +230,18 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @return
 	 */
-	public static boolean userCanEditInsight(String userId, String engineId, String insightId) {
+	public static boolean userCanEditInsight(User user, String engineId, String insightId) {
+		String userFilters = getUserFilters(user);
+
 		// if user is owner
 		// they can do whatever they want
-		if(userIsOwner(userId, engineId)) {
+		if(userIsOwner(userFilters, engineId)) {
 			return true;
 		}
 		
 		// else query the database
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + userId + "'";
+		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		while(wrapper.hasNext()) {
 			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
@@ -231,7 +249,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		}
-		
 		
 		return false;
 	}
@@ -244,20 +261,42 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @return
 	 */
-	public static boolean userCanViewInsight(String userId, String engineId, String insightId) {
+	public static boolean userCanViewInsight(User user, String engineId, String insightId) {
+		String userFilters = getUserFilters(user);
+
 		// if user is owner
 		// they can do whatever they want
-		if(userIsOwner(userId, engineId)) {
+		if(userIsOwner(userFilters, engineId)) {
+			return true;
+		}
+		
+		if(insightIsGlobal(engineId, insightId)) {
 			return true;
 		}
 		
 		// else query the database
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + userId + "'";
+		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			if(wrapper.hasNext()) {
 				// do not care if owner/edit/read
+				return true;
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+		
+		return false;
+	}
+	
+	public static boolean insightIsGlobal(String engineId, String insightId) {
+		String query = "SELECT DISTINCT INSIGHT.GLOBAL FROM INSIGHT  "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND INSIGHT.GLOBAL=TRUE";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if(wrapper.hasNext()) {
+				// i already bound that global must be true
 				return true;
 			}
 		} finally {
@@ -289,7 +328,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchUserInsights(String engineId, String userId, String searchTerm, String limit, String offset) {
+	public static List<Map<String, Object>> searchUserInsights(User user, String engineId, String searchTerm, String limit, String offset) {
+		String userFilters = getUserFilters(user);
+
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.ENGINEID AS \"app_id\", "
 				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
@@ -301,7 +342,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
-				+ "AND (USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE OR (ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER='" + userId + "') ) "
+				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
+						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
@@ -364,8 +406,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @return
 	 */
-	public static List<String> getUserInsightsForEngine(String userId, String engineId) {
-		String query = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE ENGINEID='" + engineId + "' AND USER='" + userId + "'";
+	public static List<String> getUserInsightsForEngine(User user, String engineId) {
+		String userFilters = getUserFilters(user);
+		String query = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE ENGINEID='" + engineId + "' AND USER IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String> insightList = flushToListString(wrapper);
 		insightList.addAll(getGlobalInsightIdsForEngine(engineId));
@@ -398,7 +441,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		}
 	}
-
 	
 	//////////////////////////////////////////////////////////////////
 	
@@ -419,14 +461,17 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<String> predictUserInsightSearch(String userId, String searchTerm, String limit, String offset) {
+	public static List<String> predictUserInsightSearch(User user, String searchTerm, String limit, String offset) {
+		String userFilters = getUserFilters(user);
+
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.INSIGHTNAME as \"name\" "
 				+ "FROM INSIGHT "
 				+ "LEFT JOIN ENGINEPERMISSION ON INSIGHT.ENGINEID=ENGINEPERMISSION.ENGINE "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
-				+ "(USERINSIGHTPERMISSION.USERID='" + userId + "' OR INSIGHT.GLOBAL=TRUE OR (ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER='" + userId + "') ) "
+				+ "(USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
+						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
@@ -510,5 +555,25 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return s;
 	}
 	
-	
+	/**
+	 * Get all ids from user object
+	 * @param user
+	 * @return
+	 */
+	private static String getUserFilters(User user) {
+		StringBuilder b = new StringBuilder();
+		b.append("(");
+		if(user != null) {
+			List<AuthProvider> logins = user.getLogins();
+			if(!logins.isEmpty()) {
+				int numLogins = logins.size();
+				b.append("'").append(user.getAccessToken(logins.get(0)).getId()).append("'");
+				for(int i = 1; i < numLogins; i++) {
+					b.append(", '").append(user.getAccessToken(logins.get(0)).getId()).append("'");
+				}
+			}
+		}
+		b.append(")");
+		return b.toString();
+	}
 }
