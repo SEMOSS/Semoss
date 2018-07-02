@@ -29,7 +29,7 @@ public class DatabaseTableStructureReactor extends AbstractReactor {
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
 		List<String> appFilters = null;
 		if(this.securityEnabled()) {
-			appFilters = SecurityQueryUtils.getUserEngines(this.insight.getUser());
+			appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			if(!appFilters.contains(engineId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}
