@@ -245,7 +245,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		while(wrapper.hasNext()) {
 			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
-			if(EnginePermission.isOwner(permission)) {
+			if(EnginePermission.canModify(permission)) {
 				return true;
 			}
 		}
