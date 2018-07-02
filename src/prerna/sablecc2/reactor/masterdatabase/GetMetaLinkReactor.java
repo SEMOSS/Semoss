@@ -29,7 +29,7 @@ public class GetMetaLinkReactor extends  AbstractMetaDBReactor {
 
 		if(this.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(engineId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 		} else {
