@@ -3,7 +3,9 @@ package prerna.solr.reactor;
 import java.util.ArrayList;
 import java.util.List;
 
+import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -21,19 +23,26 @@ public class SetAppDescriptionReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appName = this.keyValue.get(this.keysToGet[0]);
-		String descriptions = this.keyValue.get(this.keysToGet[1]);
-		List<String> descList = new ArrayList<String>();
-		descList.add(descriptions);
+		String appId = this.keyValue.get(this.keysToGet[0]);
+		
 		if(this.securityEnabled()) {
-			if(this.getUserAppFilters().contains(appName)) {
-				SecurityUpdateUtils.setEngineMeta(appName, "description", descList);
-			} else {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUserId(), appId);
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUserId(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
 		} else {
-			SecurityUpdateUtils.setEngineMeta(appName, "description", descList);
+			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
 		}
+		
+		if(!SecurityQueryUtils.getEngineIds().contains(appId)) {
+			throw new IllegalArgumentException("App id does not exist");
+		}
+		
+		String descriptions = this.keyValue.get(this.keysToGet[1]);
+		List<String> descList = new ArrayList<String>();
+		descList.add(descriptions);
+		SecurityUpdateUtils.setEngineMeta(appId, "description", descList);
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
 	}
 }
