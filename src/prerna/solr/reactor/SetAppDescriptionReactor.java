@@ -28,7 +28,7 @@ public class SetAppDescriptionReactor extends AbstractReactor {
 		if(this.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
 			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have access to database");
+				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 		} else {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);

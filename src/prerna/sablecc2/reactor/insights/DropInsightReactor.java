@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.insights;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,7 +15,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
-import prerna.sablecc2.reactor.imports.FileMeta;
 
 public class DropInsightReactor extends AbstractInsightReactor{
 
