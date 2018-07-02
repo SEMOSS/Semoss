@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -41,6 +42,19 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(appId == null || appId.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
 		}
+		// need to know what we are updating
+		String existingId = getRdbmsId();
+		if(existingId == null) {
+			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
+		}
+		
+		// security
+		if(this.securityEnabled()) {
+			if(!SecurityQueryUtils.userCanEditInsight(this.insight.getUserId(), appId, existingId)) {
+				throw new IllegalArgumentException("User does not have permission to edit this insight");
+			}
+		}
+		
 		String insightName = getInsightName();
 		if(insightName == null || insightName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the insight name");
@@ -52,12 +66,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		List<String> params = getParams();
-		
-		// need to know what we are updating
-		String existingId = getRdbmsId();
-		if(existingId == null) {
-			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
-		}
 		
 		// this is always encoded before it gets here
 		recipeToSave = decodeRecipe(recipeToSave);
