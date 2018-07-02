@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 
 import java.util.List;
 
+import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -28,7 +29,7 @@ public class DatabaseTableStructureReactor extends AbstractReactor {
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
 		List<String> appFilters = null;
 		if(this.securityEnabled()) {
-			appFilters = this.getUserAppFilters();
+			appFilters = SecurityQueryUtils.getUserEngines(this.insight.getUser());
 			if(!appFilters.contains(engineId)) {
 				throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 			}

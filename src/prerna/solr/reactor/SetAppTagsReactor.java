@@ -27,8 +27,8 @@ public class SetAppTagsReactor extends AbstractReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		
 		if(this.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUserId(), appId);
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUserId(), appId)) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
 		} else {
@@ -38,7 +38,6 @@ public class SetAppTagsReactor extends AbstractReactor {
 		if(!SecurityQueryUtils.getEngineIds().contains(appId)) {
 			throw new IllegalArgumentException("App id does not exist");
 		}
-		
 		
 		List<String> tags = getTags();
 		SecurityUpdateUtils.setEngineMeta(appId, "tags", tags);
