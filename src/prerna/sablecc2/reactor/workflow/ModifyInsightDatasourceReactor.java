@@ -28,7 +28,7 @@ public class ModifyInsightDatasourceReactor extends AbstractReactor {
 		}
 		String fullRecipe = b.toString();
 		
-		List<String> newRecipe = PixelUtility.modifyInsightDatasource(fullRecipe, replacementOptions);
+		List<String> newRecipe = PixelUtility.modifyInsightDatasource(this.insight.getUser(), fullRecipe, replacementOptions);
 		
 		//TODO: added this in for testing!!!
 		this.insight.getPixelRecipe().clear();
