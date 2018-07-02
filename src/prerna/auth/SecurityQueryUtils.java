@@ -43,6 +43,16 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return potentialId;
 	}
 	
+	/**
+	 * Get a list of the engine ids
+	 * @return
+	 */
+	public static List<String> getEngineIds() {
+		String query = "SELECT DISTINCT ID FROM ENGINE";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushToListString(wrapper);
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
