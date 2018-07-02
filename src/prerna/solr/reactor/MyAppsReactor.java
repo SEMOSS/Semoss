@@ -21,7 +21,7 @@ public class MyAppsReactor extends AbstractReactor {
 		List<Map<String, Object>> appInfo = new Vector<Map<String, Object>>();
 
 		if(this.securityEnabled()) {
-			appInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUserId());
+			appInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser());
 		} else {
 			appInfo = SecurityQueryUtils.getAllDatabaseList();
 		}

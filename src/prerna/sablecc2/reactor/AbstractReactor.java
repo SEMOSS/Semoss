@@ -14,7 +14,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
-import prerna.auth.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.sablecc2.comm.InMemoryConsole;
@@ -519,15 +518,5 @@ public abstract class AbstractReactor implements IReactor {
 		return (security instanceof Boolean && ((boolean) security) ) || (Boolean.parseBoolean(security.toString()));
 	}
 
-	/**
-	 * Get the list of apps this user has access to
-	 * @return
-	 */
-	public List<String> getUserAppFilters() {
-		String userId = this.insight.getUserId();
-		return SecurityQueryUtils.getUserEngines(userId);
-	}
-
-	
 	
 }

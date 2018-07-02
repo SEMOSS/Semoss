@@ -28,12 +28,12 @@ public class AppInfoReactor extends AbstractReactor {
 		List<Map<String, Object>> baseInfo = null;
 		if(this.securityEnabled()) {
 			// make sure valid id for user
-			if(!this.getUserAppFilters().contains(appId)) {
+			if(!SecurityQueryUtils.getUserEngines(this.insight.getUser()).contains(appId)) {
 				// you dont have access
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
 			// user has access!i
-			baseInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUserId(), appId);
+			baseInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), appId);
 		} else {
 			// just grab the info
 			baseInfo = SecurityQueryUtils.getAllDatabaseList();
