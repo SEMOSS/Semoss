@@ -104,7 +104,7 @@ public class TFRelationQueryBuilderPopup extends JMenu implements MouseListener{
 			
 			List<String> traverseFromList = new Vector<String>();
 			traverseFromList.add(type);
-			Map<String, Map<String, Object>> connectedConcepts = MasterDatabaseUtility.getConnectedConceptsRDBMS(traverseFromList);
+			Map<String, Map<String, Object>> connectedConcepts = MasterDatabaseUtility.getConnectedConceptsRDBMS(traverseFromList, null);
 			
 			logger.debug("Found the engine for repository   " + repo);
 			// for now we'll just show the values in this specific db

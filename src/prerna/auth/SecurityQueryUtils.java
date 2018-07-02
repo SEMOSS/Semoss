@@ -148,7 +148,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<String> getUserEngines(User user) {
+	public static List<String> getUserEngineIds(User user) {
 		String userFilters = getUserFilters(user);
 		String query = "SELECT DISTINCT ENGINE FROM ENGINEPERMISSION WHERE USER IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
