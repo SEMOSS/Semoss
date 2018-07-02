@@ -29,7 +29,7 @@ public class AppInsightsReactor extends AbstractReactor {
 		
 		List<Map<String, Object>> results = null;
 		if(this.securityEnabled()) {
-			if(SecurityQueryUtils.getUserEngines(this.insight.getUser()).contains(appId)) {
+			if(SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
 				results = SecurityQueryUtils.searchUserInsights(this.insight.getUser(), appId, searchTerm, limit, offset);
 			} else {
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
