@@ -17,7 +17,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
@@ -28,7 +28,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.sablecc2.translations.DatasourceTranslation;
 import prerna.sablecc2.translations.ParameterizeSaveRecipeTranslation;
 import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
@@ -247,7 +246,7 @@ public class PixelUtility {
 	 * @param expression
 	 * @return
 	 */
-	public static List<Map<String, Object>> getDatasourcesMetadata(String expression) {
+	public static List<Map<String, Object>> getDatasourcesMetadata(User user, String expression) {
 		/*
 		 * Using a translation object to go through and figure out all 
 		 * the datasources and how we would want to manipulate
@@ -256,6 +255,7 @@ public class PixelUtility {
 		 */
 		
 		Insight in = new Insight();
+		in.setUser(user);
 		DatasourceTranslation translation = new DatasourceTranslation(in);
 		try {
 			expression = PixelPreProcessor.preProcessPixel(expression, new HashMap<String, String>());
@@ -279,8 +279,9 @@ public class PixelUtility {
 	 * 										If no index is found and the size of the list is 1, we will replace the first datasource
 	 * @return
 	 */
-	public static List<String> modifyInsightDatasource(String fullRecipe, List<Map<String, Object>> replacementOptions) {
+	public static List<String> modifyInsightDatasource(User user, String fullRecipe, List<Map<String, Object>> replacementOptions) {
 		Insight in = new Insight();
+		in.setUser(user);
 		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation(in);
 		translation.setReplacements(replacementOptions);
 		try {
@@ -314,8 +315,9 @@ public class PixelUtility {
 	 * @param params
 	 * @return
 	 */
-	public static String getParameterizedRecipe(String[] recipe, List<String> params, String insightName) {
+	public static String getParameterizedRecipe(User user, String[] recipe, List<String> params, String insightName) {
 		Insight in = new Insight();
+		in.setUser(user);
 		ParameterizeSaveRecipeTranslation translation = new ParameterizeSaveRecipeTranslation(in);
 		translation.setInputsToParameterize(params);
 		
