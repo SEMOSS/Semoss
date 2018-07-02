@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -39,6 +40,14 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(appId == null || appId.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
 		}
+		
+		// security
+		if(this.securityEnabled()) {
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUserId(), appId)) {
+				throw new IllegalArgumentException("User does not have permission to add insights in the app");
+			}
+		}
+		
 		String insightName = getInsightName();
 		if(insightName == null || insightName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the insight name");

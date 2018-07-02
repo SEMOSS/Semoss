@@ -130,10 +130,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return engineMeta;
 	}
 	
-	/*
-	 * Lower level querying
-	 */
-	
 	/**
 	 * Get user engines + global engines 
 	 * @param userId
@@ -155,6 +151,75 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT ID FROM ENGINE WHERE GLOBAL=TRUE";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushToSetString(wrapper, false);
+	}
+	
+	
+	/**
+	 * Determine if the user can modify the database
+	 * @param engineId
+	 * @param userId
+	 * @return
+	 */
+	public static boolean userCanEditEngine(String userId, String engineId) {
+		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
+				+ "WHERE ENGINE='" + engineId + "' AND USER='" + userId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		while(wrapper.hasNext()) {
+			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
+			if(EnginePermission.canModify(permission)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * Determine if the user is the owner
+	 * @param userId
+	 * @param engineId
+	 * @return
+	 */
+	public static boolean userIsOwner(String userId, String engineId) {
+		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
+				+ "WHERE ENGINE='" + engineId + "' AND USER='" + userId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		while(wrapper.hasNext()) {
+			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
+			if(EnginePermission.isOwner(permission)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * Determine if the user can edit the insight
+	 * User must be database owner OR be given explicit permissions on the insight
+	 * @param userId
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
+	public static boolean userCanEditInsight(String userId, String engineId, String insightId) {
+		// if user is owner
+		// they can do whatever they want
+		if(userIsOwner(userId, engineId)) {
+			return true;
+		}
+		
+		// else query the database
+		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM ENGINEPERMISSION "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + userId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		while(wrapper.hasNext()) {
+			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
+			if(EnginePermission.isOwner(permission)) {
+				return true;
+			}
+		}
+		
+		
+		return false;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////

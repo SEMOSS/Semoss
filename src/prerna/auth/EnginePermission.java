@@ -22,6 +22,32 @@ public enum EnginePermission {
 		return this.permission;
 	}
 	
+	/**
+	 * Determine if the permission integer means the user
+	 * can modify the database
+	 * @param permission
+	 * @return
+	 */
+	public static boolean canModify(int permission) {
+		if(permission == 1 || permission == 2) {
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Determine if the permission integer means the user
+	 * can is the database owner
+	 * @param permission
+	 * @return
+	 */
+	public static boolean isOwner(int permission) {
+		if(permission == 1) {
+			return true;
+		}
+		return false;
+	}
+	
 	public static EnginePermission getPermissionByValue(String value) {
 		EnginePermission ep = EnginePermission.READ_ONLY;
 		for(EnginePermission perm : EnginePermission.values()) {
