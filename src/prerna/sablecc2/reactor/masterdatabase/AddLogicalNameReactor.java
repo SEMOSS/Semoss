@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -20,7 +21,19 @@ public class AddLogicalNameReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		String engineId = getEngineId();
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+
+		if(this.securityEnabled()) {
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			}
+		} else {
+			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		}
+		
+		if(!SecurityQueryUtils.getEngineIds().contains(engineId)) {
+			throw new IllegalArgumentException("App id does not exist");
+		}
 		
 		String concept = getConcept();
 		List<String> logicalNames = getLogicalNames();
@@ -28,7 +41,7 @@ public class AddLogicalNameReactor extends AbstractReactor {
 		for(String name: logicalNames) {
 			success = MasterDatabaseUtility.addLogicalName(engineId, concept, name);
 		}
-		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.CODE_EXECUTION);
+		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
 	}
 	
 	///////////////////////////////////////////////////////////
