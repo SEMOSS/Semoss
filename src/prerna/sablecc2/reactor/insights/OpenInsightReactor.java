@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.auth.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
@@ -40,6 +41,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if(rdbmsId == null) {
 			throw new IllegalArgumentException("Need to input the id for the insight");
 		}
+		
+		if(this.securityEnabled()) {
+			if(!SecurityQueryUtils.userCanViewInsight(this.insight.getUserId(), appId, rdbmsId)) {
+				throw new IllegalArgumentException("User does not have access to this insight");
+			}
+		}
+		
 		Object params = getExecutionParams();
 		List<String> additionalPixels = getAdditionalPixels();
 
