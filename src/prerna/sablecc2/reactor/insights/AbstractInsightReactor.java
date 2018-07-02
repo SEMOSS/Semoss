@@ -241,7 +241,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 		String fullRecipe = sb.toString();
 		// shift any csv files to be moved into the insight folder for the new insight
-		List<Map<String, Object>> datasources = PixelUtility.getDatasourcesMetadata(fullRecipe);
+		List<Map<String, Object>> datasources = PixelUtility.getDatasourcesMetadata(this.insight.getUser(), fullRecipe);
 		for(int i = 0; i < datasources.size(); i++) {
 			Map<String, Object> datasourceMap = datasources.get(i);
 			String datasourceType = datasourceMap.get("type").toString().toUpperCase();
@@ -279,14 +279,14 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		
 		// hey, we found something to change
 		if(!modificationList.isEmpty()) {
-			recipeToSave = PixelUtility.modifyInsightDatasource(fullRecipe, modificationList).toArray(new String[]{});
+			recipeToSave = PixelUtility.modifyInsightDatasource(this.insight.getUser(), fullRecipe, modificationList).toArray(new String[]{});
 		}
 		
 		return recipeToSave;
 	}
 	
 	protected String[] getParamRecipe(String[] recipe, List<String> params, String insightName) {
-		String paramRecipe = PixelUtility.getParameterizedRecipe(recipe, params, insightName);
+		String paramRecipe = PixelUtility.getParameterizedRecipe(this.insight.getUser(), recipe, params, insightName);
 		return new String[]{paramRecipe};
 	}
 	
