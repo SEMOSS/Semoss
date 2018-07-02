@@ -121,7 +121,7 @@ public abstract class AbstractSecurityUtils {
 
 		// ENGINEPERMISSION
 		colNames = new String[] { "user", "permission", "engine", "visibility" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean" };
+		types = new String[] { "varchar(255)", "integer", "varchar(255)", "boolean" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEPERMISSION", colNames, types));
 
 		// INSIGHT
@@ -131,9 +131,15 @@ public abstract class AbstractSecurityUtils {
 
 		// USER
 		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "integer", "varchar(255)", "varchar(255)", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
 
+		// USERINSIGHTPERMISSION
+		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERINSIGHTPERMISSION", colNames, types));
+
+		
 		// PERMISSION
 		colNames = new String[] { "id", "name" };
 		types = new String[] { "integer", "varchar(255)" };
@@ -206,11 +212,6 @@ public abstract class AbstractSecurityUtils {
 		colNames = new String[] { "id", "name", "owner" };
 		types = new String[] { "integer", "varchar(255)", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
-
-		// USERINSIGHTPERMISSION
-		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERINSIGHTPERMISSION", colNames, types));
 
 		// USERSEEDPERMISSION
 		colNames = new String[] { "userid", "seedid" };
