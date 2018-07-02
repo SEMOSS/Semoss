@@ -20,8 +20,8 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		if(this.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUserId(), engineId);
-			if(!this.getUserAppFilters().contains(engineId)) {
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityQueryUtils.getUserEngines(this.insight.getUser()).contains(engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {
