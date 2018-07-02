@@ -32,7 +32,7 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
 		List<String> appFilters = null;
 		if(this.securityEnabled()) {
-			appFilters = SecurityQueryUtils.getUserEngines(this.insight.getUser());
+			appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			if(!appFilters.isEmpty()) {
 				if(engineId != null) {
 					// need to make sure it is a valid engine id

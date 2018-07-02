@@ -2668,7 +2668,7 @@ public class Translation extends DepthFirstAdapter {
 		List<String> logicalNames = new Vector<String>();
 		logicalNames.add(conceptLogicalName);
 		
-		Map connectedConceptsData = MasterDatabaseUtility.getConnectedConceptsRDBMS(logicalNames);
+		Map connectedConceptsData = MasterDatabaseUtility.getConnectedConceptsRDBMS(logicalNames, null);
 
 		runner.setReturnData(connectedConceptsData);
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
@@ -2698,7 +2698,9 @@ public class Translation extends DepthFirstAdapter {
 		String engineName = null;
 		if(hasEngine) {
 			engineName = node.getEngineName().toString().trim();
-			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptPropertiesRDBMS(logicalNames, engineName);
+			List<String> eList = new Vector<String>();
+			eList.add(engineName);
+			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptPropertiesRDBMS(logicalNames, eList);
 			//iterate through cause not sure if engine key will get reformatted
 			for(String engineKey : retData.keySet()) {
 				Object[] props = retData.get(engineKey);
