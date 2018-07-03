@@ -1,6 +1,9 @@
 package prerna.sablecc2.reactor.qs;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.engine.api.IEngine;
@@ -9,7 +12,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -20,12 +22,11 @@ public class QueryInsertReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		NounMetadata success = new NounMetadata(false, PixelDataType.BOOLEAN);
 		if(qStruct == null) {
 			qStruct = getQueryStruct();
 		}
 		
-		StringBuilder query = new StringBuilder("INSERT INTO ");
+		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
 		
 		GenRowStruct col_grs = this.store.getNoun("into");
 		GenRowStruct val_grs = this.store.getNoun("values");
@@ -46,58 +47,62 @@ public class QueryInsertReactor extends AbstractReactor {
 		if(table == "") {
 			// Insert table name
 			QueryColumnSelector t = (QueryColumnSelector) selectors.get(0);
-			query.append(t.getTable()).append(" (");
+			prefixSb.append(t.getTable()).append(" (");
 			
 			// Insert columns
 			for(int i = 0; i < selectors.size(); i++) {
 				QueryColumnSelector c = (QueryColumnSelector) selectors.get(i);
 				if(i == selectors.size() - 1) {
-					query.append(c.getColumn());
+					prefixSb.append(c.getColumn());
 				}
 				else {
-					query.append(c.getColumn() + ", ");
+					prefixSb.append(c.getColumn() + ", ");
 				}
 			}
-			query.append(") VALUES (");
+			prefixSb.append(") VALUES (");
 		}
-		
 		else {
-			query.append(table).append(" VALUES (");
+			prefixSb.append(table).append(" VALUES (");
 		}
 		
-		// Insert values
-		for(int i = 0; i < val_grs.size(); i++) {
-			if(i == val_grs.size() - 1) {
-				if(val_grs.get(i) instanceof String) {
-					query.append("'" + val_grs.get(i) + "'");
+		String initial = prefixSb.toString();
+		
+		List<Object[]> valueCombinations = flattenCombinations(val_grs);
+		for(Object[] values : valueCombinations) {
+			StringBuilder valuesSb = new StringBuilder();
+			// Insert values
+			for(int i = 0; i < values.length; i++) {
+				if(i == values.length - 1) {
+					if(values[i] instanceof String) {
+						valuesSb.append("'" + values[i] + "'");
+					}
+					else {
+						valuesSb.append(values[i]);
+					}
 				}
 				else {
-					query.append(val_grs.get(i));
+					if(values[i] instanceof String) {
+						valuesSb.append("'" + values[i] + "', ");
+					}
+					else {
+						valuesSb.append(values[i] + ", ");
+					}
 				}
 			}
-			else {
-				if(val_grs.get(i) instanceof String) {
-					query.append("'" + val_grs.get(i) + "', ");
-				}
-				else {
-					query.append(val_grs.get(i) + ", ");
-				}
+			
+			valuesSb.append(")");
+			
+			// execute query
+			SelectQueryStruct qs = (SelectQueryStruct) qStruct.getValue();
+			IEngine engine = qs.retrieveQueryStructEngine();
+			if(engine instanceof RDBMSNativeEngine){
+				engine.insertData(initial + valuesSb.toString());
 			}
+			
+			System.out.println("SQL QUERY..." + initial + valuesSb.toString());
 		}
 		
-		query.append(")");
-		
-		// execute query
-		SelectQueryStruct qs = (SelectQueryStruct) qStruct.getValue();
-		IEngine engine = qs.retrieveQueryStructEngine();
-		if(engine instanceof RDBMSNativeEngine){
-			engine.insertData(query.toString());
-			success = new NounMetadata(true, PixelDataType.BOOLEAN);
-		}
-		
-		System.out.println("SQL QUERY..." + query.toString());
-		
-		return success;
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
 	private NounMetadata getQueryStruct() {
@@ -110,11 +115,95 @@ public class QueryInsertReactor extends AbstractReactor {
 		return queryStruct;
 	}
 	
-	public void setQueryStruct(NounMetadata qs) {
-		this.qStruct = qs;
+	private List<Object[]> flattenCombinations(GenRowStruct val_grs) {
+		List<Object[]> combinations = new Vector<Object[]>();
+		
+		Map<Integer, Integer> currIndexMap = new HashMap<Integer, Integer>();
+		
+		int numInputs = val_grs.size();
+		boolean moreCombinations = true;
+		while(moreCombinations) {
+			Object[] row = new Object[numInputs];
+			for(int i = 0; i < numInputs; i++) {
+				
+				Object thisValue = null;
+				Object result = val_grs.get(i);
+				if(result instanceof List) {
+					// if we know which index to grab, lets just grab it
+					if(currIndexMap.containsKey(new Integer(i))) {
+						Integer indexToGrab = currIndexMap.get(new Integer(i));
+						thisValue = ((List) result).get(indexToGrab);
+					} else {
+						thisValue = ((List) result).get(0);
+						currIndexMap.put(new Integer(i), new Integer(0));
+					}
+				} else {
+					thisValue = result;
+				}
+				
+				// set the value into the current row
+				row[i] = thisValue;
+			}
+			combinations.add(row);
+			
+			
+			// now we need to know if we should update curr index map
+			// or if we are done
+			boolean loopAgain = false;
+			UPDATE_LOOP : for(int i = numInputs-1; i >=0 ; i--) {
+				// we start at the last list
+				// and see if the current index is at the end
+				Object result = val_grs.get(i);
+				if(result instanceof List) {
+					Integer indexToGrab = currIndexMap.get(new Integer(i));
+					int numIndicesToGrab = ((List) result).size();
+					if( (indexToGrab + 1) == numIndicesToGrab) {
+						// we are have iterated through all of this guy
+						// so let us reset him
+						// BUT, this doesn't mean we know we need to loop again
+						// i am just preparing for the case where a list above requires us to start
+						// and loop through all the last pieces
+						currIndexMap.put(new Integer(i), new Integer(0));
+					} else {
+						// we have not looped through everything in this list
+						// we need to loop again
+						// after i increase the index to grab
+						currIndexMap.put(new Integer(i), new Integer(indexToGrab.intValue()+1));
+						loopAgain = true;
+						break UPDATE_LOOP;
+					}
+				}
+			}
+			
+			moreCombinations = loopAgain;
+		}
+		
+		return combinations;
 	}
 	
-	public void setNounStore(NounStore ns) {
-		this.store = ns;
+	public static void main(String[] args) {
+		GenRowStruct grs = new GenRowStruct();
+		grs.add(new NounMetadata(1, PixelDataType.CONST_INT));
+		List<Object> l1 = new Vector<Object>();
+		l1.add("a");
+		l1.add("b");
+		l1.add("c");
+		grs.add(new NounMetadata(l1, PixelDataType.VECTOR));
+		List<Object> l2 = new Vector<Object>();
+		l2.add("d");
+		l2.add("e");
+		grs.add(new NounMetadata(l2, PixelDataType.VECTOR));
+		List<Object> l3 = new Vector<Object>();
+		l3.add("x");
+		l3.add("y");
+		l3.add("z");
+		grs.add(new NounMetadata(l3, PixelDataType.VECTOR));
+		
+		QueryInsertReactor qir = new QueryInsertReactor();
+		List<Object[]> combinations = qir.flattenCombinations(grs);
+		
+		for(int i = 0; i < combinations.size(); i++) {
+			System.out.println(Arrays.toString(combinations.get(i)));
+		}
 	}
 }
