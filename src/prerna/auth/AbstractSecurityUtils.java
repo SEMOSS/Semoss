@@ -147,7 +147,7 @@ public abstract class AbstractSecurityUtils {
 		boolean addrows = true;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
 		if(wrapper.hasNext()) {
-			if( ((Number) wrapper.next().getValues()[0]).intValue() > 3) {
+			if( ((Number) wrapper.next().getValues()[0]).intValue() >= 3) {
 				addrows = false;
 			}
 		}
