@@ -17,7 +17,11 @@ build_dev:
   stage: build
   # See https://docs.gitlab.com/ee/ci/yaml/#only-and-except-simplified
   only:
-    - pushes
+    refs:
+      - pushes
+  except:
+    variables:
+      - $RELEASE == "TRUE"
   script:
     - apt-get update
     - apt-get install -y openjfx
