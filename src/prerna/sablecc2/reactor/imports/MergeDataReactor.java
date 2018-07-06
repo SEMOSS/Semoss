@@ -162,6 +162,7 @@ public class MergeDataReactor extends AbstractReactor {
 						SimpleQueryFilter filter = new SimpleQueryFilter(lNoun, "==", rNoun);
 						qs.addImplicitFilter(filter);
 					} catch(Exception e) {
+						e.printStackTrace();
 						throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
 					}
 				}
