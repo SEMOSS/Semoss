@@ -21,6 +21,11 @@ public class ExcelRange {
 		this.endC = getCol(endCol);
 	}
 
+	public String getRangeSyntax() {
+		String rangeSyntax = startC + (startRow + 1) + ":" + endC + (endRow + 1);
+		return rangeSyntax;
+	}
+
 	public static String getCol(int columnNumber) {
 		// To store result (Excel column name)
 		StringBuilder columnName = new StringBuilder();
@@ -53,11 +58,46 @@ public class ExcelRange {
 		}
 		return result;
 	}
-
-	public String getRangeSyntax() {
-		String rangeSyntax = startC + (startRow + 1) + ":" + endC + (endRow + 1);
-		return rangeSyntax;
-
+	
+	/**
+	 * Parse a range to get the start col, start row, end col, end row
+	 * as a vector of integers
+	 * @param rangeSyntax
+	 * @return
+	 */
+	public static int[] getSheetRangeIndex(String rangeSyntax) {
+		String[] split = rangeSyntax.split(":");
+		if(split.length != 2) {
+			throw new IllegalArgumentException("Invalid range syntax of " + rangeSyntax);
+		}
+		
+		int[] start = convertExcelCellIndex(split[0]);
+		int[] end = convertExcelCellIndex(split[1]);
+		
+		return new int[]{start[0], start[1], end[0], end[1]};
+	}
+	
+	private static int[] convertExcelCellIndex(String excelCellIndex) {
+		int col = 0;
+		int row = 0;
+		
+		// excel syntax is AAB50
+		// break apart the numbers to get the row
+		// convert string to number to get the col
+		
+		// lets do the easy one...
+		String rowStr = excelCellIndex.replaceAll("[A-Z]+", "");
+		row = Integer.parseInt(rowStr);
+		
+		// this isn't that bad since ASCII 'A' starts at 1
+		String colStr = excelCellIndex.replaceAll("\\d+", "");
+		int colLength = colStr.length();
+		for(int i = 0; i < colLength; i++) {
+			char c = colStr.charAt(i);
+			col += (int) c;
+		}
+		
+		return new int[]{col, row};
 	}
 	
 }
