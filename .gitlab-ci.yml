@@ -22,6 +22,8 @@ build_dev:
     - apt-get update
     - apt-get install -y openjfx
     - mvn $MAVEN_CLI_OPTS clean install -Dci.version=${VERSION}
+    # So that the cache takes up less space
+    - rm -rf .m2/repository/org/semoss
   artifacts:
     paths:
       - target/semoss-${VERSION}.jar
@@ -38,6 +40,8 @@ build_deploy:
     - apt-get install -y gnupg2
     - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
     - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dci.version=${VERSION}
+    # So that the cache takes up less space
+    - rm -rf .m2/repository/org/semoss
   artifacts:
     paths:
       - target/semoss-${VERSION}.jar
