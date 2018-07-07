@@ -32,13 +32,15 @@ public class DatabaseSpecificConceptPropertiesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the engine filter");
 		}
 		String engineId = engineFilterGrs.get(0).toString();
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 
 		if(this.securityEnabled()) {
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			List<String> appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			if(!appFilters.contains(engineId)) {
 				throw new IllegalArgumentException("Databases " + engineId + " does not exist or user does not have access");
 			}
+		} else {
+			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		}
 		
 		List<String> conceptProperties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(conceptLogicals, engineId);
