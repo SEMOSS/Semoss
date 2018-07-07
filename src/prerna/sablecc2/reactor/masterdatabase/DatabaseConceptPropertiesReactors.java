@@ -37,6 +37,11 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 		if(engineFilterGrs != null) {
 			eFilters = new Vector<String>();
 			String engineFilter = engineFilterGrs.get(0).toString();
+			if(this.securityEnabled()) {
+				engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
+			} else {
+				engineFilter = MasterDatabaseUtility.testEngineIdIfAlias(engineFilter);
+			}
 			eFilters.add(engineFilter);
 		}
 		
