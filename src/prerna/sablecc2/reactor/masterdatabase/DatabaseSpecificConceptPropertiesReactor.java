@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 
 import java.util.List;
 
+import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -33,6 +34,13 @@ public class DatabaseSpecificConceptPropertiesReactor extends AbstractReactor {
 		String engineId = engineFilterGrs.get(0).toString();
 		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 
+		if(this.securityEnabled()) {
+			List<String> appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+			if(!appFilters.contains(engineId)) {
+				throw new IllegalArgumentException("Databases " + engineId + " does not exist or user does not have access");
+			}
+		}
+		
 		List<String> conceptProperties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(conceptLogicals, engineId);
 		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
 	}
