@@ -20,8 +20,8 @@ public class ExcelBlock {
 	
 	private int lastColMaxIndex = -1;
 	
-	private Map<Integer, SummaryStatistics> columnToRowStats = new Hashtable <Integer, SummaryStatistics>();
-	
+	private Map<Integer, SummaryStatistics> columnToRowIndexStats = new Hashtable <Integer, SummaryStatistics>();
+
 	/**
 	 * Get the ranges of the block
 	 * This will split up the entire segment if there are empty columns
@@ -34,14 +34,14 @@ public class ExcelBlock {
 		int startCol = 0;
 		
 		for(int colIndex = 0; colIndex <= lastColMaxIndex; colIndex++) {
-			if(!columnToRowStats.containsKey( new Integer(colIndex) ) && started) {
+			if(!columnToRowIndexStats.containsKey( new Integer(colIndex) ) && started) {
 				
-				if(columnToRowStats.containsKey(startCol)) {
+				if(columnToRowIndexStats.containsKey(startCol)) {
 					ExcelRange r = new ExcelRange(
 							startCol+1, 
 							colIndex, 
-							new Double(columnToRowStats.get(new Integer(startCol)).getMin()).intValue(), 
-							new Double(columnToRowStats.get(new Integer(colIndex-1)).getMax()).intValue());
+							new Double(columnToRowIndexStats.get(new Integer(startCol)).getMin()).intValue(), 
+							new Double(columnToRowIndexStats.get(new Integer(colIndex-1)).getMax()).intValue());
 					ranges.add(r);
 				}
 				
@@ -49,7 +49,7 @@ public class ExcelBlock {
 				started = false;
 			}
 			
-			if(columnToRowStats.containsKey(new Integer(colIndex)) && !started ) {
+			if(columnToRowIndexStats.containsKey(new Integer(colIndex)) && !started ) {
 				started = true;
 				startCol = colIndex;
 			}
@@ -123,11 +123,11 @@ public class ExcelBlock {
 	
 	public void addColumnToRowIndexWithData(int columnIndex, int rowIndex) {
 		SummaryStatistics stats = null;
-		if(columnToRowStats.containsKey(columnIndex)) {
-			stats = columnToRowStats.get(new Integer(columnIndex));
+		if(columnToRowIndexStats.containsKey(columnIndex)) {
+			stats = columnToRowIndexStats.get(new Integer(columnIndex));
 		} else {
 			stats = new SummaryStatistics();
-			columnToRowStats.put(new Integer(columnIndex), stats);
+			columnToRowIndexStats.put(new Integer(columnIndex), stats);
 		}
 		
 		stats.addValue(rowIndex);
