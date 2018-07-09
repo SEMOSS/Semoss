@@ -98,12 +98,22 @@ public class UpdateSqlInterpreter {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		int numSelectors = selectors.size();
 		
+		List<String> tableList = new Vector<String>();
 		for(int i = 0; i < numSelectors; i++) {
+			QueryColumnSelector t = (QueryColumnSelector) selectors.get(i);
+			String table = t.getTable();
+			// do not include tables more than once
+			if(tableList.contains(table)) {
+				continue;
+			}
+			
 			if(i != 0) {
 				selectorBuilder.append(", ");
 			}
-			QueryColumnSelector t = (QueryColumnSelector) selectors.get(i);
-			selectorBuilder.append(t.getTable());
+			selectorBuilder.append(table);
+			
+			// add to the list so we dont readd
+			tableList.add(table);
 		}
 	}
 	
