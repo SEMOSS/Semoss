@@ -16,6 +16,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
+import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.FileHelperUtil;
 
 public class ExcelSheetPreProcessor {
@@ -41,18 +42,46 @@ public class ExcelSheetPreProcessor {
 		return this.allBlocks;
 	}
 	
-	public List<ExcelRange> getExcelRanges() {
-		List<ExcelRange> allRanges = new Vector<ExcelRange>();
-		for(ExcelBlock b : allBlocks) {
-			List<ExcelRange> ranges = b.getRanges();
-			allRanges.addAll(ranges);
+	public String[] getRangeHeaders(ExcelRange range) {
+		int[] rangeIndices = range.getIndices();
+		// need to get the first row
+		
+		int startCol = rangeIndices[0]-1;
+		int startRow = rangeIndices[1];
+		int endCol = rangeIndices[2];
+
+		Row headerRow = sheet.getRow(startRow);
+		String[] curHeaders = new String[endCol - startCol];
+		
+		int counter = 0;
+		for(int i = startCol; i < endCol; i++) {
+			curHeaders[counter] = getCell(headerRow.getCell(i)) + "";
+			counter++;
 		}
 		
-		for(ExcelRange r : allRanges) {
-			LOGGER.info("Found range in " + sheetName + " = " + r.getRangeSyntax());
+		return curHeaders;
+	}
+	
+	public String[] getCleanedRangeHeaders(ExcelRange range) {
+		String[] oHeaders = getRangeHeaders(range);
+		
+		// grab the headerChecker
+		HeadersException headerChecker = HeadersException.getInstance();
+		List<String> newUniqueCleanHeaders = new Vector<String>();
+		
+		int numCols = oHeaders.length;
+		for(int colIdx = 0; colIdx < numCols; colIdx++) {
+			String origHeader = oHeaders[colIdx];
+			if(origHeader.trim().isEmpty()) {
+				origHeader = "BLANK_HEADER";
+			}
+			String newHeader = headerChecker.recursivelyFixHeaders(origHeader, newUniqueCleanHeaders);
+			
+			// now update the unique headers, as this will be used to match duplications
+			newUniqueCleanHeaders.add(newHeader);
 		}
 		
-		return allRanges;
+		return newUniqueCleanHeaders.toArray(new String[]{});
 	}
 	
 	/**
