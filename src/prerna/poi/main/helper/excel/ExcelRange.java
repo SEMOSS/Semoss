@@ -94,8 +94,10 @@ public class ExcelRange {
 		int colLength = colStr.length();
 		for(int i = 0; i < colLength; i++) {
 			char c = colStr.charAt(i);
-			col += (int) c;
+			col += ((int) c);
 		}
+		
+		col = col - (((int) 'A') * colLength);
 		
 		return new int[]{col, row};
 	}
