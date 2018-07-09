@@ -114,7 +114,15 @@ public class ExcelSheetPreProcessor {
 						thisBlock.addStartColumnIndex(colIndex);
 						initStartCol = false;
 					}
-					thisBlock.addColumnToRowIndexWithData(colIndex, rowIndex);
+					
+					// add column to row + type metadata
+					String additionalFormatting = null;
+					if(cellValue instanceof SemossDate) {
+						additionalFormatting = ((SemossDate) cellValue).getPattern();
+					}
+					
+					SemossDataType cellType = getTypeByCast(cellValue);
+					thisBlock.addColumnToRowIndexWithData(colIndex, rowIndex, cellType, additionalFormatting);
 					filledInColumns++;
 				}
 			}
