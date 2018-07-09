@@ -18,6 +18,7 @@ public class WebWrapper extends JsonWrapper {
 		Hashtable output = (Hashtable)engine.execQuery(query);
 		rows = (List)output.get("ROWS");
 		headers = (String [])output.get("HEADERS");
+		this.numColumns = this.headers.length;
 		numRows = rows.size();
 		String[] strTypes = (String[]) output.get("TYPES");
 		this.types = new SemossDataType[this.numColumns];
