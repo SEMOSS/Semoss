@@ -25,6 +25,10 @@ public class ExcelRange {
 		String rangeSyntax = startC + (startRow + 1) + ":" + endC + (endRow + 1);
 		return rangeSyntax;
 	}
+	
+	public int[] getIndices() {
+		return new int[]{startCol, startRow, endCol, endRow};
+	}
 
 	public static String getCol(int columnNumber) {
 		// To store result (Excel column name)
@@ -54,7 +58,7 @@ public class ExcelRange {
 		int result = 0;
 		for (int i = 0; i < column.length(); i++) {
 			result *= 26;
-			result += column.charAt(i) - 'A' + 1;
+			result += column.charAt(i) - 'A';
 		}
 		return result;
 	}

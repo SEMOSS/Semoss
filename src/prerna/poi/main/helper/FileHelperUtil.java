@@ -89,7 +89,7 @@ public class FileHelperUtil {
 	 * @param formats
 	 * @return
 	 */
-	private static void reconcileDateFormats(Map<String, Integer> formats) {
+	public static void reconcileDateFormats(Map<String, Integer> formats) {
 		int numFormats = formats.size();
 		if(numFormats == 1) {
 			return;
