@@ -50,9 +50,11 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		if(retEngine == null) {
 			try {
 				// start the R Engine
-				if(OS.contains("mac")) {
+				if(!OS.contains("win")) {
+					// not windows - pass in vanilla
 					retEngine = new Rengine(new String[]{"--vanilla"}, true, null);
 				} else {
+					// windows only works if you pass in null... word...
 					retEngine = new Rengine(null, true, null);
 				}
 				logger.info("Successfully created engine.. ");
