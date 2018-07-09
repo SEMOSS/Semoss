@@ -3,7 +3,9 @@ package prerna.poi.main.helper.excel;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.poi.EncryptedDocumentException;
@@ -102,7 +104,14 @@ public class ExcelFilePreProcessor {
 		Map<String, ExcelSheetPreProcessor> sheetProcessors = processor.getSheetProcessors();
 		for(String sheet : sheetProcessors.keySet()) {
 			ExcelSheetPreProcessor sProcessor = sheetProcessors.get(sheet);
-			sProcessor.getExcelRanges();
+			List<ExcelRange> ranges = sProcessor.getExcelRanges();
+			for(ExcelRange r : ranges) {
+				System.out.println("Getting prediciton for range = " + r.getRangeSyntax());
+				Object[][] prediction = ExcelSheetPreProcessor.predictTypes(sProcessor.getSheet(), r.getRangeSyntax());
+				for(Object[] p : prediction) {
+					System.out.println(Arrays.toString(p));
+				}
+			}
 		}
 	}
 }
