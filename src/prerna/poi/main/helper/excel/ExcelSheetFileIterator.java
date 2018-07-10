@@ -60,12 +60,13 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		this.startCol = this.rangeIndex[0];
 		this.endRow = this.rangeIndex[3];
 		
-		// need to figure out the selectors
-		setSelectors(qs.getSelectors());
-		
 		// now that I have set the headers from the setSelectors
 		this.dataTypeMap = qs.getColumnTypes();
 		this.additionalTypesMap = qs.getAdditionalTypes();
+		this.newHeaders = qs.getNewHeaderNames();
+		
+		// need to figure out the selectors
+		setSelectors(qs.getSelectors());
 		
 		if(this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
 			this.types = new SemossDataType[this.headers.length];
@@ -228,6 +229,9 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			this.headerIndices = new int[this.headers.length];
 			for(int i = 0; i < this.headers.length; i++) {
 				this.headerIndices[i] = i + startCol;
+				if(this.newHeaders.containsKey(this.headers[i])) {
+					this.headers[i] = this.newHeaders.get(this.headers[i]);
+				}
 			}
 			return;
 		}
@@ -257,11 +261,19 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			
 			this.headers = orderedSelectors;
 			this.headerIndices = getHeaderIndicies(allHeaders, orderedSelectors);
+			for(int i = 0; i < this.headers.length; i++) {
+				if(this.newHeaders.containsKey(this.headers[i])) {
+					this.headers[i] = this.newHeaders.get(this.headers[i]);
+				}
+			}
 		} else {
 			this.headers = allHeaders;
 			this.headerIndices = new int[this.headers.length];
 			for(int i = 0; i < this.headers.length; i++) {
 				this.headerIndices[i] = i + startCol;
+				if(this.newHeaders.containsKey(this.headers[i])) {
+					this.headers[i] = this.newHeaders.get(this.headers[i]);
+				}
 			}
 		}
 	}
