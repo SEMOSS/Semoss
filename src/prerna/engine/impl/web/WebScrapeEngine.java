@@ -2,10 +2,14 @@ package prerna.engine.impl.web;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.lang3.math.NumberUtils;
@@ -97,13 +101,37 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			}
 			
 			// now I need to collect the header and rows and then return it
-			String [] headers = getHeaders(url, prop);
-			
-			List <String []> values = collectValues(thisTable.getElementsByTag("tr"), headers);
-			
-			String [] types = getWebTypes(values);
+			String[] headers = getHeaders(url, prop);
+			Integer[] selectedIndex = null;
+			String[] selectedHeaders = null;
+			// add filters
+			if (query != null) {
+				// specified in query so only send specific columns
+				List<String> headersList = Arrays.asList(headers);
+				String[] selectCols = query.split(";");
+				selectedIndex = new Integer[selectCols.length];
+				selectedHeaders = new String[selectCols.length];
+				// get indexes of columns the user has selected
+				for (int i = 0; i < selectCols.length; i++) {
+					String[] headerSplit = selectCols[i].split("=");
+					System.out.println(Arrays.asList(headerSplit));
+					String header = headerSplit[0].trim();
+					selectedIndex[i] = headersList.indexOf(header);
+					selectedHeaders[i] = header;
+				}
+			} else {
+				throw new IllegalArgumentException("Must select one or more values from table headers!");
+			}
+			List<String[]> values = collectValues(thisTable.getElementsByTag("tr"), headers, Arrays.asList(selectedIndex));
 
-			retHash.put("HEADERS", headers);
+
+			// add filtered headers if they exist
+			if (selectedHeaders != null) {
+				retHash.put("HEADERS", selectedHeaders);
+			} else {
+				retHash.put("HEADERS", headers);
+			}
+			String [] types = getWebTypes(values);
 			retHash.put("ROWS", values);
 			retHash.put("TYPES", types);
 			
@@ -221,7 +249,7 @@ public class WebScrapeEngine extends JsonAPIEngine{
 		
 	}
 
-	public List collectValues(Elements values, String [] headerList)
+	public List collectValues(Elements values, String [] headerList, List<Integer> selectedHeaderIndicies)
 	{
 		int rowIndex = 0;
 		
@@ -234,7 +262,7 @@ public class WebScrapeEngine extends JsonAPIEngine{
 		
 		
 		List <String []> valueList = new Vector();
-		
+
 		// start from 1 since the first one is the header
 		Hashtable rowColValue = new Hashtable();
 		Hashtable rowSpanCount = new Hashtable();
@@ -242,7 +270,7 @@ public class WebScrapeEngine extends JsonAPIEngine{
 		for(rowIndex = 1;rowIndex < values.size();rowIndex++)
 		{
 			Element thisRow = values.get(rowIndex);
-			System.out.println("Processing row.. " + thisRow);
+//			System.out.println("Processing row.. " + thisRow);
 			// get the TD on this row
 			// some of these are TH still.. thank you so much
 			Elements cols = thisRow.children();
@@ -250,14 +278,14 @@ public class WebScrapeEngine extends JsonAPIEngine{
 			// get the attribute to see 
 			// I need to keep the index
 			// and I need to keep for how much I need to do that
-			String [] oneRow = new String[headerList.length];
-			
+			String [] oneRow = new String[selectedHeaderIndicies.size()];
 			int colIndex = 0;
 			//int colspancount = -1;
 			//String colSpanData = null;
 			boolean dataFilled = false;
-			for(int headerIndex = 0;headerIndex < headerList.length;headerIndex++)
+			for(Integer headerIndex : selectedHeaderIndicies)
 			{
+//				colIndex = selectedHeaderIndicies
 				if(rowColValue.containsKey(headerIndex))
 				{
 					// need to use this value for the header
@@ -279,12 +307,12 @@ public class WebScrapeEngine extends JsonAPIEngine{
 					// when a actual data comes need to see what is coming
 					oneRow[headerIndex] = colSpanData;
 				}*/
-				else if(cols.size() > colIndex)
+				else if(cols.size() > headerIndex)
 				{
 					dataFilled = true;
-					Element thisCol = cols.get(colIndex);
+					Element thisCol = cols.get(headerIndex);
+					oneRow[colIndex] = thisCol.text();
 					colIndex++;
-					oneRow[headerIndex] = thisCol.text();
 					
 					// get the attribute to see if it a row span
 					String rowspan = thisCol.attr("rowspan");
