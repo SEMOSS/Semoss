@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -15,6 +16,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class QueryInsertReactor extends AbstractReactor {
 	
@@ -25,45 +27,40 @@ public class QueryInsertReactor extends AbstractReactor {
 		if(qStruct == null) {
 			qStruct = getQueryStruct();
 		}
+		SelectQueryStruct qs = (SelectQueryStruct) qStruct.getValue();
+		IEngine engine = qs.retrieveQueryStructEngine();
+		if(engine instanceof RDBMSNativeEngine){
+			throw new IllegalArgumentException("Insert queyr only works for rdbms databases");
+		}
 		
 		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
 		
 		GenRowStruct col_grs = this.store.getNoun("into");
 		GenRowStruct val_grs = this.store.getNoun("values");
-		String table = "";
 		
 		List<IQuerySelector> selectors = new Vector<IQuerySelector>();
-		
-		for(int i = 0; i < col_grs.size(); i++){
+		for(int i = 0; i < col_grs.size(); i++) {
 			String s = col_grs.get(i).toString();
-			if(s.contains("__")) {
-				selectors.add(new QueryColumnSelector (s));
-			}
-			else {
-				table = s;
-			}
+			selectors.add(new QueryColumnSelector (s));
 		}
 		
-		if(table == "") {
-			// Insert table name
-			QueryColumnSelector t = (QueryColumnSelector) selectors.get(0);
-			prefixSb.append(t.getTable()).append(" (");
-			
-			// Insert columns
-			for(int i = 0; i < selectors.size(); i++) {
-				QueryColumnSelector c = (QueryColumnSelector) selectors.get(i);
-				if(i == selectors.size() - 1) {
-					prefixSb.append(c.getColumn());
-				}
-				else {
-					prefixSb.append(c.getColumn() + ", ");
-				}
+		// Insert table name
+		QueryColumnSelector t = (QueryColumnSelector) selectors.get(0);
+		prefixSb.append(t.getTable()).append(" (");
+		
+		// Insert columns
+		for(int i = 0; i < selectors.size(); i++) {
+			QueryColumnSelector c = (QueryColumnSelector) selectors.get(i);
+			if(i > 0) {
+				prefixSb.append(", ");
 			}
-			prefixSb.append(") VALUES (");
+			if(c.getColumn().equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				prefixSb.append(getPrimKey(engine, c.getTable()));
+			} else {
+				prefixSb.append(c.getColumn());
+			}
 		}
-		else {
-			prefixSb.append(table).append(" VALUES (");
-		}
+		prefixSb.append(") VALUES (");
 		
 		String initial = prefixSb.toString();
 		
@@ -89,17 +86,11 @@ public class QueryInsertReactor extends AbstractReactor {
 					}
 				}
 			}
-			
 			valuesSb.append(")");
 			
 			// execute query
-			SelectQueryStruct qs = (SelectQueryStruct) qStruct.getValue();
-			IEngine engine = qs.retrieveQueryStructEngine();
-			if(engine instanceof RDBMSNativeEngine){
-				engine.insertData(initial + valuesSb.toString());
-			}
-			
 			System.out.println("SQL QUERY..." + initial + valuesSb.toString());
+			engine.insertData(initial + valuesSb.toString());
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -179,6 +170,21 @@ public class QueryInsertReactor extends AbstractReactor {
 		}
 		
 		return combinations;
+	}
+	
+	/**
+	 * Get the primary key for a table
+	 * @param engine
+	 * @param tableName
+	 * @return
+	 */
+	private String getPrimKey(IEngine engine, String tableName) {
+		String conceptualURI = "http://semoss.org/ontologies/Concept/" + tableName;
+		String tableURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
+		
+		// since we also have the URI, just store the primary key as well
+		// will most likely be used
+		return Utility.getClassName(tableURI);
 	}
 	
 	public static void main(String[] args) {
