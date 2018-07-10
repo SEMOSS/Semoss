@@ -130,7 +130,7 @@ public class ExcelBlock {
 			// if we have some kind of number
 			// if only int, then int
 			// otherwise, double
-			if(!containsDate && !containsTimestamp) {
+			if(!containsDate && !containsTimestamp && (containsInt || containsDouble)) {
 				Object[] columnPrediction = new Object[2];
 				if(containsInt && !containsDouble) {
 					columnPrediction[0] = SemossDataType.INT;
@@ -144,7 +144,7 @@ public class ExcelBlock {
 			// if we have some kind of date or timestamp
 			// if only date, then date
 			// otherwise, timestamp
-			if(!containsInt && !containsDouble) {
+			if(!containsInt && !containsDouble && (containsDate || containsTimestamp)) {
 				Map<String, SummaryStatistics> formatting = additionalFormatTracker.get(cellIndex);
 				
 				Map<String, Integer> mostPopularFormat = new HashMap<String, Integer>();
