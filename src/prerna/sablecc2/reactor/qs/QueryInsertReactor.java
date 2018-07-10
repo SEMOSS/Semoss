@@ -29,8 +29,8 @@ public class QueryInsertReactor extends AbstractReactor {
 		}
 		SelectQueryStruct qs = (SelectQueryStruct) qStruct.getValue();
 		IEngine engine = qs.retrieveQueryStructEngine();
-		if(engine instanceof RDBMSNativeEngine){
-			throw new IllegalArgumentException("Insert queyr only works for rdbms databases");
+		if(!(engine instanceof RDBMSNativeEngine)){
+			throw new IllegalArgumentException("Insert query only works for rdbms databases");
 		}
 		
 		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
