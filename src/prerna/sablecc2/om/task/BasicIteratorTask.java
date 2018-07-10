@@ -18,6 +18,7 @@ import prerna.ds.util.flatfile.ExcelFileIterator;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -128,7 +129,7 @@ public class BasicIteratorTask extends AbstractTask {
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			iterator = new CsvFileIterator((CsvQueryStruct) qs);
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
-			iterator = new ExcelFileIterator((ExcelQueryStruct) qs);
+			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) qs); //new ExcelFileIterator((ExcelQueryStruct) qs);
 		} else {
 			ITableDataFrame frame = qs.getFrame();
 			if(overrideImplicitFilters) {

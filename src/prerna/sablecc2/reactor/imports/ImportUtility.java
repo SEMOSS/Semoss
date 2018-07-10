@@ -14,10 +14,10 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.util.flatfile.CsvFileIterator;
-import prerna.ds.util.flatfile.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
@@ -79,9 +79,10 @@ public class ImportUtility {
 		// excel file
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			ExcelQueryStruct xlQS = (ExcelQueryStruct) qs;
-			ExcelFileIterator it = new ExcelFileIterator(xlQS);
-			return it;
-		} 
+			return ExcelWorkbookFileHelper.buildSheetIterator(xlQS);
+//			ExcelFileIterator it = new ExcelFileIterator(xlQS);
+//			return it;
+		}
 		// throw error saying i have no idea what to do with you
 		else {
 			throw new IllegalArgumentException("Cannot currently import from this type = " + qs.getQsType() + " in ImportUtility yet...");
