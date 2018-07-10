@@ -121,14 +121,14 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 	}
 	
 	private String getRange() {
-		GenRowStruct rangeGRS = this.store.getNoun(SHEET_NAME);
+		GenRowStruct rangeGRS = this.store.getNoun(SHEET_RANGE);
 		String sheetRange = "";
 		NounMetadata rangeNoun;
 		if (rangeGRS != null) {
 			rangeNoun = rangeGRS.getNoun(0);
 			sheetRange = (String) rangeNoun.getValue();
 		} else {
-			throw new IllegalArgumentException("Need to specify " + SHEET_NAME + "=[sheetRange] in pixel command");
+			throw new IllegalArgumentException("Need to specify " + SHEET_RANGE + "=[sheetRange] in pixel command");
 		}
 		return sheetRange;
 	}
