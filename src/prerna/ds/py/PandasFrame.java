@@ -13,9 +13,9 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.util.flatfile.CsvFileIterator;
-import prerna.ds.util.flatfile.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
@@ -71,8 +71,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> dataTypeMap) {
 		if(it instanceof CsvFileIterator) {
 			addRowsViaCsvIterator((CsvFileIterator) it, tableName);
-		} else if(it instanceof ExcelFileIterator) {
-			addRowsViaExcelIterator((ExcelFileIterator) it, tableName);
+		} else if(it instanceof ExcelSheetFileIterator) {
+			throw new IllegalArgumentException("Have yet to implement pandas frame with excel iterator");
 		} else {
 			// default behavior is to just write this to a csv file
 			// and read it back in
@@ -101,20 +101,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 * @param tableName
 	 */
 	private void addRowsViaCsvIterator(CsvFileIterator it, String tableName) {
-		// generate the script
-		StringBuilder script = new StringBuilder(PANDAS_IMPORT_STRING);
-		script.append("\n");
-		String fileLocation = it.getFileLocation();
-		script.append(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
-		
-		// execute the script
-		runScript(script.toString());
-	}
-	
-	/**
-	 * Generate a table from an Excel file iterator
-	 */
-	private void addRowsViaExcelIterator(ExcelFileIterator it, String tableName) {
 		// generate the script
 		StringBuilder script = new StringBuilder(PANDAS_IMPORT_STRING);
 		script.append("\n");
