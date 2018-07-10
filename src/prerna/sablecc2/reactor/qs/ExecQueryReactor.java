@@ -8,6 +8,7 @@ import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.query.querystruct.update.UpdateSqlInterpreter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -57,7 +58,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			success = true;
 		}
 		
-		return new NounMetadata(success, PixelDataType.BOOLEAN);
+		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
 	
 	private NounMetadata getQueryStruct() {

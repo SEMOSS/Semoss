@@ -14,6 +14,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
@@ -93,7 +94,7 @@ public class QueryInsertReactor extends AbstractReactor {
 			engine.insertData(initial + valuesSb.toString());
 		}
 		
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
 	
 	private NounMetadata getQueryStruct() {
