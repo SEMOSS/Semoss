@@ -14,7 +14,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
-public class ExcelFilePreProcessor {
+public class ExcelWorkbookFilePreProcessor {
 
 	private	Workbook workbook = null;
 	private FileInputStream sourceFile = null;
@@ -101,7 +101,7 @@ public class ExcelFilePreProcessor {
 	public static void main(String[] args) {
 		String fileLocation = "C:\\Users\\SEMOSS\\Desktop\\shifted.xlsx";
 
-		ExcelFilePreProcessor processor = new ExcelFilePreProcessor();
+		ExcelWorkbookFilePreProcessor processor = new ExcelWorkbookFilePreProcessor();
 		processor.parse(fileLocation);
 		processor.determineTableRanges();
 		Map<String, ExcelSheetPreProcessor> sheetProcessors = processor.getSheetProcessors();
@@ -140,7 +140,7 @@ public class ExcelFilePreProcessor {
 					for(int j = 0; j < blockRanges.size(); j++) {
 						ExcelRange r = blockRanges.get(j);
 						System.out.println("Getting prediciton for range = " + r.getRangeSyntax());
-						Object[][] prediction = ExcelSheetPreProcessor.predictTypes(sProcessor.getSheet(), r.getRangeSyntax());
+						Object[][] prediction = ExcelParsing.predictTypes(sProcessor.getSheet(), r.getRangeSyntax());
 						for(Object[] p : prediction) {
 							System.out.println(Arrays.toString(p));
 						}

@@ -20,6 +20,7 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 	private static final String FILEPATH = ReactorKeysEnum.FILE_PATH.getKey();
 	private static final String FILENAME = ReactorKeysEnum.FILE_NAME.getKey();
 	private static final String SHEET_NAME = "sheetName";
+	private static final String SHEET_RANGE = "sheetRange";
 	private static final String DATA_TYPES = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
 	private static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
 	private static final String HEADER_NAMES = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
@@ -40,7 +41,7 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 	 */
 	
 	public FileSourceReactor() {
-		this.keysToGet = new String[]{FILEPATH, FILENAME, SHEET_NAME, DATA_TYPES, DELIMITER, HEADER_NAMES, ADDITIONAL_DATA_TYPES};
+		this.keysToGet = new String[]{FILEPATH, FILENAME, SHEET_NAME, SHEET_RANGE, DATA_TYPES, DELIMITER, HEADER_NAMES, ADDITIONAL_DATA_TYPES};
 	}
 
 	@Override
@@ -65,8 +66,10 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 		if(isExcel) { // set excelQS
 			// get excel inputs
 			String sheetName = getSheetName();
+			String sheetRange = getRange();
 			qs = new ExcelQueryStruct();
 			((ExcelQueryStruct) qs).setSheetName(sheetName);
+			((ExcelQueryStruct) qs).setSheetRange(sheetRange);
 		} else { // set csv qs
 			char delimiter = getDelimiter();
 			qs = new CsvQueryStruct();
@@ -115,6 +118,19 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 			throw new IllegalArgumentException("Need to specify " + SHEET_NAME + "=[sheetName] in pixel command");
 		}
 		return sheetName;
+	}
+	
+	private String getRange() {
+		GenRowStruct rangeGRS = this.store.getNoun(SHEET_NAME);
+		String sheetRange = "";
+		NounMetadata rangeNoun;
+		if (rangeGRS != null) {
+			rangeNoun = rangeGRS.getNoun(0);
+			sheetRange = (String) rangeNoun.getValue();
+		} else {
+			throw new IllegalArgumentException("Need to specify " + SHEET_NAME + "=[sheetRange] in pixel command");
+		}
+		return sheetRange;
 	}
 
 	private Map<String, String> getDataTypes() {

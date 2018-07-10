@@ -20,9 +20,21 @@ public class ExcelRange {
 		this.startC = getCol(startCol);
 		this.endC = getCol(endCol);
 	}
+	
+	public ExcelRange(String rangeSyntax) {
+		// range index is start col, start row, end col, end row
+		int[] rangeIndex = ExcelRange.getSheetRangeIndex(rangeSyntax);
+		this.startCol = rangeIndex[0];
+		this.endCol = rangeIndex[2];
+		this.startRow = rangeIndex[1]+1;
+		this.endRow = rangeIndex[3]+1;
+		
+		this.startC = getCol(startCol);
+		this.endC = getCol(endCol);
+	}
 
 	public String getRangeSyntax() {
-		String rangeSyntax = startC + (startRow + 1) + ":" + endC + (endRow + 1);
+		String rangeSyntax = startC + startRow + ":" + endC + endRow;
 		return rangeSyntax;
 	}
 	
@@ -101,7 +113,7 @@ public class ExcelRange {
 			col += ((int) c);
 		}
 		
-		col = col - (((int) 'A') * colLength);
+		col = col - (((int) 'A') * colLength) + 1;
 		
 		return new int[]{col, row};
 	}
