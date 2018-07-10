@@ -26,8 +26,8 @@ public class ExcelRange {
 		int[] rangeIndex = ExcelRange.getSheetRangeIndex(rangeSyntax);
 		this.startCol = rangeIndex[0];
 		this.endCol = rangeIndex[2];
-		this.startRow = rangeIndex[1]+1;
-		this.endRow = rangeIndex[3]+1;
+		this.startRow = rangeIndex[1];
+		this.endRow = rangeIndex[3];
 		
 		this.startC = getCol(startCol);
 		this.endC = getCol(endCol);
