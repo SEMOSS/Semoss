@@ -108,9 +108,9 @@ public class WrapperManager {
 			// right now, we will just construct and return a QSExpressionIterator
 			GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
-			returnWrapper = new QueryStructExpressionIterator(
-					new RawGemlinSelectWrapper(interpreter, qs),
-					qs);
+			RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
+			gdi.execute();
+			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 			break;
 		}
 		case DATASTAX_GRAPH : {
@@ -119,9 +119,9 @@ public class WrapperManager {
 			// right now, we will just construct and return a QSExpressionIterator
 			GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
 			interpreter.setQueryStruct(qs);
-			returnWrapper = new QueryStructExpressionIterator(
-					new RawGemlinSelectWrapper(interpreter, qs),
-					qs);
+			RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
+			gdi.execute();
+			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 			break;
 		}
 		default: {
