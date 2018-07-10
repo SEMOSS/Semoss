@@ -19,7 +19,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
-
 public class ExcelSheetFileIterator extends AbstractFileIterator {
 
 	// classes around the sheet
@@ -65,6 +64,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		setSelectors(qs.getSelectors());
 		
 		// now that I have set the headers from the setSelectors
+		this.dataTypeMap = qs.getColumnTypes();
 		this.additionalTypesMap = qs.getAdditionalTypes();
 		
 		if(this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
@@ -79,9 +79,9 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			}
 		}
 		else {
-			setSelectors(qs.getSelectors());
 			setUnknownTypes();
 			qs.setColumnTypes(this.dataTypeMap);
+			qs.setAdditionalTypes(this.additionalTypesMap);
 		}
 		
 		this.numHeaders = this.headerIndices.length;
