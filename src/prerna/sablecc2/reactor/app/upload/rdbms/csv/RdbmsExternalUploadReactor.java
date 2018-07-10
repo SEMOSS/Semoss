@@ -193,7 +193,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			for (String prop : nodesAndProps.get(node)) {
 				if (!prop.equals(primaryKey)) {
 					String cleanProp = RDBMSEngineCreationHelper.cleanTableName(prop);
-					owler.addProp(cleanConceptTableName, primaryKey, cleanProp, dataTypes.get(nodeName).get(prop));
+					owler.addProp(cleanConceptTableName, primaryKey, cleanProp, dataTypes.get(nodeName).get(prop), "");
 				}
 			}
 		}
