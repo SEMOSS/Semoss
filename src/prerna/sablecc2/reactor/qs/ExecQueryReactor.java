@@ -26,36 +26,35 @@ public class ExecQueryReactor extends AbstractReactor {
 			qStruct = getQueryStruct();
 		}
 		
+		IEngine engine = null;
 		SelectQueryStruct sQS = null;
 		UpdateQueryStruct uQS = null;
 		boolean success = false;
-		
+
 		if(qStruct.getValue() instanceof SelectQueryStruct) {
 			sQS = ((SelectQueryStruct) qStruct.getValue());
-		}
-		else {
+			engine = sQS.retrieveQueryStructEngine();
+		} else {
 			uQS = ((UpdateQueryStruct) qStruct.getValue());
+			engine = uQS.retrieveQueryStructEngine();
 		}
-		
+
+		if(!(engine instanceof RDBMSNativeEngine)) {
+			throw new IllegalArgumentException("Insert query only works for rdbms databases");
+		}
+
 		if(sQS != null) {
-			IEngine engine = sQS.retrieveQueryStructEngine();
-			if(engine instanceof RDBMSNativeEngine) {
-				DeleteSqlInterpreter interp = new DeleteSqlInterpreter(sQS);
-				String sqlQuery = interp.composeQuery();
-				engine.insertData(sqlQuery);
-				System.out.println("SQL QUERY...." + sqlQuery);
-				success = true;
-			}
-		}
-		else {
-			IEngine engine = uQS.retrieveQueryStructEngine();
-			if(engine instanceof RDBMSNativeEngine) {
-				UpdateSqlInterpreter interp = new UpdateSqlInterpreter(uQS);
-				String sqlQuery = interp.composeQuery();
-				engine.insertData(sqlQuery);
-				System.out.println("SQL QUERY...." + sqlQuery);
-				success = true;
-			}
+			DeleteSqlInterpreter interp = new DeleteSqlInterpreter(sQS);
+			String sqlQuery = interp.composeQuery();
+			System.out.println("SQL QUERY...." + sqlQuery);
+			engine.insertData(sqlQuery);
+			success = true;
+		} else {
+			UpdateSqlInterpreter interp = new UpdateSqlInterpreter(uQS);
+			String sqlQuery = interp.composeQuery();
+			System.out.println("SQL QUERY...." + sqlQuery);
+			engine.insertData(sqlQuery);
+			success = true;
 		}
 		
 		return new NounMetadata(success, PixelDataType.BOOLEAN);
