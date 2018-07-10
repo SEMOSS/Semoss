@@ -11,7 +11,9 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.engine.api.IEngine;
 import prerna.query.interpreters.sql.SqlInterpreter;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -39,7 +41,8 @@ public class UpdateSqlInterpreter {
 	private transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
 	
 	private transient ITableDataFrame frame;
-		
+	private transient IEngine engine;
+	
 	private UpdateQueryStruct qs;
 	
 	private List<String> filterStatements = new Vector<String>();
@@ -54,13 +57,10 @@ public class UpdateSqlInterpreter {
 
 	private List<String[]> froms = new Vector<String[]>();
 	
-	// Constructors
-	public UpdateSqlInterpreter() {
-		
-	}
-	
 	public UpdateSqlInterpreter(UpdateQueryStruct qs) {
 		this.qs = qs;
+		this.frame = qs.getFrame();
+		this.engine = qs.getEngine();
 	}
 	
 	//////////////////////////////////////////// Compose Query //////////////////////////////////////////////
@@ -126,12 +126,17 @@ public class UpdateSqlInterpreter {
 				sets.append(", ");
 			}
 			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
+			String table = s.getTable();
+			String column = s.getColumn();
+			if(column.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				column = getPrimKey4Table(table);
+			}
 			Object v = values.get(i);
 			if(v instanceof String) {
-				sets.append(s.getTable() + "." + s.getColumn() + "=" + "'" + v + "'");
+				sets.append(table + "." + column + "=" + "'" + v + "'");
 			}
 			else {
-				sets.append(s.getTable() + "." + s.getColumn() + "=" + v );
+				sets.append(table + "." + column + "=" + v );
 			}
 		}
 	}
@@ -182,6 +187,19 @@ public class UpdateSqlInterpreter {
 		}
 		// will be getting the physical column name
 		String physicalColName = colName;
+		
+		if(engine != null && !engine.isBasic()) {
+			// if the colName is the primary key placeholder
+			// we will go ahead and grab the primary key from the table
+			if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+				physicalColName = getPrimKey4Table(table);
+				// the display name is defaulted to the table name
+			} else {
+				// default assumption is the info being passed is the conceptual name
+				// get the physical from the conceptual
+				physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+			}
+		}
 		
 		// need to perform this check 
 		// if there are no joins
@@ -701,12 +719,22 @@ public class UpdateSqlInterpreter {
 	 * @param table						The conceptual table name
 	 * @return							The physical table name
 	 */
-	private String getPrimKey4Table(String conceptualTableName){
+	protected String getPrimKey4Table(String conceptualTableName){
 		if(primaryKeyCache.containsKey(conceptualTableName)){
 			return primaryKeyCache.get(conceptualTableName);
-		} else{
-			return conceptualTableName;
 		}
+		else if(engine != null && !engine.isBasic()) {
+			// we dont have it.. so query for it
+			String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualTableName;
+			String tableURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
+			
+			// since we also have the URI, just store the primary key as well
+			// will most likely be used
+			String primKey = Utility.getClassName(tableURI);
+			primaryKeyCache.put(conceptualTableName, primKey);
+			return primKey;
+		}
+		return conceptualTableName;
 	}
 	
 	/**
