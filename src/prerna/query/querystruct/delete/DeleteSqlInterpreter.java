@@ -65,12 +65,10 @@ public class DeleteSqlInterpreter extends AbstractQueryInterpreter {
 	private List<String[]> froms = new Vector<String[]>();
 	private SqlJoinStructList joinStructList = new SqlJoinStructList();
 
-	public DeleteSqlInterpreter() {
-		
-	}
-	
 	public DeleteSqlInterpreter(SelectQueryStruct qs) {
 		this.qs = qs;
+		this.frame = qs.getFrame();
+		this.engine = qs.getEngine();
 	}
 	
 	//////////////////////////////////////////// Compose Query //////////////////////////////////////////////
