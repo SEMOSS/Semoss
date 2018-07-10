@@ -161,7 +161,7 @@ public class ExcelBlock {
 				} else {
 					columnPrediction[0] = SemossDataType.TIMESTAMP;
 				}
-				columnPrediction[2] = mostOccuringFormat;
+				columnPrediction[1] = mostOccuringFormat;
 				predictedTypes[colIndex] = columnPrediction;
 				continue COLUMN_LOOP;
 			}
