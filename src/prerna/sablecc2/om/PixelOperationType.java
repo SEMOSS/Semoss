@@ -55,6 +55,9 @@ public enum PixelOperationType {
 	DATABASE_TABLE_STRUCTURE,
 	DATABASE_TRAVERSE_OPTIONS,
 	
+	// forms calls that change the db
+	ALTER_DATABASE,
+	
 	TRAVERSAL_OPTIONS,
 	WIKI_LOGICAL_NAMES,
 	CONNECTED_CONCEPTS,
