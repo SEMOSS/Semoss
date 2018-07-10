@@ -16,6 +16,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
+@Deprecated
 public class ExcelFileIterator extends AbstractFileIterator {
 
 	private XLFileHelper helper;
@@ -27,11 +28,12 @@ public class ExcelFileIterator extends AbstractFileIterator {
 		this.qs = qs;
 		this.fileLocation = qs.getFilePath();
 		this.sheetToLoad = qs.getSheetName();
-		this.helper = new XLFileHelper();
-		this.helper.parse(qs.getFilePath());
 		
 		this.dataTypeMap = qs.getColumnTypes();
 		this.newHeaders = qs.getNewHeaderNames();
+		
+		this.helper = new XLFileHelper();
+		this.helper.parse(this.fileLocation);
 		
 		if(newHeaders != null && !newHeaders.isEmpty()) {
 			Map<String, Map<String, String>> excelHeaderNames = new Hashtable<String, Map<String, String>>();
