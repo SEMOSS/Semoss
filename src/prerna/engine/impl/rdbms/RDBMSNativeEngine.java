@@ -141,7 +141,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
 
-			this.dbType = (dbTypeString != null) ? (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString)) : (SQLQueryUtil.DB_TYPE.H2_DB);
+			this.dbType = (dbTypeString != null) ? (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString.toUpperCase())) : (SQLQueryUtil.DB_TYPE.H2_DB);
 			if(this.dbType == null) {
 				this.dbType = SQLQueryUtil.DB_TYPE.H2_DB;
 			}
