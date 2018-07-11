@@ -28,14 +28,22 @@ public class AppInsightsReactor extends AbstractReactor {
 		String offset = this.keyValue.get(this.keysToGet[3]);
 		
 		List<Map<String, Object>> results = null;
-		if(this.securityEnabled()) {
-			if(SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
-				results = SecurityQueryUtils.searchUserInsights(this.insight.getUser(), appId, searchTerm, limit, offset);
+		if(appId != null) {
+			if(this.securityEnabled()) {
+				if(SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
+					results = SecurityQueryUtils.searchUserInsights(this.insight.getUser(), appId, searchTerm, limit, offset);
+				} else {
+					throw new IllegalArgumentException("App does not exist or user does not have access to database");
+				}
 			} else {
-				throw new IllegalArgumentException("App does not exist or user does not have access to database");
+				results = SecurityQueryUtils.searchInsights(appId, searchTerm, limit, offset);
 			}
 		} else {
-			results = SecurityQueryUtils.searchInsights(appId, searchTerm, limit, offset);
+			if(this.securityEnabled()) {
+				results = SecurityQueryUtils.searchUserInsightDataByName(this.insight.getUser(), searchTerm, limit, offset);
+			} else {
+				results = SecurityQueryUtils.searchAllInsightDataByName(searchTerm, limit, offset);
+			}
 		}
 		
 		return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INSIGHTS);
