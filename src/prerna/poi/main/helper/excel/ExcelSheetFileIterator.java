@@ -32,7 +32,6 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	private String sheetRange;
 	
 	// speed improvements
-	private String[] headers;
 	private int[] headerIndices;
 	private int numHeaders;
 	
