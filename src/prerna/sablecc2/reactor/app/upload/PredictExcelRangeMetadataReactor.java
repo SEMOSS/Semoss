@@ -40,16 +40,13 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 		String[] origHeaders = sheetProcessor.getCleanedRangeHeaders(range);
 
 		Object[][] prediction = ExcelParsing.predictTypes(sheet, sheetRange);
-
-		Map[] retMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(cleanedHeaders, prediction);
-		Map<String, Map> typeMap = new HashMap<String, Map>();
-		typeMap.put("dataTypes", retMaps[0]);
-		typeMap.put("additionalDataTypes", retMaps[1]);
 		
 		Map<String, Object> rangeMap = new HashMap<String, Object>();
 		rangeMap.put("headers", origHeaders);
 		rangeMap.put("cleanHeaders", cleanedHeaders);
-		rangeMap.put("types", typeMap);
+		Map[] retMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(cleanedHeaders, prediction);
+		rangeMap.put("dataTypes", retMaps[0]);
+		rangeMap.put("additionalDataTypes", retMaps[1]);
 		
 		return new NounMetadata(rangeMap, PixelDataType.MAP);
 	}
