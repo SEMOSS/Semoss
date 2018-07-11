@@ -28,6 +28,7 @@ import prerna.poi.main.HeadersException;
 import prerna.test.TestUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
 
+@Deprecated
 public class XLFileHelper {
 	
 	int colStarter = 0;
