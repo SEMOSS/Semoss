@@ -2399,7 +2399,7 @@
 			</exclusions>
 		</dependency-->
 		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>org.apache.thrift</groupId>
 			<artifactId>thrift</artifactId>
 			<version>0.9.0</version>
@@ -2409,7 +2409,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency-->
+		</dependency>
 		<!-- cleanup -->
 		<!--dependency>
 			<groupId>org.apache.hadoop</groupId>
