@@ -162,7 +162,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
 		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, logger);
-
+		helper.clear();
 		try {
 			owler.export();
 			engine.setOWL(owlFile.getPath());
@@ -238,7 +238,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		
 		OWLER owler = new OWLER(engine, engine.getOWL());
 		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, logger);
-
+		helper.clear();
+		
 		try {
 			owler.export();
 			engine.setOWL(engine.getOWL());
