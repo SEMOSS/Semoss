@@ -33,7 +33,7 @@ import java.util.List;
 
 public abstract class SQLQueryUtil {
 
-	// Added SQL Server as enum DB_TYPE
+	// PLEASE ONLY ADD THINGS IN ALL CAPS!!!!
 	public enum DB_TYPE {
 		ASTER,
 		CASSANDRA,
