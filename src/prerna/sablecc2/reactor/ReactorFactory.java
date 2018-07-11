@@ -709,7 +709,9 @@ public class ReactorFactory {
 		// App Metadata
 		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("AppInfo", AppInfoReactor.class);
+		// TODO: to be removed once FE changes to only use GetInsights
 		reactorHash.put("GetAppInsights", AppInsightsReactor.class);
+		reactorHash.put("GetInsights", AppInsightsReactor.class);
 		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
 		reactorHash.put("GetAppWidgets", GetAppWidgetsReactor.class);
