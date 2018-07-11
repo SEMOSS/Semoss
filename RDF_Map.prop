@@ -1,44 +1,43 @@
 This section is for properties
 
-BROWSER_TYPE	Mozilla15
 ENGINE_WATCHER	SMSSWatcher
 ENGINE_WEB_WATCHER	SMSSWebWatcher;JobSchedulerWatcher
-
-URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
-SOLR_BASE_URL	https://localhost:443/solr
 
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss_Dev\\InsightCache
 CSV_INSIGHT_CACHE_FOLDER CSV_Insights
 
-SMSSWatcher	prerna.util.SMSSFileWatcher
-SMSSWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
-SMSSWatcher_EXT	.smss
-
 SMSSWebWatcher	prerna.util.SMSSWebWatcher
 SMSSWebWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
 SMSSWebWatcher_EXT	.smss
-
-CSVInsightsWebWatcher prerna.util.CSVInsightsWebWatcher
-CSVInsightsWebWatcher_DIR C:\\workspace\\Semoss_Dev\\InsightCache\\CSV_Insights
-CSVInsightsWebWatcher_EXT .tg
 
 JobSchedulerWatcher prerna.rpa.JobSchedulerWatcher
 JobSchedulerWatcher_DIR C:\\workspace\\Semoss_Dev\\rpa\\json
 JobSchedulerWatcher_EXT	.json
 rpa.config.directory C:\\workspace\\Semoss_Dev\\rpa
 
-LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
 BaseFolder	C:\\workspace\\Semoss_Dev
-
+LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
+GOOGLE_CHROME_HOME C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe 
 ADDITIONAL_REACTORS C:\\workspace\\Semoss_Dev\\reactors.json
 SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
 
 R_CONNECTION_JRI	true
 R_MEM_LIMIT 4096
-
 FRAME_SIZE_LIMIT -1
 
-GOOGLE_CHROME_HOME C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe 
+##################################################
+##################################################
+##################################################
+# BELOW ARE LEGACY PARAMS
+# DO NOT UPDATE OR MODIFY
+
+BROWSER_TYPE	Mozilla15
+URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
+SOLR_BASE_URL	https://localhost:443/solr
+
+SMSSWatcher	prerna.util.SMSSFileWatcher
+SMSSWatcher_DIR	C:\\workspace\\Semoss_Dev\\db
+SMSSWatcher_EXT	.smss
 
 SHOW_GOV_WARNING	false
 GPS_SUDOWL_DEFAULT	false
