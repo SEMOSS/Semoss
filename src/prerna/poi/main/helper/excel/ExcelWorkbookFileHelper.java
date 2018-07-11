@@ -62,6 +62,15 @@ public class ExcelWorkbookFileHelper {
 	}
 	
 	/**
+	 * Get the Sheet object
+	 * @param sheetName
+	 * @return
+	 */
+	public Sheet getSheet(String sheetName) {
+		return workbook.getSheet(sheetName);
+	}
+	
+	/**
 	 * Get the file path 
 	 */
 	public String getFilePath() {
