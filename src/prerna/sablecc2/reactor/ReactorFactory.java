@@ -245,6 +245,7 @@ import prerna.sablecc2.reactor.qs.source.SharePointDriveSelectorReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointListFilesReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointSiteSelectorReactor;
+import prerna.sablecc2.reactor.qs.source.SharePointWebDavPullReactor;
 import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
 import prerna.sablecc2.reactor.runtime.codeexec.CodeExecReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
@@ -501,6 +502,7 @@ public class ReactorFactory {
 		reactorHash.put("SharePointFileRetriever", SharePointFileRetrieverReactor.class);
 		reactorHash.put("SharePointSiteSelector", SharePointSiteSelectorReactor.class);
 		reactorHash.put("SharePointDriveSelector", SharePointDriveSelectorReactor.class);
+		reactorHash.put("SharePointWebDavPull", SharePointWebDavPullReactor.class);
 
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
