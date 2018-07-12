@@ -131,7 +131,7 @@ public abstract class AbstractSecurityUtils {
 
 		// USER
 		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "integer", "varchar(255)", "varchar(255)", "varchar(255)" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
 
 		// USERINSIGHTPERMISSION
