@@ -24,6 +24,7 @@ import org.eclipse.jgit.lib.StoredConfig;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
+import prerna.engine.impl.SmssUtilities;
 import prerna.security.InstallCertNow;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -318,10 +319,10 @@ public class GitUtils {
 	///////////////////////////////////////////////////////
 
 	
-	public static List<Map<String, String>> getStatus(String dbName)
+	public static List<Map<String, String>> getStatus(String appId, String appName)
 	{
 		List<Map<String, String>> output = new Vector<Map<String, String>>();
-		String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + dbName + "/version";
+		String location = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(appId, appName) + "/version";
 		Git thisGit = null;
 		Status status = null;
 		try {
@@ -335,12 +336,12 @@ public class GitUtils {
 			e.printStackTrace();
 		}
 
-		output.addAll(getFiles(dbName, "ADD", status.getAdded().iterator()));
-		output.addAll(getFiles(dbName, "MOD", status.getModified().iterator()));
-		output.addAll(getFiles(dbName, "DEL", status.getRemoved().iterator()));
-		output.addAll(getFiles(dbName, "DEL", status.getMissing().iterator()));
-		output.addAll(getFiles(dbName, "CON", status.getConflicting().iterator()));
-		output.addAll(getFiles(dbName, "NEW", status.getUntracked().iterator()));
+		output.addAll(getFiles(appId, appName, "ADD", status.getAdded().iterator()));
+		output.addAll(getFiles(appId, appName, "MOD", status.getModified().iterator()));
+		output.addAll(getFiles(appId, appName, "DEL", status.getRemoved().iterator()));
+		output.addAll(getFiles(appId, appName, "DEL", status.getMissing().iterator()));
+		output.addAll(getFiles(appId, appName, "CON", status.getConflicting().iterator()));
+		output.addAll(getFiles(appId, appName, "NEW", status.getUntracked().iterator()));
 
 		thisGit.close();
 		return output;
@@ -354,10 +355,10 @@ public class GitUtils {
 	 * @param iterator
 	 * @return
 	 */
-	public static List<Map<String, String>> getFiles(String dbName, String fileType, Iterator<String> iterator) {
+	public static List<Map<String, String>> getFiles(String appId, String appName, String fileType, Iterator<String> iterator) {
 		List<Map<String, String>> retFiles = new Vector<Map<String, String>>();
 		while(iterator.hasNext()) {
-			String daFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + dbName + "/version/" + iterator.next();
+			String daFile = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(appId, appName) + "/version/" + iterator.next();
 			if(!daFile.endsWith(".mosfet")) {
 				continue;
 			}
