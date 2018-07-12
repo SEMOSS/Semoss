@@ -7,6 +7,8 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.SecurityQueryUtils;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -31,7 +33,24 @@ public class SyncAppFilesOAuth extends GitBaseReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appName = this.keyValue.get(this.keysToGet[0]);
+		String appId = this.keyValue.get(this.keysToGet[0]);
+		if(appId == null || appId.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the app name");
+		}
+		String appName = null;
+		
+		// you can only push
+		// if you are the owner
+		if(this.securityEnabled()) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			}
+			appName = SecurityQueryUtils.getEngineAliasForId(appId);
+		} else {
+			appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+		}
+		
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		String dualStr = this.keyValue.get(this.keysToGet[4]);
 		String databaseStr = this.keyValue.get(this.keysToGet[5]);
@@ -56,19 +75,19 @@ public class SyncAppFilesOAuth extends GitBaseReactor {
 			try {
 				logger.info("Synchronizing Database Now... ");
 				// remove the app
-				Utility.getEngine(appName).closeDB();
-				DIHelper.getInstance().removeLocalProperty(appName);
-				GitSynchronizer.syncDatabases(appName, repository, token, logger);
+				Utility.getEngine(appId).closeDB();
+				DIHelper.getInstance().removeLocalProperty(appId);
+				GitSynchronizer.syncDatabases(appId, appName, repository, token, logger);
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
-				Utility.getEngine(appName);
+				Utility.getEngine(appId);
 			}
 		}
 
 		// if it is null or true dont worry
 		logger.info("Synchronizing now... ");
-		Map<String, List<String>> filesChanged = GitSynchronizer.synchronizeSpecific(appName, repository, token, filesToSync, dual);
+		Map<String, List<String>> filesChanged = GitSynchronizer.synchronizeSpecific(appId, appName, repository, token, filesToSync, dual);
 		logger.info("Synchronize Complete");
 
 		StringBuffer output = new StringBuffer("SUCCESS \r\n ");
