@@ -2429,7 +2429,7 @@
 			</exclusions>
 		</dependency-->
 		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>org.apache.hive</groupId>
 			<artifactId>tcli_service</artifactId>
 			<version>2.5.41</version>
@@ -2439,7 +2439,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency-->
+		</dependency>
 		<!-- redshift -->
 		<!-- cleanup -->
 		<!--dependency>
