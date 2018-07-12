@@ -8,6 +8,8 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.SecurityQueryUtils;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -31,7 +33,24 @@ public class SyncApp extends GitBaseReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String appName = this.keyValue.get(this.keysToGet[0]);
+		String appId = this.keyValue.get(this.keysToGet[0]);
+		if(appId == null || appId.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the app name");
+		}
+		String appName = null;
+		
+		// you can only push
+		// if you are the owner
+		if(this.securityEnabled()) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			}
+			appName = SecurityQueryUtils.getEngineAliasForId(appId);
+		} else {
+			appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+		}
+		
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		String username = this.keyValue.get(this.keysToGet[2]);
 		String password = this.keyValue.get(this.keysToGet[3]);
@@ -57,19 +76,19 @@ public class SyncApp extends GitBaseReactor {
 				logger.info("Synchronizing Database Now... ");
 				logger.info("Stopping the engine ... ");
 				// remove the app
-				Utility.getEngine(appName).closeDB();
-				DIHelper.getInstance().removeLocalProperty(appName);
+				Utility.getEngine(appId).closeDB();
+				DIHelper.getInstance().removeLocalProperty(appId);
 				if (keyValue.size() == 6) {
-					GitSynchronizer.syncDatabases(appName, repository, username, password, logger);
+					GitSynchronizer.syncDatabases(appId, appName, repository, username, password, logger);
 				} else {
 					String token = getToken();
-					GitSynchronizer.syncDatabases(appName, repository, token, logger);
+					GitSynchronizer.syncDatabases(appId, appName, repository, token, logger);
 				}
 				logger.info("Synchronize Database Complete");
 			} finally {
 				// open it back up
 				logger.info("Opening the engine again ... ");
-				Utility.getEngine(appName);
+				Utility.getEngine(appId);
 			}
 		}
 
@@ -77,10 +96,10 @@ public class SyncApp extends GitBaseReactor {
 		logger.info("Synchronizing Insights Now... ");
 		Map<String, List<String>> filesChanged = new HashMap<String, List<String>>();
 		if (keyValue.size() == 6) {
-			filesChanged = GitSynchronizer.synchronize(appName, repository, username, password, dual);
+			filesChanged = GitSynchronizer.synchronize(appId, appName, repository, username, password, dual);
 		} else {
 			String token = getToken();
-			filesChanged = GitSynchronizer.synchronize(appName, repository, token, dual);
+			filesChanged = GitSynchronizer.synchronize(appId, appName, repository, token, dual);
 		}
 		logger.info("Synchronize Insights Complete");
 
