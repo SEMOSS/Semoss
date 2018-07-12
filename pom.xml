@@ -2164,6 +2164,12 @@
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-hdfs</artifactId>
 			<version>2.6.0</version>
+			<exclusions>
+      			 <exclusion>
+        		  	<groupId>com.sun.jersey</groupId>
+         		 	<artifactId>jersey-core</artifactId>
+       			 </exclusion>
+       		</exclusions> 
 		</dependency>
 		<!-- http://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client -->
 		<!-- cleanup -->
@@ -2565,6 +2571,18 @@
 			<groupId>org.semarglproject</groupId>
 			<artifactId>semargl-sesame</artifactId>
 			<version>0.6</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.sun.jersey/jersey-core -->
+		<dependency>
+    		<groupId>com.sun.jersey</groupId>
+    		<artifactId>jersey-core</artifactId>
+    		<version>1.19</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-utils -->
+		<dependency>
+			<groupId>org.codehaus.plexus</groupId>
+			<artifactId>plexus-utils</artifactId>
+			<version>3.1.0</version>
 		</dependency>
 	</dependencies>
 </project>
