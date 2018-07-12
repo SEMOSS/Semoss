@@ -72,12 +72,6 @@ public class GitRepoUtils {
 	 */
 	public static void makeRemoteRepository(GitHub gh, String username, String repoName, int attempt) {
 		if(attempt < 3) {
-			try {
-				System.out.println(gh.isCredentialValid());
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-			
 			GHCreateRepositoryBuilder ghr = gh.createRepository(repoName)
 					.description(GitUtils.getDateMessage("Repository created on ") + " By user " + username)
 					.autoInit(false);
