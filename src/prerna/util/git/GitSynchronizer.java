@@ -26,6 +26,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.DIHelper;
 
 public class GitSynchronizer {
@@ -37,9 +38,9 @@ public class GitSynchronizer {
 
 	}
 	
-	public static void syncDatabases(String localAppName, String remoteAppName, String username, String password, Logger logger) {
+	public static void syncDatabases(String localAppId, String localAppName, String remoteAppName, String username, String password, Logger logger) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appFolder = baseFolder + "/db/" + localAppName;
+		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, localAppId);
 		
 		// the remote location
 		// is of the form account_name/repo_name
@@ -72,7 +73,7 @@ public class GitSynchronizer {
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
 		
 		// we now need to move over these new files
-		GitConsumer.moveDataFilesToApp(baseFolder, localAppName, logger);
+		GitConsumer.moveDataFilesToApp(baseFolder, localAppId, localAppName, logger);
 	}
 	
 	private static void pushFilesToVersionFolder(String appFolder) {
@@ -172,9 +173,9 @@ public class GitSynchronizer {
 	 * @param dual
 	 * @return 
 	 */
-	public static Map<String, List<String>> synchronizeSpecific(String localAppName, String remoteAppName, String username, String password, List<String> filesToSync, boolean dual) {
+	public static Map<String, List<String>> synchronizeSpecific(String appId, String localAppName, String remoteAppName, String username, String password, List<String> filesToSync, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = baseFolder + "/db/" + localAppName + "/version";
+		String versionFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, appId) + "/version";
 		
 		String repoName = "";
 		if(remoteAppName.contains("/")) {
@@ -243,10 +244,9 @@ public class GitSynchronizer {
 	
 	
 	
-	public static Map<String, List<String>> synchronize(String localAppName, String remoteAppName, String username, String password, boolean dual)
-	{
+	public static Map<String, List<String>> synchronize(String appId, String localAppName, String remoteAppName, String username, String password, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = baseFolder+ "/db/" + localAppName + "/version";
+		String versionFolder = baseFolder+ "/db/" + SmssUtilities.getUniqueName(localAppName, appId) + "/version";
 
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
@@ -298,10 +298,9 @@ public class GitSynchronizer {
 		return files;
 	}
 	
-	public static Map<String, List<String>> synchronize(String localAppName, String remoteAppName, String token, boolean dual)
-	{
+	public static Map<String, List<String>> synchronize(String appId, String localAppName, String remoteAppName, String token, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = baseFolder+ "/db/" + localAppName + "/version";
+		String versionFolder = baseFolder+ "/db/" + SmssUtilities.getUniqueName(localAppName, appId) + "/version";
 
 		String [] filesToIgnore = new String[] {"*.mv.db", "*.db", "*.jnl"};
 		GitUtils.writeIgnoreFile(versionFolder, filesToIgnore);
@@ -380,8 +379,7 @@ public class GitSynchronizer {
 	 * @param newRepo			This is usually the remote repo
 	 * @return
 	 */
-	private static Hashtable <String, List<String>> getFilesToAdd(String dir, String baseRepo, String newRepo)
-	{
+	private static Hashtable <String, List<String>> getFilesToAdd(String dir, String baseRepo, String newRepo) {
 		// this assumes that you have run a fetch
 		Hashtable <String, List<String>> finalHash = new Hashtable();
 		// I need to update the remote first
@@ -478,9 +476,9 @@ public class GitSynchronizer {
 
 	
 	
-	public static void syncDatabases(String localAppName, String remoteAppName, String token, Logger logger) {
+	public static void syncDatabases(String appId, String localAppName, String remoteAppName, String token, Logger logger) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String appFolder = baseFolder + "/db/" + localAppName;
+		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, appId);
 		
 		// the remote location
 		// is of the form account_name/repo_name
@@ -513,7 +511,7 @@ public class GitSynchronizer {
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
 		
 		// we now need to move over these new files
-		GitConsumer.moveDataFilesToApp(baseFolder, localAppName, logger);
+		GitConsumer.moveDataFilesToApp(baseFolder, appId, localAppName, logger);
 	}
 
 	/**
@@ -526,9 +524,9 @@ public class GitSynchronizer {
 	 * @param dual
 	 * @return 
 	 */
-	public static Map<String, List<String>> synchronizeSpecific(String localAppName, String remoteAppName, String token, List<String> filesToSync, boolean dual) {
+	public static Map<String, List<String>> synchronizeSpecific(String appId, String localAppName, String remoteAppName, String token, List<String> filesToSync, boolean dual) {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String versionFolder = baseFolder + "/db/" + localAppName + "/version";
+		String versionFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(localAppName, appId) + "/version";
 		
 		String repoName = "";
 		if(remoteAppName.contains("/")) {

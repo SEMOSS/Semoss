@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
@@ -20,7 +21,9 @@ import org.codehaus.plexus.util.FileUtils;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.SmssUtilities;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
@@ -35,7 +38,7 @@ public class GitConsumer {
 	}
 
 	public static void makeAppFromRemote(String yourName4App, String fullRemoteAppName, Logger logger) {
-		
+		String temporaryAppId = UUID.randomUUID().toString();
 		// need to get the database folder
 		try {
 			prerna.security.InstallCertNow.please("github.com", null, null);
@@ -44,7 +47,7 @@ public class GitConsumer {
 			e.printStackTrace();
 		}
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbFolder = baseFolder + "/db/" + yourName4App;
+		String dbFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(yourName4App, temporaryAppId);
 		File db = new File(dbFolder);
 		if(!db.exists()) {
 			// make the folder
@@ -108,21 +111,46 @@ public class GitConsumer {
 
 		// move the smss to the db folder
 		logger.info("Initialize new app...");
-		moveDataFilesToApp(baseFolder, yourName4App, logger);
+		moveDataFilesToApp(baseFolder, temporaryAppId, yourName4App, logger);
 	}
 
-	public static void moveDataFilesToApp(String baseFolder, String yourName4App, Logger logger) {
+	public static void moveDataFilesToApp(String baseFolder, String appId, String yourName4App, Logger logger) {
 		// need to account for version here
-		String appFolder = baseFolder + "/db/" + yourName4App ;
+		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(yourName4App, appId);
 		String versionFolder = appFolder + "/version";
 		File dir = new File(versionFolder);
 
+		// first thing
+		// need to get the actual app id
+		// and rename the engine alias
+		FileFilter fileFilter = new WildcardFileFilter("*.smss");
+		File[] files = dir.listFiles(fileFilter);
+
+		String origAppId = null;
+		for (int i = 0; i < files.length; i++) {
+			// need to make modification for the actual engine id
+			// and the new engine alias the user has defined
+			File fileToMove;
+			File origFile = files[i];
+			if(!origFile.getName().equals(SmssUtilities.getUniqueName(yourName4App, appId) + ".smss")) {
+				fileToMove = changeSmssEngineName(origFile, yourName4App);
+			} else {
+				fileToMove = origFile;
+			}
+			
+			Properties prop = Utility.loadProperties(fileToMove.getAbsolutePath());
+			origAppId = prop.getProperty(Constants.ENGINE);
+		}
+		
+		// now that is cleaned up
+		// do all the fun other stuff
+		
 		// now move the dbs
 		List <String> otherStuff = new Vector<String>();
 		otherStuff.add("*.db");
 		otherStuff.add("*.OWL");
-		FileFilter fileFilter = new WildcardFileFilter(otherStuff);
-		File [] files = dir.listFiles(fileFilter);
+		fileFilter = new WildcardFileFilter(otherStuff);
+		files = dir.listFiles(fileFilter);
 		File dbFile = new File(appFolder);
 		for (int i = 0; i < files.length; i++) {
 			try {
@@ -164,17 +192,8 @@ public class GitConsumer {
 		File targetFile = new File(targetDir);
 		for (int i = 0; i < files.length; i++) {
 			try {
-				// need to make modification on the engine
-				File fileToMove = null;
-				if(files[i].getName().replace(".smss", "").equalsIgnoreCase(yourName4App)) {
-					fileToMove = files[i];
-				} else {
-					// we have to change the smss file
-					File origFile = files[i];
-					fileToMove = changeSmssEngineName(origFile, yourName4App);
-					// we have to modify the recipe steps
-//					updateInsightRdbms(origFile, appFolder, yourName4App);
-				}
+				File fileToMove = files[i];
+				
 				// load the app
 				IEngine app = loadApp(fileToMove.getAbsolutePath(), logger);
 				// load the mosfet
@@ -182,7 +201,7 @@ public class GitConsumer {
 				// move the smss
 				FileUtils.copyFileToDirectory(fileToMove, targetFile);
 				// set the engine to the new smss
-				app.setPropFile(targetDir + "/" + yourName4App + ".smss");
+				app.setPropFile(targetDir + "/" + appId + ".smss");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -219,12 +238,15 @@ public class GitConsumer {
 //	}
 
 	private static File changeSmssEngineName(File file, String yourName4App) {
+		Properties prop = Utility.loadProperties(file.getAbsolutePath());
+		String appId = prop.getProperty(Constants.ENGINE);
+		
 		String mainDirectory = file.getParent();
 		String fileName = file.getName();
 		
 		String oldName = "db/" + fileName.replace(".smss", "");
-		String newName = "db/" + yourName4App;
-		String newFileName = mainDirectory + "/" + yourName4App + ".smss";
+		String newName = "db/" + SmssUtilities.getUniqueName(yourName4App, appId);
+		String newFileName = mainDirectory + "/" + SmssUtilities.getUniqueName(yourName4App, appId) + ".smss";
 		File newFile = new File(newFileName);
 		if(!newFile.exists()) {
 			try {
@@ -238,9 +260,8 @@ public class GitConsumer {
 		try {
 			fos = new FileOutputStream(newFile);
 			fis = new FileInputStream(file);
-			Properties prop = new Properties();
 			prop.load(fis);
-			prop.put("ENGINE", yourName4App);
+			prop.put("ENGINE_ALIAS", yourName4App);
 
 			Enumeration <Object> propKeys = prop.keys();
 			while(propKeys.hasMoreElements()) {
