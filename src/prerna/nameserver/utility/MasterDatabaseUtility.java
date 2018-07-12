@@ -1064,6 +1064,35 @@ public class MasterDatabaseUtility {
 		}
 		return retList;
 	}
+	
+	/**
+	 * Get an engine alias for an id
+	 * @return
+	 */
+	public static String getEngineAliasForId(String id) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		
+		if(conn != null) {
+			try {
+				String query = "select e.enginename from engine e where e.id='" + id + "'";
+				stmt = conn.createStatement();
+				rs = stmt.executeQuery(query);
+				while(rs.next()) {
+					String engineName = rs.getString(1);
+					return engineName;
+				}		
+			} catch(SQLException ex) {
+				ex.printStackTrace();
+			} finally {
+				closeStreams(stmt, rs);
+			}
+		}
+		
+		return null;
+	}
 
 	/**
 	 * Get the list of concepts for a given engine

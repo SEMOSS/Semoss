@@ -54,6 +54,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushToListString(wrapper);
 	}
 	
+	/**
+	 * Get the engine alias for a id
+	 * @return
+	 */
+	public static String getEngineAliasForId(String id) {
+		String query = "SELECT NAME FROM ENGINE WHERE ID='" + id + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<String> results = flushToListString(wrapper);
+		if(results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////

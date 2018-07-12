@@ -5,11 +5,12 @@ import java.util.Hashtable;
 import org.apache.log4j.Logger;
 
 import prerna.auth.AccessToken;
+import prerna.auth.SecurityQueryUtils;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.security.AbstractHttpHelper;
 import prerna.util.BeanFiller;
 import prerna.util.DIHelper;
@@ -35,10 +36,25 @@ public class InitAppRepo extends GitBaseReactor {
 		logger.info("Welcome to App IF ANY : SEMOSS Marketplace");
 
 		organizeKeys();
-		String appName = this.keyValue.get(this.keysToGet[0]);
-		if(appName == null || appName.isEmpty()) {
+		String appId = this.keyValue.get(this.keysToGet[0]);
+		if(appId == null || appId.isEmpty()) {
 			throw new IllegalArgumentException("Need to specify the app name");
 		}
+		String appName = null;
+		
+		// you can only push
+		// if you are the owner
+		if(this.securityEnabled()) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			}
+			appName = SecurityQueryUtils.getEngineAliasForId(appId);
+		} else {
+			appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+		}
+		
+		
 		String repository = this.keyValue.get(this.keysToGet[1]);
 		if(repository == null || repository.isEmpty()) {
 			throw new IllegalArgumentException("Need to specify the repository to publish the app");
@@ -68,12 +84,12 @@ public class InitAppRepo extends GitBaseReactor {
 		try {
 			// close the app
 			if(syncDatabase) {
-				Utility.getEngine(appName).closeDB();
-				DIHelper.getInstance().removeLocalProperty(appName);
+				Utility.getEngine(appId).closeDB();
+				DIHelper.getInstance().removeLocalProperty(appId);
 			}
 			// make app to remote
 			if (this.keyValue.size() == 5) {
-				GitCreator.makeRemoteFromApp(appName, repository, username, password, syncDatabase, "");
+				GitCreator.makeRemoteFromApp(appId, appName, repository, username, password, syncDatabase, "");
 			} else {
 				String token = getToken();
 				String url = "https://api.github.com/user";
@@ -84,16 +100,17 @@ public class InitAppRepo extends GitBaseReactor {
 				
 				String output = AbstractHttpHelper.makeGetCall(url, token, params, false);
 				AccessToken accessToken2 = (AccessToken)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new AccessToken());
-
 				username = accessToken2.getProfile();
 
-				GitCreator.makeRemoteFromApp(appName, repository, username, "", syncDatabase, token);
+				GitCreator.makeRemoteFromApp(appId, appName, repository, username, "", syncDatabase, token);
 			}
 			logger.info("Congratulations! You have successfully created your app " + repository);
+		} catch(Exception e) {
+			e.printStackTrace();
 		} finally {
 			// open it back up
 			if(syncDatabase) {
-				Utility.getEngine(appName);
+				Utility.getEngine(appId);
 			}
 		}
 		
