@@ -10,6 +10,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.codehaus.plexus.util.FileUtils;
 import org.kohsuke.github.GitHub;
 
+import prerna.engine.impl.SmssUtilities;
 import prerna.util.DIHelper;
 
 public class GitCreator {
@@ -23,12 +24,13 @@ public class GitCreator {
 
 	/**
 	 * Push an app to Git
+	 * @param appId
 	 * @param appName
 	 * @param remoteAppName
 	 * @param username
 	 * @param password
 	 */
-	public static void makeRemoteFromApp(String appName, String remoteAppName, String username, String password, boolean syncDatabase, String token) {
+	public static void makeRemoteFromApp(String appId, String appName, String remoteAppName, String username, String password, boolean syncDatabase, String token) {
 		// first, need to login
 		GitHub git = null;
 		if (!token.isEmpty()) {
@@ -39,7 +41,7 @@ public class GitCreator {
 
 		// need to get the database folder
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbFolder = baseFolder + "/db/" + appName;
+		String dbFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(appName, appId);
 
 		// the remote location
 		// is of the form account_name/repo_name
