@@ -71,34 +71,37 @@ public class GitRepoUtils {
 	 * @param repoName
 	 */
 	public static void makeRemoteRepository(GitHub gh, String username, String repoName, int attempt) {
-		if(attempt < 3)
-		{
-			GHCreateRepositoryBuilder ghr = gh.createRepository(repoName)
-					.description(GitUtils.getDateMessage("Repository created on ") + " By user " + username);
+		if(attempt < 3) {
 			try {
-				ghr.autoInit(false).create();
-			}catch(SSLHandshakeException ex)
-			{
+				System.out.println(gh.isCredentialValid());
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			
+			GHCreateRepositoryBuilder ghr = gh.createRepository(repoName)
+					.description(GitUtils.getDateMessage("Repository created on ") + " By user " + username)
+					.autoInit(false);
+			try {
+				ghr.create();
+			} catch(SSLHandshakeException ex) {
 				ex.printStackTrace();
 				try {
 					InstallCertNow.please("github.com", null, null);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				attempt = attempt + 1;
 				makeRemoteRepository(gh, username, repoName, attempt);
 			} catch (IOException e) {
+				e.printStackTrace();
 				throw new IllegalArgumentException("Error with creating remote repository at " + username + "/" + repoName);
 			}
 		}
 	}
 	
 	public static void removeRemote(String localRepository, String repositoryName) {
-		
 		int attempt = 1;
 		removeRemote(localRepository, repositoryName, attempt);
-		
 	}
 
 
@@ -144,7 +147,6 @@ public class GitRepoUtils {
 	}
 	
 	public static void deleteRemoteRepository(String repositoryName, String username, String password) {
-		
 		int attempt = 1;
 		deleteRemoteRepository(repositoryName, username, password, attempt);
 	}
@@ -173,7 +175,6 @@ public class GitRepoUtils {
 					try {
 						InstallCertNow.please("github.com", null, null);
 					} catch (Exception e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					attempt = attempt + 1;

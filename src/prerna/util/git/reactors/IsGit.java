@@ -2,6 +2,9 @@ package prerna.util.git.reactors;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.SecurityQueryUtils;
+import prerna.engine.impl.SmssUtilities;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -20,11 +23,27 @@ public class IsGit extends AbstractReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(this.getClass().getName());
 		organizeKeys();
+		String appId = keyValue.get(keysToGet[0]);
+		if(appId == null || appId.isEmpty()) {
+			throw new IllegalArgumentException("Need to specify the app name");
+		}
+		String appName = null;
+		
+		if(this.securityEnabled()) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			}
+			appName = SecurityQueryUtils.getEngineAliasForId(appId);
+		} else {
+			appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+		}
+		
 		logger.info("Checking - Please wait");
 		// get the path of the git location
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String dbName = baseFolder + "/db/" + keyValue.get(keysToGet[0]);	
-		boolean isGit = GitUtils.isGit(dbName);
+		String appFolder = baseFolder + "/db/" + SmssUtilities.getUniqueName(appName, appId);
+		boolean isGit = GitUtils.isGit(appFolder);
 		logger.info("Complete");
 		return new NounMetadata(isGit, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
 	}
