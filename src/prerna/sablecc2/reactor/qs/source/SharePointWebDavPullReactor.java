@@ -49,11 +49,8 @@ public class SharePointWebDavPullReactor extends AbstractQueryStructReactor{
 			File source = new File(filePath);
 			File destination = new File(filePathDest);
 			FileUtils.copyFile(source, destination);
-		} catch (FileNotFoundException e0){
-			throw new FileNotFoundException("Check the file path is correct and WebDav is correctly connected");
-
 		} catch (IOException e1) {
-		}
+		
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
