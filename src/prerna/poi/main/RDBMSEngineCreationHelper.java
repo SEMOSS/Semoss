@@ -4,10 +4,12 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
@@ -53,7 +55,7 @@ public class RDBMSEngineCreationHelper {
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
 				StringBuilder importPixel = new StringBuilder("Database(\"" + engineName + "\") | Select(");
-				Map<String, String> colToTypes = existingMetaModel.get(newTable);
+				Map<String, String> colToTypes = existingMetaModel.get(newTable.toUpperCase());
 				Set<String> columnNames = colToTypes.keySet();
 				int size = columnNames.size();
 				int counter = 0;
@@ -87,7 +89,8 @@ public class RDBMSEngineCreationHelper {
 				}
 				viewPixel.append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
-				admin.addInsight(insightName, layout, recipeArray);
+				String id = admin.addInsight(insightName, layout, recipeArray);
+				SecurityUpdateUtils.addInsight(rdbmsEngine.getEngineId(), id, insightName, false, layout);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -163,7 +166,11 @@ public class RDBMSEngineCreationHelper {
 		//					colname2 -> coltype,
 		//				}
 		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
-		
+		Set<String> tablesUpperCase = new HashSet<String>();
+		for(String table: tablesToRetrieve) {
+			tablesUpperCase.add(table.toUpperCase());
+		}
+
 		// get all the tables
 		ResultSet tables = null;
 		try {
@@ -171,7 +178,7 @@ public class RDBMSEngineCreationHelper {
 			while(tables.next()) {
 				// get the table name
 				String table = tables.getString("table_name");
-				if(!tablesToRetrieve.contains(table)) {
+				if(!tablesUpperCase.contains(table)) {
 					continue;
 				}
 				// keep a map of the columns
