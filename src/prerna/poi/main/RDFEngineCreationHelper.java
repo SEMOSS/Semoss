@@ -2,6 +2,7 @@ package prerna.poi.main;
 
 import java.util.Set;
 
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
@@ -41,11 +42,13 @@ public class RDFEngineCreationHelper {
 						.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"")
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
-				admin.addInsight(insightName, layout, recipeArray);
+				String id = admin.addInsight(insightName, layout, recipeArray);
+				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
 				
 				insightName = "Select Distinct " + conceptualName;
 				layout = "Grid";
-				admin.addInsight(insightName, layout, recipeArray);
+				id = admin.addInsight(insightName, layout, recipeArray);
+				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -95,11 +98,13 @@ public class RDFEngineCreationHelper {
 						.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"")
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
-				admin.addInsight(insightName, layout, recipeArray);
+				String id = admin.addInsight(insightName, layout, recipeArray);
+				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
 				
 				insightName = "Select Distinct " + conceptualName;
 				layout = "Grid";
-				admin.addInsight(insightName, layout, recipeArray);
+				id = admin.addInsight(insightName, layout, recipeArray);
+				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
