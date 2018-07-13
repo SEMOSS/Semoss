@@ -46,7 +46,7 @@ public class InitAppRepo extends GitBaseReactor {
 		// if you are the owner
 		if(this.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+			if(!SecurityQueryUtils.userIsOwner(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 			appName = SecurityQueryUtils.getEngineAliasForId(appId);
