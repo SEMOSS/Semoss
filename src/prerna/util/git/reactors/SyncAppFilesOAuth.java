@@ -52,8 +52,8 @@ public class SyncAppFilesOAuth extends GitBaseReactor {
 		}
 		
 		String repository = this.keyValue.get(this.keysToGet[1]);
-		String dualStr = this.keyValue.get(this.keysToGet[4]);
-		String databaseStr = this.keyValue.get(this.keysToGet[5]);
+		String dualStr = this.keyValue.get(this.keysToGet[2]);
+		String databaseStr = this.keyValue.get(this.keysToGet[3]);
 		List<String> filesToSync = getFilesToSync();
 
 		Logger logger = getLogger(this.getClass().getName());
@@ -181,7 +181,7 @@ public class SyncAppFilesOAuth extends GitBaseReactor {
 
 	private List<String> getFilesToSync() {
 		List<String> filesToSync = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[6]);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
 		for(int i = 0; i < grs.size(); i++) {
 			filesToSync.add(grs.get(i).toString());
 		}
