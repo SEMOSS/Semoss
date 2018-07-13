@@ -19,6 +19,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 
+import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -316,6 +317,7 @@ public class GitConsumer {
 			logger.info("Start synchronizing app metadata...");
 			IEngine engine = Utility.loadEngine(smssLocation, prop);
 			logger.info("Done synchronizing app metadata");
+			SecurityUpdateUtils.setEngineCompletelyGlobal(prop.getProperty(Constants.ENGINE));
 			return engine;
 		} catch(IOException e) {
 			e.printStackTrace();
