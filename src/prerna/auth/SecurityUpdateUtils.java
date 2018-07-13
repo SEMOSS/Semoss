@@ -307,6 +307,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		return false;
 	}
 	
+	/**
+	 * Set an engine and all its insights to be global
+	 * @param engineId
+	 */
+	public static void setEngineCompletelyGlobal(String engineId) {
+		String update1 = "UPDATE ENGINE SET GLOBAL=TRUE WHERE ID='" + engineId + "'";
+		securityDb.insertData(update1);
+		String update2 = "UPDATE INSIGHT SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
+		securityDb.insertData(update2);
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
