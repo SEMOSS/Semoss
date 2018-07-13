@@ -103,7 +103,7 @@ public class GitConsumer {
 		// switch to correct remote
 		logger.info("Fetch remote git directory");
 		GitRepoUtils.fetchRemote(versionFolder, repoName, "", "");
-		// merge
+		// merge the remote - this will bring in the files from the remote repo
 		logger.info("Merge remote git directory");
 		GitMergeHelper.merge(versionFolder, "master", repoName + "/master", 0, 2, true);
 		// commit
@@ -111,7 +111,30 @@ public class GitConsumer {
 
 		// move the smss to the db folder
 		logger.info("Initialize new app...");
-		moveDataFilesToApp(baseFolder, temporaryAppId, yourName4App, logger);
+		
+		// so, we used a random id to create the folder
+		// but we need to rename to use the correct app id for the engine
+		String actualAppId = null;
+		
+		FileFilter fileFilter = new WildcardFileFilter("*.smss");
+		File versionDir = new File(versionFolder);
+		File[] files = versionDir.listFiles(fileFilter);
+		// this should be size 1...
+		for(int i = 0; i < files.length; i++) {
+			File smssFile = files[i];
+			Properties prop = Utility.loadProperties(smssFile.getAbsolutePath());
+			actualAppId = prop.getProperty(Constants.ENGINE);
+			
+			// need to rename the folder
+			File currAppFolder = versionDir.getParentFile();
+			currAppFolder.renameTo(new File(currAppFolder.getParent() + "/" + SmssUtilities.getUniqueName(yourName4App, actualAppId)));
+		}
+		
+		if(actualAppId == null) {
+			throw new IllegalArgumentException("There is no app id defined within the smss of the new app you are downloading");
+		}
+		
+		moveDataFilesToApp(baseFolder, actualAppId, yourName4App, logger);
 	}
 
 	public static void moveDataFilesToApp(String baseFolder, String appId, String yourName4App, Logger logger) {
@@ -120,37 +143,12 @@ public class GitConsumer {
 		String versionFolder = appFolder + "/version";
 		File dir = new File(versionFolder);
 
-		// first thing
-		// need to get the actual app id
-		// and rename the engine alias
-		FileFilter fileFilter = new WildcardFileFilter("*.smss");
-		File[] files = dir.listFiles(fileFilter);
-
-		String origAppId = null;
-		for (int i = 0; i < files.length; i++) {
-			// need to make modification for the actual engine id
-			// and the new engine alias the user has defined
-			File fileToMove;
-			File origFile = files[i];
-			if(!origFile.getName().equals(SmssUtilities.getUniqueName(yourName4App, appId) + ".smss")) {
-				fileToMove = changeSmssEngineName(origFile, yourName4App);
-			} else {
-				fileToMove = origFile;
-			}
-			
-			Properties prop = Utility.loadProperties(fileToMove.getAbsolutePath());
-			origAppId = prop.getProperty(Constants.ENGINE);
-		}
-		
-		// now that is cleaned up
-		// do all the fun other stuff
-		
 		// now move the dbs
 		List <String> otherStuff = new Vector<String>();
 		otherStuff.add("*.db");
 		otherStuff.add("*.OWL");
-		fileFilter = new WildcardFileFilter(otherStuff);
-		files = dir.listFiles(fileFilter);
+		FileFilter fileFilter = new WildcardFileFilter(otherStuff);
+		File[] files = dir.listFiles(fileFilter);
 		File dbFile = new File(appFolder);
 		for (int i = 0; i < files.length; i++) {
 			try {
@@ -193,6 +191,13 @@ public class GitConsumer {
 		for (int i = 0; i < files.length; i++) {
 			try {
 				File fileToMove = files[i];
+				Properties prop = Utility.loadProperties(fileToMove.getAbsolutePath());
+				
+				if(!yourName4App.equals(prop.get(Constants.ENGINE_ALIAS))) {
+					File origFile = fileToMove;
+					fileToMove = changeSmssEngineName(fileToMove, yourName4App);
+					origFile.delete();
+				}
 				
 				// load the app
 				IEngine app = loadApp(fileToMove.getAbsolutePath(), logger);
@@ -201,7 +206,7 @@ public class GitConsumer {
 				// move the smss
 				FileUtils.copyFileToDirectory(fileToMove, targetFile);
 				// set the engine to the new smss
-				app.setPropFile(targetDir + "/" + appId + ".smss");
+				app.setPropFile(targetDir + "/" + SmssUtilities.getUniqueName(yourName4App, appId) + ".smss");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
