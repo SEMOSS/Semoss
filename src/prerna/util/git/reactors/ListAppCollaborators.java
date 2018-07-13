@@ -8,7 +8,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitCollaboratorUtils;
 
 public class ListAppCollaborators extends GitBaseReactor {
@@ -39,7 +38,6 @@ public class ListAppCollaborators extends GitBaseReactor {
 		{
 			String token = getToken();
 			collabs = GitCollaboratorUtils.listCollaborators(repository, token);
-			
 		}
 		return new NounMetadata(collabs, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
 	}
