@@ -316,12 +316,14 @@ public class GitSynchronizer {
 
 		GitUtils.checkoutIgnore(versionFolder, filesToIgnore);
 		// add the files we need to
-		GitPushUtils.addAllFiles(versionFolder, false);
-		// drop the files that are missing / deleted
-		GitDestroyer.removeFiles(versionFolder, false, true);
-		// commit
-		GitPushUtils.commitAddedFiles(versionFolder);
-
+		if(dual) {
+			GitPushUtils.addAllFiles(versionFolder, false);
+			// drop the files that are missing / deleted
+			GitDestroyer.removeFiles(versionFolder, false, true);
+			// commit
+			GitPushUtils.commitAddedFiles(versionFolder);
+		}
+		
 		GitRepoUtils.fetchRemote(versionFolder, repoName, token);
 
 		// need to get a list of files to process
