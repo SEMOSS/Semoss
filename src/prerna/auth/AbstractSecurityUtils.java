@@ -62,7 +62,7 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
-		String query = "SELECT ID FROM ENGINE WHERE NAME='" + appName + "'";
+		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINENAME='" + appName + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			if(wrapper.hasNext()) {
@@ -80,7 +80,7 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
-		String query = "SELECT ID FROM ENGINE WHERE ID='" + appId + "'";
+		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			if(wrapper.hasNext()) {
@@ -110,7 +110,7 @@ public abstract class AbstractSecurityUtils {
 		 */
 		
 		// ENGINE
-		colNames = new String[] { "name", "id", "global", "type", "cost" };
+		colNames = new String[] { "enginename", "engineid", "global", "type", "cost" };
 		types = new String[] { "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINE", colNames, types));
 
@@ -120,7 +120,7 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEMETA", colNames, types));
 
 		// ENGINEPERMISSION
-		colNames = new String[] { "user", "permission", "engine", "visibility" };
+		colNames = new String[] { "userid", "permission", "engineid", "visibility" };
 		types = new String[] { "varchar(255)", "integer", "varchar(255)", "boolean" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEPERMISSION", colNames, types));
 
@@ -129,17 +129,11 @@ public abstract class AbstractSecurityUtils {
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
 
-		// USER
-		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
-
 		// USERINSIGHTPERMISSION
 		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERINSIGHTPERMISSION", colNames, types));
 
-		
 		// PERMISSION
 		colNames = new String[] { "id", "name" };
 		types = new String[] { "integer", "varchar(255)" };
@@ -156,6 +150,11 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
 			securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
 		}
+		
+		// USER
+		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
 		
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
