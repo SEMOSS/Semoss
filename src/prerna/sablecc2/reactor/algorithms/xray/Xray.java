@@ -618,7 +618,8 @@ public class Xray {
 				if (instances.get(j) == null) {
 					rsb.append("\"" + "" + "\"");
 				} else {
-					rsb.append("\"" + instances.get(j).toString() + "\"");
+					// clean up instance values for R to work properly
+					rsb.append("\"" + instances.get(j).toString().replaceAll("[^A-Za-z0-9 ]", "_") + "\"");
 				}
 				rsb.append(";");
 
@@ -691,7 +692,8 @@ public class Xray {
 				if (value == null) {
 					rsb.append("\"" + "" + "\"");
 				} else {
-					rsb.append("\"" + value.toString() + "\"");
+					// clean up instance values for R to work properly
+					rsb.append("\"" + value.toString().replaceAll("[^A-Za-z0-9 ]", "_") + "\"");
 				}
 				rsb.append(";");
 				j++;
