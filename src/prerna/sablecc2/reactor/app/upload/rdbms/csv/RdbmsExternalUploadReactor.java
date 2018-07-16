@@ -12,6 +12,9 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
@@ -22,6 +25,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
@@ -43,10 +47,32 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		User user = null;
+		boolean security = this.securityEnabled();
+		if(security) {
+			user = this.insight.getUser();
+			if(user == null) {
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
+						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		
 		organizeKeys();
 		final String newAppName = UploadInputUtility.getAppName(this.store);
 		String returnId = null;
 		returnId = generateNewApp(newAppName);
+		
+		// even if no security, just add user as engine owner
+		if(user != null) {
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider ap : logins) {
+				SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
+			}
+		}
+		
 		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
