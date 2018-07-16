@@ -55,7 +55,12 @@ public class RDBMSEngineCreationHelper {
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
 				StringBuilder importPixel = new StringBuilder("Database(\"" + engineName + "\") | Select(");
-				Map<String, String> colToTypes = existingMetaModel.get(newTable.toUpperCase());
+				Map<String, String> colToTypes = existingMetaModel.get(newTable);
+				// inconsistent case for rdbms existingMetamodel passed in from reactors and building it from DatabaseMetaData 
+				if(colToTypes == null) {
+				   colToTypes = existingMetaModel.get(newTable.toUpperCase());
+				}
+
 				Set<String> columnNames = colToTypes.keySet();
 				int size = columnNames.size();
 				int counter = 0;
