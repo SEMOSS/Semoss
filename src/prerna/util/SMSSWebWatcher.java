@@ -37,6 +37,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.auth.AbstractSecurityUtils;
+import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.OwlConceptualNameModernizer;
@@ -285,14 +286,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		List<String> engines = MasterDatabaseUtility.getAllEngineIds();
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		
-		// so delete the engines if the SMSS is not there anymore sure makes sense
 		for(String engine : engines) {
 			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
-				LOGGER.info("Deleting the engine..... " + engine);
+				LOGGER.info("Deleting the engine from local master..... " + engine);
 				remover.deleteEngineRDBMS(engine);
-				SecurityUpdateUtils.deleteApp(engine);
 			}
 		}
+		
+		engines = SecurityQueryUtils.getEngineIds();
+		for(String engine : engines) {
+			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
+				LOGGER.info("Deleting the engine from security..... " + engine);
+				SecurityUpdateUtils.deleteApp(engine);
+			}
+		}	
+
 	}
 
 	/**
