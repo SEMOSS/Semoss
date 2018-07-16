@@ -213,11 +213,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return;
 		}
-		String deleteQuery = "DELETE FROM ENGINE WHERE ID='" + appId + "'";
+		String deleteQuery = "DELETE FROM ENGINE WHERE ENGINEID='" + appId + "'";
 		securityDb.removeData(deleteQuery);
 		deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
 		securityDb.removeData(deleteQuery);
-		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE ENGINE='" + appId + "'";
+		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID='" + appId + "'";
 		securityDb.removeData(deleteQuery);
 		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + appId + "'";
 		securityDb.removeData(deleteQuery);
@@ -243,7 +243,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
-		String query = "INSERT INTO ENGINE (NAME, ID, TYPE, COST, GLOBAL) "
+		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL) "
 				+ "VALUES ('" + engineName + "', '" + engineId + "', '" + engineType + "', '" + engineCost + "', " + global + ")";
 		securityDb.insertData(query);
 		securityDb.commit();
@@ -251,60 +251,18 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	
 	public static void updateEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
 		String query = "UPDATE ENGINE SET "
-				+ "NAME='" + engineName 
+				+ "ENGINENAME='" + engineName 
 				+ "', TYPE='" + engineType 
 				+ "', COST='" + engineCost 
 				+ "', GLOBAL=" + global
-				+ " WHERE ID='" + engineId + "'";
+				+ " WHERE ENGINEID='" + engineId + "'";
 		securityDb.insertData(query);
 		securityDb.commit();
 	}
 	
-	/**
-	 * Adds user as owner for a given engine, giving him/her all permissions.
-	 * 
-	 * @param engineName	Name of engine user is being added as owner for
-	 * @param userId		ID of user being made owner
-	 * @return				true or false for successful addition
-	 */
-	public static Boolean addEngineAndOwner(String engineId, String engineName, String userId) {
-		//Add the engine to the ENGINE table
-		//String engineID = UUID.randomUUID().toString();
-		String query = "INSERT INTO Engine(NAME, ID) VALUES ('" + engineName + "','" + engineId + "');";
-		Statement stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
-		int id = -1;
-		ResultSet rs = null;
-		try {
-			rs = stmt.getGeneratedKeys();
-			while (rs.next()) 
-			{
-			   id = rs.getInt(1);
-			   if(id < 1) {
-				   return false;
-			   }
-			}
-		} catch(SQLException e) {
-			e.printStackTrace();
-			return false;
-		} finally {
-			try {
-				if(rs != null) {
-					rs.close();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-
-		//Add the user to the permissions table as the owner for the engine
-		query = "INSERT INTO EnginePermission (USER, PERMISSION, ENGINE) VALUES ('" + userId + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "');";
-		Statement stmt2 = securityDb.execUpdateAndRetrieveStatement(query, true);
-		if(stmt2 != null) {
-			securityDb.commit();
-			return true;
-		}
-
-		return false;
+	public static void addEngineOwner(String engineId, String userId) {
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID) VALUES ('" + userId + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "');";
+		securityDb.insertData(query);
 	}
 	
 	/**
@@ -312,7 +270,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 */
 	public static void setEngineCompletelyGlobal(String engineId) {
-		String update1 = "UPDATE ENGINE SET GLOBAL=TRUE WHERE ID='" + engineId + "'";
+		String update1 = "UPDATE ENGINE SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
 		securityDb.insertData(update1);
 		String update2 = "UPDATE INSIGHT SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
 		securityDb.insertData(update2);

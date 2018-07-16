@@ -23,14 +23,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static String testUserEngineIdForAlias(User user, String potentialId) {
 		String userFilters = getUserFilters(user);
 		List<String> ids = new Vector<String>();
-		String query = "SELECT DISTINCT ENGINEPERMISSION.ENGINE "
-				+ "FROM ENGINEPERMISSION INNER JOIN ENGINE ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
-				+ "WHERE ENGINE.NAME='" + potentialId + "' AND ENGINEPERMISSION.USER IN " + userFilters;
+		String query = "SELECT DISTINCT ENGINEPERMISSION.ENGINEID "
+				+ "FROM ENGINEPERMISSION INNER JOIN ENGINE ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+				+ "WHERE ENGINE.ENGINENAME='" + potentialId + "' AND ENGINEPERMISSION.USERID IN " + userFilters;
 		
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		ids = flushToListString(wrapper);
 		if(ids.isEmpty()) {
-			query = "SELECT DISTINCT ENGINE.ID FROM ENGINE WHERE ENGINE.NAME='" + potentialId + "' AND ENGINE.GLOBAL=TRUE";
+			query = "SELECT DISTINCT ENGINE.ENGINEID FROM ENGINE WHERE ENGINE.ENGINENAME='" + potentialId + "' AND ENGINE.GLOBAL=TRUE";
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			ids = flushToListString(wrapper);
 		}
@@ -49,7 +49,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getEngineIds() {
-		String query = "SELECT DISTINCT ID FROM ENGINE";
+		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushToListString(wrapper);
 	}
@@ -59,7 +59,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getEngineAliasForId(String id) {
-		String query = "SELECT NAME FROM ENGINE WHERE ID='" + id + "'";
+		String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String> results = flushToListString(wrapper);
 		if(results.isEmpty()) {
@@ -83,11 +83,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserDatabaseList(User user) {
 		String userFilters = getUserFilters(user);
-		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
-				+ "WHERE (ENGINEPERMISSION.USER IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
-				+ "ORDER BY ENGINE.NAME";
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+				+ "WHERE (ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
+				+ "ORDER BY ENGINE.ENGINENAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -98,10 +98,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList() {
-		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
-				+ "ORDER BY ENGINE.NAME";
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+				+ "ORDER BY ENGINE.ENGINENAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -114,13 +114,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getUserDatabaseList(User user, String... engineFilter) {
 		String userFilters = getUserFilters(user);
 		String filter = createFilter(engineFilter); 
-		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "WHERE "
-				+ (!filter.isEmpty() ? ("ENGINE.ID " + filter + " AND ") : "")
-				+ "(ENGINEPERMISSION.USER IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
-				+ "ORDER BY ENGINE.NAME";
+				+ (!filter.isEmpty() ? ("ENGINE.ENGINEID " + filter + " AND ") : "")
+				+ "(ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
+				+ "ORDER BY ENGINE.ENGINENAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -132,11 +132,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList(String... engineFilter) {
 		String filter = createFilter(engineFilter); 
-		String query = "SELECT DISTINCT ENGINE.ID as \"app_id\", ENGINE.NAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
- 				+ (!filter.isEmpty() ? ("WHERE ENGINE.ID " + filter + " ") : "")
-				+ "ORDER BY ENGINE.NAME";
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+ 				+ (!filter.isEmpty() ? ("WHERE ENGINE.ENGINEID " + filter + " ") : "")
+				+ "ORDER BY ENGINE.ENGINENAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -164,7 +164,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<String> getUserEngineIds(User user) {
 		String userFilters = getUserFilters(user);
-		String query = "SELECT DISTINCT ENGINE FROM ENGINEPERMISSION WHERE USER IN " + userFilters;
+		String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String> engineList = flushToListString(wrapper);
 		engineList.addAll(getGlobalEngineIds());
@@ -176,7 +176,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Set<String> getGlobalEngineIds() {
-		String query = "SELECT ID FROM ENGINE WHERE GLOBAL=TRUE";
+		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushToSetString(wrapper, false);
 	}
@@ -205,7 +205,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	private static boolean userIsOwner(String userFilters, String engineId) {
 		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINE='" + engineId + "' AND USER IN " + userFilters;
+				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		while(wrapper.hasNext()) {
 			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
@@ -225,7 +225,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static boolean userCanEditEngine(User user, String engineId) {
 		String userFilters = getUserFilters(user);
 		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINE='" + engineId + "' AND USER IN " + userFilters;
+				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		while(wrapper.hasNext()) {
 			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
@@ -351,13 +351,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "INSIGHT.INSIGHTNAME as \"name\", "
 				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
-				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
+				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
 				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
-						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER IN " + userFilters + ") ) "
+						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
@@ -371,7 +371,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT DISTINCT INSIGHT.ENGINEID AS \"app_id\", INSIGHT.INSIGHTID as \"app_insight_id\", INSIGHT.INSIGHTNAME as \"name\" "
 				+ ", CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
-				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
@@ -481,11 +481,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.INSIGHTNAME as \"name\" "
 				+ "FROM INSIGHT "
-				+ "LEFT JOIN ENGINEPERMISSION ON INSIGHT.ENGINEID=ENGINEPERMISSION.ENGINE "
+				+ "LEFT JOIN ENGINEPERMISSION ON INSIGHT.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "(USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
-						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER IN " + userFilters + ") ) "
+						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
@@ -526,19 +526,19 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.ENGINEID AS \"app_id\", "
-				+ "ENGINE.NAME AS \"app_name\", "
+				+ "ENGINE.ENGINENAME AS \"app_name\", "
 				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
 				+ "INSIGHT.INSIGHTNAME as \"name\", "
 				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\", "
 				+ "INSIGHT.LAYOUT as \"layout\", "
 				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
-				+ "INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ID=ENGINEPERMISSION.ENGINE "
+				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "(USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
-						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USER IN " + userFilters + ") ) "
+						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
@@ -561,13 +561,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> searchAllInsightDataByName(String searchTerm, String limit, String offset) {
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.ENGINEID AS \"app_id\", "
-				+ "ENGINE.NAME AS \"app_name\", "
+				+ "ENGINE.ENGINENAME AS \"app_name\", "
 				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
 				+ "INSIGHT.INSIGHTNAME as \"name\", "
 				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\", "
 				+ "INSIGHT.LAYOUT as \"layout\", "
 				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
-				+ "FROM INSIGHT INNER JOIN ENGINE ON ENGINE.ID=INSIGHT.ENGINEID "
+				+ "FROM INSIGHT INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
@@ -589,7 +589,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "ENGINEID, "
 				+ "LAYOUT, "
 				+ "COUNT(ENGINEID) "
-				+ "FROM INSIGHT LEFT JOIN ENGINE ON INSIGHT.ENGINEID=ENGINE.ID "
+				+ "FROM INSIGHT LEFT JOIN ENGINE ON INSIGHT.ENGINEID=ENGINE.ENGINEID "
 				+ "WHERE "
 				+ "REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i') " 
 				+ "AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "

@@ -15,6 +15,10 @@ import org.apache.log4j.Logger;
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AbstractSecurityUtils;
+import prerna.auth.AuthProvider;
+import prerna.auth.SecurityQueryUtils;
+import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
@@ -36,6 +40,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
@@ -73,6 +78,19 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 
+		User user = null;
+		boolean security = this.securityEnabled();
+		if(security) {
+			user = this.insight.getUser();
+			if(user == null) {
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
+						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		
 		final String appIdOrName = UploadInputUtility.getAppName(this.store);
 		final boolean existing = UploadInputUtility.getExisting(this.store);
 		final String filePath = UploadInputUtility.getFilePath(this.store);
@@ -83,9 +101,27 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 
 		String returnId = null;
 		if(existing) {
+			
+			if(security) {
+				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
+					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+					SemossPixelException err = new SemossPixelException(noun);
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
+			}
+			
 			returnId = addToExistingApp(appIdOrName, filePath, logger);
 		} else {
 			returnId = generateNewApp(appIdOrName, filePath, logger);
+			
+			// even if no security, just add user as engine owner
+			if(user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for(AuthProvider ap : logins) {
+					SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
+				}
+			}
 		}
 
 		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
