@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.helper.XLFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -84,6 +86,7 @@ public class Xray {
 
 		// Write text files to run xray comparison from different sources
 		// outputFolder/database;table;column.txt
+		HashMap<String, String> engineNameLookup = new HashMap<String,String>();
 		List<Object> connectors = (List<Object>) config.get("connectors");
 		for (int i = 0; i < connectors.size(); i++) {
 			Map<String, Object> connection = (Map<String, Object>) connectors.get(i);
@@ -93,6 +96,8 @@ public class Xray {
 			if (connectorType.toUpperCase().equals("LOCAL")) {
 				writeLocalEngineToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode,
 						semanticFolder);
+				String id = connectorData.get("engineId") + "";
+				engineNameLookup.put(id, MasterDatabaseUtility.getEngineAliasForId(id));
 			} else if (connectorType.toUpperCase().equals("EXTERNAL")) {
 				writeExternalToFile(connectorData, dataSelection, dataMode, dataFolder, semanticMode, semanticFolder);
 			} else if (connectorType.toUpperCase().equals("FILE")) {
@@ -185,11 +190,21 @@ public class Xray {
 		rsb.append(rFrameName + " <- data.frame();");
 
 		// Run locality sensitive hashing to generate matches
+		String lookupFrame = "lookup"+ Utility.getRandomString(8);
 		if (dataMode) {
 			rsb.append(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + dataFolder + "\", " + nMinhash
 					+ ", " + nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
 					+ ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 					+ ", \"" + outputXrayDataFolder + "\");");
+			// create a lookup table for engineId to engineAlias
+			rsb.append(lookupFrame + " <- data.frame(engineId = character(), engineName = character(), stringsAsFactors=FALSE);");
+			int row = 1;
+			for(String key: engineNameLookup.keySet()){
+				rsb.append(lookupFrame + "[" + row + ", ]<-c(\"" + key + "\",\"" + engineNameLookup.get(key) + "\");");
+				row++;
+			}
+			rsb.append(rFrameName + " <-merge(" + rFrameName + "," + lookupFrame + ", by.x=\"Source_Database_Id\", by.y=\"engineId\");colnames(" + rFrameName + ")[13] <- \"Source_Database\";");
+			rsb.append(rFrameName + " <-merge(" + rFrameName + "," + lookupFrame +", by.x=\"Target_Database_Id\", by.y=\"engineId\");colnames(" + rFrameName + ")[14] <- \"Target_Database\";");
 		}
 		this.logger.info("Comparing data from datasources for X-ray data mode...");
 		this.rJavaTranslator.runR(rsb.toString());
@@ -241,6 +256,7 @@ public class Xray {
 		cleanUpScript.append("rm(" + "most_frequent_concept" + ");");
 		cleanUpScript.append("rm(" + "run_lsh_matching" + ");");
 		cleanUpScript.append("rm(" + "span" + ");");
+		cleanUpScript.append("rm(" + lookupFrame + ");");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		return rFrameName;
 	}
@@ -533,7 +549,7 @@ public class Xray {
 							// write txt file path of where instance data will
 							// be written to
 							// dataFolder/engineName;table;.txt
-							String fileName = dataFolder + "\\" + engineName + ";" + table + ";" + ".txt";
+							String fileName = dataFolder + "\\" + engineID + ";" + table + ";" + ".txt";
 							fileName = fileName.replace("\\", "/");
 							// get instance data
 							SelectQueryStruct sqs = new SelectQueryStruct();
@@ -557,7 +573,7 @@ public class Xray {
 							// write txt file path of where data will be written
 							// to dataFolder/engineName;table;column.txt
 
-							String fileName = dataFolder + "\\" + engineName + ";" + table + ";" + column + ".txt";
+							String fileName = dataFolder + "\\" + engineID + ";" + table + ";" + column + ".txt";
 							fileName = fileName.replace("\\", "/");
 							// get instance data for property
 							SelectQueryStruct sqs = new SelectQueryStruct();
