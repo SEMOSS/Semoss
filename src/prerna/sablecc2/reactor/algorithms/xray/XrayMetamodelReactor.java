@@ -15,9 +15,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Utility;
@@ -52,7 +50,7 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 		// check if we have results from xray
 		String checkNull = " is.null(" + rFrameName + ")";
 		boolean nullResults = this.rJavaTranslator.getBoolean(checkNull);
-		
+
 		Set<String> dbList = xray.getEngineList();
 		Hashtable edgesTable = new Hashtable();
 		Hashtable conceptsTable = new Hashtable();
@@ -86,52 +84,52 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			rsb.append(vR + "<- vector();\n");
 			String iR = "i" + Utility.getRandomString(5);
 			rsb.append("for(" + iR + " in 1:" + nR + "){\n");
-			
-			rsb.append("src <-paste0(" + tempFrame + "$Source_Database[" + iR + "],\"%\"," + tempFrame + "$Source_Table["
-					+ iR + "],\"%\"," + tempFrame + "$Source_Property[" + iR + "]);\n");
-			rsb.append("trg <-paste0(" + tempFrame + "$Target_Database[" + iR + "],\"%\"," + tempFrame + "$Target_Table["
-					+ iR + "],\"%\"," + tempFrame + "$Target_Property[" + iR + "]);\n");
+
+			rsb.append("src <-paste0(" + tempFrame + "$Source_Database_Id[" + iR + "],\"%\"," + tempFrame
+					+ "$Source_Table[" + iR + "],\"%\"," + tempFrame + "$Source_Property[" + iR + "]);\n");
+			rsb.append("trg <-paste0(" + tempFrame + "$Target_Database_Id[" + iR + "],\"%\"," + tempFrame
+					+ "$Target_Table[" + iR + "],\"%\"," + tempFrame + "$Target_Property[" + iR + "]);\n");
 			rsb.append("if(src < trg){\n");
-			rsb.append(vR+"[" + iR + "]<-paste0(src,\"%\",trg);\n");
+			rsb.append(vR + "[" + iR + "]<-paste0(src,\"%\",trg);\n");
 			rsb.append("}else{\n");
-			rsb.append(vR+"[" + iR + "]<-paste0(trg,\"%\",src);\n");
+			rsb.append(vR + "[" + iR + "]<-paste0(trg,\"%\",src);\n");
 			rsb.append("}\n rm(src);\n rm(trg);\n");
 			rsb.append("}\n");
 			rsb.append(tempFrame + "$id <- " + vR + ";\n");
 			rsb.append(tempFrame + "<- " + tempFrame + "[order(" + tempFrame + "$id),];\n");
 			rsb.append(tempFrame + "<-" + tempFrame + "[!duplicated(" + tempFrame + "$id),];\n");
 			rsb.append(tempFrame + " <- subset(" + tempFrame
-					+ ", select=c(Source_Database, Source_Table, Source_Column, Target_Database, "
-					+ "Target_Table, Target_Column, Source_Instances, Target_Instances, "
-					+ "Is_Table_Source, Is_Table_Target));");
+					+ ", select=c(Source_Database_Id, Source_Database, Source_Table, Source_Column, Source_Property, Target_Database_Id,Target_Database, "
+					+ "Target_Table, Target_Column, Target_Property, Source_Instances, Target_Instances));");
 
 			// get instance count for source
 			rsb.append(tempFrame + "<- merge(" + tempFrame + ", " + countFrame
-					+ ", by.x=c(\"Source_Database\", \"Source_Table\", \"Source_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
+					+ ", by.x=c(\"Source_Database_Id\", \"Source_Table\", \"Source_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
 			// rename count column for source
 			rsb.append("names(" + tempFrame + ")[names(" + tempFrame + ") == 'count'] <- 'Source_Count';");
 			// get instance count for target
 			rsb.append(tempFrame + " <- merge(" + tempFrame + ", " + countFrame
-					+ ", by.x=c(\"Target_Database\", \"Target_Table\", \"Target_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
+					+ ", by.x=c(\"Target_Database_Id\", \"Target_Table\", \"Target_Column\"), by.y=c(\"engine\", \"table\",\"prop\"));");
 			// rename count column for target
 			rsb.append("names(" + tempFrame + ")[names(" + tempFrame + ") == 'count'] <- 'Target_Count';");
 			// add PK or FK for source
-			rsb.append(tempFrame + "$Source_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[11] == row[7], \"PK\",\"FK\")});");
+			rsb.append(tempFrame + "$Source_Key <- apply(" + tempFrame
+					+ ", 1, function(row) {ifelse(row[9] == row[11], \"PK\",\"FK\")});");
 			// add PK or FK for target
-			rsb.append(tempFrame + "$Target_Key <- apply(" + tempFrame + ", 1, function(row) {ifelse(row[8] == row[12], \"PK\",\"FK\")});");
+			rsb.append(tempFrame + "$Target_Key <- apply(" + tempFrame
+					+ ", 1, function(row) {ifelse(row[10] == row[12], \"PK\",\"FK\")});");
 			// remove FK source and FK target
 			rsb.append(tempFrame + "[, c(\"Source_Key\",\"Target_Key\")][" + tempFrame + "$Source_Key == \"FK\" & "
 					+ tempFrame + "$Target_Key == \"FK\"] <- \"\";");
 			// eliminate extra columns
 			rsb.append(tempFrame + " <- subset(" + tempFrame
-					+ ", select=c(Source_Database, Source_Table, Source_Column, Source_Key, "
-					+ "Target_Database, Target_Table, Target_Column, Target_Key, Is_Table_Source, Is_Table_Target));");
+					+ ", select=c(Source_Database_Id, Source_Database, Source_Table, Source_Column,Source_Property, Source_Key, "
+					+ "Target_Database_Id ,Target_Database, Target_Table, Target_Column,Target_Property, Target_Key));");
 			// get json
 			rsb.append("library(jsonlite);");
 			rsb.append(jsonR + " <-  toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ");
 
 			this.rJavaTranslator.runR(rsb.toString());
-			System.out.println(rsb.toString() + "");
 			String json = this.rJavaTranslator.getString(jsonR);
 			List<Map> jsonMap = new ArrayList<Map>();
 			if (json != null) {
@@ -147,38 +145,31 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 				Map<String, Object> edgeMap = new HashMap<>();
 				String sourceDB = (String) map.get("Source_Database");
 				String sourceTable = (String) map.get("Source_Table");
-				Integer isSourceTable = (Integer) map.get("Is_Table_Source");
 				// need to get property value
-				String sourceColumn = null;
-				if (isSourceTable == 0) {
-					sourceColumn = (String) map.get("Source_Column");
-				}
+				String sourceProperty = (String) map.get("Source_Property");
 				String sourceEdge = sourceDB + delim + sourceTable;
-				if (sourceColumn != null) {
+				if (sourceProperty != null) {
 					// property
-					sourceEdge += delim + sourceColumn;
+					sourceEdge += delim + sourceProperty;
 				} else {
 					// concept
 					sourceEdge += delim + sourceTable;
 				}
-				String sourceKey = (String)map.get("Source_Key");
+
+				String sourceKey = (String) map.get("Source_Key");
 				String targetDB = (String) map.get("Target_Database");
 				String targetTable = (String) map.get("Target_Table");
-				Integer isTargetTable = (Integer) map.get("Is_Table_Target");
-				String targetColumn = null;
-				if (isTargetTable == 0) {
-					targetColumn = (String) map.get("Target_Column");
-				}
+				String targetProperty = (String) map.get("Target_Property");
 				String targetEdge = targetDB + delim + targetTable;
-				
-				if (targetColumn != null) {
+				if (targetProperty != null) {
 					// property
-					targetEdge += delim+ targetColumn;
+					targetEdge += delim + targetProperty;
 				} else {
 					// concept
 					targetEdge += delim + targetTable;
 				}
-				String targetKey = (String)map.get("Target_Key");
+
+				String targetKey = (String) map.get("Target_Key");
 
 				String edgeKey = sourceEdge + delim + targetEdge;
 				// check if xray edge exists
