@@ -125,7 +125,6 @@ public class Xray {
 										.createStringRColVec(countColumn.toArray(new Integer[countColumn.size()]))
 								+ ")");
 				this.rJavaTranslator.runR(countBuilder.toString());
-				System.out.println(countBuilder);
 			}
 		}
 
@@ -208,8 +207,6 @@ public class Xray {
 		}
 		this.logger.info("Comparing data from datasources for X-ray data mode...");
 		this.rJavaTranslator.runR(rsb.toString());
-		System.out.println(rsb.toString());
-
 		String semanticComparisonFrame = "semantic.xray.df";
 
 		// run xray on semantic folder
@@ -872,7 +869,7 @@ public class Xray {
 				Number num =(Number) it.next().getValues()[0];
 				count = num.intValue();
 			}
-			engineColumn.add(engine.getEngineName());
+			engineColumn.add(engine.getEngineId());
 			tableColumn.add(concept);
 			if (prop == null) {
 				propColumn.add(concept);
