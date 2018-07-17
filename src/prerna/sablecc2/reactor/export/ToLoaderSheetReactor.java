@@ -131,15 +131,18 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			}
 		} else {
 			for(String[] rel : rels) {
+				String toConceptualName = Utility.getInstanceName(rel[0]);
+				String fromConceptualName = Utility.getInstanceName(rel[1]);
+
 				SelectQueryStruct qs = new SelectQueryStruct();
 				qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 				qs.setEngine(engine);
-				qs.addSelector(new QueryColumnSelector(rel[0]));
-				qs.addSelector(new QueryColumnSelector(rel[1]));
-				qs.addRelation(rel[0], "inner.join", rel[1]);
-				qs.addOrderBy(new QueryColumnOrderBySelector(rel[0]));
+				qs.addSelector(new QueryColumnSelector(toConceptualName));
+				qs.addSelector(new QueryColumnSelector(fromConceptualName));
+				qs.addRelation(toConceptualName, fromConceptualName, "inner.join");
+				qs.addOrderBy(new QueryColumnOrderBySelector(toConceptualName));
 
-				logger.info("Start rel sheet for " + Arrays.toString(rel));
+				logger.info("Start rel sheet for " + Arrays.toString(new String[] {toConceptualName, fromConceptualName}));
 				IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 				writeRelationshipSheet(engine, workbook, iterator, rel, new ArrayList<String>());
 				logger.info("Finsihed rel sheet for " + Arrays.toString(rel));
@@ -171,10 +174,10 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			row.createCell(0).setCellValue("Node");
 			row.createCell(1).setCellValue(physicalNodeName);
 			// add properties
-			for(int i = 0; i < properties.size(); i++) {
+			for (int i = 0; i < properties.size(); i++) {
 				String prop = properties.get(i);
-				String physicalPropName = getPhysicalColumnHeader(engine, prop);
-				row.createCell(2+i).setCellValue(physicalPropName);
+				String physicalPropName = Utility.getClassName(prop);
+				row.createCell(2 + i).setCellValue(physicalPropName);
 			}
 		}
 		
