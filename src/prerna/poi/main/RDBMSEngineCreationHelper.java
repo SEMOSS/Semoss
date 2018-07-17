@@ -6,15 +6,21 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.OWLER;
+import prerna.util.Utility;
 
 public class RDBMSEngineCreationHelper {
 
@@ -28,6 +34,34 @@ public class RDBMSEngineCreationHelper {
 		insertAllTablesAsInsights(rdbmsEngine, existingMetaModel);
 	}
 	
+	/**
+	 * Create existing metamodel from owl to create insights
+	 * @param owl
+	 */
+	public static void insertAllTablesAsInsights(IEngine rdbmsEngine, OWLER owl) {
+		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+		rfse.openFile(owl.getOwlPath(), null, null);
+		// we create the meta helper to facilitate querying the engine OWL
+		MetaHelper helper = new MetaHelper(rfse, null, null);
+		Vector<String> conceptsList = helper.getConcepts(true);
+		Map<String, Map<String, String>> existingMetaModel = new HashMap<>();
+		for(String conceptPhysicalUri: conceptsList) {
+			// so grab the conceptual name
+			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
+			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
+			Map<String, String> propMap = new HashMap<>();
+			List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
+			for(String prop: properties) {
+				// so grab the conceptual name
+				String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(prop);
+				// property conceptual uris are always /Column/Table
+				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+				propMap.put(propertyConceptualName, null);
+			}
+			existingMetaModel.put(conceptualName, propMap);
+		}
+		insertAllTablesAsInsights(rdbmsEngine, existingMetaModel);
+	}
 	public static void insertAllTablesAsInsights(IEngine rdbmsEngine, Map<String, Map<String, String>> existingMetaModel) {
 		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel, existingMetaModel.keySet());
 	}
