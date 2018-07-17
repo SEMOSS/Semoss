@@ -170,7 +170,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		engine.setInsightDatabase(insightDatabase);
 		// generate base insights
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
