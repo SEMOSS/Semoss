@@ -17,6 +17,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -79,9 +80,18 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 		if (qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			// person has entered their own query
 			String query = ((HardSelectQueryStruct) qs).getQuery();
-			String expression = exprStart + "{\"dbName\":\"" + engineName + 
-					"\",\"tableName\":\"null\",\"columnName\":\"\",	\"joinType\": \"\",\"joinColumn\": \"\", \"query\":\"" 
+			String expression = exprStart + "{\"dbName\":\"" + MasterDatabaseUtility.getEngineAliasForId(engineName)
+					+ "\",\"dbId\":\"" + engineName
+					+ "\", \"tableName\":\"null\",\"columnName\":\"\",	\"joinType\": \"\",\"joinColumn\": \"\", \"query\":\""
 					+ query + "\"}" + exprEnd;
+			in.trackPixels("dataquery:", expression);
+		} else if (qs.getQsType() == QUERY_STRUCT_TYPE.CSV_FILE) {
+			String expression = exprStart
+					+ "{\"dbName\":\"CSV_FILE\",\"dbId\":\"CSV_FILE\", \"tableName\":\"null\",\"columnName\":\"\",	\"joinType\": \"\",\"joinColumn\": \"\", \"query\":\"\"}" + exprEnd;
+			in.trackPixels("dataquery:", expression);
+		} else if (qs.getQsType() == QUERY_STRUCT_TYPE.EXCEL_FILE){
+			String expression = exprStart + "{\"dbName\":\"EXCEL_FILE\",\"dbId\":\"EXCEL_FILE\",\"tableName\":\"null\",\"columnName\":\"\",	\"joinType\": \"\",\"joinColumn\": \"\", \"query\":\"\"}" + exprEnd;
+			
 			in.trackPixels("dataquery:", expression);
 		} else {
 			// get join relationships and put in a map to easily retrieve later by column
@@ -126,7 +136,7 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 						joinColumn = joinData[1];
 					}
 					// build the json expression
-					exprBuilder.append("{\"dbName\":\"").append(engineName).append("\",\"tableName\":\"")
+					exprBuilder.append("{\"dbName\":\"").append(MasterDatabaseUtility.getEngineAliasForId(engineName)).append("\",\"dbId\":\"").append(engineName).append("\",\"tableName\":\"")
 					.append(tableName).append("\",\"columnName\":\"").append(columnName)
 					.append("\",\"joinType\":\"").append(joinType).append("\",\"joinColumn\":\"").append(joinColumn).append("\",\"query\":\"\"}");
 					// increase counter
@@ -233,8 +243,11 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 				return;
 			}
 			OwlTemporalEngineMeta meta = frame.getMetaData();
-			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
-
+			try{
+				qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
+			} catch(Exception e){
+				return;
+			}
 			// keep the alias to bind to the correct meta
 			Map<String, String> aliasHash = new HashMap<String, String>();
 
