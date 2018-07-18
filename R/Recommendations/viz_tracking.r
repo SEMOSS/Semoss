@@ -15,50 +15,43 @@ viz_history<-function(df){
 				if(chart != "false" & chart != "collision-resolver"){
 					m<-length(data[[1]][[1]])
 					if(m > 0){
+						process=TRUE
 						for(j in 1:m){
 							row<-data[[1]][[1]][[j]]
 							k<-length(row)
-							if(k > 0){
-								if(k >= 11){
-									# new format
-									db<-row[1,1]
-									tbl<-row[1,2]
-									col<-row[1,3]
-									type<-row[1,4]
-									comp<-row[1,5]
-									message(type)
-									if("uniqueValues" %in% colnames(row)){
-										uniqueValues<-row[1,6]
-										message(uniqueValues)
-										if(uniqueValues <= LM){
-											message("again")
-											type<-paste0(type,"?L")
-										}else if(uniqueValues <= MH){
-											type<-paste0(type,"?M")
-										}else{
-											type<-paste0(type,"?H")
-										}
+							if(k < 11){
+								process<-FALSE
+								break
+							}
+						}
+						if(process){
+							for(j in 1:m){
+								row<-data[[1]][[1]][[j]]
+								k<-length(row)
+								# new format
+								db<-row[1,1]
+								tbl<-row[1,2]
+								col<-row[1,3]
+								type<-row[1,4]
+								comp<-row[1,5]
+								if("uniqueValues" %in% colnames(row)){
+									uniqueValues<-row[1,6]
+									if(uniqueValues <= LM){
+										type<-paste0(type,"?L")
+									}else if(uniqueValues <= MH){
+										type<-paste0(type,"?M")
 									}else{
-										uniqueValues<-0
+										type<-paste0(type,"?H")
 									}
-									for(l in 7:k){
-										# need a check that alias is not null!!!
-										semantic<-row[1,l]
-										if(semantic != ""){
-											z<-rbindlist(list(z,list(i,j,db,tbl,col,type,semantic,comp,uniqueValues,chart,user)))
-											# message(z)
-										}
+								}else{
+									uniqueValues<-0
+								}
+								for(l in 7:k){
+									# need a check that alias is not null!!!
+									semantic<-row[1,l]
+									if(semantic != ""){
+										z<-rbindlist(list(z,list(i,j,db,tbl,col,type,semantic,comp,uniqueValues,chart,user)))
 									}
-								} else{
-									# old format
-									uniqueValues=0
-									db<-row[1,1]
-									tbl<-row[1,2]
-									col<-row[1,3]
-									comp<-row[1,5]
-									semantic<-paste0(db,"$",tbl,"$",col)
-									# store in the table chart plus db, etc.
-									z<-rbindlist(list(z,list(i,j,db,tbl,col,type,semantic,comp,uniqueValues,chart,user)))
 								}
 							}
 						}
@@ -66,21 +59,17 @@ viz_history<-function(df){
 				}
 			}, warning = function(w) {
 				#warning-handler-code
-				message("warning")
 			}, error = function(e) {
 				#error-handler-code
-				message("error")
 			}, finally = {
 				#cleanup-code
-				#message("clean")
 			})
 		}
 	}
-	message(nrow(z))
 	
-	#r<-z[z$uniquevalues == 0,]
-	#u<-unique(r$unit)
-	#z<-z[!(z$unit %in% u),]
+	r<-z[z$uniquevalues == 0 & tolower(substr(z$datatype,1,6)) == "string",]
+	u<-unique(r$unit)
+	z<-z[!(z$unit %in% u),]
 	rm(n,user,viz)
 	gc()
 	return(z)
@@ -103,12 +92,12 @@ viz_recom_mgr<-function(df,df1,chartToExclude=NULL,top=5){
 	# process df1
 	df1<-get_reference(df1)
 	df1<-df1[!grepl("\\$",df1$reference),]
-	r<-viz_recom_offline(df,df1,chartToExclude,top)
+	r<-viz_recom(df,df1,chartToExclude,top)
 	
 	if(nrow(r) == 0){
 		df<-restore_datatype(df)
 		df1<-restore_datatype(df1)
-		r<-viz_recom_offline(df,df1,chartToExclude,top)
+		r<-viz_recom(df,df1,chartToExclude,top)
 	}else{
 		n<-length(unique(r$chart))
 		if(n < top){
@@ -116,27 +105,15 @@ viz_recom_mgr<-function(df,df1,chartToExclude=NULL,top=5){
 			df1<-restore_datatype(df1)
 			chartToExclude<-c("Grid",as.character(unique(r$chart)))
 			top<-top - n
-			r<-rbind(r,viz_recom_offline(df,df1,chartToExclude,top))
+			r<-rbind(r,viz_recom(df,df1,chartToExclude,top))
 		}
 	}	
 	return(r)
 }
 
-viz_recom_offline<-function(df,df1,chartToExclude=NULL,top=5){
-	# df - is the history frame
-	# df1 - is the current frame
-	
-	
-	# process df1
-	
-	#df1<-get_reference(df1)
-	# remove duplicates
-	#df1<-df1[!duplicated(df1$reference),]
-	# keep only data types
-	#df1<-df1[!grepl("\\$",df1$reference),]
-	
+viz_recom<-function(df,df1,chartToExclude=NULL,top=5){
 	library(plyr)
-	
+	library(data.table)
 	# filter the history based on the current frame
 	dft<-merge(df,df1,by="reference")
 	#dft<-unique(dft[,-1])
@@ -157,108 +134,111 @@ viz_recom_offline<-function(df,df1,chartToExclude=NULL,top=5){
 	z<-z[z$freq <= nrow(df1),]
 	dff<-dff[dff$unit %in% z$unit,]
 	rm(z)
-	
-	# dff is this is the data frame we will be working with
-	# it contains only columns of the current frame
-	# count the chart/column frequency
+	# need to find units that all they elements in df1
+	units<-unique(dff$unit)
+	n<-length(units)
+	dt<-df1
+	dt$done<-0
+	m<-nrow(dt)
+	df<-df[order(df$unit,df$element),]
+	chosen<-vector()
+	# find fitting units
+	for(i in 1:n){
+		p<-df[df$unit==units[i],]
+		n1<-nrow(p)
+		dt$done<-0
+		found<-0
+		for(j in 1:n1){
+			p1<-p[j,]
+			type<-p1[1,"reference"]
+			for(k in 1:m){
+				if(dt[k,"reference"]==type & dt[k,"done"]==0){
+						dt[k,"done"]<-1
+						found<-found+1
+						break
+				}
+			}
+		}
+		if(found==n1){
+			chosen[length(chosen)+1]<-p[1,"unit"]
+		}
+	}
+	# this is a valid subset
+	dff<-df[df$unit %in% chosen,]
+	# get the most frequent charts
 	dff0<-count(dff,names(dff)[c(3,4,5,6,8)])
 	dff1<-dff0[,5:6]
-	
 	o<-count(dff1,names(dff1)[1])
 	o<-o[order(-o$freq),]
-
 	if(!is.null(chartToExclude)){
 		o<-o[!(tolower(o$chart) %in% tolower(chartToExclude)),]
-		#o<-o[tolower(o$chart) != tolower(chartToExclude),]
 	}
 	o$weight<-round(o$freq/max(o$freq),4)
 	o<-o[,-2]
-	# the is the list most frequent charts
-	######o<-head(o,top)
 
-#######################################################
+	# identify the most popular from subset
 	q<-dff[tolower(dff$chart) %in% tolower(o[,1]),]
 	q$chart<-as.character(q$chart)
 	
-	# identify the most popular number of components in the respected charts
-	m<-nrow(o)
-	r<-q[0,]
-	for(i in 1:m){
-		q1<-q[q$chart==as.character(o[i,"chart"]),]
-		x<-count(q1,"unit")
-		y<-count(x,"freq")
-		y<-y[order(-y$freq.1),]
-		z<-x[x$freq==y[1,"freq"],]
-		r<-rbind(r,q1[q1$unit %in% z$unit,])
-	}
-	q<-r
-	rm(q1,x,y,z,r)
-	
-	
-	s<-count(q,c("unit","reference"))
-	s$reference<-as.character(s$reference)
-	dt<-count(df1,"reference")
-	dt$reference<-as.character(dt$reference)
-	n<-nrow(dt)
-	units<-vector()
+	n<-length(chosen)
+	tbl<-data.table(unit=integer(),chart=character(),types=character());
+	paste2 <- function(x, y, sep = "-") paste(x, y, sep = sep)
 	for(i in 1:n){
-		s1<-s[s$reference == dt[i,"reference"],] 
-		s2<-s1[s1$freq <= dt[i,"freq"],"unit"]
-		units<-c(units,s2)
+		p<-q[q$unit == chosen[i],]
+		t<-p$reference
+		if(length(t) > 1){
+			types<-Reduce(paste2,t)
+			tbl<-rbindlist(list(tbl,list(chosen[i],p[1,"chart"],types)))
+		}
+	
 	}
-	units<-unique(units)
-	r<-q[q$unit %in% units,]
-	if(nrow(r) > 0){
-		s<-count(r,"unit")
-		r<-merge(r,s,by="unit")
-		r<-r[order(-r$freq,r$unit,r$element),]
-		
-		# get one representative of each chart
-		q1<-r[!duplicated(r$chart),]
-		units<-q1$unit
-		
-		p<-dft[dft$unit %in% units,]
-		p<-p[order(p$unit,p$element),]
-		
-		n<-length(units)
-		r<-p[0,]
-		for(i in 1:n){
-			p1<-p[p$unit == units[i],]
-			elements<-unique(p1$element)
-			m<-length(elements)
-			dt$id<-0
-			for(j in 1:m){
-				p2<-p1[p1$element==j,]
-				type<-p2[1,"reference"]
-				k<-dt[dt$reference==type,"id"]+1
-				dt[dt$reference==type,"id"]<-k
-				r<-rbind(r,p2[k,])
+	# determine the most popular chart within most frequent
+	o<-count(tbl,names(tbl)[c(2,3)])
+	o<-o[order(-o$freq),]
+	o<-o[!duplicated(o$chart,o$types),]
+	o<-head(o,top)
+	tbl1<-merge(tbl,o)
+	tbl1<-tbl1[!duplicated(tbl1$chart,tbl1$types),]
+	tbl1$weight<-round(tbl1$freq/sum(tbl1$freq),4)
+	tbl2<-tbl1[,c("chart","weight")]
+	units<-tbl1$unit
+	q1<-q[q$unit %in% units,]
+	q1$weight = tbl2[match(q1$chart, tbl2$chart), "weight"]$weight
+	# add items from dt then parse it
+	n<-length(units)
+	m<-nrow(dt)
+	q1$item<-""
+	for(i in 1:n){
+		items<-vector()
+		p<-q1[q1$unit==units[i],]
+		n1<-nrow(p)
+		dt$done<-0
+		for(j in 1:n1){
+			p1<-p[j,]
+			type<-p1[1,"reference"]
+			for(k in 1:m){
+				if(dt[k,"reference"]==type & dt[k,"done"]==0){
+						dt[k,"done"]<-1
+						items[j]<-dt[k,"item"]
+						break
+				}
 			}
 		}
-		m<-nrow(r)
-		for(i in 1:m){
-			x<-unlist(strsplit(r[i,"item"], "\\$"))
-			r[i,"dbname"]<-x[1]
-			r[i,"tblname"]<-x[2]
-			r[i,"colname"]<-x[3]
-		}
-		
-		r<-r[,2:8]	
-		
-		# merge with the respected chart weights
-		r<-merge(r,o,by="chart")[,c(2,3,4,5,6,7,1,8)]
-		r<-unique(r[order(-r$weight,r$chart,r$unit,r$element),])
-		top_charts<-as.character(head(unique(r$chart),top))
-		r<-r[r$chart %in% top_charts,]
-		# clean up and return
-		rm(dff,dff0,dff1,dft,a,b,c,p,p1,p2,q,q1,s1,s2,s,k,o,dt,top_charts)
-	}else{
-		rm(dff,dff0,dff1,dft,a,b,c,q,o,s,dt)
+		q1[q1$unit==units[i],"item"]<-items
 	}
-	return(r)
-	
-}	
-	
+	m<-nrow(q1)
+	for(i in 1:m){
+		x<-unlist(strsplit(q1[i,"item"], "\\$"))
+		q1[i,"dbname"]<-x[1]
+		q1[i,"tblname"]<-x[2]
+		q1[i,"colname"]<-x[3]
+	}
+	q1<-q1[,c(1:5,7:8,10)]
+	gc()
+	return(q1[order(-q1$weight,q1$unit,q1$element),])
+}
+
+
 get_reference<-function(df){
 	LM<-6
 	MH<-15
