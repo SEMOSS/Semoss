@@ -196,7 +196,8 @@ public class SmssUtilities {
 		if(tinkerStr.contains("@BaseFolder@")) {
 			tinkerFile = tinkerStr.replace("@BaseFolder@", baseFolder);
 		} else {
-			tinkerFile = baseFolder + DIR_SEPARATOR + tinkerStr;
+			// could be external file outside of semoss base folder
+			tinkerFile = tinkerStr;
 		}
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
