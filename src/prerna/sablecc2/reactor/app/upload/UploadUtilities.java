@@ -8,10 +8,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.apache.commons.io.FileUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -929,6 +934,37 @@ public class UploadUtilities {
 		}
 
 		return new Object[]{headers, types, additionalTypes};
+	}
+	//////////////////////////////////////////////
+	/////////////////////////////////////////////
+	
+	/**
+	 * Save metamodel structure to json in app folder
+	 * @param appId
+	 * @param appName
+	 * @param csvFileName
+	 * @param metamodel
+	 * @return
+	 */
+	public static boolean createPropFile(String appId, String appName, String csvFileName, Map<String, Object> metamodel) {
+		Date currDate = Calendar.getInstance().getTime();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyMMddHHmmssZ");
+		String dateName = sdf.format(currDate);
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String appLocation = baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId);
+		String metaModelFilePath = appLocation + DIR_SEPARATOR + appName + "_" + csvFileName + "_" + dateName + "_PROP.json";
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		String json = gson.toJson(metamodel);
+		// create file
+		File f = new File(metaModelFilePath);
+		try {
+			// write json to file
+			FileUtils.writeStringToFile(f, json);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 
 }
