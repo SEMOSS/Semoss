@@ -66,8 +66,10 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	private static final String CLASS_NAME = RdbmsFlatCsvUploadReactor.class.getName();
 
 	public RdbmsFlatCsvUploadReactor() {
-		this.keysToGet = new String[]{UploadInputUtility.APP, UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER, DATA_TYPE_MAP, NEW_HEADERS, 
-				ADDITIONAL_TYPES, UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS, UploadInputUtility.ADD_TO_EXISTING};
+		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
+				UploadInputUtility.DELIMITER, DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS, ADDITIONAL_TYPES,
+				UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS,
+				UploadInputUtility.ADD_TO_EXISTING };
 	}
 
 	@Override
@@ -145,7 +147,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		String newAppId = UUID.randomUUID().toString();
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> dataTypesMap = getDataTypeMap();
-		Map<String, String> newHeaders = getNewHeaders();
+		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
 		final boolean clean = UploadInputUtility.getClean(this.store);
 
@@ -287,7 +289,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> dataTypesMap = getDataTypeMap();
-		Map<String, String> newHeaders = getNewHeaders();
+		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
 		final boolean clean = UploadInputUtility.getClean(this.store);
 
@@ -591,14 +593,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 	private Map<String, String> getDataTypeMap() {
 		GenRowStruct grs = this.store.getNoun(DATA_TYPE_MAP);
-		if(grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
-	}
-
-	private Map<String, String> getNewHeaders() {
-		GenRowStruct grs = this.store.getNoun(NEW_HEADERS);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}

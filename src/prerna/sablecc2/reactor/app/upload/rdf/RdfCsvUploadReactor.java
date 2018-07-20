@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.app.upload.rdf;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -10,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -26,12 +24,11 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.poi.main.RDBMSEngineCreationHelper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
@@ -43,14 +40,12 @@ import prerna.util.Utility;
 
 public class RdfCsvUploadReactor extends AbstractReactor {
 	private static final String CLASS_NAME = RdfCsvUploadReactor.class.getName();
-	protected final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
-	protected final String NEW_HEADERS = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
-	protected final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
 
 	public RdfCsvUploadReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
-				UploadInputUtility.DELIMITER, DATA_TYPE_MAP, NEW_HEADERS, ReactorKeysEnum.METAMODEL.getKey(), ADDITIONAL_DATA_TYPES,
-				UploadInputUtility.ADD_TO_EXISTING };
+				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
+				UploadInputUtility.METAMODEL, UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.PROP_FILE };
 	}
 
 	@Override
@@ -75,38 +70,53 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		String newAppId = UUID.randomUUID().toString();
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> dataTypesMap = getDataTypeMap();
-		Map<String, String> newHeaders = getNewHeaders();
-		
-		// start by validation
-		logger.info("Start validating app");
+		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
+		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
+
+		int stepCounter = 1;
+		logger.info(stepCounter + ".Start validating app");
 		try {
 			UploadUtilities.validateApp(newAppName);
 		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage());
+			e.printStackTrace();
 		}
-		logger.info("Done validating app");
+		logger.info(stepCounter + ".Done validating app");
+		stepCounter++;
 
-		logger.info("1. Start generating app folder");
+		logger.info(stepCounter + ". Start generating app folder");
 		UploadUtilities.generateAppFolder(newAppId, newAppName);
-		logger.info("1. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("2. Create metadata for database...");
+		logger.info(stepCounter + ". Create metadata for app...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
-		logger.info("2. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("3. Create properties file for database...");
+		logger.info(stepCounter + ". Create properties file for app...");
 		File tempSmss = null;
 		try {
 			tempSmss = UploadUtilities.createTemporaryRdfSmss(newAppId, newAppName, owlFile);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE,
+					tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		logger.info("3. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("4. Create  database store...");
+		// get metamodel
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, String> dataTypesMap = null;
+		if (metamodelProps != null) {
+			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
+		}
+
+		/*
+		 * Load data into rdf engine
+		 */
+		logger.info(stepCounter + ". Create  database store...");
 		BigDataEngine engine = new BigDataEngine();
 		engine.setEngineId(newAppId);
 		engine.setEngineName(newAppName);
@@ -115,94 +125,46 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
-		sub =  semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
-		logger.info("4. Complete...");
+		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("5. Start loading data..");
-		//TODO clean up
+		logger.info(stepCounter + ". Start loading data..");
 		boolean error = false;
 		logger.setLevel(Level.WARN);
 		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
+		owler.addCustomBaseURI(UploadInputUtility.getCustomBaseURI(this.store));
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
+		String[] headers = (String[]) headerTypesArr[0];
+		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+		String[] additionalTypes = (String[]) headerTypesArr[2];
+		processRelationships(engine, owler, helper, Arrays.asList(headers), types, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+
+		logger.info(stepCounter + ". Commit app metadata...");
+		loadMetadataIntoEngine(engine, owler);
+		owler.commit();
 		try {
-			// open the csv file
-			// and get the headers
-			logger.info("5. Start loading data..");
-
-			// load the prop file for the CSV file
-			// if(propFileExist){
-			// // if we have multiple files, load the correct one
-			// if(propFiles != null) {
-			// propFile = propFiles[i];
-			// }
-			// openProp(propFile);
-			// } else {
-			// rdfMap = rdfMapArr[i];
-			// }
-			// get the user selected datatypes for each header
-			logger.info("Parsing file metadata...");
-			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, getAdditionalTypes());
-			String[] headers = (String[]) headerTypesArr[0];
-			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-			String[] additionalTypes = (String[]) headerTypesArr[2];
-			logger.info("Done parsing  file metadata");
-
-			// parse metamodel
-			List<String> nodePropList = new ArrayList<String>();
-			List<String> relationList = new ArrayList<String>();
-			List<String> relPropList = new ArrayList<String>();
-			parseMetadata(getMetamodel(), nodePropList, relationList, relPropList);
-			//TODO
-//			skipRows();
-			processRelationShips(engine, owler,helper, nodePropList, relationList, relPropList, Arrays.asList(headers), types);
-
-			loadMetadataIntoEngine(engine, owler);
-			owler.commit();
-			try {
-				owler.export();
-			} catch (IOException ex) {
-				ex.printStackTrace();
-				throw new IOException("Unable to export OWL file...");
-			}
-//			RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getConceptualNodes());
-		} catch (FileNotFoundException e) {
-			error = true;
-//			throw new FileNotFoundException(e.getMessage());
-		} catch (IOException e) {
-			error = true;
-//			throw new IOException(e.getMessage());
-		} finally {
-			// if (error || autoLoad) {
-			// closeDB();
-			// closeOWL();
-			// } else {
-			logger.warn("Committing....");
-			// commit the created engine
-			engine.commit();
-			engine.infer();
-
-			// also commit the created insights rdbms engine
-			engine.getInsightDatabase().commit();
-			// }
+			owler.export();
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			// throw new IOException("Unable to export OWL file...");
 		}
+		// commit the created engine
+		engine.setOWL(owler.getOwlPath());
+		engine.commit();
+		engine.infer();
+		logger.info(stepCounter + ". Complete...");
+		stepCounter++;
 
-		logger.info("7. Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
-		logger.info("7. Complete");
-
-		logger.info("8. Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(newAppId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		logger.info("8. Complete");
+		/*
+		 * Back to normal upload app stuff
+		 */
 
 		// and rename .temp to .smss
 		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -212,26 +174,107 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		tempSmss.delete();
-
-		// update DIHelper & engine smss file location
 		engine.setPropFile(smssFile.getAbsolutePath());
 		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
+
+		logger.info(stepCounter + ". Start generating default app insights");
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
+		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		engine.setInsightDatabase(insightDatabase);
+		RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getConceptualNodes());
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
+		try {
+			UploadUtilities.updateMetadata(newAppId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 		return newAppId;
 	}
 
 	private String addToExistingApp(String appIdOrName, String filePath) {
-		// TODO Auto-generated method stub
-		return null;
+		// get existing app
+		Logger logger = getLogger(CLASS_NAME);
+		int stepCounter = 1;
+		logger.info(stepCounter + ". Get existing app..");
+		appIdOrName = MasterDatabaseUtility.testEngineIdIfAlias(appIdOrName);
+		if(!(Utility.getEngine(appIdOrName) instanceof BigDataEngine)) {
+			throw new IllegalArgumentException("Invalid engine type");
+		}
+		BigDataEngine engine = (BigDataEngine) Utility.getEngine(appIdOrName);
+		String appID = engine.getEngineId();
+		logger.info(stepCounter + ". Done..");
+		stepCounter++;
+		
+		logger.info(stepCounter + "Get app upload input...");
+		boolean error = false;
+		logger.setLevel(Level.WARN);
+		final String delimiter = UploadInputUtility.getDelimiter(this.store);
+		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
+		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, String> dataTypesMap = null;
+		if (metamodelProps != null) {
+			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
+		}
+		logger.info(stepCounter + "Done...");
+		stepCounter++;
+		
+		logger.info(stepCounter + "Parsing file metadata...");
+		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		// get the user selected datatypes for each header
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
+		String[] headers = (String[]) headerTypesArr[0];
+		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+		String[] additionalTypes = (String[]) headerTypesArr[2];
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+		
+		
+		logger.info(stepCounter + ". Start loading data..");
+		OWLER owler = new OWLER(engine, engine.getOWL());
+		processRelationships(engine, owler, helper, Arrays.asList(headers), types, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+
+		logger.warn(stepCounter + "Committing app metadata....");
+		loadMetadataIntoEngine(engine, owler);
+		owler.commit();
+		try {
+			owler.export();
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			// throw new IOException("Unable to export OWL file...");
+		}
+		// commit the created engine
+		engine.commit();
+		engine.infer();
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+		logger.info(stepCounter + ". Start generating default app insights");
+		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getConceptualNodes());
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+		
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
+		try {
+			UploadUtilities.updateMetadata(appID);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		logger.info(stepCounter + ". Complete");
+		return appID;
 	}
 	
-	private void parseMetadata(Map<String, Object> metamodel, List<String> nodePropList, List<String> relationList, List<String> relPropList) {
+	private void parseMetamodel(Map<String, Object> metamodel, List<String> nodePropList, List<String> relationList, List<String> relPropList) {
+		// get node properties
 		if (metamodel.get(Constants.NODE_PROP) != null) {
 			if (metamodel.get(Constants.NODE_PROP) != null) {
 				Map<String, Object> nodeProps = (Map<String, Object>) metamodel.get(Constants.NODE_PROP);
-				// if(basePropURI.equals("")){
-				// basePropURI = semossURI + "/" +
-				// Constants.DEFAULT_RELATION_CLASS + "/" + CONTAINS;
-				// }
 				for (String concept : nodeProps.keySet()) {
 					List<String> conceptProps = (List<String>) nodeProps.get(concept);
 					for (String property : conceptProps) {
@@ -239,12 +282,11 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 						nodePropList.add(relation);
 					}
 				}
-
 			}
 		}
+		// get relationships
 		if (metamodel.get(Constants.RELATION) != null) {
 			List<Map<String, Object>> edgeList = (List<Map<String, Object>>) metamodel.get(Constants.RELATION);
-			// process each relationship
 			for (Map relMap : edgeList) {
 				String subject = (String) relMap.get(Constants.FROM_TABLE);
 				String object = (String) relMap.get(Constants.TO_TABLE);
@@ -253,12 +295,9 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 				relationList.add(relation);
 			}
 		}
+		// get relationship properties
 		if (metamodel.get(Constants.RELATION_PROP) != null) {
 			Map<String, Object> relPropMap = (Map<String, Object>) metamodel.get(Constants.RELATION_PROP);
-			// if(basePropURI.equals("")){
-			// basePropURI = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS
-			// + "/" + CONTAINS;
-			// }
 			for (String relName : relPropMap.keySet()) {
 				List<String> relProps = (List<String>) relPropMap.get(relName);
 				for (String property : relProps) {
@@ -294,26 +333,26 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 	 * Create all the triples associated with the relationships specified in the prop file
 	 * @throws IOException 
 	 */
-	private void processRelationShips(IEngine engine, OWLER owler, CSVFileHelper helper, List<String> nodePropList, List<String> relationList, List<String> relPropList, List<String> headers, SemossDataType[] dataTypes) throws IOException 
-	{
+	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper helper, List<String> headers,
+			SemossDataType[] dataTypes, Map<String, Object> metamodel) {
 		//TODO user subjects
-		Map<String, Object> rdfMap = new HashMap<>();
-		// get all the relation
-		// overwrite this value if user specified the max rows to load
-//		if (rdfMap.get("END_ROW") != null)
-//		{
-//			maxRows =  Integer.parseInt(rdfMap.get("END_ROW"));
-//		}
-		// only start from the maxRow - the startRow
-		// added -1 is because of index nature
-		// the earlier rows should already have been skipped
-		String[] values = null;
-		int count = 0;
-		int startRow = 2;
-		int maxRows = 2_000_000_000;
+		// parse metamodel
 		Logger logger = getLogger(CLASS_NAME);
-		while( (values = helper.getNextRow()) != null && count<(maxRows))
+		List<String> nodePropList = new ArrayList<String>();
+		List<String> relationList = new ArrayList<String>();
+		List<String> relPropList = new ArrayList<String>();
+		parseMetamodel(metamodel, nodePropList, relationList, relPropList);
+		// skip rows
+		int startRow = (int) metamodel.get(Constants.START_ROW);
+		//start count at 1 just row 1 is the header
+		int count = 1;
+		while( count<startRow-1 && helper.getNextRow() != null)// && count<maxRows)
 		{
+			count++;
+		}
+		String[] values = null;
+		int endRow = (int) metamodel.get(Constants.END_ROW);
+		while ((values = helper.getNextRow()) != null && count < endRow) {
 			count++;
 			logger.info("Process line: " +count);
 
@@ -330,9 +369,9 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 				String object = "";
 
 				// see if subject node URI exists in prop file
-				if(rdfMap.containsKey(sub))
+				if(metamodel.containsKey(sub))
 				{
-					String userSub = rdfMap.get(sub).toString(); 
+					String userSub = metamodel.get(sub).toString(); 
 					subject = userSub.substring(userSub.lastIndexOf("/")+1);
 				}
 				// if no user specified URI, use generic URI
@@ -348,9 +387,9 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 					}
 				}
 				// see if object node URI exists in prop file
-				if(rdfMap.containsKey(obj))
+				if(metamodel.containsKey(obj))
 				{
-					String userObj = rdfMap.get(obj).toString(); 
+					String userObj = metamodel.get(obj).toString(); 
 					object = userObj.substring(userObj.lastIndexOf("/")+1);
 				}
 				// if no user specified URI, use generic URI
@@ -389,9 +428,9 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 							String prop = relPropSplit[i];
 							String property = "";
 							// see if property node URI exists in prop file
-							if(rdfMap.containsKey(prop))
+							if(metamodel.containsKey(prop))
 							{
-								String userProp = rdfMap.get(prop).toString(); 
+								String userProp = metamodel.get(prop).toString(); 
 								property = userProp.substring(userProp.lastIndexOf("/")+1);
 
 								//property = rdfMap.get(prop);
@@ -425,9 +464,9 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 				String sub = strSplit[0].trim();
 				String subject = "";
 				// see if subject node URI exists in prop file
-				if(rdfMap.containsKey(sub))
+				if(metamodel.containsKey(sub))
 				{
-					String userSub = rdfMap.get(sub).toString(); 
+					String userSub = metamodel.get(sub).toString(); 
 					subject = userSub.substring(userSub.lastIndexOf("/")+1);
 
 					//subject = rdfMap.get(sub);
@@ -451,9 +490,9 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 					String prop = strSplit[i].trim();
 					String property = "";
 					// see if property node URI exists in prop file
-					if(rdfMap.containsKey(prop))
+					if(metamodel.containsKey(prop))
 					{
-						String userProp = rdfMap.get(prop).toString(); 
+						String userProp = metamodel.get(prop).toString(); 
 						property = userProp.substring(userProp.lastIndexOf("/")+1);
 
 						//property = rdfMap.get(prop);
@@ -491,7 +530,6 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
-
 		addProperties(engine, owler, nodeType, subjectNodeURI, propHash);
 	}
 	
@@ -547,7 +585,6 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 	 * @param object					The column to get the correct data type for - can be a concatenation
 	 * @param values					The string[] containing the values for the row
 	 * @param dataTypes					The string[] containing the data type for each column in the values array
-	 * @param colNameToIndex			Map containing the column name to index in values[] for fast retrieval of data
 	 * @return							The object in the correct data format
 	 */
 	private Object createObject(String object, String[] values, SemossDataType[] dataTypes, List<String> headers )
@@ -643,7 +680,8 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		// generate URIs for the relationship
 		relName = Utility.cleanPredicateString(relName);
 		String relSemossBaseURI = owler.addRelation(subjectNodeType, objectNodeType, relName);
-		String relInstanceBaseURI = getRelationURI(relName);
+		String relInstanceBaseURI = getRelBaseURI(relName);
+
 
 		// create instance value of relationship and add instance relationship,
 		// subproperty, and label triples
@@ -657,11 +695,15 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 	}
 	
 
+
+
 	public void addProperties(IEngine engine, OWLER owler, String subjectNodeType, String instanceURI, Hashtable<String, Object> propHash) {
 		Logger logger = getLogger(CLASS_NAME);
 		// add all properties
 		Enumeration<String> propKeys = propHash.keys();
-		String basePropURI = getBasePropURI();
+
+		String basePropURI  = getBasePropURI();
+
 		
 		// add property triple based on data type of property
 		while (propKeys.hasMoreElements()) {
@@ -719,6 +761,8 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		}
 	}
 	
+
+
 	/**
 	 * Insert the current date as a property onto a node if property is "PROCESS_CURRENT_DATE"
 	 * @param propURI 			String containing the URI of the property at the instance level
@@ -752,66 +796,20 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
 	}
 	
-	public String getInstanceURI(String nodeType) {
-		String customBaseURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
-		//TODO user input
-		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
-	}
-	
-	public String getRelationURI(String relName) {
-		String customBaseURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
-		//TODO user input
-		return  customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
-	}
-
-	public String getBasePropURI() {
+	private String getBasePropURI() {
+		// TODO this does not use custom base input
 		String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		return semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + "Contains";
 	}
 	
-
-	///////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-	/*
-	 * Getters from noun store
-	 */
-
-	protected Map<String, String> getDataTypeMap() {
-		GenRowStruct grs = this.store.getNoun(DATA_TYPE_MAP);
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
-	}
-
-	protected Map<String, String> getNewHeaders() {
-		GenRowStruct grs = this.store.getNoun(NEW_HEADERS);
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
-	}
-
-	protected Map<String, String> getAdditionalTypes() {
-		GenRowStruct grs = this.store.getNoun(ADDITIONAL_DATA_TYPES);
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
-	}
-
-	private Map<String, Object> getMetamodel() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.METAMODEL.getKey());
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-
-		return (Map<String, Object>) grs.get(0);
+	public String getInstanceURI(String nodeType) {
+		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);
+		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
 	}
 	
-	
-	
-	
-	
+	private String getRelBaseURI(String relName) {
+		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);
+		return 	customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
+	}
+
 }
