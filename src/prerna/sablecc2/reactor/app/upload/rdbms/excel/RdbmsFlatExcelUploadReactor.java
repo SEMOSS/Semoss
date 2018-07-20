@@ -70,8 +70,9 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	private static final String CLASS_NAME = RdbmsFlatExcelUploadReactor.class.getName();
 
 	public RdbmsFlatExcelUploadReactor() {
-		this.keysToGet = new String[]{UploadInputUtility.APP, UploadInputUtility.FILE_PATH, DATA_TYPE_MAP, NEW_HEADERS, 
-				ADDITIONAL_TYPES, UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS, UploadInputUtility.ADD_TO_EXISTING};
+		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH, DATA_TYPE_MAP,
+				UploadInputUtility.NEW_HEADERS, ADDITIONAL_TYPES, UploadInputUtility.CLEAN_STRING_VALUES,
+				UploadInputUtility.REMOVE_DUPLICATE_ROWS, UploadInputUtility.ADD_TO_EXISTING };
 	}
 
 	@Override
@@ -647,7 +648,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	}
 
 	private Map<String, Map<String, Map<String, String>>> getNewHeaders() {
-		GenRowStruct grs = this.store.getNoun(NEW_HEADERS);
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.NEW_HEADERS);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
