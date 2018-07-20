@@ -14,7 +14,6 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	// these will have different formats if it is a 
 	// text-based file vs. if it is an excel file
 	protected final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
-	protected final String NEW_HEADERS = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
 	protected final String ADDITIONAL_TYPES = "additionalTypes";
 
 	///////////////////////////////////////////////////////

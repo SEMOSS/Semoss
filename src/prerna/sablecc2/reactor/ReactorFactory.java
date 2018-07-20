@@ -53,7 +53,7 @@ import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetGraphPropertiesReactor;
-import prerna.sablecc2.reactor.app.upload.gremlin.UploadTinkerEngine;
+import prerna.sablecc2.reactor.app.upload.gremlin.TinkerCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsExternalUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
@@ -421,10 +421,10 @@ public class ReactorFactory {
 		// Database Uploading
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
 		reactorHash.put("RdbmsUploadExcelData", RdbmsFlatExcelUploadReactor.class);
+		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
 		reactorHash.put("RdbmsCsvUpload", RdbmsCsvUploadReactor.class);
 		reactorHash.put("RdfCsvUpload", RdfCsvUploadReactor.class);
-		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
-		
+		reactorHash.put("TinkerCsvUpload", TinkerCsvUploadReactor.class);
 
 		// external graph engine
 		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
@@ -434,7 +434,6 @@ public class ReactorFactory {
 		reactorHash.put("GetDSEGraphProperties", GetDSEGraphPropertiesReactor.class);
 		reactorHash.put("GetDSEGraphMetaModel", GetDSEGraphMetaModelReactor.class);
 		reactorHash.put("CreateExternalDSEGraphDatabase", CreateExternalDSEGraphDBReactor.class);
-		reactorHash.put("UploadGraph", UploadTinkerEngine.class);
 		
 		// Semantic blending
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);

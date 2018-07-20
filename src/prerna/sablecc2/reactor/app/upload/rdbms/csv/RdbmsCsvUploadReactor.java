@@ -29,12 +29,10 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
@@ -43,7 +41,7 @@ import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
+public class RdbmsCsvUploadReactor extends AbstractReactor {
 	private static final String CLASS_NAME = RdbmsCsvUploadReactor.class.getName();
 	// Need to create a unique id that includes the row number
 	private int rowCounter;
@@ -61,24 +59,22 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	private final String FK = "_FK";
 	protected Map<String, String> objectValueMap = new HashMap<String, String>();
 	protected Map<String, String> objectTypeMap = new HashMap<String, String>();
-	protected int count = 0;
-	protected int startRow = 2;
-	protected int maxRows = 2_000_000_000;
 	protected SQLQueryUtil queryUtil;
-	protected boolean createIndexes = true;
+	//TODO
+	protected boolean createIndexes = true; 
 	// What to put in a prop file to grab the current row number
 	protected String rowKey;
 
 	public RdbmsCsvUploadReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
-				UploadInputUtility.DELIMITER, DATA_TYPE_MAP, NEW_HEADERS, ReactorKeysEnum.METAMODEL.getKey(), ADDITIONAL_TYPES,
-				UploadInputUtility.ADD_TO_EXISTING };
+				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
+				UploadInputUtility.METAMODEL, UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.PROP_FILE };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		Logger logger = getLogger(CLASS_NAME);
 		final String appIdOrName = UploadInputUtility.getAppName(this.store);
 		final boolean existing = UploadInputUtility.getExisting(this.store);
 		final String filePath = UploadInputUtility.getFilePath(this.store);
@@ -88,57 +84,65 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		}
 		String returnId = null;
 		if (existing) {
-			returnId = addToExistingApp(appIdOrName, filePath, logger);
+			returnId = addToExistingApp(appIdOrName, filePath);
 		} else {
-			returnId = generateNewApp(appIdOrName, filePath, logger);
+			returnId = generateNewApp(appIdOrName, filePath);
 		}
 		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	@Override
-	public String generateNewApp(String newAppName, String filePath, Logger logger) {
-		/*
-		 * Things we need to do 1) make directory 2) make owl 3) make temporary
-		 * smss 4) make engine class 5) load actual data 6) load owl metadata 7)
-		 * load default insights 8) add to localmaster and solr
-		 */
-
+	public String generateNewApp(String newAppName, String filePath) {
+		Logger logger = getLogger(CLASS_NAME);
 		String newAppId = UUID.randomUUID().toString();
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> dataTypesMap = getDataTypeMap();
-		Map<String, String> newHeaders = getNewHeaders();
-
+		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
+		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		boolean allowDuplicates = false;
 
-		// start by validation
-		logger.info("Start validating app");
+		int stepCounter = 1;
+		logger.info(stepCounter + ". Start validating app");
 		try {
 			UploadUtilities.validateApp(newAppName);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		logger.info("Done validating app");
+		logger.info(stepCounter + ". Done validating app");
+		stepCounter++;
 
-		logger.info("1. Start generating app folder");
+		logger.info(stepCounter + ". Start generating app folder");
 		UploadUtilities.generateAppFolder(newAppId, newAppName);
-		logger.info("1. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("2. Create metadata for database...");
+		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
-		logger.info("2. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("3. Create properties file for database...");
+		logger.info(stepCounter + ". Create properties file for database...");
 		File tempSmss = null;
 		try {
 			tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE,
+					tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		logger.info("3. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("4. Create database store...");
+		// get metamodel
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, String> dataTypesMap = null;
+		if (metamodelProps != null) {
+			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
+		}
+
+		/*
+		 * Load data into rdbms engine
+		 */
+		logger.info(stepCounter + ". Create database store...");
 		RDBMSNativeEngine engine = new RDBMSNativeEngine();
 		engine.setEngineId(newAppId);
 		engine.setEngineName(newAppName);
@@ -146,21 +150,26 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		props.put("TEMP", true);
 		engine.setProp(props);
 		engine.openDB(null);
-		logger.info("4. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("5. Start loading data..");
+		
+		logger.info(stepCounter + ". Parsing file metadata...");
+
 		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
-		queryUtil = SQLQueryUtil.initialize(engine.getDbType());
-
 		try {
 			// open the csv file
 			// and get the headers
-			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, getDataTypeMap(),
-					getAdditionalTypes());
+			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
 			String[] headers = (String[]) headerTypesArr[0];
 			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-			String[] sqlDataTypes = parseMetadata(getMetamodel(), owler, Arrays.asList(headers), types);
+			queryUtil = SQLQueryUtil.initialize(engine.getDbType());
+			logger.info(stepCounter + ". Complete");
+			stepCounter++;
+			
+			logger.info(stepCounter + ". Start loading data..");
+			String[] sqlDataTypes = parseMetamodel(metamodelProps, owler, Arrays.asList(headers), types);
 
 			// if(i ==0 ) {
 			// scriptFile.println("-- ********* begin load process ********* ");
@@ -171,15 +180,14 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			// ");
 
 			// processDisplayNames();
-			// TODO
-			// skipRows();
-			processData(true, engine, helper, sqlDataTypes, Arrays.asList(headers));
+			processData(true, engine, helper, sqlDataTypes, Arrays.asList(headers), metamodelProps);
+			logger.info(stepCounter + ". Complete");
+			stepCounter++;
 			// scriptFile.println("-- ********* completed processing file " +
 			// fileName + " ********* ");
 			// LOGGER.info("-- ********* completed processing file " + fileName
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			if (helper != null) {
@@ -188,9 +196,11 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			clearTables();
 		}
 		cleanUpDBTables(engine, allowDuplicates);
-		logger.info("5. Complete..");
 
-		logger.info("6. Start generating engine metadata...");
+		/*
+		 * Back to normal app flow
+		 */
+		logger.info(stepCounter + ". Commit app metadata...");
 		owler.commit();
 		try {
 			owler.export();
@@ -202,24 +212,10 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		// scriptFile.println("-- ********* completed load process ********* ");
 		// scriptFile.close();
 		// }
-		logger.info("6. Complete...");
-
-		logger.info("7. Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
-		logger.info("7. Complete");
-
-		logger.info("8. Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(newAppId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		logger.info("8. Complete");
-
 		// and rename .temp to .smss
+		logger.info(stepCounter + ". Complete...");
+		stepCounter++;
+
 		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 		try {
 			FileUtils.copyFile(tempSmss, smssFile);
@@ -227,18 +223,32 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			e.printStackTrace();
 		}
 		tempSmss.delete();
-
-		// update DIHelper & engine smss file location
 		engine.setPropFile(smssFile.getAbsolutePath());
 		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
+
+		logger.info(stepCounter + ". Start generating default app insights");
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
+		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		engine.setInsightDatabase(insightDatabase);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
+		try {
+			UploadUtilities.updateMetadata(newAppId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 		return newAppId;
 	}
 
-	@Override
-	public String addToExistingApp(String appName, String filePath, Logger logger) {
+	public String addToExistingApp(String appName, String filePath) {
+		Logger logger = getLogger(CLASS_NAME);
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get existing app..");
-		long start = System.currentTimeMillis();
 		appName = MasterDatabaseUtility.testEngineIdIfAlias(appName);
 		IEngine engine = Utility.getEngine(appName);
 		if (engine == null) {
@@ -251,27 +261,38 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info(stepCounter + ". Done..");
 		stepCounter++;
 
+		logger.info(stepCounter + ". Get app upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> dataTypesMap = getDataTypeMap();
-		Map<String, String> newHeaders = getNewHeaders();
-		// TODO
-		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
+		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
+		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		boolean allowDuplicates = false;
 		final boolean clean = UploadInputUtility.getClean(this.store);
+		// get metamodel
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, String> dataTypesMap = null;
+		if (metamodelProps != null) {
+			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
+		}
+		logger.info(stepCounter + ". Done...");
+		stepCounter++;
 
-		logger.info(stepCounter + ". Start loading data..");
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		logger.info(stepCounter + ". Parsing file metadata...");
 		OWLER owler = new OWLER(engine, engine.getOWL());
-		logger.setLevel(Level.WARN);
+		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+		String[] headers = (String[]) headerTypesArr[0];
+		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+		String[] sqlDataTypes = parseMetamodel(metamodelProps, owler, Arrays.asList(headers), types);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+
+		/*
+		 * Start loading existing data to rdbms app
+		 */
+		logger.info(stepCounter + ". Start loading data..");
 		try {
 			openScriptFile(appName);
 			findIndexes(engine);
-			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, getDataTypeMap(),
-					getAdditionalTypes());
-			String[] headers = (String[]) headerTypesArr[0];
-			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-			String[] sqlDataTypes = parseMetadata(getMetamodel(), owler, Arrays.asList(headers), types);
-
 			// if(i ==0 ) {
 			// scriptFile.println("-- ********* begin load process *********
 			// ");
@@ -283,16 +304,13 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 			// processDisplayNames();
 
-			// TODO
-			// skipRows();
-			processData(false, engine, helper, sqlDataTypes, Arrays.asList(headers));
+			processData(false, engine, helper, sqlDataTypes, Arrays.asList(headers), metamodelProps);
 
 			// scriptFile.println("-- ********* completed processing file "
 			// + fileName + " ********* ");
 			// LOGGER.info("-- ********* completed processing file " +
 			// fileName + " ********* ");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			if (helper != null) {
@@ -300,22 +318,39 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			}
 			clearTables();
 		}
-
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+		
+		/*
+		 * Back to normal app flow
+		 */
+		
+		logger.warn(stepCounter + ". Committing app metadata....");
 		owler.commit();
 		try {
 			owler.export();
 		} catch (IOException ex) {
 			ex.printStackTrace();
-			// TODO
-			// throw new IOException("Unable to export OWL file...");
 		}
+		logger.info(stepCounter + ". Complete...");
+		stepCounter++;
+		
 		addOriginalIndices(engine);
 		cleanUpDBTables(engine, allowDuplicates);
+		
+		logger.info(stepCounter+". Process app metadata to allow for traversing across apps	");
+		try {
+			UploadUtilities.updateMetadata(engine.getEngineId());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		logger.info(stepCounter+". Complete");
+		
+		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, addedTables);
-
-		long end = System.currentTimeMillis();
-		logger.info((end - start) / 1000 + " seconds to load...");
-		return appName;
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+		return engine.getEngineId();
 	}
 
 	private void addOriginalIndices(IEngine engine) {
@@ -335,8 +370,7 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		return sqlType;
 	}
 
-	private String[] parseMetadata(Map<String, Object> metamodel, OWLER owler, List<String> headers,
-			SemossDataType[] types) {
+	private String[] parseMetamodel(Map<String, Object> metamodel, OWLER owler, List<String> headers, SemossDataType[] types) {
 		createSQLTypes(this.sqlHash);
 		// create the data types list
 		String[] sqlDataTypes = new String[headers.size()];
@@ -545,7 +579,7 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	}
 
 	private void processData(boolean noExistingData, IEngine engine, CSVFileHelper helper, String[] sqlDataTypes,
-			List<String> headers) throws IOException {
+			List<String> headers, Map<String, Object> metamodel) throws IOException {
 		// get existing data is present
 		if (!noExistingData) {
 			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
@@ -566,23 +600,30 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 				createTable(engine, concept);
 			}
 		}
-		processCSVTable(noExistingData, engine, helper, sqlDataTypes, headers);
+		processCSVTable(noExistingData, engine, helper, sqlDataTypes, headers, metamodel);
 	}
 
-	private void processCSVTable(boolean noExistingData, IEngine engine, CSVFileHelper helper, String[] sqlDataTypes,
-			List<String> headers) throws IOException {
+	private void processCSVTable(boolean noExistingData, IEngine engine, CSVFileHelper csvHelper, String[] sqlDataTypes,
+			List<String> headers, Map<String, Object> metamodel) throws IOException {
 		Logger logger = getLogger(CLASS_NAME);
 		logger.setLevel(Level.INFO);
 		long start = System.currentTimeMillis();
 
 		// Reset rowCounter to 0
 		rowCounter = 0;
-
 		long lastTimeCheck = start;
 		Map<String, String> defaultInsertStatements = getDefaultInsertStatements();
 		String[] values = null;
-
-		while ((values = helper.getNextRow()) != null && count < maxRows) {
+		// skip rows
+		int startRow = (int) metamodel.get(Constants.START_ROW);
+		//start count at 1 just row 1 is the header
+		int count = 1;
+		while( count<startRow-1 && csvHelper.getNextRow() != null)// && count<maxRows)
+		{
+			count++;
+		}
+		int endRow = (int) metamodel.get(Constants.END_ROW);		
+		while ((values = csvHelper.getNextRow()) != null && count < endRow) {
 			// Increment the rowCounter by 1
 			rowCounter += 1;
 			if (rowCounter % 10000 == 0) {
@@ -944,8 +985,7 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			if (newRelsForConcept == null) {
 				newRelsForConcept = new ArrayList<String>();
 			}
-			if (existingConceptTable.keySet()
-					.size() == (newColsForConcept.keySet().size() + newRelsForConcept.size())) {
+			if (existingConceptTable.keySet().size() == (newColsForConcept.keySet().size() + newRelsForConcept.size())) {
 				existingTableWithAllColsAccounted.add(concept);
 			} else {
 				logger.warn("Number of existing concepts not equal to new cols plus new rels");
@@ -990,7 +1030,7 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("CREATE TABLE SQL: " + sqlBuilder.toString());
 		insertData(engine, sqlBuilder.toString());
 
-		addedTables.add(cleanConceptName);
+		addedTables.add(cleanConceptName.toUpperCase());
 	}
 
 	/**
@@ -1354,44 +1394,4 @@ public class RdbmsCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		// e.printStackTrace();
 		// }
 	}
-
-	///////////////////////////////////////////////////////
-
-	/*
-	 * Getters from noun store
-	 */
-
-	protected Map<String, String> getDataTypeMap() {
-		GenRowStruct grs = this.store.getNoun(DATA_TYPE_MAP);
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
-	}
-
-	protected Map<String, String> getNewHeaders() {
-		GenRowStruct grs = this.store.getNoun(NEW_HEADERS);
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
-	}
-
-	protected Map<String, String> getAdditionalTypes() {
-		GenRowStruct grs = this.store.getNoun(ADDITIONAL_TYPES);
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
-	}
-
-	private Map<String, Object> getMetamodel() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.METAMODEL.getKey());
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-
-		return (Map<String, Object>) grs.get(0);
-	}
-
 }

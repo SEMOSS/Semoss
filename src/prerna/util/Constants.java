@@ -547,9 +547,12 @@ public class Constants {
 	
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";
-	public static final String RELATION = "relation";
 	public static final String RELATION_PROP = "relationProp";
+	public static final String RELATION = "relation";
 	public static final String FROM_TABLE = "fromTable";
 	public static final String TO_TABLE = "toTable";
-	public static final String REL_NAME = "relname";
+	public static final String REL_NAME = "relName";
+	public static final String DATA_TYPES = "dataTypes";
+	public static final String START_ROW = "startRow";
+	public static final String END_ROW = "endRow";
 }
