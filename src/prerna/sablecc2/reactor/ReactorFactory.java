@@ -158,6 +158,7 @@ import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaDescriptionReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaLinkReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaTagReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToLogicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
@@ -673,7 +674,8 @@ public class ReactorFactory {
 		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
 		reactorHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
 		reactorHash.put("SemanticDescription", GetSemanticDescription.class);
-
+		// similar reactors to x-ray
+		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMapping.class);
 		
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", NumericalCorrelationReactor.class);
