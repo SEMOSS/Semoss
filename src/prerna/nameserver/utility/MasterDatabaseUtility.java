@@ -53,7 +53,7 @@ public class MasterDatabaseUtility {
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engineconcept", colNames, types));
 		// add index
 		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_LOCAL_CONCEPT_ID ON ENGINECONCEPT (LOCALCONCEPTID);");
-		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_LOCAL_CONCEPT_ID ON ENGINECONCEPT (LOCALCONCEPTID);");
+		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_ENGINE ON ENGINECONCEPT (ENGINE);");
 
 		// concept table
 		colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
