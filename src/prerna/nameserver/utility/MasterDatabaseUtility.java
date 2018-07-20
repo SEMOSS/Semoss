@@ -44,12 +44,17 @@ public class MasterDatabaseUtility {
 		colNames = new String[]{"ID", "EngineName", "ModifiedDate", "Type"};
 		types = new String[]{"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engine", colNames, types));
+		// add index
+		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_ID_INDEX ON ENGINE (ID);");
 		
 		// engine concept table
 		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type", "Additional_Type"};
 		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)", "varchar(800)", "varchar(800)"};
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engineconcept", colNames, types));
-		
+		// add index
+		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_LOCAL_CONCEPT_ID ON ENGINECONCEPT (LOCALCONCEPTID);");
+		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_LOCAL_CONCEPT_ID ON ENGINECONCEPT (LOCALCONCEPTID);");
+
 		// concept table
 		colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
 		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};

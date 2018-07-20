@@ -40,13 +40,16 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
@@ -63,11 +66,77 @@ public class ActiveSystemUpdater {
 	
 	IEngine engine = null;
 	// specific URIs that do not change
-	String subclassURI = Constants.SUBCLASS_URI;
-	String typeURI = Constants.TYPE_URI;
-	String baseSemossSystemURI = "http://semoss.org/ontologies/Concept";
-	String activeSystemURI = "http://semoss.org/ontologies/Concept/ActiveSystem";
+	static String subclassURI = Constants.SUBCLASS_URI;
+	static String typeURI = Constants.TYPE_URI;
+	static String baseSemossSystemURI = "http://semoss.org/ontologies/Concept";
+	static String activeSystemURI = "http://semoss.org/ontologies/Concept/ActiveSystem";
 	private boolean foundQuery = false;
+	
+	public static void main(String[] args) throws Exception {
+		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+
+		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+		IEngine coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineId("LocalMasterDatabase");
+		coreEngine.openDB(engineProp);
+		coreEngine.setEngineId("LocalMasterDatabase");
+		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
+
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\security.smss";
+		coreEngine = new RDBMSNativeEngine();
+		coreEngine.setEngineId("security");
+		coreEngine.openDB(engineProp);
+		DIHelper.getInstance().setLocalProperty("security", coreEngine);
+		AbstractSecurityUtils.loadSecurityDatabase();
+
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__999e74d9-252a-4f1d-b368-37f063fc065a.smss";
+		coreEngine = new BigDataEngine();
+		coreEngine.setEngineId("TAP_Core_Data");
+		coreEngine.openDB(engineProp);
+		coreEngine.setEngineId("TAP_Core_Data");
+		DIHelper.getInstance().setLocalProperty("TAP_Core_Data", coreEngine);
+		DIHelper.getInstance().setLocalProperty("TAP_Core_Data" +"_"+ Constants.OWL, coreEngine.getOWL());
+
+		ActiveSystemUpdater updater = new ActiveSystemUpdater();
+		updater.engine = coreEngine;
+		
+		ArrayList<String> allSystems = updater.getSystems("SELECT DISTINCT ?system WHERE {{?system <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}}");
+		// get list of all systems that are decommissioned
+		ArrayList<String> decommissionedSystems = updater.getSystems("SELECT DISTINCT ?System (?LifeCycle AS ?LifeCycle1)  WHERE { BIND(<http://health.mil/ontologies//Concept/LifeCycle/Retired_(Not_Supported)> AS ?LifeCycle){?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>}{?LifeCycle <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/LifeCycle>}{?aF6o74r <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/Phase>} {?System ?aF6o74r ?LifeCycle} }  ");
+		// get list of all active systems
+		ArrayList<String> activeSystems = updater.findActiveSystems(allSystems,decommissionedSystems);
+		// add necessary triples into the engine
+		updater.insertSubclassTriple(activeSystems);
+
+
+		AbstractEngine baseRelEngine = ((AbstractEngine)coreEngine).getBaseDataEngine();
+		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
+		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
+		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
+		RepositoryConnection exportRC = existingEngine.getRc();
+		
+		FileWriter fWrite = null;
+		try{
+			fWrite = new FileWriter(coreEngine.getOWL());
+			RDFXMLPrettyWriter owlWriter  = new RDFXMLPrettyWriter(fWrite); 
+			exportRC.export(owlWriter);
+			fWrite.close();
+			owlWriter.close();	
+		}
+		catch(IOException ex)
+		{
+			ex.printStackTrace();
+			Utility.showMessage("<html>Error!<br>Existing OWL file not found</html>");
+		}finally{
+			try{
+				if(fWrite!=null)
+					fWrite.close();
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	
 	/**
 	 * Functions as the main method for the class
@@ -155,6 +224,9 @@ public class ActiveSystemUpdater {
 		ArrayList<String> systemList = new ArrayList<String>();
 		// load query from questions sheet
 		String queryData = DIHelper.getInstance().getProperty(query);
+		if(queryData == null) {
+			queryData = query;
+		}
 		if(queryData != null)
 		{
 			foundQuery = true;
