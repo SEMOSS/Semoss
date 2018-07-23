@@ -13,6 +13,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -22,6 +23,7 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc2.om.VarStore;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 public class RDataTable extends AbstractTableDataFrame {
@@ -245,16 +247,41 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void save(String fileName) {
-		// TODO Auto-generated method stub
-		
-	}
+	public CachePropFileFrameObject save(String folderName) {
+		CachePropFileFrameObject propFrameObj = new CachePropFileFrameObject();
 
+		String frameName = this.getTableName();
+		propFrameObj.setFrameName(frameName);
+		
+		//save frame
+		String frameFileName = folderName + "\\" + frameName + ".rda";
+		propFrameObj.setFrameFileLocation(frameFileName);
+		this.builder.save(frameFileName, frameName);
+		
+		//save frame metadata
+		String metaFileName = folderName + "\\METADATA__" + frameName;
+		propFrameObj.setFrameMetaLocation(metaFileName);
+		this.metaData.save(metaFileName);
+		
+		//save frame type
+		String frameType = this.getClass().getName();
+		propFrameObj.setFrameType(frameType);
+		
+		return propFrameObj;
+	}
+	
+	@Override
+	public void open(CachePropFileFrameObject cf) {
+		// TODO Auto-generated method stub
+
+	}
+	
 	@Override
 	public ITableDataFrame open(String fileName, String userId) {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
 
 	@Override
 	public String getDataMakerName() {
@@ -370,5 +397,5 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
-	
+
 }

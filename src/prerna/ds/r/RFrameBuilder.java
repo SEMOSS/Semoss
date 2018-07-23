@@ -49,6 +49,7 @@ public class RFrameBuilder {
 
 	// holds the connection object to execute r
 	protected AbstractRJavaTranslator rJavaTranslator = null;
+	protected boolean isInMem = true;
 	
 	public RFrameBuilder() {
 		this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(null, logger);
@@ -570,6 +571,21 @@ public class RFrameBuilder {
 	}
 	
 	
+	protected void save(String frameFileName, String frameName){
+		this.evalR("save(" + frameName + ", file=\"" + frameFileName.replace("\\", "/") + "\")");
+
+		if (new File(frameFileName).length() == 0){
+			throw new IllegalArgumentException("Attempting to save an empty R frame");
+		}
+	}
+	
+	protected void open(String frameFileName){
+		//TODO hasn't been tested via Java; only tested POC in R
+		frameFileName = frameFileName.replaceAll("-", "_");
+		this.evalR("load(\"" + frameFileName.replace("\\", "/") + "\")");
+	}
+	
+	
 //	/**
 //	 * Modify columns to make sure they are numeric for math operations
 //	 * @param typesMap
@@ -636,5 +652,13 @@ public class RFrameBuilder {
 //			evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, columns) ) );
 //		}
 //	}
+	public static void main(String[] args) {
+		File f = new File("C://Users//suzikim//Documents//single.rda");
+		if (f.length() == 0){
+			System.out.println("EMPTY");
+		} else {
+			System.out.println("OK");
+		}
+	}
 	
 }

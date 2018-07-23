@@ -27,6 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
+import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -939,7 +940,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	 * 
 	 * serialize tinker to file
 	 */
-	public void save(String fileName) {
+	public CachePropFileFrameObject save(String fileName) {
 //		try {
 //			long startTime = System.currentTimeMillis();
 //			this.removeExtraneousNodes();
@@ -957,6 +958,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //			e.printStackTrace();
 //		}
 //		this.metaData.save(fileName.substring(0, fileName.lastIndexOf(".")));
+		return null;
+	}
+	
+	public void open(CachePropFileFrameObject cf) {
+		
 	}
 	
 	/**
