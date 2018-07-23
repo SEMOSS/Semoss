@@ -1,7 +1,13 @@
 package prerna.ds.h2;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,10 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
+import org.h2.tools.RunScript;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.ICache;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.QueryStruct;
@@ -244,35 +254,31 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void save(String fileName) {
-//		String fileNameBase = fileName.substring(0, fileName.lastIndexOf("."));
-//		this.metaData.save(fileNameBase);
-//		if(fileName != null && !fileName.isEmpty() && getH2Headers() != null) {
-//			Properties props = builder.save(fileName, getH2Headers());
-//			
-//			OutputStream output = null;
-//			try {
-//				output = new FileOutputStream(fileNameBase+"_PROP.properties");
-//				props.store(output, null);
-//			} catch (FileNotFoundException e) {
-//				e.printStackTrace();
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			} finally {
-//				try {
-//					if(output != null) {
-//						output.close();
-//					}
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//			
-//		}
+	public CachePropFileFrameObject save(String folderDir) {
+		CachePropFileFrameObject propFrameObj = new CachePropFileFrameObject();
+		
+		String frameName = this.getTableName();
+		propFrameObj.setFrameName(frameName);
+		
+		//save frame
+		String frameFileName = folderDir + "\\" + frameName + ".gz";
+		this.builder.save(frameFileName, frameName);
+		propFrameObj.setFrameFileLocation(frameFileName);
+
+		//save frame metadata
+		String metaFileName = folderDir + "\\METADATA__" + frameName + ".owl";
+		this.metaData.save(metaFileName);
+		propFrameObj.setFrameMetaLocation(metaFileName);
+		
+		//save frame type
+		String frameType = this.getClass().getName();
+		propFrameObj.setFrameType(frameType);
+		
+		return propFrameObj;
 	}
 
 	/**
-	 * Open a serialized TinkerFrame This is used with in InsightCache class
+	 * Open a serialized H2Frame This is used with in InsightCache class
 	 * 
 	 * @param fileName
 	 *            The file location to the cached graph
@@ -280,63 +286,26 @@ public class H2Frame extends AbstractTableDataFrame {
 	 *            The userId who is creating this instance of the frame
 	 * @return
 	 */
-	public H2Frame open(String fileName, String userId) {
-//		// create the new H2Frame instance
-//		H2Frame h2Frame = new H2Frame();
-//		// set the user id who invoked this new instance
-//		// this also sets the correct schema for the in memory connection
-//		h2Frame.setUserId(userId);
-//		// the builder is responsible for loading in the actual serialized
-//		// values
-//		// the set user id is responsible for setting the correct schema inside
-//		// the builder object
-//		
-//		String fileNameBase = fileName.substring(0, fileName.lastIndexOf("."));
-//		Properties prop = new Properties();
-//		BufferedReader reader = null;
-//		try {
-//			reader = new BufferedReader(new FileReader(fileNameBase+"_PROP.properties"));
-//			prop.load(reader);
-//			H2Builder builder = new H2Builder();
-//			h2Frame.builder = builder;
-//			h2Frame.builder.open(fileName, prop);
-//		} catch (FileNotFoundException e) {
-//			//need these here so legacy caches will still work, will transition this out as people's caches are deleted and recreated
-//			H2Builder builder = new H2Builder();
-//			h2Frame.builder = builder;
-//			h2Frame.builder.open(fileName, prop);
-//		} catch (IOException e) {
-//			H2Builder builder = new H2Builder();
-//			h2Frame.builder = builder;
-//			h2Frame.builder.open(fileName, prop);
-//		} finally {
-//			if(reader != null) {
-//				try {
-//					reader.close();
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		}
-//		
-//		// need to also set the metaData
-//		// the meta data fileName parameter passed is going to be the same as
-//		// the name as the file of the actual instances
-//		// this isn't the actual fileName of the file, the metadata appends the
-//		// predefined prefix for the file
-//		h2Frame.metaData.open(fileNameBase);
-//		List<String> primKeys = h2Frame.metaData.getPrimKeys();
-//		if (primKeys.size() == 1) {
-//			h2Frame.metaData.setVertexValue(primKeys.get(0),
-//					h2Frame.builder.tableName);
-//		}
-//		// set the list of headers in the class variable
-//		List<String> fullNames = h2Frame.metaData.getColumnNames();
-//		h2Frame.headerNames = fullNames.toArray(new String[fullNames.size()]);
-//
-//		// return the new instance
-//		return h2Frame;
-		return null;
+	public void open(CachePropFileFrameObject cf) {		
+		//set the frame name to that of the cached frame name
+		this.builder.tableName = cf.getFrameName();
+		
+		try {
+			Reader r;
+			//load the frame
+			r = new InputStreamReader(
+			        new GZIPInputStream(
+			        new FileInputStream(cf.getFrameFileLocation())));
+			RunScript.execute(DriverManager.getConnection("jdbc:h2:nio:" + this.builder.schema, "sa", ""), r);
+			//load owl meta
+			this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -786,6 +755,12 @@ public class H2Frame extends AbstractTableDataFrame {
 //		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
 	}
 
+	@Override
+	public ITableDataFrame open(String fileName, String userId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 //	/**
 //	 * Determine if all the headers are taken into consideration within the
 //	 * iterator This helps to determine if we need to perform an insert vs. an
@@ -835,19 +810,6 @@ public class H2Frame extends AbstractTableDataFrame {
 //		// return true if header sets matched, false otherwise
 //		return header2Set.size() == 0;
 //	}
-//	
-//	
-//	
-//	
-//	
-//	
-//	
-//	
-//	
-//	
-//	
-//	
-//	
 //	
 //	public void applyGroupBy(String[] column, String newColumnName, String valueColumn, String mathType) {
 //		builder.processGroupBy(column, newColumnName, valueColumn, mathType, getColumnHeaders());

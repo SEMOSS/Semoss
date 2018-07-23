@@ -9,6 +9,7 @@ import prerna.engine.impl.r.RSingleton;
 import prerna.sablecc.PKQLRunner;
 import prerna.util.Utility;
 
+@Deprecated
 public final class RCacheUtility {
 
 	protected static final Logger LOGGER = LogManager.getLogger(RCacheUtility.class.getName());

@@ -14,6 +14,7 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.ICache;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IEngine;
@@ -331,7 +332,13 @@ public class RiGraph extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public void save(String fileName) {
+	public CachePropFileFrameObject save(String fileName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public void open(CachePropFileFrameObject cf) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -366,4 +373,5 @@ public class RiGraph extends AbstractTableDataFrame {
 	public void addRow(Object[] cleanCells, String[] headers) {
 		// TODO Auto-generated method stub
 	}
+
 }
