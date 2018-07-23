@@ -11,6 +11,7 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
@@ -175,8 +176,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void save(String fileName) {
+	public CachePropFileFrameObject save(String fileName) {
 		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void open(CachePropFileFrameObject cf) {
 		
 	}
 
