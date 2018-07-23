@@ -636,11 +636,11 @@ public class DIHelper {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
-			}finally{
-				try{
+			} finally {
+				try {
 					if(fileIn!=null)
 						fileIn.close();
-				}catch(IOException e) {
+				} catch(IOException e) {
 					e.printStackTrace();
 				}
 			}

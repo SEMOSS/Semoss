@@ -1,5 +1,6 @@
 package prerna.cache;
 
+@Deprecated
 public class CacheFactory {
 
 	private CacheFactory() {

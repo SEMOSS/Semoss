@@ -12,6 +12,7 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.om.Insight;
 
+@Deprecated
 public class DatabaseInsightCache extends InsightCache {
 
 	private static DatabaseInsightCache singleton;

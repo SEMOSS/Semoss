@@ -18,6 +18,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+@Deprecated
 public abstract class InsightCache implements ICache {
 
 	protected final String INSIGHT_CACHE_PATH;

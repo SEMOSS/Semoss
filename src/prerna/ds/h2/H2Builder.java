@@ -1,6 +1,13 @@
 package prerna.ds.h2;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -23,9 +30,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.h2.tools.RunScript;
 import org.h2.tools.Server;
 
 import com.google.gson.Gson;
@@ -1129,6 +1138,9 @@ public class H2Builder {
 				this.conn = DriverManager.getConnection(url, "sa", "");
 				// register the MEDIAN Aggregation Function we have defined
 				Statement stmt = this.conn.createStatement();
+				stmt.execute("DROP AGGREGATE IF EXISTS MEDIAN");
+				stmt.close();
+				stmt = this.conn.createStatement();
 				stmt.execute("CREATE AGGREGATE MEDIAN FOR \"prerna.ds.h2.H2MedianAggregation\";");
 				stmt.close();
 				
@@ -1217,6 +1229,9 @@ public class H2Builder {
 			this.conn.commit();
 			// register the MEDIAN Aggregation Function we have defined
 			Statement stmt = this.conn.createStatement();
+			stmt.execute("DROP AGGREGATE IF EXISTS MEDIAN");
+			stmt.close();
+			stmt = this.conn.createStatement();
 			stmt.execute("CREATE AGGREGATE MEDIAN FOR \"prerna.ds.h2.H2MedianAggregation\";");
 			stmt.close();
 
@@ -1462,36 +1477,16 @@ public class H2Builder {
 	}
 
 	// save the main table
-	// need to update this if we are saving multiple tables
-	public Properties save(String fileName, String[] headers) {
-		Properties props = new Properties();
-
-		List<String> selectors = new ArrayList<String>(headers.length);
-		for (String header : headers) {
-			selectors.add(header);
-		}
+	protected void save(String fileName, String frameName) {
+		String saveScript = "SCRIPT TO '" + fileName + "' COMPRESSION GZIP TABLE " + frameName;
 		try {
-			String newTable = getNewTableName();
-			String createQuery = "CREATE TABLE " + newTable + " AS " + RdbmsQueryBuilder.makeSelect(tableName, selectors, false);
-			runQuery(createQuery);
-			String saveScript = "SCRIPT TO '" + fileName + "' COMPRESSION GZIP TABLE " + newTable;
 			runQuery(saveScript);
-
-			props.setProperty("tableName", newTable);
-
-			Gson gson = new Gson();
-//			props.setProperty("filterHash", gson.toJson(filterHash2));
-
-			String dropQuery = RdbmsQueryBuilder.makeDropTable(newTable);
-			runQuery(dropQuery);
-
-			props.setProperty("inMemDb", this.isInMem + "");
-
+			if (new File(fileName).length() == 0){
+				throw new IllegalArgumentException("Attempting to save an empty H2 frame");
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-		return props;
 	}
 
 	/**
@@ -1500,59 +1495,16 @@ public class H2Builder {
 	 * @param fileName
 	 *            The file containing the script to create the frame
 	 */
-	public void open(String fileName, Properties prop) {
-		// get a unique table name
-		// set the table name for the instance
-//		tableName = H2FRAME + getNextNumber();
-
-		String tempTableName = null;
-		String isInMemStr = null;
-
-		if (prop != null) {
-			tempTableName = prop.getProperty("tableName");
-			if (tempTableName == null) {
-				tempTableName = H2Builder.tempTable;
-			}
-			// determine if the cache should be loaded in mem or on disk
-			isInMemStr = prop.getProperty("inMemDb");
-			if (isInMemStr != null) {
-				boolean isInMemBool = Boolean.parseBoolean(isInMemStr.trim());
-				if (!isInMemBool) {
-					convertFromInMemToPhysical(null);
-				}
-				this.isInMem = isInMemBool;
-			}
-		} else {
-			// this is for things that are old do not have the props file
-			tempTableName = H2Builder.tempTable;
-		}
+	protected void open(String fileName) {
 		// get the open sql script
 		String openScript = "RUNSCRIPT FROM '" + fileName + "' COMPRESSION GZIP ";
-		// get an alter table name sql
-		String createQuery = "ALTER TABLE " + tempTableName + " RENAME TO " + tableName;
 		try {
-			// we run the script in the file which automatically creates a temp
-			// temple
+			// load the frame from file
 			runQuery(openScript);
-			// then we rename the temp table to the new unqiue table name
-			runQuery(createQuery);
-
-			// call the set filter to get right insight cache filter
-			Gson gson = new Gson();
-//			if (prop.containsKey("filterHash")) {
-//				Map<String, Map<String, Set<Object>>> filter = gson.fromJson(prop.getProperty("filterHash"), new HashMap<>().getClass());
-//				for (Map.Entry<String, Map<String, Set<Object>>> entry : filter.entrySet()) {
-//					String columnName = entry.getKey();
-//					Map<String, Set<Object>> value = entry.getValue();
-//					for (Map.Entry<String, Set<Object>> filterList : value.entrySet()) {
-//						List<Object> list = new ArrayList<Object>(filterList.getValue());
-//						setFilters(columnName, list, AbstractTableDataFrame.Comparator.valueOf(filterList.getKey()));
-//					}
-//				}
-//			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 	}
 
 	// Connects the frame
