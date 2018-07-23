@@ -515,6 +515,9 @@ public abstract class AbstractReactor implements IReactor {
 	public boolean securityEnabled() {
 		// TODO: why is this a string and not a boolean?!?!
 		Object security = DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED);
+		if(security == null) {
+			return false;
+		}
 		return (security instanceof Boolean && ((boolean) security) ) || (Boolean.parseBoolean(security.toString()));
 	}
 

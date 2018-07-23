@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.date.SemossDate;
+import prerna.om.Insight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -19,10 +20,13 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GsonUtility {
 
+	private static boolean testing = true;
+	
 	private GsonUtility() {
 		
 	}
@@ -53,12 +57,17 @@ public class GsonUtility {
 
 				// noun meta
 				.registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
-				
-				
+				.registerTypeAdapter(VarStore.class, new VarStoreAdapter())
+				.registerTypeAdapter(Insight.class, new InsightAdapter())
+
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
 				.registerTypeAdapter(SEMOSSEdge.class, new SEMOSSEdgeAdapter())
 				;
+		
+		if(testing) {
+			gsonBuilder.setPrettyPrinting();
+		}
 		
 		return gsonBuilder.create();
 	}
