@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -203,6 +204,17 @@ public class NativeFrame extends AbstractTableDataFrame {
 		return it;
 	}
 	
+
+	@Override
+	public CachePropFileFrameObject save(String fileName) {
+		return null;
+	}
+	
+	@Override
+	public void open(CachePropFileFrameObject cf) {
+		
+	}
+	
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/
 	
 	@Override
@@ -249,10 +261,5 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	@Deprecated
 	public void addRow(Object[] cleanCells, String[] headers) {
-	}
-
-	@Override
-	@Deprecated
-	public void save(String fileName) {
 	}
 }

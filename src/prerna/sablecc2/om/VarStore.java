@@ -70,7 +70,6 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	
 	@Override
 	public NounMetadata remove(String varName) {
-//		varName = cleanVarName(varName);
 		return varMap.remove(varName);
 	}
 	

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -125,10 +126,17 @@ public interface ITableDataFrame extends IDataMaker {
 	
 	/**
 	 * Serialize the dataframe
-	 * @param fileName
+	 * @param folderDir
 	 */
-	void save(String fileName);
+	CachePropFileFrameObject save(String folderDir);
 	
+	/**
+	 * Deserialize the dataframe
+	 * @param cf
+	 * @return
+	 */
+	void open(CachePropFileFrameObject cf);
+
 	/**
 	 * Get the number of rows for the frame
 	 * @param tableName

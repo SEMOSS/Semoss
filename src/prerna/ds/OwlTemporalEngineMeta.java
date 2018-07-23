@@ -1,5 +1,6 @@
 package prerna.ds;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,7 +16,9 @@ import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
+import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
 import org.openrdf.sail.memory.MemoryStore;
@@ -33,6 +36,7 @@ public class OwlTemporalEngineMeta {
 
 	private InMemorySesameEngine myEng;
 	
+	private static final String SEMOSS_BASE = "http://semoss.org/ontologies";
 	private static final String SEMOSS_CONCEPT_PREFIX = "http://semoss.org/ontologies/Concept";
 	private static final String SEMOSS_PROPERTY_PREFIX = "http://semoss.org/ontologies/Relation/Contains";
 	private static final String SEMOSS_RELATION_PREFIX = "http://semoss.org/ontologies/Relation";
@@ -67,6 +71,32 @@ public class OwlTemporalEngineMeta {
 		} catch(RuntimeException ignored) {
 			ignored.printStackTrace();
 		} catch (RepositoryException e) {
+			e.printStackTrace();
+		}
+		
+		// set the rc in the in-memory engine
+		this.myEng = new InMemorySesameEngine();
+		this.myEng.setRepositoryConnection(rc);
+	}
+	
+	public OwlTemporalEngineMeta(String filePath) {
+		// generate the in memory rc 
+		RepositoryConnection rc = null;
+		try {
+			Repository myRepository = new SailRepository(new ForwardChainingRDFSInferencer(new MemoryStore()));
+			myRepository.initialize();
+			rc = myRepository.getConnection();
+			
+			// load in the meta from saved file
+			File file = new File(filePath);
+			rc.add(file, SEMOSS_BASE, RDFFormat.RDFXML);
+		} catch(RuntimeException ignored) {
+			ignored.printStackTrace();
+		} catch (RepositoryException e) {
+			e.printStackTrace();
+		} catch (RDFParseException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
@@ -1750,7 +1780,7 @@ public class OwlTemporalEngineMeta {
 		try {
 			fw = new FileWriter(fileName);
 			RDFXMLWriter writer = new RDFXMLWriter(fw);
-				rc.export(writer);
+			rc.export(writer);
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 		} catch (RDFHandlerException e) {
@@ -1768,20 +1798,55 @@ public class OwlTemporalEngineMeta {
 		}
 	}
 	
+//	public void load(String fileName){
+//		Model model = ModelFactory.createDefaultModel();
+//		FileReader in = null;
+//		try {
+//			in = new FileReader(fileName);
+//			model.read(in, null);
+//			if (in!=null){
+//				in.close();
+//			}
+//			StmtIterator it = model.listStatements();
+//			while (it.hasNext()){
+//				Statement stmt = it.nextStatement();
+//				Resource subject = stmt.getSubject();
+//				Property predicate = stmt.getPredicate();
+//				RDFNode object = stmt.getObject();
+//				
+//				Boolean isConcept = false;
+//				String predStr = predicate.toString();
+//				if (predStr.equals(RDFS.SUBCLASSOF.toString()) || predStr.equals(RDF.TYPE.toString()) || 
+//						predStr.equals(SEMOSS_PROPERTY_PREFIX) || predStr.equals(RDFS.SUBPROPERTYOF.toString()) ||
+//						predStr.startsWith(SEMOSS_RELATION_PREFIX)){
+//					isConcept = true;
+//				}
+//				
+//				this.myEng.addStatement(new Object[]{subject, predicate, object, isConcept});
+//			}
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//	}
+	
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	
 	public static void main(String[] args) {
-		String fileName = "C:\\Users\\SEMOSS\\Desktop\\test.owl";
-		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta();
-		meta.addVertex("v1");
-		meta.addProperty("v1", "p1");
-		meta.addProperty("v1", "p2");
-		meta.addProperty("v1", "p3");
-		meta.addProperty("v1", "p4");
-		meta.save(fileName);
+		String fileName = "C:\\Users\\suzikim\\workspace\\Semoss\\InsightCache\\ENGINENAMETEMP__ENGINEIDTEMP\\ENGINENAMETEMP__2_70a0ada9-bb19-449b-8656-d5f8a525a578\\METADATA__FRAME697000.owl";
+//		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta();
+//		meta.addVertex("v1");
+//		meta.addProperty("v1", "p1");
+//		meta.addProperty("v1", "p2");
+//		meta.addProperty("v1", "p3");
+//		meta.addProperty("v1", "p4");
+//		meta.save(fileName);
+		
+		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta(fileName);
+		meta.getHeaderToTypeMap();
+		
 	}
 
 }
