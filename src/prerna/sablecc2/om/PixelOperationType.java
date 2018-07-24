@@ -114,6 +114,7 @@ public enum PixelOperationType {
 	
 	//GA ANALYTICS
 	VIZ_RECOMMENDATION,
+	RECOMMENDATION,
 
 	// CLOUD
 	GOOGLE_SHEET_LIST,
