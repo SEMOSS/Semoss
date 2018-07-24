@@ -6,7 +6,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.date.SemossDate;
-import prerna.om.Insight;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -58,7 +57,7 @@ public class GsonUtility {
 				// noun meta
 				.registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
 				.registerTypeAdapter(VarStore.class, new VarStoreAdapter())
-				.registerTypeAdapter(Insight.class, new InsightAdapter())
+//				.registerTypeAdapter(Insight.class, new InsightAdapter())
 
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
