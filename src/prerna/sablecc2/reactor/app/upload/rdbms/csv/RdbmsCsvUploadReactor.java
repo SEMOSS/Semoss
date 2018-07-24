@@ -243,6 +243,12 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		}
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
+		
+		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+
 		return newAppId;
 	}
 
@@ -351,6 +357,12 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, addedTables);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
+		
+		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		UploadUtilities.createPropFile(engine.getEngineId(), engine.getEngineName(), filePath, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+		
 		return engine.getEngineId();
 	}
 
@@ -623,7 +635,10 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		{
 			count++;
 		}
-		int endRow = (int) metamodel.get(Constants.END_ROW);		
+		Integer endRow = (Integer) metamodel.get(Constants.END_ROW);
+		if(endRow == null) {
+			endRow = UploadInputUtility.END_ROW_INT;
+		}
 		while ((values = csvHelper.getNextRow()) != null && count < endRow) {
 			// Increment the rowCounter by 1
 			rowCounter += 1;
@@ -663,7 +678,9 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 					insertData(engine, sqlQuery);
 				}
 			}
+			count++;
 		}
+		metamodel.put(Constants.END_ROW, count);
 
 		// delete the indexes created and clear the arrays
 		dropTempIndicies(engine);

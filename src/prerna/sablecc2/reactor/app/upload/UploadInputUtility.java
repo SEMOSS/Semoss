@@ -2,12 +2,14 @@ package prerna.sablecc2.reactor.app.upload;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -27,10 +29,11 @@ public class UploadInputUtility {
 	public static final String PROP_FILE = "propFile";
 	public static final String CUSTOM_BASE_URI = "customBaseURI";
 	public static final String CREATE_INDEX = ReactorKeysEnum.CREATE_INDEX.getKey();
+	public static final String ROW_COUNT = ReactorKeysEnum.ROW_COUNT.getKey(); 
 
 	// defaults
-	public static final int startRowInt = 2;
-	public static final int endRowInt = 2_000_000_000;
+	public static final int START_ROW_INT = 2;
+	public static final int END_ROW_INT = 2_000_000_000;
 	public static final String SEMOSS_URI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 
 	// only applies for "csv" uploading - doesn't need to be ","
@@ -122,6 +125,22 @@ public class UploadInputUtility {
 		}
 		return (Map<String, String>) grs.get(0);
 	}
+	
+	/**
+	 * Figure out the end row count from the csv file
+	 * 
+	 * @return
+	 */
+	public static boolean getRowCount(NounStore store) {
+		GenRowStruct boolGrs = store.getNoun(ROW_COUNT);
+		if (boolGrs != null) {
+			if (boolGrs.size() > 0) {
+				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
+				return (boolean) val.get(0);
+			}
+		}
+		return false;
+	}
 
 	//////////////////////////////////////////////////////////
 	// Metamodel methods
@@ -149,8 +168,10 @@ public class UploadInputUtility {
 			int startRow = UploadInputUtility.getStartRow(store);
 			metamodel.put(Constants.START_ROW, startRow);
 			// add end row
-			int endRow = UploadInputUtility.getEndRow(store);
-			metamodel.put(Constants.END_ROW, endRow);
+			Integer endRow = UploadInputUtility.getEndRow(store);
+			if (endRow != null) {
+				metamodel.put(Constants.END_ROW, endRow);
+			}
 		}
 		return metamodel;
 	}
@@ -163,7 +184,7 @@ public class UploadInputUtility {
 		return (Map<String, Object>) grs.get(0);
 	}
 
-	private static Map<String, Object> getMetamodelFromPropFile(NounStore store) {
+	public static Map<String, Object> getMetamodelFromPropFile(NounStore store) {
 		GenRowStruct grs = store.getNoun(PROP_FILE);
 		if (!(grs == null || grs.isEmpty())) {
 			// TODO next try reading from prop file
@@ -181,17 +202,18 @@ public class UploadInputUtility {
 	private static int getStartRow(NounStore store) {
 		GenRowStruct grs = store.getNoun(START_ROW);
 		if (grs == null || grs.isEmpty()) {
-			return startRowInt;
+			return START_ROW_INT;
 		}
 		return (int) grs.get(0);
 	}
 
-	private static int getEndRow(NounStore store) {
+	private static Integer getEndRow(NounStore store) {
 		GenRowStruct grs = store.getNoun(START_ROW);
 		if (grs == null || grs.isEmpty()) {
-			return endRowInt;
+			return null;
 		}
 		return (int) grs.get(0);
 	}
+
 
 }
