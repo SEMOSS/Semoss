@@ -26,6 +26,7 @@ public class UploadInputUtility {
 	public static final String START_ROW = ReactorKeysEnum.START_ROW.getKey();
 	public static final String PROP_FILE = "propFile";
 	public static final String CUSTOM_BASE_URI = "customBaseURI";
+	public static final String CREATE_INDEX = ReactorKeysEnum.CREATE_INDEX.getKey();
 
 	// defaults
 	public static final int startRowInt = 2;
