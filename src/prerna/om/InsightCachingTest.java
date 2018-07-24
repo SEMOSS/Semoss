@@ -1,16 +1,24 @@
 package prerna.om;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
+
+import com.google.gson.Gson;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
+import prerna.util.gson.GsonUtility;
 
 public class InsightCachingTest {
 
+	private static final Gson GSON = GsonUtility.getDefaultGson();
+	
 	public static void main(String[] args) {
 		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
@@ -27,6 +35,9 @@ public class InsightCachingTest {
 		InsightStore.getInstance().put(in);
 		
 		String[] pixel = new String[]{
+				"AddPanel(0);",
+				"Panel(0)|AddPanelEvents({\"onSingleClick\":{\"Unfilter\":[{\"panel\":\"\",\"query\":\"<encode>UnfilterFrame(<SelectedColumn>);</encode>\",\"options\":{},\"refresh\":false,\"default\":true,\"disabledVisuals\":[\"Grid\",\"Sunburst\"],\"disabled\":false}]},\"onBrush\":{\"Filter\":[{\"panel\":\"\",\"query\":\"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\",\"options\":{},\"refresh\":false,\"default\":true,\"disabled\":false}]}});Panel(0)|RetrievePanelEvents();Panel(0)|SetPanelView(\"visualization\", \"<encode>{\"type\":\"echarts\"}</encode>\");Panel(0)|SetPanelView(\"federate-view\", \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\");",
+				"Panel(999)|AddPanelEvents({\"onSingleClick\":{\"Unfilter\":[{\"panel\":\"\",\"query\":\"<encode>UnfilterFrame(<SelectedColumn>);</encode>\",\"options\":{},\"refresh\":false,\"default\":true,\"disabledVisuals\":[\"Grid\",\"Sunburst\"],\"disabled\":false}]},\"onBrush\":{\"Filter\":[{\"panel\":\"\",\"query\":\"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\",\"options\":{},\"refresh\":false,\"default\":true,\"disabled\":false}]}});Panel(0)|RetrievePanelEvents();Panel(0)|SetPanelView(\"visualization\", \"<encode>{\"type\":\"echarts\"}</encode>\");Panel(0)|SetPanelView(\"federate-view\", \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\");",
 				"abc = CreateFrame(grid).as([frame1]);",
 				"Database(\"" + coreName.split("__")[1] + "\") | Select(Title) | Import();",
 				"Frame() | QueryAll() | Collect(-1);",
@@ -38,16 +49,32 @@ public class InsightCachingTest {
 		
 		String folderDir = "C:\\workspace\\testSave";
 		InsightCacheUtility.cacheInsight(in, folderDir);
-		
-//		ITableDataFrame frame = (ITableDataFrame) in.getDataMaker();
-//		frame.save(folderDir);
-		
 		Insight newIn = InsightCacheUtility.readInsightCache(folderDir);
-		VarStore newVarStore = newIn.getVarStore();
+		printInsightDetails(newIn);
+	}
+	
+	public static void printInsightDetails(Insight in) {
+		VarStore newVarStore = in.getVarStore();
 		Set<String> keys = newVarStore.getKeys();
+		System.out.println("VarStore");
+		System.out.println(">>>");
+		System.out.println(">>>");
 		for(String k : keys) {
-			System.out.println(k + " ::: " + newVarStore.get(k));
+			NounMetadata noun = newVarStore.get(k);
+			if(noun.getNounType() == PixelDataType.FRAME) {
+				System.out.println(k + " ::: " + newVarStore.get(k));
+			} else if(noun.getNounType() == PixelDataType.TASK) {
+				System.out.println(k + " ::: " + newVarStore.get(k));
+			} else {
+				System.out.println(k + " ::: " + GSON.toJson(newVarStore.get(k)));
+			}
 		}
+		
+		System.out.println("Insight Panels");
+		System.out.println(">>>");
+		System.out.println(">>>");
+		Map<String, InsightPanel> panels = in.getInsightPanels();
+		System.out.println(GSON.toJson(panels));
 	}
 	
 }
