@@ -106,6 +106,16 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		}
 		out.endArray();
 		
+		// write the recipe
+		List<String> recipe = value.getPixelRecipe();
+		int steps = recipe.size();
+		out.name("recipe");
+		out.beginArray();
+		for(int i = 0; i < steps; i++) {
+			out.value(recipe.get(i));
+		}
+		out.endArray();
+		
 		// end insight object
 		out.endObject();
 	}
@@ -185,6 +195,17 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			insight.addNewInsightPanel(panel);
 		}
 		in.endArray();
+		
+		
+		// this will be the recipe
+		in.nextName();
+		List<String> recipe = new Vector<String>();
+		in.beginArray();
+		while(in.hasNext()) {
+			recipe.add(in.nextString());
+		}
+		in.endArray();
+		insight.setPixelRecipe(recipe);
 		
 		in.endObject();
 		return insight;
