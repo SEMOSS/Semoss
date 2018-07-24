@@ -50,7 +50,7 @@ public class InsightCachingTest {
 				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
 				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\" ) ;",
 				"CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME228199' ] ) ;",
-				"Database ( database = [ \"93857bba-5aea-447b-94f4-f9d9179da4da\" ] ) | Select ( Director , Title , Nominated , Studio , Genre ) .as ( [ Director , Title , Nominated , Studio , Genre ] ) | Join ( ( Title , inner.join , Genre ) , ( Title , inner.join , Nominated ) , ( Title , inner.join , Director ) , ( Title , inner.join , Studio ) ) | Import ( ) ;",
+				"Database( database=[\"93857bba-5aea-447b-94f4-f9d9179da4da\"] ) | Select(Director, Title, Nominated, Studio, Genre).as([Director, Title, Nominated, Studio, Genre])|Join((Title, inner.join, Genre), (Title, inner.join, Nominated), (Title, inner.join, Director), (Title, inner.join, Studio)) | Import();",
 				"Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;",
 				"Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ;",
 				"Select ( Director , Genre , Nominated , Studio ) .as ( [ Director , Genre , Nominated , Studio ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" , \"Nominated\" , \"Studio\" ] } } } ) | Collect ( 500 ) ;",

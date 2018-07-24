@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -19,6 +21,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
+import prerna.om.InsightCacheUtility;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelRunner;
@@ -38,7 +41,26 @@ import prerna.util.DIHelper;
 public class InsightAdapter extends TypeAdapter<Insight> {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
+	
+	private ZipFile zip;
+	private ZipOutputStream zos;
+	
+	/**
+	 * Constructor for reading
+	 * @param zip
+	 */
+	public InsightAdapter(ZipFile zip) {
+		this.zip = zip;
+	}
+	
+	/**
+	 * Constructor for writing
+	 * @param zos
+	 */
+	public InsightAdapter(ZipOutputStream zos) {
+		this.zos = zos;
+	}
+	
 	@Override
 	public void write(JsonWriter out, Insight value) throws IOException {
 		String rdbmsId = value.getRdbmsId();
@@ -109,6 +131,17 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			}
 			out.endArray();
 			out.endObject();
+			
+			// add to zip
+			File f1 = new File(saveFrame.getFrameFileLocation());
+			File f2 = new File(saveFrame.getFrameMetaLocation());
+
+			try {
+				InsightCacheUtility.addToZipFile(f1, zos);
+				InsightCacheUtility.addToZipFile(f2, zos);
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
 		}
 		out.endArray();
 		
@@ -141,8 +174,52 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		
 		// end insight object
 		out.endObject();
+		
+		// add to zip
+		try {
+			InsightCacheUtility.addToZipFile(vizOutputFile, zos);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
-
+	
+	private FrameCacheHelper findSameFrame(List<FrameCacheHelper> frames, ITableDataFrame frame) {
+		int size = frames.size();
+		for(int i = 0; i < size; i++) {
+			if(frames.get(i).sameFrame(frame)) {
+				return frames.get(i);
+			}
+		}
+		
+		return null;
+	}
+	
+	private List<String> getLastViewPixels(List<String> recipe) {
+		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
+		for (int i = 0; i < recipe.size(); i++) {
+			String expression = recipe.get(i);
+			// fill in the encodedToOriginal with map for the current expression
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
+			try {
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+				// parsing the pixel - this process also determines if expression is syntactically correct
+				Start tree = p.parse();
+				// apply the translation
+				// when we apply the translation, we will change encoded expressions back to their original form
+				tree.apply(translation);
+				// reset translation.encodedToOriginal for each expression
+				translation.encodedToOriginal = new HashMap<String, String>();
+			} catch (ParserException | LexerException | IOException e) {
+				e.printStackTrace();
+			}
+		}
+		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
+		// this way we can find the last expression index used 
+		translation.finalizeExpressionsToKeep();
+		return translation.getLastTasksForPanels();
+	}
+	
+	
 	@Override
 	public Insight read(JsonReader in) throws IOException {
 		Insight insight = new Insight();
@@ -238,43 +315,6 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		return insight;
 	}
 
-	private FrameCacheHelper findSameFrame(List<FrameCacheHelper> frames, ITableDataFrame frame) {
-		int size = frames.size();
-		for(int i = 0; i < size; i++) {
-			if(frames.get(i).sameFrame(frame)) {
-				return frames.get(i);
-			}
-		}
-		
-		return null;
-	}
-	
-	
-	private List<String> getLastViewPixels(List<String> recipe) {
-		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
-		for (int i = 0; i < recipe.size(); i++) {
-			String expression = recipe.get(i);
-			// fill in the encodedToOriginal with map for the current expression
-			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
-			try {
-				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-				// parsing the pixel - this process also determines if expression is syntactically correct
-				Start tree = p.parse();
-				// apply the translation
-				// when we apply the translation, we will change encoded expressions back to their original form
-				tree.apply(translation);
-				// reset translation.encodedToOriginal for each expression
-				translation.encodedToOriginal = new HashMap<String, String>();
-			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
-			}
-		}
-		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
-		// this way we can find the last expression index used 
-		translation.finalizeExpressionsToKeep();
-		return translation.getLastTasksForPanels();
-	}
-	
 }
 
 /**
