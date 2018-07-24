@@ -1,22 +1,38 @@
 package prerna.om;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.gson.GsonUtility;
+import prerna.util.gson.InsightAdapter;
 
 public class InsightCacheUtility {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static byte[] buffer = new byte[2048];
 
+	public static final String INSIGHT_ZIP = "InsightZip.zip";
+	public static final String MAIN_INSIGHT_JSON = "InsightCache.json";
+	
 	private InsightCacheUtility() {
 		
 	}
@@ -41,17 +57,65 @@ public class InsightCacheUtility {
 		if(!(new File(folderDir).exists())) {
 			new File(folderDir).mkdirs();
 		}
-		String insightLoc = folderDir + "\\InsightCache.json";
-		
-		Gson gson = GsonUtility.getDefaultGson();
-		File insightFile = new File(insightLoc);
+		File zipFile = new File(folderDir + DIR_SEPARATOR + INSIGHT_ZIP);
+
+		FileOutputStream fos = null;
+		ZipOutputStream zos = null;
 		try {
-			FileUtils.writeStringToFile(insightFile, gson.toJson(insight));
-		} catch (IOException e) {
+			fos = new FileOutputStream(zipFile.getAbsolutePath());
+			zos = new ZipOutputStream(fos);
+			
+			InsightAdapter iAdapter = new InsightAdapter(zos);
+			StringWriter writer = new StringWriter();
+			JsonWriter jWriter = new JsonWriter(writer);
+			iAdapter.write(jWriter, insight);
+			
+			String insightLoc = folderDir+ DIR_SEPARATOR + MAIN_INSIGHT_JSON;
+			File insightFile = new File(insightLoc);
+			try {
+				FileUtils.writeStringToFile(insightFile, writer.toString());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			addToZipFile(insightFile, zos);
+		} catch(Exception e) {
 			e.printStackTrace();
+		} finally {
+			if(zos != null) {
+				zos.close();
+			}
+			if(fos != null) {
+				fos.close();
+			}
 		}
 		
-		return insightFile;
+		return zipFile;
+	}
+	
+	/**
+	 * Used to add a file to the insight zip
+	 * @param file
+	 * @param zos
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void addToZipFile(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
+		ZipEntry zipEntry = new ZipEntry(file.getName());
+		zos.putNextEntry(zipEntry);
+
+		FileInputStream fis = null;
+		try {
+			int length;
+			fis = new FileInputStream(file);
+			while ((length = fis.read(buffer)) >= 0) {
+				zos.write(buffer, 0, length);
+			}
+		} finally {
+			if(fis != null) {
+				fis.close();
+			}
+		}
+		zos.closeEntry();
 	}
 	
 	/**
@@ -60,9 +124,21 @@ public class InsightCacheUtility {
 	 * @return
 	 */
 	public static Insight readInsightCache(File insightFile) {
-		Gson gson = GsonUtility.getDefaultGson();
 		try {
-			Insight insight = gson.fromJson(FileUtils.readFileToString(insightFile), Insight.class);
+			ZipFile zip = new ZipFile(insightFile);
+			ZipEntry entry = zip.getEntry(MAIN_INSIGHT_JSON);
+			InputStream is = zip.getInputStream(entry);
+			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+	        StringBuilder sb = new StringBuilder();
+	        String line;
+	        while ((line = br.readLine()) != null) {
+	            sb.append(line);
+	        }
+	        
+	        InsightAdapter iAdapter = new InsightAdapter(zip);
+	        StringReader reader = new StringReader(sb.toString());
+	        JsonReader jReader = new JsonReader(reader);
+			Insight insight = iAdapter.read(jReader);
 			return insight;
 		} catch (JsonSyntaxException e) {
 			e.printStackTrace();
