@@ -194,6 +194,12 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		}
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
+		
+		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+		
 		return newAppId;
 	}
 
@@ -268,6 +274,12 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		logger.info(stepCounter + ". Complete");
+		
+		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		UploadUtilities.createPropFile(appID, engine.getEngineName(), filePath, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+		
 		return appID;
 	}
 	
@@ -352,7 +364,10 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 			count++;
 		}
 		String[] values = null;
-		int endRow = (int) metamodel.get(Constants.END_ROW);
+		Integer endRow = (Integer) metamodel.get(Constants.END_ROW);
+		if(endRow == null) {
+			endRow = UploadInputUtility.END_ROW_INT;
+		}
 		while ((values = helper.getNextRow()) != null && count < endRow) {
 			count++;
 			logger.info("Process line: " +count);
@@ -519,6 +534,8 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 				addNodeProperties(engine, owler, subject, subjectValue, nodePropHash);
 			}
 		}
+		metamodel.put(Constants.END_ROW, count);
+
 		System.out.println("FINAL COUNT " + count);
 	}
 	

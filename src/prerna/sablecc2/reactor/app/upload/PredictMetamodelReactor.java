@@ -18,40 +18,32 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
 
 public class PredictMetamodelReactor extends AbstractReactor {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public PredictMetamodelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DELIMITER.getKey(),
-				ReactorKeysEnum.ROW_COUNT.getKey() };
+		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT };
 	}
-
+	
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		// get csv file path
-		String filePath = this.keyValue.get(this.keysToGet[0]);
-		if (filePath == null) {
-			NounMetadata noun = new NounMetadata("Need to define " + this.keysToGet[0], PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException exception = new SemossPixelException(noun);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+		String filePath = UploadInputUtility.getFilePath(this.store);
 		// get delimiter
-		String delimiter = this.keyValue.get(this.keysToGet[1]);
-		if (delimiter == null) {
-			delimiter = ",";
-		}
+		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);
 
 		// set csv file helper
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(delim);
 		helper.parse(filePath);
-		
+
 		return new NounMetadata(autoGenerateMetaModel(helper), PixelDataType.MAP);
 	}
+
 	/**
 	 * predict the meta model
 	 */
@@ -61,18 +53,18 @@ public class PredictMetamodelReactor extends AbstractReactor {
 		String[] columnHeaders = helper.getHeaders();
 		Map<String, SemossDataType> dataTypeMap = new LinkedHashMap<String, SemossDataType>();
 		Map<String, String> additionalDataTypeMap = new LinkedHashMap<String, String>();
-		
+
 		// predict datatypes and additional types
 		Object[][] dataTypes = helper.predictTypes();
 		int size = columnHeaders.length;
-		for(int colIdx = 0; colIdx < size; colIdx++) {
+		for (int colIdx = 0; colIdx < size; colIdx++) {
 			Object[] prediction = dataTypes[colIdx];
 			dataTypeMap.put(columnHeaders[colIdx], (SemossDataType) prediction[0]);
-			if(prediction[1] != null) {
+			if (prediction[1] != null) {
 				additionalDataTypeMap.put(columnHeaders[colIdx], (String) prediction[1]);
 			}
 		}
-		
+
 		// get data from csv to predict types
 		List<String[]> data = new ArrayList<>(500);
 		String[] cells = null;
@@ -80,7 +72,7 @@ public class PredictMetamodelReactor extends AbstractReactor {
 		// predict meta model from limit row count
 		int limit = 500;
 		// get end row count
-		boolean getEndRowCount = getRowCount();
+		boolean getEndRowCount = UploadInputUtility.getRowCount(this.store);
 		while ((cells = helper.getNextRow()) != null) {
 			if (count <= limit) {
 				data.add(cells);
@@ -96,7 +88,7 @@ public class PredictMetamodelReactor extends AbstractReactor {
 
 		}
 		int endRow = count;
-		
+
 		fileMetaModelData.put("startCount", 2);
 		if (getEndRowCount) {
 			fileMetaModelData.put("endCount", endRow);
@@ -105,56 +97,53 @@ public class PredictMetamodelReactor extends AbstractReactor {
 		fileMetaModelData.put("additionalDataTypes", additionalDataTypeMap);
 		// store auto modified header names
 		fileMetaModelData.put("headerModifications", helper.getChangedHeaders());
-		
+
 		Map<String, Set<String>> matches = new HashMap<>(columnHeaders.length);
 		Map<String, Boolean> columnPropMap = new HashMap<>(columnHeaders.length);
 		for (String header : columnHeaders) {
 			columnPropMap.put(header, false);
 		}
-		
 
-		for(int i = 0; i < columnHeaders.length; i++) {
+		for (int i = 0; i < columnHeaders.length; i++) {
 			SemossDataType datatype = dataTypeMap.get(columnHeaders[i]);
-			//run comparisons for strings
-			if(datatype == SemossDataType.STRING) {
+			// run comparisons for strings
+			if (datatype == SemossDataType.STRING) {
 				runAllComparisons(columnHeaders, i, matches, columnPropMap, dataTypeMap, data);
-			}
-			else {
-				//run comparisons for non string types
+			} else {
+				// run comparisons for non string types
 				runAllComparisons(columnHeaders, i, matches, columnPropMap, dataTypeMap, data);
 			}
 		}
 
 		// Format metamodel data
-		List<Map<String, Object>> initList1 = new ArrayList<>();
-		List<Map<String, Object>> initList2 = new ArrayList<>();
-		Map<String, List<Map<String, Object>>>  propFileData = new HashMap<>();
-		propFileData.put("propFileRel", initList1);
-		propFileData.put("propFileNodeProp", initList2);
-
-		for(String subject : matches.keySet()) {
+		Map<String, Object> propFileData = new HashMap<>();
+		List<Map<String, Object>> relationMapList = new ArrayList<>();
+		Map<String, List<String>> nodePropMap = new HashMap<>();
+		for (String subject : matches.keySet()) {
 			Set<String> set = matches.get(subject);
-			for(String object : set) {
+			for (String object : set) {
 				SemossDataType datatype = dataTypeMap.get(object);
-				Map<String, Object> predMap = new HashMap<>();
-
-				String[] subjectArr = {subject};
-				String[] objectArr = {object};
-
-				if(datatype == SemossDataType.STRING) {
-					String predHolder = subject + "_" + object;
-					predMap.put("sub", subjectArr);
-					predMap.put("pred", predHolder);
-					predMap.put("obj", objectArr);
-					propFileData.get("propFileRel").add(predMap);
+				String[] subjectArr = { subject };
+				String[] objectArr = { object };
+				if (datatype == SemossDataType.STRING) {
+					Map<String, Object> relMap = new HashMap<>();
+					String relName = subject + "_" + object;
+					relMap.put(Constants.FROM_TABLE, subject);
+					relMap.put(Constants.TO_TABLE, object);
+					relMap.put(Constants.REL_NAME, relName);
+					relationMapList.add(relMap);
 				} else {
-					predMap.put("sub", subjectArr);
-					predMap.put("prop", objectArr);
-					predMap.put("dataType", datatype);
-					propFileData.get("propFileNodeProp").add(predMap);
+					List<String> properties = new ArrayList<>();
+					if (nodePropMap.containsKey(subject)) {
+						properties = nodePropMap.get(subject);
+					}
+					properties.add(object);
+					nodePropMap.put(subject, properties);
 				}
 			}
 		}
+		propFileData.put(Constants.RELATION, relationMapList);
+		propFileData.put(Constants.NODE_PROP, nodePropMap);
 		fileMetaModelData.putAll(propFileData);
 		// get file location and file name
 		String filePath = helper.getFileLocation();
@@ -165,10 +154,9 @@ public class PredictMetamodelReactor extends AbstractReactor {
 		} catch (Exception e) {
 			// just in case that fails, this shouldnt because if its a filename
 			// it should have a "."
-			file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(),
-					filePath.lastIndexOf("."));
+			file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(), filePath.lastIndexOf("."));
 		}
-		
+
 		// store file path and file name to send to FE
 		fileMetaModelData.put("fileLocation", filePath);
 		fileMetaModelData.put("fileName", file);
@@ -256,24 +244,6 @@ public class PredictMetamodelReactor extends AbstractReactor {
 		}
 		return true;
 	}
-
-	////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////
-	/**
-	 * Get the end row count from file
-	 * 
-	 * @return
-	 */
-	private boolean getRowCount() {
-		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[2]);
-		if (boolGrs != null) {
-			if (boolGrs.size() > 0) {
-				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-				return (boolean) val.get(0);
-			}
-		}
-		return true;
-	}
-
 }
+
+

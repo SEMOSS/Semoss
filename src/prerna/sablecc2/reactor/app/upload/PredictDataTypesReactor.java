@@ -1,16 +1,11 @@
 package prerna.sablecc2.reactor.app.upload;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -18,28 +13,16 @@ public class PredictDataTypesReactor extends AbstractReactor {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public PredictDataTypesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DELIMITER.getKey(),
-				ReactorKeysEnum.ROW_COUNT.getKey() };
+		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String filePath = this.keyValue.get(this.keysToGet[0]);
-		if (filePath == null) {
-			NounMetadata noun = new NounMetadata("Need to define " + this.keysToGet[0], PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			SemossPixelException exception = new SemossPixelException(noun);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-		String delimiter = this.keyValue.get(this.keysToGet[1]);
-		if (delimiter == null) {
-			delimiter = ",";
-		}
-		boolean rowCount = getRowCount();
-
+		String filePath = UploadInputUtility.getFilePath(this.store);
+		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);
-
+		boolean rowCount = UploadInputUtility.getRowCount(this.store);
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(delim);
 		helper.parse(filePath);
@@ -57,21 +40,5 @@ public class PredictDataTypesReactor extends AbstractReactor {
 		}
 		helper.clear();
 		return new NounMetadata(retMap, PixelDataType.MAP);
-	}
-
-	/**
-	 * Get the end row count from file
-	 * 
-	 * @return
-	 */
-	private boolean getRowCount() {
-		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[2]);
-		if (boolGrs != null) {
-			if (boolGrs.size() > 0) {
-				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-				return (boolean) val.get(0);
-			}
-		}
-		return false;
 	}
 }
