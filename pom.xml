@@ -1722,7 +1722,7 @@
 		<dependency>
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-app</artifactId>
-			<version>1.10</version>
+			<version>1.18</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2577,6 +2577,12 @@
     		<groupId>com.sun.jersey</groupId>
     		<artifactId>jersey-core</artifactId>
     		<version>1.19</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-utils -->
 		<dependency>
