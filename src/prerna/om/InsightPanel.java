@@ -224,6 +224,10 @@ public class InsightPanel {
 		}
 	}
 	
+	public void setComments(Map<String, Map<String, Object>> comments) {
+		this.comments = comments;
+	}
+	
 	/**
 	 * Insert a new comment on the panel
 	 * @param comment
@@ -326,6 +330,10 @@ public class InsightPanel {
 	 */
 	public GenRowFilters getPanelFilters() {
 		return this.grf;
+	}
+	
+	public void addPanelFilters(GenRowFilters grf) {
+		this.grf.merge(grf);
 	}
 	
 	/**
