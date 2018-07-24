@@ -143,9 +143,10 @@ public class Insight {
 	 * @param engineId
 	 * @param rdbmsId
 	 */
-	public Insight(String engineId, String rdbmsId) {
+	public Insight(String engineId, String engineName, String rdbmsId) {
 		this();
 		this.engineId = engineId;
+		this.engineName = engineName;
 		this.rdbmsId = rdbmsId;
 	}
 	
