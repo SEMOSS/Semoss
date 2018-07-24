@@ -44,8 +44,9 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 	public RdfCsvUploadReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
-				UploadInputUtility.METAMODEL, UploadInputUtility.ADDITIONAL_DATA_TYPES,
-				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.PROP_FILE };
+				UploadInputUtility.METAMODEL, UploadInputUtility.PROP_FILE, UploadInputUtility.ADD_TO_EXISTING,
+				UploadInputUtility.START_ROW, UploadInputUtility.END_ROW, UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				UploadInputUtility.CUSTOM_BASE_URI };
 	}
 
 	@Override
