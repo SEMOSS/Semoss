@@ -41,7 +41,7 @@ public class GetOptimizedRecipeReactor extends AbstractReactor {
 	 * @return modifiedRecipe
 	 */
 	public String getModifiedRecipeString(List<String> recipe) {
-		List<String> modifiedRecipeList = getModifiedRecipeList(recipe);
+		List<String> modifiedRecipeList = getOptimizedRecipe(recipe);
 		return recipeToString(modifiedRecipeList);
 	}
 	
@@ -67,7 +67,7 @@ public class GetOptimizedRecipeReactor extends AbstractReactor {
 	 * @param recipe
 	 * @return modifiedRecipe
 	 */
-	public List<String> getModifiedRecipeList(List<String> recipe) {
+	public List<String> getOptimizedRecipe(List<String> recipe) {
 		// create a new translation object that will do the work of figuring out which pixel expressions to keep
 		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
 		// we want to iterate through the current recipe
