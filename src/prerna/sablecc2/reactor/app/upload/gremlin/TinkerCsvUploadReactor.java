@@ -48,14 +48,14 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 	public TinkerCsvUploadReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
-				TINKER_DRIVER_TYPE, UploadInputUtility.ADDITIONAL_DATA_TYPES, UploadInputUtility.PROP_FILE,
-				UploadInputUtility.METAMODEL, UploadInputUtility.ADD_TO_EXISTING };
+				UploadInputUtility.METAMODEL, UploadInputUtility.PROP_FILE, UploadInputUtility.ADD_TO_EXISTING,
+				UploadInputUtility.START_ROW, UploadInputUtility.END_ROW, UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				TINKER_DRIVER_TYPE };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		Logger logger = getLogger(CLASS_NAME);
 		String appIdOrName = UploadInputUtility.getAppName(this.store);
 		String filePath = UploadInputUtility.getFilePath(this.store);
 		String returnId = null;
