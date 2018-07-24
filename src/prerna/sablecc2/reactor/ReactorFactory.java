@@ -308,6 +308,7 @@ import prerna.solr.reactor.SetAppTagsReactor;
 //import prerna.solr.reactor.SetInsightTagsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.ga.reactors.DatabaseRecommendationReactor;
 import prerna.util.ga.reactors.UpdateGAHistoricalDataReactor;
 import prerna.util.ga.reactors.VisualizationRecommendationReactor;
 import prerna.util.git.reactors.AddAppCollaborator;
@@ -742,6 +743,7 @@ public class ReactorFactory {
 		reactorHash.put("RescheduleExistingJob", RescheduleExistingJobReactor.class);
 
 		// GA
+		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationReactor.class);
 		reactorHash.put("VizRecommendations", VisualizationRecommendationReactor.class);
 		reactorHash.put("UpdateGAHistoricalData", UpdateGAHistoricalDataReactor.class);
 		
