@@ -24,6 +24,7 @@ public enum ReactorKeysEnum {
 	CONNECTION_STRING_KEY("connectionString", 				"JDBC connection string to connect to an external database"),
 	CONTENT("content", 									    "The actual content to be persisted on the file. Tab and Newline Separated"),
 	ADDITIONAL_CONNECTION_PARAMS_KEY("connParams", 			"Additional JDBC connection params to perform connection"),
+	CREATE_INDEX("createIndex", 							"Boolean if indicies should be generated."),
 	CRITERIA("criteria", 									"Criteria to be evaluated"),
 	CRON_EXPRESSION("cronExpression",                       "The cron expression"),
 	DATABASE("database",									"Name of the datasource"),
