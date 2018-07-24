@@ -15,29 +15,6 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 
 public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	
-	
-//	private String panelId;
-//	// label for the panel
-//	private String panelLabel;
-//	// current UI view for the panel
-//	private transient String view;
-//	// view options on the current view
-//	private transient String viewOptions;
-//	// state held for UI options on the panel
-//	private transient Map<String, Object> ornaments;
-//	// state held for events on the panel
-//	private transient Map<String, Object> events;
-//	// set of filters that are only applied to this panel
-//	private transient GenRowFilters grf;
-//	// set the sorts on the panel
-//	private transient List<QueryColumnOrderBySelector> orderBys;
-//	// list of comments added to the panel
-//	// key is the id pointing to the info on the comment
-//	// the info on the comment also contains the id
-//	private transient Map<String, Map<String, Object>> comments;
-//	// map to store the panel position
-//	private transient Map<String, Object> position;
-	
 	private static final Gson GSON = GsonUtility.getDefaultGson();
 	
 	@Override
@@ -60,21 +37,56 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	@Override
 	public InsightPanel read(JsonReader in) throws IOException {
 
-		String panelId;
-		String panelLabel;
-		String view;
-		String viewOptions;
-		Map<String, Object> ornaments;
-		Map<String, Object> events;
-		GenRowFilters grf;
-		List<QueryColumnOrderBySelector> orderBys;
-		Map<String, Map<String, Object>> comments;
-		Map<String, Object> position;
+		String panelId = null;
+		String panelLabel = null;
+		String view = null;
+		String viewOptions = null;
+		Map<String, Object> ornaments = null;
+		Map<String, Object> events = null;
+		GenRowFilters grf = null;
+		List<QueryColumnOrderBySelector> orderBys = null;
+		Map<String, Map<String, Object>> comments = null;
+		Map<String, Object> position = null;
 		
-		
-		
-		
-		return null;
+		in.beginObject();
+		while(in.hasNext()) {
+			String key = in.nextName();
+			String value = in.nextString();
+			if(key.equals("panelId")) {
+				panelId = value;
+			} else if(key.equals("panelLabel")) {
+				panelLabel = value;
+			} else if(key.equals("view")) {
+				view = value;
+			} else if(key.equals("viewOptions")) {
+				viewOptions = value;
+			} else if(key.equals("ornaments")) {
+				ornaments = GSON.fromJson(value, Map.class);
+			} else if(key.equals("events")) {
+				events = GSON.fromJson(value, Map.class);
+			} else if(key.equals("fitlers")) {
+				grf = GSON.fromJson(value, GenRowFilters.class);
+			} else if(key.equals("order")) {
+				orderBys = GSON.fromJson(value, List.class);
+			} else if(key.equals("comments")) {
+				comments = GSON.fromJson(value, Map.class);
+			} else if(key.equals("position")) {
+				position = GSON.fromJson(value, Map.class);
+			}
+		}
+		in.endObject();
+
+		InsightPanel panel = new InsightPanel(panelId);
+		panel.setPanelLabel(panelLabel);
+		panel.setPanelView(view);
+		panel.setPanelViewOptions(viewOptions);
+		panel.addOrnaments(ornaments);
+		panel.addEvents(events);
+		panel.addPanelFilters(grf);
+		panel.setPanelOrderBys(orderBys);
+		panel.setComments(comments);
+		panel.setPosition(position);
+		return panel;
 	}
 
 }

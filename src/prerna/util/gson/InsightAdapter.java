@@ -2,6 +2,7 @@ package prerna.util.gson;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -12,6 +13,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.om.Insight;
+import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -37,9 +39,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// write varstore
 		out.name("varstore");
 		// output all variables that are not frames or tasks
-		VarStoreAdapter adapter = new VarStoreAdapter();
+		VarStoreAdapter varStoreAdapter = new VarStoreAdapter();
 		VarStore store = value.getVarStore();
-		adapter.write(out, store);
+		varStoreAdapter.write(out, store);
 		
 		List<FrameCacheHelper> frames = new Vector<FrameCacheHelper>();
 		Set<String> keys = store.getKeys();
@@ -59,6 +61,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			}
 		}
 		
+		//TODO: swtich based on ids
 		String folderDir = "C:\\workspace\\testSave";
 		
 		// write the frames
@@ -81,6 +84,17 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		}
 		out.endArray();
 		
+		// write the panels
+		out.name("panels");
+		out.beginArray();
+		Map<String, InsightPanel> panels = value.getInsightPanels();
+		for(String key : panels.keySet()) {
+			InsightPanel panel = panels.get(key);
+			InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
+			panelAdapter.write(out, panel);
+		}
+		out.endArray();
+		
 		// end insight object
 		out.endObject();
 	}
@@ -99,8 +113,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		
 		// this will be the varstore
 		in.nextName();
-		VarStoreAdapter adapter = new VarStoreAdapter();
-		VarStore store = adapter.read(in);
+		VarStoreAdapter varStoreAdapter = new VarStoreAdapter();
+		VarStore store = varStoreAdapter.read(in);
 		insight.setVarStore(store);
 		
 		// this will be the frames
@@ -108,12 +122,6 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		in.beginArray();
 		while(in.hasNext()) {
 			in.beginObject();
-			
-			// order is 
-			// file
-			// meta
-			// type
-			// name
 			
 			List<String> varStoreKeys = new Vector<String>();
 			CachePropFileFrameObject cf = new CachePropFileFrameObject();
@@ -154,6 +162,16 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			}
 			
 			in.endObject();
+		}
+		in.endArray();
+		
+		// this will be the panels
+		in.nextName();
+		in.beginArray();
+		while(in.hasNext()) {
+			InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
+			InsightPanel panel = panelAdapter.read(in);
+			insight.addNewInsightPanel(panel);
 		}
 		in.endArray();
 		
