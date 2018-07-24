@@ -26,7 +26,7 @@ public enum PixelDataType {
 	VARIABLE ("VARIABLE"),							// name of existing variable
 	QUERY_STRUCT ("QUERY_STRUCT"),					// qs
 	RAW_DATA_SET ("DATA"),							// raw data - usually from job
-	FORMATTED_DATA_SET ("FDATA"),					// formatted data - for FE
+	FORMATTED_DATA_SET ("FORMATTED_DATA_SET"),		// formatted data - for FE
 	ITERATOR ("ITERATOR"),							// iterator
 	EXPORT ("EXPORT"),
 	LAMBDA ("LAMBDA"),

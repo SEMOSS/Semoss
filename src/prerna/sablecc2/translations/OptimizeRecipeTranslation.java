@@ -1,6 +1,9 @@
 package prerna.sablecc2.translations;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,13 +15,19 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
+import prerna.sablecc2.lexer.Lexer;
+import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.POpInput;
 import prerna.sablecc2.node.PRoutine;
+import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.sablecc2.parser.Parser;
+import prerna.sablecc2.parser.ParserException;
 
 public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	
@@ -192,6 +201,20 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	public List<String> getModifiedRecipe() {
 		return modifiedRecipe;
 	}
+
+	/**
+	 * Get the last task executed for each panel
+	 * @return
+	 */
+	public List<String> getLastTasksForPanels() {
+		List<String> lastTasks = new ArrayList<String>();
+		for (ArrayList<Integer> expressionsForPanel : panelMap.values()) {
+			int lastExpressionIndex = expressionsForPanel.get(expressionsForPanel.size() - 1);
+			String keepExpression = expressionMap.get(lastExpressionIndex);
+			lastTasks.add(keepExpression);
+		}
+		return lastTasks;
+	}
 	
 	
 	/**
@@ -205,4 +228,51 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			expressionsToKeep.add(index);
 		}
 	}
+
+
+	public static void main(String[] args) {
+		String[] recipe = new String[]{"AddPanel ( 0 ) ;",
+				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>UnfilterFrame(<SelectedColumn>);</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
+				"Panel ( 0 ) | RetrievePanelEvents ( ) ;",
+				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
+				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\" ) ;",
+				"CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME228199' ] ) ;",
+				"Database ( database = [ \"93857bba-5aea-447b-94f4-f9d9179da4da\" ] ) | Select ( Director , Title , Nominated , Studio , Genre ) .as ( [ Director , Title , Nominated , Studio , Genre ] ) | Join ( ( Title , inner.join , Genre ) , ( Title , inner.join , Nominated ) , ( Title , inner.join , Director ) , ( Title , inner.join , Studio ) ) | Import ( ) ;",
+				"Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;",
+				"Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ;",
+				"Select ( Director , Genre , Nominated , Studio ) .as ( [ Director , Genre , Nominated , Studio ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" , \"Nominated\" , \"Studio\" ] } } } ) | Collect ( 500 ) ;",
+				"Select ( Director , Genre , Nominated ) .as ( [ Director , Genre , Nominated ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" , \"Nominated\" ] } } } ) | Collect ( 500 ) ;",
+				"Select ( Director , Genre ) .as ( [ Director , Genre ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" , \"Genre\" ] } } } ) | Collect ( 500 ) ;",
+				"Select ( Director ) .as ( [ Director ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" ] } } } ) | Collect ( 500 ) ;",
+				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
+				"if ( ( HasDuplicates ( Studio ) ) , ( Select ( Studio , Count ( Title ) ) .as ( [ Studio , CountofTitle ] ) | Group ( Studio ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Studio\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Studio , Count ( Title ) ) .as ( [ Studio , CountofTitle ] ) | Group ( Studio ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Studio\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;" ,
+				"Panel ( 0 ) | Clone ( 1 ) ;",
+				"if ( ( HasDuplicates ( Genre ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;"
+		};
+
+		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
+		for (int i = 0; i < recipe.length; i++) {
+			String expression = recipe[i];
+			// fill in the encodedToOriginal with map for the current expression
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
+			try {
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+				// parsing the pixel - this process also determines if expression is syntactically correct
+				Start tree = p.parse();
+				// apply the translation
+				// when we apply the translation, we will change encoded expressions back to their original form
+				tree.apply(translation);
+				// reset translation.encodedToOriginal for each expression
+				translation.encodedToOriginal = new HashMap<String, String>();
+			} catch (ParserException | LexerException | IOException e) {
+				e.printStackTrace();
+			}
+		}
+		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
+		// this way we can find the last expression index used 
+		translation.finalizeExpressionsToKeep();
+		System.out.println(translation.getModifiedRecipe());
+		System.out.println(translation.getLastTasksForPanels());
+	}
+
 }
