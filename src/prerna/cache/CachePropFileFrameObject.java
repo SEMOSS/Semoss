@@ -2,19 +2,14 @@ package prerna.cache;
 
 public class CachePropFileFrameObject {
 	
-	private String frameName;
 	private String frameFileLocation;
 	private String frameMetaFileLocation;
+	
+	private String frameName;
 	private String frameType;
 	
 	public CachePropFileFrameObject() {
 	
-	}
-	
-	public CachePropFileFrameObject(String frameName, String frameFileLocation, String frameMetaFileLocation) {
-		this.frameName = frameName;
-		this.frameFileLocation = frameFileLocation;
-		this.frameMetaFileLocation = frameMetaFileLocation;
 	}
 	
 	public String getFrameName() {

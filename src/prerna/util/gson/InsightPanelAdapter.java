@@ -7,6 +7,7 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.om.InsightPanel;
@@ -51,6 +52,11 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		in.beginObject();
 		while(in.hasNext()) {
 			String key = in.nextName();
+			JsonToken peak = in.peek();
+			if(peak == JsonToken.NULL) {
+				in.nextNull();
+				continue;
+			}
 			String value = in.nextString();
 			if(key.equals("panelId")) {
 				panelId = value;
