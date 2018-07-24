@@ -52,13 +52,13 @@ public class MasterDatabaseUtility {
 		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)", "varchar(800)", "varchar(800)"};
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engineconcept", colNames, types));
 		// add index
-		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_LOCAL_CONCEPT_ID ON ENGINECONCEPT (LOCALCONCEPTID);");
-		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_ENGINE ON ENGINECONCEPT (ENGINE);");
+		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID ON ENGINECONCEPT (ENGINE, LOCALCONCEPTID);");
 
 		// concept table
 		colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
 		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("concept", colNames, types));
+		executeSql(conn, "CREATE INDEX IF NOT EXISTS CONCEPT_ID_INDEX ON CONCEPT (LOCALCONCEPTID);");
 		
 		// relation table
 		colNames = new String[]{"ID", "SourceID", "TargetID", "GlobalID"};
