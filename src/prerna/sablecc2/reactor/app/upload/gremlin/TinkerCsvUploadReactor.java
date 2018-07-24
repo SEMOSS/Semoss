@@ -191,7 +191,11 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		}
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-
+		
+		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 		
 		return newAppId;
 	}
@@ -264,6 +268,11 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		}
 		logger.info(stepCounter+". Complete");
 		stepCounter++;
+		
+		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		UploadUtilities.createPropFile(appId, app.getEngineName(), filePath, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
 		return appId;
 	}
@@ -300,7 +309,10 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		while (count < startRow - 1 && csvHelper.getNextRow() != null) {
 			count++;
 		}
-		int endRow = (int) metamodel.get(Constants.END_ROW);
+		Integer endRow = (Integer) metamodel.get(Constants.END_ROW);
+		if(endRow == null) {
+			endRow = UploadInputUtility.END_ROW_INT;
+		}
 		while ((values = csvHelper.getNextRow()) != null && count < (endRow)) {
 			count++;
 //			logger.info("Process line: " + count);
@@ -437,6 +449,7 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 				addNodeProperties(owler, engine, subject, subjectValue, nodePropHash);
 			}
 		}
+		metamodel.put(Constants.END_ROW, count);
 		logger.info("FINAL COUNT " + count);
 	}
 
