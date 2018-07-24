@@ -946,7 +946,8 @@ public class UploadUtilities {
 	 * @param metamodel
 	 * @return
 	 */
-	public static boolean createPropFile(String appId, String appName, String csvFileName, Map<String, Object> metamodel) {
+	public static boolean createPropFile(String appId, String appName, String csvFilePath, Map<String, Object> metamodel) {
+		String csvFileName = new File(csvFilePath).getName().replace(".csv", "");
 		Date currDate = Calendar.getInstance().getTime();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyMMddHHmmssZ");
 		String dateName = sdf.format(currDate);
