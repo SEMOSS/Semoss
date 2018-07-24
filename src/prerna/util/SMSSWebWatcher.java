@@ -40,7 +40,6 @@ import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.OwlConceptualNameModernizer;
 import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -160,18 +159,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					}
 				}
 			
-				// we want to ignore AppEngine
-				// since it contains no data / owl
-				if(!engineTypeString.equals("APP")) {
-					// THIS IS BECAUSE WE HAVE MADE A LOT OF MODIFICATIONS TO THE OWL
-					// GOTTA MAKE SURE IT IS MODERNIZED VERSION
-					// AS TIME GOES ON, THIS CODE CAN BE REMOVED
-					// IF IT DOES CHANGE THE OWL, THE TIMESTAMP WILL CHAGNE AND LOCAL MASTER
-					// WILL AUTOMATICALLY UPDATE
-					OwlConceptualNameModernizer modernizer = new OwlConceptualNameModernizer(prop);
-					modernizer.run();
-				}
-				
 				boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
 				boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
 				if(!isLocal & !isSecurity) {
