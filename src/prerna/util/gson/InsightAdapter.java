@@ -1,5 +1,6 @@
 package prerna.util.gson;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -12,20 +13,26 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class InsightAdapter extends TypeAdapter<Insight> {
 
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	@Override
 	public void write(JsonWriter out, Insight value) throws IOException {
-		String engineId = value.getEngineId();
 		String rdbmsId = value.getRdbmsId();
+		String engineId = value.getEngineId();
+		String engineName = value.getEngineName();
 		
-		if(engineId == null || rdbmsId == null) {
+		if(engineId == null || rdbmsId == null || engineName == null) {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 		
@@ -61,8 +68,12 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			}
 		}
 		
-		//TODO: swtich based on ids
-		String folderDir = "C:\\workspace\\testSave";
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
+				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
+		if(!(new File(folderDir).exists())) {
+			new File(folderDir).mkdirs();
+		}
 		
 		// write the frames
 		out.name("frames");

@@ -1,5 +1,7 @@
 package prerna.om;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -30,13 +32,16 @@ public class InsightCachingTest {
 		DIHelper.getInstance().setLocalProperty(coreName.split("__")[1], coreEngine);
 		
 		Insight in = new Insight();
-		in.setEngineId("testing1");
-		in.setRdbmsId("testingId2");
+		in.setEngineId(coreName.split("__")[1]);
+		in.setEngineName(coreName.split("__")[0]);
+		in.setRdbmsId("testing");
+		
 		InsightStore.getInstance().put(in);
 		
 		String[] pixel = new String[]{
 				"AddPanel(0);",
 				"Panel(0)|AddPanelEvents({\"onSingleClick\":{\"Unfilter\":[{\"panel\":\"\",\"query\":\"<encode>UnfilterFrame(<SelectedColumn>);</encode>\",\"options\":{},\"refresh\":false,\"default\":true,\"disabledVisuals\":[\"Grid\",\"Sunburst\"],\"disabled\":false}]},\"onBrush\":{\"Filter\":[{\"panel\":\"\",\"query\":\"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\",\"options\":{},\"refresh\":false,\"default\":true,\"disabled\":false}]}});Panel(0)|RetrievePanelEvents();Panel(0)|SetPanelView(\"visualization\", \"<encode>{\"type\":\"echarts\"}</encode>\");Panel(0)|SetPanelView(\"federate-view\", \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\");",
+				"AddPanel(999);",
 				"Panel(999)|AddPanelEvents({\"onSingleClick\":{\"Unfilter\":[{\"panel\":\"\",\"query\":\"<encode>UnfilterFrame(<SelectedColumn>);</encode>\",\"options\":{},\"refresh\":false,\"default\":true,\"disabledVisuals\":[\"Grid\",\"Sunburst\"],\"disabled\":false}]},\"onBrush\":{\"Filter\":[{\"panel\":\"\",\"query\":\"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\",\"options\":{},\"refresh\":false,\"default\":true,\"disabled\":false}]}});Panel(0)|RetrievePanelEvents();Panel(0)|SetPanelView(\"visualization\", \"<encode>{\"type\":\"echarts\"}</encode>\");Panel(0)|SetPanelView(\"federate-view\", \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\");",
 				"abc = CreateFrame(grid).as([frame1]);",
 				"Database(\"" + coreName.split("__")[1] + "\") | Select(Title) | Import();",
@@ -47,10 +52,14 @@ public class InsightCachingTest {
 		
 		in.runPixel(Arrays.asList(pixel));
 		
-		String folderDir = "C:\\workspace\\testSave";
-		InsightCacheUtility.cacheInsight(in, folderDir);
-		Insight newIn = InsightCacheUtility.readInsightCache(folderDir);
-		printInsightDetails(newIn);
+		File insightFile;
+		try {
+			insightFile = InsightCacheUtility.cacheInsight(in);
+			Insight newIn = InsightCacheUtility.readInsightCache(insightFile);
+			printInsightDetails(newIn);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void printInsightDetails(Insight in) {
