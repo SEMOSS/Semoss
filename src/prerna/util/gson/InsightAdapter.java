@@ -1,7 +1,11 @@
 package prerna.util.gson;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PushbackReader;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,9 +20,18 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.sablecc2.PixelPreProcessor;
+import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelStreamUtility;
+import prerna.sablecc2.lexer.Lexer;
+import prerna.sablecc2.lexer.LexerException;
+import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.parser.Parser;
+import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.translations.OptimizeRecipeTranslation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -36,10 +49,19 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			throw new IOException("Cannot jsonify an insight that is not saved");
 		}
 		
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
+				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
+		if(!(new File(folderDir).exists())) {
+			new File(folderDir).mkdirs();
+		}
+		
 		// start insight object
 		out.beginObject();
 		// write engine id
 		out.name("engineId").value(engineId);
+		// write engine name
+		out.name("engineName").value(engineName);
 		// write rdbms id
 		out.name("rdbmsId").value(rdbmsId);
 		
@@ -50,6 +72,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		VarStore store = value.getVarStore();
 		varStoreAdapter.write(out, store);
 		
+		// consolidate frames due to alias
+		// that point to the same frame
 		List<FrameCacheHelper> frames = new Vector<FrameCacheHelper>();
 		Set<String> keys = store.getKeys();
 		for(String k : keys) {
@@ -68,14 +92,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			}
 		}
 		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
-				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
-		if(!(new File(folderDir).exists())) {
-			new File(folderDir).mkdirs();
-		}
-		
-		// write the frames
+		// now that we have consolidated, write the frames
 		out.name("frames");
 		out.beginArray();
 		for(FrameCacheHelper fObj : frames) {
@@ -116,6 +133,12 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		}
 		out.endArray();
 		
+		// write the json for the viz
+		File vizOutputFile = new File(folderDir + DIR_SEPARATOR + "panelOutput.json");
+		List<String> lastViewPixels = getLastViewPixels(recipe);
+		PixelRunner pixelRunner = value.runPixel(lastViewPixels);
+		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile, false);
+		
 		// end insight object
 		out.endObject();
 	}
@@ -126,8 +149,12 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		
 		in.beginObject();
 		in.nextName();
+		// engine id, engine name, rdbms id
 		String engineId = in.nextString();
 		insight.setEngineId(engineId);
+		in.nextName();
+		String engineName = in.nextString();
+		insight.setEngineName(engineName);
 		in.nextName();
 		String rdbmsId = in.nextString();
 		insight.setRdbmsId(rdbmsId);
@@ -220,6 +247,32 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		}
 		
 		return null;
+	}
+	
+	
+	private List<String> getLastViewPixels(List<String> recipe) {
+		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
+		for (int i = 0; i < recipe.size(); i++) {
+			String expression = recipe.get(i);
+			// fill in the encodedToOriginal with map for the current expression
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
+			try {
+				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+				// parsing the pixel - this process also determines if expression is syntactically correct
+				Start tree = p.parse();
+				// apply the translation
+				// when we apply the translation, we will change encoded expressions back to their original form
+				tree.apply(translation);
+				// reset translation.encodedToOriginal for each expression
+				translation.encodedToOriginal = new HashMap<String, String>();
+			} catch (ParserException | LexerException | IOException e) {
+				e.printStackTrace();
+			}
+		}
+		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
+		// this way we can find the last expression index used 
+		translation.finalizeExpressionsToKeep();
+		return translation.getLastTasksForPanels();
 	}
 	
 }

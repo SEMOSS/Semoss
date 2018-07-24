@@ -350,8 +350,8 @@ public class Insight {
 	 * @return modifiedRecipe
 	 */
 	public List<String> getOptimizedPixelRecipe() {
-		GetOptimizedRecipeReactor ORR = new GetOptimizedRecipeReactor();
-		List<String> recipe = ORR.getModifiedRecipeList(this.pixelList);
+		GetOptimizedRecipeReactor optimizer = new GetOptimizedRecipeReactor();
+		List<String> recipe = optimizer.getOptimizedRecipe(this.pixelList);
 		return recipe;
 	}
 
