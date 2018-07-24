@@ -1,12 +1,14 @@
 package prerna.sablecc2.reactor;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 
 /**
  * This reactor is responsible for taking the output of an execution and assigning the result as a variable
@@ -27,15 +29,16 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 			// which is stored in curRow and matches operationName
 			result = this.curRow.getNoun(1);
 		}
+		// if we have a collect that we are assigning to a varaible
+		// flush it out and store the result
+		if(result.getNounType() == PixelDataType.FORMATTED_DATA_SET && result.getValue() instanceof ITask) {
+			Map<String, Object> flushedOutValue = ((ITask) result.getValue()).collect(true);
+			result = new NounMetadata(flushedOutValue, PixelDataType.FORMATTED_DATA_SET, result.getOpType());
+		}
 		planner.addVariable(operationName, result);
 		return result;
 	}
 	
-	private boolean checkVariable(String variableName) {
-		//use this method to make sure the variable name doesn't not interfere with frame's headers
-		return true;
-	}
-
 	@Override
 	public List<NounMetadata> getInputs() {
 		List<NounMetadata> inputs = super.getInputs();
