@@ -180,7 +180,7 @@ cosine_jaccard_sim<-function(m){
 # Description
 # Compute cosine jacqard similarity between cells of a matrix
 # m - rating/frequency user item  matrix
-	library(philentropy)
+	library(proxy)
 	out<-cosine_sim(m)*jaccard_sim(m)
 	return(out)
 }
@@ -189,9 +189,9 @@ cosine_sim<-function(m){
 # Description
 # Compute cosine jacqard similarity between cells of a matrix
 # m - rating/frequency matrix
-	library(philentropy)
+	library(proxy)
 	tryCatch({
-		out<-distance(m,"cosine")
+		out<-as.matrix(dist(m,"cosine"))
 	})
 	rownames(out)<-rownames(m)
 	colnames(out)<-rownames(m)
@@ -205,9 +205,9 @@ jaccard_sim<-function(m){
 	# m is a matrix where each row is a relevant vector
 	n<-m
 	n[n>0]<-1
-	library(philentropy)
+	library(proxy)
 	tryCatch({
-		out<-distance(n,"jaccard")
+		out<-as.matrix(dist(n,"Jaccard"))
 	})
 	rownames(out)<-rownames(m)
 	colnames(out)<-rownames(m)
