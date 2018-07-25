@@ -218,7 +218,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			
 			// set the view to a vizual to paint the data
 			for(String panelId : panels.keySet()) {
-				runner.runPixel("Panel(" + panelId + ") | SetPanelView(\"visualization\");", tempInsight);
+				InsightPanel panel = panels.get(panelId);
+				runner.runPixel("Panel(" + panelId + ") | SetPanelView(\"" + panel.getPanelView() + "\", " + panel.getPanelViewOptions() + "\");", tempInsight);
 			}
 			
 			// send the view data
