@@ -41,7 +41,7 @@ public class PixelRunner {
 	private List<String> pixelExpression = new Vector<String>();
 	private List<Boolean> isMeta = new Vector<Boolean>();
 	private Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
-	private boolean invalidSyntax = false;
+//	private boolean invalidSyntax = false;
 	
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
@@ -81,16 +81,29 @@ public class PixelRunner {
 					}
 				}
 			}
-			this.invalidSyntax = true;
+//			this.invalidSyntax = true;
 			addResult(expression, new NounMetadata(eMessage, PixelDataType.INVALID_SYNTAX, PixelOperationType.INVALID_SYNTAX), false);
 		}
 		return;
 	}
 	
+	/**
+	 * Store the terminal output of the pixel statement
+	 * @param pixelExpression
+	 * @param result
+	 * @param isMeta
+	 */
 	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta) {
 		this.pixelExpression.add(pixelExpression);
 		this.results.add(result);
 		this.isMeta.add(isMeta);
+		
+		// we will start to add to the insight recipe
+		// when we have an expression that is returned
+		// that is not a meta
+		if(!isMeta) {
+			this.insight.getPixelRecipe().add(pixelExpression);
+		}
 	}
 	
 	public List<NounMetadata> getResults() {
@@ -109,9 +122,9 @@ public class PixelRunner {
 		return this.encodedTextToOriginal;
 	}
 
-	public boolean isInvalidSyntax() {
-		return invalidSyntax;
-	}
+//	public boolean isInvalidSyntax() {
+//		return invalidSyntax;
+//	}
 	
 	public Insight getInsight() {
 		return this.insight;
