@@ -78,12 +78,14 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor  {
 							convertedMembers.add(engineDetail);
 						}
 					}
-					recommendations.add(convertedMembers);
+					if (convertedMembers != null && !convertedMembers.isEmpty()){
+						recommendations.add(convertedMembers);
+					}
 				}
 			}
 		} else {
 			// run plain db recommendations script
-			script = "output<- dataitem_recom_mgr(\"" + userName + "\",fileroot,0.05);  output<-toJSON(as.data.table(output[2])[,1:2], byrow = TRUE, colNames = TRUE);";
+			script = "output<- dataitem_recom_mgr(\"" + userName + "\",fileroot,0.02);  output<-toJSON(as.data.table(output[2])[,1:2], byrow = TRUE, colNames = TRUE);";
 			this.rJavaTranslator.runR(script);
 
 			// parse R json response for final recommendation data
