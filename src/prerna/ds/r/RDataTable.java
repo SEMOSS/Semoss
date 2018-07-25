@@ -11,9 +11,9 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -23,7 +23,6 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
-import prerna.sablecc2.om.VarStore;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 public class RDataTable extends AbstractTableDataFrame {
@@ -272,17 +271,14 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	@Override
 	public void open(CachePropFileFrameObject cf) {
-		// TODO Auto-generated method stub
-
+		// set the frame name
+		this.builder.dataTableName = cf.getFrameName();
+		// load the environment
+		this.builder.evalR("load(\"" + cf.getFrameFileLocation().replace("\\", "/") + "\")");
+		//load owl meta
+		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
 	}
 	
-	@Override
-	public ITableDataFrame open(String fileName, String userId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-
 	@Override
 	public String getDataMakerName() {
 		return DATA_MAKER_NAME;
