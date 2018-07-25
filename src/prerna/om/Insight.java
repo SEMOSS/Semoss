@@ -509,6 +509,7 @@ public class Insight {
 		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
 	}
 	
+	@Deprecated
 	public String getDataMakerName() {
 		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
 		if(curFrameNoun != null) {

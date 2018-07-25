@@ -117,7 +117,6 @@ public class PixelStreamUtility {
 		List<String> pixelStrings = runner.getPixelExpressions();
 		List<Boolean> isMeta = runner.isMeta();
 		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
-		boolean invalidSyntax = runner.isInvalidSyntax();
 
 		// start of the map
 		// and the insight id
@@ -148,12 +147,12 @@ public class PixelStreamUtility {
 			boolean meta = isMeta.get(i);
 			processNounMetadata(in, ps, gson, noun, expression, meta);
 
-			// update the pixel list to say this is routine is valid
-			// TODO: need to set this inside the translation directly!!!
-			if (!meta && !invalidSyntax) {
-				// update the insight recipe
-				in.getPixelRecipe().add(expression);
-			}
+			// THIS HAPPENS IN THE PIXEL RUNNER NOW!!!
+//			// update the pixel list to say this is routine is valid
+//			if (!meta && !invalidSyntax) {
+//				// update the insight recipe
+//				in.getPixelRecipe().add(expression);
+//			}
 
 			// add a comma for the next item in the list
 			if( (i+1) != size) {
@@ -174,6 +173,20 @@ public class PixelStreamUtility {
 	 * @return
 	 */
 	private static void processNounMetadata(Insight in, PrintStream ps, Gson gson, NounMetadata noun, String expression, Boolean isMeta) {
+		PixelDataType nounT = noun.getNounType();
+
+		// returning a cached insight
+		if(nounT == PixelDataType.CACHED_PIXEL_RUNNER) {
+			List<Object> pixelReturn = (List<Object>) noun.getValue();
+			for(int i = 0; i < pixelReturn.size(); i++) {
+				if(i > 0) {
+					ps.print(",");
+				}
+				ps.print(gson.toJson(pixelReturn.get(i)));
+			}
+			return;
+		}
+		
 		ps.print("{");
 
 		// add expression if there
@@ -185,7 +198,6 @@ public class PixelStreamUtility {
 			ps.print("\"isMeta\":" + isMeta + ",");
 		}
 
-		PixelDataType nounT = noun.getNounType();
 		if(nounT == PixelDataType.FRAME) {
 			// if we have a frame
 			// return the table name of the frame
