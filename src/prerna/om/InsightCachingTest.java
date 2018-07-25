@@ -12,7 +12,9 @@ import javax.ws.rs.core.StreamingOutput;
 
 import com.google.gson.Gson;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
@@ -44,12 +46,13 @@ public class InsightCachingTest {
 		
 		InsightStore.getInstance().put(in);
 		
-		String[] pixel = new String[]{"AddPanel ( 0 ) ;",
+		String[] pixel = new String[]{
+				"AddPanel ( 0 ) ;",
 				"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>UnfilterFrame(<SelectedColumn>);</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
 				"Panel ( 0 ) | RetrievePanelEvents ( ) ;",
 				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
 				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"93857bba-5aea-447b-94f4-f9d9179da4da\"}</encode>\" ) ;",
-				"CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME228199' ] ) ;",
+				"CreateFrame ( frameType = [ GRAPH ] ) .as ( [ 'FRAME228199' ] ) ;",
 				"Database( database=[\"93857bba-5aea-447b-94f4-f9d9179da4da\"] ) | Select(Director, Title, Nominated, Studio, Genre).as([Director, Title, Nominated, Studio, Genre])|Join((Title, inner.join, Genre), (Title, inner.join, Nominated), (Title, inner.join, Director), (Title, inner.join, Studio)) | Import();",
 				"Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;",
 				"Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ;",
@@ -96,6 +99,16 @@ public class InsightCachingTest {
 			NounMetadata noun = newVarStore.get(k);
 			if(noun.getNounType() == PixelDataType.FRAME) {
 				System.out.println(k + " ::: " + newVarStore.get(k));
+				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+				IRawSelectWrapper it = frame.iterator();
+				System.out.println(Arrays.toString(it.getHeaders()));
+				int counter = 0;
+				int limit = 25;
+				while(it.hasNext() && (counter < limit)) {
+					counter++;
+					System.out.println(Arrays.toString(it.next().getValues()));
+				}
+				it.cleanUp();
 			} else if(noun.getNounType() == PixelDataType.TASK) {
 				System.out.println(k + " ::: " + newVarStore.get(k));
 			} else {
