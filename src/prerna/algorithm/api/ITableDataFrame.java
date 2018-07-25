@@ -144,14 +144,6 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	long size(String tableName);
 	
-	/**
-	 * Deserialize the dataframe
-	 * @param fileName
-	 * @param userId
-	 * @return
-	 */
-	ITableDataFrame open(String fileName, String userId);
-
 	IRawSelectWrapper query(String query);
 	
 	IRawSelectWrapper query(SelectQueryStruct qs);

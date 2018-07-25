@@ -270,7 +270,7 @@ public abstract class InsightCache implements ICache {
 						ReentrantLock lock = getLock(fileName);
 						lock.lock();
 						try {
-							dataFrame = instanceFrame.open(fileName, in.getUserId());
+//							dataFrame = instanceFrame.open(fileName, in.getUserId());
 						} finally {
 							//TODO : how to remove locks thread safely?
 //							if(!lock.hasQueuedThreads()) {

@@ -25,6 +25,10 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
+import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
+import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.cache.CachePropFileFrameObject;
@@ -50,6 +54,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.MyGraphIoRegistry;
 import prerna.util.Utility;
 
 public class TinkerFrame extends AbstractTableDataFrame {
@@ -934,78 +939,58 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		LOGGER.info("extraneous nodes removed");
 	}
 	
-	/**
-	 * 
-	 * @param fileName
-	 * 
-	 * serialize tinker to file
-	 */
-	public CachePropFileFrameObject save(String fileName) {
-//		try {
-//			long startTime = System.currentTimeMillis();
-//			this.removeExtraneousNodes();
-//			
-//			Builder<GryoIo> builder = IoCore.gryo();
-//			builder.graph(g);
-//			IoRegistry kryo = new MyGraphIoRegistry();;
-//			builder.registry(kryo);
-//			GryoIo yes = builder.create();
-//			yes.writeGraph(fileName);
-//			
-//			long endTime = System.currentTimeMillis();
-//			LOGGER.info("Successfully saved TinkerFrame to file: "+fileName+ "("+(endTime - startTime)+" ms)");
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//		this.metaData.save(fileName.substring(0, fileName.lastIndexOf(".")));
-		return null;
-	}
-	
-	public void open(CachePropFileFrameObject cf) {
-		
-	}
-	
-	/**
-	 * Open a serialized TinkerFrame
-	 * This is used with in InsightCache class
-	 * @param fileName				The file location to the cached graph
-	 * @param userId				The userId who is creating this instance of the frame
-	 * @return
-	 */
-	public TinkerFrame open(String fileName, String userId) {
-//		// create a new tinker frame class
-//		TinkerFrame tf = new TinkerFrame();
-//		// set the user id
-//		tf.setUserId(userId);
-//		try {
-//			long startTime = System.currentTimeMillis();
-//
-//			// user kyro to de-serialize the cached graph
-//			Builder<GryoIo> builder = IoCore.gryo();
-//			builder.graph(tf.g);
-//			IoRegistry kryo = new MyGraphIoRegistry();
-//			builder.registry(kryo);
-//			GryoIo yes = builder.create();
-//			yes.readGraph(fileName);
-//
-//			long endTime = System.currentTimeMillis();
-//			LOGGER.info("Successfully loaded TinkerFrame from file: "+fileName+ "("+(endTime - startTime)+" ms)");
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//		// need to also set the metaData
-//		// the meta data fileName parameter passed is going to be the same as the name as the file of the actual instances
-//		// this isn't the actual fileName of the file, the metadata appends the predefined prefix for the file
-//		tf.metaData.open(fileName.substring(0, fileName.lastIndexOf(".")));
-//		// set the list of headers in the class variable
-//		List<String> fullNames = tf.metaData.getColumnNames();
-//		tf.headerNames = fullNames.toArray(new String[fullNames.size()]);
-//
-//		// return the new instance
-//		return tf;
-		return null;
-	}
+	@Override
+	public CachePropFileFrameObject save(String folderDir) {
+		CachePropFileFrameObject propFrameObj = new CachePropFileFrameObject();
+				
+		String randFrameName = "Tinker" + Utility.getRandomString(6);
+		propFrameObj.setFrameName(randFrameName);
+		String frameFileName = folderDir + "\\" + randFrameName + ".tg";
 
+		// save frame
+		Builder<GryoIo> builder = IoCore.gryo();
+		builder.graph(g);
+		IoRegistry kryo = new MyGraphIoRegistry();;
+		builder.registry(kryo);
+		GryoIo yes = builder.create();
+		try {
+			yes.writeGraph(frameFileName);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		propFrameObj.setFrameFileLocation(frameFileName);
+		
+		// save frame metadata
+		String metaFileName = folderDir + "\\METADATA__" + randFrameName + ".owl";
+		this.metaData.save(metaFileName);
+		propFrameObj.setFrameMetaLocation(metaFileName);
+		
+		//save frame type
+		String frameType = this.getClass().getName();
+		propFrameObj.setFrameType(frameType);
+		
+		return propFrameObj;
+	}
+	
+	@Override
+	public void open(CachePropFileFrameObject cf) {
+		// load the frame
+		// this is just the QS
+		try {
+			Builder<GryoIo> builder = IoCore.gryo();
+			builder.graph(this.g);
+			IoRegistry kryo = new MyGraphIoRegistry();
+			builder.registry(kryo);
+			GryoIo yes = builder.create();
+			yes.readGraph(cf.getFrameFileLocation());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		//load owl meta
+		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
+	}
+	
 	public void insertBlanks(String colName, List<String> addedColumns) {
 //		// for each node in colName
 //		// if it does not have a relationship to any node in any of the addedColumns
