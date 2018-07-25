@@ -14,6 +14,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.reactor.job.JobReactor;
 
 public class VarStoreAdapter extends TypeAdapter<VarStore> {
 
@@ -29,6 +30,10 @@ public class VarStoreAdapter extends TypeAdapter<VarStore> {
 		// we will go through all the normal keys
 		// and ignore the frames / tasks for the time being
 		for(String k : keys) {
+			// ignore these 3 variables
+			if(k.equals(JobReactor.JOB_KEY) || k.equals(JobReactor.SESSION_KEY) || k.equals(JobReactor.INSIGHT_KEY)) {
+				continue;
+			}
 			NounMetadata noun = value.get(k);
 			if(noun.getNounType() == PixelDataType.TASK) {
 				taskMap.put(k, (ITask) noun.getValue());

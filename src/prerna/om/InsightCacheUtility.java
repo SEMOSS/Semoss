@@ -10,12 +10,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -23,6 +26,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightAdapter;
 
 public class InsightCacheUtility {
@@ -32,7 +36,8 @@ public class InsightCacheUtility {
 
 	public static final String INSIGHT_ZIP = "InsightZip.zip";
 	public static final String MAIN_INSIGHT_JSON = "InsightCache.json";
-	
+	public static final String VIEW_JSON = "ViewData.json";
+
 	private InsightCacheUtility() {
 		
 	}
@@ -123,9 +128,9 @@ public class InsightCacheUtility {
 	 * @param insightDir
 	 * @return
 	 */
-	public static Insight readInsightCache(File insightFile) {
+	public static Insight readInsightCache(File insightCacheZip) {
 		try {
-			ZipFile zip = new ZipFile(insightFile);
+			ZipFile zip = new ZipFile(insightCacheZip);
 			ZipEntry entry = zip.getEntry(MAIN_INSIGHT_JSON);
 			InputStream is = zip.getInputStream(entry);
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -158,5 +163,50 @@ public class InsightCacheUtility {
 		File insightFile = new File(insightPath);
 		return readInsightCache(insightFile);
 	}
+	
+	/**
+	 * Get the view data for a cached insight
+	 * @return
+	 * @throws IOException 
+	 */
+	public static Map<String, Object> getCachedInsightViewData(Insight insight) throws IOException {
+		String rdbmsId = insight.getRdbmsId();
+		String engineId = insight.getEngineId();
+		String engineName = insight.getEngineName();
+		
+		if(engineId == null || rdbmsId == null || engineName == null) {
+			throw new IOException("Cannot jsonify an insight that is not saved");
+		}
+		
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String zipFileLoc = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
+				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId + DIR_SEPARATOR + INSIGHT_ZIP;
+		File zipFile = new File(zipFileLoc);
+		if(!zipFile.exists()) {
+			throw new IOException("Cannot find insight cache");
+		}
+		
+		ZipEntry viewData = new ZipEntry(VIEW_JSON);
+		ZipFile zip = null;
+		InputStream zis = null;
+		try {
+			zip = new ZipFile(zipFileLoc);
+			zis = zip.getInputStream(viewData);
+			
+			String jsonString = IOUtils.toString(zis); 
+			Gson gson = GsonUtility.getDefaultGson();
+			return gson.fromJson(jsonString, Map.class);
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(zis != null) {
+				zis.close();
+			}
+			if(zip != null) {
+				zip.close();
+			}
+		}
+		return null;
+	} 
 	
 }

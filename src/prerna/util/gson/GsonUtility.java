@@ -24,7 +24,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GsonUtility {
 
-	private static boolean testing = false;
+	private static boolean testing = true;
 	
 	private GsonUtility() {
 		
