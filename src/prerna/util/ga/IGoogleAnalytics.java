@@ -2,6 +2,7 @@ package prerna.util.ga;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,6 +111,17 @@ public interface IGoogleAnalytics {
 	 */
 
 	ArrayList<String> getLogicalNames(String uniqueName);
+
+
+	/**
+	 * Executes tracking of descriptions generated for a column
+	 * 
+	 * @param in
+	 * @param engineId
+	 * @param engineAlias
+	 * @param descriptions
+	 */
+	void trackDescriptions(Insight in, String engineId, String engineAlias, HashMap<String,Map> descriptions);
 
 	
 }
