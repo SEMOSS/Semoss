@@ -140,14 +140,14 @@ public class CSVReader extends AbstractCSVFileReader {
 	public void importFileWithConnection(ImportOptions options) throws FileNotFoundException, IOException {
 		logger.setLevel(Level.WARN);
 
-		String engineName = options.getDbName();
+		String engineId = options.getEngineID();
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
 		String propertyFiles = options.getPropertyFiles();
 		
-		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineName, propertyFiles);
-		openEngineWithConnection(engineName);
+		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineId, propertyFiles);
+		openEngineWithConnection(engineId);
 		
 		for(int i = 0; i<files.length;i++)
 		{
