@@ -1,14 +1,10 @@
 package prerna.om;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
 
 import com.google.gson.Gson;
 
@@ -16,8 +12,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.sablecc2.PixelRunner;
-import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -70,14 +64,8 @@ public class InsightCachingTest {
 				"y = \"abc\";"
 		};
 		
-		// run the pixel so that it is actually added to insight
-		PixelRunner runner = in.runPixel(Arrays.asList(pixel));
-		StreamingOutput output = PixelStreamUtility.collectPixelData(runner);
-		try {
-			output.write(new ByteArrayOutputStream());
-		} catch (WebApplicationException | IOException e1) {
-			e1.printStackTrace();
-		}
+		// run the pixel
+		in.runPixel(Arrays.asList(pixel));
 		
 		File insightFile;
 		try {
