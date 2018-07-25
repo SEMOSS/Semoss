@@ -18,9 +18,9 @@ public class InsightPanel {
 	// label for the panel
 	private String panelLabel;
 	// current UI view for the panel
-	private transient String view;
+	private String view;
 	// view options on the current view
-	private transient String viewOptions;
+	private String viewOptions;
 	// state held for UI options on the panel
 	private transient Map<String, Object> ornaments;
 	// state held for events on the panel
