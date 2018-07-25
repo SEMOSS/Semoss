@@ -1,6 +1,7 @@
 package prerna.util.ga;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -95,6 +96,12 @@ public class NullGoogleAnalytics implements IGoogleAnalytics {
 		return null;
 		// TODO Auto-generated method stub
 
+	}
+
+	@Override
+	public void trackDescriptions(Insight in, String engineId, String engineAlias, HashMap<String,Map> descriptions) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
