@@ -26,6 +26,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
+@Deprecated
 public class RDBMSFlatExcelUploader extends AbstractFileReader {
 
 	private static final Logger LOGGER = LogManager.getLogger(RDBMSFlatExcelUploader.class.getName());
