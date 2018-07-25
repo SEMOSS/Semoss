@@ -1,14 +1,23 @@
 package prerna.ds.nativeframe;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.algorithm.api.ITableDataFrame;
+import org.apache.commons.io.FileUtils;
+
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -23,6 +32,8 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
+import prerna.util.Utility;
+import prerna.util.gson.QueryStructAdapter;
 
 public class NativeFrame extends AbstractTableDataFrame {
 
@@ -206,13 +217,52 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 
 	@Override
-	public CachePropFileFrameObject save(String fileName) {
-		return null;
+	public CachePropFileFrameObject save(String folderDir) {
+		CachePropFileFrameObject propFrameObj = new CachePropFileFrameObject();
+		
+		String randFrameName = "Native" + Utility.getRandomString(6);
+		propFrameObj.setFrameName(randFrameName);
+		String frameFileName = folderDir + "\\" + randFrameName + ".json";
+
+		// save frame - this is just the QS
+		StringWriter writer = new StringWriter();
+		JsonWriter jWriter = new JsonWriter(writer);
+		QueryStructAdapter adapter = new QueryStructAdapter();
+		try {
+			adapter.write(jWriter, this.qs);
+			FileUtils.writeStringToFile(new File(frameFileName), writer.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		propFrameObj.setFrameFileLocation(frameFileName);
+		
+		// save frame metadata
+		String metaFileName = folderDir + "\\METADATA__" + randFrameName + ".owl";
+		this.metaData.save(metaFileName);
+		propFrameObj.setFrameMetaLocation(metaFileName);
+		
+		//save frame type
+		String frameType = this.getClass().getName();
+		propFrameObj.setFrameType(frameType);
+		
+		return propFrameObj;
 	}
 	
 	@Override
 	public void open(CachePropFileFrameObject cf) {
+		// load the frame
+		// this is just the QS
+		try {
+			StringReader reader = new StringReader(FileUtils.readFileToString(new File(cf.getFrameFileLocation())));
+			JsonReader jReader = new JsonReader(reader);
+			QueryStructAdapter adapter = new QueryStructAdapter();
+			this.qs = adapter.read(jReader);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
+		//load owl meta
+		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
 	}
 	
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/
@@ -245,12 +295,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	@Deprecated
 	public void processDataMakerComponent(DataMakerComponent component) {
-	}
-
-	@Override
-	@Deprecated
-	public ITableDataFrame open(String fileName, String userId) {
-		return null;
 	}
 
 	@Override
