@@ -4,8 +4,9 @@ import java.util.Set;
 
 import com.google.gson.TypeAdapter;
 
-import prerna.util.gson.QueryColumnSelectorAdapter;
-import prerna.util.gson.QueryFunctionSelectorAdapter;
+import prerna.util.gson.AndQueryFilterAdapter;
+import prerna.util.gson.OrQueryFilterAdapter;
+import prerna.util.gson.QueryStructAdapter;
 import prerna.util.gson.SimpleQueryFilterAdapter;
 
 public interface IQueryFilter {
@@ -167,10 +168,12 @@ public interface IQueryFilter {
 	static TypeAdapter getAdapterForFilter(QUERY_FILTER_TYPE type) {
 		if(type == QUERY_FILTER_TYPE.SIMPLE) {
 			return new SimpleQueryFilterAdapter();
-		} else if(type == QUERY_FILTER_TYPE.SIMPLE) {
-			return new QueryColumnSelectorAdapter();
-		} else if(type == QUERY_FILTER_TYPE.SIMPLE) {
-			return new QueryFunctionSelectorAdapter();
+		} else if(type == QUERY_FILTER_TYPE.OR) {
+			return new OrQueryFilterAdapter();
+		} else if(type == QUERY_FILTER_TYPE.AND) {
+			return new AndQueryFilterAdapter();
+		} else if(type == QUERY_FILTER_TYPE.SUBQUERY) {
+			return new QueryStructAdapter();
 		}
 		
 		return null;
@@ -194,20 +197,4 @@ public interface IQueryFilter {
 		
 		return null;
 	}
-	
-//	static TypeAdapter getAdapterForSelector(QUERY_FILTER_TYPE type) {
-//		if(type == QUERY_FILTER_TYPE.SIMPLE) {
-//			return new QueryOpaqueSelectorAdapter();
-//		} else if(type == QUERY_FILTER_TYPE.SIMPLE) {
-//			return new QueryColumnSelectorAdapter();
-//		} else if(type == QUERY_FILTER_TYPE.SIMPLE) {
-//			return new QueryFunctionSelectorAdapter();
-//		}
-//		
-//		return null;
-//	}
-//	
-//	
-
-
 }
