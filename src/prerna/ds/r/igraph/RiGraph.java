@@ -13,7 +13,6 @@ import java.util.Set;
 
 import org.apache.log4j.LogManager;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.ICache;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -343,12 +342,6 @@ public class RiGraph extends AbstractTableDataFrame {
 		
 	}
 
-	@Override
-	public ITableDataFrame open(String fileName, String userId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String uniqueHeaderName, List<String> attributeUniqueHeaderName) {
 		// TODO Auto-generated method stub

@@ -31,12 +31,22 @@ public class QueryColumnSelectorAdapter extends TypeAdapter<QueryColumnSelector>
 				String key = in.nextName();
 				if(key.equals("table")) {
 					value.setTable(in.nextString());
-				} else if(key.equals("tableAlias")) {
-					value.setTableAlias(in.nextString());
 				} else if(key.equals("column")) {
 					value.setColumn(in.nextString());
 				} else if(key.equals("alias")) {
-					value.setAlias(in.nextString());
+					JsonToken peak = in.peek();
+					if(peak == JsonToken.NULL) {
+						in.nextNull();
+					} else {
+						value.setAlias(in.nextString());
+					}
+				} else if(key.equals("tableAlias")) {
+					JsonToken peak = in.peek();
+					if(peak == JsonToken.NULL) {
+						in.nextNull();
+					} else {
+						value.setTableAlias(in.nextString());
+					}
 				}
 			}
 		}

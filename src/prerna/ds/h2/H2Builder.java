@@ -3,10 +3,8 @@ package prerna.ds.h2;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -26,7 +24,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
@@ -36,8 +33,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.RunScript;
 import org.h2.tools.Server;
-
-import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -1490,21 +1485,41 @@ public class H2Builder {
 	}
 
 	/**
-	 * Runs the script for a cached Insight
 	 * 
-	 * @param fileName
-	 *            The file containing the script to create the frame
+	 * @param filePath
 	 */
-	protected void open(String fileName) {
-		// get the open sql script
-		String openScript = "RUNSCRIPT FROM '" + fileName + "' COMPRESSION GZIP ";
+	protected void open(String filePath) {
+		// drop the aggregate if it exists since the opening of the script will
+		// fail otherwise
+		Statement stmt = null;
 		try {
-			// load the frame from file
-			runQuery(openScript);
-		} catch (Exception e) {
+			stmt = this.conn.createStatement();
+			stmt.execute("DROP AGGREGATE IF EXISTS MEDIAN");
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		} finally {
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		Reader r = null;
+		try {
+			//load the frame
+			r = new InputStreamReader(
+			        new GZIPInputStream(
+			        new FileInputStream(filePath)));
+			RunScript.execute(DriverManager.getConnection("jdbc:h2:nio:" + this.schema, "sa", ""), r);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
 	}
 
 	// Connects the frame

@@ -9,7 +9,6 @@ import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -186,12 +185,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 	}
 
-	@Override
-	public ITableDataFrame open(String fileName, String userId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		// TODO Auto-generated method stub
