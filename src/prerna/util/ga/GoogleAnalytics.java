@@ -532,5 +532,38 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 		return logicalLookup.get(uniqueName);
 	}
 
+	@Override
+	public void trackDescriptions(Insight in, String engineId, String engineAlias, HashMap<String,Map> descriptions) {
+		final String exprStart = "{\"datasemantic\":[{\"dbName\": \"" + engineAlias + "\", \"dbId\": \"" + engineId + "\", \"tables\": [{ ";
+		final String exprEnd = "}]}]}";
+		StringBuilder sb = new StringBuilder();
+		boolean firstTab = true;
+		for(String table : descriptions.keySet()){
+			if(firstTab){
+				firstTab = false;
+			}else{
+				sb.append(", ");
+			}
+			Map tableDetail = descriptions.get(table);
+			sb.append("\"" + table + "\" : [{");
+			boolean firstCol = true;
+			for(Object column : tableDetail.keySet()){
+				if(firstCol){
+					firstCol = false;
+				}else{
+					sb.append(", {");
+				}
+				String description = tableDetail.get(column) + "";
+				
+				sb.append("\"columnName\": \"" + column + "\", \"description\": \"" + description + "\"}");
+			}
+			sb.append("]");
+		}
+		
+		GoogleAnalyticsThread ga = new GoogleAnalyticsThread(exprStart + sb.toString() + exprEnd, "datasemantic");
+		// fire and release...
+		ga.start();
+	}
+
 }
 
