@@ -25,6 +25,7 @@ import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
+import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
 public class AbstractEngineCreator {
@@ -209,8 +210,8 @@ public class AbstractEngineCreator {
 		engine.setInsightDatabase(insightDatabase);
 	}
 
-	protected void openEngineWithConnection(String engineName) {
-		engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+	protected void openEngineWithConnection(String engineId) {
+		engine = Utility.getEngine(engineId);
 		openOWLWithConnection(engine, owlFile);
 	}
 	

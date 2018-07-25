@@ -14,7 +14,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
@@ -132,14 +131,14 @@ public class TinkerCsvReader extends AbstractCSVFileReader {
 	public void importFileWithConnection(ImportOptions options) throws FileNotFoundException, IOException {
 		logger.setLevel(Level.WARN);
 
-		String engineName = options.getDbName();
+		String engineId = options.getEngineID();
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
 		String propertyFiles = options.getPropertyFiles();
 
-		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineName, propertyFiles);
-		openEngineWithConnection(engineName);
+		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineId, propertyFiles);
+		openEngineWithConnection(engineId);
 
 		for (int i = 0; i < files.length; i++) {
 			String fileName = files[i];
