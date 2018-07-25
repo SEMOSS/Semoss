@@ -1,13 +1,7 @@
 package prerna.ds.h2;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,12 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.zip.GZIPInputStream;
 
 import org.apache.log4j.Logger;
-import org.h2.tools.RunScript;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.cache.ICache;
@@ -289,23 +280,10 @@ public class H2Frame extends AbstractTableDataFrame {
 	public void open(CachePropFileFrameObject cf) {		
 		//set the frame name to that of the cached frame name
 		this.builder.tableName = cf.getFrameName();
-		
-		try {
-			Reader r;
-			//load the frame
-			r = new InputStreamReader(
-			        new GZIPInputStream(
-			        new FileInputStream(cf.getFrameFileLocation())));
-			RunScript.execute(DriverManager.getConnection("jdbc:h2:nio:" + this.builder.schema, "sa", ""), r);
-			//load owl meta
-			this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}catch (SQLException e) {
-			e.printStackTrace();
-		}
+		// load the frame
+		this.builder.open(cf.getFrameFileLocation());
+		//load owl meta
+		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
 	}
 
 	/**
@@ -755,11 +733,6 @@ public class H2Frame extends AbstractTableDataFrame {
 //		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
 	}
 
-	@Override
-	public ITableDataFrame open(String fileName, String userId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 //	/**
 //	 * Determine if all the headers are taken into consideration within the
