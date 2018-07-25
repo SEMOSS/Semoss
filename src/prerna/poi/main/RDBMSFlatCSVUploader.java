@@ -25,6 +25,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
+@Deprecated
 public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 
 	private static final Logger LOGGER = LogManager.getLogger(RDBMSFlatCSVUploader.class.getName());

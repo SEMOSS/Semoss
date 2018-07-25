@@ -96,13 +96,13 @@ public class POIReader extends AbstractFileReader {
 	public void importFileWithConnection(ImportOptions options)
 			throws FileNotFoundException, IOException {		
 
-		String engineName = options.getDbName();
+		String engineId = options.getEngineID();
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
 		logger.setLevel(Level.ERROR);
-		String[] files = prepareReader(fileNames, customBase, owlFile, engineName);
-		openEngineWithConnection(engineName);
+		String[] files = prepareReader(fileNames, customBase, owlFile, engineId);
+		openEngineWithConnection(engineId);
 
 		for (String fileName : files) {
 			importFile(fileName);
