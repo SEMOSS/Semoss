@@ -2398,7 +2398,7 @@ public class Utility {
 		
 		AddToMasterDB adder = new AddToMasterDB();
 
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 		Date rdbmsDate = adder.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(prop);
 		String engineDbTime = df.format(new Date(owlFile.lastModified()));
