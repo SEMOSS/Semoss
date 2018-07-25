@@ -456,23 +456,23 @@ public class ImportDataProcessor {
 	 */
 	private void addToExistingDb(ImportOptions options) throws Exception {
 		ImportOptions.IMPORT_TYPE importType = options.getImportType();
-		String engineName = options.getDbName();
+		String engineId = options.getEngineID();
 		AbstractFileReader reader = null;
 		
 		checkImportOptions(options);// perform checks on data being passed, if missing info, throws Exception
 		String errorMessage = "";
 		
 		// we need the engine because after upload, we need to update solr instances
-		IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName); 
+		IEngine engine = Utility.getEngine(engineId); 
 		if(engine == null) {
-			errorMessage = "Engine name, " + engineName + ", cannot be found to add new data";
+			errorMessage = "Engine name, " + engineId + ", cannot be found to add new data";
 			throw new IOException(errorMessage);
 		}
 		ENGINE_TYPE engineDbType = engine.getEngineType();
 		
 		String owlPath = engine.getOWL();
 		Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
-		paramHash2.put("engine", engineName);
+		paramHash2.put("engine", engineId);
 		owlPath = Utility.fillParam2(owlPath, paramHash2);
 
 		options.setOwlFileLocation(owlPath);
@@ -567,14 +567,14 @@ public class ImportDataProcessor {
 					}
 					break;
 		
-		default: errorMessage = "Unable to add data into database " + engineName + ", because it has database type, " + engineDbType + ", which "
+		default: errorMessage = "Unable to add data into database " + engineId + ", because it has database type, " + engineDbType + ", which "
 				+ "is currently unsupported for adding data.";
 				 throw new IOException(errorMessage);
 		}	
 		
 //		try {
 			// need to synchronize the metadata again since it might be out dated
-			Utility.synchronizeEngineMetadata(engineName);
+			Utility.synchronizeEngineMetadata(engineId);
 			// Do we need this?
 //			Utility.addToSolrInstanceCore(engine);
 //		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | ParseException e) {
@@ -749,17 +749,18 @@ public class ImportDataProcessor {
 	//perform checks on import options, if error throw exception right away
 	private void checkImportOptions(ImportOptions options) throws IOException{
 		String errorMessage = null;
+		String engineId = options.getEngineID();
 		String engineName = options.getDbName();
 		String filePath = options.getFileLocations();
 		ImportOptions.IMPORT_TYPE importType = options.getImportType();
 		ImportOptions.DB_TYPE dbType = options.getDbType();
 		ImportOptions.IMPORT_METHOD importMethod = options.getImportMethod();
 		String engineID = options.getEngineID();
-		if(DIHelper.getInstance().getLocalProp(engineName) != null && ((importType.equals(ImportOptions.IMPORT_TYPE.EXTERNAL_RDBMS) || importMethod.equals(ImportOptions.IMPORT_METHOD.CREATE_NEW)))) {
+		if(DIHelper.getInstance().getLocalProp(engineId) != null && ((importType.equals(ImportOptions.IMPORT_TYPE.EXTERNAL_RDBMS) || importMethod.equals(ImportOptions.IMPORT_METHOD.CREATE_NEW)))) {
 			errorMessage = "Database name already exists. \nPlease make the database name unique \nor consider import method to \"Add To Existing\".";
 			throw new IOException(errorMessage);
 		}
-		if(engineName == null || engineName.isEmpty()) {
+		if(engineId == null || engineId.isEmpty()) {
 			errorMessage = "Engine name is empty.  Require a valid engine name.";
 		}
 		if(importType == null) {
@@ -774,7 +775,7 @@ public class ImportDataProcessor {
 			errorMessage = "Database type is not specified.";
 			throw new IOException(errorMessage);
 		}		
-		if(importMethod.equals(ImportOptions.IMPORT_METHOD.ADD_TO_EXISTING) && Utility.getEngine(engineName) == null) {
+		if(importMethod.equals(ImportOptions.IMPORT_METHOD.ADD_TO_EXISTING) && Utility.getEngine(engineId) == null) {
 			errorMessage = "Database to add to cannot be found. \nPlease select an existing database or considering creating a new database.";
 			throw new IOException(errorMessage);
 		}
