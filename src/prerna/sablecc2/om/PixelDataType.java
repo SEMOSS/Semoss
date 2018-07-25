@@ -44,6 +44,9 @@ public enum PixelDataType {
 	R_CONNECTION("R_CONNECTION"),
 	R_ENGINE("R_ENGINE"),
 	CUSTOM_DATA_STRUCTURE ("CUSTOM_DATA_STRUCTURE"),
+	
+	// running cached and new insights
+	CACHED_PIXEL_RUNNER ("CACHED_PIXEL_RUNNER"),
 	PIXEL_RUNNER ("PIXEL_RUNNER");
 	
 	private final String strValue;

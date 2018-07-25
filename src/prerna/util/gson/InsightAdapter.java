@@ -166,16 +166,18 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		}
 		out.endArray();
 		
+		// end insight object
+		out.endObject();
+				
+				
 		// write the json for the viz
-		File vizOutputFile = new File(folderDir + DIR_SEPARATOR + "panelOutput.json");
+		// this doesn't actually add anything to the insight object
+		File vizOutputFile = new File(folderDir + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
 		List<String> lastViewPixels = getLastViewPixels(recipe);
 		PixelRunner pixelRunner = value.runPixel(lastViewPixels);
 		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile, false);
 		
-		// end insight object
-		out.endObject();
-		
-		// add to zip
+		// add it to the zip
 		try {
 			InsightCacheUtility.addToZipFile(vizOutputFile, zos);
 		} catch(Exception e) {
