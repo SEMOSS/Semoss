@@ -219,6 +219,47 @@ public class PixelUtility {
 	}
 	
 	/**
+	 * Check if recipe is for a dashboard
+	 * @param pixels
+	 * @return
+	 */
+	public static boolean isDashboard(String[] pixels) {
+		String recipe = String.join("", pixels);
+		return PixelUtility.isDashboard(recipe);
+	}
+	
+	/**
+	 * Check if recipe is for a dashboard
+	 * @param pixels
+	 * @return
+	 */
+	public static boolean isDashboard(List<String> pixels) {
+		String recipe = String.join("", pixels);
+		return PixelUtility.isDashboard(recipe);
+	}
+	
+	/**
+	 * Check if recipe is for a dashboard
+	 * @param pixel
+	 * @return
+	 */
+	public static boolean isDashboard(String pixel) {
+		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
+		try {
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8"))), pixel.length())));
+			DashboardRecipeTranslation translation = new DashboardRecipeTranslation();
+			// parsing the pixel - this process also determines if expression is syntactically correct
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+			return translation.isDashboard();
+		} catch (ParserException | LexerException | IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+	/**
 	 * 
 	 * @param expression
 	 * @param encodedTextToOriginal
