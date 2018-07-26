@@ -15,7 +15,6 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -91,45 +90,36 @@ public class QueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			}
 			// explicit filters
 			else if(name.equals("explicitFilters")) {
-				in.beginArray();
-				GenRowFilters grf = new GenRowFilters();
-				while(in.hasNext()) {
-					IQueryFilterAdapter filterAdapter = new IQueryFilterAdapter();
-					IQueryFilter filter = filterAdapter.read(in);
-					grf.addFilters(filter);
-				}
-				in.endArray();
-				qs.setExplicitFilters(grf);
+				qs.setExplicitFilters(readGrf(in));
 			}
 			// explicit filters
 			else if(name.equals("implicitFilters")) {
-				in.beginArray();
-				GenRowFilters grf = new GenRowFilters();
-				while(in.hasNext()) {
-					IQueryFilterAdapter filterAdapter = new IQueryFilterAdapter();
-					IQueryFilter filter = filterAdapter.read(in);
-					grf.addFilters(filter);
-				}
-				in.endArray();
-				qs.setImplicitFilters(grf);
+				qs.setImplicitFilters(readGrf(in));
 			}
 			// explicit filters
 			else if(name.equals("havingFilters")) {
-				in.beginArray();
-				GenRowFilters grf = new GenRowFilters();
-				while(in.hasNext()) {
-					IQueryFilterAdapter filterAdapter = new IQueryFilterAdapter();
-					IQueryFilter filter = filterAdapter.read(in);
-					grf.addFilters(filter);
-				}
-				in.endArray();
-				qs.setHavingFilters(grf);
+				qs.setHavingFilters(readGrf(in));
 			}
 
 		}
 		in.endObject();
 
 		return qs;
+	}
+	
+	/**
+	 * Used to read the grf
+	 * @param in
+	 * @return
+	 * @throws IOException
+	 */
+	private GenRowFilters readGrf(JsonReader in) throws IOException {
+		GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+		GenRowFilters grf = adapter.read(in);
+		if(grf == null) {
+			return new GenRowFilters();
+		}
+		return grf;
 	}
 
 	@Override
@@ -197,45 +187,35 @@ public class QueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		int numExplicitFilters = explicitFilters.size();
 		if(numExplicitFilters > 0) {
 			out.name("explicitFilters");
-			out.beginArray();
-			List<IQueryFilter> filters = explicitFilters.getFilters();
-			for(int i = 0; i < numExplicitFilters; i++) {
-				IQueryFilter f = filters.get(i);
-				TypeAdapter adapter = IQueryFilter.getAdapterForFilter(f.getQueryFilterType());
-				adapter.write(out, f);
-			}
-			out.endArray();
+			writeGrf(out, explicitFilters);
 		}
 
 		GenRowFilters implicitFilters = value.getImplicitFilters();
 		int numImplicitFilters = implicitFilters.size();
 		if(numImplicitFilters > 0) {
 			out.name("implicitFilters");
-			out.beginArray();
-			List<IQueryFilter> filters = implicitFilters.getFilters();
-			for(int i = 0; i < numImplicitFilters; i++) {
-				IQueryFilter f = filters.get(i);
-				TypeAdapter adapter = IQueryFilter.getAdapterForFilter(f.getQueryFilterType());
-				adapter.write(out, f);
-			}
-			out.endArray();
+			writeGrf(out, implicitFilters);
 		}
 
 		GenRowFilters havingFilters = value.getHavingFilters();
 		int numHavingFilters = havingFilters.size();
 		if(numHavingFilters > 0) {
 			out.name("havingFilters");
-			out.beginArray();
-			List<IQueryFilter> filters = havingFilters.getFilters();
-			for(int i = 0; i < numHavingFilters; i++) {
-				IQueryFilter f = filters.get(i);
-				TypeAdapter adapter = IQueryFilter.getAdapterForFilter(f.getQueryFilterType());
-				adapter.write(out, f);
-			}
-			out.endArray();
+			writeGrf(out, havingFilters);
 		}
 
 		out.endObject();
+	}
+	
+	/**
+	 * To write the grf
+	 * @param out
+	 * @param grf
+	 * @throws IOException
+	 */
+	private void writeGrf(JsonWriter out, GenRowFilters grf) throws IOException {
+		GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+		adapter.write(out, grf);
 	}
 
 }

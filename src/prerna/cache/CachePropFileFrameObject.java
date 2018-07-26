@@ -2,45 +2,62 @@ package prerna.cache;
 
 public class CachePropFileFrameObject {
 	
-	private String frameFileLocation;
-	private String frameMetaFileLocation;
+	// the cache location of the frame
+	private String frameCacheLocation;
+	// the cache location of the metadata
+	private String frameMetaCacheLocation;
+	// the cache location of frame state variables
+	private String frameStateCacheLocation;
 	
+	// the frame name
 	private String frameName;
+	// the frame type
 	private String frameType;
 	
 	public CachePropFileFrameObject() {
 	
 	}
-	
+
+	public String getFrameCacheLocation() {
+		return frameCacheLocation;
+	}
+
+	public void setFrameCacheLocation(String frameCacheLocation) {
+		this.frameCacheLocation = frameCacheLocation;
+	}
+
+	public String getFrameMetaCacheLocation() {
+		return frameMetaCacheLocation;
+	}
+
+	public void setFrameMetaCacheLocation(String frameMetaCacheLocation) {
+		this.frameMetaCacheLocation = frameMetaCacheLocation;
+	}
+
+	public String getFrameStateCacheLocation() {
+		return frameStateCacheLocation;
+	}
+
+	public void setFrameStateCacheLocation(String frameStateCacheLocation) {
+		this.frameStateCacheLocation = frameStateCacheLocation;
+	}
+
 	public String getFrameName() {
 		return frameName;
-	}
-	
-	public String getFrameFileLocation() {
-		return frameFileLocation;
-	}
-	
-	public String getFrameMetaLocation() {
-		return frameMetaFileLocation;
-	}
-	
-	public String getFrameType() {
-		return frameType;
 	}
 
 	public void setFrameName(String frameName) {
 		this.frameName = frameName;
 	}
-	
-	public void setFrameFileLocation(String frameFileLocation) {
-		this.frameFileLocation = frameFileLocation;
+
+	public String getFrameType() {
+		return frameType;
 	}
-	
-	public void setFrameMetaLocation(String frameMetaLocation) {
-		this.frameMetaFileLocation = frameMetaLocation;
-	}
-	
+
 	public void setFrameType(String frameType) {
 		this.frameType = frameType;
 	}
+
+	
+	
 }

@@ -246,26 +246,19 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	@Override
 	public CachePropFileFrameObject save(String folderDir) {
-		CachePropFileFrameObject propFrameObj = new CachePropFileFrameObject();
+		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		
 		String frameName = this.getTableName();
-		propFrameObj.setFrameName(frameName);
+		cf.setFrameName(frameName);
 		
 		//save frame
 		String frameFileName = folderDir + "\\" + frameName + ".gz";
 		this.builder.save(frameFileName, frameName);
-		propFrameObj.setFrameFileLocation(frameFileName);
+		cf.setFrameCacheLocation(frameFileName);
 
-		//save frame metadata
-		String metaFileName = folderDir + "\\METADATA__" + frameName + ".owl";
-		this.metaData.save(metaFileName);
-		propFrameObj.setFrameMetaLocation(metaFileName);
-		
-		//save frame type
-		String frameType = this.getClass().getName();
-		propFrameObj.setFrameType(frameType);
-		
-		return propFrameObj;
+		// also save the meta details
+		this.saveMeta(cf, folderDir, frameName);
+		return cf;
 	}
 
 	/**
@@ -281,9 +274,9 @@ public class H2Frame extends AbstractTableDataFrame {
 		//set the frame name to that of the cached frame name
 		this.builder.tableName = cf.getFrameName();
 		// load the frame
-		this.builder.open(cf.getFrameFileLocation());
-		//load owl meta
-		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
+		this.builder.open(cf.getFrameCacheLocation());
+		// open the meta details
+		this.openCacheMeta(cf);
 	}
 
 	/**
