@@ -32,6 +32,7 @@ import prerna.poi.main.HeadersException;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -322,6 +323,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		this.nounMetaOutput.add(new NounMetadata(table, PixelDataType.FRAME, PixelOperationType.FRAME));
 		if(replaceDefaultInsightFrame) {
 			this.insight.setDataMaker(table);
+			// need to clean up variables if we are dropping the frame
+			VarStore varStore = this.insight.getVarStore();
+			Set<String> curReferences = varStore.getAllAliasForObjectReference(dataframe);
+			// switch to the new frame
+			for(String reference : curReferences) {
+				varStore.put(reference, new NounMetadata(table, PixelDataType.FRAME));
+			}
 		}
 		
 		// move over the filters
