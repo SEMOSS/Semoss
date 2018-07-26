@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -109,7 +111,6 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	containsTaskOptions = true;
         	// input is the whole input to TaskOptions
         	POpInput input = node.getOpInput();
-        	//input.getClass();
         	String inputMapString = input.toString();
         	
         	// convert the inputMapString to a map
@@ -148,6 +149,45 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         			panelMap.put(panel, indexVals);
         		}
         	}
+        } else if(reactorId.equals("AutoTaskOptions")) {
+        	// go ahead and set containsTaskOptions to true
+        	containsTaskOptions = true;
+        	// input is panel=["panelid"]
+        	POpInput input = node.getOpInput();
+        	String inputPanelValue = input.toString();
+        	
+        	String panel = null;
+        	Pattern pattern = Pattern.compile("\".*\"");
+        	Matcher matcher = pattern.matcher(inputPanelValue);
+        	if(matcher.find()) {
+        		panel = matcher.group();
+        	}
+        	if(panel.startsWith("\"")) {
+        		panel = panel.substring(1);
+        	}
+        	if(panel.endsWith("\"")) {
+        		panel = panel.substring(0, panel.length()-1);
+        	}
+        	
+        	// first check to see if the panel already exists in the panel map
+    		if (panelMap.keySet().contains(panel)) {
+    			// if the panel DOES already exist in the panelMap, we just need to add the expression id to the set of values
+    			// first get the existing set of index values
+    			ArrayList<Integer> indexVals = panelMap.get(panel);
+    			// next, add the new index value to the list of values
+    			indexVals.add(index);
+    			// add the updated set of index values to the panelMap
+    			panelMap.put(panel, indexVals);
+    			
+    		} else {
+    			// if the panel DOES NOT already exist in the panelMap, we need to add it
+    			ArrayList<Integer> indexVals = new ArrayList<Integer>();
+    			indexVals.add(index);
+    			panelMap.put(panel, indexVals);
+    		}
+        	
+        	
+        	
         } else if (reactorId.equals("ClosePanel")) {
         	// if we close the panel, then we can get rid of the places we had TaskOptions for that panel
         	// the TaskOptions so far are kept track of in panel map
