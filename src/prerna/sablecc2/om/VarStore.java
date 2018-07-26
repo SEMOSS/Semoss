@@ -1,6 +1,8 @@
 package prerna.sablecc2.om;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -73,6 +75,14 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		return varMap.remove(varName);
 	}
 	
+	/**
+	 * Remove all keys 
+	 * @param keys
+	 */
+	public void removeAll(Collection<String> keys) {
+		this.varMap.keySet().removeAll(keys);
+	}
+	
 	@Override
 	public void clear() {
 		this.varMap.clear();
@@ -92,6 +102,21 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	@Override
 	public Set<String> getKeys() {
 		return varMap.keySet();
+	}
+	
+	/**
+	 * Used to get all keys that point to the same object
+	 * @param obj
+	 */
+	public Set<String> getAllAliasForObjectReference(Object obj) {
+		Set<String> alias = new HashSet<String>();
+		for(String key : varMap.keySet()) {
+			NounMetadata noun = varMap.get(key);
+			if(noun.getValue() == obj) {
+				alias.add(key);
+			}
+		}
+		return alias;
 	}
 	
 	private String cleanVarName(String varName) {
