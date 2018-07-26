@@ -112,7 +112,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 //			runner = getCachedInsightData(cachedInsight);
 //		} else {
 			runner = runNewInsight(newInsight, additionalPixels);
-			// now I want to cache the insight
+////			 now I want to cache the insight
 //			try {
 //				InsightCacheUtility.cacheInsight(newInsight);
 //			} catch (IOException e) {
@@ -219,7 +219,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			// set the view to a vizual to paint the data
 			for(String panelId : panels.keySet()) {
 				InsightPanel panel = panels.get(panelId);
-				runner.runPixel("Panel(" + panelId + ") | SetPanelView(\"" + panel.getPanelView() + "\", " + panel.getPanelViewOptions() + "\");", tempInsight);
+				String panelView = panel.getPanelView();
+				String panelViewOptions = panel.getPanelViewOptions();
+				if(panelViewOptions != null && !panelViewOptions.isEmpty()) {
+					runner.runPixel("Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\", \"" + Utility.encodeURIComponent(panelViewOptions) + "\");", tempInsight);
+				} else {
+					runner.runPixel("Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\");", tempInsight);
+				}
 			}
 			
 			// send the view data
