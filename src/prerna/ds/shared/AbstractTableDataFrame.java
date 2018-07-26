@@ -475,7 +475,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// save the frame filters
 		List<IQueryFilter> filters = this.grf.getFilters();
 		if(!filters.isEmpty()) {
-			String frameStateFileName = folderDir + "\\FRAME_STATE__" + fileName + ".JSON";
+			String frameStateFileName = folderDir + "\\FRAME_STATE__" + fileName + ".json";
 			StringWriter writer = new StringWriter();
 			JsonWriter jWriter = new JsonWriter(writer);
 			GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
