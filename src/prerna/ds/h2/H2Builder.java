@@ -1507,18 +1507,34 @@ public class H2Builder {
 			}
 		}
 		Reader r = null;
+		GZIPInputStream gis = null;
+		FileInputStream fis = null;
 		try {
 			//load the frame
-			r = new InputStreamReader(
-			        new GZIPInputStream(
-			        new FileInputStream(filePath)));
-			RunScript.execute(DriverManager.getConnection("jdbc:h2:nio:" + this.schema, "sa", ""), r);
+			fis = new FileInputStream(filePath);
+			gis = new GZIPInputStream(fis);
+			r = new InputStreamReader(gis);
+			RunScript.execute(this.conn, r);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				if(fis != null) {
+					fis.close();
+				}
+				if(gis != null) {
+					gis.close();
+				}
+				if(r != null) {
+					r.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
