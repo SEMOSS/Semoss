@@ -1,5 +1,9 @@
 package prerna.ds.shared;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,11 +15,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -31,6 +40,7 @@ import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.util.gson.GenRowFiltersAdapter;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
@@ -448,6 +458,59 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 		return false;
 	}
+	
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+
+	/*
+	 * Caching methods
+	 */	
+	
+	protected void saveMeta(CachePropFileFrameObject cf, String folderDir, String fileName) {
+		// save frame metadata
+		String metaFileName = folderDir + "\\METADATA__" + fileName + ".owl";
+		this.metaData.save(metaFileName);
+		cf.setFrameMetaCacheLocation(metaFileName);
+		
+		// save the frame filters
+		List<IQueryFilter> filters = this.grf.getFilters();
+		if(!filters.isEmpty()) {
+			String frameStateFileName = folderDir + "\\FRAME_STATE__" + fileName + ".JSON";
+			StringWriter writer = new StringWriter();
+			JsonWriter jWriter = new JsonWriter(writer);
+			GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+			try {
+				adapter.write(jWriter, this.grf);
+				FileUtils.writeStringToFile(new File(frameStateFileName), writer.toString());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			cf.setFrameStateCacheLocation(frameStateFileName);
+		}
+		
+		//save frame type
+		String frameType = this.getClass().getName();
+		cf.setFrameType(frameType);
+	}
+	
+	protected void openCacheMeta(CachePropFileFrameObject cf) {
+		//load owl meta
+		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaCacheLocation());
+		
+		String state = cf.getFrameStateCacheLocation();
+		if(state != null) {
+			try {
+				StringReader reader = new StringReader(FileUtils.readFileToString(new File(state)));
+				JsonReader jReader = new JsonReader(reader);
+				GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+				this.grf = adapter.read(jReader);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
