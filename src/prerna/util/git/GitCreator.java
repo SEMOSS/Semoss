@@ -179,7 +179,7 @@ public class GitCreator {
 		if(includeSmss) {
 			grabItems.add("*.smss");
 		}
-		FileFilter fileFilter = fileFilter = new WildcardFileFilter(grabItems);
+		FileFilter fileFilter = new WildcardFileFilter(grabItems);
 		File[] filesToMove = appDir.listFiles(fileFilter);
 		return filesToMove;
 	}

@@ -14,6 +14,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.InsightCacheUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -97,12 +98,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			logger.info("2) Update insight to solr...");
 			editExistingInsightInSolr(engine.getEngineId(), existingId, insightName, layout, "", new ArrayList<String>());
 			logger.info("2) Done...");
-		} else {
-//			dropInsightInSolr(appId, existingId);
-//			logger.info("2) Insight is hidden ... do not add to solr");
 		}
 		
-		//update recipe text file
+		// delete the cache
+		InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), existingId);
+		// update recipe text file
 		logger.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
 		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden);
 		logger.info("3) Done");
@@ -138,15 +138,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		//TODO: update tags and stuff
 	}
 	
-//	private void dropInsightInSolr(String engineName, String rdbmsId) {
-//		try {
-//			SolrIndexEngine.getInstance().removeInsight(SolrIndexEngine.getSolrIdFromInsightEngineId(engineName, rdbmsId));
-//		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException | SolrServerException
-//				| IOException e1) {
-//			e1.printStackTrace();
-//		}
-//	}
-
 	/**
 	 * Update recipe: delete the old file and save as new
 	 * 
@@ -161,5 +152,5 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
 		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
 	}
-
+	
 }
