@@ -13,7 +13,6 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
-import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -246,27 +245,20 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderName) {
-		CachePropFileFrameObject propFrameObj = new CachePropFileFrameObject();
+	public CachePropFileFrameObject save(String folderDir) {
+		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
 		String frameName = this.getTableName();
-		propFrameObj.setFrameName(frameName);
+		cf.setFrameName(frameName);
 		
-		//save frame
-		String frameFileName = folderName + "\\" + frameName + ".rda";
-		propFrameObj.setFrameFileLocation(frameFileName);
+		// save frame
+		String frameFileName = folderDir + "\\" + frameName + ".rda";
+		cf.setFrameCacheLocation(frameFileName);
 		this.builder.save(frameFileName, frameName);
 		
-		//save frame metadata
-		String metaFileName = folderName + "\\METADATA__" + frameName;
-		propFrameObj.setFrameMetaLocation(metaFileName);
-		this.metaData.save(metaFileName);
-		
-		//save frame type
-		String frameType = this.getClass().getName();
-		propFrameObj.setFrameType(frameType);
-		
-		return propFrameObj;
+		// also save the meta details
+		this.saveMeta(cf, folderDir, frameName);
+		return cf;
 	}
 	
 	@Override
@@ -274,9 +266,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		// set the frame name
 		this.builder.dataTableName = cf.getFrameName();
 		// load the environment
-		this.builder.evalR("load(\"" + cf.getFrameFileLocation().replace("\\", "/") + "\")");
-		//load owl meta
-		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
+		this.builder.evalR("load(\"" + cf.getFrameCacheLocation().replace("\\", "/") + "\")");
+		// open the meta details
+		this.openCacheMeta(cf);
 	}
 	
 	@Override

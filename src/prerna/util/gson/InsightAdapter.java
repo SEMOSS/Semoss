@@ -15,6 +15,7 @@ import java.util.zip.ZipOutputStream;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -120,8 +121,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		for(FrameCacheHelper fObj : frames) {
 			CachePropFileFrameObject saveFrame = fObj.frame.save(folderDir);
 			out.beginObject();
-			out.name("file").value(saveFrame.getFrameFileLocation());
-			out.name("meta").value(saveFrame.getFrameMetaLocation());
+			out.name("file").value(saveFrame.getFrameCacheLocation());
+			out.name("meta").value(saveFrame.getFrameMetaCacheLocation());
+			out.name("state").value(saveFrame.getFrameStateCacheLocation());
 			out.name("type").value(saveFrame.getFrameType());
 			out.name("name").value(saveFrame.getFrameName());
 			out.name("keys");
@@ -133,8 +135,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			out.endObject();
 			
 			// add to zip
-			File f1 = new File(saveFrame.getFrameFileLocation());
-			File f2 = new File(saveFrame.getFrameMetaLocation());
+			File f1 = new File(saveFrame.getFrameCacheLocation());
+			File f2 = new File(saveFrame.getFrameMetaCacheLocation());
 
 			try {
 				InsightCacheUtility.addToZipFile(f1, zos);
@@ -255,13 +257,21 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			while(in.hasNext()) {
 				String k = in.nextName();
 				if(k.equals("file")) {
-					cf.setFrameFileLocation(in.nextString());
+					cf.setFrameCacheLocation(in.nextString());
 				} else if(k.equals("meta")) {
-					cf.setFrameMetaLocation(in.nextString());
+					cf.setFrameMetaCacheLocation(in.nextString());
 				} else if(k.equals("type")) {
 					cf.setFrameType(in.nextString());
 				} else if(k.equals("name")) {
 					cf.setFrameName(in.nextString());
+				} else if(k.equals("state")) {
+					// this is not always present
+					JsonToken peek = in.peek();
+					if(peek == JsonToken.NULL) {
+						in.nextNull();
+					} else {
+						cf.setFrameStateCacheLocation(in.nextString());
+					}
 				} else if(k.equals("keys")) {
 					in.beginArray();
 					while(in.hasNext()) {

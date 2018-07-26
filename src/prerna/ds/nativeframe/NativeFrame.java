@@ -17,7 +17,6 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
-import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -218,10 +217,10 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public CachePropFileFrameObject save(String folderDir) {
-		CachePropFileFrameObject propFrameObj = new CachePropFileFrameObject();
+		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		
 		String randFrameName = "Native" + Utility.getRandomString(6);
-		propFrameObj.setFrameName(randFrameName);
+		cf.setFrameName(randFrameName);
 		String frameFileName = folderDir + "\\" + randFrameName + ".json";
 
 		// save frame - this is just the QS
@@ -234,18 +233,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		propFrameObj.setFrameFileLocation(frameFileName);
+		cf.setFrameCacheLocation(frameFileName);
 		
-		// save frame metadata
-		String metaFileName = folderDir + "\\METADATA__" + randFrameName + ".owl";
-		this.metaData.save(metaFileName);
-		propFrameObj.setFrameMetaLocation(metaFileName);
-		
-		//save frame type
-		String frameType = this.getClass().getName();
-		propFrameObj.setFrameType(frameType);
-		
-		return propFrameObj;
+		// also save the meta details
+		this.saveMeta(cf, folderDir, randFrameName);
+		return cf;
 	}
 	
 	@Override
@@ -253,7 +245,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// load the frame
 		// this is just the QS
 		try {
-			StringReader reader = new StringReader(FileUtils.readFileToString(new File(cf.getFrameFileLocation())));
+			StringReader reader = new StringReader(FileUtils.readFileToString(new File(cf.getFrameCacheLocation())));
 			JsonReader jReader = new JsonReader(reader);
 			QueryStructAdapter adapter = new QueryStructAdapter();
 			this.qs = adapter.read(jReader);
@@ -261,8 +253,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 			e.printStackTrace();
 		}
 		
-		//load owl meta
-		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
+		// open the meta details
+		this.openCacheMeta(cf);
 	}
 	
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/
