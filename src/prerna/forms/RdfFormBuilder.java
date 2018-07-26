@@ -186,6 +186,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			Calendar cal = Calendar.getInstance();
 			String currTime = DATE_DF.format(cal.getTime());
 			addAuditLog(ADD, instanceSubjectURI, baseRelationshipURI, instanceObjectURI, "", "", currTime);
+			this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{baseRelationshipURI, RDFS.SUBPROPERTYOF, relationBaseURI, true});
 			this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDFS.SUBPROPERTYOF, baseRelationshipURI, true});
 			this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDFS.SUBPROPERTYOF, relationBaseURI, true});
 			this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{instanceRelationshipURI, RDF.TYPE, RDF.PROPERTY, true});
@@ -322,17 +323,36 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			String currTime = DATE_DF.format(cal.getTime());
 			addAuditLog(REMOVE, subURI, baseRelationshipURI, objURI, "", "", currTime);
 			
-			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationshipURI, true});
-			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationURI, true});
-			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDF.TYPE, RDF.PROPERTY, true});
-			if(label != null && !label.toString().isEmpty()) {
-				this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.LABEL, label.toString(), false});
+			// do not delete predUris if not instance lvl
+			if(predURI.startsWith("http://semoss.org/ontologies/Relation/") && Utility.getClassName(predURI).equals("Relation")) {
+				continue;
 			}
-			if(propURI != null && !propURI.toString().isEmpty()) {
-				this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, propURI.toString(), propVal, false});
-				// add audit log statement
-				currTime = DATE_DF.format(cal.getTime());
-				addAuditLog(REMOVE, "", predURI, "", propURI.toString(), propVal + "", currTime);
+			// gotta be smart since instance lvl preds are not actually unique
+			// run a query and see
+			StringBuilder miniQ = new StringBuilder("select distinct ?s ?p ?o where {");
+			miniQ.append("bind(<").append(predURI).append("> as ?p)");
+			miniQ.append("{?s ?p ?o} }");
+
+			IRawSelectWrapper wrapper2 = WrapperManager.getInstance().getRawWrapper(this.engine, miniQ.toString());
+			boolean otherUris = false;
+			if(wrapper2.hasNext()) {
+				otherUris = true;
+				wrapper2.cleanUp();
+			}
+			
+			if(!otherUris) {
+				this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationshipURI, true});
+				this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.SUBPROPERTYOF, baseRelationURI, true});
+				this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDF.TYPE, RDF.PROPERTY, true});
+				if(label != null && !label.toString().isEmpty()) {
+					this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, RDFS.LABEL, label.toString(), false});
+				}
+				if(propURI != null && !propURI.toString().isEmpty()) {
+					this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{predURI, propURI.toString(), propVal, false});
+					// add audit log statement
+					currTime = DATE_DF.format(cal.getTime());
+					addAuditLog(REMOVE, "", predURI, "", propURI.toString(), propVal + "", currTime);
+				}
 			}
 		}
 	}
