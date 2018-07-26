@@ -17,6 +17,7 @@ import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -90,15 +91,21 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		// yay... not legacy
+		boolean isParam = PixelUtility.hasParam(newInsight.getPixelRecipe());
+		boolean isDashoard = PixelUtility.isDashboard(newInsight.getPixelRecipe());
 		
+		// if not param or dashboard, we can try to load a cache
 		// do we have a cached insight we can use
-//		boolean hasCache = false;
-//		Insight cachedInsight = getCachedInsight(newInsight.getEngineId(), newInsight.getEngineName(), newInsight.getRdbmsId());
-//		if(cachedInsight != null) {
-//			hasCache = true;
-//			cachedInsight.setInsightName(newInsight.getInsightName());
-//			newInsight = cachedInsight;
-//		}
+		boolean hasCache = false;
+		Insight cachedInsight = null;
+		if(!isParam && !isDashoard) {
+			cachedInsight = getCachedInsight(newInsight.getEngineId(), newInsight.getEngineName(), newInsight.getRdbmsId());
+			if(cachedInsight != null) {
+				hasCache = true;
+				cachedInsight.setInsightName(newInsight.getInsightName());
+				newInsight = cachedInsight;
+			}
+		}
 		
 		// add the insight to the insight store
 		InsightStore.getInstance().put(newInsight);
@@ -108,17 +115,19 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		// get the insight output
 		PixelRunner runner = null;
-//		if(hasCache) {
-//			runner = getCachedInsightData(cachedInsight);
-//		} else {
+		if(hasCache) {
+			runner = getCachedInsightData(cachedInsight);
+		} else {
 			runner = runNewInsight(newInsight, additionalPixels);
-////			 now I want to cache the insight
-//			try {
-//				InsightCacheUtility.cacheInsight(newInsight);
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		}
+//			now I want to cache the insight
+			if(!isParam && !isDashoard) {
+				try {
+					InsightCacheUtility.cacheInsight(newInsight);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		
 		// update the universal view count
 		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
