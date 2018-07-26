@@ -10,6 +10,7 @@ import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -49,6 +50,7 @@ public class GsonUtility {
 				.registerTypeAdapter(QueryOpaqueSelector.class, new QueryOpaqueSelectorAdapter())
 				
 				// filters
+				.registerTypeAdapter(GenRowFilters.class, new GenRowFiltersAdapter())
 				.registerTypeAdapter(IQueryFilter.class, new IQueryFilterAdapter())
 				.registerTypeAdapter(SimpleQueryFilter.class, new SimpleQueryFilterAdapter())
 				.registerTypeAdapter(OrQueryFilter.class, new OrQueryFilterAdapter())

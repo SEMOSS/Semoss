@@ -941,12 +941,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public CachePropFileFrameObject save(String folderDir) {
-		CachePropFileFrameObject propFrameObj = new CachePropFileFrameObject();
-				
+		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		String randFrameName = "Tinker" + Utility.getRandomString(6);
-		propFrameObj.setFrameName(randFrameName);
-		String frameFileName = folderDir + "\\" + randFrameName + ".tg";
+		cf.setFrameName(randFrameName);
 
+		String frameFileName = folderDir + "\\" + randFrameName + ".tg";
 		// save frame
 		Builder<GryoIo> builder = IoCore.gryo();
 		builder.graph(g);
@@ -958,37 +957,29 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		propFrameObj.setFrameFileLocation(frameFileName);
-		
-		// save frame metadata
-		String metaFileName = folderDir + "\\METADATA__" + randFrameName + ".owl";
-		this.metaData.save(metaFileName);
-		propFrameObj.setFrameMetaLocation(metaFileName);
-		
-		//save frame type
-		String frameType = this.getClass().getName();
-		propFrameObj.setFrameType(frameType);
-		
-		return propFrameObj;
+		cf.setFrameCacheLocation(frameFileName);
+
+		// also save the meta details
+		this.saveMeta(cf, folderDir, randFrameName);
+		return cf;
 	}
 	
 	@Override
 	public void open(CachePropFileFrameObject cf) {
 		// load the frame
-		// this is just the QS
 		try {
 			Builder<GryoIo> builder = IoCore.gryo();
 			builder.graph(this.g);
 			IoRegistry kryo = new MyGraphIoRegistry();
 			builder.registry(kryo);
 			GryoIo yes = builder.create();
-			yes.readGraph(cf.getFrameFileLocation());
+			yes.readGraph(cf.getFrameCacheLocation());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
-		//load owl meta
-		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaLocation());
+		// open the meta details
+		this.openCacheMeta(cf);
 	}
 	
 	public void insertBlanks(String colName, List<String> addedColumns) {
