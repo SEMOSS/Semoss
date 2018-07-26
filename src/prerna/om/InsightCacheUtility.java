@@ -2,6 +2,7 @@ package prerna.om;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -10,19 +11,23 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.cache.ICache;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -207,6 +212,37 @@ public class InsightCacheUtility {
 			}
 		}
 		return null;
-	} 
+	}
+	
+	/**
+	 * Delete cached files for an insight
+	 * @param engineId
+	 * @param engineName
+	 * @param rdbmsId
+	 */
+	public static void deleteCache(String engineId, String engineName, String rdbmsId) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String folderDir = baseFolder + DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
+				+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsId;
+		File folder = new File(folderDir); 
+		if(!folder.exists()) {
+			return;
+		}
+		
+		List<String> extentions = new Vector<String>();
+		extentions.add("*.gz");
+		extentions.add("*.json");
+		extentions.add("*.JSON");
+		extentions.add("*.zip");
+		extentions.add("*.owl");
+		extentions.add("*.tg");
+		extentions.add("*.tg");
+
+		FileFilter fileFilter = new WildcardFileFilter(extentions);
+		File[] cacheFiles = folder.listFiles(fileFilter);
+		for(File f : cacheFiles) {
+			ICache.deleteFile(f);
+		}
+	}
 	
 }
