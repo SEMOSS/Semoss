@@ -136,6 +136,7 @@ import prerna.sablecc2.reactor.insights.OpenOptimizedInsightReactor;
 import prerna.sablecc2.reactor.insights.RetrieveInsightOrnamentReactor;
 import prerna.sablecc2.reactor.insights.SetInsightOrnamentReactor;
 import prerna.sablecc2.reactor.insights.dashboard.DashboardInsightConfigReactor;
+import prerna.sablecc2.reactor.insights.save.DeleteInsightCacheReactor;
 import prerna.sablecc2.reactor.insights.save.DeleteInsightReactor;
 import prerna.sablecc2.reactor.insights.save.SaveInsightReactor;
 import prerna.sablecc2.reactor.insights.save.UpdateInsightImageReactor;
@@ -413,6 +414,7 @@ public class ReactorFactory {
 		reactorHash.put("StoreUniqueValuesCount", StoreUniqueColumnsReactor.class);
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
+		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
 		
 		//Database uploading utils
 		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
