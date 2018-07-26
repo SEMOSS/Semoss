@@ -364,6 +364,7 @@ public class InsightPanel {
 		this.events.putAll(gson.fromJson(gson.toJson(existingPanel.events), Map.class));
 		this.grf = existingPanel.grf.copy();
 		this.view = existingPanel.view;
+		this.viewOptions = existingPanel.viewOptions;
 		this.panelLabel = existingPanel.panelLabel + " Clone";
 	}
 }
