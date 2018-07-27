@@ -89,7 +89,7 @@ public class ActiveSystemUpdater {
 		DIHelper.getInstance().setLocalProperty("security", coreEngine);
 		AbstractSecurityUtils.loadSecurityDatabase();
 
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__999e74d9-252a-4f1d-b368-37f063fc065a.smss";
+		engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
 		coreEngine = new BigDataEngine();
 		coreEngine.setEngineId("TAP_Core_Data");
 		coreEngine.openDB(engineProp);
