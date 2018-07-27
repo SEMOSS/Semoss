@@ -201,7 +201,28 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         		// if it exists, then remove it, we don't need any of these expressions
         		panelMap.remove(closePanelId);
         	}
-        }
+		} else if (reactorId.equals("Clone")) {
+			POpInput closePanelInput = node.getOpInput();
+			String panel = closePanelInput.toString();
+			panel = panel.trim();
+			if (panelMap.keySet().contains(panel)) {
+				// if the panel DOES already exist in the panelMap, we just need
+				// to add the expression id to the set of values
+				// first get the existing set of index values
+				ArrayList<Integer> indexVals = panelMap.get(panel);
+				// next, add the new index value to the list of values
+				indexVals.add(index);
+				// add the updated set of index values to the panelMap
+				panelMap.put(panel, indexVals);
+
+			} else {
+				// if the panel DOES NOT already exist in the panelMap, we need
+				// to add it
+				ArrayList<Integer> indexVals = new ArrayList<Integer>();
+				indexVals.add(index);
+				panelMap.put(panel, indexVals);
+			}
+		}
 	}
 	
 	/**
