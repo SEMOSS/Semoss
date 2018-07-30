@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 
 public class UpdateQueryStruct extends AbstractQueryStruct {
@@ -56,6 +57,25 @@ public class UpdateQueryStruct extends AbstractQueryStruct {
 				this.values.add(val);
 			}
 		}
+	}
+	
+	/**
+	 * Gets a new QS with the base information moved over
+	 * This is basically the qs type + enginename + csv/excel properties
+	 * Note csv/excel qs overrides this method
+	 * @return
+	 */
+	public UpdateQueryStruct getNewBaseQueryStruct() {
+		UpdateQueryStruct newQs = new UpdateQueryStruct();
+		newQs.setQsType(this.qsType);
+		if(this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+			newQs.setEngineId(this.engineId);
+			newQs.setEngine(this.engine);
+		} else if(this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
+			newQs.setFrame(this.frame);
+		}
+		newQs.setValues(this.values);
+		return newQs;
 	}
 	
 }
