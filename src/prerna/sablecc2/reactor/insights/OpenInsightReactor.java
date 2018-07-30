@@ -255,6 +255,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 						, tempInsight);
 			}
 			
+			// we need to reset the recipe
+			tempInsight.setPixelRecipe(insight.getPixelRecipe());
+			
 			return runner;
 		} catch (IOException e) {
 			e.printStackTrace();
