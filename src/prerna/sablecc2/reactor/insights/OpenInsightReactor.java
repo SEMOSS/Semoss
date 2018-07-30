@@ -91,7 +91,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		// yay... not legacy
-		boolean isParam = PixelUtility.hasParam(newInsight.getPixelRecipe());
+		boolean isParam = params != null || PixelUtility.hasParam(newInsight.getPixelRecipe());
 		boolean isDashoard = PixelUtility.isDashboard(newInsight.getPixelRecipe());
 		
 		// if not param or dashboard, we can try to load a cache
