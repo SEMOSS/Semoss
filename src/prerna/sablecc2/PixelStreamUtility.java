@@ -393,6 +393,7 @@ public class PixelStreamUtility {
 			ps.print("\"name\":" + gson.toJson(innerInsight.getInsightName()));
 			ps.print(",\"core_engine\":" + gson.toJson(innerInsight.getEngineId()));
 			ps.print(",\"core_engine_id\":" + gson.toJson(innerInsight.getRdbmsId()));
+			ps.print(",\"recipe\":" + gson.toJson(innerInsight.getPixelRecipe()));
 			ps.print(",\"params\":" + gson.toJson(params));
 			ps.print(",\"additionalPixels\":" + gson.toJson(additionalPixels));
 			ps.flush();
