@@ -29,6 +29,7 @@ package prerna.om;
 
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -110,7 +111,7 @@ public class Insight {
 	private transient LinkedList<InsightComment> insightCommentList = null;
 	
 	// this is the store holding information around the panels associated with this insight
-	private transient Map<String, InsightPanel> insightPanels = new Hashtable<String, InsightPanel>();
+	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
 	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
 
 	// old - for pkql
