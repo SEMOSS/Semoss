@@ -294,6 +294,9 @@ public abstract class AbstractQueryStruct {
 		if(incomingQS.getEngine() != null) {
 			setEngine(incomingQS.getEngine());
 		}
+		if(incomingQS.getFrame() != null) {
+			setFrame(incomingQS.getFrame());
+		}
 	}
 	
 	public void mergeSelectors(List<IQuerySelector> incomingSelectors) {
