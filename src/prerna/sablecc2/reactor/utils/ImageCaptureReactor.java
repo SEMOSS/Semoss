@@ -1,11 +1,7 @@
 package prerna.sablecc2.reactor.utils;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -17,16 +13,10 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.InsightParamTranslation;
-import prerna.sablecc2.PixelPreProcessor;
-import prerna.sablecc2.lexer.Lexer;
-import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.Start;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.parser.Parser;
-import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -93,7 +83,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			return;
 		}
 		List<String> recipe = insight.getPixelRecipe();
-		if(params != null || !hasParam(recipe)) {
+		if(params != null || !PixelUtility.hasParam(recipe)) {
 			String[] cmd = getCmdArray(feUrl, insight, params);
 			Process p = null;
 			try {
@@ -120,35 +110,6 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				}
 			}
 		}
-	}
-	
-	/**
-	 * See if the insight has a parameter
-	 * @param recipe
-	 * @return
-	 */
-	public static boolean hasParam(List<String> recipe) {
-		InsightParamTranslation translation = new InsightParamTranslation();
-		for(String expression : recipe) {
-			expression = PixelPreProcessor.preProcessPixel(expression.trim(), new HashMap<String, String>());
-			try {
-				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-				// parsing the pixel - this process also determines if expression is syntactically correct
-				Start tree = p.parse();
-				// apply the translation.
-				tree.apply(translation);
-				
-				// is it a param?
-				if(translation.hasParam()) {
-					return true;
-				}
-			} catch (ParserException | LexerException | IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		// isn't a param
-		return false;
 	}
 	
 	private static String[] getCmdArray(String feUrl, Insight in, String params) {
