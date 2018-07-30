@@ -66,7 +66,6 @@ public class UpdateSqlInterpreter {
 	//////////////////////////////////////////// Compose Query //////////////////////////////////////////////
 
 	public String composeQuery() {
-		
 		addSelectors();
 		addSets();
 		addFilters();
