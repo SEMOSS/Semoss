@@ -6,10 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -28,10 +30,26 @@ public class QueryInsertReactor extends AbstractReactor {
 		if(qStruct == null) {
 			qStruct = getQueryStruct();
 		}
-		SelectQueryStruct qs = (SelectQueryStruct) qStruct.getValue();
-		IEngine engine = qs.retrieveQueryStructEngine();
-		if(!(engine instanceof RDBMSNativeEngine)){
-			throw new IllegalArgumentException("Insert query only works for rdbms databases");
+		
+		AbstractQueryStruct qs = (AbstractQueryStruct) qStruct.getValue();
+		IEngine engine = null;
+		ITableDataFrame frame = null;
+		
+		if(qStruct.getValue() instanceof AbstractQueryStruct) {
+			qs = ((AbstractQueryStruct) qStruct.getValue());
+			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+				engine = qs.retrieveQueryStructEngine();
+				if(!(engine instanceof RDBMSNativeEngine)) {
+					throw new IllegalArgumentException("Insert query only works for rdbms databases");
+				}
+			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+				frame = qs.getFrame();
+				if(!(frame instanceof H2Frame)) {
+					throw new IllegalArgumentException("Insert query only works for sql frames");
+				}
+			}
+		} else {
+			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
 		
 		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
@@ -89,9 +107,17 @@ public class QueryInsertReactor extends AbstractReactor {
 			}
 			valuesSb.append(")");
 			
-			// execute query
-			System.out.println("SQL QUERY..." + initial + valuesSb.toString());
-			engine.insertData(initial + valuesSb.toString());
+			String query = initial + valuesSb.toString();
+			System.out.println("SQL QUERY...." + query);
+			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+				engine.insertData(query);
+			} else {
+				try {
+					((H2Frame) frame).getBuilder().runQuery(query);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
