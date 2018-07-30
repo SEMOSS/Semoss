@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -15,13 +16,12 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
-import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.query.querystruct.selectors.QueryOpaqueSelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.GsonUtility;
@@ -31,7 +31,49 @@ public class QSAliasToPhysicalConverter {
 	private QSAliasToPhysicalConverter() {
 
 	}
+	
+	public static AbstractQueryStruct getPhysicalQs(AbstractQueryStruct qs, OwlTemporalEngineMeta meta) {
+		if(qs instanceof SelectQueryStruct) {
+			return getPhysicalQs((SelectQueryStruct) qs, meta);
+		} else if(qs instanceof UpdateQueryStruct) {
+			return getPhysicalQs((UpdateQueryStruct) qs, meta);
+		}
+		
+		return qs;
+	}
 
+	public static UpdateQueryStruct getPhysicalQs(UpdateQueryStruct qs, OwlTemporalEngineMeta meta) {
+		// need to modify and re-add all the selectors
+		UpdateQueryStruct convertedQs = qs.getNewBaseQueryStruct();
+
+		// grab all the selectors
+		// and need to recursively modify the column ones
+		Map<String, IQuerySelector> aliases = new HashMap<String, IQuerySelector>();
+		List<IQuerySelector> origSelectors = qs.getSelectors();
+		List<IQuerySelector> convertedSelectors = new Vector<IQuerySelector>();
+		for(int i = 0; i < origSelectors.size(); i++) {
+			IQuerySelector origS = origSelectors.get(i);
+			IQuerySelector convertedS = convertSelector(origS, meta);
+			convertedSelectors.add(convertedS);
+			aliases.put(convertedS.getAlias(), convertedS);
+		}
+		convertedQs.setSelectors(convertedSelectors);
+
+		// now go through the filters
+		convertedQs.setImplicitFilters(convertGenRowFilters(qs.getImplicitFilters(), meta));
+		convertedQs.setExplicitFilters(convertGenRowFilters(qs.getExplicitFilters(), meta));
+		convertedQs.setHavingFilters(convertHavingGenRowFilters(qs.getHavingFilters(), meta, aliases));
+
+		// now go through the joins
+		Map<String, Map<String, List>> joins = qs.getRelations();
+		if(joins != null && !joins.isEmpty()) {
+			Map<String, Map<String, List>> convertedJoins = convertJoins(joins, meta);
+			convertedQs.setRelations(convertedJoins);
+		}
+		
+		return convertedQs;
+	}
+	
 	public static SelectQueryStruct getPhysicalQs(SelectQueryStruct qs, OwlTemporalEngineMeta meta) {
 		if(qs instanceof HardSelectQueryStruct) {
 			return qs;
