@@ -1,6 +1,7 @@
 package prerna.om;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
@@ -91,12 +92,8 @@ public class InsightCacheUtility {
 		} catch(Exception e) {
 			e.printStackTrace();
 		} finally {
-			if(zos != null) {
-				zos.close();
-			}
-			if(fos != null) {
-				fos.close();
-			}
+			closeStream(zos);
+			closeStream(fos);
 		}
 		
 		return zipFile;
@@ -121,11 +118,8 @@ public class InsightCacheUtility {
 				zos.write(buffer, 0, length);
 			}
 		} finally {
-			if(fis != null) {
-				fis.close();
-			}
+			closeStream(fis);
 		}
-		zos.closeEntry();
 	}
 	
 	/**
@@ -134,11 +128,15 @@ public class InsightCacheUtility {
 	 * @return
 	 */
 	public static Insight readInsightCache(File insightCacheZip) {
+		ZipFile zip = null;
+		ZipEntry entry = null;
+		InputStream is = null;
+		BufferedReader br = null;
 		try {
-			ZipFile zip = new ZipFile(insightCacheZip);
-			ZipEntry entry = zip.getEntry(MAIN_INSIGHT_JSON);
-			InputStream is = zip.getInputStream(entry);
-			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			zip = new ZipFile(insightCacheZip);
+			entry = zip.getEntry(MAIN_INSIGHT_JSON);
+			is = zip.getInputStream(entry);
+			br = new BufferedReader(new InputStreamReader(is));
 	        StringBuilder sb = new StringBuilder();
 	        String line;
 	        while ((line = br.readLine()) != null) {
@@ -154,6 +152,10 @@ public class InsightCacheUtility {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			closeStream(br);
+			closeStream(is);
+			closeStream(zip);
 		}
 		
 		return null;
@@ -242,6 +244,20 @@ public class InsightCacheUtility {
 		File[] cacheFiles = folder.listFiles(fileFilter);
 		for(File f : cacheFiles) {
 			ICache.deleteFile(f);
+		}
+	}
+	
+	/**
+	 * Close a stream
+	 * @param is
+	 */
+	private static void closeStream(Closeable is) {
+		if(is != null) {
+			try {
+				is.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
