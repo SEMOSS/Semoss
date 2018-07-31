@@ -32,7 +32,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor  {
 		organizeKeys();
 
 		// check if packages are installed
-		String[] packages = { "RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "philentropy","igraph" };
+		String[] packages = { "RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "igraph", "proxy" };
 		this.rJavaTranslator.checkPackages(packages);
 		boolean communities = getBool();
 		
@@ -55,6 +55,10 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor  {
 			this.rJavaTranslator.runR(script);
 
 			String json = this.rJavaTranslator.getString("output;");
+			// the script failed or they dont have the historical data
+			if(json == null){
+				return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.RECOMMENDATION);
+			}
 			Gson gson = new Gson();
 			ArrayList<HashMap<String, ArrayList<String>>> myList = gson.fromJson(json, new TypeToken<ArrayList<HashMap<String, ArrayList<String>>>>(){}.getType());
 
@@ -90,6 +94,10 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor  {
 
 			// parse R json response for final recommendation data
 			String json = this.rJavaTranslator.getString("output;");
+			// the script failed or they dont have the historical data
+			if(json == null){
+				return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.RECOMMENDATION);
+			}
 			Gson gson = new Gson();
 			ArrayList<Map<String, String>> myList = gson.fromJson(json,	new TypeToken<ArrayList<HashMap<String, String>>>() {}.getType());
 			for (int i = 0; i < myList.size(); i++) {
