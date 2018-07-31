@@ -33,6 +33,9 @@ import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.translations.OptimizeRecipeTranslation;
@@ -155,6 +158,20 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			InsightPanel panel = panels.get(key);
 			InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
 			panelAdapter.write(out, panel);
+		}
+		out.endArray();
+
+		// write the tasks
+		out.name("tasks");
+		out.beginArray();
+		TaskStore tStore = value.getTaskStore();
+		Set<String> tasks = tStore.getTaskIds();
+		for(String taskId : tasks) {
+			ITask t = tStore.getTask(taskId);
+			if(t instanceof BasicIteratorTask) {
+				BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
+				adapter.write(out, (BasicIteratorTask) t); 
+			}
 		}
 		out.endArray();
 		
@@ -312,6 +329,14 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		}
 		in.endArray();
 		
+		// this will be the tasks
+		in.nextName();
+		in.beginArray();
+		while(in.hasNext()) {
+			BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
+			BasicIteratorTask t = adapter.read(in);
+			insight.getTaskStore().addTask(t.getId(), t);
+		}
 		
 		// this will be the recipe
 		in.nextName();
