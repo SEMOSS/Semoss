@@ -316,6 +316,10 @@ public class Insight {
 		return this.insightPanels;
 	}
 	
+	public void setInsightPanels(Map<String, InsightPanel> insightPanels) {
+		this.insightPanels = insightPanels;
+	}
+	
 	public InsightPanel getInsightPanel(String panelId) {
 		return this.insightPanels.get(panelId);
 	}
@@ -756,7 +760,5 @@ public class Insight {
 			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(dm, PixelDataType.FRAME, PixelOperationType.FRAME));
 		}
 		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
-	}	
-
-	
+	}
 }
