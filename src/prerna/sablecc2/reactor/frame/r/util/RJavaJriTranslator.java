@@ -29,6 +29,21 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	}
 	
 	/**
+	 * Create a new engine if it doesn't exist
+	 * @return
+	 */
+	private static synchronized Rengine generateEngine() {
+		String OS = java.lang.System.getProperty("os.name").toLowerCase();
+		if(!OS.contains("win")) {
+			// not windows - pass in vanilla
+			return new Rengine(new String[]{"--vanilla"}, true, null);
+		} else {
+			// windows only works if you pass in null... word...
+			return new Rengine(null, true, null);
+		}
+	}
+	
+	/**
 	 * This will start R, only if it has not already been started
 	 * In this case we are starting an engine for JRI
 	 */
@@ -46,17 +61,10 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			logger.info("Connection right now is set to: " + retEngine);
 		}
 		
-		String OS = java.lang.System.getProperty("os.name").toLowerCase();
 		if(retEngine == null) {
 			try {
 				// start the R Engine
-				if(!OS.contains("win")) {
-					// not windows - pass in vanilla
-					retEngine = new Rengine(new String[]{"--vanilla"}, true, null);
-				} else {
-					// windows only works if you pass in null... word...
-					retEngine = new Rengine(null, true, null);
-				}
+				retEngine = generateEngine();
 				logger.info("Successfully created engine.. ");
 
 				// load all the libraries
