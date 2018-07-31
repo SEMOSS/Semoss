@@ -38,6 +38,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.translations.OptimizeRecipeTranslation;
@@ -166,6 +167,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// write the tasks
 		out.name("tasks");
 		out.beginArray();
+		// i am also going to store
+		// a task id to panel map
+		// which will be used for the json cache of the view
+		Map<String, String> panelIdToTask = new HashMap<String, String>();
+		
 		TaskStore tStore = value.getTaskStore();
 		Set<String> tasks = tStore.getTaskIds();
 		for(String taskId : tasks) {
@@ -173,6 +179,16 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			if(t instanceof BasicIteratorTask) {
 				BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
 				adapter.write(out, (BasicIteratorTask) t); 
+			}
+			
+			// store the task to panel ids
+			// note: this works because the tasks are stored in order
+			TaskOptions taskOptions = t.getTaskOptions();
+			if(taskOptions != null && !taskOptions.isEmpty()) {
+				Set<String> panelIds = taskOptions.getPanelIds();
+				for(String panelId : panelIds) {
+					panelIdToTask.put(panelId, taskId);
+				}
 			}
 		}
 		out.endArray();
@@ -200,6 +216,26 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		rerunInsight.setUser(value.getUser());
 		rerunInsight.setInsightPanels(value.getInsightPanels());
 		PixelRunner pixelRunner = rerunInsight.runPixel(lastViewPixels);
+		// i am going to need to go through
+		// and re-align the task ids to match properly
+		List<NounMetadata> pixelRunnerResults = pixelRunner.getResults();
+		NOUN_LOOP : for(NounMetadata noun : pixelRunnerResults) {
+			if(noun.getValue() instanceof ITask) {
+				ITask t = (ITask) noun.getValue();
+				TaskOptions taskOptions = t.getTaskOptions();
+				if(taskOptions != null && !taskOptions.isEmpty()) {
+					Set<String> panelIds = taskOptions.getPanelIds();
+					for(String panelId : panelIds) {
+						if(panelIdToTask.containsKey(panelId)) {
+							t.setId(panelIdToTask.get(panelId));
+							continue NOUN_LOOP;
+						}
+					}
+				}
+			}
+		}
+		// now that we have updated the task ids
+		// lets write it
 		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile, false);
 		
 		// add it to the zip
