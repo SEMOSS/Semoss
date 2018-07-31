@@ -133,6 +133,8 @@ public enum PixelOperationType {
 	
 	USER_INPUT_REQUIRED,
 	LOGGIN_REQUIRED_ERROR,
+	
+	CHECK_R_PACKAGES,
 
 	INVALID_SYNTAX;
 }
