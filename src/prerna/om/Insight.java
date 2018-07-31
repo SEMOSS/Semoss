@@ -455,6 +455,10 @@ public class Insight {
 		return this.taskStore;
 	}
 	
+	public void setTaskStore(TaskStore taskStore) {
+		this.taskStore = taskStore;
+	}
+	
 	/////////////////////////////////////////////////////////////////
 	
 	/*
