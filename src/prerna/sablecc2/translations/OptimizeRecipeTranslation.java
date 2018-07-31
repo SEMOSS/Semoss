@@ -185,10 +185,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
     			indexVals.add(index);
     			panelMap.put(panel, indexVals);
     		}
-        	
-        	
-        	
-        } else if (reactorId.equals("ClosePanel")) {
+        } 
+        else if (reactorId.equals("ClosePanel")) {
         	// if we close the panel, then we can get rid of the places we had TaskOptions for that panel
         	// the TaskOptions so far are kept track of in panel map
         	// first, grab the input from the ClosePanel reactor
@@ -201,7 +199,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         		// if it exists, then remove it, we don't need any of these expressions
         		panelMap.remove(closePanelId);
         	}
-		} else if (reactorId.equals("Clone")) {
+		}
+        else if (reactorId.equals("Clone")) {
 			POpInput closePanelInput = node.getOpInput();
 			String panel = closePanelInput.toString();
 			panel = panel.trim();
