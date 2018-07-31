@@ -14,7 +14,6 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
-import prerna.ds.util.flatfile.ExcelFileIterator;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
