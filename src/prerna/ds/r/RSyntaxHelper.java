@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
-import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
@@ -372,16 +371,10 @@ public class RSyntaxHelper {
 	 */
 	public static String loadExcelSheet(String filePath, String frameName, String sheetName, String sheetRange) {
 		StringBuilder rsb = new StringBuilder();
-		int[] rangeIndex = ExcelRange.getSheetRangeIndex(sheetRange);
-		int startCol = rangeIndex[0];
-		int endCol = rangeIndex[2];
-		int startRow = rangeIndex[1];
-		int endRow = rangeIndex[3];
-		rsb.append("library(openxlsx);");
+		rsb.append("library(readxl);library(cellranger);");
 		filePath = filePath.replace("\\", "/");
-		rsb.append(frameName + " <- read.xlsx(xlsxFile = \"" + filePath + "\", sheet = \"" + sheetName
-				+ "\", skipEmptyRows=FALSE, cols=c(" + startCol + ":" + endCol + "), rows = c(" + startRow + ":"
-				+ endRow + "));");
+		rsb.append(frameName + " <- read_excel(path = \"" + filePath + "\", col_names = TRUE, sheet = \"" + sheetName + "\", range='"
+				+ sheetRange + "');");
 		rsb.append(frameName + " <- as.data.table(" + frameName + ");");
 		return rsb.toString();
 	}
