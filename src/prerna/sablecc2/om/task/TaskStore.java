@@ -19,6 +19,7 @@ public class TaskStore {
 	public String addTask(String taskId, ITask task) {
 		LOGGER.info("Adding new task = " + taskId);
 		this.taskMap.put(taskId, task);
+		++count;
 		return taskId;
 	}
 	
