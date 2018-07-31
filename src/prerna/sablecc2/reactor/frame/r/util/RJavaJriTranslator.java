@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.RFactor;
@@ -16,6 +19,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RJavaJriTranslator extends AbstractRJavaTranslator {
+
+	private static ConcurrentMap<String, ReentrantLock> genEngineLock = new ConcurrentHashMap<String, ReentrantLock>();
 
 	Rengine engine;
 
@@ -43,6 +48,11 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		}
 	}
 	
+	private static ReentrantLock getEngineLock(String id) {
+		genEngineLock.putIfAbsent(id, new ReentrantLock());
+		return genEngineLock.get(id);
+	}
+	
 	/**
 	 * This will start R, only if it has not already been started
 	 * In this case we are starting an engine for JRI
@@ -63,51 +73,57 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		
 		if(retEngine == null) {
 			try {
-				// start the R Engine
-				retEngine = generateEngine();
-				logger.info("Successfully created engine.. ");
-
-				// load all the libraries
-				Object ret = retEngine.eval("library(splitstackshape);");
-				if(ret == null) {
-					throw new ClassNotFoundException("Package splitstackshape could not be found!");
-				} else {
-					logger.info("Successfully loaded packages splitstackshape");
-				}
-				// data table
-				ret = retEngine.eval("library(data.table);");
-				if(ret == null) {
-					throw new ClassNotFoundException("Package data.table could not be found!");
-				} else {
-					logger.info("Successfully loaded packages data.table");
-				}
-				// reshape2
-				ret = retEngine.eval("library(reshape2);");
-				if(ret == null) {
-					throw new ClassNotFoundException("Package reshape2 could not be found!");
-				} else {
-					logger.info("Successfully loaded packages reshape2");
-				}
-				// stringr
-				ret = retEngine.eval("library(stringr);");
-				if(ret == null) {
-					throw new ClassNotFoundException("Package stringr could not be found!");
-				} else {
-					logger.info("Successfully loaded packages stringr");
-				}
-				// lubridate
-				ret = retEngine.eval("library(lubridate);");
-				if(ret == null) {
-					throw new ClassNotFoundException("Package lubridate could not be found!");
-				} else {
-					logger.info("Successfully loaded packages lubridate");
-				}
-				// dplyr
-				ret = retEngine.eval("library(dplyr);");
-				if(ret == null) {
-					throw new ClassNotFoundException("Package dplyr could not be found!");
-				} else {
-					logger.info("Successfully loaded packages dplyr");
+				ReentrantLock lock = getEngineLock("genId");
+				lock.lock();
+				try {
+					// start the R Engine
+					retEngine = generateEngine();
+					logger.info("Successfully created engine.. ");
+	
+					// load all the libraries
+					Object ret = retEngine.eval("library(splitstackshape);");
+					if(ret == null) {
+						throw new ClassNotFoundException("Package splitstackshape could not be found!");
+					} else {
+						logger.info("Successfully loaded packages splitstackshape");
+					}
+					// data table
+					ret = retEngine.eval("library(data.table);");
+					if(ret == null) {
+						throw new ClassNotFoundException("Package data.table could not be found!");
+					} else {
+						logger.info("Successfully loaded packages data.table");
+					}
+					// reshape2
+					ret = retEngine.eval("library(reshape2);");
+					if(ret == null) {
+						throw new ClassNotFoundException("Package reshape2 could not be found!");
+					} else {
+						logger.info("Successfully loaded packages reshape2");
+					}
+					// stringr
+					ret = retEngine.eval("library(stringr);");
+					if(ret == null) {
+						throw new ClassNotFoundException("Package stringr could not be found!");
+					} else {
+						logger.info("Successfully loaded packages stringr");
+					}
+					// lubridate
+					ret = retEngine.eval("library(lubridate);");
+					if(ret == null) {
+						throw new ClassNotFoundException("Package lubridate could not be found!");
+					} else {
+						logger.info("Successfully loaded packages lubridate");
+					}
+					// dplyr
+					ret = retEngine.eval("library(dplyr);");
+					if(ret == null) {
+						throw new ClassNotFoundException("Package dplyr could not be found!");
+					} else {
+						logger.info("Successfully loaded packages dplyr");
+					}
+				} finally {
+					lock.unlock();
 				}
 				
 				// set the rengine
