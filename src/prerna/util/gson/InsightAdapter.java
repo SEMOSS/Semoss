@@ -127,9 +127,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		for(FrameCacheHelper fObj : frames) {
 			CachePropFileFrameObject saveFrame = fObj.frame.save(folderDir);
 			out.beginObject();
-			out.name("file").value(saveFrame.getFrameCacheLocation());
-			out.name("meta").value(saveFrame.getFrameMetaCacheLocation());
-			out.name("state").value(saveFrame.getFrameStateCacheLocation());
+			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, engineName, engineId));
+			out.name("meta").value(parameterizePath(saveFrame.getFrameMetaCacheLocation(), baseFolder, engineName, engineId));
+			out.name("state").value(parameterizePath(saveFrame.getFrameStateCacheLocation(), baseFolder, engineName, engineId));
 			out.name("type").value(saveFrame.getFrameType());
 			out.name("name").value(saveFrame.getFrameName());
 			out.name("keys");
@@ -285,6 +285,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	
 	@Override
 	public Insight read(JsonReader in) throws IOException {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+
 		Insight insight = new Insight();
 		
 		in.beginObject();
@@ -316,9 +318,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			while(in.hasNext()) {
 				String k = in.nextName();
 				if(k.equals("file")) {
-					cf.setFrameCacheLocation(in.nextString());
+					cf.setFrameCacheLocation(deparameterizePath(in.nextString(), baseFolder, engineName, engineId));
 				} else if(k.equals("meta")) {
-					cf.setFrameMetaCacheLocation(in.nextString());
+					cf.setFrameMetaCacheLocation(deparameterizePath(in.nextString(), baseFolder, engineName, engineId));
 				} else if(k.equals("type")) {
 					cf.setFrameType(in.nextString());
 				} else if(k.equals("name")) {
@@ -329,7 +331,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 					if(peek == JsonToken.NULL) {
 						in.nextNull();
 					} else {
-						cf.setFrameStateCacheLocation(in.nextString());
+						cf.setFrameStateCacheLocation(deparameterizePath(in.nextString(), baseFolder, engineName, engineId));
 					}
 				} else if(k.equals("keys")) {
 					in.beginArray();
@@ -415,6 +417,24 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		return insight;
 	}
 
+	private static String parameterizePath(String path, String baseFolder, String engineName, String engineId) {
+		if(path == null) {
+			return null;
+		}
+		path = path.replace(baseFolder, "@" + Constants.BASE_FOLDER + "@");
+		path = path.replace(SmssUtilities.getUniqueName(engineName, engineId), "@" + Constants.ENGINE + "@");
+		return path;
+	}
+	
+	private static String deparameterizePath(String path, String baseFolder, String engineName, String engineId) {
+		if(path == null) {
+			return null;
+		}
+		path = path.replace("@" + Constants.BASE_FOLDER + "@", baseFolder);
+		path = path.replace("@" + Constants.ENGINE + "@", SmssUtilities.getUniqueName(engineName, engineId));
+		return path;
+	}
+	
 }
 
 /**
