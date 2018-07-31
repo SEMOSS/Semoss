@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -38,6 +39,6 @@ public class CheckRPackagesReactor extends AbstractReactor {
 			returnMap.put("R", new String[0]);
 		}
 		
-		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CHECK_R_PACKAGES);
 	}
 }
