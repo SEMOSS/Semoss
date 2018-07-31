@@ -121,65 +121,68 @@ public class RJavaTranslatorFactory {
 		 */
 
 		if(attemptConnection == null) {
-			if(isWin && useJri) {
-				boolean hasRHome = true;
-				// first, check if R is in the path
-				String r_home = System.getenv("R_HOME");
-				if( (r_home == null || r_home.isEmpty())) {
-					hasRHome = false;
-				}
-
-				boolean hasRLibs = true;
-				// check for r_libs
-				String r_libs = System.getenv("R_LIBS");
-				if( (r_libs == null || r_libs.isEmpty())) {
-					hasRLibs = false;
-				}
-
-				String path = System.getenv("Path");
-				List<String> pathSplit = Stream.of(path.split(";")).map(p -> p.replace("\\", "/")).distinct().collect(Collectors.toList());
-				if(hasRHome && hasRLibs) {
-					// make sure R_HOME and R_LIBS both exist
-					if(!(new File(r_home).isDirectory()) || !(new File(r_libs)).isDirectory() ) {
-						attemptConnection = false;
-					} else {
-						String cleanedRHome = r_home.replace("\\", "/");
-						String cleanedRLibs = r_libs.replace("\\", "/");
-						// we need R_HOME\bin\x64 or R_HOME\bin\x86
-						// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
-						long rHomeInPath = pathSplit.stream().filter(p -> ( p.matches(Pattern.quote(cleanedRHome) + "/bin/.*") && (new File(p).isDirectory()) ) ).count();
-						long rLibInPath = pathSplit.stream().filter(p -> ( p.matches(Pattern.quote(cleanedRLibs) + "/rJava/jri/.*") && (new File(p).isDirectory()) ) ).count();
-
-						if(rHomeInPath >= 1 && rLibInPath >= 1) {
-							attemptConnection = true;
-						} else {
-							attemptConnection = false;
-						}
-					}
-				} else {
-					List<String> rOrPortables = pathSplit.stream().filter(p -> 
-						( p.matches(".*/R/.*") && (new File(p).isDirectory()) ) 
-							|| ( p.matches(".*/R-Portables/.*") && (new File(p).isDirectory()) ) 
-						).collect(Collectors.toList());
-					
-					long rLibInPath = rOrPortables.stream().filter(p -> ( p.matches(".*/rJava/jri/.*") && (new File(p).isDirectory()) ) ).count();
-					
-					if(rLibInPath >= 1) {
-						attemptConnection = false;
-					}
-
-					// if we get to this point
-					// we are good
-					attemptConnection = true;
-				}
-			} else {
-				attemptConnection = true;
-			}
+			determineAttemptConnection();
 		}
 
 		return attemptConnection;
 	}
 
+	public static synchronized void determineAttemptConnection() {
+		if(isWin && useJri) {
+			boolean hasRHome = true;
+			// first, check if R is in the path
+			String r_home = System.getenv("R_HOME");
+			if( (r_home == null || r_home.isEmpty())) {
+				hasRHome = false;
+			}
+
+			boolean hasRLibs = true;
+			// check for r_libs
+			String r_libs = System.getenv("R_LIBS");
+			if( (r_libs == null || r_libs.isEmpty())) {
+				hasRLibs = false;
+			}
+
+			String path = System.getenv("Path");
+			List<String> pathSplit = Stream.of(path.split(";")).map(p -> p.replace("\\", "/")).distinct().collect(Collectors.toList());
+			if(hasRHome && hasRLibs) {
+				// make sure R_HOME and R_LIBS both exist
+				if(!(new File(r_home).isDirectory()) || !(new File(r_libs)).isDirectory() ) {
+					attemptConnection = false;
+				} else {
+					String cleanedRHome = r_home.replace("\\", "/");
+					String cleanedRLibs = r_libs.replace("\\", "/");
+					// we need R_HOME\bin\x64 or R_HOME\bin\x86
+					// we need R_LIBS\rJava\jri\x64 or R_LIBS\rJava\jri\i386
+					long rHomeInPath = pathSplit.stream().filter(p -> ( p.matches(Pattern.quote(cleanedRHome) + "/bin/.*") && (new File(p).isDirectory()) ) ).count();
+					long rLibInPath = pathSplit.stream().filter(p -> ( p.matches(Pattern.quote(cleanedRLibs) + "/rJava/jri/.*") && (new File(p).isDirectory()) ) ).count();
+
+					if(rHomeInPath >= 1 && rLibInPath >= 1) {
+						attemptConnection = true;
+					} else {
+						attemptConnection = false;
+					}
+				}
+			} else {
+				List<String> rOrPortables = pathSplit.stream().filter(p -> 
+					( p.matches(".*/R/.*") && (new File(p).isDirectory()) ) 
+						|| ( p.matches(".*/R-Portables/.*") && (new File(p).isDirectory()) ) 
+					).collect(Collectors.toList());
+				
+				long rLibInPath = rOrPortables.stream().filter(p -> ( p.matches(".*/rJava/jri/.*") && (new File(p).isDirectory()) ) ).count();
+				
+				if(rLibInPath >= 1) {
+					attemptConnection = false;
+				}
+
+				// if we get to this point
+				// we are good
+				attemptConnection = true;
+			}
+		} else {
+			attemptConnection = true;
+		}
+	}
 
 
 	public static void main(String[] args) {
