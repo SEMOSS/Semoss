@@ -60,4 +60,12 @@ public class TaskStore {
 	private String generateID() {
 		return "task"+ ++count;
 	}
+	
+	public long getCount() {
+		return this.count;
+	}
+	
+	public void setCount(long count) {
+		this.count = count;
+	}
 }
