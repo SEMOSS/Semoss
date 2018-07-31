@@ -38,6 +38,10 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	 * @return
 	 */
 	private static synchronized Rengine generateEngine() {
+		Rengine retEngine = Rengine.getMainEngine();
+		if(retEngine != null) {
+			return retEngine;
+		}
 		String OS = java.lang.System.getProperty("os.name").toLowerCase();
 		if(!OS.contains("win")) {
 			// not windows - pass in vanilla
@@ -48,7 +52,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		}
 	}
 	
-	private static ReentrantLock getEngineLock(String id) {
+	private static synchronized ReentrantLock getEngineLock(String id) {
 		genEngineLock.putIfAbsent(id, new ReentrantLock());
 		return genEngineLock.get(id);
 	}
