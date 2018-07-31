@@ -218,4 +218,11 @@ public abstract class AbstractTask implements ITask {
 		return this.id;
 	}
 
+	public long getInternalOffset() {
+		return this.internalOffset;
+	}
+	
+	public void setInternalOffset(long internalOffset) {
+		this.internalOffset = internalOffset;
+	}
 }

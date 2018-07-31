@@ -20,10 +20,12 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.InsightCacheUtility;
 import prerna.om.InsightPanel;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
@@ -193,7 +195,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// this doesn't actually add anything to the insight object
 		File vizOutputFile = new File(folderDir + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
 		List<String> lastViewPixels = getLastViewPixels(recipe);
-		PixelRunner pixelRunner = value.runPixel(lastViewPixels);
+		Insight rerunInsight = new Insight();
+		rerunInsight.setVarStore(value.getVarStore());
+		rerunInsight.setUser(value.getUser());
+		rerunInsight.setInsightPanels(value.getInsightPanels());
+		PixelRunner pixelRunner = rerunInsight.runPixel(lastViewPixels);
 		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile, false);
 		
 		// add it to the zip
@@ -334,9 +340,30 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		in.beginArray();
 		while(in.hasNext()) {
 			BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
+			adapter.setCurMode(BasicIteratorTaskAdapter.MODE.CONTINUE_PREVIOUS_ITERATING);
 			BasicIteratorTask t = adapter.read(in);
+			SelectQueryStruct qs = t.getQueryStruct();
+			try {
+				IEngine engine = qs.retrieveQueryStructEngine();
+				if(engine == null) {
+					// this means we cached a task that is using the frame
+					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+					qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
+				}
+			} catch(Exception e) {
+				// this means we cached a task that is using the frame
+				// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+				// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+				// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+				// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+				qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
+			}
 			insight.getTaskStore().addTask(t.getId(), t);
 		}
+		in.endArray();
 		
 		// this will be the recipe
 		in.nextName();
