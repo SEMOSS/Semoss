@@ -20,7 +20,10 @@ public class QueryUpdateReactor extends AbstractQueryStructReactor {
 	protected UpdateQueryStruct createQueryStruct() {
 		UpdateQueryStruct qs = new UpdateQueryStruct();
 		// merge any existing values
-		qs.merge(this.qs);
+		if(this.qs != null) {
+			qs.merge(this.qs);
+			qs.setQsType(this.qs.getQsType());
+		}
 		
 		GenRowStruct col_grs = this.store.getNoun(this.keysToGet[0]);
 		GenRowStruct val_grs = this.store.getNoun(this.keysToGet[1]);

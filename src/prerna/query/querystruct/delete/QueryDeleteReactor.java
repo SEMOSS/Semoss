@@ -19,6 +19,7 @@ public class QueryDeleteReactor extends AbstractQueryStructReactor {
 		// merge any existing values
 		if(this.qs != null) {
 			qs.merge(this.qs);
+			qs.setQsType(this.qs.getQsType());
 		}
 		
 		// Table
