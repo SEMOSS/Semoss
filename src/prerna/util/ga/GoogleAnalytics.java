@@ -554,16 +554,13 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 					sb.append(", {");
 				}
 				String description = tableDetail.get(column) + "";
+				description = description.replaceAll("\"", "'");
 				
 				sb.append("\"columnName\": \"" + column + "\", \"description\": \"" + description + "\"}");
 			}
 			sb.append("]");
 		}
-		
-		GoogleAnalyticsThread ga = new GoogleAnalyticsThread(exprStart + sb.toString() + exprEnd, "datasemantic");
-		// fire and release...
-		ga.start();
+		in.trackPixels("datasemantic", exprStart + sb.toString() + exprEnd);
 	}
-
 }
 
