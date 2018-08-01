@@ -11,6 +11,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -106,6 +107,7 @@ public class StoreUniqueColumnsReactor extends AbstractRFrameReactor {
 				String col = tableCol[1] + "";
 				String dataType = tableCol[2] + "";
 				boolean primFlag = false;
+				String descriptions = "";
 				if (dataType.equals(SemossDataType.STRING.toString())) {
 					// we will fill this in once we figure out if it is a concept or property
 					QueryColumnSelector colSelector = null;
@@ -155,32 +157,34 @@ public class StoreUniqueColumnsReactor extends AbstractRFrameReactor {
 					newFile.delete();
 
 					// receive triple comma separated descriptions from R
-					String descriptions = this.rJavaTranslator.getString("result;");
+					descriptions = this.rJavaTranslator.getString("result;");
 					this.rJavaTranslator.runR("rm(result)");
 					if (descriptions == null){
+						// no results found
 						continue;
 					}
-
-					// check if table exists already, add to it, or add it as
-					// fresh map
-					Map<String, String> tableMap;
-					if (gaData.containsKey(table)) {
-						// get current map and add to it
-						tableMap = gaData.get(table);
-					} else {
-						tableMap = new HashMap<String,String>();
-					}
-					
-					// TODO: uncomment for storing the descriptions in local master meta table, once needed
-					// AddToMasterDB master = new AddToMasterDB();
-					// master.addMetadata(engine.getEngineId(), col, "SemanticDescription", descriptions);
-					
-					col = ((primFlag) ? "PRIM_KEY_PLACEHOLDER" : col);
-					tableMap.put(col, descriptions);
-					gaData.put(table, tableMap);
 				} else {
-					// TODO: use predict column headers for non-strings
+					// only track string columns
+					continue;
 				}
+				// check if table exists already, add to it, or add it as fresh map
+				Map<String, String> tableMap;
+				if (gaData.containsKey(table)) {
+					// get current map and add to it
+					tableMap = gaData.get(table);
+				} else {
+					tableMap = new HashMap<String, String>();
+				}
+
+				// storing the descriptions in local master meta table, once needed
+				MasterDatabaseUtility.deleteMetaValue(engine.getEngineId(), col, "SemanticDescription");
+				AddToMasterDB master = new AddToMasterDB();
+				descriptions = descriptions.replaceAll("'", "");
+				master.addMetadata(engine.getEngineId(), col, "SemanticDescription", descriptions);
+
+				col = ((primFlag) ? "PRIM_KEY_PLACEHOLDER" : col);
+				tableMap.put(col, descriptions);
+				gaData.put(table, tableMap);
 			}
 		}
 		
