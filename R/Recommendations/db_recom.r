@@ -113,7 +113,7 @@ get_dataitem_rating<-function(fileroot,type,tfidf){
 	}
 	z<-populate_ratings(y)
 	if(tfidf){
-		z<-apply_tfidf(z)
+		z<-exec_tfidf(z)
 	}
 	gc()
 	saveRDS(z,paste0(fileroot,"-matrix.rds"))
@@ -168,8 +168,18 @@ populate_ratings<-function(df){
 	return(out)
 }
 
+read_datamatrix<-function(fileroot){
+	filename<-paste0(fileroot,"-blended-matrix.rds")
+	if(file.exists(filename)){
+		r<-readRDS(filename)
+	}else{
+		r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	}
+	return(r)
+}
+
 build_sim<-function(fileroot){
-	r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	r<-read_datamatrix(fileroot)
 	sim<-cosine_jaccard_sim(r)
 	saveRDS(sim,paste0(fileroot,"-usersim.rds"))
 	sim<-cosine_jaccard_sim(t(r))
@@ -215,7 +225,7 @@ jaccard_sim<-function(m){
 }
 
 
-apply_tfidf<-function(r){
+exec_tfidf<-function(r){
 # Description
 # Apply tfidf for a given rating matrix
 # r - rating/frequency user item matrix
@@ -242,7 +252,8 @@ dataitem_recom_mgr<-function(users,fileroot,cutoff=0.05){
 # filename - file containing the latest data items matrix
 # cutoff - threshold for a cutoff for recommendations
 	# read user data item ratings matrix
-	r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	r<-read_datamatrix(fileroot)
+	
 	userList<-get_user_recom(fileroot,users,r)
 	user_recom<-userList[[2]]
 	user_group<-max(1,unique(user_recom$size))
@@ -285,7 +296,7 @@ get_item_recom<-function(fileroot,users,r){
 	}
 	items_ind<-which(user_items>0)
 	simitems_rec<-sim[items_ind,]
-	if(nrow(simitems_rec)>1){
+	if(length(items_ind)>1){
 		items_score<-colSums(simitems_rec)
 	}else{
 		items_score<-simitems_rec
@@ -364,7 +375,7 @@ hop_away_recom_mgr<-function(users,fileroot,cutoff=0.05){
 # users - an array of user ids
 # fileroot - file containing the latest data items matrix
 	# get neighborhood users
-	r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	r<-read_datamatrix(fileroot)
 	sim<-readRDS(paste0(fileroot,"-usersim.rds"))
 	if(length(users) > 1){
 		user_sim_rec<-sim[rownames(sim) %in% tolower(users),]
@@ -421,7 +432,7 @@ hop_away_mgr<-function(users,fileroot){
 # fileroot - file root containing the latest data items matrix
 
 	# get neighborhood users
-	r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	r<-read_datamatrix(fileroot)
 	sim<-readRDS(paste0(fileroot,"-usersim.rds"))
 	
 	if(length(users) > 1){
@@ -489,7 +500,7 @@ locate_user_communities<-function(fileroot){
 # Arguments
 # fileroot - file root containing the latest data items matrix
 	library(igraph)
-	r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	r<-read_datamatrix(fileroot)
 	sim<-readRDS(paste0(fileroot,"-usersim.rds"))
 	
 	diag(sim)=0
@@ -532,9 +543,8 @@ locate_data_communities<-function(fileroot,users=vector(),items=vector()){
 # filename - file containing the latest data items matrix
 # users - an array of users for which data communities should be lodated
 # type - type of data item to compute recommendations for (database, table, column)
-# tfidf - boolean whether to use tfidf calculations
 	library(igraph)
-	r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	r<-read_datamatrix(fileroot)
 	sim<-readRDS(paste0(fileroot,"-itemsim.rds"))
 	# if items defined remove the respected ratings from the matrix
 	if(length(items) > 0){
@@ -599,9 +609,9 @@ get_items_users<-function(fileroot,items){
 # Description
 # Identify users for a given set of data items
 # Arguments
-# filename - file name with user item matrix
+# fileroot - file root of the data domain files
 # items - arrays of data items
-	r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	r<-read_datamatrix(fileroot)
 	if(length(items)>1){
 		items_data<-r[,colnames(r) %in% items]
 		items_data<-rowSums(items_data)
@@ -616,9 +626,14 @@ get_items_users<-function(fileroot,items){
 }
 
 refresh_base<-function(df,fileroot){
+# Description
+# Manage data domain construction
+# arguments
+# df - dataframe with data tracking info
+# fileroot - file root of the data domain files
 	dataitem_history(df,fileroot)
 	get_dataitem_rating(fileroot,type="database",tfidf=T)
-	build_sim(fileroot)
+	#build_sim(fileroot)
 }
 
 blend_tracking_semantic<-function(r,s){
@@ -629,19 +644,65 @@ blend_tracking_semantic<-function(r,s){
 # s - square databases semantic similarity matrix
 	K<-0.5
 	p<-matrix(0,nrow=nrow(r),ncol=ncol(r))
-	r_ind<-which(colnames(r) %in% colnames(s))
+	# extract db id
+	q<-sapply(strsplit(colnames(r), "[$]"), "[", 1)
+	colnames(r)<-q
+	q_ind<-which(q %in% colnames(s))
 	n<-nrow(r)
-	m<-ncol(r)
-	for(i in 1:n){
-		for(j in r_ind){
-			if(r[i,j]==0){
-				items<-r[i,r_ind]
-				s_ind<-which(colnames(s) %in% colnames(r)[r_ind])
-				sim<-s[j,s_ind]
-				p[i,j]<-value<-K*crossprod(items,sim)
+	m<-length(q_ind)
+	if(length(q_ind)>0){
+		for(i in 1:n){
+			ratings<-r[i,q_ind]
+			for(j in 1:m){		
+					sim<-s[names(ratings)[j],q[q_ind]]
+					sim[j]<-0
+					p[i,q_ind[j]]<-K*crossprod(ratings,sim)	
 			}
 		}
 	}
 	r<-r+p
 	return(r)
+}
+
+blend_mgr<-function(fileroot){
+	r<-readRDS(paste0(fileroot,"-matrix.rds"))
+	s<-readRDS(paste0(fileroot,"-database-sim.rds"))
+	x<-blend_tracking_semantic(r,s)
+	saveRDS(x,paste0(fileroot,"-blended-matrix.rds"))
+	gc()
+	
+}
+
+remove_files<-function(fileroot){
+	# Remove files with fileroot
+	filenames <- Sys.glob(paste0(fileroot,"*.rds"))
+	file.remove(filenames)
+}
+
+data_domain_mgr<-function(startDate,endDate,fileroot){
+# Description
+# Construct data domain to provide  a user data recommendations
+# Arguments
+# startDate - starting date for the data retrieval tracking span
+# endDate - ending date for the data retrieval tracking span
+# fileroot - file root of the data domain files
+	# retrieve tracking data
+	remove_files(fileroot)
+	df<-get_userdata(startDate,endDate,"./token_file")
+	# construct user data rating matrix
+	refresh_base(df,fileroot)
+
+	# construct data semantic history
+	found<-datasemantic_history(df,fileroot) # should be called with local semantic update
+	if(found){
+		# construct data semantic similarity
+		column_lsi_mgr(fileroot,"description","score",0.8)
+		compute_column_desc_sim(fileroot)
+		compute_entity_sim(fileroot)
+		# blend data semantic into user item rating matrix
+		blend_mgr(fileroot)
+	}
+	# construct user similarity and data similarity matrices
+	build_sim(fileroot)
+	gc()
 }
