@@ -16,6 +16,7 @@ build_tdm<-function(desc_tbl,desc_col,freq_col,vocabulary=NULL,weighted=TRUE){
 	library(text2vec)
 	library(data.table)
 	library(plyr)
+	library(stringr)
 	myList<-list()
 	# Construct terms/documents matrix based on a given set of documents or read it from the file
 	s<-breakdown(str_replace_all(desc_tbl[[desc_col]],"[^[:graph:]]", " "))
@@ -87,11 +88,9 @@ apply_tfidf<-function(matrix){
 	tfidf_matrix<-matrix/totals*gw_idf(matrix)
 	tfidf_matrix[is.nan(tfidf_matrix)]=0
 	
-	# Alternative weighting
-	# tfidf_matrix<-lw_logtf(matrix)*gw_idf(matrix)
-	
 	return(tfidf_matrix)
 }
+
 
 lsi_mgr<-function(lookup_tbl,desc_col,freq_col,share=SHARE,filename_lsa=LSA_filename,weighted=TRUE){
 	# build LSA space
