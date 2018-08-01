@@ -238,7 +238,7 @@ public class InsightCacheUtility {
 		extentions.add("*.zip");
 		extentions.add("*.owl");
 		extentions.add("*.tg");
-		extentions.add("*.tg");
+		extentions.add("*.rda");
 
 		FileFilter fileFilter = new WildcardFileFilter(extentions);
 		File[] cacheFiles = folder.listFiles(fileFilter);
