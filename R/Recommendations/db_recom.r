@@ -22,7 +22,7 @@ query.list<-Init(
             dimensions=paste0(toString(paste("ga:dimension", dim, sep="")),", ga:date"),
             metrics="ga:totalEvents",
 			sort="-ga:date",
-            max.results=10000,
+            max.results=50000,
             table.id=viewID  
         )
 ga.query<-QueryBuilder(query.list)
@@ -94,9 +94,12 @@ get_dataitem_rating<-function(fileroot,type,tfidf){
 		x<-readRDS(paste0(fileroot,"-history.rds"))
 		if(type==TYPES[1]){
 			x$dataitem<-paste0(x$dbid,sep,x$database,sep)
-			x<-x[,c(7,5,6)]
-			y<-count(x,c("dataitem","user","daysago"))
-			#y<-count(x,c("dbid","database","user","daysago"))
+			lookup<-x[,c("dbid","dataitem")]
+			lookup<-lookup[!duplicated(lookup$dbid),]
+			x<-x[,c(1,5,6)]
+			y<-count(x,c("dbid","user","daysago"))
+			y$dataitem<-as.character(lapply(y$dbid, function(x) lookup$dataitem[match(x, lookup$dbid)]))
+			y<-y[,c(5,2,3,4)]
 		}else if(type==TYPES[2]){
 			x$dataitem<-paste0(x$dbid,sep,x$database,sep,x$table)
 			x<-x[,c(7,5,6)]
@@ -547,60 +550,97 @@ locate_data_communities<-function(fileroot,users=vector(),items=vector()){
 	r<-read_datamatrix(fileroot)
 	sim<-readRDS(paste0(fileroot,"-itemsim.rds"))
 	# if items defined remove the respected ratings from the matrix
+	process<-TRUE
 	if(length(items) > 0){
 		ind<-which(colnames(r) %in% items)
-		r<-r[,ind]
-		sim<-sim[ind,ind]
+		if(length(ind) > 1){
+			r<-r[,ind]
+			sim<-sim[ind,ind]
+		}else {
+			process<-FALSE
+		}	
 	}
-	diag(sim)=0
-	g <- graph.adjacency(sim, mode="undirected", weighted=TRUE)
-	fg<-cluster_fast_greedy(g)
-	com<-communities(fg)
-	
-	# Identify community membership
-	if(length(users) > 0){
-		if(length(users)>1){
-			user_items<-r[rownames(r) %in% users,]
-			user_items<-colSums(user_items)
+	if(process){
+		diag(sim)=0
+		g <- graph.adjacency(sim, mode="undirected", weighted=TRUE)
+		fg<-cluster_fast_greedy(g)
+		com<-communities(fg)
+		
+		# Identify community membership
+		if(length(users) > 0){
+			if(length(users)>1){
+				user_items<-r[rownames(r) %in% users,]
+				user_items<-colSums(user_items)
+			}else{
+				user_items<-r[rownames(r) %in% users]
+			}
+			items_ind<-which(user_items>0)
+			com_membership<-unique(fg$membership[items_ind])
 		}else{
-			user_items<-r[rownames(r) %in% users]
+			com_membership<-unique(fg$membership)
 		}
-		items_ind<-which(user_items>0)
-		com_membership<-unique(fg$membership[items_ind])
+		com_membership<-com_membership[order(com_membership)]
+		
+		# Identify users for each data community
+		teams<-list()
+		n<-length(com_membership)
+		if(n > 0){
+			for(i in 1:n){
+				com_items<-com[[com_membership[i]]]
+				if(length(com_items) > 1){
+					com_data<-r[,colnames(r) %in% com_items]
+					com_data<-rowSums(com_data)
+				}else{
+					com_data<-r[,colnames(r) %in% com_items]
+				}
+				com_data<-com_data[com_data>0]
+				
+				com_users<-names(com_data)
+				if(length(com_data)>0){
+					com_users<-com_users[order(com_users)]
+				}else{
+					com_users<-""
+				}
+				if(length(users)>0){
+					teams[[i]]<-intersect(com_users,users)
+				}else{
+					teams[[i]]=com_users
+				}
+			}
+			teams<-setNames(teams,com_membership)
+		}
+		myList<-list()
+		myList[[1]]<-g
+		myList[[2]]<-fg
+		myList[[3]]<-com[com_membership]
+		myList[[4]]<-teams
 	}else{
-		com_membership<-unique(fg$membership)
-	}
-	com_membership<-com_membership[order(com_membership)]
-	
-	# Identify users for each data community
-	teams<-list()
-	n<-length(com_membership)
-	if(n > 0){
-		for(i in 1:n){
-			com_items<-com[[com_membership[i]]]
-			if(length(com_items) > 1){
-				com_data<-r[,colnames(r) %in% com_items]
-				com_data<-rowSums(com_data)
+		if(length(ind) == 1){
+			# get all records for this item and filter for the user if there
+			elements<-r[,ind]
+			elements<-elements[elements>0]
+			if(length(users)>0){
+				names_ind<-which(names(elements) %in% users)
+				team<-names(elements)[names_ind]
+				
 			}else{
-				com_data<-r[,colnames(r) %in% com_items]
+				elements<-r[,ind]
+				elements<-elements[elements>0]
+				team<-names(elements)
 			}
-			com_data<-com_data[com_data>0]
-			
-			com_users<-names(com_data)
-			if(length(com_data)>0){
-				com_users<-com_users[order(com_users)]
-			}else{
-				com_users<-""
-			}
-			teams[[i]]<-com_users				
+			myList<-list()
+			myList[[1]]<-""
+			myList[[2]]<-""
+			myList[[3]]<-items
+			myList[[4]]<-team
+		}else{
+			myList<-list()
+			myList[[1]]<-NULL
+			myList[[2]]<-NULL
+			myList[[3]]<-NULL
+			myList[[4]]<-NULL
 		}
-		teams<-setNames(teams,com_membership)
 	}
-	myList<-list()
-	myList[[1]]<-g
-	myList[[2]]<-fg
-	myList[[3]]<-com[com_membership]
-	myList[[4]]<-teams
 	gc()
 	return(myList)
 }
@@ -646,21 +686,26 @@ blend_tracking_semantic<-function(r,s){
 	p<-matrix(0,nrow=nrow(r),ncol=ncol(r))
 	# extract db id
 	q<-sapply(strsplit(colnames(r), "[$]"), "[", 1)
+	backup_colnames<-colnames(r)
 	colnames(r)<-q
 	q_ind<-which(q %in% colnames(s))
 	n<-nrow(r)
 	m<-length(q_ind)
-	if(length(q_ind)>0){
+	if(m > 0){
 		for(i in 1:n){
 			ratings<-r[i,q_ind]
+			
 			for(j in 1:m){		
+				if(r[i,q_ind[j]] == 0){
 					sim<-s[names(ratings)[j],q[q_ind]]
 					sim[j]<-0
-					p[i,q_ind[j]]<-K*crossprod(ratings,sim)	
+					p[i,q_ind[j]]<-K*crossprod(ratings,sim)/sum(sim)	
+				}
 			}
 		}
 	}
 	r<-r+p
+	colnames(r)<-backup_colnames
 	return(r)
 }
 
