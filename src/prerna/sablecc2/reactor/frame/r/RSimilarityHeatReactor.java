@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -23,6 +22,8 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
+		String[] packages = new String[] {"plyr"};
+		this.rJavaTranslator.checkPackages(packages);
 		// get Pixel inputs
 		RDataTable frame = (RDataTable) this.getFrame();
 		String frameName = frame.getTableName();
@@ -32,7 +33,7 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		// create R syntax to get similarity heat value
 		StringBuilder rsb = new StringBuilder();
 		String tempFrame = Utility.getRandomString(8);
-		List<String> temp = new ArrayList<String>(comparisonColumn);
+		List<String> temp = getComparisonColumns();
 		temp.add(instanceCol);
 		String subset = RSyntaxHelper.createStringRColVec(temp.toArray());
 		// make frame with only used columns
