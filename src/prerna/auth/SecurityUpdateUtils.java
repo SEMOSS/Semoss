@@ -2,9 +2,7 @@ package prerna.auth;
 
 import java.io.File;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
@@ -81,6 +79,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String password = "";
 		RDBMSNativeEngine rne = new RDBMSNativeEngine();
 		rne.makeConnection(jdbcURL, userName, password);
+		
+		// i need to delete any current insights for the app
+		// before i start to insert new insights
+		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
+		rne.removeData(deleteQuery);
 		
 		// make a prepared statement
 		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(
