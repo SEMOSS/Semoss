@@ -95,7 +95,9 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 								convertedMembers.add(engineDetail);
 							}
 						}
-						communitiesList.add(convertedMembers);
+						if(!convertedMembers.isEmpty()){
+							communitiesList.add(convertedMembers);
+						}
 					}
 				}
 			}
