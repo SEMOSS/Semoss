@@ -184,8 +184,10 @@ read_datamatrix<-function(fileroot){
 build_sim<-function(fileroot){
 	r<-read_datamatrix(fileroot)
 	sim<-cosine_jaccard_sim(r)
+	diag(sim)<-1
 	saveRDS(sim,paste0(fileroot,"-usersim.rds"))
 	sim<-cosine_jaccard_sim(t(r))
+	diag(sim)<-1
 	saveRDS(sim,paste0(fileroot,"-itemsim.rds"))
 }
 
@@ -204,7 +206,7 @@ cosine_sim<-function(m){
 # m - rating/frequency matrix
 	library(proxy)
 	tryCatch({
-		out<-as.matrix(dist(m,"cosine"))
+		out<-as.matrix(simil(m,"cosine"))
 	})
 	rownames(out)<-rownames(m)
 	colnames(out)<-rownames(m)
@@ -220,7 +222,7 @@ jaccard_sim<-function(m){
 	n[n>0]<-1
 	library(proxy)
 	tryCatch({
-		out<-as.matrix(dist(n,"Jaccard"))
+		out<-as.matrix(simil(n,"Jaccard"))
 	})
 	rownames(out)<-rownames(m)
 	colnames(out)<-rownames(m)
@@ -241,13 +243,8 @@ exec_tfidf<-function(r){
 	return(out)
 }
 
-compute_weight<-function(n,N){
-# Description
-# Compute weight of a set 
-	return(1/log10(N/n))
-}
 
-dataitem_recom_mgr<-function(users,fileroot,cutoff=0.05){
+dataitem_recom_mgr<-function(users,fileroot,topN=25){
 # Description
 # Produce data items recommendations for a given user
 # Arguments
@@ -259,21 +256,22 @@ dataitem_recom_mgr<-function(users,fileroot,cutoff=0.05){
 	
 	userList<-get_user_recom(fileroot,users,r)
 	user_recom<-userList[[2]]
-	user_group<-max(1,unique(user_recom$size))
 	item_recom<-get_item_recom(fileroot,users,r)
-	item_group<-max(1,unique(item_recom$size))
-	user_weight<-compute_weight(user_group,user_group+item_group)
-	item_weight<-compute_weight(item_group,user_group+item_group)
-	user_recom$freq<-user_recom$freq*user_weight/(user_weight+item_weight)
+
+	# mixed
 	out<-user_recom
-	item_recom$freq<-item_recom$freq*item_weight/(user_weight+item_weight)
 	out<-rbind(out,item_recom)
-	out<-out[,-ncol(out)]
-	out<-out[order(-out$freq,out$item,out$cat),]
+	out<-out[,-4]
+	colnames(out)[2]<-"score"
+	# weighted
+	x<-merge(item_recom,user_recom,by.x="item",by.y="item")
+	x$score<-0.5*(x$freq.x+x$freq.y)
+	x<-x[,c("item","score")]
+	x$cat<-"weighted"
+	out<-rbind(out,x)
+	out<-out[order(-out$score,out$item,out$cat),]
 	out<-out[!duplicated(out$item),]
-	if(nrow(out)>0){
-		out<-out[out$freq > max(out$freq)*cutoff,]
-	}
+	out<-head(out,topN)
 	
 	myList<-list()
 	myList[[1]]<-userList[[1]]
@@ -300,7 +298,8 @@ get_item_recom<-function(fileroot,users,r){
 	items_ind<-which(user_items>0)
 	simitems_rec<-sim[items_ind,]
 	if(length(items_ind)>1){
-		items_score<-colSums(simitems_rec)
+		items_score<-colSums(user_items[items_ind]*simitems_rec)
+		#items_score<-colSums(simitems_rec)
 	}else{
 		items_score<-simitems_rec
 	}
@@ -549,98 +548,65 @@ locate_data_communities<-function(fileroot,users=vector(),items=vector()){
 	library(igraph)
 	r<-read_datamatrix(fileroot)
 	sim<-readRDS(paste0(fileroot,"-itemsim.rds"))
-	# if items defined remove the respected ratings from the matrix
-	process<-TRUE
-	if(length(items) > 0){
-		ind<-which(colnames(r) %in% items)
-		if(length(ind) > 1){
-			r<-r[,ind]
-			sim<-sim[ind,ind]
-		}else {
-			process<-FALSE
-		}	
+	# get community items
+	diag(sim)=0
+	g <- graph.adjacency(sim, mode="undirected", weighted=TRUE)
+	fg<-cluster_fast_greedy(g)
+	com<-communities(fg)
+	if(length(items)>0){
+		item_membership<-unique(membership(fg)[items])
+		com<-com[item_membership]
 	}
-	if(process){
-		diag(sim)=0
-		g <- graph.adjacency(sim, mode="undirected", weighted=TRUE)
-		fg<-cluster_fast_greedy(g)
-		com<-communities(fg)
-		
-		# Identify community membership
-		if(length(users) > 0){
-			if(length(users)>1){
-				user_items<-r[rownames(r) %in% users,]
-				user_items<-colSums(user_items)
-			}else{
-				user_items<-r[rownames(r) %in% users]
-			}
-			items_ind<-which(user_items>0)
-			com_membership<-unique(fg$membership[items_ind])
+	# Identify community membership
+	if(length(users) > 0){
+		if(length(users)>1){
+			user_items<-r[rownames(r) %in% users,]
+			user_items<-colSums(user_items)
 		}else{
-			com_membership<-unique(fg$membership)
+			user_items<-r[rownames(r) %in% users]
 		}
-		com_membership<-com_membership[order(com_membership)]
-		
-		# Identify users for each data community
-		teams<-list()
-		n<-length(com_membership)
-		if(n > 0){
-			for(i in 1:n){
-				com_items<-com[[com_membership[i]]]
-				if(length(com_items) > 1){
-					com_data<-r[,colnames(r) %in% com_items]
-					com_data<-rowSums(com_data)
-				}else{
-					com_data<-r[,colnames(r) %in% com_items]
-				}
-				com_data<-com_data[com_data>0]
-				
-				com_users<-names(com_data)
-				if(length(com_data)>0){
-					com_users<-com_users[order(com_users)]
-				}else{
-					com_users<-""
-				}
-				if(length(users)>0){
-					teams[[i]]<-intersect(com_users,users)
-				}else{
-					teams[[i]]=com_users
-				}
-			}
-			teams<-setNames(teams,com_membership)
-		}
-		myList<-list()
-		myList[[1]]<-g
-		myList[[2]]<-fg
-		myList[[3]]<-com[com_membership]
-		myList[[4]]<-teams
+		items_ind<-which(user_items>0)
+		com_membership<-unique(fg$membership[items_ind])
 	}else{
-		if(length(ind) == 1){
-			# get all records for this item and filter for the user if there
-			elements<-r[,ind]
-			elements<-elements[elements>0]
-			if(length(users)>0){
-				names_ind<-which(names(elements) %in% users)
-				team<-names(elements)[names_ind]
-				
-			}else{
-				elements<-r[,ind]
-				elements<-elements[elements>0]
-				team<-names(elements)
-			}
-			myList<-list()
-			myList[[1]]<-""
-			myList[[2]]<-""
-			myList[[3]]<-items
-			myList[[4]]<-team
-		}else{
-			myList<-list()
-			myList[[1]]<-NULL
-			myList[[2]]<-NULL
-			myList[[3]]<-NULL
-			myList[[4]]<-NULL
-		}
+		com_membership<-unique(fg$membership)
 	}
+	if(length(items)>0){
+		com_membership<-intersect(com_membership,item_membership)
+		com_membership<-com_membership[order(com_membership)]
+	}else{
+		com_membership<-com_membership[order(com_membership)]
+		com<-com[com_membership]
+	}
+	
+	# Identify users for each data community
+	teams<-list()
+	n<-length(com_membership)
+	if(n > 0){
+		for(i in 1:n){
+			com_items<-com[[i]]
+			if(length(com_items) > 1){
+				com_data<-r[,colnames(r) %in% com_items]
+				com_data<-rowSums(com_data)
+			}else{
+				com_data<-r[,colnames(r) %in% com_items]
+			}
+			com_data<-com_data[com_data>0]
+			
+			com_users<-names(com_data)
+			if(length(com_data)>0){
+				com_users<-com_users[order(com_users)]
+			}else{
+				com_users<-""
+			}
+			teams[[i]]=com_users
+		}
+		teams<-setNames(teams,com_membership)
+	}
+	myList<-list()
+	myList[[1]]<-g
+	myList[[2]]<-fg
+	myList[[3]]<-com
+	myList[[4]]<-teams
 	gc()
 	return(myList)
 }
