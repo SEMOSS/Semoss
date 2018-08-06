@@ -33,7 +33,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		Logger logger = getLogger(CLASS_NAME);
-		List<Object> recommendations = new ArrayList<Object>();
+		HashMap<String, Object> recommendations = new HashMap<String, Object>();
 
 		// check if packages are installed
 		String[] packages = { "RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "igraph", "proxy" };
@@ -99,7 +99,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 					}
 				}
 			}
-			recommendations.add(communitiesList);
+			recommendations.put("Communities", communitiesList);
 
 			// Step 2:
 			// Run another R script to generate user specific recommendations,
@@ -107,7 +107,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			// for the FE.
 
 			// run plain db recommendations script
-			script = "output<- dataitem_recom_mgr(\"" + userName + "\",fileroot,0.02);  output<-toJSON(as.data.table(output[2])[,1:2], byrow = TRUE, colNames = TRUE);";
+			script = "output<- dataitem_recom_mgr(\"" + userName + "\",fileroot);  output<-toJSON(as.data.table(output[2])[,1:2], byrow = TRUE, colNames = TRUE);";
 			this.rJavaTranslator.runR(script);
 
 			// parse R json response for final recommendation data
@@ -140,10 +140,10 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 					}
 				}
 			}
-			recommendations.add(recommendationsFinal);
+			recommendations.put("Recommendations", recommendationsFinal);
 
 			// garbage cleanup -- R script might already do this
-			String gc = "rm(fileroot, output, blend_tracking_semantic, get_userdata, dataitem_history, get_dataitem_rating, assign_unique_concepts, populate_ratings, build_sim, cosine_jaccard_sim, cosine_sim, jaccard_sim, apply_tfidf, compute_weight, dataitem_recom_mgr, get_item_recom, get_user_recom, hop_away_recom_mgr, hop_away_mgr, locate_user_communities, drilldown_communities, locate_data_communities, get_items_users, refresh_base);";
+			String gc = "rm(blend_mgr, data_domain_mgr, read_datamatrix, exec_tfidf, remove_files, fileroot, output, blend_tracking_semantic, get_userdata, dataitem_history, get_dataitem_rating, assign_unique_concepts, populate_ratings, build_sim, cosine_jaccard_sim, cosine_sim, jaccard_sim, apply_tfidf, compute_weight, dataitem_recom_mgr, get_item_recom, get_user_recom, hop_away_recom_mgr, hop_away_mgr, locate_user_communities, drilldown_communities, locate_data_communities, get_items_users, refresh_base);";
 			this.rJavaTranslator.runR(gc);
 		}
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.RECOMMENDATION);
