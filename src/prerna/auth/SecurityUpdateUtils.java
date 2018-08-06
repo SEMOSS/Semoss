@@ -302,7 +302,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		LocalDateTime now = LocalDateTime.now();
 		String nowString = java.sql.Timestamp.valueOf(now).toString();
 		String insightQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT) "
-				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + insightName + "', " + global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "')";
+				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + escapeForSQLStatement(insightName) + "', " + global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "')";
 		securityDb.insertData(insightQuery);
 		securityDb.commit();
 	}
