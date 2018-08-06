@@ -61,6 +61,70 @@ public class RSyntaxHelper {
 	 * @param dataType			The data type for each entry in the object[]
 	 * @return					String containing the equivalent r column vector
 	 */
+	public static String createRColVec(Object[] row, SemossDataType[] dataType) {
+		StringBuilder str = new StringBuilder("c(");
+		int i = 0;
+		int size = row.length;
+		for(; i < size; i++) {
+			if(dataType[i] == SemossDataType.STRING) {
+				str.append("\"").append(row[i]).append("\"");
+			} else {
+				str.append(row[i]);
+			}
+			// if not the last entry, append a "," to separate entries
+			if( (i+1) != size) {
+				str.append(",");
+			}
+		}
+		str.append(")");
+		return str.toString();
+	}
+	
+	/**
+	 * Convert a r vector from a java vector
+	 * @param row				The object[] to convert
+	 * @param dataType			The data type for each entry in the object[]
+	 * @return					String containing the equivalent r column vector
+	 */
+	public static String createRColVec(List<Object> row, SemossDataType dataType) {
+		StringBuilder str = new StringBuilder("c(");
+		int i = 0;
+		int size = row.size();
+		for(; i < size; i++) {
+			if(SemossDataType.STRING == dataType) {
+				str.append("\"").append(row.get(i)).append("\"");
+			} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
+				str.append(row.get(i).toString());
+			} else if(SemossDataType.DATE == dataType) {
+				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d');");
+			} else {
+				// just in case this is not defined yet...
+				// see the type of the value and add it in based on that
+				if(dataType == null) {
+					if(row.get(i) instanceof String) {
+						str.append("\"").append(row.get(i)).append("\"");
+					} else {
+						str.append(row.get(i));
+					}
+				} else {
+					str.append(row.get(i));
+				}
+			}
+			// if not the last entry, append a "," to separate entries
+			if( (i+1) != size) {
+				str.append(",");
+			}
+		}
+		str.append(")");
+		return str.toString();
+	}
+	
+	/**
+	 * Convert a java object[] into a r column vector
+	 * @param row				The object[] to convert
+	 * @param dataType			The data type for each entry in the object[]
+	 * @return					String containing the equivalent r column vector
+	 */
 	public static String createStringRColVec(Object[] row) {
 		StringBuilder str = new StringBuilder("c(");
 		int i = 0;
@@ -165,6 +229,29 @@ public class RSyntaxHelper {
 	public static String getOrderedLevelsFromRFactorCol(String tableName, String colName) {
 		StringBuilder str = new StringBuilder();
 		str.append("paste(levels("+ tableName + "$" + colName + "), collapse = '+++');");		
+		return str.toString();
+	}
+	////////////////////////////////////////////////
+	// Data frame changes
+	/////////////////////////////////////////////////
+	public static String cleanFrameHeaders(String frameName, String[] colNames) {
+		HeadersException headerChecker = HeadersException.getInstance();
+		colNames = headerChecker.getCleanHeaders(colNames);
+		// update frame header names in R
+		String rColNames = "";
+		for (int i = 0; i < colNames.length; i++) {
+			rColNames += "\"" + colNames[i] + "\"";
+			if (i < colNames.length - 1) {
+				rColNames += ", ";
+			}
+		}
+		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
+		return script;
+	}
+	
+	public static String alterColumnName(String tableName, String oldHeader, String newHeader) {
+		StringBuilder str = new StringBuilder();
+		str.append("colnames("+tableName+")[which(names("+tableName+") == \""+oldHeader+"\")] <- \""+newHeader+"\";");
 		return str.toString();
 	}
 	
@@ -326,59 +413,17 @@ public class RSyntaxHelper {
 	}
 	
 	/**
-	 * Generate the syntax to perform a fRead to ingest a file
-	 * @param tableName
-	 * @param absolutePath
+	 * Creates a numeric column by removing numbers from a column
+	 * @param dataframe
+	 * @param column
 	 * @return
 	 */
-	public static String getFReadSyntax(String tableName, String absolutePath) {
-		return getFReadSyntax(tableName, absolutePath, ",");
-	}
-	
-	/**
-	 * Generate the syntax to perform a fRead to ingest a file
-	 * @param tableName
-	 * @param absolutePath
-	 * @param delimiter
-	 * @return
-	 */
-	public static String getFReadSyntax(String tableName, String absolutePath, String delimiter) {
-		StringBuilder builder = new StringBuilder();
-		builder.append(tableName).append(" <- fread(\"").append(absolutePath.replace("\\", "/"))
-			.append("\", sep=\"").append(delimiter).append("\")");
-		return builder.toString();
-	}
-
-	public static String getExcelReadSheetSyntax(String tableName, String absolutePath, int sheetIndex, List<Integer> colIndices, boolean uploadSubset) {
-		StringBuilder builder = new StringBuilder();
-		builder.append(tableName).append(" <- as.data.table(read.xlsx2(\"").append(absolutePath.replace("\\", "/"))
-		.append("\", sheetIndex=").append(sheetIndex).append(", colClasses = c(rep('character',").append(colIndices.size())
-		.append(")), stringsAsFactors=FALSE");
-		if (uploadSubset) {
-			builder.append(", colIndex = c(").append(StringUtils.join(colIndices,",")).append(")");
-		}
-		builder.append("))");
-		return builder.toString();
-	}
-	
-	/**
-	 * Load excel sheet to dataframe
-	 * @param filePath The file path of the excel file
-	 * @param frameName The name of the frame to load excel sheet
-	 * @param sheetName The name of the sheet in the excel workbook
-	 * @param sheetRange The desired range to load
-	 * @return
-	 */
-	public static String loadExcelSheet(String filePath, String frameName, String sheetName, String sheetRange) {
+	public static String extractNumbers(String dataframe, String column) {
 		StringBuilder rsb = new StringBuilder();
-		rsb.append("library(readxl);library(cellranger);");
-		filePath = filePath.replace("\\", "/");
-		rsb.append(frameName + " <- read_excel(path = \"" + filePath + "\", col_names = TRUE, sheet = \"" + sheetName + "\", range='"
-				+ sheetRange + "');");
-		rsb.append(frameName + " <- as.data.table(" + frameName + ");");
+		rsb.append(dataframe + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + dataframe + "$" + column + "));");
 		return rsb.toString();
 	}
-
+	
 	/**
 	 * 
 	 * @param leftTableName
@@ -499,105 +544,6 @@ public class RSyntaxHelper {
 			firstLoop = false;
 		}
 	}
-
-	/**
-	 * Convert a java object[] into a r column vector
-	 * @param row				The object[] to convert
-	 * @param dataType			The data type for each entry in the object[]
-	 * @return					String containing the equivalent r column vector
-	 */
-	public static String createRColVec(Object[] row, SemossDataType[] dataType) {
-		StringBuilder str = new StringBuilder("c(");
-		int i = 0;
-		int size = row.length;
-		for(; i < size; i++) {
-			if(dataType[i] == SemossDataType.STRING) {
-				str.append("\"").append(row[i]).append("\"");
-			} else {
-				str.append(row[i]);
-			}
-			// if not the last entry, append a "," to separate entries
-			if( (i+1) != size) {
-				str.append(",");
-			}
-		}
-		str.append(")");
-		return str.toString();
-	}
-	
-	/**
-	 * Convert a r vector from a java vector
-	 * @param row				The object[] to convert
-	 * @param dataType			The data type for each entry in the object[]
-	 * @return					String containing the equivalent r column vector
-	 */
-	public static String createRColVec(List<Object> row, SemossDataType dataType) {
-		StringBuilder str = new StringBuilder("c(");
-		int i = 0;
-		int size = row.size();
-		for(; i < size; i++) {
-			if(SemossDataType.STRING == dataType) {
-				str.append("\"").append(row.get(i)).append("\"");
-			} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
-				str.append(row.get(i).toString());
-			} else if(SemossDataType.DATE == dataType) {
-				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d');");
-			} else {
-				// just in case this is not defined yet...
-				// see the type of the value and add it in based on that
-				if(dataType == null) {
-					if(row.get(i) instanceof String) {
-						str.append("\"").append(row.get(i)).append("\"");
-					} else {
-						str.append(row.get(i));
-					}
-				} else {
-					str.append(row.get(i));
-				}
-			}
-			// if not the last entry, append a "," to separate entries
-			if( (i+1) != size) {
-				str.append(",");
-			}
-		}
-		str.append(")");
-		return str.toString();
-	}
-
-	public static String formatFilterValue(Object value, SemossDataType dataType) {
-		if(SemossDataType.STRING == dataType) {
-			return "\"" + value + "\"";
-		} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
-			return value.toString();
-		} else if(SemossDataType.DATE == dataType) {
-			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
-		} else {
-			// just in case this is not defined yet...
-			// see the type of the value and add it in based on that
-			if(dataType == null) {
-				if(value instanceof String) {
-					return "\"" + value + "\"";
-				} else {
-					return value + "";
-				}
-			} else {
-				return value + "";
-			}
-		}
-	}
-	
-	public static String escapeRegexR(String expr){
-		if (Pattern.matches("^(grepl).*?", expr)){
-			String [] parsedRegex = (String[]) expr.split("\\\\\"");
-			String regex = "";
-			for (int k=1; k < parsedRegex.length - 1; k++){
-				String escapedParsedRegex = parsedRegex[k].replace("\\", "\\\\");
-				regex = regex + escapedParsedRegex;
-			}
-			expr = parsedRegex[0] + "\\\"" + regex + "\\\"" + parsedRegex[parsedRegex.length - 1];
-		}
-		return expr;
-	}
 	
 	/**
 	 * Generate an alter statement to add new columns, taking into consideration joins
@@ -609,11 +555,7 @@ public class RSyntaxHelper {
 	 * @param newColumnAlias
 	 * @return
 	 */
-	public static String alterMissingColumns(String tableName, 
-			Map<String, SemossDataType> newColumnsToTypeMap, 
-			List<Join> joins,
-			Map<String, String> newColumnAlias) {
-		
+	public static String alterMissingColumns(String tableName,  Map<String, SemossDataType> newColumnsToTypeMap,  List<Join> joins, Map<String, String> newColumnAlias) {
 		List<String> newColumnsToAdd = new Vector<String>();
 		List<SemossDataType> newColumnsToAddTypes = new Vector<SemossDataType>();
 		
@@ -668,6 +610,102 @@ public class RSyntaxHelper {
 		
 		return rExec.toString();
 	}
+
+	//////////////////////////////////////////
+	// File I/O
+	/////////////////////////////////////////
+	/**
+	 * Generate the syntax to perform a fRead to ingest a file
+	 * @param tableName
+	 * @param absolutePath
+	 * @return
+	 */
+	public static String getFReadSyntax(String tableName, String absolutePath) {
+		return getFReadSyntax(tableName, absolutePath, ",");
+	}
+	
+	/**
+	 * Generate the syntax to perform a fRead to ingest a file
+	 * @param tableName
+	 * @param absolutePath
+	 * @param delimiter
+	 * @return
+	 */
+	public static String getFReadSyntax(String tableName, String absolutePath, String delimiter) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName).append(" <- fread(\"").append(absolutePath.replace("\\", "/"))
+			.append("\", sep=\"").append(delimiter).append("\")");
+		return builder.toString();
+	}
+
+	public static String getExcelReadSheetSyntax(String tableName, String absolutePath, int sheetIndex, List<Integer> colIndices, boolean uploadSubset) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName).append(" <- as.data.table(read.xlsx2(\"").append(absolutePath.replace("\\", "/"))
+		.append("\", sheetIndex=").append(sheetIndex).append(", colClasses = c(rep('character',").append(colIndices.size())
+		.append(")), stringsAsFactors=FALSE");
+		if (uploadSubset) {
+			builder.append(", colIndex = c(").append(StringUtils.join(colIndices,",")).append(")");
+		}
+		builder.append("))");
+		return builder.toString();
+	}
+	
+	/**
+	 * Load excel sheet to dataframe
+	 * @param filePath The file path of the excel file
+	 * @param frameName The name of the frame to load excel sheet
+	 * @param sheetName The name of the sheet in the excel workbook
+	 * @param sheetRange The desired range to load
+	 * @return
+	 */
+	public static String loadExcelSheet(String filePath, String frameName, String sheetName, String sheetRange) {
+		StringBuilder rsb = new StringBuilder();
+		rsb.append("library(readxl);library(cellranger);");
+		filePath = filePath.replace("\\", "/");
+		rsb.append(frameName + " <- read_excel(path = \"" + filePath + "\", col_names = TRUE, sheet = \"" + sheetName + "\", range='"
+				+ sheetRange + "');");
+		rsb.append(frameName + " <- as.data.table(" + frameName + ");");
+		return rsb.toString();
+	}
+	
+	public static String formatFilterValue(Object value, SemossDataType dataType) {
+		if(SemossDataType.STRING == dataType) {
+			return "\"" + value + "\"";
+		} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
+			return value.toString();
+		} else if(SemossDataType.DATE == dataType) {
+			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
+		} else {
+			// just in case this is not defined yet...
+			// see the type of the value and add it in based on that
+			if(dataType == null) {
+				if(value instanceof String) {
+					return "\"" + value + "\"";
+				} else {
+					return value + "";
+				}
+			} else {
+				return value + "";
+			}
+		}
+	}
+	
+	public static String escapeRegexR(String expr){
+		if (Pattern.matches("^(grepl).*?", expr)){
+			String [] parsedRegex = (String[]) expr.split("\\\\\"");
+			String regex = "";
+			for (int k=1; k < parsedRegex.length - 1; k++){
+				String escapedParsedRegex = parsedRegex[k].replace("\\", "\\\\");
+				regex = regex + escapedParsedRegex;
+			}
+			expr = parsedRegex[0] + "\\\"" + regex + "\\\"" + parsedRegex[parsedRegex.length - 1];
+		}
+		return expr;
+	}
+	
+	/////////////////////////////////////////////////////////
+	// Date formatting
+	/////////////////////////////////////////////////////////
 	
 	/**
 	 * Converts Java datetime format to R datetime format
@@ -770,21 +808,6 @@ public class RSyntaxHelper {
 	public static String getValueJavaRDatTimeTranslationMap(String key){
 		String value = javaRDatTimeTranslationMap.get(key);
 		return value;
-	}
-	
-	public static String cleanFrameHeaders(String frameName, String[] colNames ) {
-		HeadersException headerChecker = HeadersException.getInstance();
-		colNames = headerChecker.getCleanHeaders(colNames);
-		// update frame header names in R
-		String rColNames = "";
-		for (int i = 0; i < colNames.length; i++) {
-			rColNames += "\"" + colNames[i] + "\"";
-			if (i < colNames.length - 1) {
-				rColNames += ", ";
-			}
-		}
-		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
-		return script;
 	}
 	
 	public static void main(String[] args) {
