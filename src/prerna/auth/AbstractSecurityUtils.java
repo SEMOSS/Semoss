@@ -302,6 +302,14 @@ public abstract class AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * Need to escape single quotes for sql queries
+	 * @param s
+	 * @return
+	 */
+	protected static String escapeForSQLStatement(String s) {
+		return s.replaceAll("'", "''");
+	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
