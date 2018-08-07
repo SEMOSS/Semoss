@@ -117,11 +117,14 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			// the script failed or they dont have the historical data
 			ArrayList<Object> recommendationsFinal = new ArrayList<Object>();
 			if (json != null) {
-				ArrayList<Object> recommendList = new ArrayList<Object>();
 				Gson gson = new Gson();
 				ArrayList<Map<String, String>> recList = gson.fromJson(json, new TypeToken<ArrayList<HashMap<String, String>>>() {}.getType());
 				for (int i = 0; i < recList.size(); i++) {
-					String item = recList.get(i).get("item");
+					Map<String, String> itemMap = recList.get(i);
+					if (itemMap.isEmpty() || itemMap.get("item") == null){
+						continue;
+					}
+					String item = itemMap.get("item");
 					String[] vals = item.split("\\$");
 					if (vals != null && recommendationsFinal.size() < 10 && enginesWithAccess.contains(vals[0])) {
 						// only send 10 and make sure they exist on this machine
@@ -138,7 +141,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 						engineDetail.put("appType", type);
 						engineDetail.put("freq", freq);
 						convertedMembers.add(engineDetail);
-						recommendList.add(convertedMembers);
+						recommendationsFinal.add(convertedMembers);
 					}
 				}
 			}
