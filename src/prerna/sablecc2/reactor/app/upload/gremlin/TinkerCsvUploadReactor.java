@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
@@ -134,6 +135,16 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		// TODO
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
+		if(metamodelProps.get(Constants.DATA_TYPES) == null) {
+			// put in types to metamodel
+			Map<String, String> dataTypes = new HashMap<>();
+			for(int i=0; i < headers.length; i++) {
+				String header = headers[i];
+				String type = types[i].toString();
+				dataTypes.put(header, type);
+			}
+			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
+		}
 		processRelationships(app, owler, helper, logger, headers, types, metamodelProps);
 		app.commit();
 		logger.info(stepCounter + ". Complete");
@@ -173,8 +184,6 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		tempSmss.delete();
 		app.setPropFile(smssFile.getAbsolutePath());
 		UploadUtilities.updateDIHelper(newAppId, newAppName, app, smssFile);
-
-
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
@@ -242,6 +251,17 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		
 		logger.info(stepCounter + ". Start loading data..");
 		OWLER owler = new OWLER(app, app.getOWL());
+		
+		if(metamodelProps.get(Constants.DATA_TYPES) == null) {
+			// put in types to metamodel
+			Map<String, String> dataTypes = new HashMap<>();
+			for(int i=0; i < headers.length; i++) {
+				String header = headers[i];
+				String type = types[i].toString();
+				dataTypes.put(header, type);
+			}
+			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
+		}
 		processRelationships(app, owler, helper, logger, headers, types, metamodelProps);
 		app.commit();
 		logger.info(stepCounter + ". Complete");
@@ -591,8 +611,7 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 				new Object[] { objectNodeType, instanceObjectName });
 
 		// upsert the edge between them
-		engine.doAction(IEngine.ACTION_TYPE.EDGE_UPSERT,
-				new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });
+		engine.doAction(IEngine.ACTION_TYPE.EDGE_UPSERT, new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });
 
 	}
 
