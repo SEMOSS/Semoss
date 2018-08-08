@@ -231,6 +231,7 @@ public class RSyntaxHelper {
 		str.append("paste(levels("+ tableName + "$" + colName + "), collapse = '+++');");		
 		return str.toString();
 	}
+	
 	////////////////////////////////////////////////
 	// Data frame changes
 	/////////////////////////////////////////////////
@@ -410,6 +411,20 @@ public class RSyntaxHelper {
 		dateTimeExcelR.add(convertedDTColsList_R);
 		
 		return dateTimeExcelR;
+	}
+	
+	/**
+	 * Get specific columns from a frame
+	 * @param resultingFrame
+	 * @param dataframe
+	 * @param cols
+	 * @return
+	 */
+	public static String getFrameSubset(String resultingFrame, String dataframe, Object[] cols) {
+		StringBuilder rsb = new StringBuilder();
+		String rColsVec = RSyntaxHelper.createStringRColVec(cols);
+		rsb.append(resultingFrame + "<- subset(" + dataframe + ", select=" + rColsVec + ");");
+		return rsb.toString();
 	}
 	
 	/**
