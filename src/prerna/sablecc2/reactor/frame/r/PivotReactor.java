@@ -8,6 +8,7 @@ import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
@@ -26,11 +27,10 @@ public class PivotReactor extends AbstractRFrameReactor {
 	
 	private static final String PIVOT_COLUMN_KEY = "pivotCol";
 	private static final String VALUE_COLUMN_KEY = "valueCol";
-	private static final String MAINTAIN_COLUMNS_KEY = "maintainCols";
 	private static final String AGGREGATE_FUNCTION_KEY = "function";
 	
 	public PivotReactor() {
-		this.keysToGet = new String[]{PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, MAINTAIN_COLUMNS_KEY, AGGREGATE_FUNCTION_KEY};
+		this.keysToGet = new String[]{PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), AGGREGATE_FUNCTION_KEY};
 	}
 	
 	@Override
@@ -168,7 +168,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 	//get any additional columns to keep based on the key "MAINTAIN_COLUMNS_KEY"
 	private List<String> getKeepCols() {
 		List<String> colInputs = new Vector<String>();
-		GenRowStruct colGRS = this.store.getNoun(MAINTAIN_COLUMNS_KEY);
+		GenRowStruct colGRS = this.store.getNoun(ReactorKeysEnum.MAINTAIN_COLUMNS.getKey());
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {
@@ -205,8 +205,6 @@ public class PivotReactor extends AbstractRFrameReactor {
 			return "The column to pivot on";
 		} else if(key.equals(VALUE_COLUMN_KEY)) {
 			return "The column to turn into values for the selected pivot column";
-		} else if (key.equals(MAINTAIN_COLUMNS_KEY)) {
-			return "Any additional columns to keep in the frame";
 		} else if (key.equals(AGGREGATE_FUNCTION_KEY)) {
 			return "The function used to aggregate columns";
 		} else {
