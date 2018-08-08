@@ -50,6 +50,32 @@ public class RdbmsQueryBuilder {
 	}
 	
 	/**
+	 * Create table if not exists
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param defaultValues
+	 * @return
+	 */
+	public static String makeOptionalCreateWithDefault(String tableName, String [] colNames, String [] types, Object[] defaultValues) {
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS "+ tableName + " (" + colNames[0] + " " + types[0]);
+		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
+			retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
+			// add default values
+			if(defaultValues[colIndex] != null) {
+				retString.append(" DEFAULT ");
+				if(defaultValues[colIndex] instanceof String) {
+					retString.append("'").append(defaultValues[colIndex]).append("'");
+				} else {
+					retString.append(defaultValues[colIndex]);
+				}
+			}
+		}
+		retString = retString.append(")");
+		return retString.toString();
+	}
+	
+	/**
 	 * Generate an insert query
 	 * @param tableName
 	 * @param colNames
