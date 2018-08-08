@@ -3,8 +3,15 @@ package prerna.sablecc2.reactor.utils;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.openqa.selenium.Cookie;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -18,6 +25,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -39,6 +47,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		String engineName = this.keyValue.get(this.keysToGet[0]);
 		String feUrl = this.keyValue.get(this.keysToGet[1]);
 		String param = this.keyValue.get(this.keysToGet[2]);
+		String sessionId = this.planner.getVariable(JobReactor.SESSION_KEY).getValue().toString();
 		
 		IEngine coreEngine = Utility.getEngine(engineName);
 		// loop through the insights
@@ -47,14 +56,14 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		while(wrapper.hasNext()) {
 			String id = wrapper.next().getValues()[0] + "";
 			logger.info("Start image capture for insight id = " + id);
-			runImageCapture(feUrl, engineName, id, param);
+			runImageCapture(feUrl, engineName, id, param, sessionId);
 			logger.info("Done saving image for insight id = " + id);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	public static void runImageCapture(String feUrl, String appId, String insightId, String params) {
+	public static void runImageCapture(String feUrl, String appId, String insightId, String params, String sessionId) {
 		IEngine coreEngine = Utility.getEngine(appId);
 		if(coreEngine == null) {
 			// we may have the alias
@@ -69,10 +78,10 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				throw new IllegalArgumentException("Cannot find app = " + appId);
 			}
 		}
-		runImageCapture(feUrl, coreEngine, appId, insightId, params);
+		runImageCapture(feUrl, coreEngine, appId, insightId, params, sessionId);
 	}
 	
-	public static void runImageCapture(String feUrl, IEngine coreEngine, String appId, String insightId, String params) {
+	public static void runImageCapture(String feUrl, IEngine coreEngine, String appId, String insightId, String params, String sessionId) {
 		Insight insight = null;
 		try {
 			insight = coreEngine.getInsight(insightId).get(0);
@@ -84,84 +93,161 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		}
 		List<String> recipe = insight.getPixelRecipe();
 		if(params != null || !PixelUtility.hasParam(recipe)) {
-			String[] cmd = getCmdArray(feUrl, insight, params);
-			Process p = null;
-			try {
-				p = new ProcessBuilder(cmd).start();
-				while(p.isAlive()) {
-					try {
-						p.waitFor();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			} finally {
-				// destroy it
-				if(p != null) {
-					p.destroy();
-				} else {
-					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
-					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
-					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
-					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
-					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
-				}
-			}
+			runHeadlessChrome(feUrl, insight, params, sessionId);
 		}
-	}
-	
-	private static String[] getCmdArray(String feUrl, Insight in, String params) {
-		String id = in.getRdbmsId();
-		String engineId = in.getEngineId();
-		String engineName = in.getEngineName();
 		
-		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + 
+//		if(params != null || !PixelUtility.hasParam(recipe)) {
+//			String[] cmd = getCmdArray(feUrl, insight, params);
+//			Process p = null;
+//			try {
+//				p = new ProcessBuilder(cmd).start();
+//				while(p.isAlive()) {
+//					try {
+//						p.waitFor();
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					}
+//				}
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			} finally {
+//				// destroy it
+//				if(p != null) {
+//					p.destroy();
+//				} else {
+//					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+//					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+//					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+//					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+//					System.out.println("ERROR RUNNING IMAGE CAPTURE!!!");
+//				}
+//			}
+//		}
+	}
+
+	/**
+	 * Run headless chrome via selenium
+	 * @param feUrl
+	 * @param insight
+	 * @param params
+	 * @param sessionId
+	 */
+	private static void runHeadlessChrome(String feUrl, Insight insight, String params, String sessionId) {
+		String id = insight.getRdbmsId();
+		String engineId = insight.getEngineId();
+		String engineName = insight.getEngineName();
+		boolean securityEnabled = Boolean.parseBoolean((String)DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED));
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String imageDirStr = baseFolder + 
 				DIR_SEPARATOR + "db" + 
 				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
 				DIR_SEPARATOR + "version" +
 				DIR_SEPARATOR + id;
 		
-		if(params != null) {
-			imageDirStr += params;
+		String os = System.getProperty("os.name").toUpperCase();
+		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
+		if(os.contains("WIN")){
+			sysProp += "chromedriver-win.exe";
+		} else if(os.contains("MAC")) {
+			sysProp += "chromedriver-mac";
+		} else {
+			sysProp += "chromedriver-linux";
 		}
+		System.setProperty("webdriver.chrome.driver", sysProp);
 		
-		File imageDir = new File(imageDirStr);
-		if(!imageDir.exists()) {
-			imageDir.mkdirs();
-		}
-
-		String googleHome = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_HOME);
-		if(googleHome == null) {
-			googleHome = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
-		}
-		
-		String insecure = "";
+	    ChromeOptions chromeOptions = new ChromeOptions();
+		chromeOptions.addArguments("--headless");
+		chromeOptions.addArguments("--disable-gpu");
+		chromeOptions.addArguments("--window-size=1440,1440");
 		if(feUrl.contains("localhost") && feUrl.contains("https")) {
-			insecure = "--allow-insecure-localhost ";
+			chromeOptions.addArguments("--allow-insecure-localhost ");
 		}
-		String[] cmd = null;
-		if(insecure.equals("")){
-			if(params != null) {
-				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
-						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&panel=0&drop=1000"};	
+		ChromeDriver driver = new ChromeDriver(chromeOptions);
+		String url = null;
+		if(params != null){
+			url = feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&panel=0&drop=1000";
+		} else {
+			url = feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&hideMenu=true&panel=0&drop=1000";
+		}
+		
+		driver.get(url);
+		if(securityEnabled){
+			Cookie name = new Cookie("JSESSIONID", sessionId);
+			driver.manage().addCookie(name);
+			Set<Cookie> cookiesList =  driver.manage().getCookies();
+			for(Cookie getcookies :cookiesList) {
+			    System.out.println(getcookies );
+			}
+			driver.navigate().to(url);
+		}
+		
+		// time for FE to render the page before the image is taken
+	    try {
+			Thread.sleep(7000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		File scrFile = (File)((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
+		try {
+			FileUtils.copyFile(scrFile, new File(imageDirStr + DIR_SEPARATOR + "image.png"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-			} else {
-				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
-						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
-			}
-		}
-		else {
-			if(params != null) {
-				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
-						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&parameters=" + params + "&hideMenu=true&panel=0&drop=1000"};				
-			} else {
-				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
-						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
-			}
-		}
-		return cmd;
+	    driver.quit();
 	}
+	
+//	private static String[] getCmdArray(String feUrl, Insight in, String params) {
+//		String id = in.getRdbmsId();
+//		String engineId = in.getEngineId();
+//		String engineName = in.getEngineName();
+//		
+//		String imageDirStr = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + 
+//				DIR_SEPARATOR + "db" + 
+//				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
+//				DIR_SEPARATOR + "version" +
+//				DIR_SEPARATOR + id;
+//		
+//		if(params != null) {
+//			imageDirStr += params;
+//		}
+//		
+//		File imageDir = new File(imageDirStr);
+//		if(!imageDir.exists()) {
+//			imageDir.mkdirs();
+//		}
+//
+//		String googleHome = DIHelper.getInstance().getProperty(Constants.GOOGLE_CHROME_HOME);
+//		if(googleHome == null) {
+//			googleHome = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe";
+//		}
+//		
+//		String insecure = "";
+//		if(feUrl.contains("localhost") && feUrl.contains("https")) {
+//			insecure = "--allow-insecure-localhost ";
+//		}
+//		String[] cmd = null;
+//		if(insecure.equals("")){
+//			if(params != null) {
+//				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
+//						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&panel=0&drop=1000"};	
+//
+//			} else {
+//				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",
+//						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
+//			}
+//		}
+//		else {
+//			if(params != null) {
+//				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
+//						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&parameters=" + params + "&hideMenu=true&panel=0&drop=1000"};				
+//			} else {
+//				cmd = new String[]{googleHome,"--headless","--disable-gpu","--window-size=1440,1440","--virtual-time-budget=10000",insecure,
+//						"--screenshot="+imageDirStr + DIR_SEPARATOR + "image.png",feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&hideMenu=true&panel=0&drop=1000"};	
+//			}
+//		}
+//		return cmd;
+//	}
 
 }
