@@ -83,7 +83,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// i need to delete any current insights for the app
 		// before i start to insert new insights
 		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
-		rne.removeData(deleteQuery);
+		securityDb.removeData(deleteQuery);
 		
 		// make a prepared statement
 		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(
