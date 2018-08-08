@@ -1,6 +1,7 @@
 package prerna.auth;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -104,7 +105,7 @@ public abstract class AbstractSecurityUtils {
 	public static void initialize() {
 		String[] colNames = null;
 		String[] types = null;
-
+		Object[] defaultValues = null;
 		/*
 		 * Currently used
 		 */
@@ -122,7 +123,8 @@ public abstract class AbstractSecurityUtils {
 		// ENGINEPERMISSION
 		colNames = new String[] { "userid", "permission", "engineid", "visibility" };
 		types = new String[] { "varchar(255)", "integer", "varchar(255)", "boolean" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEPERMISSION", colNames, types));
+		defaultValues = new Object[]{null, null, null, null, true};
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEPERMISSION", colNames, types, defaultValues));
 
 		// INSIGHT
 		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout" };
@@ -138,23 +140,54 @@ public abstract class AbstractSecurityUtils {
 		colNames = new String[] { "id", "name" };
 		types = new String[] { "integer", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("PERMISSION", colNames, types));
-		boolean addrows = true;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
 		if(wrapper.hasNext()) {
-			if( ((Number) wrapper.next().getValues()[0]).intValue() >= 3) {
-				addrows = false;
+			if( ((Number) wrapper.next().getValues()[0]).intValue() <= 3) {
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
 			}
-		}
-		if(addrows) {
-			securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-			securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-			securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
 		}
 		
 		// USER
 		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
+		
+		// USERGROUP
+		colNames = new String[] { "groupid", "name", "owner" };
+		types = new String[] { "identity", "varchar(255)", "varchar(255)" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
+		
+		// GROUPMEMBERS
+		colNames = new String[] {"groupmembersid", "groupid", "userid"};
+		types = new String[] {"identity", "integer", "varchar(255)"};
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS", colNames, types));
+		
+		// ENGINEGROUPMEMBERVISIBILITY
+		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
+		types = new String[] { "identity", "integer", "integer", "boolean" };
+		defaultValues = new Object[]{null, null, null, true};
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEGROUPMEMBERVISIBILITY", colNames, types, defaultValues));
+
+		// GROUPENGINEPERMISSION
+		colNames = new String[] {"groupenginepermissionid", "groupid", "permission", "engine"};
+		types = new String[] {"identity", "integer", "integer", "varchar(255)"};
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
+
+		// FOREIGN KEYS FOR CASCASDE DELETE
+		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPENGINEPERMISSION'");
+		if(wrapper.hasNext()) {
+			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
+				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPENGINEPERMISSION FOREIGN KEY (GROUPENGINEPERMISSIONID) REFERENCES GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID) ON DELETE CASCADE;");
+			}
+		}
+		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPMEMBERSID'");
+		if(wrapper.hasNext()) {
+			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
+				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS (GROUPMEMBERSID) ON DELETE CASCADE;");
+			}
+		}
 		
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
@@ -170,52 +203,30 @@ public abstract class AbstractSecurityUtils {
 		types = new String[] { "integer", "varchar(255)", "varchar(255)", "integer", "integer" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ACCESSREQUEST", colNames, types));
 
+//		// GROUPINSIGHTPERMISSION
+//		colNames = new String[] { "groupid", "engineid", "insightid" };
+//		types = new String[] { "integer", "integer", "varchar(255)" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPINSIGHTPERMISSION", colNames, types));
 
-		// ENGINEGROUPMEMBERVISIBILITY
-		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
-		types = new String[] { "integer", "integer", "integer", "boolean" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEGROUPMEMBERVISIBILITY", colNames, types));
+//		// INSIGHTEXECUTION
+//		colNames = new String[] { "user", "database", "insight", "count", "lastexecuted", "session" };
+//		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer", "date", "varchar(255)" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION", colNames, types));
 
+//		// SEED
+//		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
+//		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", "clob", "varchar(255)" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
 
-		// GROUPENGINEPERMISSION
-		colNames = new String[] { "groupid", "permission", "engine", "id" };
-		types = new String[] { "integer", "integer", "varchar(255)", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
-
-		// GROUPINSIGHTPERMISSION
-		colNames = new String[] { "groupid", "engineid", "insightid" };
-		types = new String[] { "integer", "integer", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPINSIGHTPERMISSION", colNames, types));
-
-		// GROUPMEMBERS
-		colNames = new String[] { "groupid", "memberid", "id" };
-		types = new String[] { "integer", "varchar(255)", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS", colNames, types));
-
-		// GROUPSEEDPERMISSION
-		colNames = new String[] { "groupid", "seedid" };
-		types = new String[] { "integer", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
-
-		// INSIGHTEXECUTION
-		colNames = new String[] { "user", "database", "insight", "count", "lastexecuted", "session" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer", "date", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION", colNames, types));
-
-		// SEED
-		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
-		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", "clob", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
-
-		// USERGROUP
-		colNames = new String[] { "id", "name", "owner" };
-		types = new String[] { "integer", "varchar(255)", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
-
-		// USERSEEDPERMISSION
-		colNames = new String[] { "userid", "seedid" };
-		types = new String[] { "varchar(255)", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERSEEDPERMISSION", colNames, types));
+//		// USERSEEDPERMISSION
+//		colNames = new String[] { "userid", "seedid" };
+//		types = new String[] { "varchar(255)", "integer" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERSEEDPERMISSION", colNames, types));
+		
+//		// GROUPSEEDPERMISSION
+//		colNames = new String[] { "groupid", "seedid" };
+//		types = new String[] { "integer", "integer" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
 	}
 	
 	/**
@@ -353,6 +364,29 @@ public abstract class AbstractSecurityUtils {
 		return values;
 	}
 	
+	static List<String[]> flushRsToListOfStrArray(IRawSelectWrapper wrapper) {
+		List<String[]> ret = new ArrayList<String[]>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow headerRow = wrapper.next();
+			Object[] values = headerRow.getValues();
+			int len = values.length;
+			String[] strVals = new String[len];
+			for(int i = 0; i < len; i++) {
+				strVals[i] = values[i] + "";
+			}
+			ret.add(strVals);
+		}
+		return ret;
+	}
+	
+	static List<Object[]> flushRsToMatrix(IRawSelectWrapper wrapper) {
+		List<Object[]> ret = new ArrayList<Object[]>();
+		while(wrapper.hasNext()) {
+			ret.add(wrapper.next().getValues());
+		}
+		return ret;
+	}
+	
 	static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
 		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
 		while(wrapper.hasNext()) {
@@ -385,6 +419,22 @@ public abstract class AbstractSecurityUtils {
 		return b.toString();
 	}
 	
+	static String createFilter(List<String> filterValues) {
+		StringBuilder b = new StringBuilder();
+		boolean hasData = false;
+		if(filterValues.size() > 0) {
+			hasData = true;
+			b.append(" IN (");
+			b.append("'").append(filterValues.get(0)).append("'");
+			for(int i = 1; i < filterValues.size(); i++) {
+				b.append(", '").append(filterValues.get(i)).append("'");
+			}
+		}
+		if(hasData) {
+			b.append(")");
+		}
+		return b.toString();
+	}
 	
 	static String createFilter(String firstValue, String... filterValues) {
 		StringBuilder b = new StringBuilder();
