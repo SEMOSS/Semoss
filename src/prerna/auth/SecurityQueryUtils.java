@@ -354,8 +354,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.ENGINEID AS \"app_id\", "
+				+ "ENGINE.ENGINENAME AS \"app_name\", "
 				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
 				+ "INSIGHT.INSIGHTNAME as \"name\", "
+				+ "INSIGHT.LAYOUT as \"layout\", "
 				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
@@ -375,8 +377,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	public static List<Map<String, Object>> searchInsights(String engineId, String searchTerm, String limit, String offset) {
-		String query = "SELECT DISTINCT INSIGHT.ENGINEID AS \"app_id\", INSIGHT.INSIGHTID as \"app_insight_id\", INSIGHT.INSIGHTNAME as \"name\" "
-				+ ", CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+		String query = "SELECT DISTINCT "
+				+ "INSIGHT.ENGINEID AS \"app_id\", "
+				+ "ENGINE.ENGINENAME AS \"app_name\", "
+				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
+				+ "INSIGHT.INSIGHTNAME as \"name\", "
+				+ "INSIGHT.LAYOUT as \"layout\", "
+				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
