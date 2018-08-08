@@ -83,15 +83,21 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 						ArrayList<HashMap<String, String>> convertedMembers = new ArrayList<HashMap<String, String>>();
 						for (String member : communityMembers) {
 							String[] id = member.split("\\$");
-							if (id != null && communitiesList.size() < 10 && enginesWithAccess.contains(id[0])) {
+							// limit to 10 dbs. Id and name have to be included to be used
+							if (id != null && id.length > 1 && communitiesList.size() < 10) {
 								// only send 10 and make sure they exist on this machine
 								HashMap<String, String> engineDetail = new HashMap<String, String>();
-								String alias = MasterDatabaseUtility.getEngineAliasForId(id[0]);
+								String alias = id[1];
 								String engId = id[0];
-								String type = (Utility.getEngine(engId)).getEngineType() + "";
+								boolean access = enginesWithAccess.contains(id[0]);
+								String type = "";
+								if (access){
+									type = (Utility.getEngine(engId)).getEngineType() + "";
+								}
 								engineDetail.put("appName", alias);
 								engineDetail.put("appId", engId);
 								engineDetail.put("appType", type);
+								engineDetail.put("access", "\"" + access + "\"");
 								convertedMembers.add(engineDetail);
 							}
 						}
@@ -126,20 +132,25 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 					}
 					String item = itemMap.get("item");
 					String[] vals = item.split("\\$");
-					if (vals != null && recommendationsFinal.size() < 10 && enginesWithAccess.contains(vals[0])) {
+					// limit to 10 dbs. Id and name have to be included to be used
+					if (vals != null && vals.length > 1 && recommendationsFinal.size() < 10) {
 						// only send 10 and make sure they exist on this machine
 						ArrayList<HashMap<String, String>> convertedMembers = new ArrayList<HashMap<String, String>>();
 						HashMap<String, String> engineDetail = new HashMap<String, String>();
 						String engId = vals[0];
-						String freq = recList.get(i).get("freq");
-						String alias = MasterDatabaseUtility.getEngineAliasForId(engId);
-						String type = (Utility.getEngine(engId)).getEngineType() + "";
-
+						String freq = recList.get(i).get("score");
+						String alias = vals[1];
+						boolean access = enginesWithAccess.contains(vals[0]);
+						String type = "";
+						if (access){
+							type = (Utility.getEngine(engId)).getEngineType() + "";
+						}
 						// only return databases the user can access
 						engineDetail.put("appName", alias);
 						engineDetail.put("appId", engId);
 						engineDetail.put("appType", type);
 						engineDetail.put("freq", freq);
+						engineDetail.put("access", "\"" + access + "\"");
 						convertedMembers.add(engineDetail);
 						recommendationsFinal.add(convertedMembers);
 					}
