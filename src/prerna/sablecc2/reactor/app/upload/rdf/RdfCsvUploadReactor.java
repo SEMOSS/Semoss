@@ -22,6 +22,7 @@ import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
+import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -77,6 +78,14 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		}
 		String returnId = null;
 		if (existing) {
+			if(security) {
+				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
+					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+					SemossPixelException err = new SemossPixelException(noun);
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
+			}
 			returnId = addToExistingApp(appIdOrName, filePath);
 		} else {
 			returnId = generateNewApp(appIdOrName, filePath);
