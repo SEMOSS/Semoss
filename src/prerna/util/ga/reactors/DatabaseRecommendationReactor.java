@@ -80,13 +80,13 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 					HashMap<String, ArrayList<String>> map = myList.get(i);
 					for (String key : map.keySet()) {
 						ArrayList<String> communityMembers = map.get(key);
-						ArrayList<HashMap<String, String>> convertedMembers = new ArrayList<HashMap<String, String>>();
+						ArrayList<HashMap<String, Object>> convertedMembers = new ArrayList<HashMap<String, Object>>();
 						for (String member : communityMembers) {
 							String[] id = member.split("\\$");
 							// limit to 10 dbs. Id and name have to be included to be used
 							if (id != null && id.length > 1 && communitiesList.size() < 10) {
 								// only send 10 and make sure they exist on this machine
-								HashMap<String, String> engineDetail = new HashMap<String, String>();
+								HashMap<String, Object> engineDetail = new HashMap<String, Object>();
 								String alias = id[1];
 								String engId = id[0];
 								boolean access = enginesWithAccess.contains(id[0]);
@@ -97,7 +97,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 								engineDetail.put("appName", alias);
 								engineDetail.put("appId", engId);
 								engineDetail.put("appType", type);
-								engineDetail.put("access", "\"" + access + "\"");
+								engineDetail.put("access", access);
 								convertedMembers.add(engineDetail);
 							}
 						}
@@ -135,8 +135,8 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 					// limit to 10 dbs. Id and name have to be included to be used
 					if (vals != null && vals.length > 1 && recommendationsFinal.size() < 10) {
 						// only send 10 and make sure they exist on this machine
-						ArrayList<HashMap<String, String>> convertedMembers = new ArrayList<HashMap<String, String>>();
-						HashMap<String, String> engineDetail = new HashMap<String, String>();
+						ArrayList<HashMap<String, Object>> convertedMembers = new ArrayList<HashMap<String, Object>>();
+						HashMap<String, Object> engineDetail = new HashMap<String, Object>();
 						String engId = vals[0];
 						String freq = recList.get(i).get("score");
 						String alias = vals[1];
@@ -150,7 +150,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 						engineDetail.put("appId", engId);
 						engineDetail.put("appType", type);
 						engineDetail.put("freq", freq);
-						engineDetail.put("access", "\"" + access + "\"");
+						engineDetail.put("access", access);
 						convertedMembers.add(engineDetail);
 						recommendationsFinal.add(convertedMembers);
 					}
