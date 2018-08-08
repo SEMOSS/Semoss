@@ -11,6 +11,9 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.tinker.TinkerEngine;
@@ -42,6 +45,19 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		String newAppId = UUID.randomUUID().toString();
 
+		User user = null;
+		boolean security = this.securityEnabled();
+		if(security) {
+			user = this.insight.getUser();
+			if(user == null) {
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
+						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 
@@ -199,6 +215,14 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		appNames = appNames + ";" + newAppId;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
 
+		// even if no security, just add user as engine owner
+		if(user != null) {
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider ap : logins) {
+				SecurityUpdateUtils.addEngineOwner(newAppId, user.getAccessToken(ap).getId());
+			}
+		}
+		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
