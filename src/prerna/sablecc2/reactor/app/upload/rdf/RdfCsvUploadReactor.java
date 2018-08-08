@@ -21,6 +21,9 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AuthProvider;
+import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -29,6 +32,7 @@ import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
@@ -55,6 +59,19 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 		final boolean existing = UploadInputUtility.getExisting(this.store);
 		final String filePath = UploadInputUtility.getFilePath(this.store);
 		final File file = new File(filePath);
+		// check security
+		User user = null;
+		boolean security = this.securityEnabled();
+		if(security) {
+			user = this.insight.getUser();
+			if(user == null) {
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
+						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
 		if (!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
@@ -63,6 +80,13 @@ public class RdfCsvUploadReactor extends AbstractReactor {
 			returnId = addToExistingApp(appIdOrName, filePath);
 		} else {
 			returnId = generateNewApp(appIdOrName, filePath);
+		}
+		// even if no security, just add user as engine owner
+		if(user != null) {
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider ap : logins) {
+				SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
+			}
 		}
 		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
