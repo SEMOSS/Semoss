@@ -20,7 +20,7 @@ import prerna.util.Utility;
 
 public class TestingAudit {
 
-	private static boolean init = true;
+	private static boolean init = false;
 	
 	private Connection conn;
 	private Server server;
@@ -33,8 +33,8 @@ public class TestingAudit {
 	public void genModTables() {
 		String[] headers = new String[]{"ENGINE_ID", "MOD_TABLE"};
 		String[] types = new String[]{"VARCHAR(200)", "VARCHAR(200)"};
-		execQ(RdbmsQueryBuilder.makeOptionalCreate("ENGINE_TABLE_LOOKUP", headers, types));
-		execQ(RdbmsQueryBuilder.makeInsert("ENGINE_TABLE_LOOKUP", headers, types, new Object[]{"test_id", "TEST_TABLE"}));
+//		execQ(RdbmsQueryBuilder.makeOptionalCreate("ENGINE_TABLE_LOOKUP", headers, types));
+//		execQ(RdbmsQueryBuilder.makeInsert("ENGINE_TABLE_LOOKUP", headers, types, new Object[]{"test_id", "TEST_TABLE"}));
 
 		headers = new String[]{"AUTO_INCREMENT", "ID", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
 		types = new String[]{"IDENTITY", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
@@ -95,6 +95,24 @@ public class TestingAudit {
 			data = new Object[]{tId, table, keyColumn, keyValue, alteredColumn, oldValue, newValue, time, "maher khalil"};
 			runAudit(data);
 		}
+		
+		// transaction 3
+		{
+			String table = "DATA";
+			String keyColumn = "TITLE";
+			String keyValue = "American Hustle";
+			String alteredColumn = "TITLE";
+			String oldValue = "American Hustle";
+			String newValue = "American Hustler";
+			
+			// run on the table
+			String updateQ = "UPDATE " + table + " SET " + alteredColumn + "='" + newValue + "' WHERE " + keyColumn + "='" + keyValue + "' AND " + alteredColumn + "='" + oldValue + "'";
+			execQ(updateQ);
+			
+			// add audit log
+			Object[] data = new Object[]{UUID.randomUUID().toString(), table, keyColumn, keyValue, alteredColumn, oldValue, newValue, getTime(), "maher khalil"};
+			runAudit(data);
+		}
 	}
 	
 	public void revertToId(String tId) {
@@ -104,57 +122,63 @@ public class TestingAudit {
 		String logTable = "TEST_TABLE";
 		String undoRowNumQ = "select min(auto_increment) from " + logTable + " where id ='" + tId + "'";
 		long row_number = getNumberFromQ(undoRowNumQ);
-		
-		String logId = null;
-		String prevQueriedId = null;
-		
-		String getUndoQuery = "select id, table, key_column, key_column_value, altered_column, old_value, new_value from " + logTable + " where auto_increment >= " + row_number + " order by auto_increment desc";
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = this.conn.createStatement();
-			rs = stmt.executeQuery(getUndoQuery);
+		if(row_number > 0) {
+			String logId = null;
+			String prevQueriedId = null;
 			
-			while(rs.next()) {
-				String id = rs.getString("id");
-				String table = rs.getString("table");
-				String keyColumn = rs.getString("key_column");
-				String keyValue = rs.getString("key_column_value");
-				String alteredColumn = rs.getString("altered_column");
-				String oldValue = rs.getString("old_value");
-				String newValue = rs.getString("new_value");
+			String getUndoQuery = "select id, table, key_column, key_column_value, altered_column, old_value, new_value from " + logTable + " where auto_increment >= " + row_number + " order by auto_increment desc";
+			Statement stmt = null;
+			ResultSet rs = null;
+			try {
+				stmt = this.conn.createStatement();
+				rs = stmt.executeQuery(getUndoQuery);
 				
-				// WE WANT TO SWITCH THE OLD AND NEW VALUES!!!
-				String temp = newValue;
-				newValue = oldValue;
-				oldValue = temp;
-				String updateQ = "UPDATE " + table + " SET " + alteredColumn + "='" + newValue + "' WHERE " + keyColumn + "='" + keyValue + "' AND " + alteredColumn + "='" + oldValue + "'";
-				
-				// add to bulk set
-				revertQ.append(updateQ);
-				revertQ.append(";");
-				
-				// do same for audit
-				if(prevQueriedId == null) {
-					prevQueriedId = id;
-					logId = UUID.randomUUID().toString();
-				} else {
-					if(!prevQueriedId.equals(id)) {
-						// get a new id
-						logId = UUID.randomUUID().toString();
+				while(rs.next()) {
+					String id = rs.getString("id");
+					String table = rs.getString("table");
+					String keyColumn = rs.getString("key_column");
+					String keyValue = rs.getString("key_column_value");
+					String alteredColumn = rs.getString("altered_column");
+					String oldValue = rs.getString("old_value");
+					String newValue = rs.getString("new_value");
+					
+					// WE WANT TO SWITCH THE OLD AND NEW VALUES!!!
+					String temp = newValue;
+					newValue = oldValue;
+					oldValue = temp;
+					String updateQ = null;
+					if(keyColumn.equals(alteredColumn)) {
+						updateQ = "UPDATE " + table + " SET " + alteredColumn + "='" + newValue + "' WHERE " + alteredColumn + "='" + oldValue + "'";
+					} else {
+						updateQ = "UPDATE " + table + " SET " + alteredColumn + "='" + newValue + "' WHERE " + keyColumn + "='" + keyValue + "' AND " + alteredColumn + "='" + oldValue + "'";
 					}
+					
+					// add to bulk set
+					revertQ.append(updateQ);
+					revertQ.append(";");
+					
+					// do same for audit
+					if(prevQueriedId == null) {
+						prevQueriedId = id;
+						logId = UUID.randomUUID().toString();
+					} else {
+						if(!prevQueriedId.equals(id)) {
+							// get a new id
+							logId = UUID.randomUUID().toString();
+						}
+					}
+					Object[] data = new Object[]{logId, table, keyColumn, keyValue, alteredColumn, oldValue, newValue, getTime(), "maher khalil"};
+					logQ.append(getAuditInsert(data));
+					logQ.append(";");
 				}
-				Object[] data = new Object[]{logId, table, keyColumn, keyValue, alteredColumn, oldValue, newValue, getTime(), "maher khalil"};
-				logQ.append(getAuditInsert(data));
-				logQ.append(";");
+			} catch (SQLException e) {
+				e.printStackTrace();
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
+			
+			// actually run
+			execQ(revertQ.toString());
+//			execQ(logQ.toString());
 		}
-		
-		// actually run
-		execQ(revertQ.toString());
-		execQ(logQ.toString());
 	}
 	
 	public String getAuditInsert(Object[] data) {
@@ -185,7 +209,7 @@ public class TestingAudit {
 			t.performMods();
 		} else {
 			t.connect("5355", "jdbc:h2:tcp://10.10.11.149:5355/nio:C:\\workspace\\Semoss_Dev\\testingAudit");
-			t.revertToId("ba686eb1-9012-44b4-be7f-3eaad693b404");
+			t.revertToId("3b1b7072-151d-47b9-a14a-09fe7b56d616");
 		}
 	}
 	
@@ -369,6 +393,6 @@ public class TestingAudit {
 				}
 			}
 		}
-		return 0;
+		return -1;
 	}
 }
