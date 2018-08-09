@@ -12,7 +12,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.SecurityQueryUtils;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -56,24 +55,31 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			
 			String userName = System.getProperty("user.name");
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			String script = "source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ";
-			script += "fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ";
-			script = script.replace("\\", "/");
+			StringBuilder rsb = new StringBuilder();
+			rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");;
+			rsb.append( "fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ");
 
-			// execute source script
-			this.rJavaTranslator.runR(script);
-
-			List<String> enginesWithAccess = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			// run communities script
-			script = "output<- locate_data_communities(fileroot,\"" + userName + "\");  output<-toJSON(output[3]);";
-			this.rJavaTranslator.runR(script);
-			ArrayList<Object> communitiesList = new ArrayList<Object>();
+			String communityOutput = Utility.getRandomString(8);
+			rsb.append(communityOutput + "<- locate_data_communities(fileroot,\"" + userName + "\");");
+			rsb.append(communityOutput + "<- toJSON(" + communityOutput + "[3]);");
+			// Step 2:
+			// Run another R script to generate user specific recommendations,
+			// add additional data and package as a map to be added to the list
+			// for the FE.
 
-			String json = this.rJavaTranslator.getString("output;");
+			// run plain db recommendations script
+			String userSpecificOutput = Utility.getRandomString(8);
+			rsb.append(userSpecificOutput+"<- dataitem_recom_mgr(\"" + userName + "\",fileroot);");
+			rsb.append(userSpecificOutput + "<- toJSON(as.data.table(" + userSpecificOutput + "[2])[,1:2], byrow = TRUE, colNames = TRUE);");
+			this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));			
+			List<String> enginesWithAccess = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+			ArrayList<Object> communitiesList = new ArrayList<Object>();
+			String communityJson = this.rJavaTranslator.getString(communityOutput);
 			// the script failed or they dont have the historical data
-			if (json != null) {
+			if (communityJson != null) {
 				Gson gson = new Gson();
-				ArrayList<HashMap<String, ArrayList<String>>> myList = gson.fromJson(json, new TypeToken<ArrayList<HashMap<String, ArrayList<String>>>>() {}.getType());
+				ArrayList<HashMap<String, ArrayList<String>>> myList = gson.fromJson(communityJson, new TypeToken<ArrayList<HashMap<String, ArrayList<String>>>>() {}.getType());
 
 				// parse R json response for final recommendation data
 				for (int i = 0; i < myList.size(); i++) {
@@ -109,22 +115,13 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			}
 			recommendations.put("Communities", communitiesList);
 
-			// Step 2:
-			// Run another R script to generate user specific recommendations,
-			// add additional data and package as a map to be added to the list
-			// for the FE.
-
-			// run plain db recommendations script
-			script = "output<- dataitem_recom_mgr(\"" + userName + "\",fileroot);  output<-toJSON(as.data.table(output[2])[,1:2], byrow = TRUE, colNames = TRUE);";
-			this.rJavaTranslator.runR(script);
-
 			// parse R json response for final recommendation data
-			json = this.rJavaTranslator.getString("output;");
+			String userSpecificJson = this.rJavaTranslator.getString(userSpecificOutput);
 			// the script failed or they dont have the historical data
 			ArrayList<Object> recommendationsFinal = new ArrayList<Object>();
-			if (json != null) {
+			if (userSpecificJson != null) {
 				Gson gson = new Gson();
-				ArrayList<Map<String, String>> recList = gson.fromJson(json, new TypeToken<ArrayList<HashMap<String, String>>>() {}.getType());
+				ArrayList<Map<String, String>> recList = gson.fromJson(userSpecificJson, new TypeToken<ArrayList<HashMap<String, String>>>() {}.getType());
 				for (int i = 0; i < recList.size(); i++) {
 					Map<String, String> itemMap = recList.get(i);
 					if (itemMap.isEmpty() || itemMap.get("item") == null){
@@ -159,7 +156,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			recommendations.put("Recommendations", recommendationsFinal);
 
 			// garbage cleanup -- R script might already do this
-			String gc = "rm(blend_mgr, data_domain_mgr, read_datamatrix, exec_tfidf, remove_files, fileroot, output, blend_tracking_semantic, get_userdata, dataitem_history, get_dataitem_rating, assign_unique_concepts, populate_ratings, build_sim, cosine_jaccard_sim, cosine_sim, jaccard_sim, apply_tfidf, compute_weight, dataitem_recom_mgr, get_item_recom, get_user_recom, hop_away_recom_mgr, hop_away_mgr, locate_user_communities, drilldown_communities, locate_data_communities, get_items_users, refresh_base);";
+			String gc = "rm(" + communityJson + ", " + userSpecificJson + ",blend_mgr, data_domain_mgr, read_datamatrix, exec_tfidf, remove_files, fileroot, blend_tracking_semantic, get_userdata, dataitem_history, get_dataitem_rating, assign_unique_concepts, populate_ratings, build_sim, cosine_jaccard_sim, cosine_sim, jaccard_sim, apply_tfidf, compute_weight, dataitem_recom_mgr, get_item_recom, get_user_recom, hop_away_recom_mgr, hop_away_mgr, locate_user_communities, drilldown_communities, locate_data_communities, get_items_users, refresh_base);";
 			this.rJavaTranslator.runR(gc);
 		}
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.RECOMMENDATION);
