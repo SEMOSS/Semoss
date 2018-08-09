@@ -1,9 +1,16 @@
 package prerna.rdf.main;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.h2.tools.Server;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -13,17 +20,157 @@ import prerna.util.Utility;
 
 public class TestingAudit {
 
-	public Connection conn;
+	private static boolean init = true;
+	
+	private Connection conn;
+	private Server server;
+	private String serverUrl;
 	
 	public TestingAudit() {
 		
 	}
 	
-	public void performMods() {
-		// TODO Auto-generated method stub
-		
+	public void genModTables() {
+		String[] headers = new String[]{"ENGINE_ID", "MOD_TABLE"};
+		String[] types = new String[]{"VARCHAR(200)", "VARCHAR(200)"};
+		execQ(RdbmsQueryBuilder.makeOptionalCreate("ENGINE_TABLE_LOOKUP", headers, types));
+		execQ(RdbmsQueryBuilder.makeInsert("ENGINE_TABLE_LOOKUP", headers, types, new Object[]{"test_id", "TEST_TABLE"}));
+
+		headers = new String[]{"AUTO_INCREMENT", "ID", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
+		types = new String[]{"IDENTITY", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
+		execQ(RdbmsQueryBuilder.makeOptionalCreate("TEST_TABLE", headers, types));
 	}
 	
+	
+	public void performMods() {
+		// transaction 1
+		{
+			String table = "DATA";
+			String keyColumn = "TITLE";
+			String keyValue = "American Hustle";
+			String alteredColumn = "NOMINATED";
+			String oldValue = "Y";
+			String newValue = "N";
+			
+			// run on the table
+			String updateQ = "UPDATE " + table + " SET " + alteredColumn + "='" + newValue + "' WHERE " + keyColumn + "='" + keyValue + "' AND " + alteredColumn + "='" + oldValue + "'";
+			execQ(updateQ);
+			
+			// add audit log
+			Object[] data = new Object[]{UUID.randomUUID().toString(), table, keyColumn, keyValue, alteredColumn, oldValue, newValue, getTime(), "maher khalil"};
+			runAudit(data);
+		}
+		
+		// transaction 2
+		{
+			String table = "DATA";
+			String keyColumn = "TITLE";
+			String keyValue = "Captain Phillips";
+			String alteredColumn = "NOMINATED";
+			String oldValue = "Y";
+			String newValue = "N";
+			
+			// run on the table
+			String updateQ = "UPDATE " + table + " SET " + alteredColumn + "='" + newValue + "' WHERE " + keyColumn + "='" + keyValue + "' AND " + alteredColumn + "='" + oldValue + "'";
+			execQ(updateQ);
+			
+			// add audit log
+			String tId = UUID.randomUUID().toString();
+			String time = getTime();
+			Object[] data = new Object[]{tId, table, keyColumn, keyValue, alteredColumn, oldValue, newValue, time, "maher khalil"};
+			runAudit(data);
+			
+			table = "DATA";
+			keyColumn = "TITLE";
+			keyValue = "Captain Phillips";
+			alteredColumn = "STUDIO";
+			oldValue = "Sony";
+			newValue = "WB";
+			
+			// run on the table
+			updateQ = "UPDATE " + table + " SET " + alteredColumn + "='" + newValue + "' WHERE " + keyColumn + "='" + keyValue + "' AND " + alteredColumn + "='" + oldValue + "'";
+			execQ(updateQ);
+			
+			// add audit log
+			data = new Object[]{tId, table, keyColumn, keyValue, alteredColumn, oldValue, newValue, time, "maher khalil"};
+			runAudit(data);
+		}
+	}
+	
+	public void revertToId(String tId) {
+		StringBuilder revertQ = new StringBuilder();
+		StringBuilder logQ = new StringBuilder();
+		
+		String logTable = "TEST_TABLE";
+		String undoRowNumQ = "select min(auto_increment) from " + logTable + " where id ='" + tId + "'";
+		long row_number = getNumberFromQ(undoRowNumQ);
+		
+		String logId = null;
+		String prevQueriedId = null;
+		
+		String getUndoQuery = "select id, table, key_column, key_column_value, altered_column, old_value, new_value from " + logTable + " where auto_increment >= " + row_number + " order by auto_increment desc";
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = this.conn.createStatement();
+			rs = stmt.executeQuery(getUndoQuery);
+			
+			while(rs.next()) {
+				String id = rs.getString("id");
+				String table = rs.getString("table");
+				String keyColumn = rs.getString("key_column");
+				String keyValue = rs.getString("key_column_value");
+				String alteredColumn = rs.getString("altered_column");
+				String oldValue = rs.getString("old_value");
+				String newValue = rs.getString("new_value");
+				
+				// WE WANT TO SWITCH THE OLD AND NEW VALUES!!!
+				String temp = newValue;
+				newValue = oldValue;
+				oldValue = temp;
+				String updateQ = "UPDATE " + table + " SET " + alteredColumn + "='" + newValue + "' WHERE " + keyColumn + "='" + keyValue + "' AND " + alteredColumn + "='" + oldValue + "'";
+				
+				// add to bulk set
+				revertQ.append(updateQ);
+				revertQ.append(";");
+				
+				// do same for audit
+				if(prevQueriedId == null) {
+					prevQueriedId = id;
+					logId = UUID.randomUUID().toString();
+				} else {
+					if(!prevQueriedId.equals(id)) {
+						// get a new id
+						logId = UUID.randomUUID().toString();
+					}
+				}
+				Object[] data = new Object[]{logId, table, keyColumn, keyValue, alteredColumn, oldValue, newValue, getTime(), "maher khalil"};
+				logQ.append(getAuditInsert(data));
+				logQ.append(";");
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		// actually run
+		execQ(revertQ.toString());
+		execQ(logQ.toString());
+	}
+	
+	public String getAuditInsert(Object[] data) {
+		String[] headers = new String[]{"ID", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
+		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
+		return RdbmsQueryBuilder.makeInsert("TEST_TABLE", headers, types, data);
+	}
+	
+	public void runAudit(Object[] data) {
+		execQ(getAuditInsert(data));
+	}
+	
+	public String getTime() {
+		java.sql.Timestamp t = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		return t.toString();
+	}
 	
 	/**
 	 * Testing
@@ -31,9 +178,15 @@ public class TestingAudit {
 	 */
 	public static void main(String[] args) {
 		TestingAudit t = new TestingAudit();
-		t.initDb();
-		t.loadCsv("C:\\Users\\SEMOSS\\Desktop\\Movie Data.csv");
-		t.performMods();
+		if(init) {
+			t.initDb();
+			t.loadCsv("C:\\Users\\SEMOSS\\Desktop\\Movie Data.csv");
+			t.genModTables();
+			t.performMods();
+		} else {
+			t.connect("5355", "jdbc:h2:tcp://10.10.11.149:5355/nio:C:\\workspace\\Semoss_Dev\\testingAudit");
+			t.revertToId("ba686eb1-9012-44b4-be7f-3eaad693b404");
+		}
 	}
 	
 	
@@ -41,9 +194,50 @@ public class TestingAudit {
 	 * Generate an audit db
 	 */
 	public void initDb() {
-		String baseUrl = "jdbc:h2:nio:C:\\workspace\\Semoss_Dev";
+		String loc = "C:\\workspace\\Semoss_Dev\\testingAudit";
+		File f = new File(loc + ".mv.db");
+		if(f.exists()) {
+			f.delete();
+		}
+		try {
+			f.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		RdbmsConnectionBuilder builder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
-		builder.setConnectionUrl(baseUrl + "\\testingAudit");
+		try {
+			String port = Utility.findOpenPort();
+			// create a random user and password
+			// get the connection object and start up the frame
+			server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
+			serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + loc;
+			server.start();
+			
+			// update the builder
+			builder.setConnectionUrl(serverUrl);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		builder.setDriver("H2_DB");
+		builder.setUserName("sa");
+		builder.setPassword("");
+		
+		System.out.println("Connection url is " + builder.getConnectionUrl());
+		System.out.println("Connection url is " + builder.getConnectionUrl());
+		System.out.println("Connection url is " + builder.getConnectionUrl());
+
+		try {
+			this.conn = builder.build();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void connect(String port, String serverUrl) {
+		RdbmsConnectionBuilder builder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
+		builder.setConnectionUrl(serverUrl);
 		builder.setDriver("H2_DB");
 		builder.setUserName("sa");
 		builder.setPassword("");
@@ -78,7 +272,7 @@ public class TestingAudit {
 				types[i] = "VARCHAR(800)";
 			}
 		}
-		insertQuery(RdbmsQueryBuilder.makeOptionalCreate("DATA", headers, types));
+		execQ(RdbmsQueryBuilder.makeOptionalCreate("DATA", headers, types));
 		
 		String psQuery = RdbmsQueryBuilder.createInsertPreparedStatementString("DATA", headers);
 		PreparedStatement ps = null;
@@ -130,7 +324,7 @@ public class TestingAudit {
 	 * 
 	 * @param q
 	 */
-	private void insertQuery(String q) {
+	private void execQ(String q) {
 		Statement stmt = null;
 		try {
 			stmt = this.conn.createStatement();
@@ -147,5 +341,34 @@ public class TestingAudit {
 			}
 		}
 	}
-
+	
+	private long getNumberFromQ(String q) {
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = this.conn.createStatement();
+			rs = stmt.executeQuery(q);
+			while(rs.next()) {
+				return rs.getLong(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return 0;
+	}
 }
