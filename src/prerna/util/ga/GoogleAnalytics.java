@@ -420,6 +420,9 @@ public class GoogleAnalytics implements IGoogleAnalytics {
 		// only done on startup. map is updated directly moving forward
 		while ((line = in.readLine()) != null) {
 			String columns[] = line.split(",");
+			if (columns.length < 2) {
+				continue;
+			}
 			String key = columns[0];
 			ArrayList<String> list = logicalLookup.get(key);
 
