@@ -123,7 +123,7 @@ public abstract class AbstractSecurityUtils {
 		// ENGINEPERMISSION
 		colNames = new String[] { "userid", "permission", "engineid", "visibility" };
 		types = new String[] { "varchar(255)", "integer", "varchar(255)", "boolean" };
-		defaultValues = new Object[]{null, null, null, null, true};
+		defaultValues = new Object[]{null, null, null, true};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEPERMISSION", colNames, types, defaultValues));
 
 		// INSIGHT
@@ -156,23 +156,23 @@ public abstract class AbstractSecurityUtils {
 		
 		// USERGROUP
 		colNames = new String[] { "groupid", "name", "owner" };
-		types = new String[] { "identity", "varchar(255)", "varchar(255)" };
+		types = new String[] { "int identity", "varchar(255)", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
 		
 		// GROUPMEMBERS
 		colNames = new String[] {"groupmembersid", "groupid", "userid"};
-		types = new String[] {"identity", "integer", "varchar(255)"};
+		types = new String[] {"int identity", "integer", "varchar(255)"};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS", colNames, types));
 		
 		// ENGINEGROUPMEMBERVISIBILITY
 		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
-		types = new String[] { "identity", "integer", "integer", "boolean" };
+		types = new String[] { "int identity", "integer", "integer", "boolean" };
 		defaultValues = new Object[]{null, null, null, true};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEGROUPMEMBERVISIBILITY", colNames, types, defaultValues));
 
 		// GROUPENGINEPERMISSION
 		colNames = new String[] {"groupenginepermissionid", "groupid", "permission", "engine"};
-		types = new String[] {"identity", "integer", "integer", "varchar(255)"};
+		types = new String[] {"int identity", "integer", "integer", "varchar(255)"};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
 
 		// FOREIGN KEYS FOR CASCASDE DELETE
@@ -420,6 +420,9 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	static String createFilter(List<String> filterValues) {
+		if(filterValues.isEmpty()) {
+			return " IN () ";
+		}
 		StringBuilder b = new StringBuilder();
 		boolean hasData = false;
 		if(filterValues.size() > 0) {
