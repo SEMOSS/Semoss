@@ -655,22 +655,28 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	//TODO:
 	//TODO:
 	
-	/**
-	 * Check if a user (user name or email) exist in the security database
-	 * @param username
-	 * @param email
-	 * @return true if user is found otherwise false.
+	/*
+	 * Get user methods + log in
 	 */
-	public static boolean checkUserExist(String username, String email){
-		String query = "SELECT * FROM USER WHERE USERNAME='" + username + "' OR EMAIL='" + email + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		try {
-			return wrapper.hasNext();
-		} finally {
-			wrapper.cleanUp();
-		}
+	
+	/**
+	 * Current salt generation by BCrypt
+	 * @return salt
+	 */
+	protected static String generateSalt(){
+		return BCrypt.gensalt();
 	}
 
+	/**
+	 * Create the password hash based on the password and salt provided.
+	 * @param password
+	 * @param salt
+	 * @return hash
+	 */
+	protected static String hash(String password, String salt) {
+		return BCrypt.hashpw(password, salt);
+	}
+	
 	/**
 	 * Verifies user information provided in the log in screen to allow or not 
 	 * the entry in the application.
@@ -686,6 +692,60 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		} else {
 			return false;
 		}
+	}
+	
+	private static String getUsernameByUserId(String userId) {
+		// TODO Auto-generated method stub
+		String query = "SELECT NAME FROM USER WHERE ID = '?1'";
+		query = query.replace("?1", userId);
+
+		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		if(sjsw.hasNext()) {
+			IHeadersDataRow sjss = sjsw.next();
+			return sjss.getValues()[0].toString();
+		}
+		return null;
+	}
+	
+	/**
+	 * Brings the user id from database.
+	 * @param username
+	 * @return userId if it exists otherwise null
+	 */
+	public static String getUserId(String username) {
+		// TODO Auto-generated method stub
+		String query = "SELECT ID FROM USER WHERE USERNAME = '?1'";
+		query = query.replace("?1", username);
+
+		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		if(sjsw.hasNext()) {
+			IHeadersDataRow sjss = sjsw.next();
+			return sjss.getValues()[0].toString();
+		}
+		return null;
+
+	}
+	
+	/**
+	 * Brings the user name from database.
+	 * @param username
+	 * @return userId if it exists otherwise null
+	 */
+	public static String getNameUser(String username) {
+		// TODO Auto-generated method stub
+		String query = "SELECT NAME FROM USER WHERE USERNAME = '?1'";
+		query = query.replace("?1", username);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try{
+			if(wrapper.hasNext()) {
+				IHeadersDataRow sjss = wrapper.next();
+				return sjss.getValues()[0].toString();
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+		return null;
+
 	}
 
 	/**
@@ -713,23 +773,91 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Current salt generation by BCrypt
-	 * @return salt
+	 * Get all database users who aren't "Anonymous" type
+	 * @param userId
+	 * @return
+	 * @throws IllegalArgumentException
 	 */
-	protected static String generateSalt(){
-		return BCrypt.gensalt();
+	public static ArrayList<StringMap<String>> getAllDbUsers(String userId) throws IllegalArgumentException{
+		ArrayList<StringMap<String>> ret = new ArrayList<>();  
+		if(isUserAdmin(userId)){
+			String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER WHERE TYPE != 'anonymous'";
+			ret = getSimpleQuery(query);
+		} else {
+			throw new IllegalArgumentException("The user can't access to this resource. ");
+		}
+		return ret;
 	}
 
 	/**
-	 * Create the password hash based on the password and salt provided.
-	 * @param password
-	 * @param salt
-	 * @return hash
+	 * Returns a list of values given a query with one column/variable.
+	 * 
+	 * @param query		Query to be executed to retrieve engine names
+	 * @return			List of engine names
 	 */
-	protected static String hash(String password, String salt) {
-		return BCrypt.hashpw(password, salt);
-	}
+	private static ArrayList<StringMap<String>> getSimpleQuery(String query) {
+		System.out.println("Executing security query: " + query);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		ArrayList<StringMap<String>> ret = new ArrayList<>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] headers = row.getHeaders();
+			Object[] values = row.getValues();
+			StringMap<String> rowData = new StringMap<>();
+			for(int idx = 0; idx < headers.length; idx++){
+				if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
+					rowData.put(headers[idx].toString().toLowerCase(), "Default");
+				} else {
+					rowData.put(headers[idx].toString().toLowerCase(), values[idx].toString());
+				}
+			}
+			ret.add(rowData);
+		}
 
+		return ret;
+	}
+	
+	/**
+	 * Search if there's users containing 'searchTerm' in their email or name
+	 * @param searchTerm
+	 * @return
+	 */
+	public static ArrayList<StringMap<String>> searchForUser(String searchTerm) {
+		String query = "SELECT DISTINCT USER.ID AS ID, USER.NAME AS NAME, USER.EMAIL AS EMAIL FROM USER WHERE UPPER(USER.NAME) LIKE UPPER('%" + searchTerm + "%') OR UPPER(USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') AND TYPE != 'anonymous';";
+		ArrayList<StringMap<String>> users = new ArrayList<StringMap<String>>();
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		for(String[] s : flushRsToListOfStrArray(wrapper)) {
+			StringMap<String> map = new StringMap<String>();
+			map.put("id", s[0]);
+			map.put("name", s[1]);
+			map.put("email", s[2]);
+			users.add(map);
+		}
+
+		return users;
+	}
+	
+	/*
+	 * Check properties of user
+	 */
+	
+	/**
+	 * Check if a user (user name or email) exist in the security database
+	 * @param username
+	 * @param email
+	 * @return true if user is found otherwise false.
+	 */
+	public static boolean checkUserExist(String username, String email){
+		String query = "SELECT * FROM USER WHERE USERNAME='" + username + "' OR EMAIL='" + email + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			return wrapper.hasNext();
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
 	/**
 	 * Check if the user is an admin
 	 * 
@@ -744,125 +872,79 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		return false;
 	}
-
+	
 	/**
-	 * Returns a list of all engines that a given user is listed as an owner for.
-	 * @param userId	ID of the user
-	 * @return			List of engine names
-	 */
-	public static List<String> getUserOwnedEngines(String userId) {
-		String query = "SELECT DISTINCT ENGINE.ENGINEID "
-				+ "FROM ENGINE, ENGINEPERMISSION "
-				+ "WHERE "
-				+ "ENGINEPERMISSION.USERID='" + userId + "' "
-				+ "AND ENGINEPERMISSION.PERMISSION=" + EnginePermission.OWNER.getId() + " "
-				+ "AND ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID";
-		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		return flushToListString(wrapper);
-	}
-
-	/**
-	 * Returns a list of all engines that a given user can see (has been given any level of permission).
-	 * @param userId	ID of the user
-	 * @return			List of engine names
-	 */
-	public static Set<String> getUserAccessibleEngines(String userId) {
-		Set<String> ret = null;
-		String query = null;
-
-		if(isUserAdmin(userId)) {
-			query = "SELECT DISTINCT ENGINE.ENGINEID FROM ENGINE";
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			ret = flushToSetString(wrapper, false);
-		} else {
-			// get the engine ids this user has access to
-			query = "SELECT DISTINCT ENGINE.ENGINEID "
-					+ "FROM ENGINE, ENGINEPERMISSION "
-					+ "WHERE "
-					+ "ENGINEPERMISSION.USERID='" + userId + "' "
-					+ "AND ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID;";
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			ret = flushToSetString(wrapper, false);
-
-			// add the engine ids your group has access to
-			query = "SELECT DISTINCT ENGINE.ENGINEID "
-					+ "FROM ENGINE, USER, GROUPENGINEPERMISSION, GROUPMEMBERS "
-					+ "WHERE "
-					+ "USER.ID='" + userId + "' "
-					+ "AND GROUPMEMBERS.USERID=USER.ID "
-					+ "AND GROUPMEMBERS.GROUPID=GROUPENGINEPERMISSION.GROUPID";
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			ret.addAll(flushToSetString(wrapper, false));
-		}
-
-		return ret;
-	}
-
-	/**
-	 * 
+	 * Check if a user can be added or not to a group based on its database
+	 * permission on another groups and the database permissions from the group
+	 * it's going ot be added.
 	 * @param userId
-	 * @param isAdmin
-	 * @return
+	 * @param groupId
+	 * @return true if user can be added otherwise a message explainig why not.
 	 */
-	public static List<Map<String, String>> getUserDatabases(String userId, boolean isAdmin){
-		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
+	public static String isUserAddedToGroupValid(String userId, String groupId){
+		String ret = "";
 
-		if(isAdmin && !isUserAdmin(userId)){
-			throw new IllegalArgumentException("The user isn't an admin");
-		}
+		ret += isUserWithAccessToGroupDb(userId, groupId);
+		ret += isUserInAnotherDbGroup(userId, groupId);
 
-		String query = "";
-		List<String[]> engines = new ArrayList<>();
-
-		if(!isAdmin){
-			query = "SELECT ENGINE.ENGINEID AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC, ENGINEPERMISSION.PERMISSION AS DB_PERMISSION, ENGINEPERMISSION.VISIBILITY AS VISIBILITY "
-					+ "FROM ENGINEPERMISSION JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID)  "
-					+ "WHERE ENGINEPERMISSION.USERID = '?1'";
-			query = query.replace("?1", userId);
-
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			engines = flushRsToListOfStrArray(wrapper);
-		
-
-			query = "SELECT GROUPENGINEPERMISSION.ENGINE AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC, GROUPENGINEPERMISSION.PERMISSION AS DB_PERMISSION, ENGINEGROUPMEMBERVISIBILITY.VISIBILITY AS VISIBILITY "
-					+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) "
-					+ "JOIN ENGINEGROUPMEMBERVISIBILITY ON(GROUPMEMBERS.GROUPMEMBERSID = ENGINEGROUPMEMBERVISIBILITY.GROUPMEMBERSID AND GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID = ENGINEGROUPMEMBERVISIBILITY.GROUPENGINEPERMISSIONID)  "
-					+ "WHERE GROUPMEMBERS.USERID = '?1'";
-			query = query.replace("?1", userId);
-			
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			engines.addAll(flushRsToListOfStrArray(wrapper));
-
-			engines.addAll(getPublicEngines(engines, null));
-		} else {
-			query = "SELECT ENGINE.ENGINEID AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC "
-					+ "FROM ENGINE "
-					+ "WHERE ENGINE.ENGINEID != '1'";
-
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			engines = flushRsToListOfStrArray(wrapper);
-		}
-
-		for(String[] engine : engines) {
-			StringMap<String> dbProp = new StringMap<>();
-
-			dbProp.put("db_id", engine[0]);
-			dbProp.put("db_name", engine[1]);
-			dbProp.put("db_public", engine[2]);
-			if(!isAdmin){
-				if(engine[3] == null){
-					dbProp.put("db_permission", EnginePermission.EDIT.getPermission());
-				} else {
-					dbProp.put("db_permission", EnginePermission.getPermissionValueById(engine[3]));
-				}
-				dbProp.put("db_visibility", engine[4]);
-			}
-			ret.add(dbProp);
-		}
-		return ret;
+		return ret.isEmpty() ? "true" : ret;
 	}
 
+
+
+	/**
+	 * Check if the user has owner permission of a certain database
+	 * @param userId
+	 * @param engineId
+	 * @return true or false
+	 */
+	public static boolean isUserDatabaseOwner(String userId, String engineId){
+		String query = "SELECT ENGINEID FROM ENGINEPERMISSION WHERE USERID = '?1' AND ENGINEID = '?2' AND PERMISSION = '1' UNION SELECT GROUPENGINEPERMISSION.ENGINE FROM GROUPENGINEPERMISSION JOIN GROUPMEMBERS ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) WHERE GROUPENGINEPERMISSION.ENGINE = '?2'  AND GROUPMEMBERS.USERID = '?1' AND GROUPENGINEPERMISSION.PERMISSION = '1'";
+		query = query.replace("?1", userId);
+		query = query.replace("?2", engineId);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<Object[]> res = flushRsToMatrix(wrapper);
+		return !res.isEmpty();
+	}
+
+	/**
+	 * Check if user is allowed to use a certain database (owner/edit permissions).
+	 * @param userId
+	 * @param engineName
+	 * @return 
+	 */
+	public static boolean isUserAllowedToUseEngine(String userId, String engineId){
+		/*if(isUserAdmin(userId)){
+			return true;
+		}*/
+
+		//Check if engine is global
+		String query = "SELECT ENGINE.ENGINEID FROM ENGINE WHERE ENGINE.ENGINEID = '?3' AND ENGINE.GLOBAL = TRUE ";
+		query = query.replace("?3", engineId);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<Object[]> res = flushRsToMatrix(wrapper);
+		if(!res.isEmpty()){
+			return true;
+		}
+
+		query = "SELECT ENGINE.ENGINEID FROM ENGINEPERMISSION"
+				+ "JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID) WHERE USERID = '?1' AND ENGINE.ENGINEID = '?2' AND (ENGINEPERMISSION.PERMISSION = '1'  OR ENGINEPERMISSION.PERMISSION = '3') "
+				+ "UNION "
+				+ "SELECT GROUPENGINEPERMISSION.ENGINE "
+				+ "FROM GROUPENGINEPERMISSION JOIN GROUPMEMBERS ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (ENGINE.ENGINEID = GROUPENGINEPERMISSION.ENGINE) "
+				+ "WHERE ENGINE.ENGINEID = '?2'  AND GROUPMEMBERS.USERID = '?1' AND (GROUPENGINEPERMISSION.PERMISSION = '1' OR  GROUPENGINEPERMISSION.PERMISSION = '3')";
+
+		query = query.replace("?1", userId);
+		query = query.replace("?2", engineId);
+		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		res = flushRsToMatrix(wrapper);
+		return !res.isEmpty();
+	}
+	
+	/*
+	 * Engines
+	 */
+	
 	/**
 	 * Get only the public engines that the user don't have a straight relationship established 
 	 * @param engines other engines the user is related to
@@ -914,7 +996,83 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		return resPrimitive;
 	}
+	
+	/**
+	 * Returns a list of all engines that a given user can see (has been given any level of permission).
+	 * 
+	 * @param userId	ID of the user
+	 * @return			List of engine names
+	 */
+	public static List<Map<String, Object>> getUserVisibleEngines(String userId) {
+		HashSet<String> engines = new HashSet<String>();
 
+		//boolean isAdmin = isUserAdmin(userId);
+		boolean isAdmin = false;
+
+		String query = "SELECT ENGINE.ENGINEID AS ID "
+				+ "FROM ENGINEPERMISSION JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID) ";
+
+		if(!isAdmin){
+			query = "SELECT ENGINE.ENGINEID AS ID "
+					+ "FROM ENGINEPERMISSION JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID)  "
+					+ "WHERE ENGINEPERMISSION.USERID = '?1' AND ENGINEPERMISSION.VISIBILITY = 'TRUE'";
+			query = query.replace("?1", userId);
+		}
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<String[]> dbEngines = flushRsToListOfStrArray(wrapper);
+
+		query = "SELECT ENGINE.ENGINEID AS ID "
+				+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) ";
+
+		if(!isAdmin){
+			query = "SELECT ENGINE.ENGINEID AS ID "
+					+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) "
+					+ "JOIN ENGINEGROUPMEMBERVISIBILITY ON(GROUPMEMBERS .GROUPMEMBERSID = ENGINEGROUPMEMBERVISIBILITY.GROUPMEMBERSID AND GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID = ENGINEGROUPMEMBERVISIBILITY.GROUPENGINEPERMISSIONID)  "
+					+ "WHERE GROUPMEMBERS.USERID = '?1' AND ENGINEGROUPMEMBERVISIBILITY.VISIBILITY = 'TRUE'";
+			query = query.replace("?1", userId);
+		}
+
+		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		dbEngines.addAll(flushRsToListOfStrArray(wrapper));
+
+		dbEngines.addAll(getPublicEngines(dbEngines, userId));
+
+		ArrayList<String> visibleEngines = new ArrayList<>();
+
+		for(String[] engine : dbEngines) {
+			if(!engines.contains(engine[0])){
+				//engines.add(engine[0]);
+				visibleEngines.add(engine[0]);
+			}	
+		}
+
+		query = "SELECT ENGINE.ENGINEID AS ID, ENGINE.ENGINENAME AS NAME, ENGINE.TYPE AS TYPE, ENGINE.COST AS COST "
+				+ "FROM ENGINE "
+				+ "WHERE ENGINE.ENGINEID ?1";
+		query = query.replace("?1", createFilter(visibleEngines));
+
+		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<String[]> visibleEnginesAttributes = flushRsToListOfStrArray(wrapper);
+
+		List<Map<String, Object>> enginesObject = new ArrayList<>();
+
+		for(String[] engineAttributes : visibleEnginesAttributes) {
+			Map<String, Object> temp = new HashMap<>();
+			temp.put("app_id", engineAttributes[0]);
+			temp.put("app_name", engineAttributes[1]);
+			temp.put("app_type", engineAttributes[2]);
+			temp.put("app_cost", engineAttributes[3] == null ? "" : engineAttributes[3]);
+			enginesObject.add(temp);
+		}
+
+		return enginesObject;
+
+	}
+
+	/*
+	 * Groups
+	 */
+	
 	public static StringMap<ArrayList<StringMap<String>>> getDatabaseUsersAndGroups(String userId, String engineId, boolean isAdmin){
 
 		StringMap<ArrayList<StringMap<String>>> ret = new StringMap<>();
@@ -966,7 +1124,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return ret;
 	}
 
-
+	/***
+	 * Add to the object ret the groups without users than the user is owner.
+	 * @param ret
+	 * @param query
+	 * @param userId
+	 */
 	private static void getGroupsWithoutMembers(ArrayList<HashMap<String, Object>> ret, String query, String userId){
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String[]> groupsWithoutMembers = flushRsToListOfStrArray(wrapper);
@@ -984,6 +1147,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/***
+	 * Get index of a group in the object ret  
+	 * @param ret
+	 * @param groupId
+	 * @return
+	 */
 	private static int indexGroup(ArrayList<HashMap<String, Object>> ret, String groupId){
 		for (int i = 0; i < ret.size(); i++) {
 			if(ret.get(i).get("group_id").equals(groupId)){
@@ -993,6 +1162,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return -1;
 	}
 
+	/**
+	 * Get the groups with members for a user.
+	 * @param ret
+	 * @param query
+	 * @param userId
+	 */
 	private static void getGroupsAndMembers(ArrayList<HashMap<String, Object>> ret, String query, String userId){
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String[]> groupsAndMembers = flushRsToListOfStrArray(wrapper);
@@ -1028,7 +1203,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get all Groups and list of user for each group,
-	 * if the user is admin returns all the groups.
 	 * @param userId
 	 * @return all groups and list of users for each group
 	 */
@@ -1045,290 +1219,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		getGroupsAndMembers(ret, query, userId);
 
 		return ret;
-	}
-
-	public static List<String[]> getAllEnginesOwnedByUser(String userId) {
-		String query = "SELECT DISTINCT ENGINE.ENGINENAME AS ENGINENAME FROM ENGINE, USER, USERGROUP, GROUPMEMBERS, PERMISSION, ENGINEPERMISSION, GROUPENGINEPERMISSION "
-				+ "WHERE USER.ID='" + userId + "' "
-				+ "AND ((USER.ID=ENGINEPERMISSION.USERID AND ENGINEPERMISSION.PERMISSION=" + EnginePermission.OWNER.getId() + ") "
-				+ "OR (USERGROUP.GROUPID=GROUPENGINEPERMISSION.GROUPID AND GROUPENGINEPERMISSION.PERMISSION=" + EnginePermission.OWNER.getId() + " "
-				+ "AND USERGROUP.GROUPID=GROUPMEMBERS.GROUPID AND GROUPMEMBERS.USERID='" + userId + "') )";
-
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		return flushRsToListOfStrArray(wrapper);
-	}
-
-	public static HashMap<String, ArrayList<StringMap<String>>> getAllPermissionsGrantedByEngine(String userId, String engineName) {
-		String query = "SELECT DISTINCT USERGROUP.NAME AS GROUPNAME, PERMISSION.NAME AS PERMISSIONNAME FROM USER, USERGROUP, ENGINE, ENGINEPERMISSION, GROUPENGINEPERMISSION, PERMISSION "
-				+ "WHERE USERGROUP.GROUPID=GROUPENGINEPERMISSION.GROUPID "
-				+ "AND ENGINE.ENGINENAME='" + engineName + "' "
-				+ "AND GROUPENGINEPERMISSION.ENGINE=ENGINE.ENGINEID "
-				+ "AND GROUPENGINEPERMISSION.PERMISSION=PERMISSION.ID "
-				+ "AND ENGINEPERMISSION.ENGINEID=ENGINE.ENGINEID AND ENGINEPERMISSION.PERMISSION=" + EnginePermission.OWNER.getId() + " AND ENGINEPERMISSION.USERID='" + userId + "';";
-
-		ArrayList<StringMap<String>> groups = new ArrayList<StringMap<String>>();
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		for(String[] groupPermissions : flushRsToListOfStrArray(wrapper)) {
-			StringMap<String> map = new StringMap<String>();
-			map.put("name", groupPermissions[0]);
-			map.put("permission", groupPermissions[1]);
-			groups.add(map);
-		}
-
-
-		List<String> engines = getUserOwnedEngines(userId);
-		query = "SELECT DISTINCT USER.ID AS ID, USER.NAME AS USERNAME, PERMISSION.NAME AS PERMISSIONNAME, USER.EMAIL AS EMAIL FROM USER, ENGINE, ENGINEPERMISSION, PERMISSION"
-				+ "WHERE USER.ID=ENGINEPERMISSION.USERID "
-				+ "AND ENGINEPERMISSION.ENGINEID=ENGINE.ENGINEID "
-				+ "AND ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
-				+ "AND ENGINE.ENGINENAME IN ('";
-
-		for(int i = 0; i < engines.size(); i++) {
-			if(i != engines.size()-1) {
-				query += engines.get(i) + "', '";
-			} else {
-				query += engines.get(i);
-			}
-		}
-		query += "');";
-
-		ArrayList<StringMap<String>> users = new ArrayList<StringMap<String>>();
-		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		for(String[] userPermissions : flushRsToListOfStrArray(wrapper)) {
-			StringMap<String> map = new StringMap<String>();
-			map.put("id", userPermissions[0]);
-			map.put("name", userPermissions[1]);
-			map.put("permission", userPermissions[2]);
-			map.put("email", userPermissions[3]);
-			users.add(map);
-		}
-
-		HashMap<String, ArrayList<StringMap<String>>> ret = new HashMap<String, ArrayList<StringMap<String>>>();
-		ret.put("groups", groups);
-		ret.put("users", users);
-
-		return ret;
-	}
-
-	/**
-	 * 
-	 * @param searchTerm
-	 * @return
-	 */
-	public static ArrayList<StringMap<String>> searchForUser(String searchTerm) {
-		String query = "SELECT DISTINCT USER.ID AS ID, USER.NAME AS NAME, USER.EMAIL AS EMAIL FROM USER WHERE UPPER(USER.NAME) LIKE UPPER('%" + searchTerm + "%') OR UPPER(USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') AND TYPE != 'anonymous';";
-		ArrayList<StringMap<String>> users = new ArrayList<StringMap<String>>();
-
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		for(String[] s : flushRsToListOfStrArray(wrapper)) {
-			StringMap<String> map = new StringMap<String>();
-			map.put("id", s[0]);
-			map.put("name", s[1]);
-			map.put("email", s[2]);
-			users.add(map);
-		}
-
-		return users;
-	}
-
-	/**
-	 * Get all engines associated with the userId and the permission that the user has for the engine,
-	 * @param userId
-	 * @return List of "EngineName, UserName and Permission" for the specific user.
-	 */
-	public static ArrayList<StringMap<String>> getAllEnginesAndPermissionsForUser(String userId) {
-		List<String[]> ret = new ArrayList<String[]>();
-
-		String query = "SELECT ENGINE.ENGINENAME AS ENGINENAME, USER.NAME AS OWNER, PERMISSION.NAME AS PERMISSION "
-				+ "FROM ENGINE JOIN ENGINEPERMISSION ON (ENGINE.ENGINEID = ENGINEPERMISSION.ENGINEID) "
-				+ "JOIN USER ON(ENGINEPERMISSION.USER = USER.ID) "
-				+ "JOIN PERMISSION ON(ENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
-				+ "WHERE ENGINEPERMISSION.USERID='?1'";
-		query = query.replace("?1", userId);
-
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		ret = flushRsToListOfStrArray(wrapper);
-
-		query = "SELECT DISTINCT ENGINE.ENGINENAME AS ENGINENAME, USER.NAME AS OWNER, PERMISSION.NAME AS PERMISSIONNAME "
-				+ "FROM ENGINE JOIN GROUPENGINEPERMISSION ON (ENGINE.ENGINEID =GROUPENGINEPERMISSION.ENGINE) "
-				+ "JOIN GROUPMEMBERS ON(GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) "
-				+ "JOIN USER ON(GROUPMEMBERS.USERID = USER.ID) "
-				+ "JOIN PERMISSION ON(GROUPENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
-				+ "WHERE USER.ID='?1'";
-		query = query.replace("?1", userId);
-
-		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		ret.addAll(flushRsToListOfStrArray(wrapper));
-
-		ArrayList<StringMap<String>> list = new ArrayList<StringMap<String>>();
-		for(String[] eng : ret) {
-			StringMap<String> map = new StringMap<String>();
-			map.put("name", eng[0]);
-			map.put("owner", eng[1]);
-			map.put("permission", eng[2]);
-			list.add(map);
-		}
-
-		return list;
-	}
-
-	public static String isUserWithDatabasePermissionAlready(String userId, ArrayList<String> groupsId, ArrayList<String> usersId){
-		String ret = "";
-
-		String username = getUsernameByUserId(userId);
-
-		if(usersId.contains(userId)){
-			ret += "The user " + username + " already has a direct relationship with the database. ";
-		}
-
-		String query = "SELECT GROUPMEMBERS.GROUPID AS ID, USERGROUP.NAME AS NAME, USER.NAME AS OWNER FROM GROUPMEMBERS JOIN USERGROUP ON (GROUPMEMBERS.GROUPID = USERGROUP.GROUPID) JOIN USER ON(USERGROUP.OWNER = USER.ID) WHERE GROUPMEMBERS.GROUPID ?1 AND GROUPMEMBERS.USERID = '?2'";	
-		query = query.replace("?1", createFilter(groupsId));
-		query = query.replace("?2", userId);
-
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<String[]> result = flushRsToListOfStrArray(wrapper);
-
-		for(String[] row : result){
-			String groupId = row[0];
-			String groupName = row[1];
-			String groupOwner = row[2];
-
-			ret += "The user " + username + " is in " + groupName + " owned by " + groupOwner + ". "; 
-
-		}
-
-		return ret.isEmpty() ? "true" : ret;
-	}
-
-	private static String getUsernameByUserId(String userId) {
-		// TODO Auto-generated method stub
-		String query = "SELECT NAME FROM USER WHERE ID = '?1'";
-		query = query.replace("?1", userId);
-
-		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		if(sjsw.hasNext()) {
-			IHeadersDataRow sjss = sjsw.next();
-			return sjss.getValues()[0].toString();
-		}
-		return null;
-	}
-
-	/**
-	 * Get all database users who aren't "Anonymous" type
-	 * @param userId
-	 * @return
-	 * @throws IllegalArgumentException
-	 */
-	public static ArrayList<StringMap<String>> getAllDbUsers(String userId) throws IllegalArgumentException{
-		ArrayList<StringMap<String>> ret = new ArrayList<>();  
-		if(isUserAdmin(userId)){
-			String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER WHERE TYPE != 'anonymous'";
-			ret = getSimpleQuery(query);
-		} else {
-			throw new IllegalArgumentException("The user can't access to this resource. ");
-		}
-		return ret;
-	}
-
-	/**
-	 * Returns a list of values given a query with one column/variable.
-	 * 
-	 * @param query		Query to be executed to retrieve engine names
-	 * @return			List of engine names
-	 */
-	private static ArrayList<StringMap<String>> getSimpleQuery(String query) {
-		System.out.println("Executing security query: " + query);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		ArrayList<StringMap<String>> ret = new ArrayList<>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] headers = row.getHeaders();
-			Object[] values = row.getValues();
-			StringMap<String> rowData = new StringMap<>();
-			for(int idx = 0; idx < headers.length; idx++){
-				if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
-					rowData.put(headers[idx].toString().toLowerCase(), "Default");
-				} else {
-					rowData.put(headers[idx].toString().toLowerCase(), values[idx].toString());
-				}
-			}
-			ret.add(rowData);
-		}
-
-		return ret;
-	}
-
-	/**
-	 * Brings the user id from database.
-	 * @param username
-	 * @return userId if it exists otherwise null
-	 */
-	public static String getUserId(String username) {
-		// TODO Auto-generated method stub
-		String query = "SELECT ID FROM USER WHERE USERNAME = '?1'";
-		query = query.replace("?1", username);
-
-		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		if(sjsw.hasNext()) {
-			IHeadersDataRow sjss = sjsw.next();
-			return sjss.getValues()[0].toString();
-		}
-		return null;
-
-	}
-
-	/**
-	 * Brings the user name from database.
-	 * @param username
-	 * @return userId if it exists otherwise null
-	 */
-	public static String getNameUser(String username) {
-		// TODO Auto-generated method stub
-		String query = "SELECT NAME FROM USER WHERE USERNAME = '?1'";
-		query = query.replace("?1", username);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		try{
-			if(wrapper.hasNext()) {
-				IHeadersDataRow sjss = wrapper.next();
-				return sjss.getValues()[0].toString();
-			}
-		} finally {
-			wrapper.cleanUp();
-		}
-		return null;
-
-	}
-
-	/**
-	 * Check if user is allowed to use a certain database (owner/edit permissions).
-	 * @param userId
-	 * @param engineName
-	 * @return 
-	 */
-	public static boolean isUserAllowedToUseEngine(String userId, String engineId){
-		/*if(isUserAdmin(userId)){
-			return true;
-		}*/
-
-		String query = "SELECT ENGINE.ENGINEID FROM ENGINE WHERE ENGINE.ENGINENAME = '?3' AND ENGINE.GLOBAL = TRUE ";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<Object[]> res = flushRsToMatrix(wrapper);
-		if(!res.isEmpty()){
-			return true;
-		}
-
-		query = "SELECT ENGINE.ENGINEID FROM ENGINEPERMISSION"
-				+ "JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID) WHERE USERID = '?1' AND ENGINE.ENGINEID = '?2' AND (ENGINEPERMISSION.PERMISSION = '1'  OR ENGINEPERMISSION.PERMISSION = '3') "
-				+ "UNION "
-				+ "SELECT GROUPENGINEPERMISSION.ENGINE "
-				+ "FROM GROUPENGINEPERMISSION JOIN GROUPMEMBERS ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (ENGINE.ENGINEID = GROUPENGINEPERMISSION.ENGINE) "
-				+ "WHERE ENGINE.ENGINEID = '?2'  AND GROUPMEMBERS.USERID = '?1' AND (GROUPENGINEPERMISSION.PERMISSION = '1' OR  GROUPENGINEPERMISSION.PERMISSION = '3')";
-
-		query = query.replace("?1", userId);
-		query = query.replace("?2", engineId);
-		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		res = flushRsToMatrix(wrapper);
-		return !res.isEmpty();
 	}
 
 	/**
@@ -1429,7 +1319,128 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		return ret.isEmpty() ? "true" : ret;
 	}
+	
 
+	/**
+	 * Get the id list of groups owned by an user
+	 * @param userId
+	 * @return List<String> with the id of the groups owned by an user
+	 */
+	public static List<String> getGroupsOwnedByUser(String userId){
+		String query = "SELECT GROUPID FROM USERGROUP WHERE OWNER = '?1'";
+		query = query.replace("?1", userId);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<String[]> res = flushRsToListOfStrArray(wrapper);
+		List<String> groupList = new ArrayList<>();
+		for(String[] row : res){
+			groupList.add(row[0]);
+		}
+		return groupList;
+	}
+	
+	/*
+	 * Engines
+	 */
+
+	/**
+	 * Get all databases that a certain user has access to.
+	 * @param userId
+	 * @param isAdmin
+	 * @return
+	 */
+	public static List<Map<String, String>> getUserDatabases(String userId, boolean isAdmin){
+		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
+
+		if(isAdmin && !isUserAdmin(userId)){
+			throw new IllegalArgumentException("The user isn't an admin");
+		}
+
+		String query = "";
+		List<String[]> engines = new ArrayList<>();
+
+		if(!isAdmin){
+			query = "SELECT ENGINE.ENGINEID AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC, ENGINEPERMISSION.PERMISSION AS DB_PERMISSION, ENGINEPERMISSION.VISIBILITY AS VISIBILITY "
+					+ "FROM ENGINEPERMISSION JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID)  "
+					+ "WHERE ENGINEPERMISSION.USERID = '?1'";
+			query = query.replace("?1", userId);
+
+			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			engines = flushRsToListOfStrArray(wrapper);
+		
+
+			query = "SELECT GROUPENGINEPERMISSION.ENGINE AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC, GROUPENGINEPERMISSION.PERMISSION AS DB_PERMISSION, ENGINEGROUPMEMBERVISIBILITY.VISIBILITY AS VISIBILITY "
+					+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) "
+					+ "JOIN ENGINEGROUPMEMBERVISIBILITY ON(GROUPMEMBERS.GROUPMEMBERSID = ENGINEGROUPMEMBERVISIBILITY.GROUPMEMBERSID AND GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID = ENGINEGROUPMEMBERVISIBILITY.GROUPENGINEPERMISSIONID)  "
+					+ "WHERE GROUPMEMBERS.USERID = '?1'";
+			query = query.replace("?1", userId);
+			
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			engines.addAll(flushRsToListOfStrArray(wrapper));
+
+			engines.addAll(getPublicEngines(engines, null));
+		} else {
+			query = "SELECT ENGINE.ENGINEID AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC "
+					+ "FROM ENGINE "
+					+ "WHERE ENGINE.ENGINEID != '1'";
+
+			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			engines = flushRsToListOfStrArray(wrapper);
+		}
+
+		for(String[] engine : engines) {
+			StringMap<String> dbProp = new StringMap<>();
+
+			dbProp.put("db_id", engine[0]);
+			dbProp.put("db_name", engine[1]);
+			dbProp.put("db_public", engine[2]);
+			if(!isAdmin){
+				if(engine[3] == null){
+					dbProp.put("db_permission", EnginePermission.EDIT.getPermission());
+				} else {
+					dbProp.put("db_permission", EnginePermission.getPermissionValueById(engine[3]));
+				}
+				dbProp.put("db_visibility", engine[4]);
+			}
+			ret.add(dbProp);
+		}
+		return ret;
+	}
+	
+	/**
+	 * Check if user already has a relationship with a certain database
+	 * @param userId
+	 * @param groupsId 
+	 * @param usersId
+	 * @return if the user has a relationship with a database this message explains how.
+	 */
+	public static String isUserWithDatabasePermissionAlready(String userId, ArrayList<String> groupsId, ArrayList<String> usersId){
+		String ret = "";
+
+		String username = getUsernameByUserId(userId);
+
+		if(usersId.contains(userId)){
+			ret += "The user " + username + " already has a direct relationship with the database. ";
+		}
+
+		String query = "SELECT GROUPMEMBERS.GROUPID AS ID, USERGROUP.NAME AS NAME, USER.NAME AS OWNER FROM GROUPMEMBERS JOIN USERGROUP ON (GROUPMEMBERS.GROUPID = USERGROUP.GROUPID) JOIN USER ON(USERGROUP.OWNER = USER.ID) WHERE GROUPMEMBERS.GROUPID ?1 AND GROUPMEMBERS.USERID = '?2'";	
+		query = query.replace("?1", createFilter(groupsId));
+		query = query.replace("?2", userId);
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<String[]> result = flushRsToListOfStrArray(wrapper);
+
+		for(String[] row : result){
+			String groupId = row[0];
+			String groupName = row[1];
+			String groupOwner = row[2];
+
+			ret += "The user " + username + " is in " + groupName + " owned by " + groupOwner + ". "; 
+
+		}
+
+		return ret.isEmpty() ? "true" : ret;
+	}
+	
 	/**
 	 * Get all groups associated with a database. To that list adds groupsToAdd and remove groupsToRemove 
 	 * @param engineId
@@ -1541,124 +1552,4 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return ret;
 	}
 
-	/**
-	 * Check if a user can be added or not to a group based on its database
-	 * permission on another groups and the database permissions from the group
-	 * it's going ot be added.
-	 * @param userId
-	 * @param groupId
-	 * @return true if user can be added otherwise a message explainig why not.
-	 */
-	public static String isUserAddedToGroupValid(String userId, String groupId){
-		String ret = "";
-
-		ret += isUserWithAccessToGroupDb(userId, groupId);
-		ret += isUserInAnotherDbGroup(userId, groupId);
-
-		return ret.isEmpty() ? "true" : ret;
-	}
-
-	/**
-	 * Returns a list of all engines that a given user can see (has been given any level of permission).
-	 * 
-	 * @param userId	ID of the user
-	 * @return			List of engine names
-	 */
-	public static List<Map<String, Object>> getUserVisibleEngines(String userId) {
-		HashSet<String> engines = new HashSet<String>();
-
-		//boolean isAdmin = isUserAdmin(userId);
-		boolean isAdmin = false;
-
-		String query = "SELECT ENGINE.ENGINEID AS ID "
-				+ "FROM ENGINEPERMISSION JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID) ";
-
-		if(!isAdmin){
-			query = "SELECT ENGINE.ENGINEID AS ID "
-					+ "FROM ENGINEPERMISSION JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID)  "
-					+ "WHERE ENGINEPERMISSION.USERID = '?1' AND ENGINEPERMISSION.VISIBILITY = 'TRUE'";
-			query = query.replace("?1", userId);
-		}
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<String[]> dbEngines = flushRsToListOfStrArray(wrapper);
-
-		query = "SELECT ENGINE.ENGINEID AS ID "
-				+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) ";
-
-		if(!isAdmin){
-			query = "SELECT ENGINE.ENGINEID AS ID "
-					+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) "
-					+ "JOIN ENGINEGROUPMEMBERVISIBILITY ON(GROUPMEMBERS .GROUPMEMBERSID = ENGINEGROUPMEMBERVISIBILITY.GROUPMEMBERSID AND GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID = ENGINEGROUPMEMBERVISIBILITY.GROUPENGINEPERMISSIONID)  "
-					+ "WHERE GROUPMEMBERS.USERID = '?1' AND ENGINEGROUPMEMBERVISIBILITY.VISIBILITY = 'TRUE'";
-			query = query.replace("?1", userId);
-		}
-
-		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		dbEngines.addAll(flushRsToListOfStrArray(wrapper));
-
-		dbEngines.addAll(getPublicEngines(dbEngines, userId));
-
-		ArrayList<String> visibleEngines = new ArrayList<>();
-
-		for(String[] engine : dbEngines) {
-			if(!engines.contains(engine[0])){
-				//engines.add(engine[0]);
-				visibleEngines.add(engine[0]);
-			}	
-		}
-
-		query = "SELECT ENGINE.ENGINEID AS ID, ENGINE.ENGINENAME AS NAME, ENGINE.TYPE AS TYPE, ENGINE.COST AS COST "
-				+ "FROM ENGINE "
-				+ "WHERE ENGINE.ENGINEID ?1";
-		query = query.replace("?1", createFilter(visibleEngines));
-
-		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<String[]> visibleEnginesAttributes = flushRsToListOfStrArray(wrapper);
-
-		List<Map<String, Object>> enginesObject = new ArrayList<>();
-
-		for(String[] engineAttributes : visibleEnginesAttributes) {
-			Map<String, Object> temp = new HashMap<>();
-			temp.put("app_id", engineAttributes[0]);
-			temp.put("app_name", engineAttributes[1]);
-			temp.put("app_type", engineAttributes[2]);
-			temp.put("app_cost", engineAttributes[3] == null ? "" : engineAttributes[3]);
-			enginesObject.add(temp);
-		}
-
-		return enginesObject;
-
-	}
-
-	/**
-	 * Check if the user has owner permission of a certain database
-	 * @param userId
-	 * @param engineId
-	 * @return true or false
-	 */
-	public static boolean isUserDatabaseOwner(String userId, String engineId){
-		String query = "SELECT ENGINEID FROM ENGINEPERMISSION WHERE USERID = '?1' AND ENGINEID = '?2' AND PERMISSION = '1' UNION SELECT GROUPENGINEPERMISSION.ENGINE FROM GROUPENGINEPERMISSION JOIN GROUPMEMBERS ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) WHERE GROUPENGINEPERMISSION.ENGINE = '?2'  AND GROUPMEMBERS.USERID = '?1' AND GROUPENGINEPERMISSION.PERMISSION = '1'";
-		query = query.replace("?1", userId);
-		query = query.replace("?2", engineId);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<Object[]> res = flushRsToMatrix(wrapper);
-		return !res.isEmpty();
-	}
-
-	/**
-	 * Get the id list of groups owned by an user
-	 * @param userId
-	 * @return List<String> with the id of the groups owned by an user
-	 */
-	public static List<String> getGroupsOwnedByUser(String userId){
-		String query = "SELECT GROUPID FROM USERGROUP WHERE OWNER = '?1'";
-		query = query.replace("?1", userId);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<String[]> res = flushRsToListOfStrArray(wrapper);
-		List<String> groupList = new ArrayList<>();
-		for(String[] row : res){
-			groupList.add(row[0]);
-		}
-		return groupList;
-	}
 }
