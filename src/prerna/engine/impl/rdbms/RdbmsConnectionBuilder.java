@@ -11,7 +11,7 @@ import prerna.ds.util.RdbmsQueryBuilder;
 
 public class RdbmsConnectionBuilder {
 
-	enum CONN_TYPE {DIRECT_CONN_URL, BUILD_CONN_URL, BUILD_FROM_FILE, CONNECTION_POOL}
+	public enum CONN_TYPE {DIRECT_CONN_URL, BUILD_CONN_URL, BUILD_FROM_FILE, CONNECTION_POOL}
 
 	private Connection conn;
 	private BasicDataSource ds;
