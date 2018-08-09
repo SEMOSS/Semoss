@@ -39,13 +39,17 @@ public class HeadersException {
 	// responsible for loading in the prohibited headers
 	// requires DIHelper
 	private HeadersException() {
-		// grab the giant string from 
-		String prohibitedHeadersStr = DIHelper.getInstance().getProperty(Constants.PROBHIBITED_HEADERS);
-		// the string is semicolon delimited
-		String[] words = prohibitedHeadersStr.split(";");
-		for(String word : words) {
-			// keep everything upper case for simplicity in comparisons
-			prohibitedHeaders.add(word.toUpperCase());
+		// grab the giant string from helper
+		try {
+			String prohibitedHeadersStr = DIHelper.getInstance().getProperty(Constants.PROBHIBITED_HEADERS);
+			// the string is semicolon delimited
+			String[] words = prohibitedHeadersStr.split(";");
+			for(String word : words) {
+				// keep everything upper case for simplicity in comparisons
+				prohibitedHeaders.add(word.toUpperCase());
+			}
+		} catch(Exception e) {
+			System.err.println("DIHelper is not loaded. THIS SHOUDL ONLY BE THE CASE DURING TESTING!");
 		}
 	}
 	
