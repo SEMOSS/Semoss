@@ -451,8 +451,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 	
 	/*
-	* Adding groups
-	*/
+	 * Groups
+	 */
 	
 	/**
 	 * Add a new group
@@ -557,27 +557,88 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Remove all permission a user has over a database.
-	 * @param userRemove
-	 * @param engineId
-	 * @return true if action was performed otherwise false
+	 * Remove a user from a group. Only owner of a group can do it. 
+	 * @param userId
+	 * @param groupId
+	 * @param userToRemove
+	 * @return
 	 */
-	public static boolean removeUserPermissionsbyDbId(String userRemove, String engineId){
-		String query = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '?2' AND USERID = '?1' AND PERMISSION != 1; "
-				+ "DELETE FROM GROUPMEMBERS WHERE  GROUPID = (SELECT TOP 1 GROUPENGINEPERMISSION.GROUPID AS GROUPID FROM GROUPMEMBERS GROUPMEMBERS "
-				+ "JOIN GROUPENGINEPERMISSION ON (GROUPMEMBERS.GROUPID = GROUPENGINEPERMISSION.GROUPID) WHERE GROUPMEMBERS.USERID = '?1' "
-				+ "AND GROUPENGINEPERMISSION.ENGINE = '?2' AND GROUPENGINEPERMISSION.PERMISSION != 1) AND USERID = '?1'";
-		
-		query = query.replace("?1", userRemove);
-		query = query.replace("?2", engineId);
-		System.out.println("Executing security query: " + query);
-		if(securityDb.execUpdateAndRetrieveStatement(query, true) != null){
+	public static Boolean removeUserFromGroup(String userId, String groupId, String userToRemove) {
+        String query;
+        
+        /*if(isUserAdmin(userId)){
+            query = "DELETE FROM GroupMembers WHERE GROUPMEMBERS.USERID='" + userToRemove + "' AND GroupMembers.GROUPID = '" + groupId + "';";
+        } else {*/
+        query = "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.USERID='" + userToRemove + "' AND GROUPMEMBERS.GROUPID IN "
+                    + "(SELECT DISTINCT USERGROUP.GROUPID AS GROUPID FROM USERGROUP WHERE USERGROUP.OWNER='" + userId + "' AND USERGROUP.GROUPID = '" + groupId + "');";
+        //}
+        
+        securityDb.execUpdateAndRetrieveStatement(query, true);
+        securityDb.commit();
+        
+        return true;
+    }
+	
+	/*
+	 * Native user CRUD 
+	 */
+	
+	/**
+	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * @param userName	String representing the name of the user to add
+	 */
+	public static Boolean addNativeUser(AccessToken newUser, String password) throws IllegalArgumentException{
+		validInformation(newUser, password);
+		boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
+		if(!isNewUser) {			
+			String salt = SecurityQueryUtils.generateSalt();
+			String hashedPassword = (SecurityQueryUtils.hash(password, salt));
+			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('" + newUser.getEmail() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE', "
+					+ "'" + hashedPassword + "', '" + salt + "');";
+			
+			securityDb.insertData(query);
 			securityDb.commit();
+			return true;
 		} else {
 			return false;
 		}
 		
-		return true;
+	}
+	
+	/**
+	 * Basic validation of the user information before creating it.
+	 * @param newUser
+	 * @throws IllegalArgumentException
+	 */
+	private static void validInformation(AccessToken newUser, String password) throws IllegalArgumentException {
+		String error = "";
+		if(newUser.getUsername().isEmpty()){
+			error += "User name can not be empty. ";
+		}
+
+		error += validEmail(newUser.getEmail());
+		error += validPassword(password);
+		
+		if(!error.isEmpty()){
+			throw new IllegalArgumentException(error);
+		}
+	}
+	
+	private static String validEmail(String email){
+		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
+			return  email + " is not a valid email address. ";
+		}
+		return "";
+	}
+	
+	private static String validPassword(String password){
+		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
+        Matcher matcher = pattern.matcher(password);
+		
+		if(!matcher.lookingAt()){
+			return "Password doesn't comply with the security policies.";
+		}
+		return "";
 	}
 	
 	/**
@@ -640,6 +701,30 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
     }
 	
 	/**
+	 * Delete a user and all its relationships.
+	 * @param userId
+	 * @param userDelete
+	 */
+	public static void deleteUser(String userId, String userDelete){
+		if(SecurityQueryUtils.isUserAdmin(userId)){
+			List<String> groups = SecurityQueryUtils.getGroupsOwnedByUser(userId);
+			for(String groupId : groups){
+				removeGroup(userId, groupId);
+			}
+			String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; DELETE FROM GROUPMEMBERS WHERE USERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
+			query = query.replace("?1", userDelete);
+			securityDb.execUpdateAndRetrieveStatement(query, true);
+			securityDb.commit();
+		} else {
+			throw new IllegalArgumentException("This user can't perfom this action.");
+		}
+	}
+	
+	/*
+	 * Permissions
+	 */
+	
+	/**
 	 * Remove all permissions from a group with a database.
 	 * @param groupId
 	 * @param engineId
@@ -650,6 +735,30 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		query = query.replace("?1", engineId);
 		query = query.replace("?2", groupId);
 		
+		System.out.println("Executing security query: " + query);
+		if(securityDb.execUpdateAndRetrieveStatement(query, true) != null){
+			securityDb.commit();
+		} else {
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Remove all permission a user has over a database.
+	 * @param userRemove
+	 * @param engineId
+	 * @return true if action was performed otherwise false
+	 */
+	public static boolean removeUserPermissionsbyDbId(String userRemove, String engineId){
+		String query = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '?2' AND USERID = '?1' AND PERMISSION != 1; "
+				+ "DELETE FROM GROUPMEMBERS WHERE  GROUPID = (SELECT TOP 1 GROUPENGINEPERMISSION.GROUPID AS GROUPID FROM GROUPMEMBERS GROUPMEMBERS "
+				+ "JOIN GROUPENGINEPERMISSION ON (GROUPMEMBERS.GROUPID = GROUPENGINEPERMISSION.GROUPID) WHERE GROUPMEMBERS.USERID = '?1' "
+				+ "AND GROUPENGINEPERMISSION.ENGINE = '?2' AND GROUPENGINEPERMISSION.PERMISSION != 1) AND USERID = '?1'";
+		
+		query = query.replace("?1", userRemove);
+		query = query.replace("?2", engineId);
 		System.out.println("Executing security query: " + query);
 		if(securityDb.execUpdateAndRetrieveStatement(query, true) != null){
 			securityDb.commit();
@@ -680,29 +789,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		return true;
 	}
-	
-	/**
-	 * Remove a user from a group. Only owner of a group can do it. 
-	 * @param userId
-	 * @param groupId
-	 * @param userToRemove
-	 * @return
-	 */
-	public static Boolean removeUserFromGroup(String userId, String groupId, String userToRemove) {
-        String query;
-        
-        /*if(isUserAdmin(userId)){
-            query = "DELETE FROM GroupMembers WHERE GROUPMEMBERS.USERID='" + userToRemove + "' AND GroupMembers.GROUPID = '" + groupId + "';";
-        } else {*/
-        query = "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.USERID='" + userToRemove + "' AND GROUPMEMBERS.GROUPID IN "
-                    + "(SELECT DISTINCT USERGROUP.GROUPID AS GROUPID FROM USERGROUP WHERE USERGROUP.OWNER='" + userId + "' AND USERGROUP.GROUPID = '" + groupId + "');";
-        //}
-        
-        securityDb.execUpdateAndRetrieveStatement(query, true);
-        securityDb.commit();
-        
-        return true;
-    }
 	
 	/**
 	 * Build the relationship between a group and a database.
@@ -747,6 +833,55 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		return true;
 	}
+	
+	/**
+	 * Adds or Remove permission for users and groups to a
+	 * certain database.
+	 * @param userId
+	 * @param isAdmin
+	 * @param engineId
+	 * @param groups
+	 * @param users
+	 */
+	public static void savePermissions(String userId, boolean isAdmin, String engineId, StringMap<ArrayList<StringMap<String>>> groups, StringMap<ArrayList<StringMap<String>>> users){
+		
+		List<StringMap<String>> groupsToAdd = groups.get("add");
+		List<StringMap<String>> groupsToRemove = groups.get("remove");
+		
+		if(isAdmin && !SecurityQueryUtils.isUserAdmin(userId)){
+			throw new IllegalArgumentException("The user doesn't have the permissions to access this resource.");
+		}
+		
+		if(!isAdmin && !SecurityQueryUtils.isUserDatabaseOwner(userId, engineId)){
+			throw new IllegalArgumentException("The user is not an owner of this database.");
+		}
+		
+		for(StringMap<String> map : groupsToRemove) {
+			removeAllPermissionsForGroup(map.get("id"), engineId);
+		}
+		
+		for(StringMap<String> map : groupsToAdd) {
+			String perm = map.get("permission");
+			setPermissionsForGroup(map.get("id"), engineId, EnginePermission.getPermissionByValue(perm));
+		}
+		
+		List<StringMap<String>> usersToAdd = users.get("add");
+		List<StringMap<String>> usersToRemove = users.get("remove");
+		
+		for(StringMap<String> map : usersToRemove) {
+			removeAllPermissionsForUser(map.get("id"), engineId);
+		}
+		
+		for(StringMap<String> map : usersToAdd) {
+			String perm = map.get("permission");
+			setPermissionsForUser(engineId, map.get("id"), EnginePermission.getPermissionByValue(perm));
+		}
+		
+	}
+	
+	/*
+	 * Engines
+	 */
 	
 	/**
 	 * Change the user visibility (show/hide) for a database. Without removing its permissions.
@@ -818,113 +953,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		securityDb.commit();
 	}
 	
-	/*
-	 * Native user info
-	 */
-	
-	/**
-	 * Adds a new user to the database. Does not create any relations, simply the node.
-	 * @param userName	String representing the name of the user to add
-	 */
-	public static Boolean addNativeUser(AccessToken newUser, String password) throws IllegalArgumentException{
-		validInformation(newUser, password);
-		boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
-		if(!isNewUser) {			
-			String salt = SecurityQueryUtils.generateSalt();
-			String hashedPassword = (SecurityQueryUtils.hash(password, salt));
-			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('" + newUser.getEmail() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE', "
-					+ "'" + hashedPassword + "', '" + salt + "');";
-			
-			securityDb.insertData(query);
-			securityDb.commit();
-			return true;
-		} else {
-			return false;
-		}
-		
-	}
-	
-	/**
-	 * Basic validation of the user information before creating it.
-	 * @param newUser
-	 * @throws IllegalArgumentException
-	 */
-	private static void validInformation(AccessToken newUser, String password) throws IllegalArgumentException {
-		String error = "";
-		if(newUser.getUsername().isEmpty()){
-			error += "User name can not be empty. ";
-		}
-
-		error += validEmail(newUser.getEmail());
-		error += validPassword(password);
-		
-		if(!error.isEmpty()){
-			throw new IllegalArgumentException(error);
-		}
-	}
-	
-	private static String validEmail(String email){
-		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
-			return  email + " is not a valid email address. ";
-		}
-		return "";
-	}
-	
-	private static String validPassword(String password){
-		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
-        Matcher matcher = pattern.matcher(password);
-		
-		if(!matcher.lookingAt()){
-			return "Password doesn't comply with the security policies.";
-		}
-		return "";
-	}
-	
-	/**
-	 * Adds or Remove permission for users and groups to a
-	 * certain database.
-	 * @param userId
-	 * @param isAdmin
-	 * @param engineId
-	 * @param groups
-	 * @param users
-	 */
-	public static void savePermissions(String userId, boolean isAdmin, String engineId, StringMap<ArrayList<StringMap<String>>> groups, StringMap<ArrayList<StringMap<String>>> users){
-		
-		List<StringMap<String>> groupsToAdd = groups.get("add");
-		List<StringMap<String>> groupsToRemove = groups.get("remove");
-		
-		if(isAdmin && !SecurityQueryUtils.isUserAdmin(userId)){
-			throw new IllegalArgumentException("The user doesn't have the permissions to access this resource.");
-		}
-		
-		if(!isAdmin && !SecurityQueryUtils.isUserDatabaseOwner(userId, engineId)){
-			throw new IllegalArgumentException("The user is not an owner of this database.");
-		}
-		
-		for(StringMap<String> map : groupsToRemove) {
-			removeAllPermissionsForGroup(map.get("id"), engineId);
-		}
-		
-		for(StringMap<String> map : groupsToAdd) {
-			String perm = map.get("permission");
-			setPermissionsForGroup(map.get("id"), engineId, EnginePermission.getPermissionByValue(perm));
-		}
-		
-		List<StringMap<String>> usersToAdd = users.get("add");
-		List<StringMap<String>> usersToRemove = users.get("remove");
-		
-		for(StringMap<String> map : usersToRemove) {
-			removeAllPermissionsForUser(map.get("id"), engineId);
-		}
-		
-		for(StringMap<String> map : usersToAdd) {
-			String perm = map.get("permission");
-			setPermissionsForUser(engineId, map.get("id"), EnginePermission.getPermissionByValue(perm));
-		}
-		
-	}
-	
 	/**
 	 * Change the the public visibility of a database
 	 * @param userId
@@ -954,26 +982,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			query = query.replace("?1", engineId);
 			securityDb.execUpdateAndRetrieveStatement(query, true);
 			securityDb.commit();
-		}
-	}
-	
-	/**
-	 * Delete a user and all its relationships.
-	 * @param userId
-	 * @param userDelete
-	 */
-	public static void deleteUser(String userId, String userDelete){
-		if(SecurityQueryUtils.isUserAdmin(userId)){
-			List<String> groups = SecurityQueryUtils.getGroupsOwnedByUser(userId);
-			for(String groupId : groups){
-				removeGroup(userId, groupId);
-			}
-			String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; DELETE FROM GROUPMEMBERS WHERE USERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
-			query = query.replace("?1", userDelete);
-			securityDb.execUpdateAndRetrieveStatement(query, true);
-			securityDb.commit();
-		} else {
-			throw new IllegalArgumentException("This user can't perfom this action.");
 		}
 	}
 	
