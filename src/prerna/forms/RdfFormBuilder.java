@@ -14,6 +14,7 @@ import java.util.Vector;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -675,7 +676,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 		String userPropUri = Constants.PROPERTY_URI + "CertificationUsername";
 
 		// 1) delete old values
-		Integer oldVersion = null;
+		Double oldVersion = null;
 		String getPrevValuesQuery = "select distinct ?i ?v ?t ?u where {BIND(<" + instanceUri + "> as ?i) "
 				+ "{?i <" + versionPropUri + "> ?v}"
 				+ "{?i <" + timePropUri + "> ?t}"
@@ -702,7 +703,11 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 
 			// repeat for all the props
 			statement[1] = timePropUri;
-			statement[2] = clean[2];
+			if(clean[2] instanceof SemossDate) {
+				statement[2] = ((SemossDate) clean[2]).getDate();
+			} else {
+				statement[2] = clean[2];
+			}
 			this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, statement);
 			// audit
 			currTime = DATE_DF.format(cal.getTime());
@@ -716,14 +721,14 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 			addAuditLog(REMOVE, statement[0].toString(), "", "", statement[1].toString(), statement[2].toString(), currTime);
 
 			// get the old version so we can update it
-			oldVersion = Integer.valueOf((String) clean[1]);
+			oldVersion = Double.parseDouble(clean[1] + "");
 		}
 
 		// 2)  add new values
 		if(oldVersion == null) {
-			oldVersion = 0;
+			oldVersion = 0.0;
 		}
-		String newVersion = Integer.toString(oldVersion + 1);
+		Double newVersion = oldVersion + 1;
 
 		Object[] statement = new Object[4];
 		statement[0] = instanceUri;
@@ -733,7 +738,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 		this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 		// audit
 		currTime = DATE_DF.format(cal.getTime());
-		addAuditLog(ADD, instanceUri, "", "", versionPropUri, newVersion, currTime);
+		addAuditLog(ADD, instanceUri, "", "", versionPropUri, newVersion + "", currTime);
 
 		// repeat for other props
 		statement[1] = userPropUri;
@@ -744,7 +749,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 		addAuditLog(ADD,instanceUri, "", "", userPropUri, this.user, currTime);
 
 		statement[1] = timePropUri;
-		statement[2] = currTime;
+		statement[2] = cal.getTime();
 		this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, statement);
 		// audit
 		currTime = DATE_DF.format(cal.getTime());
@@ -755,7 +760,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 
 		// add to certified log
 		currTime = DATE_DF.format(cal.getTime());
-		addAuditLog(ADMIN_SIGN_OFF, instanceUri, "", "", versionPropUri, newVersion, currTime);
+		addAuditLog(ADMIN_SIGN_OFF, instanceUri, "", "", versionPropUri, newVersion + "", currTime);
 		addAuditLog(ADMIN_SIGN_OFF, instanceUri, "", "", userPropUri, this.user, currTime);
 		addAuditLog(ADMIN_SIGN_OFF, instanceUri, "", "", timePropUri, currTime, currTime);
 	}
