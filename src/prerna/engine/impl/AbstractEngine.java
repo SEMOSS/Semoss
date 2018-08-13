@@ -83,6 +83,14 @@ import prerna.util.Utility;
  */
 public abstract class AbstractEngine implements IEngine {
 
+	/*
+	 * Static members
+	 */
+	public static final String USE_FILE = "USE_FILE";
+	public static final String DATA_FILE = "DATA_FILE";
+	
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
 	private static final Logger lOGGER = LogManager.getLogger(AbstractEngine.class.getName());
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
@@ -92,6 +100,10 @@ public abstract class AbstractEngine implements IEngine {
 	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 
+	/*
+	 * Class members
+	 */
+	
 	protected String baseFolder = null;
 	protected String propFile = null;
 	protected Properties prop = null;
@@ -105,9 +117,6 @@ public abstract class AbstractEngine implements IEngine {
 	private MetaHelper owlHelper = null;
 	protected RDFFileSesameEngine baseDataEngine;
 	
-	public static final String USE_FILE = "USE_FILE";
-	public static final String DATA_FILE = "DATA_FILE";
-	
 	protected RDBMSNativeEngine insightRDBMS;
 	protected String insightDriver = "org.h2.Driver";
 	protected String insightRDBMSType = "H2_DB";
@@ -120,9 +129,7 @@ public abstract class AbstractEngine implements IEngine {
 	private String insightDatabaseLoc;
 
 	private transient Map<String, String> tableUriCache = new HashMap<String, String>();
-
 	private Hashtable<String, String> baseDataHash;
-
 	private String baseUri;
 	
 	/**
