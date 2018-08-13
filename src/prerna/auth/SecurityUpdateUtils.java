@@ -6,8 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
-import com.google.gson.internal.StringMap;
 
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -234,10 +233,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		securityDb.removeData(deleteQuery);
 
 //		//TODO: add the other tables...
-//		boolean securityEnabled = Boolean.parseBoolean(DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED).toString());
-//		if(securityEnabled){
-//			removeDb(appId);
-//		}
+		boolean securityEnabled = Boolean.parseBoolean(DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED).toString());
+		if(securityEnabled){
+			removeDb(appId);
+		}
 	}
 	
 	
@@ -461,7 +460,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param users
 	 * @return
 	 */
-	public static Boolean addGroup(String userId, String groupName, ArrayList<String> users) {
+	public static Boolean addGroup(String userId, String groupName, List<String> users) {
 		String query = "INSERT INTO USERGROUP(GROUPID, NAME, OWNER) VALUES (NULL, '" + groupName + "', '" + userId + "');";
 		Statement stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
 		int id = -1;
@@ -648,7 +647,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static boolean editUser(String adminId, StringMap<String> userInfo) throws IllegalArgumentException{
+	public static boolean editUser(String adminId, Map<String, String> userInfo) throws IllegalArgumentException{
         boolean first = true;
         String error = "";
         String userId = userInfo.remove("id");
@@ -843,10 +842,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param groups
 	 * @param users
 	 */
-	public static void savePermissions(String userId, boolean isAdmin, String engineId, StringMap<ArrayList<StringMap<String>>> groups, StringMap<ArrayList<StringMap<String>>> users){
+	public static void savePermissions(String userId, boolean isAdmin, String engineId, Map<String, List<Map<String, String>>> groups, Map<String, List<Map<String, String>>> users){
 		
-		List<StringMap<String>> groupsToAdd = groups.get("add");
-		List<StringMap<String>> groupsToRemove = groups.get("remove");
+		List<Map<String, String>> groupsToAdd = groups.get("add");
+		List<Map<String, String>> groupsToRemove = groups.get("remove");
 		
 		if(isAdmin && !SecurityQueryUtils.isUserAdmin(userId)){
 			throw new IllegalArgumentException("The user doesn't have the permissions to access this resource.");
@@ -856,23 +855,23 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The user is not an owner of this database.");
 		}
 		
-		for(StringMap<String> map : groupsToRemove) {
+		for(Map<String, String> map : groupsToRemove) {
 			removeAllPermissionsForGroup(map.get("id"), engineId);
 		}
 		
-		for(StringMap<String> map : groupsToAdd) {
+		for(Map<String, String> map : groupsToAdd) {
 			String perm = map.get("permission");
 			setPermissionsForGroup(map.get("id"), engineId, EnginePermission.getPermissionByValue(perm));
 		}
 		
-		List<StringMap<String>> usersToAdd = users.get("add");
-		List<StringMap<String>> usersToRemove = users.get("remove");
+		List<Map<String, String>> usersToAdd = users.get("add");
+		List<Map<String, String>> usersToRemove = users.get("remove");
 		
-		for(StringMap<String> map : usersToRemove) {
+		for(Map<String, String> map : usersToRemove) {
 			removeAllPermissionsForUser(map.get("id"), engineId);
 		}
 		
-		for(StringMap<String> map : usersToAdd) {
+		for(Map<String, String> map : usersToAdd) {
 			String perm = map.get("permission");
 			setPermissionsForUser(engineId, map.get("id"), EnginePermission.getPermissionByValue(perm));
 		}

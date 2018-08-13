@@ -9,9 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
-
-import com.google.gson.internal.StringMap;
-
+	
 import jodd.util.BCrypt;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -778,8 +776,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static ArrayList<StringMap<String>> getAllDbUsers(String userId) throws IllegalArgumentException{
-		ArrayList<StringMap<String>> ret = new ArrayList<>();  
+	public static List<Map<String, String>> getAllDbUsers(String userId) throws IllegalArgumentException{
+		List<Map<String, String>> ret = new ArrayList<>();  
 		if(isUserAdmin(userId)){
 			String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER WHERE TYPE != 'anonymous'";
 			ret = getSimpleQuery(query);
@@ -795,15 +793,15 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param query		Query to be executed to retrieve engine names
 	 * @return			List of engine names
 	 */
-	private static ArrayList<StringMap<String>> getSimpleQuery(String query) {
+	private static List<Map<String, String>> getSimpleQuery(String query) {
 		System.out.println("Executing security query: " + query);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		ArrayList<StringMap<String>> ret = new ArrayList<>();
+		List<Map<String, String>> ret = new ArrayList<>();
 		while(wrapper.hasNext()) {
 			IHeadersDataRow row = wrapper.next();
 			Object[] headers = row.getHeaders();
 			Object[] values = row.getValues();
-			StringMap<String> rowData = new StringMap<>();
+			Map<String, String> rowData = new HashMap<>();
 			for(int idx = 0; idx < headers.length; idx++){
 				if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
 					rowData.put(headers[idx].toString().toLowerCase(), "Default");
@@ -822,13 +820,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param searchTerm
 	 * @return
 	 */
-	public static ArrayList<StringMap<String>> searchForUser(String searchTerm) {
+	public static List<Map<String, String>> searchForUser(String searchTerm) {
 		String query = "SELECT DISTINCT USER.ID AS ID, USER.NAME AS NAME, USER.EMAIL AS EMAIL FROM USER WHERE UPPER(USER.NAME) LIKE UPPER('%" + searchTerm + "%') OR UPPER(USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') AND TYPE != 'anonymous';";
-		ArrayList<StringMap<String>> users = new ArrayList<StringMap<String>>();
+		List<Map<String, String>> users = new ArrayList<>();
 
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		for(String[] s : flushRsToListOfStrArray(wrapper)) {
-			StringMap<String> map = new StringMap<String>();
+			Map<String, String> map = new HashMap<String, String>();
 			map.put("id", s[0]);
 			map.put("name", s[1]);
 			map.put("email", s[2]);
@@ -954,7 +952,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		String query = "";
 		IRawSelectWrapper wrapper = null;
-		ArrayList<String> allEngines = new ArrayList<>();
+		List<String> allEngines = new ArrayList<>();
 		for(String[] engine : engines){
 			allEngines.add(engine[0]);
 		}
@@ -1037,7 +1035,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		dbEngines.addAll(getPublicEngines(dbEngines, userId));
 
-		ArrayList<String> visibleEngines = new ArrayList<>();
+		List<String> visibleEngines = new ArrayList<>();
 
 		for(String[] engine : dbEngines) {
 			if(!engines.contains(engine[0])){
@@ -1073,9 +1071,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * Groups
 	 */
 	
-	public static StringMap<ArrayList<StringMap<String>>> getDatabaseUsersAndGroups(String userId, String engineId, boolean isAdmin){
+	public static Map<String, List<Map<String, String>>> getDatabaseUsersAndGroups(String userId, String engineId, boolean isAdmin){
 
-		StringMap<ArrayList<StringMap<String>>> ret = new StringMap<>();
+		Map<String, List<Map<String, String>>> ret = new HashMap<>();
 		ret.put("groups", new ArrayList<>());
 		ret.put("users", new ArrayList<>());
 
@@ -1094,7 +1092,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		List<String[]> users = flushRsToListOfStrArray(wrapper);
 
 		for(String[] user : users) {
-			StringMap<String> userInfo = new StringMap<>();
+			Map<String, String> userInfo = new HashMap<>();
 
 			userInfo.put("id", user[0]);
 			userInfo.put("name", user[1]);
@@ -1112,7 +1110,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		List<String[]> groups = flushRsToListOfStrArray(wrapper);
 
 		for(String[] group : groups) {
-			StringMap<String> userInfo = new StringMap<>();
+			Map<String, String> userInfo = new HashMap<>();
 
 			userInfo.put("id", group[0]);
 			userInfo.put("name", group[1]);
@@ -1130,7 +1128,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param query
 	 * @param userId
 	 */
-	private static void getGroupsWithoutMembers(ArrayList<HashMap<String, Object>> ret, String query, String userId){
+	private static void getGroupsWithoutMembers(List<Map<String, Object>> ret, String query, String userId){
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String[]> groupsWithoutMembers = flushRsToListOfStrArray(wrapper);
 
@@ -1138,10 +1136,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			String groupId = groupsWithoutMember[0];
 			String groupName = groupsWithoutMember[1];
 
-			HashMap<String, Object> groupObject = new HashMap<>();
+			Map<String, Object> groupObject = new HashMap<>();
 			groupObject.put("group_id", groupId);
 			groupObject.put("group_name", groupName);
-			groupObject.put("group_users", new ArrayList<StringMap<String>>());
+			groupObject.put("group_users", new ArrayList<HashMap<String, String>>());
 
 			ret.add(groupObject);
 		}
@@ -1153,7 +1151,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param groupId
 	 * @return
 	 */
-	private static int indexGroup(ArrayList<HashMap<String, Object>> ret, String groupId){
+	private static int indexGroup(List<Map<String, Object>> ret, String groupId){
 		for (int i = 0; i < ret.size(); i++) {
 			if(ret.get(i).get("group_id").equals(groupId)){
 				return i;
@@ -1168,17 +1166,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param query
 	 * @param userId
 	 */
-	private static void getGroupsAndMembers(ArrayList<HashMap<String, Object>> ret, String query, String userId){
+	private static void getGroupsAndMembers(List<Map<String, Object>> ret, String query, String userId){
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String[]> groupsAndMembers = flushRsToListOfStrArray(wrapper);
 
 		for(String[] groupAndMember : groupsAndMembers) {
 			String groupId = groupAndMember[0];
 			String groupName = groupAndMember[1];
-
-			StringMap<ArrayList<StringMap<String>>> groupUsersObject = new StringMap<>();
-
-			StringMap<String> user = new StringMap<String>();
+			Map<String, String> user = new HashMap<String, String>();
 			user.put("id", groupAndMember[2]);
 			user.put("name", groupAndMember[3]);
 			user.put("email", groupAndMember[4]);
@@ -1186,16 +1181,16 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			int indexGroup = indexGroup(ret, groupId);
 
 			if(indexGroup == -1) {
-				ArrayList<StringMap<String>> newGroup = new ArrayList<StringMap<String>>();
+				List<Map<String, String>> newGroup = new ArrayList<>();
 				newGroup.add(user);
-				HashMap<String, Object> groupObject = new HashMap<>();
+				Map<String, Object> groupObject = new HashMap<>();
 				groupObject.put("group_id", groupId);
 				groupObject.put("group_name", groupName);
 				groupObject.put("group_users", newGroup);
 
 				ret.add(groupObject);
 			} else {
-				ArrayList<StringMap<String>> updateGroup = (ArrayList<StringMap<String>>) ret.get(indexGroup).get("group_users");
+				List<Map<String, String>> updateGroup = (List<Map<String, String>>) ret.get(indexGroup).get("group_users");
 				updateGroup.add(user);
 			}
 		}
@@ -1206,9 +1201,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return all groups and list of users for each group
 	 */
-	public static ArrayList<HashMap<String, Object>> getGroupsAndMembersForUser(String userId) {
+	public static List<Map<String, Object>> getGroupsAndMembersForUser(String userId) {
 
-		ArrayList<HashMap<String, Object>> ret = new ArrayList<>();
+		List<Map<String, Object>> ret = new ArrayList<>();
 
 		String query = "SELECT USERGROUP.GROUPID AS GROUP_ID, USERGROUP.NAME AS GROUP_NAME FROM USERGROUP LEFT JOIN GROUPMEMBERS ON(USERGROUP.GROUPID = GROUPMEMBERS.GROUPID) WHERE GROUPMEMBERS.GROUPID IS NULL AND USERGROUP.OWNER = '?1'";
 		query = query.replace("?1", userId);
@@ -1238,18 +1233,18 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param groups
 	 * @return list of users.
 	 */
-	public static StringMap<List<String[]>> getAllUserFromGroups(ArrayList<String> groups){
+	public static Map<String, List<String[]>> getAllUserFromGroups(List<String> groups){
 		String query = 	"SELECT GROUPMEMBERS.GROUPID AS GROUP_ID, USERGROUP.NAME AS GROUP_NAME, USERGROUP.OWNER AS GROUP_OWNER, GROUPMEMBERS.USERID AS USER_ID, USER.NAME AS USER_NAME  FROM GROUPMEMBERS JOIN USERGROUP ON (USERGROUP.GROUPID = GROUPMEMBERS.GROUPID) JOIN USER ON (USER.ID = GROUPMEMBERS.USERID) WHERE GROUPMEMBERS.GROUPID ?1";
 		query = query.replace("?1", createFilter(groups));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<Object[]> users = flushRsToMatrix(wrapper);
-		StringMap<List<String[]>> ret = new StringMap<>();
+		Map<String, List<String[]>> ret = new HashMap<>();
 		for(Object[] userObject : users){
 			String[] user = Arrays.stream(userObject).map(Object::toString).
 					toArray(String[]::new);
 			String userId = user[3];
 			if(ret.get(userId) == null){
-				ArrayList<String[]> userNodeList = new ArrayList<>();
+				List<String[]> userNodeList = new ArrayList<>();
 				userNodeList.add(user);
 				ret.put(userId, userNodeList);
 			} else {
@@ -1266,7 +1261,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param otherGroupsUserList
 	 * @return
 	 */
-	private static String isGroupWithInvalidUsersFromOtherGroups(List<String[]> usersFromGroup, StringMap<List<String[]>> otherGroupsUserList){
+	private static String isGroupWithInvalidUsersFromOtherGroups(List<String[]> usersFromGroup, Map<String, List<String[]>> otherGroupsUserList){
 		String ret = "";
 		for(String[] user : usersFromGroup){
 			String userId = user[3];
@@ -1306,15 +1301,15 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param users
 	 * @return
 	 */
-	public static String isGroupUsersWithDatabasePermissionAlready(String groupId, ArrayList<String> groups,
-			ArrayList<String> users) {
+	public static String isGroupUsersWithDatabasePermissionAlready(String groupId, List<String> groups,
+			List<String> users) {
 
 		String ret = "";
 		// TODO Security check if the user logged in is the owner of the group being added (?)
 
 		List<String[]> allUserFromGroup = getAllUserFromGroup(groupId);
 		ret += isGroupWithInvalidUsersFromList(allUserFromGroup, users);
-		StringMap<List<String[]>> allUsersFromOtherGroups = getAllUserFromGroups(groups);
+		Map<String, List<String[]>> allUsersFromOtherGroups = getAllUserFromGroups(groups);
 		ret += isGroupWithInvalidUsersFromOtherGroups(allUserFromGroup, allUsersFromOtherGroups);
 
 		return ret.isEmpty() ? "true" : ret;
@@ -1388,7 +1383,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 
 		for(String[] engine : engines) {
-			StringMap<String> dbProp = new StringMap<>();
+			Map<String, String> dbProp = new HashMap<>();
 
 			dbProp.put("db_id", engine[0]);
 			dbProp.put("db_name", engine[1]);
@@ -1413,7 +1408,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param usersId
 	 * @return if the user has a relationship with a database this message explains how.
 	 */
-	public static String isUserWithDatabasePermissionAlready(String userId, ArrayList<String> groupsId, ArrayList<String> usersId){
+	public static String isUserWithDatabasePermissionAlready(String userId, List<String> groupsId, List<String> usersId){
 		String ret = "";
 
 		String username = getUsernameByUserId(userId);
@@ -1430,7 +1425,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		List<String[]> result = flushRsToListOfStrArray(wrapper);
 
 		for(String[] row : result){
-			String groupId = row[0];
+			//String groupId = row[0];
 			String groupName = row[1];
 			String groupOwner = row[2];
 
@@ -1448,10 +1443,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param groupsToRemove
 	 * @return list of groups id.
 	 */
-	public static ArrayList<String> getAllDbGroupsById(String engineId, ArrayList<String> groupsToAdd,
-			ArrayList<String> groupsToRemove) {
+	public static List<String> getAllDbGroupsById(String engineId, List<String> groupsToAdd,
+			List<String> groupsToRemove) {
 
-		ArrayList<String> ret = new ArrayList<>();
+		List<String> ret = new ArrayList<>();
 		String query = "SELECT GROUPENGINEPERMISSION.GROUPID FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.ENGINE = '?1'";
 		query = query.replace("?1", engineId);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -1475,10 +1470,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param usersToRemove
 	 * @return list of users id.
 	 */
-	public static ArrayList<String> getAllDbUsersById(String engineId, ArrayList<String> usersToAdd,
-			ArrayList<String> usersToRemove) {
+	public static List<String> getAllDbUsersById(String engineId, List<String> usersToAdd,
+			List<String> usersToRemove) {
 
-		ArrayList<String> ret = new ArrayList<>();
+		List<String> ret = new ArrayList<>();
 		String query = "SELECT ENGINEPERMISSION.USERID FROM ENGINEPERMISSION WHERE ENGINEPERMISSION.ENGINEID = '?1'";
 		query = query.replace("?1", engineId);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
