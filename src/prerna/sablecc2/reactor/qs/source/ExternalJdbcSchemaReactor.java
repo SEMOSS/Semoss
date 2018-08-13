@@ -63,7 +63,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		
 		ResultSet tablesRs;
 		try {
-			tablesRs = meta.getTables(null, null, null, new String[] { "TABLE" });
+			tablesRs = meta.getTables(null, null, null, new String[] { "TABLE", "VIEW" });
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
