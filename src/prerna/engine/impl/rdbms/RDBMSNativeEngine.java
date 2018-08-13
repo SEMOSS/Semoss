@@ -98,6 +98,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private String userName = null;
 	private String createString = null;
 
+	/**
+	 * This is used for tracking audit modifications 
+	 */
+	private AuditDatabase auditDatabase = null;
+	
 	@Override
 	public void openDB(String propFile)
 	{
@@ -422,6 +427,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			stmt = conn.createStatement();
 			stmt.executeUpdate(query);
 		} catch (SQLException e) {
+			stmt = null;
 			e.printStackTrace();
 		} finally {
 			if(autoCloseStatement) {
@@ -747,5 +753,26 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	///////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////
+
+	/**
+	 * Get an audit database for making modifications in a relational database
+	 */
+	
+	/**
+	 * Generate an audit database
+	 * @param appId
+	 */
+	public synchronized AuditDatabase generateAudit() {
+		if(this.auditDatabase == null) {
+			this.auditDatabase = new AuditDatabase();
+			this.auditDatabase.init(this.engineId, this.engineName);
+		}
+		return this.auditDatabase;
 	}
 }
