@@ -209,7 +209,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		}
 		ResultSet tables;
 		try {
-			tables = meta.getTables(null, null, null, new String[] { "TABLE" });
+			tables = meta.getTables(null, null, null, new String[] { "TABLE", "VIEW" });
 		} catch (SQLException e) {
 			throw new SQLException("Unable to get tables from database metadata");
 		}
@@ -281,7 +281,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		} finally {
 			closeRs(tables);
 		}
-
+		
 		HashMap<String, Object> ret = new HashMap<String, Object>();
 		ret.put("tables", tableDetails);
 		ret.put("relationships", relations);
