@@ -165,9 +165,9 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		ChromeDriver driver = new ChromeDriver(chromeOptions);
 		String url = null;
 		if(params != null){
-			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&drop=1000";
+			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&drop=1000&animation=false";
 		} else {
-			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&hideMenu=true&drop=1000";
+			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&hideMenu=true&drop=1000&animation=false";
 		}
 		
 		driver.get(url);
