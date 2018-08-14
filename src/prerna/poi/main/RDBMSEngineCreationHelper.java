@@ -152,8 +152,21 @@ public class RDBMSEngineCreationHelper {
 		// get all the tables
 		ResultSet tables = null;
 		try {
-			tables = meta.getTables(null, null, null, new String[]{"TABLE"});
+			tables = meta.getTables(null, null, null, new String[]{"TABLE", "VIEW" });
 			while(tables.next()) {
+				// this will be table or view
+				String tableType = tables.getString("table_type").toUpperCase();
+				if(tableType.equals("VIEW")) {
+					// there may be views built from sys or information schema
+					// we want to ignore these
+					String schem = tables.getString("table_schem");
+					if(schem != null) {
+						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("SYS")) {
+							continue;
+						}
+					}
+				}
+				
 				// get the table name
 				String table = tables.getString("table_name");
 				// keep a map of the columns
