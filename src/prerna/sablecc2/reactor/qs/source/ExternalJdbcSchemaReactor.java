@@ -90,7 +90,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 					// we want to ignore these
 					String schem = tablesRs.getString("table_schem");
 					if(schem != null) {
-						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("sys")) {
+						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("SYS")) {
 							continue;
 						}
 					}
