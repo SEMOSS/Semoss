@@ -9,8 +9,7 @@
         "required": true,
         "view": {
           "displayType": "dropdown",
-          "label": "Select a Concept",
-          "description": "Select a concept that you will explore"
+          "label": "Select a Concept To Explore"
         },
         "model": {
           "query": "GetDatabaseConcepts(database=[\"<<ENGINE>>\"]);"
@@ -28,8 +27,7 @@
         "required": true,
         "view": {
           "displayType": "checklist",
-          "label": "Select an Instance",
-          "description": "Select an instance to explore",
+          "label": "Select an Instance to Explore",
           "attributes": {
             "searchable": true,
             "multiple": true,
