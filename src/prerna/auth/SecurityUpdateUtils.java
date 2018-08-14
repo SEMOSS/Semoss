@@ -94,14 +94,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		// make a prepared statement
 		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(
-				new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT", "CREATEDON","LASTMODIFIEDON","LAYOUT"});
+				new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON","LASTMODIFIEDON","LAYOUT"});
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
 		int count = 0;
 		
 		LocalDateTime now = LocalDateTime.now();
 		
-		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT FROM QUESTION_ID";
+		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
