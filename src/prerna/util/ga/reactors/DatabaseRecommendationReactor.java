@@ -56,13 +56,14 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			String userName = System.getProperty("user.name");
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			StringBuilder rsb = new StringBuilder();
+			rsb.append("library(jsonlite);");
 			rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");;
 			rsb.append( "fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ");
 
 			// run communities script
 			String communityOutput = Utility.getRandomString(8);
 			rsb.append(communityOutput + "<- locate_data_communities(fileroot,\"" + userName + "\");");
-			rsb.append(communityOutput + "<- toJSON(" + communityOutput + "[3]);");
+			rsb.append(communityOutput + "<- jsonlite::toJSON(" + communityOutput + "[3]);");
 			// Step 2:
 			// Run another R script to generate user specific recommendations,
 			// add additional data and package as a map to be added to the list
@@ -71,7 +72,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			// run plain db recommendations script
 			String userSpecificOutput = Utility.getRandomString(8);
 			rsb.append(userSpecificOutput+"<- dataitem_recom_mgr(\"" + userName + "\",fileroot);");
-			rsb.append(userSpecificOutput + "<- toJSON(as.data.table(" + userSpecificOutput + "[2])[,1:2], byrow = TRUE, colNames = TRUE);");
+			rsb.append(userSpecificOutput + "<- jsonlite::toJSON(as.data.table(" + userSpecificOutput + "[2])[,1:2], byrow = TRUE, colNames = TRUE);");
 			this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));			
 			List<String> enginesWithAccess = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			ArrayList<Object> communitiesList = new ArrayList<Object>();
