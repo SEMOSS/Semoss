@@ -29,8 +29,9 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		// init rJavaTranslator
 		init();
 		// check r package dependencies
-		String[] packages = new String[] { "fuzzyjoin", "RJSONIO", "rlang", "tibble", "R6", "bindrcpp", "crayon",
-				"pkgconfig", "glue", "plogr", "dplyr", "tidyr", "Rcpp", "assertthat", "bindr", "tidyselect", "purrr" };
+		String[] packages = new String[] { "stringdist", "Rcpp", "tidyr", "dplyr", "assertthat", "R6", "magrittr",
+				"pillar", "rlang", "bindrcpp", "RJSONIO", "glue", "purrr", "parallel", "pkgconfig", "fuzzyjoin",
+				"bindr", "tidyselect", "tibble" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// get frame and set up logger
@@ -43,7 +44,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		// create collision script inputs
 		StringBuilder rsb = new StringBuilder();
 		// create temp R frame with unique column values
-		String randomDF = "collsionResolverTempFrame"+Utility.getRandomString(8);
+		String randomDF = "collsionResolverTempFrame" + Utility.getRandomString(8);
 		rsb.append(randomDF + " <- data.frame(" + column + "=unique(" + df + "$" + column + "));");
 
 		// add column instance count to temp frame
