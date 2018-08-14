@@ -428,6 +428,18 @@ public class RSyntaxHelper {
 	}
 	
 	/**
+	 * Return new frame object
+	 * @param oldFrame
+	 * @param newFrame
+	 * @return
+	 */
+	public static String asDataTable(String newFrame, String oldFrame) {	
+		StringBuilder rsb = new StringBuilder();
+		rsb.append(newFrame + "<- as.data.table(" + oldFrame + ");");
+		return rsb.toString();
+	}
+	
+	/**
 	 * Creates a numeric column by removing numbers from a column
 	 * @param dataframe
 	 * @param column
@@ -649,8 +661,20 @@ public class RSyntaxHelper {
 	public static String getFReadSyntax(String tableName, String absolutePath, String delimiter) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(tableName).append(" <- fread(\"").append(absolutePath.replace("\\", "/"))
-			.append("\", sep=\"").append(delimiter).append("\")");
+			.append("\", sep=\"").append(delimiter).append("\");");
 		return builder.toString();
+	}
+	
+	/**
+	 * Write dataframe to csv
+	 * @param dataframe
+	 * @param absolutePath
+	 * @return
+	 */
+	public static String getFWriteSyntax(String dataframe, String absolutePath) {
+		StringBuilder rsb = new StringBuilder();
+		rsb.append("fwrite(" + dataframe + ",file=\"" + absolutePath.replace("\\", "/") + "\");");
+		return rsb.toString();
 	}
 
 	public static String getExcelReadSheetSyntax(String tableName, String absolutePath, int sheetIndex, List<Integer> colIndices, boolean uploadSubset) {

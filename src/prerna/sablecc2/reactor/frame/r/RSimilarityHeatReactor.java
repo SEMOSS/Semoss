@@ -38,7 +38,7 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		String subset = RSyntaxHelper.createStringRColVec(temp.toArray());
 		// make frame with only used columns
 		rsb.append("library(plyr);");
-		rsb.append(tempFrame + "<- subset(" + frameName + ", select=" + subset + ");");
+		rsb.append(RSyntaxHelper.getFrameSubset(tempFrame, frameName, temp.toArray()));
 		String mergeBy = RSyntaxHelper.createStringRColVec(comparisonColumn.toArray());
 		// combine with self
 		rsb.append(tempFrame + " <- merge(" + tempFrame + "," + tempFrame + ", by=" + mergeBy + ", all.x = TRUE, all.y = FALSE, allow.cartesian = TRUE);");
@@ -50,7 +50,7 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, instanceCol + ".x", instanceCol + "_1"));
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, instanceCol + ".y", instanceCol + "_2"));
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, "freq", "Heat"));
-		rsb.append(frameName + " <- as.data.table(" + tempFrame + ");");
+		rsb.append(RSyntaxHelper.asDataTable(frameName, tempFrame));
 		rsb.append("rm(" + tempFrame + ")");
 		this.rJavaTranslator.runR(rsb.toString());
 		recreateMetadata(frameName);

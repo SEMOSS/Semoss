@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -122,7 +123,7 @@ public class PivotReactor extends AbstractRFrameReactor {
         this.rJavaTranslator.executeR(cleanScript);
 
 		String script = newFrame + " <- dcast(" + table + keepString + aggregateString + ");";
-		script += newFrame + " <- as.data.table(" + newFrame + ");";
+		script += RSyntaxHelper.asDataTable(newFrame, newFrame);
 		script += table + " <- " + newFrame + ";";
 		if(dropColumn) {
 			// drop the . column
