@@ -440,6 +440,18 @@ public class RSyntaxHelper {
 	}
 	
 	/**
+	 * Return new frame object
+	 * @param oldFrame
+	 * @param newFrame
+	 * @return
+	 */
+	public static String asDataFrame(String newFrame, String oldFrame) {	
+		StringBuilder rsb = new StringBuilder();
+		rsb.append(newFrame + "<- as.data.frame(" + oldFrame + ");");
+		return rsb.toString();
+	}
+	
+	/**
 	 * Creates a numeric column by removing numbers from a column
 	 * @param dataframe
 	 * @param column
