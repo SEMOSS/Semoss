@@ -10,6 +10,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -56,7 +57,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		// prep script components
 		StringBuilder builder = new StringBuilder();
 		String inputFrame = "inputFrame." + Utility.getRandomString(8);
-		String dfStart = inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);";
+		builder.append(inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);");
 
 		// iterate selectors and update data table builder section of R script
 		Map<String, String> aliasHash = new HashMap<String, String>();
@@ -129,15 +130,15 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 			maxRecommendations = "5";
 		}
 
-		String runPredictScripts = "source(\"" + baseFolder + "\\R\\Recommendations\\viz_tracking.r\") ; "
-				+ historicalDf + "<-read.csv(\"" + baseFolder + "\\R\\Recommendations\\historicalData\\viz_user_history.csv\") ;" 
-				+ recommend + "<-viz_recom_mgr(" + historicalDf + "," + inputFrame + ", \"Grid\", 5); " 
-				+ "library(jsonlite);" + outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);"; 
-		runPredictScripts = runPredictScripts.replace("\\", "/");
-
+		builder.append("source(\"" + baseFolder + "\\R\\Recommendations\\viz_tracking.r\") ; ");
+		builder.append(RSyntaxHelper.getFReadSyntax(historicalDf, baseFolder + "\\R\\Recommendations\\historicalData\\viz_user_history.csv"));
+		builder.append(RSyntaxHelper.asDataFrame(historicalDf, historicalDf));
+		builder.append(recommend + "<-viz_recom_mgr(" + historicalDf + "," + inputFrame + ", \"Grid\", 5); ");
+		builder.append("library(jsonlite);");
+		builder.append( outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);");
+		
 		// combine script pieces and execute in R
-		String script = dfStart + builder + runPredictScripts;
-		this.rJavaTranslator.runR(script);
+		this.rJavaTranslator.runR(builder.toString().replace("\\", "/"));
 
 		// receive json string from R
 		String json = this.rJavaTranslator.getString(outputJson + ";");
