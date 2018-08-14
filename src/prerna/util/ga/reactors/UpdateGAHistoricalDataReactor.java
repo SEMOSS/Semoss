@@ -3,6 +3,7 @@ package prerna.util.ga.reactors;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
@@ -34,30 +35,41 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 			// do nothing
 		}
 		
+		this.rJavaTranslator.runR(updateGAHistoricalDataRSyntax(dateRange));
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+	
+	/**
+	 * Generate the script to update Google Analytics Historical data
+	 * @param dateRange
+	 * @return
+	 */
+	public String updateGAHistoricalDataRSyntax(int dateRange) {
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		// format dates for range
 		String todayDate = LocalDate.now().toString();
 		String startDate = LocalDate.now().minus(dateRange, ChronoUnit.DAYS).toString();
-        String wd = this.rJavaTranslator.getString("getwd()");
-        StringBuilder rsb = new StringBuilder();
-        rsb.append("setwd(\"" + DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\");\n");
+		String rwd = "wd_" + Utility.getRandomString(8);
+		StringBuilder rsb = new StringBuilder();
+		rsb.append(rwd + "<- getwd();");
+		rsb.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");\n");
 		// generate script to run viz_tracking.r script
 		String userDf = "user_" + Utility.getRandomString(8);
 		String historyDf = "hist_" + Utility.getRandomString(8);
-		String rDirectory = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations";
+		String rDirectory = baseFolder + "\\R\\Recommendations";
 		rsb.append("source(\"" + rDirectory + "\\viz_tracking.r\");" );
 		rsb.append(userDf + "<-get_userdata(\"" + startDate + "\",\"" + todayDate + "\", \"" + rDirectory + "\\token_file\");");
 		rsb.append(historyDf + "<-viz_history(" + userDf + ");" );
-		rsb.append( "write.csv(" + historyDf + ",file=\"" + rDirectory
-				+ "\\historicalData\\viz_user_history.csv\",row.names=FALSE,na=\"\");");
+		rsb.append(RSyntaxHelper.getFWriteSyntax(historyDf, rDirectory + "\\historicalData\\viz_user_history.csv"));
 		// generate script for database recommendations
 		rsb.append("source(\"" + rDirectory + "\\db_recom.r\");");
 		rsb.append("source(\"" + rDirectory + "\\datasemantic.r\");");
 		rsb.append(" source(\"" + rDirectory + "\\SemanticSimilarity\\lsi_dataitem.r\");");
 		rsb.append("data_domain_mgr(\"" + startDate + "\",\"" + todayDate + "\", \"dataitem\");");
 		// set the work directory back to normal
-		rsb.append("setwd('" + wd + "');");
+		rsb.append("setwd(" + rwd + ");");
 		// garbage collection
-		rsb.append("rm(" + userDf + ", " + historyDf + ",apply_tfidf, assign_unique_concepts,blend_mgr,"
+		rsb.append("rm(" + userDf + ", " + historyDf + "," + rwd + ",apply_tfidf, assign_unique_concepts,blend_mgr,"
 				+ "blend_tracking_semantic,build_query_doc,build_query_tdm,build_sim,build_tdm,"
 				+ "col2db,col2tbl,column_lsi_mgr,compute_column_desc_sim,compute_entity_sim,"
 				+ "compute_weight,con,cosine_jaccard_sim,cosine_sim,data_domain_mgr,"
@@ -68,8 +80,7 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 				+ "locate_user_communities,lsi_mgr,match_desc,populate_ratings,"
 				+ "read_datamatrix,refresh_base,remove_files,restore_datatype,"
 				+ "viz_history,viz_recom,viz_recom_mgr)");
-		this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		return rsb.toString().replace("\\", "/");
 	}
 	
 	///////////////////////// KEYS /////////////////////////////////////

@@ -75,7 +75,7 @@ public class CollapseReactor extends AbstractRFrameReactor {
 			rsb.append(aggFrame + "<- merge(" + aggFrame + "," + mergeFrame + ", by = " + RSyntaxHelper.createStringRColVec(groupByCol.toArray()) + ");");
 		}
 		//  replace current frame with agg frame
-		rsb.append(frameName + "<- as.data.table(" + aggFrame + ");");
+		rsb.append(RSyntaxHelper.asDataTable(frameName, aggFrame));
 		 rsb.append("rm(" + aggFrame + ");");
 		 rsb.append("rm(" + tempFrame + ");");
 		 rsb.append("gc();");
