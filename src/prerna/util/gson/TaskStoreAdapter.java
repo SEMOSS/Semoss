@@ -104,7 +104,6 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 					qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
 				}
 			}
-			insight.getTaskStore().addTask(t.getId(), t);
 		}
 		in.endArray();
 		
@@ -112,6 +111,8 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 		in.nextName();
 		long taskCount = in.nextLong();
 		tStore.setCount(taskCount);
+		
+		in.endObject();
 		
 		return tStore;
 	}
