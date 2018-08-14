@@ -165,9 +165,9 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		ChromeDriver driver = new ChromeDriver(chromeOptions);
 		String url = null;
 		if(params != null){
-			url = feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&panel=0&drop=1000";
+			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&drop=1000";
 		} else {
-			url = feUrl+ "#!/insight?type=single&engine=" + engineId + "&id=" + id + "&hideMenu=true&panel=0&drop=1000";
+			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&hideMenu=true&drop=1000";
 		}
 		
 		driver.get(url);
@@ -183,7 +183,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		
 		// time for FE to render the page before the image is taken
 	    try {
-			Thread.sleep(7000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
