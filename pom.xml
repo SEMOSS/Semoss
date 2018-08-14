@@ -2576,6 +2576,12 @@
 			<groupId>org.semarglproject</groupId>
 			<artifactId>semargl-sesame</artifactId>
 			<version>0.6</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.sun.jersey/jersey-core -->
 		<dependency>
