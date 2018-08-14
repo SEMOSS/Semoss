@@ -95,8 +95,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 		
 		if(!hidden) {
-			logger.info("2) Update insight to solr...");
-			editExistingInsightInSolr(engine.getEngineId(), existingId, insightName, layout, "", new ArrayList<String>());
+			logger.info("2) Updated registered insight...");
+			editRegisteredInsightAndMetadata(engine.getEngineId(), existingId, insightName, layout, "", new ArrayList<String>());
 			logger.info("2) Done...");
 		}
 		
@@ -133,7 +133,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param userId
 	 * @param imageURL
 	 */
-	private void editExistingInsightInSolr(String appId, String existingRdbmsId, String insightName, String layout, String description, List<String> tags) {
+	private void editRegisteredInsightAndMetadata(String appId, String existingRdbmsId, String insightName, String layout, String description, List<String> tags) {
 		SecurityUpdateUtils.updateInsight(appId, existingRdbmsId, insightName, false, layout);
 		//TODO: update tags and stuff
 	}
