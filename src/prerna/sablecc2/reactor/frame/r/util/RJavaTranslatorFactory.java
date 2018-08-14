@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -72,6 +73,35 @@ public class RJavaTranslatorFactory {
 		}
 
 		INIT = true;
+	}
+	
+	/**
+	 * Get a new RJavaTranslator based on if we are using rserve or jri
+	 * @param insight
+	 * @param logger
+	 * @return
+	 */
+	public static void initRConnection() {
+		if(!INIT) {
+			init();
+		}
+
+		if(!getAttemptConnection()) {
+			throw new IllegalArgumentException("Cannot find valid R paths to connect to R");
+		}
+
+		try {
+			AbstractRJavaTranslator newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
+			Insight dummyIn = new Insight();
+			Logger dummyLogger = LogManager.getLogger(RJavaTranslatorFactory.class.getName());
+			newInstance.setInsight(dummyIn);
+			newInstance.setLogger(dummyLogger);
+			newInstance.startR();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
