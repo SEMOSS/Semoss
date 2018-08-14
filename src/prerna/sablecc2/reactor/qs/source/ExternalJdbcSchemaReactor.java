@@ -63,7 +63,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		
 		ResultSet tablesRs;
 		try {
-			tablesRs = meta.getTables(null, null, null, new String[] { "TABLE", "VIEW" });
+			tablesRs = meta.getTables(schema, null, null, new String[] { "TABLE", "VIEW" });
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
@@ -81,8 +81,21 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		try {
 			while (tablesRs.next()) {
 				String table = tablesRs.getString("table_name");
-				logger.info("Processing table = " + table);
-
+				// this will be table or view
+				String tableType = tablesRs.getString("table_type").toUpperCase();
+				if(tableType.equals("TABLE")) {
+					logger.info("Processing table = " + table);
+				} else {
+					// there may be views built from sys or information schema
+					// we want to ignore these
+					String schem = tablesRs.getString("table_schem");
+					if(schem != null) {
+						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("sys")) {
+							continue;
+						}
+					}
+					logger.info("Processing view = " + table);
+				}
 				// grab the table
 				// we want to get the following information
 				// table name
@@ -110,7 +123,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				List<Boolean> isPrimKeys = new ArrayList<Boolean>();
 
 				try {
-					logger.info("Processing table columns");
+					logger.info("....Processing table columns");
 					keys = meta.getColumns(null, null, table, null);
 					while (keys.next()) {
 						String cName = keys.getString("column_name");
@@ -137,23 +150,25 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 
 				// we are now done with the table info
 				// let us go to the joins
-				
-				try {
-					logger.info("Processing table foreign keys");
-					keys = meta.getExportedKeys(null, null, table);
-					while (keys.next()) {
-						Map<String, String> joinInfo = new HashMap<String, String>();
-						joinInfo.put(FROM_TABLE_KEY, table);
-						joinInfo.put(FROM_COL_KEY, keys.getString("PKCOLUMN_NAME"));
-						joinInfo.put(TO_TABLE_KEY, keys.getString("FKTABLE_NAME"));
-						joinInfo.put(TO_COL_KEY, keys.getString("FKCOLUMN_NAME"));
-
-						databaseJoins.add(joinInfo);
+				// only do this for tables, not for views
+				if(tableType.equals("TABLE")) {
+					try {
+						logger.info("....Processing table foreign keys");
+						keys = meta.getExportedKeys(null, null, table);
+						while (keys.next()) {
+							Map<String, String> joinInfo = new HashMap<String, String>();
+							joinInfo.put(FROM_TABLE_KEY, table);
+							joinInfo.put(FROM_COL_KEY, keys.getString("PKCOLUMN_NAME"));
+							joinInfo.put(TO_TABLE_KEY, keys.getString("FKTABLE_NAME"));
+							joinInfo.put(TO_COL_KEY, keys.getString("FKCOLUMN_NAME"));
+	
+							databaseJoins.add(joinInfo);
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					} finally {
+						closeRs(keys);
 					}
-				} catch (SQLException e) {
-					e.printStackTrace();
-				} finally {
-					closeRs(keys);
 				}
 			}
 		} catch (SQLException e) {
@@ -168,7 +183,8 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				}
 			}
 		}
-
+		logger.info("Done parsing database metadata");
+		
 		HashMap<String, Object> ret = new HashMap<String, Object>();
 		ret.put("tables", databaseTables);
 		ret.put("relationships", databaseJoins);
