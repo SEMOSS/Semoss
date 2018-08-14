@@ -62,4 +62,17 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	public String getDialectAlterTableName(String fromName, String toName){
 		return "sp_rename '" + fromName + "', '" + toName + "'"; //"sp_rename '" + fromName', '" + toName + "'"		
 	}
+	
+	@Override
+	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
+		if(offset > 0 && limit > 0) {
+			query = query.append(" OFFSET " + offset + " ROWS FETCH NEXT " + limit + " ROWS ONLY");
+		} else if(offset > 0) {
+			query = query.append(" OFFSET " + offset + " ROWS ");	
+		} else if(limit > 0) {
+			query = query.append(" OFFSET 0 ROWS FETCH NEXT " + limit + " ROWS ONLY");
+		}
+		
+		return query;
+	}
 }
