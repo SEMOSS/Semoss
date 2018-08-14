@@ -526,7 +526,12 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		String leftSelectorExpression = processSelector(leftSelector, false);
 		
 		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
-		SqlInterpreter innerInterpreter = new SqlInterpreter();
+		SqlInterpreter innerInterpreter = null;
+		try {
+			innerInterpreter = this.getClass().newInstance();
+		} catch (InstantiationException | IllegalAccessException e) {
+			e.printStackTrace();
+		}
 		if(this.frame != null) {
 			subQs = QSAliasToPhysicalConverter.getPhysicalQs(subQs, this.frame.getMetaData());
 		}
