@@ -91,8 +91,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		logger.info("1) Done...");
 
 		if(!hidden) {
-			logger.info("2) Add insight to solr...");
-			storeInsightMetadata(engine.getEngineId(), newRdbmsId, insightName, layout, "", new ArrayList<String>());
+			logger.info("2) Regsiter insight...");
+			registerInsightAndMetadata(engine.getEngineId(), newRdbmsId, insightName, layout, "", new ArrayList<String>());
 			logger.info("2) Done...");
 		} else {
 			logger.info("2) Insight is hidden ... do not add to solr");
@@ -134,7 +134,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param tags
 	 * @param userId
 	 */
-	private void storeInsightMetadata(String appId, String insightIdToSave, String insightName, String layout, String description, List<String> tags) {
+	private void registerInsightAndMetadata(String appId, String insightIdToSave, String insightName, String layout, String description, List<String> tags) {
 		String userId = this.insight.getUserId();
 		SecurityUpdateUtils.addInsight(appId, insightIdToSave, insightName, false, layout);
 		SecurityUpdateUtils.addUserInsightCreator(userId, appId, insightIdToSave);
