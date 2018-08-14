@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -18,7 +19,7 @@ public class GetSemanticDescription extends AbstractRFrameReactor {
 		// TODO Auto-generated method stub
 		organizeKeys();
 		init();
-		String[] packages = { "WikidataR", "data.table"};
+		String[] packages = { "WikidataR", "data.table", "curl"};
 		this.rJavaTranslator.checkPackages(packages);
 		String input = this.keyValue.get(this.keysToGet[0]);
 		StringBuilder rsb = new StringBuilder();
@@ -41,11 +42,12 @@ public class GetSemanticDescription extends AbstractRFrameReactor {
 				+ ",function(x) cbind(x$url,ifelse(length(x$description)==0,NA,x$description)))));\n");
 		rsb.append("if(exists('" + rFrame + "')) { \n");
 		// rename columns
-		rsb.append(rFrame + "<-as.data.table(" + rFrame + ");\n");
+		rsb.append(RSyntaxHelper.asDataTable(rFrame, rFrame)+"\n");
 		// remove frame if empty
 		rsb.append("if(nrow(SemanticMeaning) == 0) {\nrm(SemanticMeaning)\n} else {\n");
 		rsb.append("colnames(" + rFrame + ") <- c('" + url + "', '" + semanticMeaning + "'); \n");
 		rsb.append(rFrame + "$" + url + "<-gsub('//',''," + rFrame + "$" + url + "); \n");
+		rsb.append(rFrame + "$" + semanticMeaning + " <- as.character(" + rFrame + "$" + semanticMeaning + ");\n");
 		rsb.append("}}\n");
 		// r temp variable clean up
 		rsb.append("rm(" + rFindItem + ")");
