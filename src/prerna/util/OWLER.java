@@ -26,6 +26,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.test.TestUtilityMethods;
 
 public class OWLER {
 
@@ -728,16 +729,12 @@ public class OWLER {
 	
 	///////////////////// TESTING /////////////////////
 	public static void main(String [] args) {
-		DIHelper.getInstance().loadCoreProp(System.getProperty("user.dir") + "/RDF_Map.prop");
-		OWLER owler = new OWLER( "C:\\Users\\tbanach\\Workspace\\test5.owl", IEngine.ENGINE_TYPE.RDBMS);
-//		owler.addConcept("Title Table", new String[] {"Title", "Date Released"}, new String[] {"varchar(800)", "varchar(800)"});
-//		owler.addConcept("Studio", "Studio", "varchar(800)");
-//		owler.addProp("Studio", "Address", "varchar(800)");
-//		owler.addRelation("Studio", "Studio", "Title Table", "Title" + Constants.COMPOSITE_KEY_SEPARATOR + "Date Released", "produces");
-		owler.addConcept("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", new String[] {"Song", "Artist"}, new String[] {"varchar(800)", "varchar(800)"});
-//		owler.addProp("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", "Length_1", "varchar(800)");
-//		owler.addProp("Song" + Constants.COMPOSITE_KEY_SEPARATOR + "Artist", "Year", "varchar(800)");
+		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+		OWLER owler = new OWLER( "C:\\workspace\\Semoss_Dev\\city_county_match_OWL.OWL", IEngine.ENGINE_TYPE.RDBMS);
 		
+		owler.addConcept("CITY_STATE ", "CITY_STATE", "VARCHAR(54)");
+		owler.addProp("CITY_STATE", "CITY_STATE", "COUNTY_STATE", "VARCHAR(61)", null);
+
 		// load the owl into a rfse
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		try {
