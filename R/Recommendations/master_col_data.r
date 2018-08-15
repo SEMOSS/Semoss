@@ -1,12 +1,15 @@
 
 master_col_data<-function(col,margin=0.1,ignoreCase=TRUE,method="jw",p=0.1){
-	library(tm)
+	library(plyr)
 	library(stringdist)
-	
 	# compute term freq
 	paste2 <- function(x, y, sep = " ") paste(x, y, sep = sep)
 	mydoc<-Reduce(paste2,col)
-	r<-termFreq(mydoc)
+	# termFreq replacement
+	a<-count(col)
+	r<-a$freq
+	names(r)<-tolower(as.character(a$x))
+	
 	r<-mean(r)/r
 	# identify unique values
 	c<-unique(col)
