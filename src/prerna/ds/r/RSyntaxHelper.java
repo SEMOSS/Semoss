@@ -861,6 +861,62 @@ public class RSyntaxHelper {
 		return value;
 	}
 	
+	/////////////////////////////////////////////////////////
+	// R Environment
+	/////////////////////////////////////////////////////////
+	/**
+	 * Generate R syntax to load r packages
+	 * 
+	 * @param packages
+	 * @return
+	 */
+	public static String loadPackages(String[] packages) {
+		StringBuilder sb = new StringBuilder();
+		for (String lib : packages) {
+			sb.append(RSyntaxHelper.loadLibrary(lib));
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Generate R synatx to load a single library
+	 * 
+	 * @param library
+	 * @return
+	 */
+	public static String loadLibrary(String library) {
+		StringBuilder rsb = new StringBuilder();
+		rsb.append("library(" + library + ");");
+		return rsb.toString();
+	}
+
+	/**
+	 * Generate R syntax to unload R packages
+	 * 
+	 * @param libraries
+	 * @return
+	 */
+	public static String unloadPackages(String[] packages) {
+		StringBuilder sb = new StringBuilder();
+		for (String lib : packages) {
+			sb.append(RSyntaxHelper.unloadNamespace(lib));
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Generate R syntax to unload a single library from R
+	 * 
+	 * @param library
+	 * @return
+	 */
+	public static String unloadNamespace(String library) {
+		StringBuilder rsb = new StringBuilder();
+		rsb.append("unloadNamespace(\'" + library + "\');");
+		return rsb.toString();
+	}
+	
+	
 	public static void main(String[] args) {
 //		// testing inner
 //		System.out.println("testing inner...");
