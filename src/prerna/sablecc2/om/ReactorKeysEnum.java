@@ -1,7 +1,7 @@
 package prerna.sablecc2.om;
 
 public enum ReactorKeysEnum {
-
+	ACCESS("access",										"Boolean to check if access is required."),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",			"Additional data types defining specific formats - used extensively for dates"),
 	ADDITIONAL_PIXELS("additionalPixels",					"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
 	ALL_NUMERIC_KEY("allNumeric", 							"Indicates if only numeric headers should be returned"),
@@ -34,6 +34,7 @@ public enum ReactorKeysEnum {
 	DB_DRIVER_KEY("dbDriver",								"Name of the JDBC driver.  Not all JDBC drivers are open source so make sure you include the driver within the classpath of SEMOSS"),
 	DEFAULT_VALUE_KEY("defaultValue", 						"A default value to use for null columns"),
 	DELIMITER("delimiter", 									"Delimiter to be used"),
+	DESCRIPTION("description", 								"A description"),
 	EVENTS_KEY("events", 									"Events map input"),
 	EXISTING("existing", 									"Add to exisitng app"),
 	END_ROW("endRow", 									    "The ending row number to import from a file."),

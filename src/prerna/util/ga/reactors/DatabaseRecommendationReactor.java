@@ -16,6 +16,7 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
@@ -24,10 +25,9 @@ import prerna.util.Utility;
 public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 	protected static final String CLASS_NAME = DatabaseRecommendationReactor.class.getName();
 	public static final String COMMUNITIES = "communities";
-	public static final String ACCESS_FLAG = "access";
 
 	public DatabaseRecommendationReactor() {
-		this.keysToGet = new String[] { COMMUNITIES, ACCESS_FLAG };
+		this.keysToGet = new String[] { COMMUNITIES, ReactorKeysEnum.ACCESS.getKey() };
 	}
 
 	@Override
@@ -183,7 +183,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getAccessBool() {
-		GenRowStruct boolGrs = this.store.getNoun(ACCESS_FLAG);
+		GenRowStruct boolGrs = this.store.getNoun(ReactorKeysEnum.ACCESS.getKey());
 		if (boolGrs != null) {
 			if (boolGrs.size() > 0) {
 				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
