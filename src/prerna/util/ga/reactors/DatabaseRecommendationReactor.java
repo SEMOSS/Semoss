@@ -13,6 +13,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -23,9 +24,10 @@ import prerna.util.Utility;
 public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 	protected static final String CLASS_NAME = DatabaseRecommendationReactor.class.getName();
 	public static final String COMMUNITIES = "communities";
+	public static final String ACCESS_FLAG = "access";
 
 	public DatabaseRecommendationReactor() {
-		this.keysToGet = new String[] { COMMUNITIES };
+		this.keysToGet = new String[] { COMMUNITIES, ACCESS_FLAG };
 	}
 
 	@Override
@@ -36,7 +38,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 		HashMap<String, Object> recommendations = new HashMap<String, Object>();
 
 		// check if packages are installed
-		String[] packages = { "igraph", "magrittr", "pkgconfig", "jsonlite" };
+		String[] packages = { "igraph", "jsonlite" };
 
 		String packageError = "";
 		int[] confirmedPackages = this.rJavaTranslator.getIntArray("which(as.logical(lapply(list('" + StringUtils.join(packages, "','") + "')" + ", require, character.only=TRUE))==F)");
@@ -54,6 +56,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			// additional data for each engine that exists on this machine,
 			// package it up as a map to add to a list of outputs for the FE.
 			
+			boolean accessFlag = getAccessBool();
 			String userName = System.getProperty("user.name");
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			StringBuilder rsb = new StringBuilder();
@@ -98,6 +101,9 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 								String alias = id[1];
 								String engId = id[0];
 								boolean access = enginesWithAccess.contains(id[0]);
+								if (accessFlag && !access){
+									continue;
+								}
 								String type = "";
 								if (access){
 									type = (Utility.getEngine(engId)).getEngineType() + "";
@@ -140,6 +146,9 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 						String freq = recList.get(i).get("score");
 						String alias = vals[1];
 						boolean access = enginesWithAccess.contains(vals[0]);
+						if (accessFlag && !access){
+							continue;
+						}
 						String type = "";
 						if (access){
 							type = (Utility.getEngine(engId)).getEngineType() + "";
@@ -171,5 +180,16 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR(gc + RSyntaxHelper.unloadPackages(packages));
 		}
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.RECOMMENDATION);
+	}
+
+	private boolean getAccessBool() {
+		GenRowStruct boolGrs = this.store.getNoun(ACCESS_FLAG);
+		if (boolGrs != null) {
+			if (boolGrs.size() > 0) {
+				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
+				return (boolean) val.get(0);
+			}
+		}
+		return false;
 	}
 }
