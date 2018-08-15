@@ -27,11 +27,16 @@ query.list<-Init(
         )
 ga.query<-QueryBuilder(query.list)
 #ga.df <- GetReportData(ga.query, token)
+#ga.df <- tryCatch({
+#    GetReportData(ga.query, token,paginate_query = T)
+#  }, error = function(e) {
+#    return(data.frame(dimension1 = character(), dimension2 = character(), dimension3 = character(), dimension4 = character(),dimension5 = character(),date = #character(), totalEvents=numeric(1)))
+#  })
 ga.df <- tryCatch({
-    GetReportData(ga.query, token)
-  }, error = function(e) {
-    return(data.frame(dimension1 = character(), dimension2 = character(), dimension3 = character(), dimension4 = character(),dimension5 = character(),date = character(), totalEvents=numeric(1)))
-  })
+	GetReportData(ga.query, token,paginate_query = T)
+	}, error = function(e) {
+	return(GetReportData(ga.query, token))
+})
 gc()
 return(ga.df)
 }
@@ -185,49 +190,38 @@ build_sim<-function(fileroot){
 	r<-read_datamatrix(fileroot)
 	sim<-cosine_jaccard_sim(r)
 	diag(sim)<-1
-	saveRDS(sim,paste0(fileroot,"-usersim.rds"))
+	saveRDS(sim,paste0(fileroot,"-itemsim.rds"))
 	sim<-cosine_jaccard_sim(t(r))
 	diag(sim)<-1
-	saveRDS(sim,paste0(fileroot,"-itemsim.rds"))
+	saveRDS(sim,paste0(fileroot,"-usersim.rds"))
 }
 
 cosine_jaccard_sim<-function(m){
 # Description
 # Compute cosine jacqard similarity between cells of a matrix
 # m - rating/frequency user item  matrix
-	library(proxy)
-	out<-cosine_sim(m)*jaccard_sim(m)
-	return(out)
-}
-
-cosine_sim<-function(m){
-# Description
-# Compute cosine jacqard similarity between cells of a matrix
-# m - rating/frequency matrix
-	library(proxy)
-	tryCatch({
-		out<-as.matrix(simil(m,"cosine"))
-	})
-	rownames(out)<-rownames(m)
-	colnames(out)<-rownames(m)
+	library(lsa)
+	out<-cosine(m)*jaccard_sim(m)
 	return(out)
 }
 
 jaccard_sim<-function(m){
-# Description
-# Compute jacqard similarity between cells of a matrix
-# m - rating/frequency user item  matrix
-	# m is a matrix where each row is a relevant vector
-	n<-m
-	n[n>0]<-1
-	library(proxy)
-	tryCatch({
-		out<-as.matrix(simil(n,"Jaccard"))
-	})
-	rownames(out)<-rownames(m)
-	colnames(out)<-rownames(m)
+	z<-m
+	z[z>0]<-1
+	myFun<-function(i,j,M){
+		sums<-rowSums(M[,c(i, j)])
+		similarity<-length(sums[sums==2])
+		total<-length(sums[sums==1]) + similarity
+		return(similarity/total)
+	}
+	myVecFun <- Vectorize(myFun,vectorize.args = c('i','j'))
+	
+	out<-outer(1:ncol(z),1:ncol(z),myVecFun,z)
+	rownames(out)<-colnames(m)
+	colnames(out)<-colnames(m)
 	return(out)
 }
+
 
 
 exec_tfidf<-function(r){
@@ -250,7 +244,7 @@ dataitem_recom_mgr<-function(users,fileroot,topN=25){
 # Arguments
 # user - user id
 # filename - file containing the latest data items matrix
-# cutoff - threshold for a cutoff for recommendations
+# topN - threshold for a cutoff for top N recommendations
 	# read user data item ratings matrix
 	r<-read_datamatrix(fileroot)
 	
@@ -370,7 +364,7 @@ get_user_recom<-function(fileroot,users,r){
 	return(myList)
 }
 
-hop_away_recom_mgr<-function(users,fileroot,cutoff=0.05){
+hop_away_recom_mgr<-function(users,fileroot,topN=25){
 # Description
 # Compute data items for hop away users based on hop away users goupd
 # Arguments
@@ -416,7 +410,7 @@ hop_away_recom_mgr<-function(users,fileroot,cutoff=0.05){
 	hop_away_users<-names(z[!(names(z) %in% simusers)])
 	hop_away_users_ind<-which(rownames(r) %in% hop_away_users)
 	
-	out<-dataitem_recom_mgr(hop_away_users,fileroot,cutoff)
+	out<-dataitem_recom_mgr(hop_away_users,fileroot,topN)
 	myList<-list()
 	myList[[1]]<-hop_away_users[order(hop_away_users)]
 	myList[[2]]<-out[[1]]
@@ -706,6 +700,8 @@ data_domain_mgr<-function(startDate,endDate,fileroot){
 	# construct data semantic history
 	found<-datasemantic_history(df,fileroot) # should be called with local semantic update
 	if(found){
+		# New addition - calculate databases domain (documents, term document matrix, lsi space)
+		build_dbid_domain(fileroot)
 		# construct data semantic similarity
 		column_lsi_mgr(fileroot,"description","score",0.8)
 		compute_column_desc_sim(fileroot)
