@@ -10,9 +10,10 @@ build_tdm<-function(desc_tbl,desc_col,freq_col,vocabulary=NULL,weighted=TRUE){
 	# vocabulary - either null for initial construction or the existing vocabulary for adding documents to the existing matrix
 	# weighted - logical value indicating whether tf-idf weighting should be applied
 	MINWORDLENGTH<-2
-	WORDSTOEXCLUDE<-c("a","the","this","these","their","that","those","then","and","an","as","over","with","within","without","when","why","how","in",
-	"on","of","or","to","by","from","for","at","so","then","thus","here","there")
-	library(LSAfun)
+	WORDSTOEXCLUDE<-c("a","the","this","these","their","that","those","then","and","an","as","over","with","within","without","when","why","how","in","on","of",
+	"or","to","into","by","from","for","at","so","then","thus","here","there","whether","is","are","not","other","too","his","her","they","oh","number")
+	#library(LSAfun)
+	#library(stringi)
 	library(text2vec)
 	library(data.table)
 	library(plyr)
@@ -20,13 +21,17 @@ build_tdm<-function(desc_tbl,desc_col,freq_col,vocabulary=NULL,weighted=TRUE){
 	myList<-list()
 	# Construct terms/documents matrix based on a given set of documents or read it from the file
 	s<-breakdown(str_replace_all(desc_tbl[[desc_col]],"[^[:graph:]]", " "))
+	#s<-stri_trans_general(str_replace_all(desc_tbl[[desc_col]],"[^[:graph:]]", " "), "latin-ascii")
 	it <- itoken(s, preprocess_function = tolower,tokenizer = word_tokenizer, chunks_number = 10, progessbar = F)
 	if(is.null(vocabulary)){
 		vocab<-create_vocabulary(it,stopword=WORDSTOEXCLUDE,ngram=c(ngram_min=1L,ngram_max=1L))
 	}else{
 		vocab<-vocabulary
 	}
+	# exclude words consisting of a single character
 	vocab<-vocab[nchar(vocab$term) >= 2,]
+	# exclude words appeared only one time
+	vocab<-vocab[vocab$term_count > 1,]
 	myList[[1]]<-vocab
 	vectorizer = vocab_vectorizer(vocab)
 	dtm = create_dtm(it, vectorizer)
@@ -73,6 +78,7 @@ build_tdm<-function(desc_tbl,desc_col,freq_col,vocabulary=NULL,weighted=TRUE){
 	colnames(tm)<-paste0("D",seq(1:n))
 	
 	myList[[2]]<-tm
+	myList[[3]]<-freq1
 	gc()
 	return(myList)
 }
@@ -144,7 +150,8 @@ build_query_tdm<-function(lookup_tbl,myLSAspace,myVocabulary,desc_col="Concept_D
 	# myVocabulary - the existing vocabulary
 	# desc_col - a column in the desc_tbl dataframe containing the test used for term document construction
 	# weighted - logical value indicating whether tf-idf weighting should be applied
-	library(LSAfun)
+	#library(LSAfun)
+	#library(stringi)
 	library(text2vec)
 	
 	tk<-myLSAspace$tk
@@ -154,6 +161,8 @@ build_query_tdm<-function(lookup_tbl,myLSAspace,myVocabulary,desc_col="Concept_D
 	
 	# Construct additional docs term document matrix
 	s<-breakdown(as.character(lookup_tbl[[desc_col]]))
+	#s<-stri_trans_general(as.character(lookup_tbl[[desc_col]]), "latin-ascii")
+	
 	it <- itoken(s, preprocess_function = tolower,tokenizer = word_tokenizer, chunks_number = 10, progessbar = F)
 	vectorizer = vocab_vectorizer(myVocabulary)
 	dtm = create_dtm(it, vectorizer)
@@ -243,19 +252,69 @@ get_similar_doc<-function(column,lookup_tbl,q_doc,myLSAspace,margin=0.01,low_lim
 	r<-max(v)
 	row<-which(v>(max(v)-margin) & v>low_limit)
 	
-	z<-data.table(Selected_Column=character(),Joined_Column=character(),Similarity=numeric());
+	z<-data.table(item_id=character(),similarity=numeric());
 	size<-length(row)
 	if(size>0){
 		for(i in 1:size){
 			nbr<-as.integer(substring(rownames(dk)[row[i]],2))
 			cmd<-paste0("exist_col<-as.character(lookup_tbl[nbr,\"",orig_col,"\"])")
 			eval(parse( text=cmd ))
-			z<-rbindlist(list(z,list(column,exist_col,v[row[i]])))
+			z<-rbindlist(list(z,list(exist_col,v[row[i]])))
 		}
-		z<-z[order(-z$Similarity),]
+		z<-z[order(-z$similarity),]
 	}
 	rm(dk,size,m,v,r,row)
+	gc()
 	return(z)
 
 }
 
+breakdown <- function(x){
+  
+  x <- tolower(x)
+  
+  ## Umlaute
+  
+  x <- gsub(x=x,pattern="\xe4",replacement="ae")
+  x <- gsub(x=x,pattern="\xf6",replacement="oe")
+  x <- gsub(x=x,pattern="\xfc",replacement="ue")  
+  
+  ## Accents
+  
+  x <- gsub(x=x,pattern="\xe0",replacement="a")
+  x <- gsub(x=x,pattern="\xe1",replacement="a")
+  x <- gsub(x=x,pattern="\xe2",replacement="a")
+  
+  x <- gsub(x=x,pattern="\xe8",replacement="e")
+  x <- gsub(x=x,pattern="\xe9",replacement="e")
+  x <- gsub(x=x,pattern="\xea",replacement="e")
+  
+  x <- gsub(x=x,pattern="\xec",replacement="i")
+  x <- gsub(x=x,pattern="\xed",replacement="i")
+  x <- gsub(x=x,pattern="\xee",replacement="i")
+  
+  x <- gsub(x=x,pattern="\xf2",replacement="o")
+  x <- gsub(x=x,pattern="\xf3",replacement="o")
+  x <- gsub(x=x,pattern="\xf4",replacement="o")
+  
+  x <- gsub(x=x,pattern="\xf9",replacement="u")
+  x <- gsub(x=x,pattern="\xfa",replacement="u")
+  x <- gsub(x=x,pattern="\xfb",replacement="u")
+ 
+  
+  x <- gsub(x=x,pattern="\xdf",replacement="ss")
+  
+  ## Convert to ASCII
+  
+  x <- iconv(x,to="ASCII//TRANSLIT")
+  
+  ## Punctation, Numbers and Blank lines
+  
+  x <- gsub(x=x,pattern="[[:punct:]]", replacement=" ")
+  x <- gsub(x=x,pattern="[[:digit:]]", replacement=" ")
+  x <- gsub(x=x,pattern="\n", replacement=" ")
+  x <- gsub(x=x,pattern="\"", replacement=" ")
+
+  
+  return(x)  
+}
