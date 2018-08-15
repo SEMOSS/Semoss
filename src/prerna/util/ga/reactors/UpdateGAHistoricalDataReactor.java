@@ -24,7 +24,11 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		
 		// check if packages are installed
-		String[] packages = {"RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "lubridate", "curl", "lsa", "LSAfun", "text2vec", "stringr", "stringdist"};
+		String[] packages = { "RGoogleAnalytics", "curl", "httr", "text2vec", "proxy", "openssl", "RcppParallel",
+				"LSAfun", "futile.logger", "futile.options", "Matrix", "foreach", "mlapi", "lsa", "rgl", "lambda.r",
+				"SnowballC", "codetools", "formatR", "iterators", "jsonlite", "lattice", "crosstalk", "knitr",
+				"manipulateWidget", "htmlwidgets", "miniUI", "grid", "shiny", "htmltools", "mime", "digest", "httpuv",
+				"promises", "later", "xtable" };
 		this.rJavaTranslator.checkPackages(packages);
 	
 		// get start day from inputs, date range default is 10 days
@@ -35,7 +39,7 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 			// do nothing
 		}
 		
-		this.rJavaTranslator.runR(updateGAHistoricalDataRSyntax(dateRange));
+		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages) + updateGAHistoricalDataRSyntax(dateRange) + RSyntaxHelper.unloadPackages(packages));
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
@@ -72,14 +76,14 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 		rsb.append("rm(" + userDf + ", " + historyDf + "," + rwd + ",apply_tfidf, assign_unique_concepts,blend_mgr,"
 				+ "blend_tracking_semantic,build_query_doc,build_query_tdm,build_sim,build_tdm,"
 				+ "col2db,col2tbl,column_lsi_mgr,compute_column_desc_sim,compute_entity_sim,"
-				+ "compute_weight,con,cosine_jaccard_sim,cosine_sim,data_domain_mgr,"
+				+ "cosine_jaccard_sim,cosine_sim,data_domain_mgr,"
 				+ "dataitem_history,dataitem_recom_mgr,datasemantic_history,drilldown_communities"
 				+ ",exec_tfidf,get_dataitem_rating,get_item_recom,get_items_users,"
 				+ "get_reference,get_similar_doc,get_user_recom,get_userdata,"
 				+ "hop_away_mgr,hop_away_recom_mgr,jaccard_sim,locate_data_communities,"
 				+ "locate_user_communities,lsi_mgr,match_desc,populate_ratings,"
 				+ "read_datamatrix,refresh_base,remove_files,restore_datatype,"
-				+ "viz_history,viz_recom,viz_recom_mgr)");
+				+ "viz_history,viz_recom,viz_recom_mgr);");
 		return rsb.toString().replace("\\", "/");
 	}
 	
