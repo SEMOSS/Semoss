@@ -311,6 +311,7 @@ import prerna.solr.reactor.SetAppTagsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ga.reactors.DatabaseRecommendationReactor;
+import prerna.util.ga.reactors.GetDatabasesByDescriptionReactor;
 import prerna.util.ga.reactors.UpdateGAHistoricalDataReactor;
 import prerna.util.ga.reactors.VisualizationRecommendationReactor;
 import prerna.util.git.reactors.AddAppCollaborator;
@@ -749,6 +750,7 @@ public class ReactorFactory {
 		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationReactor.class);
 		reactorHash.put("VizRecommendations", VisualizationRecommendationReactor.class);
 		reactorHash.put("UpdateGAHistoricalData", UpdateGAHistoricalDataReactor.class);
+		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		
 		// Dates
 		reactorHash.put("Date", DateReactor.class);
@@ -866,8 +868,8 @@ public class ReactorFactory {
 		rFrameHash.put("RunOutlier", ROutlierAlgorithmReactor.class);
 		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
 		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.PredictSimilarColumnValuesReactor.class);
-        rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
-        rFrameHash.put("MetaSemanticSimilarity",CompareDbSemanticSimiliarity.class);
+		rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
+		rFrameHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
