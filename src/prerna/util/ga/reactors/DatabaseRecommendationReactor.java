@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.SecurityQueryUtils;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -35,7 +36,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 		HashMap<String, Object> recommendations = new HashMap<String, Object>();
 
 		// check if packages are installed
-		String[] packages = { "RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "igraph", "proxy" };
+		String[] packages = { "igraph", "magrittr", "pkgconfig", "jsonlite" };
 
 		String packageError = "";
 		int[] confirmedPackages = this.rJavaTranslator.getIntArray("which(as.logical(lapply(list('" + StringUtils.join(packages, "','") + "')" + ", require, character.only=TRUE))==F)");
@@ -56,7 +57,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			String userName = System.getProperty("user.name");
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			StringBuilder rsb = new StringBuilder();
-			rsb.append("library(jsonlite);");
+			rsb.append(RSyntaxHelper.loadPackages(packages));
 			rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");;
 			rsb.append( "fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ");
 
@@ -157,8 +158,17 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			recommendations.put("Recommendations", recommendationsFinal);
 
 			// garbage cleanup -- R script might already do this
-			String gc = "rm(" + communityJson + ", " + userSpecificJson + ",blend_mgr, data_domain_mgr, read_datamatrix, exec_tfidf, remove_files, fileroot, blend_tracking_semantic, get_userdata, dataitem_history, get_dataitem_rating, assign_unique_concepts, populate_ratings, build_sim, cosine_jaccard_sim, cosine_sim, jaccard_sim, apply_tfidf, compute_weight, dataitem_recom_mgr, get_item_recom, get_user_recom, hop_away_recom_mgr, hop_away_mgr, locate_user_communities, drilldown_communities, locate_data_communities, get_items_users, refresh_base);";
-			this.rJavaTranslator.runR(gc);
+			String gc = "rm(" + communityOutput + ", " + userSpecificOutput
+					+ ",blend_mgr, data_domain_mgr, read_datamatrix, exec_tfidf, "
+					+ "remove_files, fileroot, blend_tracking_semantic, get_userdata, "
+					+ "dataitem_history, get_dataitem_rating, assign_unique_concepts, "
+					+ "populate_ratings, build_sim, cosine_jaccard_sim, cosine_sim, "
+					+ "jaccard_sim, dataitem_recom_mgr, "
+					+ "get_item_recom, get_user_recom, hop_away_recom_mgr, hop_away_mgr,"
+					+ "locate_user_communities, drilldown_communities, locate_data_communities, "
+					+ "get_items_users, refresh_base);";
+			// remove packages
+			this.rJavaTranslator.runR(gc + RSyntaxHelper.unloadPackages(packages));
 		}
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.RECOMMENDATION);
 	}
