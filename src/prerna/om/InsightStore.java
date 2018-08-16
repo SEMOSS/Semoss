@@ -61,6 +61,12 @@ public class InsightStore extends Hashtable<String, Insight> {
 		return uniqueID;
 	}
 	
+	public String putWithCurrentId(Insight data) {
+		String uniqueID = data.getInsightId();
+		super.put(uniqueID, data);
+		return uniqueID;
+	}
+	
 	/**
 	 * Returns a boolean true/false if insight was successfully remove using the key
 	 * @param key					The unique id for the data-frame

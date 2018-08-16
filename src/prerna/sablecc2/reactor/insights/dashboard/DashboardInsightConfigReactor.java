@@ -47,7 +47,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			// keys below match those in solr
 			insightMap.put("app_id", insight.getEngineId());
 			insightMap.put("app_insight_id", insight.getRdbmsId());
-			insightMap.put("recipe", getInsightRecipe(insight));
+			insightMap.put("recipe", "ReloadInsight()");
 			
 			// TODO: delete this once we update ids
 			insightMap.put("core_engine", insight.getEngineId());
@@ -59,6 +59,12 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			// this is used so they can automatically update the config 
 			// without waiting on a new id to come back
 			Insight newInsight = new Insight();
+			newInsight.setEngineId(insight.getEngineId());
+			newInsight.setEngineName(insight.getEngineName());
+			newInsight.setRdbmsId(insight.getRdbmsId());
+			newInsight.setInsightName(insight.getInsightName());
+			newInsight.setPixelRecipe(insight.getPixelRecipe());
+			
 			InsightUtility.transferDefaultVars(this.insight, newInsight);
 			InsightStore.getInstance().put(newInsight);
 			InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
