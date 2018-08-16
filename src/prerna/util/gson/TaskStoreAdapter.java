@@ -2,8 +2,10 @@ package prerna.util.gson;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
@@ -21,11 +23,14 @@ import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 
+	private static final String BASIC = "basic";
+	private static final String CONSTANT = "constant";
+	
 	private Insight insight;
 	
 	// get the panel id to task id
 	// for the written task store
-	private Map<String, String> panelIdToTask;
+	private List<Map<String, String>> panelIdToTaskList;
 	
 	public TaskStoreAdapter() {
 		
@@ -44,28 +49,35 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 		// i am also going to store
 		// a task id to panel map
 		// which will be used for the json cache of the view
-		panelIdToTask = new HashMap<String, String>();
+		panelIdToTaskList = new Vector<Map<String, String>>();
 		
 		Set<String> tasks = value.getTaskIds();
 		for(String taskId : tasks) {
+			out.beginObject();
 			ITask t = value.getTask(taskId);
+			TypeAdapter adapter = null;
 			if(t instanceof BasicIteratorTask) {
-				BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
-				adapter.write(out, (BasicIteratorTask) t); 
+				out.name("type").value(BASIC);
+				adapter = new BasicIteratorTaskAdapter();
 			} else if(t instanceof ConstantDataTask) {
-				ConstantDataTaskAdapter adapter = new ConstantDataTaskAdapter();
-				adapter.write(out, (ConstantDataTask) t); 
+				out.name("type").value(CONSTANT);
+				adapter = new ConstantDataTaskAdapter();
 			}
-			
+			out.name("task");
+			adapter.write(out, t); 
+
 			// store the task to panel ids
 			// note: this works because the tasks are stored in order
 			TaskOptions taskOptions = t.getTaskOptions();
 			if(taskOptions != null && !taskOptions.isEmpty()) {
 				Set<String> panelIds = taskOptions.getPanelIds();
 				for(String panelId : panelIds) {
-					panelIdToTask.put(panelId, taskId);
+					Map<String, String> panelToTask = new HashMap<String, String>();
+					panelToTask.put(panelId, taskId);
+					panelIdToTaskList.add(panelToTask);
 				}
 			}
+			out.endObject();
 		}
 		out.endArray();
 		
@@ -82,33 +94,59 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 		
 		// get the tasks
 		in.nextName();
+		// we have a list
 		in.beginArray();
 		while(in.hasNext()) {
-			BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
-			adapter.setCurMode(BasicIteratorTaskAdapter.MODE.CONTINUE_PREVIOUS_ITERATING);
-			BasicIteratorTask t = adapter.read(in);
-			SelectQueryStruct qs = t.getQueryStruct();
-			try {
-				IEngine engine = qs.retrieveQueryStructEngine();
-				if(engine == null && this.insight != null) {
+			in.beginObject();
+			
+			// get the type
+			in.nextName();
+			String type = in.nextString();
+			
+			// the next name is the task
+			in.nextName();
+			// now time to create the task
+			ITask task = null;
+			
+			if(type.equals(BASIC)) {
+				BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
+				adapter.setCurMode(BasicIteratorTaskAdapter.MODE.CONTINUE_PREVIOUS_ITERATING);
+				task = adapter.read(in);
+				SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
+				try {
+					IEngine engine = qs.retrieveQueryStructEngine();
+					if(engine == null && this.insight != null) {
+						// this means we cached a task that is using the frame
+						// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+						// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+						// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+						// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
+						qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
+					}
+				} catch(Exception e) {
 					// this means we cached a task that is using the frame
 					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
 					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
 					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
 					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-					qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
+					if(this.insight != null) {
+						qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
+					}
 				}
-			} catch(Exception e) {
-				// this means we cached a task that is using the frame
-				// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-				// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-				// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-				// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-				if(this.insight != null) {
-					qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
-				}
+			} else if(type.equals(CONSTANT)) {
+				ConstantDataTaskAdapter adapter = new ConstantDataTaskAdapter();
+				task = adapter.read(in);
+			} else {
+				// you messed up
 			}
+			
+			// end the task object
+			in.endObject();
+			
+			// store the task
+			tStore.addTask(task.getId(), task);
 		}
+		// end the tasks array
 		in.endArray();
 		
 		// get the count
@@ -116,8 +154,8 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 		long taskCount = in.nextLong();
 		tStore.setCount(taskCount);
 		
+		// end the task store
 		in.endObject();
-		
 		return tStore;
 	}
 	
@@ -126,7 +164,7 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 	 * This will be null if you are reading
 	 * @return
 	 */
-	public Map<String, String> getPanelIdToTask() {
-		return this.panelIdToTask;
+	public List<Map<String, String>> getPanelIdToTask() {
+		return this.panelIdToTaskList;
 	}
 }
