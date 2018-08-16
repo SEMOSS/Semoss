@@ -7,11 +7,10 @@ import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -23,10 +22,13 @@ import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AConfiguration;
+import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AOperation;
+import prerna.sablecc2.node.AScalarRegTerm;
 import prerna.sablecc2.node.POpInput;
 import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
@@ -35,6 +37,17 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	
 	// create logger
 	private static final Logger LOGGER = LogManager.getLogger(OptimizeRecipeTranslation.class.getName());
+	
+	// set of reactors that send back task data to visualize
+	private static Set<String> taskReactors = new HashSet<String>();
+	
+	static {
+		taskReactors.add("RunNumericalCorrelation");
+		taskReactors.add("RunMatrixRegression");
+		taskReactors.add("RunClassification");
+		taskReactors.add("GetRFResults");
+		taskReactors.add("RunAssociatedLearning");
+	}
 	
 	// we are going to take recipe and modify it to delete views (pixels with TaskOptions) that aren't needed
 	private List<String> modifiedRecipe = new ArrayList<String>();
@@ -47,17 +60,25 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	
 	// panelMap will keep track of the panelId -> list of expressions in order of occurrence
 	// "0" -> [0,1,3] means that panel zero occurred in the TaskOptions of expressions 0, 1 and 3
-	private HashMap<String, ArrayList<Integer>> panelMap = new HashMap<String, ArrayList<Integer>>();
+	private HashMap<String, List<Integer>> panelMap = new HashMap<String, List<Integer>>();
 	
 	// keep a list of the expressions to keep
 	// we will add all expressions with no TaskOptions and then add the expressions that we do need with the task options
 	// we will order it at the end
-	private ArrayList<Integer> expressionsToKeep = new ArrayList<Integer>();
+	private List<Integer> expressionsToKeep = new ArrayList<Integer>();
 	
 	// we need to keep track of whether each expression contained TaskOptions
 	// create a variable that will be reset for each expression to indicate whether or not we encountered an instance of TaskOptions
 	// this is needed because if we get through a whole expression without hitting TaskOptions then we want to go ahead and add it to expressionsToKeep
-	private boolean containsTaskOptions; 
+	private boolean containsTaskOptions = false; 
+	private boolean containsPanelKey = false;
+	
+	// need to account for clones
+	// so grab the most recent Panel() value
+	// in case a clone comes afterwards
+	private String curPanelId = null;
+	private Map<String, String> clonePanelToOrigPanel = new HashMap<String, String>();
+	private Map<String, Integer> cloneToOrigTask = new HashMap<String, Integer>();
 	
 	// create a variable to keep track of the current mapping of the original expression to the encoded expression
 	public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
@@ -132,61 +153,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	// we need to make sure that each of the panel ids is included in panelMap with the associated expression index
         	// for each panel in the set of panel ids
         	for (String panel : panelId) {
-        		// first check to see if the panel already exists in the panel map
-        		if (panelMap.keySet().contains(panel)) {
-        			// if the panel DOES already exist in the panelMap, we just need to add the expression id to the set of values
-        			// first get the existing set of index values
-        			ArrayList<Integer> indexVals = panelMap.get(panel);
-        			// next, add the new index value to the list of values
-        			indexVals.add(index);
-        			// add the updated set of index values to the panelMap
-        			panelMap.put(panel, indexVals);
-        			
-        		} else {
-        			// if the panel DOES NOT already exist in the panelMap, we need to add it
-        			ArrayList<Integer> indexVals = new ArrayList<Integer>();
-        			indexVals.add(index);
-        			panelMap.put(panel, indexVals);
-        		}
+    			addPanelForCurrentIndex(panel);
         	}
-        } else if(reactorId.equals("AutoTaskOptions")) {
-        	// go ahead and set containsTaskOptions to true
-        	containsTaskOptions = true;
-        	// input is panel=["panelid"]
-        	POpInput input = node.getOpInput();
-        	String inputPanelValue = input.toString();
-        	
-        	String panel = null;
-        	Pattern pattern = Pattern.compile("\".*\"");
-        	Matcher matcher = pattern.matcher(inputPanelValue);
-        	if(matcher.find()) {
-        		panel = matcher.group();
-        	}
-        	if(panel.startsWith("\"")) {
-        		panel = panel.substring(1);
-        	}
-        	if(panel.endsWith("\"")) {
-        		panel = panel.substring(0, panel.length()-1);
-        	}
-        	
-        	// first check to see if the panel already exists in the panel map
-    		if (panelMap.keySet().contains(panel)) {
-    			// if the panel DOES already exist in the panelMap, we just need to add the expression id to the set of values
-    			// first get the existing set of index values
-    			ArrayList<Integer> indexVals = panelMap.get(panel);
-    			// next, add the new index value to the list of values
-    			indexVals.add(index);
-    			// add the updated set of index values to the panelMap
-    			panelMap.put(panel, indexVals);
-    			
-    		} else {
-    			// if the panel DOES NOT already exist in the panelMap, we need to add it
-    			ArrayList<Integer> indexVals = new ArrayList<Integer>();
-    			indexVals.add(index);
-    			panelMap.put(panel, indexVals);
-    		}
-        } 
-        else if (reactorId.equals("ClosePanel")) {
+        } else if (reactorId.equals("ClosePanel")) {
         	// if we close the panel, then we can get rid of the places we had TaskOptions for that panel
         	// the TaskOptions so far are kept track of in panel map
         	// first, grab the input from the ClosePanel reactor
@@ -199,28 +168,88 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         		// if it exists, then remove it, we don't need any of these expressions
         		panelMap.remove(closePanelId);
         	}
+		} else if(reactorId.equals("Panel")) {
+			// this is in case there is a clone that is coming up
+			POpInput input = node.getOpInput();
+        	curPanelId = input.toString().trim();
 		}
         else if (reactorId.equals("Clone")) {
 			POpInput closePanelInput = node.getOpInput();
-			String panel = closePanelInput.toString();
-			panel = panel.trim();
-			if (panelMap.keySet().contains(panel)) {
-				// if the panel DOES already exist in the panelMap, we just need
-				// to add the expression id to the set of values
-				// first get the existing set of index values
-				ArrayList<Integer> indexVals = panelMap.get(panel);
-				// next, add the new index value to the list of values
-				indexVals.add(index);
-				// add the updated set of index values to the panelMap
-				panelMap.put(panel, indexVals);
-
-			} else {
-				// if the panel DOES NOT already exist in the panelMap, we need
-				// to add it
-				ArrayList<Integer> indexVals = new ArrayList<Integer>();
-				indexVals.add(index);
-				panelMap.put(panel, indexVals);
+			String panel = closePanelInput.toString().trim();
+			addPanelForCurrentIndex(panel);
+			
+			// in the case when you cloned but the original panel has been modified
+			// we dont want to clone the new modification
+			// but the original
+			// so we need to keep track of the original of the clone in case it is used
+			
+			// first, find the index of the current panel we are cloning from
+			// this is why we keep track of the curPanelId
+			Integer lastIndex = getLastPixelTaskIndexForPanel(curPanelId);
+			cloneToOrigTask.put(panel, lastIndex);
+			clonePanelToOrigPanel.put(panel, curPanelId);
+		}
+        // need to account for auto tasks
+        // need to account for algorithms that just send data to the FE directly
+        else if(reactorId.equals("AutoTaskOptions") || taskReactors.contains(reactorId) ) {
+        	// this is a constant task
+        	// let the inAGeneric and inAWordOrIdScalar handle getting the correct panel id
+        	containsTaskOptions = true;
+        }
+	}
+	
+	@Override
+	public void inAGeneric(AGeneric node) {
+		String key = node.getId().toString().trim();
+		if(key.equals(ReactorKeysEnum.PANEL.getKey())) {
+			containsPanelKey = true;
+		}
+	}
+	
+	@Override
+	public void outAGeneric(AGeneric node) {
+		// reset
+		containsPanelKey = false;
+	}
+	
+	@Override
+	public void inAScalarRegTerm(AScalarRegTerm node) {
+		if(containsTaskOptions && containsPanelKey) {
+			// this is the value for a panel
+			// store it with the current index
+			String panel = node.toString().trim();
+			if(panel.startsWith("\"") || panel.startsWith("'")) {
+				panel = panel.substring(1);
 			}
+			if(panel.endsWith("\"") || panel.endsWith("'")) {
+				panel = panel.substring(0, panel.length()-1);
+			}
+			addPanelForCurrentIndex(panel);
+		}
+	}
+	
+	/**
+	 * Add the panel and the current index
+	 * If first time seeing panel, adds panel key
+	 * If already seen panel, adds to the set of indicies for this panel
+	 * @param panel
+	 */
+	private void addPanelForCurrentIndex(String panel) {
+		panel = panel.trim();
+		if (panelMap.keySet().contains(panel)) {
+			// if the panel DOES already exist in the panelMap, we just need to add the expression id to the set of values
+			// first get the existing set of index values
+			List<Integer> indexVals = panelMap.get(panel);
+			// next, add the new index value to the list of values
+			indexVals.add(index);
+			// add the updated set of index values to the panelMap
+			panelMap.put(panel, indexVals);
+			
+		} else {
+			// if the panel DOES NOT already exist in the panelMap, we need to add it
+			List<Integer> indexVals = new ArrayList<Integer>();
+			indexVals.add(index);
+			panelMap.put(panel, indexVals);
 		}
 	}
 	
@@ -232,11 +261,40 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         // we've been keeping track of the expressions associated with each panel
         // we want to grab the last expression index from each panel in the panelMap and add this to expressions to keep
         // expressionsToKeep already contains the expression indexes that did not have TaskOptions
-        for (ArrayList<Integer> expressionsForPanel : panelMap.values()) {
+        for(String panelId : panelMap.keySet()) {
+			List<Integer> expressionsForPanel = panelMap.get(panelId);
         	int lastExpressionIndex = expressionsForPanel.get(expressionsForPanel.size() - 1);
-        	addToExpressions(lastExpressionIndex);
+        	
+        	// however, if we did a clone from a panel
+        	// and then changed the original panel view
+        	// the clone should still maintain the original panel view
+        	// not the new view
+        	Integer origTaskIndex = cloneToOrigTask.get(panelId);
+        	if(origTaskIndex != null) {
+        		// this is from a clone
+        		// get the original panel
+        		String origPanel = clonePanelToOrigPanel.get(panelId);
+        		// get the last task for that panel
+        		// but i need to account for if this was closed... so null check it
+        		List<Integer> origMapTaskIndices = panelMap.get(origPanel);
+        		if(origMapTaskIndices != null) {
+        			// we need to check to see if the last task for that panel has changed
+        			Integer currentLastTaskForPanel = origMapTaskIndices.get(origMapTaskIndices.size()-1);
+        			if(currentLastTaskForPanel != origTaskIndex) {
+        				// add back the original task
+                		addToExpressions(origTaskIndex);
+                		// and add the clone
+                		// since i need to move over panel properties
+                		addToExpressions(lastExpressionIndex);
+        			}
+        		}
+        	}
+        	
+        	// even in the above case where if i added a clone
+    		// i need to move over panel properties
+        	// so need to keep that clone in the recipe
+    		addToExpressions(lastExpressionIndex);
         }
-        
         // we've now created our full list of expressionsToKeep
         // we should order expressions to keep
        Collections.sort(expressionsToKeep);
@@ -246,11 +304,11 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
        // grab each index from expressions to keep
        // then match the index with the expression using the expressionMap
        // then add the item from the expressionMap to the modifiedRecipe
-		for (int j = 0; j < expressionsToKeep.size(); j++) {
+       for (int j = 0; j < expressionsToKeep.size(); j++) {
 			Integer indexToGrab = expressionsToKeep.get(j);
 			String keepExpression = expressionMap.get(indexToGrab);
 			modifiedRecipe.add(keepExpression);
-		}
+       }
 	}
 
 	/**
@@ -267,15 +325,58 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	 * @return
 	 */
 	public List<String> getLastTasksForPanels() {
+		List<Integer> expressionsToKeep = new ArrayList<Integer>();
+        for(String panelId : panelMap.keySet()) {
+			List<Integer> expressionsForPanel = panelMap.get(panelId);
+        	int lastExpressionIndex = expressionsForPanel.get(expressionsForPanel.size() - 1);
+        	
+        	// however, if we did a clone from a panel
+        	// and then changed the original panel view
+        	// the clone should still maintain the original panel view
+        	// not the new view
+        	Integer origTaskIndex = cloneToOrigTask.get(panelId);
+        	if(origTaskIndex != null) {
+        		// this is from a clone
+        		// get the original panel
+        		String origPanel = clonePanelToOrigPanel.get(panelId);
+        		// get the last task for that panel
+        		// but i need to account for if this was closed... so null check it
+        		List<Integer> origMapTaskIndices = panelMap.get(origPanel);
+        		if(origMapTaskIndices != null) {
+        			// we need to check to see if the last task for that panel has changed
+        			Integer currentLastTaskForPanel = origMapTaskIndices.get(origMapTaskIndices.size()-1);
+        			if(currentLastTaskForPanel != origTaskIndex) {
+        				// add back the original task
+        	        	expressionsToKeep.add(origTaskIndex);
+        			}
+        		}
+        	}
+        	
+        	expressionsToKeep.add(lastExpressionIndex);
+        }
+        Collections.sort(expressionsToKeep);
+
 		List<String> lastTasks = new ArrayList<String>();
-		for (ArrayList<Integer> expressionsForPanel : panelMap.values()) {
-			int lastExpressionIndex = expressionsForPanel.get(expressionsForPanel.size() - 1);
-			String keepExpression = expressionMap.get(lastExpressionIndex);
+		for(Integer index : expressionsToKeep) {
+			String keepExpression = expressionMap.get(index);
 			lastTasks.add(keepExpression);
 		}
+		
 		return lastTasks;
 	}
 	
+	/**
+	 * Get the last run task index from the recipe for a specific panel
+	 * @param panelId
+	 * @return
+	 */
+	private Integer getLastPixelTaskIndexForPanel(String panelId) {
+		List<Integer> taskIndices = panelMap.get(panelId);
+		if(taskIndices != null) {
+			return taskIndices.get(taskIndices.size()-1);
+		}
+		return null;
+	}
 	
 	/**
 	 * This method is used for adding expressions to the list of expressionsToKeep by first checking to see if the index is already contained
@@ -288,7 +389,6 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			expressionsToKeep.add(index);
 		}
 	}
-
 
 	public static void main(String[] args) {
 		String[] recipe = new String[]{"AddPanel ( 0 ) ;",
@@ -307,7 +407,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;",
 				"if ( ( HasDuplicates ( Studio ) ) , ( Select ( Studio , Count ( Title ) ) .as ( [ Studio , CountofTitle ] ) | Group ( Studio ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Studio\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Studio , Count ( Title ) ) .as ( [ Studio , CountofTitle ] ) | Group ( Studio ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Studio\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;" ,
 				"Panel ( 0 ) | Clone ( 1 ) ;",
-				"if ( ( HasDuplicates ( Genre ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;"
+//				"if ( ( HasDuplicates ( Genre ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;",
+				"RunNumericalCorrelation ( attributes = [ MovieBudget, Revenue_Domestic, Revenue_International, RottenTomatoes_Audience, RottenTomatoes_Critics] , panel = [ 0 ] ) ;"
 		};
 
 		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
