@@ -14,6 +14,7 @@ import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
@@ -51,6 +52,9 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 			if(t instanceof BasicIteratorTask) {
 				BasicIteratorTaskAdapter adapter = new BasicIteratorTaskAdapter();
 				adapter.write(out, (BasicIteratorTask) t); 
+			} else if(t instanceof ConstantDataTask) {
+				ConstantDataTaskAdapter adapter = new ConstantDataTaskAdapter();
+				adapter.write(out, (ConstantDataTask) t); 
 			}
 			
 			// store the task to panel ids
