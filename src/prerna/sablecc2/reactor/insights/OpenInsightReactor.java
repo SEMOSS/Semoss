@@ -143,7 +143,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
 	}
 
-	private List<String> getAdditionalPixels() {
+	protected List<String> getAdditionalPixels() {
 		GenRowStruct additionalPixels = this.store.getNoun(keysToGet[3]);
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			List<String> pixels = new Vector<String>();
@@ -164,7 +164,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param additionalPixels
 	 * @return
 	 */
-	public PixelRunner runNewInsight(Insight insight, List<String> additionalPixels) {
+	protected PixelRunner runNewInsight(Insight insight, List<String> additionalPixels) {
 		// add additional pixels if necessary
 		if(additionalPixels != null && !additionalPixels.isEmpty()) {
 			// just add it directly to the pixel list
@@ -183,7 +183,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param insightId
 	 * @return
 	 */
-	public Insight getCachedInsight(String engineId, String engineName, String insightId) {
+	protected Insight getCachedInsight(String engineId, String engineName, String insightId) {
 		Insight insight = null;
 		
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -209,7 +209,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param cachedInsight
 	 * @return
 	 */
-	private PixelRunner getCachedInsightData(Insight insight) {
+	protected PixelRunner getCachedInsightData(Insight insight) {
 		try {
 			// I will create a temp insight
 			// so that I can mock the output as if this was run properly
@@ -225,16 +225,25 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				runner.runPixel("AddPanel(" + panelId + ");", tempInsight);
 			}
 			
+			// i am going to run the panel view at the end again
+			// because if we clone to get a new panel
+			// and then switch it at another point
+			Map<String, String> panelToPanelView = new HashMap<String, String>();
 			// set the view to a vizual to paint the data
 			for(String panelId : panels.keySet()) {
 				InsightPanel panel = panels.get(panelId);
 				String panelView = panel.getPanelView();
 				String panelViewOptions = panel.getPanelViewOptions();
+				
+				String pixelToRun = "";
 				if(panelViewOptions != null && !panelViewOptions.isEmpty()) {
-					runner.runPixel("Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\", \"" + Utility.encodeURIComponent(panelViewOptions) + "\");", tempInsight);
+					pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\", \"" + Utility.encodeURIComponent(panelViewOptions) + "\");";
 				} else {
-					runner.runPixel("Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\");", tempInsight);
+					pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\");";
 				}
+				
+				panelToPanelView.put(panelId, pixelToRun);
+				runner.runPixel(pixelToRun, tempInsight);
 			}
 			
 			// send the view data
@@ -249,7 +258,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			
 			// and finally return all the panel ornaments
 			for(String panelId : panels.keySet()) {
-				runner.runPixel("Panel(" + panelId + ") | RetrievePanelOrnaments();"
+				runner.runPixel(panelToPanelView.get(panelId)
+						+ "Panel(" + panelId + ") | RetrievePanelOrnaments();"
 						+ "Panel(" + panelId + ") | RetrievePanelEvents();"
 						+ "Panel(" + panelId + ") | RetrievePanelComment();"
 						, tempInsight);
