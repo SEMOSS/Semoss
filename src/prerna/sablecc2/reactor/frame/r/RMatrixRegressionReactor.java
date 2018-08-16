@@ -108,7 +108,8 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		
 		// create and return a task for the Actuals vs Fitted scatterplot
 		ITask taskData = ConstantTaskCreationHelper.getScatterPlotData(panelId, "ROW_ID", "Actual", "Fitted", bulkRowDataPoints);
-		
+		this.insight.getTaskStore().addTask(taskData);
+
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + resultsList + "); gc();");
 
