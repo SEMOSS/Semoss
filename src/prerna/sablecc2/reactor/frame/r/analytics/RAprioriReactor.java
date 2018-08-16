@@ -181,6 +181,8 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 
 		// task data includes task options
 		ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
+		this.insight.getTaskStore().addTask(taskData);
+
 		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 

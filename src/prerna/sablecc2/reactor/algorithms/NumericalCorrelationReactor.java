@@ -72,7 +72,8 @@ public class NumericalCorrelationReactor extends AbstractReactor {
 		
 		// create and return a task
 		ITask taskData = ConstantTaskCreationHelper.getHeatMapData(getPanelId(), "Column Header X", "Column Header Y", "Correlation", data);
-
+		this.insight.getTaskStore().addTask(taskData);
+		
 		// track GA data
 		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
 		
