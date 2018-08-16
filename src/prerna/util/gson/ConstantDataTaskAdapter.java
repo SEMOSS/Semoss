@@ -70,7 +70,7 @@ public class ConstantDataTaskAdapter extends TypeAdapter<ConstantDataTask> {
 		// also store all the data
 		Object data = value.getData();
 		out.name("outputData").value(GSON.toJson(data));
-		out.name("outputDataClass").value(GSON.toJson(data.getClass().getName()));
+		out.name("outputDataClass").value(data.getClass().getName());
 		out.endObject();
 	}
 

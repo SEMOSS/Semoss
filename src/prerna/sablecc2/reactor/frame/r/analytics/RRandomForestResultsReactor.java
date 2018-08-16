@@ -72,8 +72,8 @@ public class RRandomForestResultsReactor extends AbstractRFrameReactor{
 			//label,x,y,z,series
 			String[] varImpAlignment= this.rJavaTranslator.getStringArray(temp_R + "$alignmentInfo");
 			
-			taskData = ConstantTaskCreationHelper.getScatterPlotData(panelId, varImpCols, varImpData, varImpAlignment[0], varImpAlignment[1],
-					varImpAlignment[2], varImpAlignment[3], varImpAlignment[0], null);
+			taskData = ConstantTaskCreationHelper.getScatterPlotData(panelId, varImpCols, varImpData, varImpAlignment[0], varImpAlignment[1], varImpAlignment[2], varImpAlignment[3], varImpAlignment[0], null);
+			this.insight.getTaskStore().addTask(taskData);
 			break;
 		case "confmatrix":
 			String rfType = this.rJavaTranslator.getString("RF_VARIABLE_999988888877777$type");
@@ -87,7 +87,8 @@ public class RRandomForestResultsReactor extends AbstractRFrameReactor{
 			String[] confMatrixCols = this.rJavaTranslator.getColumns(temp_R);
 			List<Object[]> confMatrixData = this.rJavaTranslator.getBulkDataRow(temp_R, confMatrixCols);
 			
-			taskData = ConstantTaskCreationHelper.getGridData(panelId, confMatrixCols, confMatrixData);			
+			taskData = ConstantTaskCreationHelper.getGridData(panelId, confMatrixCols, confMatrixData);
+			this.insight.getTaskStore().addTask(taskData);
 			break;
 		}
 

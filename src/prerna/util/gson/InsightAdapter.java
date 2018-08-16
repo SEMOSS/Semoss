@@ -170,7 +170,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		TaskStore tStore = value.getTaskStore();
 		TaskStoreAdapter tAdapter = new TaskStoreAdapter();
 		tAdapter.write(out, tStore);
-		Map<String, String> panelIdToTask = tAdapter.getPanelIdToTask();
+		List<Map<String, String>> panelIdToTaskList = tAdapter.getPanelIdToTask();
 		
 		// write the recipe
 		List<String> recipe = value.getPixelRecipe();
@@ -204,9 +204,16 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				if(taskOptions != null && !taskOptions.isEmpty()) {
 					Set<String> panelIds = taskOptions.getPanelIds();
 					for(String panelId : panelIds) {
-						if(panelIdToTask.containsKey(panelId)) {
-							t.setId(panelIdToTask.get(panelId));
-							continue NOUN_LOOP;
+						for(int i = 0; i < panelIdToTaskList.size(); i++) {
+							// this panel to id is always size 1!!!
+							Map<String, String> panelIdToTask  = panelIdToTaskList.get(i);
+							if(panelIdToTask.containsKey(panelId)) {
+								t.setId(panelIdToTask.get(panelId));
+								// each index only has 1 panel to id
+								// so we can just drop it now
+								panelIdToTaskList.remove(i);
+								continue NOUN_LOOP;
+							}
 						}
 					}
 				}

@@ -83,7 +83,8 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		
 		// create and return a task
 		ITask taskData = ConstantTaskCreationHelper.getHeatMapData(panelId, "Column_Header_X", "Column_Header_Y", "Correlation", retOutput);
-		
+		this.insight.getTaskStore().addTask(taskData);
+
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + correlationDataTable + "); gc();");
 
