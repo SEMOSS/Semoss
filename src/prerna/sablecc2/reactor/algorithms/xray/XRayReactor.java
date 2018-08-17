@@ -41,11 +41,6 @@ public class XRayReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		Logger logger = getLogger(CLASS_NAME);
-
-		// need to make sure that the textreuse package is installed
-		logger.info("Checking if required R packages are installed to run X-ray...");
-		this.rJavaTranslator.checkPackages(new String[] { "textreuse", "digest", "memoise", "withr" });
-
 		organizeKeys();
 		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
 		Map<String, Object> config = null;

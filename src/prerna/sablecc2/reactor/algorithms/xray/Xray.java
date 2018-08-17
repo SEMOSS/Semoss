@@ -61,6 +61,16 @@ public class Xray {
 	}
 
 	public String run(Map config) {
+		logger.info("Checking if required R packages are installed to run X-ray...");
+		// packages to compare corpus
+		String[] packages = new String[] { "textreuse", "RcppProgress", "withr", "NLP", "tidyr", "devtools", "memoise", "digest" };
+		this.rJavaTranslator.checkPackages(packages);
+		// packages to write corpus files
+		String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite"};
+		this.rJavaTranslator.checkPackages(encodePackages);
+
+
+		
 		// output folder for data mode to be written to
 		String dataFolder = this.baseFolder + "\\R\\XrayCompatibility\\Temp\\MatchingRepository";
 		dataFolder = dataFolder.replace("\\", "/");
@@ -182,7 +192,7 @@ public class Xray {
 
 		// Create R Script to run xray
 		StringBuilder rsb = new StringBuilder();
-		rsb.append("library(textreuse);");
+		rsb.append(RSyntaxHelper.loadPackages(packages));
 
 		// Source the LSH function from the utility script
 		rsb.append("source(\"" + utilityScriptPath + "\");");
@@ -190,18 +200,19 @@ public class Xray {
 
 		// Run locality sensitive hashing to generate matches
 		String lookupFrame = "lookup"+ Utility.getRandomString(8);
+		// create a lookup table for engineId to engineAlias
+		rsb.append(lookupFrame + " <- data.frame(engineId = character(), engineName = character(), stringsAsFactors=FALSE);");
+		int row = 1;
+		for(String key: engineNameLookup.keySet()){
+			rsb.append(lookupFrame + "[" + row + ", ]<-c(\"" + key + "\",\"" + engineNameLookup.get(key) + "\");");
+			row++;
+		}
 		if (dataMode) {
 			rsb.append(rFrameName + " <- " + Constants.R_LSH_MATCHING_FUN + "(\"" + dataFolder + "\", " + nMinhash
 					+ ", " + nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
 					+ ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 					+ ", \"" + outputXrayDataFolder + "\");");
-			// create a lookup table for engineId to engineAlias
-			rsb.append(lookupFrame + " <- data.frame(engineId = character(), engineName = character(), stringsAsFactors=FALSE);");
-			int row = 1;
-			for(String key: engineNameLookup.keySet()){
-				rsb.append(lookupFrame + "[" + row + ", ]<-c(\"" + key + "\",\"" + engineNameLookup.get(key) + "\");");
-				row++;
-			}
+
 			rsb.append(rFrameName + " <-merge(" + rFrameName + "," + lookupFrame + ", by.x=\"Source_Database_Id\", by.y=\"engineId\");colnames(" + rFrameName + ")[13] <- \"Source_Database\";");
 			rsb.append(rFrameName + " <-merge(" + rFrameName + "," + lookupFrame +", by.x=\"Target_Database_Id\", by.y=\"engineId\");colnames(" + rFrameName + ")[14] <- \"Target_Database\";");
 		}
@@ -212,7 +223,6 @@ public class Xray {
 		// run xray on semantic folder
 		if (semanticMode) {
 			rsb = new StringBuilder();
-			rsb.append("library(textreuse);");
 
 			// Source the LSH function from the utility script
 			rsb.append("source(\"" + utilityScriptPath + "\");");
@@ -223,7 +233,8 @@ public class Xray {
 					+ nMinhash + ", " + nBands + ", " + similarityThreshold + ", " + instancesThreshold + ", \""
 					+ ENGINE_CONCEPT_PROPERTY_DELIMETER + "\", " + matchSameDB.toString().toUpperCase()
 					+ ", \"" + semanticOutputFolder + "\");");
-
+			rsb.append(semanticComparisonFrame + " <-merge(" + semanticComparisonFrame + "," + lookupFrame + ", by.x=\"Source_Database_Id\", by.y=\"engineId\");colnames(" + semanticComparisonFrame + ")[13] <- \"Source_Database\";");
+			rsb.append(semanticComparisonFrame + " <-merge(" + semanticComparisonFrame + "," + lookupFrame +", by.x=\"Target_Database_Id\", by.y=\"engineId\");colnames(" + semanticComparisonFrame + ")[14] <- \"Target_Database\";");
 			// join data xray df with semantic xray df if dataComparison frame
 			// was created
 			if (dataMode) {
@@ -233,6 +244,9 @@ public class Xray {
 				rsb.append(rFrameName + " <- xray_merge(" + rFrameName + ", " + semanticComparisonFrame + ");");
 			} else {
 				rsb.append(rFrameName + " <-" + semanticComparisonFrame + ";");
+				// if it is only semantic score renmae score header to semnatic score
+				rsb.append("names(" + rFrameName + ")[names(" + rFrameName + ") == 'Score'] <- 'Semantic_Score';");
+				
 			}
 			this.logger.info("Comparing data from datasources for X-ray semantic mode...");
 			this.rJavaTranslator.runR(rsb.toString());
@@ -254,6 +268,7 @@ public class Xray {
 		cleanUpScript.append("rm(" + "run_lsh_matching" + ");");
 		cleanUpScript.append("rm(" + "span" + ");");
 		cleanUpScript.append("rm(" + lookupFrame + ");");
+		cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		return rFrameName;
 	}
@@ -610,6 +625,8 @@ public class Xray {
 	private void encodeInstances(List<Object> instances, boolean dataMode, String filePath, boolean semanticMode,
 			String semanticFolder) {
 		if (instances.size() > 1) {
+			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite"};
+
 			// get script to encode instances
 			String minHashFilePath = this.baseFolder + "\\R\\AnalyticsRoutineScripts\\encode_instances.r";
 			minHashFilePath = minHashFilePath.replace("\\", "/");
@@ -618,7 +635,7 @@ public class Xray {
 			predictColumnFilePath = predictColumnFilePath.replace("\\", "/");
 			// load r library and scripts
 			StringBuilder rsb = new StringBuilder();
-			rsb.append("library(textreuse);");
+			rsb.append(RSyntaxHelper.loadPackages(encodePackages));
 			rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
 			rsb.append("source(" + "\"" + predictColumnFilePath + "\"" + ");");
 
@@ -638,7 +655,7 @@ public class Xray {
 
 			}
 			// generate semantic results and write to semantic folder
-			String writeSemanticResultsToFile = "";
+			StringBuilder writeSemanticResultsToFile = new StringBuilder();
 			String semanticResults = "semantic.results.df";
 			if (semanticMode) {
 				String colSelectString = "1";
@@ -648,25 +665,26 @@ public class Xray {
 				rsb.append(semanticResults + "<- concept_xray(" + dfName + "," + colSelectString + "," + numDisplay
 						+ "," + randomVals + ");");
 				String fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
-				writeSemanticResultsToFile = "fileConn <- file(\"" + semanticFolder + "/" + fileName + "\");";
-				writeSemanticResultsToFile += "writeLines(" + semanticResults + "$Predicted_Concept, fileConn);";
-				writeSemanticResultsToFile += "close(fileConn);";
+				String fileCon = Utility.getRandomString(8);
+				writeSemanticResultsToFile.append(fileCon +" <- file(\"" + semanticFolder + "/" + fileName + "\");");
+				writeSemanticResultsToFile.append("writeLines(" + semanticResults + "$Predicted_Concept, "+fileCon+");");
+				writeSemanticResultsToFile.append("close("+fileCon+");");
+				writeSemanticResultsToFile.append("rm("+fileCon+");");
 			}
-			rsb.append(writeSemanticResultsToFile);
+			rsb.append(writeSemanticResultsToFile.toString());
 			// encode data frame and write to outputfolder
 			if (dataMode) {
 				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 			}
+			// clean up r temp variables
+			rsb.append("rm(" + dfName + ",concept_mgr, concept_xray, encode_instances, get_claims, get_concept, get_wiki_ids, is.letter, most_frequent_concept, span);");
+			if (semanticMode) {
+				rsb.append("rm(" + semanticResults + ");");
+			}
+			// clean up packages
+			rsb.append(RSyntaxHelper.unloadPackages(encodePackages));
 			// run r script
 			this.rJavaTranslator.runR(rsb.toString());
-
-			// clean up r temp variables
-			StringBuilder cleanUpScript = new StringBuilder();
-			cleanUpScript.append("rm(" + dfName + ");");
-			if (semanticMode) {
-				cleanUpScript.append("rm(" + semanticResults + ");");
-			}
-			this.rJavaTranslator.runR(cleanUpScript.toString());
 		}
 	}
 
@@ -687,12 +705,15 @@ public class Xray {
 	private void encodeInstances(HashSet<Object> instances, boolean dataMode, String filePath, boolean semanticMode,
 			String semanticFolder) {
 		if (instances.size() > 1) {
+			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite"};
+
 			String minHashFilePath = this.baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\"
 					+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
 			minHashFilePath = minHashFilePath.replace("\\", "/");
 
 			StringBuilder rsb = new StringBuilder();
-			rsb.append("library(textreuse);");
+			// load packages
+			rsb.append(RSyntaxHelper.loadPackages(encodePackages));
 			rsb.append("source(" + "\"" + minHashFilePath + "\"" + ");");
 
 			// construct R dataframe
@@ -713,7 +734,7 @@ public class Xray {
 
 			}
 			// run predict column headers write output to folder
-			String writeFrameResultsToFile = "";
+			StringBuilder writeFrameResultsToFile = new StringBuilder();
 			if (semanticMode) {
 				String semanticResults = "semantic.results.df";
 				String colSelectString = "1";
@@ -723,20 +744,21 @@ public class Xray {
 				rsb.append(semanticResults + "<- concept_xray(" + dfName + "," + colSelectString + "," + numDisplay
 						+ "," + randomVals + ");");
 				String fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
-				writeFrameResultsToFile = "fileConn <- file(\"" + semanticFolder + "/" + fileName + "\");";
-				writeFrameResultsToFile += "writeLines(" + semanticResults + "$Predicted_Concept, fileConn);";
-				writeFrameResultsToFile += "close(fileConn);";
+				String fileCon = Utility.getRandomString(8);
+				writeFrameResultsToFile.append(fileCon + " <- file(\"" + semanticFolder + "/" + fileName + "\");");
+				writeFrameResultsToFile.append("writeLines(" + semanticResults + "$Predicted_Concept, " + fileCon + ");");
+				writeFrameResultsToFile.append("close(" + fileCon + ");");
+				writeFrameResultsToFile.append("rm(" + fileCon + ")");
 			}
-			rsb.append(writeFrameResultsToFile);
+			rsb.append(writeFrameResultsToFile.toString());
 			if (dataMode) {
 				rsb.append("encode_instances(" + dfName + "," + "\"" + filePath + "\"" + ");");
 			}
+			// clean up r temp variables
+			rsb.append("rm(" + dfName + ",concept_mgr, concept_xray, encode_instances, get_claims, get_concept, get_wiki_ids, is.letter, most_frequent_concept, span);");
+			rsb.append(RSyntaxHelper.unloadPackages(encodePackages));
 			this.rJavaTranslator.runR(rsb.toString());
 
-			// clean up r temp variables
-			StringBuilder cleanUpScript = new StringBuilder();
-			cleanUpScript.append("rm(" + dfName + ");");
-			this.rJavaTranslator.runR(cleanUpScript.toString());
 		}
 	}
 
