@@ -18,8 +18,8 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.flatfile.CsvFileIterator;
-import prerna.ds.util.flatfile.ExcelFileIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
@@ -119,10 +119,24 @@ public class RFrameBuilder {
 			createTableViaCsvFile(tableName, (CsvFileIterator) it);
 			additionalType = ((CsvFileIterator) it).getQs().getAdditionalTypes();
 			fileType = "csv";
-		} else if(it instanceof ExcelFileIterator) {
-			createTableViaExcelFile(tableName, (ExcelFileIterator) it);
-			additionalType = ((ExcelFileIterator) it).getQs().getAdditionalTypes();
-			fileType = "excel";
+		}  else if(it instanceof ExcelSheetFileIterator ) {
+			ExcelQueryStruct qs = ((ExcelSheetFileIterator)it).getQs();
+			String sheetName = qs.getSheetName();
+			String filePath = qs.getFilePath();
+			String sheetRange = qs.getSheetRange();
+			// load sheet
+			this.rJavaTranslator.runR(RSyntaxHelper.loadExcelSheet(filePath, tableName, sheetName, sheetRange));
+			// clean headers
+			String[] colNames = this.rJavaTranslator.getColumns(tableName);
+			StringBuilder script = new StringBuilder();
+			script.append(RSyntaxHelper.cleanFrameHeaders(tableName, colNames));
+			// set new header names for frame
+			Map<String, String> newHeaders = qs.getNewHeaderNames();
+			for (String oldHeader : newHeaders.keySet()) {
+				String newHeader = newHeaders.get(oldHeader);
+				script.append(RSyntaxHelper.alterColumnName(tableName, oldHeader, newHeader));
+			}
+			this.rJavaTranslator.runR(script.toString());
 		} else {
 			// default behavior is to just write this to a csv file
 			// get the fread() notation for that csv file
@@ -174,78 +188,6 @@ public class RFrameBuilder {
 			evalR(tableName + "<-" + query);
 			long end = System.currentTimeMillis();
 			logger.info("Done filter R table based on selected headers in " + (end-start) + "ms");			
-		}
-		
-		if(!qs.getExplicitFilters().isEmpty()) {
-			long start = System.currentTimeMillis();
-			logger.info("Need to filter R table based on QS");
-			// we need to execute a script to modify the table to only contain the data based on the filters defined
-			//create a new querystruct object that will have header names in the format used for RInterpreter
-			SelectQueryStruct modifiedQs = new SelectQueryStruct();
-			updateFileSelectors(modifiedQs, tableName, newCleanHeaders);
-
-			//add filters to the new qs
-			List<IQueryFilter> gFilters = qs.getExplicitFilters().getFilters();
-			for (int i = 0; i < gFilters.size(); i++) {
-				//TODO: example this update filter logic!
-				IQueryFilter sFilter = gFilters.get(i);
-				if(sFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-					SimpleQueryFilter updatedFilter = updateFilter(tableName, (SimpleQueryFilter) sFilter);
-					modifiedQs.addExplicitFilter(updatedFilter);
-				}
-			}
-			RInterpreter interp = new RInterpreter();
-			interp.setDataTableName(tableName);
-			interp.setQueryStruct(modifiedQs);
-			Map<String, String> strTypes = qs.getColumnTypes();
-			Map<String, SemossDataType> enumTypes = new HashMap<String, SemossDataType>();
-			for(String key : strTypes.keySet()) {
-				enumTypes.put(key, SemossDataType.convertStringToDataType(strTypes.get(key)));
-			}
-			interp.setColDataTypes(enumTypes);
-			String query = interp.composeQuery();
-			evalR(tableName + "<-" + query);
-			long end = System.currentTimeMillis();
-			logger.info("Done filter R table in " + (end-start) + "ms");
-		}
-	}
-
-	private void createTableViaExcelFile(String tableName, ExcelFileIterator it) {
-		ExcelQueryStruct qs = it.getQs();
-		String sheetName = qs.getSheetName();
-		int sheetIndex = it.getHelper().getSheetIndex(sheetName) + 1;
-		String[] newCleanHeaders = it.getHelper().getHeaders(sheetName);
-		
-		//given that the R read.xlsx2 function that extract a subset of columns, check if user 
-		//selected to upload the entire worksheet or only some columns
-		boolean uploadSubset = false;
-		List<String> selectors = new ArrayList<String>();
-		List<Integer> colIndices = new ArrayList<Integer>();
-		if (qs.getSelectors().size() < newCleanHeaders.length){
-			uploadSubset = true;
-			for (int i = 0; i < qs.getSelectors().size(); i++) {
-				String header = qs.getSelectors().get(i).getAlias();
-				selectors.add(header);
-				colIndices.add(Arrays.asList(newCleanHeaders).indexOf(header) + 1);
-			}
-		} 
-		
-		{
-			//load the R xlsx package
-			evalR("library(xlsx)");
-			long start = System.currentTimeMillis();
-			logger.info("Loading R table via Excel File");
-			if (uploadSubset) {
-				String loadFileRScript = RSyntaxHelper.getExcelReadSheetSyntax(tableName, it.getFileLocation(), sheetIndex, colIndices, uploadSubset);
-				evalR(loadFileRScript);
-				evalR("setnames(" + tableName + ", names(" + tableName + "), c('" + StringUtils.join(selectors, "','") + "'))");
-			} else {
-				String loadFileRScript = RSyntaxHelper.getExcelReadSheetSyntax(tableName, it.getFileLocation(), sheetIndex, Arrays.asList(new Integer[newCleanHeaders.length]), uploadSubset);
-				evalR(loadFileRScript);
-				evalR("setnames(" + tableName + ", " + RSyntaxHelper.createStringRColVec(newCleanHeaders) + ")");
-			}
-			long end = System.currentTimeMillis();
-			logger.info("Loading R done in " + (end-start) + "ms");
 		}
 		
 		if(!qs.getExplicitFilters().isEmpty()) {
