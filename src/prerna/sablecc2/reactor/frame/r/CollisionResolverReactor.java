@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -29,9 +30,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		// init rJavaTranslator
 		init();
 		// check r package dependencies
-		String[] packages = new String[] { "stringdist", "Rcpp", "tidyr", "dplyr", "assertthat", "R6", "magrittr",
-				"pillar", "rlang", "bindrcpp", "RJSONIO", "glue", "purrr", "parallel", "pkgconfig", "fuzzyjoin",
-				"bindr", "tidyselect", "tibble" };
+		String[] packages = new String[] {  "RJSONIO", "tidyr", "stringdist", "parallel","fuzzyjoin" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// get frame and set up logger
@@ -43,6 +42,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 
 		// create collision script inputs
 		StringBuilder rsb = new StringBuilder();
+		rsb.append(RSyntaxHelper.loadPackages(packages));
 		// create temp R frame with unique column values
 		String randomDF = "collsionResolverTempFrame" + Utility.getRandomString(8);
 		rsb.append(randomDF + " <- data.frame(" + column + "=unique(" + df + "$" + column + "));");
@@ -96,6 +96,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(" + "i" + ");");
 		cleanUpScript.append("rm(" + "value" + ");");
 		cleanUpScript.append("rm(" + "count" + ");");
+		cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		List<Object> jsonMap = new ArrayList<Object>();

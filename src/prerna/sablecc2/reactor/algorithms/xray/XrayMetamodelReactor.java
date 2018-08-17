@@ -12,6 +12,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import prerna.ds.r.RSyntaxHelper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -33,7 +34,8 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		// need to make sure that the textreuse package is installed
 		logger.info("Checking if required R packages are installed to run X-ray...");
-		this.rJavaTranslator.checkPackages(new String[] { "textreuse", "digest", "memoise", "withr", "jsonlite" });
+		String[] packages = new String[] { "jsonlite" };
+		this.rJavaTranslator.checkPackages(packages);
 		organizeKeys();
 		// get metamodel
 		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
@@ -126,7 +128,7 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 					+ ", select=c(Source_Database_Id, Source_Database, Source_Table, Source_Column,Source_Property, Source_Key, "
 					+ "Target_Database_Id ,Target_Database, Target_Table, Target_Column,Target_Property, Target_Key));");
 			// get json
-			rsb.append("library(jsonlite);");
+			rsb.append(RSyntaxHelper.loadPackages(packages));
 			rsb.append(jsonR + " <-  toJSON(" + tempFrame + ", byrow = TRUE, colNames = TRUE); ");
 
 			this.rJavaTranslator.runR(rsb.toString());
@@ -190,6 +192,7 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			cleanUpScript.append("rm(" + tempFrame + ");");
 			cleanUpScript.append("rm(" + countFrame + ");");
 			cleanUpScript.append("gc();");
+			cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 			this.rJavaTranslator.runR(cleanUpScript.toString());
 
 		}
@@ -197,16 +200,6 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 		retMap.put("edges", edgesList);
 		retMap.put("nodes", conceptsTable.values());
 		return new NounMetadata(retMap, PixelDataType.MAP);
-		
-//		// clean up r temp variables
-//		StringBuilder cleanUpScript = new StringBuilder();
-//		cleanUpScript.append("rm(" + rFrameName + ");");
-//		cleanUpScript.append("gc();");
-//		this.rJavaTranslator.runR(cleanUpScript.toString());
-//		NounMetadata noun = new NounMetadata("Unable to obtain X-ray results", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-//		SemossPixelException exception = new SemossPixelException(noun);
-//		exception.setContinueThreadOfExecution(false);
-//		throw exception;
 	}
 
 }
