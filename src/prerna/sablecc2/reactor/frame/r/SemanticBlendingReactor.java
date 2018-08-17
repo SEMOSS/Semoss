@@ -10,6 +10,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -53,7 +54,8 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		init();
 		
 		// need to make sure that the WikidataR package is installed before running this method
-		this.rJavaTranslator.checkPackages(new String[] { "WikidataR", "plyr", "curl", "openssl", "httr", "jsonlite", "WikipediR" });
+		String[] packages = new String[] {  "WikidataR","WikipediR", "httr", "curl", "jsonlite" };
+		this.rJavaTranslator.checkPackages(packages);
 				
 		// get frame
 		ITableDataFrame frame = getFrame();
@@ -134,7 +136,11 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		
 		// clean up r temp variables
 		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + dfName + ");");
+		cleanUpScript.append("rm(" + dfName
+				+ ", concept_mgr, concept_xray, endLibs, "
+				+ "get_claims,get_concept, get_wiki_ids, is.letter, "
+				+ "most_frequent_concept, span, startLibs);");
+		cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 
