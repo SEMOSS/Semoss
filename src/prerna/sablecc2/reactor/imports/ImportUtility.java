@@ -13,10 +13,12 @@ import org.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -78,6 +80,10 @@ public class ImportUtility {
 		} 
 		// excel file
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+			if(frame instanceof RDataTable) {
+				ExcelQueryStruct xlQS = (ExcelQueryStruct) qs;
+				return new ExcelSheetFileIterator(xlQS);
+			}
 			ExcelQueryStruct xlQS = (ExcelQueryStruct) qs;
 			return ExcelWorkbookFileHelper.buildSheetIterator(xlQS);
 //			ExcelFileIterator it = new ExcelFileIterator(xlQS);
