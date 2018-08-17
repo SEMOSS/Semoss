@@ -89,6 +89,38 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		getNextRow();
 	}
 	
+	/**
+	 * Simple iterator used to import excel sheet into R
+	 * 
+	 * @param qs
+	 */
+	public ExcelSheetFileIterator(ExcelQueryStruct qs) {
+		// get the qs elements
+		this.qs = qs;
+		this.sheetRange = qs.getSheetRange();
+
+		// range index is start col, start row, end col, end row
+		this.range = new ExcelRange(this.sheetRange);
+		this.rangeIndex = range.getIndices();
+
+		// this will be the first row of data
+		// since excel is 1 based and java is 0
+		this.curRow = this.rangeIndex[1];
+		this.startCol = this.rangeIndex[0];
+		this.endRow = this.rangeIndex[3];
+
+		// now that I have set the headers from the setSelectors
+		this.dataTypeMap = qs.getColumnTypes();
+		this.additionalTypesMap = qs.getAdditionalTypes();
+		this.newHeaders = qs.getNewHeaderNames();
+		
+		// need to figure out the selectors
+		setSelectors(qs.getSelectors());
+		
+//		// we don't need to iterate
+		this.curRow = this.endRow;
+	}
+	
 	
 	@Override
 	public void getNextRow() {
@@ -262,20 +294,20 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			this.headerIndices = getHeaderIndicies(allHeaders, orderedSelectors);
 			for(int i = 0; i < this.headers.length; i++) {
 				if(this.newHeaders.containsKey(this.headers[i])) {
-					this.headers[i] = this.newHeaders.get(this.headers[i]);
+						this.headers[i] = this.newHeaders.get(this.headers[i]);
+					}
 				}
-			}
-		} else {
-			this.headers = allHeaders;
-			this.headerIndices = new int[this.headers.length];
+			} else {
+				this.headers = allHeaders;
+				this.headerIndices = new int[this.headers.length];
 			for(int i = 0; i < this.headers.length; i++) {
-				this.headerIndices[i] = i + startCol;
+					this.headerIndices[i] = i + startCol;
 				if(this.newHeaders.containsKey(this.headers[i])) {
-					this.headers[i] = this.newHeaders.get(this.headers[i]);
+						this.headers[i] = this.newHeaders.get(this.headers[i]);
+					}
 				}
 			}
 		}
-	}
 	
 	/**
 	 * Sets the data types 
