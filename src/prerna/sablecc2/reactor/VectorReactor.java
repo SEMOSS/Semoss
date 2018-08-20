@@ -2,15 +2,12 @@ package prerna.sablecc2.reactor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.Vector;
 
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class VectorReactor extends AbstractReactor implements JavaExecutable{
+public class VectorReactor extends AbstractReactor implements JavaExecutable {
 
 	public NounMetadata execute() {
 		List<NounMetadata> list = new ArrayList<>();
@@ -57,16 +54,8 @@ public class VectorReactor extends AbstractReactor implements JavaExecutable{
 		return list;
 	}
 	
-//	@Override
-//	public void updatePlan() {
-//		super.updatePlan();
-//		this.planner.addProperty(signature, "JAVA_SIGNATURE", getJavaSignature());
-//		System.out.println(getJavaSignature());
-//	}
-
 	@Override
 	public String getReturnType() {
-		// TODO Auto-generated method stub
 		return "Object[]";
 	}
 }
