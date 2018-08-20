@@ -35,6 +35,8 @@ public class InsightParamTranslation extends DepthFirstAdapter {
         	String view = node.getOpInput().toString().trim();
         	if(view.equals("\"param\"")) {
         		hasParam = true;
+        	} else if(view.equals("\"default-handle\"")) {
+        		hasParam = true;
         	}
         }
 	}
