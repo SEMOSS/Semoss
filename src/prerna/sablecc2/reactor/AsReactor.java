@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor;
 
-import java.util.Enumeration;
 import java.util.List;
+import java.util.Set;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -28,19 +28,17 @@ public class AsReactor extends AbstractReactor {
 		// replace the as Name
 		// the as name could come in as an array too
 		// for now I will go with the name
-		Enumeration <String> keys = store.nounRow.keys();
+		Set<String> keys = store.nounRow.keySet();
 
 		String [] asNames = null;
-		while(keys.hasMoreElements())
-		{
-			String singleKey = keys.nextElement();
+		for(String singleKey : keys) {
 			GenRowStruct struct = store.nounRow.get(singleKey);
 			List<String> inputs = struct.getAllStrValues(); // ideally this should get only one column for now
 			asNames = new String[1];
 			asNames[0] = inputs.get(0).trim();
 		}
-		if(this.parentReactor != null && asNames != null)
-		{
+		
+		if(this.parentReactor != null && asNames != null) {
 			// get the columns on as
 			parentReactor.setAs(asNames);
 			

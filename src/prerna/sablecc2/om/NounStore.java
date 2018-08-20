@@ -1,7 +1,7 @@
 package prerna.sablecc2.om;
 
-import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -19,7 +19,7 @@ public class NounStore {
 	public Hashtable <String, Integer> nounCount = new Hashtable<String, Integer>();
 	// S_1 would be the first time we saw S, S_2 would be the second time, S_3 would be.. well you know it
 	public Hashtable <String, GenRowStruct> nounByNumber = new Hashtable<String, GenRowStruct>();
-	public Hashtable <String, GenRowStruct> nounRow = new Hashtable<String, GenRowStruct>();
+	public LinkedHashMap <String, GenRowStruct> nounRow = new LinkedHashMap<String, GenRowStruct>();
 	
 	public final static String selector = "s";
 	public final static String projector = "p";
@@ -150,10 +150,8 @@ public class NounStore {
 		
 		// see if there are keys
 		// if there 
-		Enumeration <String> keys = nounRow.keys();
-		while(keys.hasMoreElements())
-		{
-			String thisKey = keys.nextElement();
+		Set<String> keys = nounRow.keySet();
+		for(String thisKey : keys) {
 			List <Object> values = nounRow.get(thisKey).getAllValues();
 			
 			Object finalValue = values;
@@ -161,7 +159,6 @@ public class NounStore {
 				finalValue = values.get(0);
 
 			retHash.put(thisKey, finalValue);
-			
 		}
 		
 		return retHash;

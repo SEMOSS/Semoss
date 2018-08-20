@@ -219,6 +219,7 @@ import prerna.sablecc2.reactor.qs.filter.QueryFilterReactor;
 import prerna.sablecc2.reactor.qs.filter.QueryHavingFilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.AverageReactor;
 import prerna.sablecc2.reactor.qs.selectors.CountReactor;
+import prerna.sablecc2.reactor.qs.selectors.GenericSelectorFunctionReactor;
 import prerna.sablecc2.reactor.qs.selectors.GroupConcatReactor;
 import prerna.sablecc2.reactor.qs.selectors.MaxReactor;
 import prerna.sablecc2.reactor.qs.selectors.MedianReactor;
@@ -997,6 +998,20 @@ public class ReactorFactory {
 			e.printStackTrace();
 		}
 		
+		/*
+		 * I want to account for various functions that a person wants to execute
+		 * I will just create this as a generic function reactor 
+		 * that creates a function selector to return 
+		 */
+		if (parentReactor instanceof AbstractQueryStructReactor || 
+				parentReactor instanceof QuerySelectorExpressionAssimilator) {
+			reactor = new GenericSelectorFunctionReactor();
+			reactor.setPixel(reactorId, nodeString);
+			// set the fuction name
+			((GenericSelectorFunctionReactor) reactor).setFunction(reactorId);
+			return reactor;
+		}
+		
 		// ughhh... idk what you are trying to do
 		// reactor = new SamplReactor();
 		throw new IllegalArgumentException("Cannot find reactor for keyword = " + reactorId);
@@ -1004,7 +1019,7 @@ public class ReactorFactory {
 
 	public static boolean hasReactor(String reactorId) {
 		return reactorHash.containsKey(reactorId) || expressionHash.containsKey(reactorId.toUpperCase());
-	} 
+	}
 	
 	/**
 	 * This method takes in a prop file to build the reactorHash

@@ -12,12 +12,14 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	private String functionName;
 	private boolean isDistinct;
 	private String colCast;
+	private List<Object[]> additionalFunctionParams;
 	
 	public QueryFunctionSelector() {
 		this.innerSelectors = new ArrayList<IQuerySelector>();
 		this.functionName = null;
 		this.isDistinct = false;
 		this.colCast = "";
+		this.additionalFunctionParams = new Vector<Object[]>();
 	}
 
 	@Override
@@ -90,6 +92,18 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	
 	public String getColCast() {
 		return this.colCast;
+	}
+	
+	public void addAdditionalParam(Object[] param) {
+		this.additionalFunctionParams.add(param);
+	}
+	
+	public List<Object[]> getAdditionalFunctionParams() {
+		return additionalFunctionParams;
+	}
+	
+	public void setAdditionalFunctionParams(List<Object[]> additionalFunctionParams) {
+		this.additionalFunctionParams = additionalFunctionParams;
 	}
 	
 	@Override
