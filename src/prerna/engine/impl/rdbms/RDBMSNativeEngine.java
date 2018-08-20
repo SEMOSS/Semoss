@@ -774,7 +774,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public synchronized AuditDatabase generateAudit() {
 		if(this.auditDatabase == null) {
 			this.auditDatabase = new AuditDatabase();
-			this.auditDatabase.init(this.engineId, this.engineName);
+			this.auditDatabase.init(this, this.engineId, this.engineName);
 		}
 		return this.auditDatabase;
 	}

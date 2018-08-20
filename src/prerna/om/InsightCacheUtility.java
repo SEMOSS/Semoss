@@ -131,12 +131,14 @@ public class InsightCacheUtility {
 		ZipFile zip = null;
 		ZipEntry entry = null;
 		InputStream is = null;
+		InputStreamReader isr = null;
 		BufferedReader br = null;
 		try {
 			zip = new ZipFile(insightCacheZip);
 			entry = zip.getEntry(MAIN_INSIGHT_JSON);
 			is = zip.getInputStream(entry);
-			br = new BufferedReader(new InputStreamReader(is));
+			isr = new InputStreamReader(is);
+			br = new BufferedReader(isr);
 	        StringBuilder sb = new StringBuilder();
 	        String line;
 	        while ((line = br.readLine()) != null) {
@@ -154,6 +156,7 @@ public class InsightCacheUtility {
 			e.printStackTrace();
 		} finally {
 			closeStream(br);
+			closeStream(isr);
 			closeStream(is);
 			closeStream(zip);
 		}
