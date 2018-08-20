@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.SecurityQueryUtils;
+import prerna.date.SemossDate;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -30,6 +31,11 @@ public class MyAppsReactor extends AbstractReactor {
 		for(Map<String, Object> app : appInfo) {
 			String appId = app.get("app_id").toString();
 			app.putAll(SecurityQueryUtils.getTopExecutedInsightsForEngine(appId, 10));
+			SemossDate lmDate = SecurityQueryUtils.getLastExecutedInsightInApp(appId);
+			// could be null when there are no insights in an app
+			if(lmDate != null) {
+				app.put("lastModified", lmDate.getFormattedDate());
+			}
 		}
 		
 		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
