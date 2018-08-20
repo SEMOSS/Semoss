@@ -17,6 +17,7 @@ import org.h2.tools.Server;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
@@ -172,7 +173,7 @@ public class AuditDatabase {
 			}
 		}
 		
-		StringBuilder inserts = new StringBuilder();
+		StringBuilder auditInserts = new StringBuilder();
 		
 		String id = UUID.randomUUID().toString();
 		String time = getTime();
@@ -199,15 +200,62 @@ public class AuditDatabase {
 			insert[9] = userId;
 			
 			// get a combination of all the insert
-			inserts.append(getAuditInsert(insert));
-			inserts.append(";");
+			auditInserts.append(getAuditInsert(insert));
+			auditInserts.append(";");
 		}
 		
 		// execute the inserts
-		execQ(inserts.toString());
+		execQ(auditInserts.toString());
 	}
 	
-	public String getAuditInsert(Object[] data) {
+	public synchronized void auditInsertQuery(List<IQuerySelector> selectors, List<Object> values, String userId) {
+		String primaryKeyTable = null;
+		String primaryKeyColumn = null;
+		String primaryKeyValue = null;
+		
+		for(int i = 0; i < selectors.size(); i++) {
+			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
+			if(s.getColumn().equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				String[] split = getPrimKey(s.getQueryStructName());
+				primaryKeyTable = split[0];
+				primaryKeyColumn = split[1];
+				primaryKeyValue = values.get(i) + "";
+			}
+		}
+		
+		StringBuilder auditInserts = new StringBuilder();
+		
+		String id = UUID.randomUUID().toString();
+		String time = getTime();
+
+		Object[] insert = new Object[INSERT_SIZE];
+		insert[0] = id;
+		insert[1] = "INSERT";
+		insert[2] = primaryKeyTable;
+		insert[3] = primaryKeyColumn;
+		insert[4] = primaryKeyValue;
+		
+		for(int i = 0; i < selectors.size(); i++) {
+			QueryColumnSelector s = (QueryColumnSelector) selectors.get(i);
+			String alteredColumn = s.getColumn();
+			String newValue = values.get(i) + "";
+
+			insert[5] = alteredColumn;
+			insert[6] = null;
+			insert[7] = newValue;
+			insert[8] = time;
+			insert[9] = userId;
+			
+			// get a combination of all the inserts
+			auditInserts.append(getAuditInsert(insert));
+			auditInserts.append(";");
+		}
+		
+		// execute the inserts
+		execQ(getAuditInsert(insert));
+	}
+	
+	private String getAuditInsert(Object[] data) {
 		String[] headers = new String[]{"ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
 		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
 		return RdbmsQueryBuilder.makeInsert("TEST_TABLE", headers, types, data);
