@@ -285,6 +285,11 @@ public class GenRowFilters {
 		return filterList;
 	}
 	
+	/**
+	 * Get the list of all simple queries that use a specific column
+	 * @param column
+	 * @return
+	 */
 	public List<SimpleQueryFilter> getAllSimpleQueryFiltersContainingColumn(String column) {
 		List<SimpleQueryFilter> filterList = new Vector<SimpleQueryFilter>();
 		// since we already store all the filtered columns
@@ -303,6 +308,21 @@ public class GenRowFilters {
 			}
 		}
 		
+		return filterList;
+	}
+	
+	/**
+	 * Get the list of all simple queries
+	 * @return
+	 */
+	public List<SimpleQueryFilter> getAllSimpleQueryFilters() {
+		List<SimpleQueryFilter> filterList = new Vector<SimpleQueryFilter>();
+
+		for(IQueryFilter f : this.filterVec) {
+			if(f.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				filterList.add((SimpleQueryFilter)f);
+			}
+		}
 		return filterList;
 	}
 }
