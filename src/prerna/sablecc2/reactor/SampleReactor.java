@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor;
 
-import java.util.Enumeration;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -98,16 +98,14 @@ public class SampleReactor extends AbstractReactor {
 			String code = (String)propStore.get("CODE");
 			String baseClass = "prerna.sablecc2.reactor.Lambda";
 			getType();
-			Enumeration <String> keys = store.nounRow.keys();
+			Set<String> keys = store.nounRow.keySet();
 			String reactorOutput = reactorName;
 			
 			Vector <Object> filters = new Vector();
 			Vector <Object> joins = new Vector();
 			Vector <String> inputs = new Vector();
 			
-			while(keys.hasMoreElements())
-			{
-				String singleKey = keys.nextElement();
+			for(String singleKey : keys) {
 				GenRowStruct struct = store.nounRow.get(singleKey);
 				inputs.addAll(struct.getAllColumns());
 				// merge the filters and joins as well
@@ -199,11 +197,9 @@ public class SampleReactor extends AbstractReactor {
 		// so many questions 
 		// should be the parent
 		// not going to keep count for now
-		Enumeration <String> curReactorKeys = store.nounRow.keys();
+		Set<String> curReactorKeys = store.nounRow.keySet();
 		// if you want to keep order.. should be the work of the reactor
-		while(curReactorKeys.hasMoreElements())
-		{
-			String thisNoun = curReactorKeys.nextElement();
+		for(String thisNoun : curReactorKeys) {
 			GenRowStruct output = store.nounRow.get(thisNoun);
 			parentReactor.getNounStore().addNoun(thisNoun, output);
 		}
@@ -229,12 +225,10 @@ public class SampleReactor extends AbstractReactor {
 		// add the inputs from the store as well as this operation
 		// first is all the inputs
 		getType();
-		Enumeration <String> keys = store.nounRow.keys();
+		Set<String> keys = store.nounRow.keySet();
 		String reactorOutput = reactorName;
 		
-		while(keys.hasMoreElements())
-		{
-			String singleKey = keys.nextElement();
+		for(String singleKey : keys) {
 			GenRowStruct struct = store.nounRow.get(singleKey);
 			List <String> inputs = struct.getAllColumns();
 			// merge the filters and joins as well

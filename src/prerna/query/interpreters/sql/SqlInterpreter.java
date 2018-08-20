@@ -39,6 +39,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
+import schemacrawler.tools.commandline.AdditionalConfigOptionsParser;
 
 public class SqlInterpreter extends AbstractQueryInterpreter {
 	
@@ -322,6 +323,22 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				expression.append(processSelector(innerSelectors.get(i), false));
 			} else {
 				expression.append(",").append(processSelector(innerSelectors.get(i), false));
+			}
+		}
+		
+		List<Object[]> additionalParams = selector.getAdditionalFunctionParams();
+		for(int i = 0; i < additionalParams.size(); i++) {
+			expression.append(",");
+			Object[] param = additionalParams.get(i);
+			String name = param[0].toString();
+			if(!name.equals("noname")) {
+				expression.append(name).append(" ");
+			}
+			for(int j = 1; j < param.length; j++) {
+				if(j > 1) {
+					expression.append(",");
+				}
+				expression.append(param[j]);
 			}
 		}
 		expression.append(")");
