@@ -222,6 +222,9 @@ public class PixelStreamUtility {
 			if(numOutputs > 0) {
 				ps.print(",\"additionalOutput\":[");
 				for(int i = 0; i < numOutputs; i++) {
+					if(i > 0) {
+						ps.print(",");
+					}
 					processNounMetadata(in, ps, gson, addReturns.get(i), null, null);
 				}
 				ps.print("]");
@@ -236,6 +239,9 @@ public class PixelStreamUtility {
 			if(numOutputs > 0) {
 				ps.print("\"output\":[");
 				for(int i = 0; i < numOutputs; i++) {
+					if(i > 0) {
+						ps.print(",");
+					}
 					processNounMetadata(in, ps, gson, codeOutputs.get(i), null, null);
 				}
 				ps.print("]");
@@ -463,6 +469,9 @@ public class PixelStreamUtility {
 			if(numOutputs > 0) {
 				ps.print(",\"additionalOutput\":[");
 				for(int i = 0; i < numOutputs; i++) {
+					if(i > 0) {
+						ps.print(",");
+					}
 					processNounMetadata(in, ps, gson, addReturns.get(i), null, null);
 				}
 				ps.print("]");
