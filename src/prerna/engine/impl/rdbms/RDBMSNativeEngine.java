@@ -463,6 +463,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 			}
 			closeDataSource();
+			if(auditDatabase != null) {
+				auditDatabase.close();
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
