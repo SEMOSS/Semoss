@@ -61,11 +61,11 @@ public class QuerySelectReactor extends AbstractQueryStructReactor {
 		}
 	}
 
-	protected IQuerySelector genFunctionSelector(String functionName, IQuerySelector innerSelector) {
+	protected QueryFunctionSelector genFunctionSelector(String functionName, IQuerySelector innerSelector) {
 		return genFunctionSelector(functionName, innerSelector, false);
 	}
 	
-	protected IQuerySelector genFunctionSelector(String functionName, IQuerySelector innerSelector, boolean isDistinct) {
+	protected QueryFunctionSelector genFunctionSelector(String functionName, IQuerySelector innerSelector, boolean isDistinct) {
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.addInnerSelector(innerSelector);
 		newSelector.setFunction(functionName);

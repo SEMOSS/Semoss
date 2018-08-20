@@ -319,27 +319,49 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		StringBuilder expression = new StringBuilder();
 		expression.append(QueryFunctionHelper.convertFunctionToRSyntax(function));
 		// we auto add some cleaning up for specific functions
-		String endExpr = "";
+		StringBuilder endExpr = new StringBuilder();
 		if(function.equals(QueryFunctionHelper.GROUP_CONCAT)) {
 			expression.append("(na.omit(");
-			endExpr = "), collapse = \", \")";
+			endExpr.append("), collapse = \", \")");
 		} else if (function.equals(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
 			expression.append("(unique((na.omit(");
-			endExpr = "))), collapse = \", \")";
+			endExpr.append("))), collapse = \", \")");
 		} else if(function.equals(QueryFunctionHelper.COUNT) || function.equals(QueryFunctionHelper.UNIQUE_COUNT) ) {
 			expression.append("(na.omit(");
-			endExpr = "))";
-		} else if(QueryFunctionHelper.determineTypeOfFunction(function).equals("NUMBER")) {
-			if(selector.isDistinct()) {
-				expression.append("(unique(as.numeric(na.omit(");
-				endExpr = "))))";
-			} else {
-				expression.append("(as.numeric(na.omit(");
-				endExpr = ")))";
-			}
+			endExpr.append("))");
 		} else {
-			expression.append("(");
-			endExpr = ")";
+			// if we have a non-defined type of function
+			// we need to account for additional params
+			List<Object[]> additionalParams = selector.getAdditionalFunctionParams();
+			for(int i = 0; i < additionalParams.size(); i++) {
+				endExpr.append(",");
+				Object[] param = additionalParams.get(i);
+				String name = param[0].toString();
+				if(!name.equals("noname")) {
+					endExpr.append(name).append("=");
+				}
+				for(int j = 1; j < param.length; j++) {
+					if(j > 1) {
+						endExpr.append(",");
+					}
+					endExpr.append(param[j]);
+				}
+			}
+			
+			if(QueryFunctionHelper.determineTypeOfFunction(function).equals("NUMBER")) {
+				if(selector.isDistinct()) {
+					expression.append("(unique(as.numeric(na.omit(");
+					endExpr.insert(0, ")))");
+					endExpr.append(")");
+				} else {
+					expression.append("(as.numeric(na.omit(");
+					endExpr.insert(0, "))");
+					endExpr.append(")");
+				}
+			} else {
+				expression.append("(");
+				endExpr.append(")");
+			}
 		}
 		
 		int size = innerSelectors.size();
