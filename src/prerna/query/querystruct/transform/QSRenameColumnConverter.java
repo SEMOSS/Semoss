@@ -178,6 +178,7 @@ public class QSRenameColumnConverter {
 		newS.setFunction(selector.getFunction());
 		newS.setDistinct(selector.isDistinct());
 		newS.setAlias(selector.getAlias());
+		newS.setAdditionalFunctionParams(selector.getAdditionalFunctionParams());
 		return newS;
 
 	}
