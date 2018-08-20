@@ -2,6 +2,7 @@ package prerna.auth;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -9,8 +10,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
-	
+
 import jodd.util.BCrypt;
+import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -423,6 +425,27 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		retMap.put("rdbmsId", ids);
 		retMap.put("insightName", names);
 		return retMap;
+	}
+	
+	public static SemossDate getLastExecutedInsightInApp(String engineId) {
+		String query = "SELECT DISTINCT INSIGHT.LASTMODIFIEDON "
+				+ "FROM INSIGHT "
+				+ "WHERE INSIGHT.ENGINEID='" + engineId + "'"
+				+ "ORDER BY INSIGHT.LASTMODIFIEDON DESC LIMIT 1"
+				;
+		
+		SemossDate date = null;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		while(wrapper.hasNext()) {
+			Object[] row = wrapper.next().getValues();
+			try {
+				date = (SemossDate) row[0];
+			} catch(Exception e) {
+				// ignore
+			}
+		}
+		
+		return date;
 	}
 	
 	/**
