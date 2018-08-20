@@ -104,7 +104,7 @@ public class AuditDatabase {
 		execQ(RdbmsQueryBuilder.makeOptionalCreate("TEST_TABLE", headers, types));
 	}
 	
-	public synchronized void auditUpdateQuery(UpdateQueryStruct updateQs) {
+	public synchronized void auditUpdateQuery(UpdateQueryStruct updateQs, String userId) {
 		List<IQuerySelector> selectors = updateQs.getSelectors();
 		int numUpdates = selectors.size();
 		List<String> selectorQsName = new Vector<String>(numUpdates);
@@ -196,7 +196,7 @@ public class AuditDatabase {
 			insert[6] = oldValue;
 			insert[7] = newValue;
 			insert[8] = time;
-			insert[9] = "themaherkhalil";
+			insert[9] = userId;
 			
 			// get a combination of all the insert
 			inserts.append(getAuditInsert(insert));
