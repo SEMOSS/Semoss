@@ -599,4 +599,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			e.printStackTrace();
 		}
 	}
+
+	@Override
+	public void stopRProcess() {
+		// TODO Auto-generated method stub
+		
+	}
 }
