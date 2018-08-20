@@ -227,7 +227,7 @@ public class PixelStreamUtility {
 				ps.print("]");
 			}
 
-		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST) {
+		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST || nounT == PixelDataType.VECTOR) {
 			// code is a tough one to process
 			// since many operations could have been performed
 			// we need to loop through a set of noun meta datas to output
