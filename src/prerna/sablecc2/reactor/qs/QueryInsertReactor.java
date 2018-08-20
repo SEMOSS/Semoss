@@ -7,8 +7,10 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -50,6 +52,14 @@ public class QueryInsertReactor extends AbstractReactor {
 			}
 		} else {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
+		}
+		
+		String userId = null;
+		if(this.securityEnabled()) {
+			User user = this.insight.getUser();
+			userId = user.getAccessToken(user.getLogins().get(0)).getId();
+		} else {
+			userId = "require login for user";
 		}
 		
 		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
@@ -111,6 +121,8 @@ public class QueryInsertReactor extends AbstractReactor {
 			System.out.println("SQL QUERY...." + query);
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
 				engine.insertData(query);
+				AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
+				audit.auditInsertQuery(selectors, Arrays.asList(values), userId);
 			} else {
 				try {
 					((H2Frame) frame).getBuilder().runQuery(query);
