@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.qs;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -56,19 +57,26 @@ public class ExecQueryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
 
+		boolean update = false;
 		String query = null;
 		if(qs instanceof UpdateQueryStruct) {
 			UpdateSqlInterpreter interp = new UpdateSqlInterpreter((UpdateQueryStruct) qs);
 			query = interp.composeQuery();
+			update = true;
 		} else if(qs instanceof SelectQueryStruct) {
 			DeleteSqlInterpreter interp = new DeleteSqlInterpreter((SelectQueryStruct) qs);
 			query = interp.composeQuery();
+			update = false;
 		}
 		
 		System.out.println("SQL QUERY...." + query);
 		if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
 			engine.insertData(query);
 			success = true;
+			AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
+			if(update) {
+				audit.auditUpdateQuery((UpdateQueryStruct) qs);
+			}
 		} else {
 			try {
 				((H2Frame) frame).getBuilder().runQuery(query);
