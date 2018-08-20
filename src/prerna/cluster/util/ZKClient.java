@@ -3,18 +3,22 @@ package prerna.cluster.util;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Stat;
 
-public class ZKClient {
+import prerna.util.Utility;
+
+public class ZKClient implements Watcher{
 	
 	/*
 	// Environment Variables this depnds on
@@ -49,6 +53,7 @@ public class ZKClient {
 	public static final String BOOTUSER = "bu";
 	public static final String HOME = "home";
 	public static final String APP_HOME = "app";
+	public static final String SEMOSS_HOME = "sem";
 
 	
 	ZooKeeper zk = null;
@@ -64,6 +69,8 @@ public class ZKClient {
 	boolean connected = false;
 	
 	public static ZKClient zkClient = null;
+	
+	Map <String, List<IZKListener>> listeners = new HashMap<String, List<IZKListener>>();
 	
 	
 	
@@ -93,19 +100,6 @@ public class ZKClient {
 		zkClient.init();
 	}
 	
-	public static void main(String [] args) throws Exception
-	{
-		ZKClient c = ZKClient.getInstance();
-		//c.openZK();
-		//c.init();
-		//c.watch();
-		c.publishNode();
-		c.publishDB("123456");
-		c.host = "1.1.1.1:2000";
-		c.publishDB("1231aa");
-		System.out.println("Wait here.. ");
-		c.waitHere();
-	}
 	
 	public void waitHere()
 	{
@@ -127,29 +121,55 @@ public class ZKClient {
 			env = System.getenv();
 			if(env.containsKey(ZK_SERVER))
 				zkServer = env.get(ZK_SERVER);
-			
+
+			if(env.containsKey(ZK_SERVER.toUpperCase()))
+				zkServer = env.get(ZK_SERVER.toUpperCase());
+
 			if(env.containsKey(HOST))
 				host = env.get(HOST);
-			
+
+			if(env.containsKey(HOST.toUpperCase()))
+				host = env.get(HOST.toUpperCase());
+
 			int timeout = (30 * 60 * 1000);
 
 			if(env.containsKey(TIMEOUT))
 				host = env.get(TIMEOUT);
 
+			if(env.containsKey(TIMEOUT.toUpperCase()))
+				host = env.get(TIMEOUT.toUpperCase());
+
 			if(env.containsKey(BOOTUSER))
 				user = env.get(BOOTUSER);
 
+			if(env.containsKey(BOOTUSER.toUpperCase()))
+				user = env.get(BOOTUSER.toUpperCase());
+
+			
 			if(env.containsKey(HOME))
 				home = env.get(HOME);
+
+			
+			if(env.containsKey(HOME.toUpperCase()))
+				home = env.get(HOME.toUpperCase());
 
 			if(env.containsKey(APP_HOME))
 				app = env.get(APP_HOME);
 
+			if(env.containsKey(APP_HOME.toUpperCase()))
+				app = env.get(APP_HOME.toUpperCase());
+
+			if(env.containsKey(SEMOSS_HOME))
+				semossHome = env.get(SEMOSS_HOME);
+
+			if(env.containsKey(SEMOSS_HOME.toUpperCase()))
+				semossHome = env.get(SEMOSS_HOME.toUpperCase());
+			
 			if(zkServer != null && host != null)
 			{
 				// open zk
 				// default time is 30 min
-				zk = new ZooKeeper(zkServer, timeout, null);
+				zk = new ZooKeeper(zkServer, timeout, this);
 				
 				connected = true;
 			}
@@ -218,4 +238,65 @@ public class ZKClient {
 			e.printStackTrace();
 		}
 	}
+	
+	public void watchEvent(String path, EventType eventType, IZKListener listener)
+	{	
+		String key = path + "_" + eventType;
+		List <IZKListener> llist = new Vector<IZKListener>();
+		if(listeners.containsKey(key))
+			llist = listeners.get(key);
+		
+		llist.add(listener);
+		listeners.put(path + "_" + eventType, llist);
+		watchPath(path);
+	}
+	
+	public void watchPath(String path)
+	{
+		// reset the watch
+		try {
+			zk.getChildren(path , true, null);
+		} catch (KeeperException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+	}
+	
+	@Override
+	public void process(WatchedEvent event) {	
+		// TODO Auto-generated method stub
+		// System.out.println("Ok.. something came back on this" + arg0);
+		EventType type = event.getType();
+		
+		
+		
+		System.out.println("Some Event came in.. " + event.getType());
+		
+		String path = event.getPath();
+		
+		if(path != null)
+		{
+			
+			String key = path + "_" + event.getType();
+			
+			if(listeners.containsKey(key))
+			{
+				List <IZKListener> llist = listeners.get(key);
+				
+				for(int listIndex = 0;listIndex < llist.size();listIndex++)
+				{
+					IZKListener thisListener = llist.get(listIndex);
+					thisListener.process(path, zk);
+				}
+				
+			}
+			
+			watchPath(path);
+		}
+		
+	}
+	
+	
+	
+	
 }
