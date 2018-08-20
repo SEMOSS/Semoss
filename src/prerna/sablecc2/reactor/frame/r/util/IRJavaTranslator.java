@@ -142,4 +142,9 @@ public interface IRJavaTranslator {
 	 */
 	void endR();
 	
+	/**
+	 * Stop R process
+	 */
+	void stopRProcess();
+	
 }
