@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.qs;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -56,6 +57,14 @@ public class ExecQueryReactor extends AbstractReactor {
 		} else {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
+		
+		String userId = null;
+		if(this.securityEnabled()) {
+			User user = this.insight.getUser();
+			userId = user.getAccessToken(user.getLogins().get(0)).getId();
+		} else {
+			userId = "require login for user";
+		}
 
 		boolean update = false;
 		String query = null;
@@ -75,7 +84,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			success = true;
 			AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
 			if(update) {
-				audit.auditUpdateQuery((UpdateQueryStruct) qs);
+				audit.auditUpdateQuery((UpdateQueryStruct) qs, userId);
 			}
 		} else {
 			try {
