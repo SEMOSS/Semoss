@@ -515,4 +515,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		}
 	}
 
+	@Override
+	public void stopRProcess() {
+		engine.rniStop(0);
+	}
+
 }
