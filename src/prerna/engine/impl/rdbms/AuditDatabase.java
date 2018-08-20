@@ -258,4 +258,12 @@ public class AuditDatabase {
 		primaryKeyCache.put(conceptualName, split);
 		return split;
 	}
+
+	public void close() {
+		try {
+			this.conn.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 }
