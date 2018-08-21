@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.h2.tools.Server;
 
@@ -179,34 +178,22 @@ public class AuditDatabase {
 	public synchronized void auditUpdateQuery(UpdateQueryStruct updateQs, String userId, String query) {
 		List<IQuerySelector> selectors = updateQs.getSelectors();
 		int numUpdates = selectors.size();
-		List<String> selectorQsName = new Vector<String>(numUpdates);
 		List<Object> values = updateQs.getValues();
-		
-		// get all the columns of the selectors
-		for(int i = 0; i < selectors.size(); i++) {
-			selectorQsName.add(((QueryColumnSelector) selectors.get(i)).getQueryStructName());
-		}
 		
 		// let us collect all the constraints
 		// if this is just a primary key constraint
 		// it will just be key_qs_name to key_column_value
 		Map<String, String> constraintMap = getConstraintMap(updateQs);
 		
-		// the filter column that is not in the update
-		// is going to be the primary key
+		// loop through and find the key column
 		String primaryKeyTable = null;
 		String primaryKeyColumn = null;
 		String primaryKeyValue = null;
 		
 		for(String filterQsName : constraintMap.keySet()) {
-			if(!selectorQsName.contains(filterQsName)) {
+			if(!filterQsName.contains("__")) {
 				// i guess you are the primary key 
-				String[] split = null;
-				if(filterQsName.contains("__")) {
-					split = filterQsName.split("__");
-				} else {
-					split = getPrimKey(filterQsName);
-				}
+				String[] split = getPrimKey(filterQsName);
 				primaryKeyTable = split[0];
 				primaryKeyColumn = split[1];				
 				primaryKeyValue = constraintMap.get(filterQsName) + "";
@@ -228,8 +215,12 @@ public class AuditDatabase {
 			
 			IQuerySelector selector = selectors.get(i);
 			String alteredColumn = ((QueryColumnSelector) selector).getColumn();
+			// are we updating the primary key ?
+			if(alteredColumn.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				alteredColumn = primaryKeyColumn;
+			}
+			
 			String newValue = values.get(i) + "";
-
 			String qsname = selector.getQueryStructName();
 			String oldValue = constraintMap.get(qsname);
 
