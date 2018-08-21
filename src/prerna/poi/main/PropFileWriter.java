@@ -171,7 +171,6 @@ public class PropFileWriter {
 	 * @throws FileReaderException
 	 */
 	private void writeCustomDBProp(String defaultName, String dbname, ImportOptions.DB_TYPE dbType, String fileName) throws IOException {
-		String jnlName = engineDirectoryName + System.getProperty("file.separator") + dbname + ".jnl";
 		// move it outside the default directory
 		propFileName = defaultName.replace("Default/", "") + "1";
 		// change the name of the file from default to engine name
@@ -236,7 +235,7 @@ public class PropFileWriter {
 				String currentLine;
 				while ((currentLine = read.readLine()) != null) {
 					if (currentLine.contains("@FileName@")) {
-						currentLine = currentLine.replace("@FileName@", jnlName);
+						currentLine = currentLine.replace("@FileName@", "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + dbname + ".jnl");
 					}
 					pw.write(currentLine + "\n");
 				}
