@@ -27,6 +27,17 @@ public class User extends AbstractValueObject {
 	}
 	
 	/**
+	 * Set the access token for a given provider
+	 * We do not register in the logged in profiles but can still grab
+	 * from reactors that utilize them
+	 * @param value
+	 */
+	public void setGlobalAccessToken(AccessToken value) {
+		AuthProvider name = value.getProvider();
+		accessTokens.put(name, value);
+	}
+	
+	/**
 	 * Get the requested access token
 	 * @param name
 	 * @return
