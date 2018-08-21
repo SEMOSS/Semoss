@@ -16,7 +16,6 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 
-import prerna.util.Utility;
 
 public class ZKClient implements Watcher{
 	
@@ -51,7 +50,7 @@ public class ZKClient implements Watcher{
 	public static final String HOST = "host";
 	public static final String TIMEOUT = "to";
 	public static final String BOOTUSER = "bu";
-	public static final String HOME = "home";
+	public static final String HOME = "zk_home";
 	public static final String APP_HOME = "app";
 	public static final String SEMOSS_HOME = "sem";
 
