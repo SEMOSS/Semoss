@@ -84,7 +84,9 @@ public class ExecQueryReactor extends AbstractReactor {
 			success = true;
 			AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
 			if(update) {
-				audit.auditUpdateQuery((UpdateQueryStruct) qs, userId);
+				audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+			} else {
+				audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
 			}
 		} else {
 			try {
