@@ -64,7 +64,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 		String database = this.keyValue.get(this.keysToGet[0]);
 		database = database.replace(" ", "_");
 		// check if packages are installed
-		String[] packages = { "lsa", "data.table", "WikidataR", "LSAfun", "text2vec","plyr", "stringdist" };
+		String[] packages = { "lsa", "WikidataR", "text2vec","plyr", "stringdist" };
 		this.rJavaTranslator.checkPackages(packages);
 		
 		//r temp variables
@@ -85,18 +85,14 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         rsb.append("rm(" + rMasterTable1 + ", " + rTempTable + "," + resultsTable + ", " + finalResultFrame + ");\n");
 
         // source all scripts
-        String wd = this.rJavaTranslator.getString("getwd()");
+        String wd = "wd"+ Utility.getRandomString(5);
+		rsb.append(wd + "<- getwd();");
         String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-        String wrkDir = "setwd(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\");\n";
-        wrkDir = wrkDir.replace("\\", "/");
-        rsb.append(wrkDir);
-        String sourceScript = "source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\column_doc.r\");\n";
-        sourceScript = sourceScript.replace("\\", "/");
-        rsb.append(sourceScript);
-        String sourceScript2 = "source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\lsi_dataitem.r\");\n";
-        sourceScript2 = sourceScript2.replace("\\", "/");
-        rsb.append(sourceScript2);
-        this.rJavaTranslator.runR(rsb.toString());
+        
+        rsb.append("setwd(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\");\n");
+        rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\column_doc.r\");\n");
+        rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\lsi_data.r\");\n");
+        this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));
         ArrayList<String> failedColArray = new ArrayList<String>();
         // indexing: skip if user already indexed this db and doesnt want to update the data
         boolean addFlag = getUpdatedBool();
@@ -175,7 +171,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 					} 
 				}
 			if (count == 0) {
-				this.rJavaTranslator.runR("setwd('" + wd + "');\n");
+				this.rJavaTranslator.runR("setwd(" + wd + ");\n");
 				this.rJavaTranslator.runR("rm(apply_tfidf, build_query_tdm, col2db,column_doc_mgr, "
 						+ "compute_column_desc_sim, find_columns_bydesc, "
 						+ "get_sim_query, lsi_mgr, build_query_doc, build_tdm, col2tbl, "
@@ -218,8 +214,8 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         rsb.append(resultsTable + "[" + resultsTable + "< 0,]= 0;\n");
         
         // update header names
-        rsb.append("colnames("+resultsTable+")[1] <- \"" + database + "\";\n");
-        rsb.append("colnames("+resultsTable+")[2] <-\"" + lmColumns + "\";\n");
+		rsb.append("colnames(" + resultsTable + ")[1] <- \"" + database + "\";\n");
+		rsb.append("colnames(" + resultsTable + ")[2] <-\"" + lmColumns + "\";\n");
         
         // compute and read in similar tables set
         String tablesResults = "semanticResultsTables";
@@ -249,7 +245,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         String rDbRDS = "dbRDS";
         String databaseScript = "compute_entity_sim(\"column-desc-set\",\"database-desc-set\",\"database\", sep=\"" + seperator + "\");\n";
         rsb.append(databaseScript);
-        rsb.append(rDbRDS + "<-readRDS(\"database-desc-set-sim.rds\");\n");
+        rsb.append(rDbRDS + "<- readRDS(\"database-desc-set-sim.rds\");\n");
         
         // removes rows that arent from current db we are viewing
         rsb.append(dbResults + "<-as.data.table(as.table(" + rDbRDS + "));\n");
@@ -294,7 +290,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
         rsb.append("}\n");
         rsb.append("}\n");
         rsb.append("}\n");
-        rsb.append("setwd('"+wd+"');\n");
+        rsb.append("setwd("+wd+");\n");
         // clean garbage
         rsb.append("rm(apply_tfidf, build_query_tdm, col2db,column_doc_mgr, "
                     + "compute_column_desc_sim, find_columns_bydesc, "
