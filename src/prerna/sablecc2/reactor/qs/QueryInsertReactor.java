@@ -16,6 +16,7 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -71,6 +72,12 @@ public class QueryInsertReactor extends AbstractReactor {
 		for(int i = 0; i < col_grs.size(); i++) {
 			String s = col_grs.get(i).toString();
 			selectors.add(new QueryColumnSelector (s));
+		}
+		
+		if(frame != null) {
+			qs.setSelectors(selectors);
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, frame.getMetaData());
+			selectors = qs.getSelectors();
 		}
 		
 		// Insert table name
