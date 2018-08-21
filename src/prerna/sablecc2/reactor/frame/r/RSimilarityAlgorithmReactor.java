@@ -101,12 +101,15 @@ public class RSimilarityAlgorithmReactor extends AbstractRFrameReactor {
 		rsb.append("source(\"" + correlationScriptFilePath + "\");");
         // R syntax for the routine: ResultsTableName <- getCorrelationTable(frameName, "Title", c("col1", "col2"), "simColumnName")
 		rsb.append(resultsFrameName + "<- GenerateSimilarityTable(" + frameName + ", " + "\"" + instanceColumn + "\"" + ", " + colVector + ", " + "\"" + newColName + "\"" + ");");
-		rsb.append(frameName +  " <- " + resultsFrameName);
-
+		rsb.append(RSyntaxHelper.asDataTable(frameName, resultsFrameName));
+		// garbage collection
+		rsb.append("rm(" + resultsFrameName + ",CalculateSimilarity, CSimilarity,DefineRatios,"
+				+ "FindCentroids,GenerateCountTable,GenerateLookupDT, "
+				+ "GenerateSimilarityTable,GenerateWeightsTable,ScaleUniqueData); gc();");
 		// run the script
 		this.rJavaTranslator.runR(rsb.toString());
-		// garbage collection
-		this.rJavaTranslator.executeEmptyR("rm(" + resultsFrameName + "); gc();");
+
+
 	}
 
 	////////////////////////////////////////////////////////////
