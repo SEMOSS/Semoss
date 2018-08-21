@@ -22,8 +22,6 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
-		String[] packages = new String[] {"plyr"};
-		this.rJavaTranslator.checkPackages(packages);
 		// get Pixel inputs
 		RDataTable frame = (RDataTable) this.getFrame();
 		String frameName = frame.getTableName();
@@ -37,7 +35,6 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		temp.add(instanceCol);
 		String subset = RSyntaxHelper.createStringRColVec(temp.toArray());
 		// make frame with only used columns
-		rsb.append("library(plyr);");
 		rsb.append(RSyntaxHelper.getFrameSubset(tempFrame, frameName, temp.toArray()));
 		String mergeBy = RSyntaxHelper.createStringRColVec(comparisonColumn.toArray());
 		// combine with self
