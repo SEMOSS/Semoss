@@ -18,6 +18,10 @@ import prerna.util.Utility;
 
 public class RdbmsQueryBuilder {
 
+	public static String escapeForSQLStatement(String s) {
+		return s.replaceAll("'", "''");
+	}
+	
 	
 	/******************************
 	 * CREATE QUERIES
@@ -101,7 +105,7 @@ public class RdbmsQueryBuilder {
 		}
 		retString.append(") VALUES (" + prefix + data[0] + prefix);
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			type = types[colIndex];
+			type = types[colIndex].toLowerCase();
 			if(type.contains("varchar") || type.contains("timestamp") || type.contains("date") || type.contains("clob")) {
 				if(data[colIndex] != null) {
 					prefix = "'";
