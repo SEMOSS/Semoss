@@ -19,7 +19,7 @@ public class GetSemanticDescription extends AbstractRFrameReactor {
 		// TODO Auto-generated method stub
 		organizeKeys();
 		init();
-		String[] packages = { "WikidataR", "data.table", "curl"};
+		String[] packages = { "WikidataR", "WikipediR", "curl", "httr", "jsonlite" };
 		this.rJavaTranslator.checkPackages(packages);
 		String input = this.keyValue.get(this.keysToGet[0]);
 		StringBuilder rsb = new StringBuilder();
@@ -36,7 +36,6 @@ public class GetSemanticDescription extends AbstractRFrameReactor {
 		// remove results
 		rsb.append("rm(" + rFrame + ");\n");
 		rsb.append("library(WikidataR);\n");
-		rsb.append("library(data.table);\n");
 		rsb.append(rFindItem + "<-find_item('" + input + "');\n");
 		rsb.append(rFrame + "<-data.frame(Reduce('rbind',lapply(" + rFindItem
 				+ ",function(x) cbind(x$url,ifelse(length(x$description)==0,NA,x$description)))));\n");
@@ -50,7 +49,8 @@ public class GetSemanticDescription extends AbstractRFrameReactor {
 		rsb.append(rFrame + "$" + semanticMeaning + " <- as.character(" + rFrame + "$" + semanticMeaning + ");\n");
 		rsb.append("}}\n");
 		// r temp variable clean up
-		rsb.append("rm(" + rFindItem + ")");
+		rsb.append("rm(" + rFindItem + ");");
+		rsb.append(RSyntaxHelper.unloadPackages(packages));
 
 		this.rJavaTranslator.runR(rsb.toString());
 		String frameExists = "exists('" + rFrame + "')";
