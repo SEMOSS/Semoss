@@ -260,6 +260,10 @@ public class AuditDatabase {
 		QueryColumnSelector s = (QueryColumnSelector) selectors.get(0);
 		primaryKeyTable = s.getTable();
 		primaryKeyColumn = s.getColumn();
+		if(primaryKeyColumn.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+			String[] split = getPrimKey(primaryKeyTable);
+			primaryKeyColumn = split[1];				
+		}
 		
 		Map<String, String> constraintMap = getConstraintMap(qs);
 		if(constraintMap.containsKey(s.getQueryStructName())) {
