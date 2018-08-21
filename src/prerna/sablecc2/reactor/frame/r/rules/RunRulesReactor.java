@@ -69,7 +69,7 @@ public class RunRulesReactor extends AbstractRFrameReactor {
 			String definedRuleType = (String) mapOptions.get("definedRuleType");
 			ArrayList<String> inputColsList = new ArrayList<String>();
 			
-			if (definedRuleType != null && definedRuleType != "") {
+			if (definedRuleType != null && !definedRuleType.isEmpty()) {
 				// look up rule in template
 				if (validateRulesTemplate == null) {
 					// read in the edit rules file
@@ -84,6 +84,10 @@ public class RunRulesReactor extends AbstractRFrameReactor {
 				}
 				
 				HashMap<String, Object> ruleTemplate = (HashMap<String, Object>) validateRulesTemplate.get(mapOptions.get("definedRuleType"));
+				if(ruleTemplate == null) {
+					throw new IllegalArgumentException("definedRuleType: "+mapOptions.get("definedRuleType")+" is not a valid rule");
+
+				}
 				rule = (String) ruleTemplate.get("rule");
 				rule = RSyntaxHelper.escapeRegexR(rule);
 				HashMap<String, Object> columnTemplate = (HashMap<String, Object>) ruleTemplate.get("columns");
@@ -119,7 +123,7 @@ public class RunRulesReactor extends AbstractRFrameReactor {
 
 				// get description
 				description = (String) ruleTemplate.get("description");
-			} else if (rule != null && rule != "") {
+			} else if (rule != null && !rule.isEmpty()) {
 				// decode rule sent from fe
 				rule = Utility.decodeURIComponent((String) rule); 
 				rule = RSyntaxHelper.escapeRegexR(rule);
@@ -201,6 +205,7 @@ public class RunRulesReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(createCF, getDqFrame, getErrorFrame, getDF, run.seq, escapeRegexR);");
 		cleanUpScript.append("rm(" + errorFrame + ");");
 		cleanUpScript.append("gc();");
+		cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		if (ruleColumns != null) {
 			for (String newColName : ruleColumns) {
