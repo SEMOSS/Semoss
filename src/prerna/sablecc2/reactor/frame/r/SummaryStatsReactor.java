@@ -23,8 +23,6 @@ public class SummaryStatsReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
-		String[] packages = new String[] { "data.table", "dplyr" };
-		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
 		String dtName = frame.getTableName();
 		
