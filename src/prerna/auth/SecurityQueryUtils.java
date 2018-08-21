@@ -2,7 +2,6 @@ package prerna.auth;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -868,6 +867,22 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param email
 	 * @return true if user is found otherwise false.
 	 */
+	public static boolean checkUserExist(String id) {
+		String query = "SELECT * FROM USER WHERE ID='" + id + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			return wrapper.hasNext();
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
+	/**
+	 * Check if a user (user name or email) exist in the security database
+	 * @param username
+	 * @param email
+	 * @return true if user is found otherwise false.
+	 */
 	public static boolean checkUserExist(String username, String email){
 		String query = "SELECT * FROM USER WHERE USERNAME='" + username + "' OR EMAIL='" + email + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -880,7 +895,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Check if the user is an admin
-	 * 
 	 * @param userId	String representing the id of the user to check
 	 */
 	public static Boolean isUserAdmin(String userId) {
@@ -891,6 +905,18 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			return Boolean.parseBoolean(ret.get(0)[0]);
 		}
 		return false;
+	}
+	
+	/**
+	 * Check if any of the users is an admin
+	 * 
+	 * @param usersId	String representing the id of the user to check
+	 */
+	public static Boolean isUserAdmin(List<String> usersId) {
+		String query = "SELECT COUNT(ID) FROM USER WHERE ID " + createFilter(usersId) + " AND ADMIN = TRUE;";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<String[]> ret = flushRsToListOfStrArray(wrapper);
+		return Integer.parseInt(ret.get(0)[0]) > 0;
 	}
 	
 	/**
@@ -986,7 +1012,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			List<Object[]> publicHiddenEngines = flushRsToMatrix(wrapper);
 
-			query = "SELECT ENGINE_ID FROM (SELECT ENGINE.ENGINEID AS ENGINE_ID, GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID AS ID1, TEMP.AID AS ID2 FROM GROUPENGINEPERMISSION JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) JOIN (SELECT GROUPMEMBERSID AS AID, GROUPID FROM GROUPMEMBERS WHERE USERID = '?1') TEMP ON (GROUPENGINEPERMISSION.GROUPID = TEMP.GROUPID) WHERE ENGINE = '?1' AND ENGINE.GLOBAL = TRUE) B JOIN ENGINEGROUPMEMBERVISIBILITY ON (B.ID1 = ENGINEGROUPMEMBERVISIBILITY.GROUPENGINEPERMISSIONID AND B.ID2 = ENGINEGROUPMEMBERVISIBILITY.GROUPMEMBERSID) WHERE ENGINEGROUPMEMBERVISIBILITY.VISIBILITY = FALSE;";
+			query = "SELECT ENGINE_ID FROM (SELECT ENGINE.ENGINEID AS ENGINE_ID, GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID AS ID1, TEMP.AID AS ID2 FROM GROUPENGINEPERMISSION JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) JOIN (SELECT GROUPMEMBERSID AS AID, GROUPID FROM GROUPMEMBERS WHERE USERID = '?1') TEMP ON (GROUPENGINEPERMISSION.GROUPID = TEMP.GROUPID) WHERE ENGINE.GLOBAL = TRUE) B JOIN ENGINEGROUPMEMBERVISIBILITY ON (B.ID1 = ENGINEGROUPMEMBERVISIBILITY.GROUPENGINEPERMISSIONID AND B.ID2 = ENGINEGROUPMEMBERVISIBILITY.GROUPMEMBERSID) WHERE ENGINEGROUPMEMBERVISIBILITY.VISIBILITY = FALSE;";
 			query = query.replace("?1", userId);
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			publicHiddenEngines.addAll(flushRsToMatrix(wrapper));
@@ -1186,7 +1212,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * Get the groups with members for a user.
 	 * @param ret
 	 * @param query
-	 * @param userId
 	 */
 	private static void getGroupsAndMembers(List<Map<String, Object>> ret, String query, String userId){
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -1237,6 +1262,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		return ret;
 	}
+
 
 	/**
 	 * Get a list of the users o a certain group.
@@ -1361,7 +1387,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get all databases that a certain user has access to.
-	 * @param userId
+	 * @param usersId
 	 * @param isAdmin
 	 * @return
 	 */
