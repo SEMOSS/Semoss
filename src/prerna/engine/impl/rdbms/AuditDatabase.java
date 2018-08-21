@@ -18,6 +18,7 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
@@ -32,6 +33,9 @@ public class AuditDatabase {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final int INSERT_SIZE = 10;
+	
+	private static final String AUDIT_TABLE = "AUDIT_TABLE";
+	private static final String QUERY_TABLE = "QUERY_TABLE";
 	
 	private Connection conn;
 	private Server server;
@@ -99,116 +103,25 @@ public class AuditDatabase {
 			e.printStackTrace();
 		}
 		
+		String uniqueIdentifier = SmssUtilities.getUniqueName(this.engineName, this.engineId);
+
 		// create the tables if necessary
 		String[] headers = new String[]{"AUTO_INCREMENT", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
 		String[] types = new String[]{"IDENTITY", "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
-		execQ(RdbmsQueryBuilder.makeOptionalCreate("TEST_TABLE", headers, types));
+		execQ(RdbmsQueryBuilder.makeOptionalCreate(AUDIT_TABLE, headers, types));
+		
+		headers = new String[]{"ID", "TYPE", "QUERY"};
+		types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "CLOB"};
+		execQ(RdbmsQueryBuilder.makeOptionalCreate(QUERY_TABLE, headers, types));
 	}
 	
-	public synchronized void auditUpdateQuery(UpdateQueryStruct updateQs, String userId) {
-		List<IQuerySelector> selectors = updateQs.getSelectors();
-		int numUpdates = selectors.size();
-		List<String> selectorQsName = new Vector<String>(numUpdates);
-		List<Object> values = updateQs.getValues();
-		
-		// get all the columns of the selectors
-		for(int i = 0; i < selectors.size(); i++) {
-			selectorQsName.add(((QueryColumnSelector) selectors.get(i)).getQueryStructName());
-		}
-		
-		// let us collect all the constraints
-		// if this is just a primary key constraint
-		// it will just be key_qs_name to key_column_value
-		Map<String, String> constraintMap = new HashMap<String, String>();
-
-		GenRowFilters grf = updateQs.getCombinedFilters();
-		List<SimpleQueryFilter> filters = grf.getAllSimpleQueryFilters();
-		for(SimpleQueryFilter f : filters) {
-			// grab the values from the filter
-			IQuerySelector col = null;
-			Object colVal = null;
-			if(f.getFilterType() == FILTER_TYPE.COL_TO_VALUES) {
-				col = (IQuerySelector) f.getLComparison().getValue();
-				colVal = f.getRComparison().getValue();
-			} else if(f.getFilterType() == FILTER_TYPE.VALUES_TO_COL) {
-				col = (IQuerySelector) f.getRComparison().getValue();
-				colVal = f.getLComparison().getValue();
-			}
-		
-			String qsname = null;
-			String val = null;
-			
-			if(colVal instanceof List) {
-				if(((List) colVal).size() == 1) {
-					val = ((List) colVal).get(0).toString();
-				} else {
-					val = colVal.toString();
-				}
-			} else {
-				val = colVal.toString();
-			}
-			
-			qsname = col.getQueryStructName();
-			constraintMap.put(qsname, val);
-		}
-		
-		// the filter column that is not in the update
-		// is going to be the primary key
-		String primaryKeyTable = null;
-		String primaryKeyColumn = null;
-		String primaryKeyValue = null;
-		
-		for(String filterQsName : constraintMap.keySet()) {
-			if(!selectorQsName.contains(filterQsName)) {
-				// i guess you are the primary key 
-				String[] split = null;
-				if(filterQsName.contains("__")) {
-					split = filterQsName.split("__");
-				} else {
-					split = getPrimKey(filterQsName);
-				}
-				primaryKeyTable = split[0];
-				primaryKeyColumn = split[1];				
-				primaryKeyValue = constraintMap.get(filterQsName) + "";
-			}
-		}
-		
-		StringBuilder auditInserts = new StringBuilder();
-		
-		String id = UUID.randomUUID().toString();
-		String time = getTime();
-
-		for(int i = 0; i < numUpdates; i++) {
-			Object[] insert = new Object[INSERT_SIZE];
-			insert[0] = id;
-			insert[1] = "UPDATE";
-			insert[2] = primaryKeyTable;
-			insert[3] = primaryKeyColumn;
-			insert[4] = primaryKeyValue;
-			
-			IQuerySelector selector = selectors.get(i);
-			String alteredColumn = ((QueryColumnSelector) selector).getColumn();
-			String newValue = values.get(i) + "";
-
-			String qsname = selector.getQueryStructName();
-			String oldValue = constraintMap.get(qsname);
-
-			insert[5] = alteredColumn;
-			insert[6] = oldValue;
-			insert[7] = newValue;
-			insert[8] = time;
-			insert[9] = userId;
-			
-			// get a combination of all the insert
-			auditInserts.append(getAuditInsert(insert));
-			auditInserts.append(";");
-		}
-		
-		// execute the inserts
-		execQ(auditInserts.toString());
-	}
-	
-	public synchronized void auditInsertQuery(List<IQuerySelector> selectors, List<Object> values, String userId) {
+	/**
+	 * 
+	 * @param selectors
+	 * @param values
+	 * @param userId
+	 */
+	public synchronized void auditInsertQuery(List<IQuerySelector> selectors, List<Object> values, String userId, String query) {
 		String primaryKeyTable = null;
 		String primaryKeyColumn = null;
 		String primaryKeyValue = null;
@@ -253,12 +166,201 @@ public class AuditDatabase {
 		
 		// execute the inserts
 		execQ(getAuditInsert(insert));
+		
+		// store the query
+		execQ(getAuditQueryLog(new Object[]{id, "INSERT", query}));
+	}
+	
+	/**
+	 * 
+	 * @param updateQs
+	 * @param userId
+	 */
+	public synchronized void auditUpdateQuery(UpdateQueryStruct updateQs, String userId, String query) {
+		List<IQuerySelector> selectors = updateQs.getSelectors();
+		int numUpdates = selectors.size();
+		List<String> selectorQsName = new Vector<String>(numUpdates);
+		List<Object> values = updateQs.getValues();
+		
+		// get all the columns of the selectors
+		for(int i = 0; i < selectors.size(); i++) {
+			selectorQsName.add(((QueryColumnSelector) selectors.get(i)).getQueryStructName());
+		}
+		
+		// let us collect all the constraints
+		// if this is just a primary key constraint
+		// it will just be key_qs_name to key_column_value
+		Map<String, String> constraintMap = getConstraintMap(updateQs);
+		
+		// the filter column that is not in the update
+		// is going to be the primary key
+		String primaryKeyTable = null;
+		String primaryKeyColumn = null;
+		String primaryKeyValue = null;
+		
+		for(String filterQsName : constraintMap.keySet()) {
+			if(!selectorQsName.contains(filterQsName)) {
+				// i guess you are the primary key 
+				String[] split = null;
+				if(filterQsName.contains("__")) {
+					split = filterQsName.split("__");
+				} else {
+					split = getPrimKey(filterQsName);
+				}
+				primaryKeyTable = split[0];
+				primaryKeyColumn = split[1];				
+				primaryKeyValue = constraintMap.get(filterQsName) + "";
+			}
+		}
+		
+		StringBuilder auditUpdates = new StringBuilder();
+		
+		String id = UUID.randomUUID().toString();
+		String time = getTime();
+
+		for(int i = 0; i < numUpdates; i++) {
+			Object[] insert = new Object[INSERT_SIZE];
+			insert[0] = id;
+			insert[1] = "UPDATE";
+			insert[2] = primaryKeyTable;
+			insert[3] = primaryKeyColumn;
+			insert[4] = primaryKeyValue;
+			
+			IQuerySelector selector = selectors.get(i);
+			String alteredColumn = ((QueryColumnSelector) selector).getColumn();
+			String newValue = values.get(i) + "";
+
+			String qsname = selector.getQueryStructName();
+			String oldValue = constraintMap.get(qsname);
+
+			insert[5] = alteredColumn;
+			insert[6] = oldValue;
+			insert[7] = newValue;
+			insert[8] = time;
+			insert[9] = userId;
+			
+			// get a combination of all the insert
+			auditUpdates.append(getAuditInsert(insert));
+			auditUpdates.append(";");
+		}
+		
+		// execute the inserts
+		execQ(auditUpdates.toString());
+		
+		// store the query
+		execQ(getAuditQueryLog(new Object[]{id, "UPDATE", query}));
+	}
+	
+	/**
+	 * 
+	 * @param qs
+	 * @param userId
+	 */
+	public synchronized void auditDeleteQuery(SelectQueryStruct qs, String userId, String query) {
+		// when you delete
+		// the qs should only have a single selector 
+		// which is the table name
+		
+		String primaryKeyTable = null;
+		String primaryKeyColumn = null;
+		String primaryKeyValue = null;
+
+		List<IQuerySelector> selectors = qs.getSelectors();
+		QueryColumnSelector s = (QueryColumnSelector) selectors.get(0);
+		primaryKeyTable = s.getTable();
+		primaryKeyColumn = s.getColumn();
+		
+		Map<String, String> constraintMap = getConstraintMap(qs);
+		if(constraintMap.containsKey(s.getQueryStructName())) {
+			primaryKeyValue = constraintMap.get(s.getQueryStructName());
+		}
+		
+		StringBuilder auditDeletes = new StringBuilder();
+
+		String id = UUID.randomUUID().toString();
+		String time = getTime();
+
+		for(String alteredColumn : constraintMap.keySet()) {
+			String oldValue = constraintMap.get(alteredColumn);
+			
+			Object[] insert = new Object[INSERT_SIZE];
+			insert[0] = id;
+			insert[1] = "DELETE";
+			insert[2] = primaryKeyTable;
+			insert[3] = primaryKeyColumn;
+			insert[4] = primaryKeyValue;
+	
+			// we are deleting based on the primary key
+			insert[5] = alteredColumn;
+			insert[6] = oldValue;
+			insert[7] = null;
+			insert[8] = time;
+			insert[9] = userId;
+			
+			// get a combination of all the insert
+			auditDeletes.append(getAuditInsert(insert));
+			auditDeletes.append(";");
+		}
+
+		// get a combination of all the insert
+		execQ(auditDeletes.toString());
+		
+		// store the query
+		execQ(getAuditQueryLog(new Object[]{id, "DELETE", query}));
 	}
 	
 	private String getAuditInsert(Object[] data) {
 		String[] headers = new String[]{"ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
 		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
-		return RdbmsQueryBuilder.makeInsert("TEST_TABLE", headers, types, data);
+		return RdbmsQueryBuilder.makeInsert(AUDIT_TABLE, headers, types, data);
+	}
+	
+	private String getAuditQueryLog(Object[] data) {
+		String[] headers = new String[]{"ID", "TYPE", "QUERY"};
+		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "CLOB"};
+		return RdbmsQueryBuilder.makeInsert(QUERY_TABLE, headers, types, data);
+	}
+	
+	/**
+	 * Collect all the simple constraints from the qs
+	 * This will get all qsName to value
+	 * @param qs
+	 */
+	private Map<String, String> getConstraintMap(AbstractQueryStruct qs) {
+		Map<String, String> constraintMap = new HashMap<String, String>();
+
+		GenRowFilters grf = qs.getCombinedFilters();
+		List<SimpleQueryFilter> filters = grf.getAllSimpleQueryFilters();
+		for(SimpleQueryFilter f : filters) {
+			// grab the values from the filter
+			IQuerySelector col = null;
+			Object colVal = null;
+			if(f.getFilterType() == FILTER_TYPE.COL_TO_VALUES) {
+				col = (IQuerySelector) f.getLComparison().getValue();
+				colVal = f.getRComparison().getValue();
+			} else if(f.getFilterType() == FILTER_TYPE.VALUES_TO_COL) {
+				col = (IQuerySelector) f.getRComparison().getValue();
+				colVal = f.getLComparison().getValue();
+			}
+		
+			String qsname = null;
+			String val = null;
+			
+			if(colVal instanceof List) {
+				if(((List) colVal).size() == 1) {
+					val = ((List) colVal).get(0).toString();
+				} else {
+					val = colVal.toString();
+				}
+			} else {
+				val = colVal.toString();
+			}
+			
+			qsname = col.getQueryStructName();
+			constraintMap.put(qsname, val);
+		}
+		
+		return constraintMap;
 	}
 	
 	/**
