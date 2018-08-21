@@ -122,7 +122,7 @@ public class QueryInsertReactor extends AbstractReactor {
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
 				engine.insertData(query);
 				AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
-				audit.auditInsertQuery(selectors, Arrays.asList(values), userId);
+				audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 			} else {
 				try {
 					((H2Frame) frame).getBuilder().runQuery(query);
