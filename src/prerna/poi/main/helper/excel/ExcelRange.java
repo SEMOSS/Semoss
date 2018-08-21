@@ -108,12 +108,11 @@ public class ExcelRange {
 		// this isn't that bad since ASCII 'A' starts at 1
 		String colStr = excelCellIndex.replaceAll("\\d+", "");
 		int colLength = colStr.length();
-		for(int i = 0; i < colLength; i++) {
+		for(int i = colLength-1; i >= 0; i--) {
 			char c = colStr.charAt(i);
-			col += ((int) c);
+			col += ((int) c) - ((int) 'A') + (26*i);
 		}
-		
-		col = col - (((int) 'A') * colLength) + 1;
+		col++;
 		
 		return new int[]{col, row};
 	}
