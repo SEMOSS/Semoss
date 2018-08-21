@@ -63,7 +63,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
-		String[] packages = new String[] { "data.table", "cluster", "stats", "dplyr" };
+		String[] packages = new String[] { "cluster" };
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
@@ -131,7 +131,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 		if (nrows == 1){
 			meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
 			this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R + "," + uniqInstPerRow_R + "," +
-					dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
+					dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();" + RSyntaxHelper.unloadPackages(packages));
 			throw new IllegalArgumentException("Instance column contains only 1 unique record.");
 		}
 		
@@ -147,7 +147,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 			if (numClusters > 0 && numClusters >= nrows){
 				meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
 				this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R + "," + uniqInstPerRow_R + "," +
-						dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
+						dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();" + RSyntaxHelper.unloadPackages(packages));
 				throw new IllegalArgumentException("Number of clusters requested, " + numClusters + ", should be less than the "
 						+ "number of unique instances, " + nrows +".");
 			}
@@ -161,7 +161,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 			if ((minNumClusters > 0 && minNumClusters >= nrows) || (maxNumClusters > 0 && maxNumClusters >= nrows)){
 				meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
 				this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R + "," + uniqInstPerRow_R + "," +
-						dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
+						dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();" + RSyntaxHelper.unloadPackages(packages));
 				throw new IllegalArgumentException("Number of min/max clusters requested should be less than the "
 						+ "number of unique instances, " + nrows +".");
 			}
@@ -206,7 +206,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 		// clean up r temp variables 
 		this.rJavaTranslator.runR("rm(" + attrNamesList_R + "," + algorithm_R + "," + instanceColumn_R + "," + numClusters_R +
 				"," + minNumCluster_R + "," + maxNumCluster_R + "," + uniqInstPerRow_R + "," + scaleUniqueData_R +
-				",getDtClusterTable,getNewColumnName,scaleUniqueData);gc();");
+				",getDtClusterTable,getNewColumnName,scaleUniqueData);gc();"+ RSyntaxHelper.unloadPackages(packages));
 		
 		// get new cluster column of data
 		Collection<String> origDfCols = new ArrayList<String>(Arrays.asList(frame.getColumnHeaders()));
@@ -223,7 +223,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 						"[,c('" + tempKeyCol + "'," + "'" + StringUtils.join(updatedDfCols,"','") + "'" +
 						"), with=FALSE],by ='" + tempKeyCol + "', all.x=TRUE);" + dtName + "[," + tempKeyCol + " := NULL] ;");
 			}
-			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc()");
+			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc()"+RSyntaxHelper.unloadPackages(packages));
 			
 			// update metadata with the new column information 
 			for (String newColName : updatedDfCols) {
@@ -233,7 +233,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 			}
 		} else {
 			// no results
-			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc()");
+			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc()"+ RSyntaxHelper.unloadPackages(packages));
 			throw new IllegalArgumentException("Selected attributes are not valid for clustering.");
 		}
 
