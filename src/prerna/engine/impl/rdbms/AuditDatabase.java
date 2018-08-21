@@ -168,7 +168,7 @@ public class AuditDatabase {
 		execQ(getAuditInsert(insert));
 		
 		// store the query
-		execQ(getAuditQueryLog(new Object[]{id, "INSERT", query}));
+		execQ(getAuditQueryLog(new Object[]{id, "INSERT", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
 	}
 	
 	/**
@@ -248,7 +248,7 @@ public class AuditDatabase {
 		execQ(auditUpdates.toString());
 		
 		// store the query
-		execQ(getAuditQueryLog(new Object[]{id, "UPDATE", query}));
+		execQ(getAuditQueryLog(new Object[]{id, "UPDATE", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
 	}
 	
 	/**
@@ -306,7 +306,7 @@ public class AuditDatabase {
 		execQ(auditDeletes.toString());
 		
 		// store the query
-		execQ(getAuditQueryLog(new Object[]{id, "DELETE", query}));
+		execQ(getAuditQueryLog(new Object[]{id, "DELETE", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
 	}
 	
 	private String getAuditInsert(Object[] data) {

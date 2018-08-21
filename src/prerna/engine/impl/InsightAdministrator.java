@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 
 public class InsightAdministrator {
@@ -53,8 +54,8 @@ public class InsightAdministrator {
 		LOGGER.info("Adding new question with layout :::: " + layout);
 		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
 		
-		insightName = escapeForSQLStatement(insightName);
-		layout = escapeForSQLStatement(layout);
+		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
+		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
 		
 		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
 				.append(QUESTION_ID_COL).append(",").append(QUESTION_NAME_COL).append(",")
@@ -92,8 +93,8 @@ public class InsightAdministrator {
 		LOGGER.info("Adding new question with layout :::: " + layout);
 		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
 		
-		insightName = escapeForSQLStatement(insightName);
-		layout = escapeForSQLStatement(layout);
+		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
+		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
 		
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
 				.append(QUESTION_NAME_COL).append(" = '").append(insightName).append("', ")
@@ -134,20 +135,11 @@ public class InsightAdministrator {
 		return idsString;
 	}
 	
-	/**
-	 * Need to escape single quotes for sql queries
-	 * @param s
-	 * @return
-	 */
-	private static String escapeForSQLStatement(String s) {
-		return s.replaceAll("'", "''");
-	}
-	
 	public static String getArraySqlSyntax(String[] pixelRecipeToSave) {
 		StringBuilder sql = new StringBuilder("(");
 		int numPixels = pixelRecipeToSave.length;
 		for(int i = 0; i < numPixels; i++) {
-			sql.append("'").append(escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
+			sql.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(pixelRecipeToSave[i])).append("'");
 			if(i+1 != numPixels) {
 				sql.append(",");
 			}
@@ -160,7 +152,7 @@ public class InsightAdministrator {
 		StringBuilder sql = new StringBuilder("(");
 		int numPixels = pixelRecipeToSave.size();
 		for(int i = 0; i < numPixels; i++) {
-			sql.append("'").append(escapeForSQLStatement(pixelRecipeToSave.get(i))).append("'");
+			sql.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(pixelRecipeToSave.get(i))).append("'");
 			if(i+1 != numPixels) {
 				sql.append(",");
 			}
