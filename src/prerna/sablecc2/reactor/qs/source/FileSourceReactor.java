@@ -12,7 +12,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class FileSourceReactor extends AbstractQueryStructReactor {
 

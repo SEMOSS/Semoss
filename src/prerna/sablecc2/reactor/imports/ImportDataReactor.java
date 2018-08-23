@@ -18,7 +18,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class ImportDataReactor extends AbstractReactor {
 	

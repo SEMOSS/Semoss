@@ -7,7 +7,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class TaskOptionsReactor extends TaskBuilderReactor {
 	

@@ -17,8 +17,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.ga.GATracker;
 import prerna.util.insight.InsightUtility;
+import prerna.util.usertracking.GATracker;
 
 public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 	
