@@ -13,7 +13,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 /**
  * Writes instance data from CSV, EXCEL, LOCAL and EXTERNAL datasources to txt

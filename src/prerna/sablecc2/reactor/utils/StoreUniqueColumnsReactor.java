@@ -27,7 +27,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class StoreUniqueColumnsReactor extends AbstractRFrameReactor {
 	
