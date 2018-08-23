@@ -15,7 +15,7 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 

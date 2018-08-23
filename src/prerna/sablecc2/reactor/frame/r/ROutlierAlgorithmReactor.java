@@ -13,7 +13,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 /**
  * This reactor updates determines the outliers for a set of values in an instance column based on the selected attribute columns

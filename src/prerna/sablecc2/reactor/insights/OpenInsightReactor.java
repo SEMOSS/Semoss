@@ -26,8 +26,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.ga.GATracker;
 import prerna.util.insight.InsightUtility;
+import prerna.util.usertracking.GATracker;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
 	
