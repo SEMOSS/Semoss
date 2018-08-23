@@ -18,6 +18,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
+import org.eclipse.jgit.lib.ProgressMonitor;
 
 import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
@@ -103,7 +104,7 @@ public class GitConsumer {
 
 		// switch to correct remote
 		logger.info("Fetch remote git directory");
-		GitRepoUtils.fetchRemote(versionFolder, repoName, "", "");
+		ProgressMonitor mon = GitRepoUtils.fetchRemote(versionFolder, repoName, "", "");
 		// merge the remote - this will bring in the files from the remote repo
 		logger.info("Merge remote git directory");
 		GitMergeHelper.merge(versionFolder, "master", repoName + "/master", 0, 2, true);
@@ -135,6 +136,17 @@ public class GitConsumer {
 			throw new IllegalArgumentException("There is no app id defined within the smss of the new app you are downloading");
 		}
 		
+		// before you do this.. wait for the monitor to finish
+		// so this started succeeding even without so leaving it for now
+		/*while(!((GitProgressMonitor)mon).complete)
+		{
+			try{
+				Thread.sleep(200);
+			}catch(Exception ignored)
+			{
+				
+			}
+		}*/
 		moveDataFilesToApp(baseFolder, actualAppId, yourName4App, logger);
 	}
 
@@ -144,11 +156,17 @@ public class GitConsumer {
 		String versionFolder = appFolder + "/version";
 		File dir = new File(versionFolder);
 
+		// seems like git pull doesn't complete until this point
+		// so it is screwing up
+		
+		
 		// now move the dbs
 		List <String> otherStuff = new Vector<String>();
 		otherStuff.add("*.db");
 		otherStuff.add("*.OWL");
 		FileFilter fileFilter = new WildcardFileFilter(otherStuff);
+		
+		
 		File[] files = dir.listFiles(fileFilter);
 		File dbFile = new File(appFolder);
 		for (int i = 0; i < files.length; i++) {
