@@ -164,6 +164,15 @@ public class PixelStreamUtility {
 		// now close of the array and the map
 		ps.print("]}");
 		ps.flush();
+		
+		// help java do garbage cleaning
+		resultList.clear();
+		pixelStrings.clear();
+		encodedTextToOriginal.clear();
+		resultList = null;
+		pixelStrings = null;
+		encodedTextToOriginal = null;
+		runner = null;
 	}
 
 
