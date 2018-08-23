@@ -20,7 +20,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class ClusteringAlgorithmReactor extends AbstractReactor {
 	
@@ -158,7 +158,7 @@ public class ClusteringAlgorithmReactor extends AbstractReactor {
 		}
 
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "Clustering");
+		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Clustering");
 		
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

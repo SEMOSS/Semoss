@@ -18,7 +18,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 	
@@ -99,7 +99,7 @@ public class OpenOptimizedInsightReactor extends AbstractInsightReactor {
 		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
 
 		// track GA data
-		GATracker.getInstance().trackInsightExecution(this.insight, "openinsight", appId, rdbmsId, newInsight.getInsightName());
+		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "openinsight", appId, rdbmsId, newInsight.getInsightName());
 		
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();

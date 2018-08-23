@@ -34,7 +34,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class MergeDataReactor extends AbstractReactor {
 	
@@ -93,7 +93,7 @@ public class MergeDataReactor extends AbstractReactor {
 	
 	private ITableDataFrame mergeNative(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
 		// track GA data
-		GATracker.getInstance().trackDataImport(this.insight, qs);
+		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 		IImporter importer = ImportFactory.getImporter(frame, qs);
 		// we reassign the frame because it might have changed
 		// this only happens for native frame
@@ -110,7 +110,7 @@ public class MergeDataReactor extends AbstractReactor {
 	 */
 	private ITableDataFrame mergeFromQs(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
 		// track GA data
-		GATracker.getInstance().trackDataImport(this.insight, qs);
+		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 		
 		// if we have an inner join, add the current values as a filter on the query
 		// important for performance on large dbs when the user has already 
