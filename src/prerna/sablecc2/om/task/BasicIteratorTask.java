@@ -108,6 +108,24 @@ public class BasicIteratorTask extends AbstractTask {
 			IEngineWrapper x = ((IEngineWrapper) this.iterator);
 			x.cleanUp();
 		}
+
+		// help java gc
+		if(this.taskOptions != null) {
+			this.taskOptions.clear();
+			this.taskOptions = null;
+		}
+		if(this.headerInfo != null) {
+			this.headerInfo.clear();
+			this.headerInfo = null;
+		}
+		if(this.sortInfo != null) {
+			this.sortInfo.clear();
+			this.sortInfo = null;
+		}
+		if(this.filterInfo != null) {
+			this.filterInfo.clear();
+			this.filterInfo = null;
+		}
 	}
 	
 	@Override

@@ -52,4 +52,8 @@ public class TaskOptions {
 	public boolean isEmpty() {
 		return this.options.isEmpty();
 	}
+	
+	public void clear() {
+		this.options.clear();
+	}
 }
