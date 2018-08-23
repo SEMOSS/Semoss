@@ -18,7 +18,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class ImportDataReactor extends AbstractReactor {
 	
@@ -71,7 +71,7 @@ public class ImportDataReactor extends AbstractReactor {
 		}
 		
 		// track GA data
-		GATracker.getInstance().trackDataImport(this.insight, qs);
+		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		retNoun.addAdditionalReturn(new NounMetadata(frame.getMetaData().getTableHeaderObjects(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));

@@ -13,7 +13,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 /**
  * This reactor updates determines the similarity between values in an instance column based on the selected attribute columns
@@ -66,7 +66,7 @@ public class RSimilarityAlgorithmReactor extends AbstractRFrameReactor {
 		logger.info("Done iterating through data to determine similarity");
 
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "SimilarityAlgorithm");
+		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "SimilarityAlgorithm");
 		
 		// create the new frame meta
 		meta.addProperty(frameName, frameName + "__" + newColName);

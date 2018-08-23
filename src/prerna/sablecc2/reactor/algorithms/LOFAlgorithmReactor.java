@@ -22,7 +22,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class LOFAlgorithmReactor extends AbstractReactor {
 	
@@ -170,7 +170,7 @@ public class LOFAlgorithmReactor extends AbstractReactor {
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", results);
 		
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "LOF");
+		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "LOF");
 		
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
