@@ -15,6 +15,7 @@ import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.RemoteRemoveCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ProgressMonitor;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -332,9 +333,9 @@ public class GitRepoUtils {
 		}
 	}
 
-	public static void fetchRemote(String localRepo, String remoteRepo, String userName, String password) {
+	public static ProgressMonitor fetchRemote(String localRepo, String remoteRepo, String userName, String password) {
 		int attempt = 1;
-		fetchRemote(localRepo, remoteRepo, userName, password, attempt);
+		return fetchRemote(localRepo, remoteRepo, userName, password, attempt);
 	}
 
 	/**
@@ -344,8 +345,10 @@ public class GitRepoUtils {
 	 * @param userName
 	 * @param password
 	 */
-	public static void fetchRemote(String localRepo, String remoteRepo, String userName, String password, int attempt) {
-		
+	public static ProgressMonitor fetchRemote(String localRepo, String remoteRepo, String userName, String password, int attempt) {
+
+		ProgressMonitor mon = new GitProgressMonitor();
+
 		if(attempt < 3)
 		{
 			File file = new File(localRepo);
@@ -360,10 +363,11 @@ public class GitRepoUtils {
 			try {
 				thisGit = Git.open(file);
 				if(cp != null) {
-					thisGit.fetch().setCredentialsProvider(cp).setRemote(remoteRepo).call();
+					thisGit.fetch().setCredentialsProvider(cp).setRemote(remoteRepo).setProgressMonitor(mon).call();
 				} else {
-					thisGit.fetch().setRemote(remoteRepo).call();
+					thisGit.fetch().setRemote(remoteRepo).setProgressMonitor(mon).call();
 				}
+				
 			}catch(SSLHandshakeException ex)
 			{
 				ex.printStackTrace();
@@ -374,10 +378,11 @@ public class GitRepoUtils {
 					e.printStackTrace();
 				}
 				attempt = attempt + 1;
-				fetchRemote(localRepo, remoteRepo, userName, password, attempt);
+				return fetchRemote(localRepo, remoteRepo, userName, password, attempt);
 				
 			} catch (IOException | GitAPIException e) {
 				e.printStackTrace();
+				mon.endTask();
 				throw new IllegalArgumentException("Error with fetching the remote respository at " + remoteRepo);
 			} finally {
 				if(thisGit != null) {
@@ -385,6 +390,7 @@ public class GitRepoUtils {
 				}
 			}
 		}
+		return mon;
 	}
 
 
