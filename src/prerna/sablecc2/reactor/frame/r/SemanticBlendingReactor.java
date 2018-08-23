@@ -21,7 +21,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
@@ -147,7 +147,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		// send to GA to store semantic names for predictions
 		String[] colNamesGA = { "Original_Column", "Predicted_Concept", "Prob", "URL" };
 		Map<String, Object> tableGA = this.rJavaTranslator.flushFrameAsTable(df2, colNamesGA);
-		GATracker.getInstance().addNewLogicalNames(tableGA, columns, frame);
+		UserTrackerFactory.getInstance().addNewLogicalNames(tableGA, columns, frame);
 		
 		// if we are running semantic blending
 		if (!generateFrameIndicator) {

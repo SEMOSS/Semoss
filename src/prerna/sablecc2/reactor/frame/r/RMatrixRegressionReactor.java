@@ -15,7 +15,7 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 
@@ -68,7 +68,7 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		logger.info("Done iterating through data to determine regression");
 		
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "MatrixRegression");
+		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "MatrixRegression");
 		
 		
 		/////////////////////////////////////////////////////////////////////////////

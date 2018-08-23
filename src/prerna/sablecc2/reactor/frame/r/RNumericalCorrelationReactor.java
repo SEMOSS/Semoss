@@ -16,7 +16,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 
@@ -89,7 +89,7 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.executeEmptyR("rm(" + correlationDataTable + "); gc();");
 
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
+		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
 		
 		// now return this object
 		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
