@@ -60,7 +60,7 @@ import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class Insight {
 

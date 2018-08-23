@@ -20,7 +20,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class ClusteringAlgorithmReactor extends AbstractReactor {
 	

@@ -20,7 +20,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
