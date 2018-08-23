@@ -34,7 +34,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class MergeDataReactor extends AbstractReactor {
 	

@@ -1,4 +1,4 @@
-package prerna.util.ga;
+package prerna.util.usertracking;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
