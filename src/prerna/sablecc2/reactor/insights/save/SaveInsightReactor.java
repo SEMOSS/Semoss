@@ -20,7 +20,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
@@ -118,7 +118,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 
 		// track GA data
-		GATracker.getInstance().trackInsightExecution(this.insight, "saveinsight", appId, newRdbmsId, insightName);
+		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "saveinsight", appId, newRdbmsId, insightName);
 
 		return noun;
 	}
