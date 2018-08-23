@@ -33,11 +33,11 @@ public class LoadGraphClient extends AbstractLoadClient {
 		int typeIndex = getTypeIndex(headers);
 		int returnTypeIndex = getReturnTypeIndex(headers);
 		String separator = getSeparator();
-		if(!plannerT.planner.hasProperty("MAIN_MAP", "MAIN_MAP")){
+		if(!plannerT.getPlanner().hasProperty("MAIN_MAP", "MAIN_MAP")){
 			HashMap<String, String> map = new HashMap<String, String>();
-			plannerT.planner.addProperty("MAIN_MAP", "MAIN_MAP", map);
+			plannerT.getPlanner().addProperty("MAIN_MAP", "MAIN_MAP", map);
 		}
-		HashMap<String, String> mainMap = (HashMap<String, String> )plannerT.planner.getProperty("MAIN_MAP", "MAIN_MAP");
+		HashMap<String, String> mainMap = (HashMap<String, String> )plannerT.getPlanner().getProperty("MAIN_MAP", "MAIN_MAP");
 		iterator = (IRawSelectWrapper) getIterator();
 		int count = 0;
 		while(iterator.hasNext()) {
@@ -64,7 +64,7 @@ public class LoadGraphClient extends AbstractLoadClient {
 			}
 			//else we just want to add the value of the constant/decimal directly to the planner
 			else{
-				addVariable(plannerT.planner, assignment, value);
+				addVariable(plannerT.getPlanner(), assignment, value);
 			}
 
 		}
@@ -76,7 +76,7 @@ public class LoadGraphClient extends AbstractLoadClient {
 		long end = System.currentTimeMillis();
 		LOGGER.info("****************    END LOAD CLIENT "+(end - start)+"ms      *************************");
 
-		return plannerT.planner;
+		return plannerT.getPlanner();
 	}
 
 }
