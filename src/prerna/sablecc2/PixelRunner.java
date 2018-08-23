@@ -14,7 +14,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import prerna.om.Insight;
-import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.AConfiguration;
@@ -41,14 +40,14 @@ public class PixelRunner {
 	private List<String> pixelExpression = new Vector<String>();
 	private List<Boolean> isMeta = new Vector<Boolean>();
 	private Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
-//	private boolean invalidSyntax = false;
 	
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
 		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodedTextToOriginal);
+		GreedyTranslation translation = null;
 		try {
 			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
-			DepthFirstAdapter translation = new GreedyTranslation(this, insight);
+			translation = new GreedyTranslation(this, insight);
 
 			// parsing the pixel - this process also determines if expression is syntactically correct
 			Start tree = p.parse();
@@ -81,10 +80,11 @@ public class PixelRunner {
 					}
 				}
 			}
-//			this.invalidSyntax = true;
 			addResult(expression, new NounMetadata(eMessage, PixelDataType.INVALID_SYNTAX, PixelOperationType.INVALID_SYNTAX), false);
+		} finally {
+			// help clean up
+			translation.getPlanner().dropGraph();
 		}
-		return;
 	}
 	
 	/**
@@ -122,10 +122,6 @@ public class PixelRunner {
 		return this.encodedTextToOriginal;
 	}
 
-//	public boolean isInvalidSyntax() {
-//		return invalidSyntax;
-//	}
-	
 	public Insight getInsight() {
 		return this.insight;
 	}

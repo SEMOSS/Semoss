@@ -102,7 +102,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 
 	private static final Logger LOGGER = LogManager.getLogger(LazyTranslation.class.getName());
 	
-	public PixelPlanner planner;
+	protected PixelPlanner planner;
 	protected Insight insight;
 	protected IReactor curReactor = null;
 	protected IReactor prevReactor = null;
@@ -129,6 +129,10 @@ public class LazyTranslation extends DepthFirstAdapter {
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, List<String> unexecutedPixels) {
 		// do nothing
 		// only the lazy implements this
+	}
+	
+	public PixelPlanner getPlanner() {
+		return this.planner;
 	}
 	
 /********************** First is the main level operation, script chain or other script operations ******************/

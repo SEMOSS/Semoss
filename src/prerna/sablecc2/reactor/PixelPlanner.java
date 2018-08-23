@@ -20,14 +20,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PixelPlanner {
 	
-	// this is primarily the tinker graph that would be used for planning the operation
-	public TinkerGraph g = null;
-	
-	// I need some way to have roots
-	Vector roots = new Vector();
-	
-	InMemStore<String, NounMetadata> varStore = new VarStore();
-	
 	public static final String NOUN = "NOUN";
 	public static final String OPERATION = "OP";
 	public static final String REACTOR_CLASS = "REACTOR";
@@ -38,7 +30,13 @@ public class PixelPlanner {
 	public static final String IN_DEGREE = "IN_DEGREE";
 	public static final String PROCESSED = "PROCESSED";
 	public static final String ORDER = "ORDER";
-
+	
+	// this is primarily the tinker graph that would be used for planning the operation
+	public TinkerGraph g = null;
+	// I need some way to have roots
+	private Vector roots = new Vector();
+	// and i need to keep track of the vars
+	private InMemStore<String, NounMetadata> varStore = new VarStore();
 	
 	public PixelPlanner() {
 		this.g = TinkerGraph.open();
@@ -55,6 +53,12 @@ public class PixelPlanner {
 		g.dropIndex(PixelPlanner.TINKER_TYPE, Vertex.class);
 		g.dropIndex(PixelPlanner.TINKER_ID, Vertex.class);
 		g.dropIndex(PixelPlanner.TINKER_ID, Edge.class);
+	}
+	
+	public void dropGraph() {
+		this.g.clear();
+		this.g.close();
+		this.g = null;
 	}
 	
 	//**********************PROPERTY METHODS*******************************//
