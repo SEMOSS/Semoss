@@ -33,6 +33,12 @@ public class CopyAppRepo extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define a respository");
 		}
 		
+		// check to see if the user is entering github.com and if so replace
+		if(repository.contains("github.com"))
+		{
+			repository = repository.replace("http://github.com/","");
+			repository = repository.replace("https://github.com/","");
+		}
 		Logger logger = getLogger(this.getClass().getName());
 		logger.info("Downloading app located at " + repository);
 		logger.info("App will be named locally as " + localAppName);
