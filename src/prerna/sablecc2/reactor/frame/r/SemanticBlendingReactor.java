@@ -21,7 +21,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.ga.GATracker;
+import prerna.util.usertracking.GATracker;
 
 public class SemanticBlendingReactor extends AbstractRFrameReactor {
 

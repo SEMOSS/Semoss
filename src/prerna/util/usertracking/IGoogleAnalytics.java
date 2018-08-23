@@ -1,4 +1,4 @@
-package prerna.util.ga;
+package prerna.util.usertracking;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
