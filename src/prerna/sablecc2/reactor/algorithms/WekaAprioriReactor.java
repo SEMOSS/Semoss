@@ -24,7 +24,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 import weka.associations.Apriori;
 import weka.associations.AssociationRule;
 import weka.associations.AssociationRules;
@@ -145,7 +145,7 @@ public class WekaAprioriReactor extends AbstractReactor {
 		logger.info("Finished Running Algorithm...");
 		
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "AssociatedLearning");
+		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "AssociatedLearning");
 		
 		// get and store rules
 		AssociationRules rules = apriori.getAssociationRules();

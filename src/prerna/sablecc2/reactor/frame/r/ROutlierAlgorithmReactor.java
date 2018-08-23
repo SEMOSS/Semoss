@@ -13,7 +13,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 /**
  * This reactor updates determines the outliers for a set of values in an instance column based on the selected attribute columns
@@ -69,7 +69,7 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		logger.info("Done iterating through data to determine outliers");
 
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "OutliersAlgorithm");
+		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "OutliersAlgorithm");
 		
 		// create the new frame meta
 		meta.addProperty(frameName, frameName + "__" + newColName);

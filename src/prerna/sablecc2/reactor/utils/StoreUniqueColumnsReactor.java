@@ -27,7 +27,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class StoreUniqueColumnsReactor extends AbstractRFrameReactor {
 	
@@ -188,7 +188,7 @@ public class StoreUniqueColumnsReactor extends AbstractRFrameReactor {
 			}
 		}
 		
-		GATracker.getInstance().trackDescriptions(this.insight, engine.getEngineId(), database, gaData);
+		UserTrackerFactory.getInstance().trackDescriptions(this.insight, engine.getEngineId(), database, gaData);
 
 		// set working directory back to normal
 		this.rJavaTranslator.runR("setwd('" + wd + "');\n");

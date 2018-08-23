@@ -12,7 +12,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class FileSourceReactor extends AbstractQueryStructReactor {
 
@@ -88,7 +88,7 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 		List<String> heads = new ArrayList<String>(dataTypes.keySet());
 
 		// track GA data
-		GATracker.getInstance().trackDragAndDrop(this.insight, heads, FileName);
+		UserTrackerFactory.getInstance().trackDragAndDrop(this.insight, heads, FileName);
 		return qs;
 	}
 

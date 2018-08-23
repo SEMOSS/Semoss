@@ -24,7 +24,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Utility;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 	/**
@@ -147,7 +147,7 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		vizData.put("stats", statList);
 
 		// track GA data
-		GATracker.getInstance().trackAnalyticsPixel(this.insight, "Classification");
+		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Classification");
 				
 		// now return this object
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
