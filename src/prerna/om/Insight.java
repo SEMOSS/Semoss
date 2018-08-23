@@ -60,7 +60,7 @@ import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.util.usertracking.GATracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class Insight {
 
@@ -290,7 +290,7 @@ public class Insight {
 		if (session != null) {
 			String userId = (String) session.getValue();
 			// fire and release...
-			GATracker.getInstance().track(thisExpression, thisType, thisPrevExpression, prevType, userId);
+			UserTrackerFactory.getInstance().track(thisExpression, thisType, thisPrevExpression, prevType, userId);
 			// set this expression as insight level previous expression
 			this.thisPrevExpression = thisExpression;
 			this.prevType = curType;
