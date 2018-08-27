@@ -31,8 +31,6 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
@@ -58,7 +56,6 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	protected static final Logger logger = LogManager.getLogger(AbstractFileWatcher.class.getName());
 	
 	// processes the files with the given extension
-	
 	protected String folderToWatch = null;
 	protected String extension = null;
 	protected IEngine engine = null;
@@ -66,7 +63,6 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	
 	// this is used for us to determine how to stop the thread
 	private boolean stop = false;
-	
 	
 	/**
 	 * Sets folder to watch.
@@ -115,46 +111,31 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	@Override
 	public void run() 
 	{
-		try
-		{
-			WatchService watcher = FileSystems.getDefault().newWatchService();
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
-			//Path dir2Watch = Paths.get(baseFolder + "/" + folderToWatch);
-
-			Path dir2Watch = Paths.get(folderToWatch);
-
-			WatchKey key = dir2Watch.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
-			while(!stop)
-			{
-				//WatchKey key2 = watcher.poll(1, TimeUnit.MINUTES);
-				WatchKey key2 = watcher.take();
-				
-				for(WatchEvent<?> event: key2.pollEvents())
-				{
+		WatchService watcher = null;
+		WatchKey key = null;
+		try {
+			watcher = FileSystems.getDefault().newWatchService();
+			while(!stop) {
+				key = watcher.take();
+				for(WatchEvent<?> event: key.pollEvents()) {
 					WatchEvent.Kind kind = event.kind();
-					if(kind == StandardWatchEventKinds.ENTRY_CREATE)
-					{
+					if(kind == StandardWatchEventKinds.ENTRY_CREATE) {
 						String newFile = event.context() + "";
-						if(newFile.endsWith(extension))
-						{
-							Thread.sleep(2000);	
-							try
-							{
+						if(newFile.endsWith(extension)) {
+							Thread.sleep(2000);	 
+							try {
 								process(newFile);
-								
-							}catch(RuntimeException ex)
-							{
+							} catch(RuntimeException ex) {
 								ex.printStackTrace();
 							}
-						}else
+						} else {
 							logger.info("Ignoring File " + newFile);
+						}
 					}
 				}
-				key2.reset();
+				key.reset();
 			}
-		}catch(RuntimeException ex)
-		{
+		} catch(RuntimeException ex) {
 			logger.debug(ex);
 			// do nothing - I will be working it in the process block
 		} catch (InterruptedException ex) {
@@ -163,6 +144,17 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 		} catch (IOException ex) {
 			logger.debug(ex);
 			// do nothing - I will be working it in the process block
+		} finally {
+			if(key != null) {
+				key.cancel();
+			}
+			if(watcher != null) {
+				try {
+					watcher.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}	
 
@@ -182,7 +174,8 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	/**
 	 * Switch the thread to finish running
 	 */
-	public void shutdown() {
+	public void shutdown() 
+	{
 		this.stop  = true;
 	}
 	
