@@ -92,11 +92,12 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	public PersistentHash conceptIdHash = null;
 	
 	private RdbmsConnectionBuilder connBuilder;
-	private String fileDB = null;
+	private String userName = null;
 	private String password = null;
 	private String driver = null;
 	private String connectionURL = null;
-	private String userName = null;
+	
+	private String fileDB = null;
 	private String createString = null;
 
 	/**

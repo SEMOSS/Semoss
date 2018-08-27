@@ -410,5 +410,6 @@ public class AuditDatabase {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		this.server.shutdown();
 	}
 }
