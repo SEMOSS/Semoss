@@ -64,6 +64,9 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	protected IEngine engine = null;
 	Object monitor = null;
 	
+	// this is used for us to determine how to stop the thread
+	private boolean stop = false;
+	
 	
 	/**
 	 * Sets folder to watch.
@@ -122,7 +125,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 			Path dir2Watch = Paths.get(folderToWatch);
 
 			WatchKey key = dir2Watch.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
-			while(true)
+			while(!stop)
 			{
 				//WatchKey key2 = watcher.poll(1, TimeUnit.MINUTES);
 				WatchKey key2 = watcher.take();
@@ -174,6 +177,13 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	public boolean accept(File arg0, String arg1) 
 	{
 		return arg1.endsWith(extension);
+	}
+	
+	/**
+	 * Switch the thread to finish running
+	 */
+	public void shutdown() {
+		this.stop  = true;
 	}
 	
 	/**
