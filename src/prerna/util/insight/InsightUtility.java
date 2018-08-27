@@ -8,6 +8,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -115,8 +116,6 @@ public class InsightUtility {
 	 * @return
 	 */
 	public static NounMetadata clearInsight(Insight insight) {
-		String insightId = insight.getInsightId();
-
 		// drop all the tasks that are currently running
 		TaskStore taskStore = insight.getTaskStore();
 		taskStore.clearAllTasks();
@@ -176,4 +175,21 @@ public class InsightUtility {
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 	}
 	
+	public static NounMetadata dropInsight(Insight insight) {
+		clearInsight(insight);
+		
+		String insightId = insight.getInsightId();
+		InsightStore.getInstance().remove(insightId);
+
+		NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);;
+		if(sessionNoun != null) {
+			String sessionId = sessionNoun.getValue().toString();
+			Set<String> insightIdsForSesh = InsightStore.getInstance().getInsightIDsForSession(sessionId);
+			if(insightIdsForSesh != null) {
+				insightIdsForSesh.remove(insightId);
+			}
+		}
+		
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
+	}
 }
