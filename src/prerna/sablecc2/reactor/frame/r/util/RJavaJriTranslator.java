@@ -499,13 +499,11 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public void endR() {
-		// java.lang.System.setSecurityManager(curManager);
 		if (engine != null) {
 			engine.end();
 		}
 		// clean up other things
 		System.out.println("R Shutdown!!");
-		// java.lang.System.setSecurityManager(reactorManager);
 	}
 
 	@Override
