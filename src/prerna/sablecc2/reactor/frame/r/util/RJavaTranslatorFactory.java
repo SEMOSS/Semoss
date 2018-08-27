@@ -103,6 +103,26 @@ public class RJavaTranslatorFactory {
 			e.printStackTrace();
 		}
 	}
+	
+	/**
+	 * Stop the R connection if running
+	 */
+	public static void stopRConnection() {
+		if(!INIT) {
+			try {
+				AbstractRJavaTranslator newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
+				Insight dummyIn = new Insight();
+				Logger dummyLogger = LogManager.getLogger(RJavaTranslatorFactory.class.getName());
+				newInstance.setInsight(dummyIn);
+				newInstance.setLogger(dummyLogger);
+				newInstance.endR();
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
 	/**
 	 * Get a new RJavaTranslator based on if we are using rserve or jri
