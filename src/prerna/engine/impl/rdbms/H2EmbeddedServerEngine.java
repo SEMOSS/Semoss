@@ -42,5 +42,14 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + serverUrl);
 	}
 	
-	
+	@Override
+	public void closeDB() {
+		super.closeDB();
+		try {
+			Server.shutdownTcpServer(this.server.getURL(), "", true, false);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		this.server.shutdown();
+	}
 }
