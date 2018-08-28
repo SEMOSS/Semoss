@@ -30,6 +30,8 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.r.RSingleton;
 import prerna.poi.main.HeadersException;
 import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
@@ -313,7 +315,9 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				throw exception;
 			}
 			
-			RImporter importer = new RImporter(table, dataframe.getMetaData().getFlatTableQs(), it);
+			SelectQueryStruct qs = dataframe.getMetaData().getFlatTableQs();
+			qs.setFrame(dataframe);
+			RImporter importer = new RImporter(table, qs, it);
 			importer.insertData();
 
 		} else {
