@@ -160,6 +160,11 @@ public abstract class AbstractEngine implements IEngine {
 				this.insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
 				this.insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(this.prop).getAbsolutePath();
 				
+				// replace end if defined
+				if (prop.getProperty(Constants.RDBMS_INSIGHTS_CONNECTION_URL_END) != null) {
+					this.connectionURLEnd = prop.getProperty(Constants.RDBMS_INSIGHTS_CONNECTION_URL_END);
+				}
+				
 				if(insightDatabaseLoc != null) {
 					lOGGER.info("Loading insight rdbms database...");
 					this.insightRDBMS = new RDBMSNativeEngine();
