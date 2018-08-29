@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
 
-		String returnId = null;
+		String appId = null;
 		if(existing) {
 			
 			if(security) {
@@ -109,20 +110,21 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 				}
 			}
 			
-			returnId = addToExistingApp(appIdOrName, filePath, logger);
+			appId = addToExistingApp(appIdOrName, filePath, logger);
 		} else {
-			returnId = generateNewApp(appIdOrName, filePath, logger);
+			appId = generateNewApp(appIdOrName, filePath, logger);
 			
 			// even if no security, just add user as engine owner
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
+					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
 				}
 			}
 		}
-
-		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
+		
+		Map<String, String> retMap = UploadUtilities.getAppReturnData(appId);
+		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	/**

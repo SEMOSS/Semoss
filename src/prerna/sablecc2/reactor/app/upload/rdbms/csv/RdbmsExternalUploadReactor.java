@@ -62,18 +62,19 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		
 		organizeKeys();
 		final String newAppName = UploadInputUtility.getAppName(this.store);
-		String returnId = null;
-		returnId = generateNewApp(newAppName);
+		String appId = null;
+		appId = generateNewApp(newAppName);
 		
 		// even if no security, just add user as engine owner
 		if(user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for(AuthProvider ap : logins) {
-				SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
+				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
 			}
 		}
 		
-		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
+		Map<String, String> retMap = UploadUtilities.getAppReturnData(appId);
+		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	private String generateNewApp(String newAppName) {

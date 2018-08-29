@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -966,6 +967,23 @@ public class UploadUtilities {
 			return false;
 		}
 		return true;
+	}
+	
+	/**
+	 * Return map for uploading a new app
+	 * @param appId
+	 * @return
+	 */
+	public static Map<String, String> getAppReturnData(String appId) {
+		Map<String, String> retMap = new HashMap<>();
+		IEngine engine = Utility.getEngine(appId);
+		if (engine != null) {
+			retMap = new HashMap<>();
+			retMap.put("app_name", engine.getEngineName());
+			retMap.put("app_id", engine.getEngineId());
+			retMap.put("app_type", engine.getEngineType().toString());
+		}
+		return retMap;
 	}
 
 }
