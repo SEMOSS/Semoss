@@ -39,22 +39,25 @@ public class ExcelBlock {
 	 */
 	public List<ExcelRange> getRanges() {
 		List<ExcelRange> ranges = new Vector<ExcelRange>();
-
 		boolean started = false;
 		int startCol = 0;
-		
+		int max = new Double(columnToRowIndexStats.get(new Integer(0)).getMax()).intValue();
 		for(int colIndex = 0; colIndex <= lastColMaxIndex; colIndex++) {
+			// get max row by comparing every max in each column
+			SummaryStatistics rowIndexStats = columnToRowIndexStats.get(new Integer(colIndex - 1));
+			if (rowIndexStats != null) {
+				int tempMax = new Double(rowIndexStats.getMax()).intValue();
+				if (tempMax > max) {
+					max = tempMax;
+				}
+			}
+			
 			if(!columnToRowIndexStats.containsKey( new Integer(colIndex) ) && started) {
-				
 				if(columnToRowIndexStats.containsKey(startCol)) {
-					ExcelRange r = new ExcelRange(
-							startCol+1, 
-							colIndex, 
-							new Double(columnToRowIndexStats.get(new Integer(startCol)).getMin()).intValue(), 
-							new Double(columnToRowIndexStats.get(new Integer(colIndex-1)).getMax()).intValue());
+					int min = new Double(columnToRowIndexStats.get(new Integer(startCol)).getMin()).intValue();
+					ExcelRange r = new ExcelRange(startCol + 1, colIndex, min, max);
 					ranges.add(r);
 				}
-				
 				startCol = 0;
 				started = false;
 			}
