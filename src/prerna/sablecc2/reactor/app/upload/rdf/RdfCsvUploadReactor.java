@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		if (!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
-		String returnId = null;
+		String appId = null;
 		if (existing) {
 			if(security) {
 				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
@@ -79,18 +80,20 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 					throw err;
 				}
 			}
-			returnId = addToExistingApp(appIdOrName, filePath);
+			appId = addToExistingApp(appIdOrName, filePath);
 		} else {
-			returnId = generateNewApp(appIdOrName, filePath);
+			appId = generateNewApp(appIdOrName, filePath);
 		}
 		// even if no security, just add user as engine owner
 		if(user != null) {
 			List<AuthProvider> logins = user.getLogins();
 			for(AuthProvider ap : logins) {
-				SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
+				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
 			}
 		}
-		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
+		
+		Map<String, String> retMap = UploadUtilities.getAppReturnData(appId);
+		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	private String generateNewApp(String newAppName, String filePath) {
