@@ -696,9 +696,12 @@ public class OwlTemporalEngineMeta {
 					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
 					+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
 					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
-					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
-					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+					// in case you do a funky load
+					// and load a property without its parent
+					// we shouldn't bind and assume there is a parent present
+//					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+//					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+//					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
 					+ "}";
 		}
 	
@@ -733,9 +736,12 @@ public class OwlTemporalEngineMeta {
 			query = "select distinct ?header ?datatype where {"
 					+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
 					+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
-					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
-					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
-					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+					// in case you do a funky load
+					// and load a property without its parent
+					// we shouldn't bind and assume there is a parent present
+//					+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + parentUniqueName + "> as ?parent)"
+//					+ "{?parent <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+//					+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
 					+ "{?header <" + OWL.DATATYPEPROPERTY + "> ?datatype}"
 					+ "}";
 		}
