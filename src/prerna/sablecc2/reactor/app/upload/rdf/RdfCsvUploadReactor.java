@@ -621,16 +621,16 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 
 		SemossDataType type = dataTypes[colIndex];
 		String strVal = values[colIndex];
-		if(type.equals(SemossDataType.INT)) {
+		if(type == SemossDataType.INT) {
 			retObj = Utility.getInteger(strVal);
-		} else if(type.equals(SemossDataType.DOUBLE)) {
+		} else if(type == SemossDataType.DOUBLE) {
 			retObj = Utility.getDouble(strVal);
-		} else if(type.equals(SemossDataType.DATE)) {
+		} else if(type == SemossDataType.DATE) {
 			Long dTime = SemossDate.getTimeForDate(strVal);
 			if(dTime != null) {
 				retObj = new SemossDate(dTime, "yyyy-MM-dd");
 			}
-		} else if(type.equals(SemossDataType.TIMESTAMP)) {
+		} else if(type == SemossDataType.TIMESTAMP) {
 			Long dTime = SemossDate.getTimeForTimestamp(strVal);
 			if(dTime != null) {
 				retObj = new SemossDate(dTime, "yyyy-MM-dd HH:mm:ss");
