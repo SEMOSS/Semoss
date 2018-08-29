@@ -330,6 +330,7 @@ public class Constants {
 	public static final String SOA_TRANSITION_ALL_BLU_QUERY = "SOA_TRANSITION_ALL_BLU_QUERY";
 
 	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
+	public static final String RDBMS_INSIGHTS_CONNECTION_URL_END = "RDBMS_INSIGHTS_CONNECTION_URL_END";
 	
 	public static final String PERSPECTIVE_SELECTOR = "perspectiveSelector";
 
