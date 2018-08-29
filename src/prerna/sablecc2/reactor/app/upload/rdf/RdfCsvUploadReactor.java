@@ -92,7 +92,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 			}
 		}
 		
-		Map<String, String> retMap = UploadUtilities.getAppReturnData(appId);
+		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
 		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 

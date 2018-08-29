@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -23,7 +24,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.User;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -974,15 +977,9 @@ public class UploadUtilities {
 	 * @param appId
 	 * @return
 	 */
-	public static Map<String, String> getAppReturnData(String appId) {
-		Map<String, String> retMap = new HashMap<>();
-		IEngine engine = Utility.getEngine(appId);
-		if (engine != null) {
-			retMap = new HashMap<>();
-			retMap.put("app_name", engine.getEngineName());
-			retMap.put("app_id", engine.getEngineId());
-			retMap.put("app_type", engine.getEngineType().toString());
-		}
+	public static Map<String, Object> getAppReturnData(User user, String appId) {
+		List<Map<String, Object>> baseInfo = SecurityQueryUtils.getUserDatabaseList(user, appId);
+		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}
 
