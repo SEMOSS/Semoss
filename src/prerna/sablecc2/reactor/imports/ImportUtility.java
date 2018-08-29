@@ -274,7 +274,12 @@ public class ImportUtility {
 	
 	private static void parseCsvFileQsToFlatTable(ITableDataFrame dataframe, CsvQueryStruct qs, String frameTableName) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String csvFileName = Utility.makeAlphaNumeric(FilenameUtils.getBaseName(qs.getFilePath()));
+		String csvFileName = FilenameUtils.getBaseName(qs.getFilePath());
+		// remove the ugly stuff we add to make this unique
+		if(csvFileName.contains("_____UNIQUE")) {
+			csvFileName = csvFileName.substring(0, csvFileName.indexOf("_____UNIQUE"));
+		}
+		csvFileName = Utility.makeAlphaNumeric(csvFileName);
 		Map<String, String> dataTypes = qs.getColumnTypes();
 		Map<String, String> additionalTypes = qs.getAdditionalTypes();
 		// define the frame table name as a primary key within the meta
@@ -356,7 +361,12 @@ public class ImportUtility {
 	
 	private static void parseExcelFileQsToFlatTable(ITableDataFrame dataframe, ExcelQueryStruct qs, String frameTableName) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String excelFileName = Utility.makeAlphaNumeric(FilenameUtils.getBaseName(qs.getFilePath()));
+		String excelFileName = FilenameUtils.getBaseName(qs.getFilePath());
+		// remove the ugly stuff we add to make this unique
+		if(excelFileName.contains("_____UNIQUE")) {
+			excelFileName = excelFileName.substring(0, excelFileName.indexOf("_____UNIQUE"));
+		}
+		excelFileName = Utility.makeAlphaNumeric(excelFileName);
 		Map<String, String> dataTypes = qs.getColumnTypes();
 		Map<String, String> additionalTypes = qs.getAdditionalTypes();
 
