@@ -30,6 +30,10 @@
 	    <exclude>*/**</exclude>
       </excludes>
     </fileSet>
+	<fileSet>
+      <directory>images</directory>
+      <outputDirectory>images</outputDirectory>
+    </fileSet>
     <fileSet>
       <directory>InsightCache/CSV_Insights</directory>
       <outputDirectory>InsightCache/CSV_Insights</outputDirectory>
