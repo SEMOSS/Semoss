@@ -172,6 +172,8 @@ public abstract class AbstractEngine implements IEngine {
 					prop.put(Constants.DRIVER, insightDriver);
 					prop.put(Constants.RDBMS_TYPE, insightRDBMSType);
 					String connURL = connectionURLStart + insightDatabaseLoc.replace(".mv.db", "") + connectionURLEnd;
+					lOGGER.info("Insight rdbms database location is " + insightDatabaseLoc);
+					lOGGER.info("Insight rdbms database url is " + connURL);
 					prop.put(Constants.CONNECTION_URL, connURL);
 					prop.put(Constants.USERNAME, insightUsername);
 					this.insightRDBMS.setProperties(prop);
