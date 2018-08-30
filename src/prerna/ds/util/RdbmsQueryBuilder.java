@@ -19,6 +19,9 @@ import prerna.util.Utility;
 public class RdbmsQueryBuilder {
 
 	public static String escapeForSQLStatement(String s) {
+		if(s == null) {
+			return s;
+		}
 		return s.replaceAll("'", "''");
 	}
 	
