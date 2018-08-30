@@ -63,7 +63,7 @@ public class Xray {
 	public String run(Map config) {
 		logger.info("Checking if required R packages are installed to run X-ray...");
 		// packages to compare corpus
-		String[] packages = new String[] { "textreuse", "RcppProgress", "withr", "NLP", "tidyr", "devtools", "memoise", "digest" };
+		String[] packages = new String[] { "textreuse", "RcppProgress", "withr", "NLP", "tidyr", "devtools", "memoise", "digest", "tidyselect", "purrr"};
 		this.rJavaTranslator.checkPackages(packages);
 		// packages to write corpus files
 		String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite"};
@@ -625,7 +625,7 @@ public class Xray {
 	private void encodeInstances(List<Object> instances, boolean dataMode, String filePath, boolean semanticMode,
 			String semanticFolder) {
 		if (instances.size() > 1) {
-			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite"};
+			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite", "textreuse"};
 
 			// get script to encode instances
 			String minHashFilePath = this.baseFolder + "\\R\\AnalyticsRoutineScripts\\encode_instances.r";
@@ -705,7 +705,7 @@ public class Xray {
 	private void encodeInstances(HashSet<Object> instances, boolean dataMode, String filePath, boolean semanticMode,
 			String semanticFolder) {
 		if (instances.size() > 1) {
-			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite"};
+			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite", "textreuse"};
 
 			String minHashFilePath = this.baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\"
 					+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";

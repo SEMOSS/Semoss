@@ -67,14 +67,14 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		String tempTable = null;
 		if (Utility.isNumericType(colType)) {
 			// update the metadata depending on the data type
-			metaData.setDataTypeToProperty(table + "__" + newColName, "NUMBER");
+			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.DOUBLE.toString());
 			tempTable = Utility.getRandomString(6);
 			script = tempTable + " <- as.numeric(" + table + "$" + newColName + ")";
 			frame.executeRScript(script);
 			script = table + "$" + newColName + "<-" + tempTable;
 			frame.executeRScript(script);
 		} else if (Utility.isDateType(colType)) {
-			metaData.setDataTypeToProperty(table + "__" + newColName, "DATE");
+			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.DATE.toString());
 			tempTable = Utility.getRandomString(6);
 			String dateFormat = "%Y/%m/%d";
 			script = tempTable + " <- as.Date(" + table + "$" + newColName + ", format='" + dateFormat + "')";
@@ -83,7 +83,7 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 			frame.executeRScript(script);
 		} else {
 			// if not a number or a date then assign to string
-			metaData.setDataTypeToProperty(table + "__" + newColName, "STRING");
+			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.STRING.toString());
 		}
 		
 		// r temp variable clean up
