@@ -842,7 +842,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, String>> searchForUser(String searchTerm) {
-		String query = "SELECT DISTINCT USER.ID AS ID, USER.NAME AS NAME, USER.EMAIL AS EMAIL FROM USER WHERE UPPER(USER.NAME) LIKE UPPER('%" + searchTerm + "%') OR UPPER(USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') AND TYPE != 'anonymous';";
+		String query = "SELECT DISTINCT USER.ID AS ID, USER.NAME AS NAME, USER.EMAIL AS EMAIL FROM USER "
+				+ "WHERE UPPER(USER.NAME) LIKE UPPER('%" + searchTerm + "%') "
+				+ "OR UPPER(USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') "
+				+ "OR UPPER(USER.ID) LIKE UPPER('%" + searchTerm + "%') "
+				+ "AND TYPE != 'anonymous';";
 		List<Map<String, String>> users = new ArrayList<>();
 
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
