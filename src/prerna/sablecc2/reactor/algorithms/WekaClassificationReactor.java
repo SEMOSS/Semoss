@@ -23,6 +23,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -179,7 +180,14 @@ public class WekaClassificationReactor extends AbstractReactor {
 		vizData.put("stats", statList);
 
 		// track GA data
-		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Classification");
+//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Classification");
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				dataFrame, 
+				"Classification", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		// now return this object
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);

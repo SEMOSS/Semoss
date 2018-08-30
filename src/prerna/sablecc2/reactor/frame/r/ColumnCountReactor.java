@@ -116,9 +116,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 
 		// variable cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + tempName + "); gc();");
-
 		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-
 	}
 
 	//////////////////////////////////////////////////////////////////////

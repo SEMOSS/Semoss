@@ -10,6 +10,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class SplitUnpivotReactor extends AbstractRFrameReactor {
 
@@ -103,8 +105,15 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 			frame.executeRScript(frameReplaceScript);
 			// perform variable cleanup
 			frame.executeRScript("rm(" + tempName + "); gc();");
-
 		}
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"SplitUnpivot", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		//column header data is changing so we must recreate metadata
 		recreateMetadata(table);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

@@ -5,9 +5,7 @@ import java.util.Map;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class TaskOptionsReactor extends TaskBuilderReactor {
 	
@@ -23,15 +21,6 @@ public class TaskOptionsReactor extends TaskBuilderReactor {
 			this.task.setTaskOptions(null);
 		} else {
 			this.task.setTaskOptions(new TaskOptions((Map<String, Object>) mapOptions.get(0)));
-		}
-		
-		// track GA data
-		if (this.task instanceof BasicIteratorTask) {
-			try {
-				UserTrackerFactory.getInstance().trackViz(this.task.getTaskOptions(), this.insight, ((BasicIteratorTask) task).getQueryStruct());
-			} catch(Exception e) {
-				e.printStackTrace();
-			}
 		}
 	}
 }

@@ -117,8 +117,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		returnMap.put("recipe", recipeToSave);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 
-		// track GA data
-		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "saveinsight", appId, newRdbmsId, insightName);
+//		// track GA data
+//		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "saveinsight", appId, newRdbmsId, insightName);
 
 		return noun;
 	}

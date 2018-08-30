@@ -19,6 +19,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class RRandomForestAlgorithmReactor extends AbstractRFrameReactor {
 	/**
@@ -108,6 +110,13 @@ public class RRandomForestAlgorithmReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		
 		String rfType = this.rJavaTranslator.getString(RF_VARIABLE + "$type");
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"RandomForest", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		if (new ArrayList<String>(Arrays.asList("classification", "regression")).contains(rfType)) {
 			return new NounMetadata(RF_VARIABLE, PixelDataType.VARIABLE);

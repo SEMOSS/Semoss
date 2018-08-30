@@ -13,6 +13,8 @@ import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 
@@ -27,15 +29,15 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
 		boolean keepCol = getKeepColBool();
-		RDataTable table = (RDataTable) this.getFrame();
-		String frame = table.getTableName();
+		RDataTable frame = (RDataTable) this.getFrame();
+		String tableName = frame.getTableName();
 		
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table", "tm", "cluster" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// make sure its a string
-		String dataType = this.getColumnType(frame, column);
+		String dataType = this.getColumnType(tableName, column);
 		if (SemossDataType.convertStringToDataType(dataType) != SemossDataType.STRING) {
 			throw new IllegalArgumentException("The column type must be a String.");
 		}
@@ -46,34 +48,41 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		sourceScript = sourceScript.replace("\\", "/");
 		this.rJavaTranslator.runR(sourceScript);
 
-		NounMetadata retNoun = new NounMetadata(table, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
 				PixelOperationType.FRAME_DATA_CHANGE);
-		OwlTemporalEngineMeta metaData = table.getMetaData();
+		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		if (keepCol) {
 			// new col is mastered version of column
 			String tempCol = Utility.getRandomString(8);
-			String newHeaderName = getCleanNewHeader(frame, column);
-			String script = tempCol + " <- " + frame + "$" + column + ";" + 
+			String newHeaderName = getCleanNewHeader(tableName, column);
+			String script = tempCol + " <- " + tableName + "$" + column + ";" + 
 					tempCol + " <- master_col_data(as.character("+ tempCol + "));" + 
-					frame + " <- " + "cbind(" + frame + ", " + tempCol + ");" + 
-					frame + "$"	+ newHeaderName + " <- " + tempCol + "; " + 
-					frame + " <- " + frame + "[,-c('" + tempCol + "')];" +
+					tableName + " <- " + "cbind(" + tableName + ", " + tempCol + ");" + 
+					tableName + "$"	+ newHeaderName + " <- " + tempCol + "; " + 
+					tableName + " <- " + tableName + "[,-c('" + tempCol + "')];" +
 					"rm(" + tempCol + ");";
 			
 			this.rJavaTranslator.runR(script);
 
 			// add meta data to frame
 			retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newHeaderName));
-			metaData.addProperty(frame, frame + "__" + newHeaderName);
-			metaData.setAliasToProperty(frame + "__" + newHeaderName, newHeaderName);
-			metaData.setDataTypeToProperty(frame + "__" + newHeaderName, "STRING");
+			metaData.addProperty(tableName, tableName + "__" + newHeaderName);
+			metaData.setAliasToProperty(tableName + "__" + newHeaderName, newHeaderName);
+			metaData.setDataTypeToProperty(tableName + "__" + newHeaderName, "STRING");
 		} else {
 			// execute the script on the column and replace original
-			this.rJavaTranslator.runR(frame + "$" + column + " <- master_col_data(" + frame + "$" + column + ");");
+			this.rJavaTranslator.runR(tableName + "$" + column + " <- master_col_data(" + tableName + "$" + column + ");");
 		}
-		table.syncHeaders();
+		frame.syncHeaders();
 		// garbage clean up
 		this.rJavaTranslator.runR("gc();");
+
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"AutoClean", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return retNoun;
 	}

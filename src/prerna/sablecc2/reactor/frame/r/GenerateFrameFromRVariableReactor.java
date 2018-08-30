@@ -11,6 +11,8 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 	
@@ -50,6 +52,14 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		if(varName != null && !varName.isEmpty()) {
 			this.insight.getVarStore().put(varName, noun);
 		}
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				null, 
+				"GenerateFrameFromRVariable", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		return noun;
 	}
 
