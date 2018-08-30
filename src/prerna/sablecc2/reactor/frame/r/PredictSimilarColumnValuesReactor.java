@@ -6,6 +6,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class PredictSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
@@ -63,8 +65,14 @@ public class PredictSimilarColumnValuesReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("No matches found.");
 		}
 
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"PredictSimilarColumnValues", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		this.insight.getVarStore().put(matchesTable, retNoun);
-
 		return retNoun;
 	}
 

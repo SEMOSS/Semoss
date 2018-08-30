@@ -9,6 +9,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class AddColumnReactor extends AbstractRFrameReactor {
 
@@ -90,6 +92,13 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 			frame.executeRScript("gc();");
 			this.getFrame().syncHeaders();
 		}
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"AddColumn", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));

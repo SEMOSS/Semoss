@@ -188,7 +188,7 @@ public class StoreUniqueColumnsReactor extends AbstractRFrameReactor {
 			}
 		}
 		
-		UserTrackerFactory.getInstance().trackDescriptions(this.insight, engine.getEngineId(), database, gaData);
+//		UserTrackerFactory.getInstance().trackDescriptions(this.insight, engine.getEngineId(), database, gaData);
 
 		// set working directory back to normal
 		this.rJavaTranslator.runR("setwd('" + wd + "');\n");

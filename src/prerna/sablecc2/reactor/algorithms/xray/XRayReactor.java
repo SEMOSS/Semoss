@@ -13,6 +13,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 /**
@@ -73,7 +74,15 @@ public class XRayReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR(cleanUpScript.toString());
 
 			// track GA data
-			UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "XRay");
+//			UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "XRay");
+			
+			// NEW TRACKING
+			UserTrackerFactory.getInstance().trackAnalyticsWidget(
+					this.insight, 
+					frame, 
+					"XRay", 
+					AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+			
 			return noun;
 		}
 		

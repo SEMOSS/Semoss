@@ -436,14 +436,13 @@ public class PixelStreamUtility {
 		}
 		
 		// remove insight 
-//		else if(nounT == PixelDataType.CLEAR_INSIGHT) {
-//			NounMetadata newNoun = InsightUtility.clearInsight(in);
-//			ps.print("\"output\":");
-//			ps.print(gson.toJson(newNoun.getValue()));
-//			ps.print(",\"operationType\":");
-//			ps.print(gson.toJson(newNoun.getOpType()));
-//			
-//		}
+		else if(nounT == PixelDataType.DROP_INSIGHT) {
+			NounMetadata newNoun = InsightUtility.dropInsight(in);
+			ps.print("\"output\":");
+			ps.print(gson.toJson(newNoun.getValue()));
+			ps.print(",\"operationType\":");
+			ps.print(gson.toJson(newNoun.getOpType()));
+		}
 		
 		else if(nounT == PixelDataType.REMOVE_TASK) {
 			// we only remove variables at the end

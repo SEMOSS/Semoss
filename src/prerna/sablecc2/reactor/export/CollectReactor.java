@@ -8,7 +8,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollectReactor extends TaskBuilderReactor {
 
@@ -26,6 +28,24 @@ public class CollectReactor extends TaskBuilderReactor {
 		this.task = getTask();
 		this.task.setNumCollect(getTotalToCollect());
 		buildTask();
+		
+		// track GA data
+		if (this.task instanceof BasicIteratorTask) {
+			try {
+//				UserTrackerFactory.getInstance().trackViz(this.task.getTaskOptions(), this.insight, ((BasicIteratorTask) task).getQueryStruct());
+				
+				// NEW TRACKER
+				if(this.task.getTaskOptions() != null && !this.task.getTaskOptions().isEmpty()) {
+					UserTrackerFactory.getInstance().trackVizWidget(this.insight, this.task.getTaskOptions(), ((BasicIteratorTask) task).getQueryStruct());
+				} else {
+					UserTrackerFactory.getInstance().trackQueryData(this.insight, ((BasicIteratorTask) task).getQueryStruct());
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA); //return the data
 //		Object data = this.task.collect(this.limit, collectMeta());
 //		NounMetadata result = new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);

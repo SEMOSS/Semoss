@@ -19,6 +19,8 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class RAprioriReactor extends AbstractRFrameReactor {
 	/**
@@ -183,6 +185,13 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
 		this.insight.getTaskStore().addTask(taskData);
 
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"AssociatedLearning", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 

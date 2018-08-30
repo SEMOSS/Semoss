@@ -20,6 +20,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class SimilarityAlgorithmReactor extends AbstractReactor {
@@ -103,7 +104,14 @@ public class SimilarityAlgorithmReactor extends AbstractReactor {
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", results);
 		
 		// track GA data
-		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Similarity");
+//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Similarity");
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				dataFrame, 
+				"Similarity", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		//return successful frame change to FE
 		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

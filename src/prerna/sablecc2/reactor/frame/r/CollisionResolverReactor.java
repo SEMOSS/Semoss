@@ -15,6 +15,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollisionResolverReactor extends AbstractRFrameReactor {
 	public static final String DISTANCE_KEY = "dist";
@@ -109,6 +111,14 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		} else {
 			throw new IllegalArgumentException("No collisions found");
 		}
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"CollisionResolver", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		return new NounMetadata(jsonMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CODE_EXECUTION);
 	}
 

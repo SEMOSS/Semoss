@@ -12,6 +12,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollapseReactor extends AbstractRFrameReactor {
 
@@ -83,6 +85,13 @@ public class CollapseReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(rsb.toString());
 		recreateMetadata(frameName);
 
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"Collapse", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		return retNoun;
 	}

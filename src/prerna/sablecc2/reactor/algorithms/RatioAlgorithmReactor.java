@@ -34,6 +34,7 @@ import prerna.sablecc2.reactor.imports.RImporter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class RatioAlgorithmReactor extends AbstractReactor {
@@ -339,8 +340,15 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		//		System.out.println(counter);
 		//		return null;
 
-		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Ratio");
+//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Ratio");
 
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"Ratio", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		this.insight.setDataMaker(newFrame);
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
