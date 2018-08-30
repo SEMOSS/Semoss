@@ -13,6 +13,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 /**
@@ -66,7 +67,14 @@ public class RSimilarityAlgorithmReactor extends AbstractRFrameReactor {
 		logger.info("Done iterating through data to determine similarity");
 
 		// track GA data
-		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "SimilarityAlgorithm");
+//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "SimilarityAlgorithm");
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				dataFrame, 
+				"SimilarityAlgorithm", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		// create the new frame meta
 		meta.addProperty(frameName, frameName + "__" + newColName);

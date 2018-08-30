@@ -22,7 +22,7 @@ public class AddHeaderNounMetadata extends NounMetadata {
 	}
 	
 	private void setConfig() {
-		this.noun = PixelDataType.VECTOR;
+		this.noun = PixelDataType.CONST_STRING;
 		this.opType.add(PixelOperationType.ADD_HEADERS);
 	}
 	

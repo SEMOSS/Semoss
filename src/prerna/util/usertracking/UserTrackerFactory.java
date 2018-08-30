@@ -4,13 +4,13 @@ import prerna.util.DIHelper;
 
 public class UserTrackerFactory {
 
-	private static IGoogleAnalytics instance;
+	private static IUserTracker instance;
 	
 	private UserTrackerFactory() {
 		
 	}
 	
-	public static IGoogleAnalytics getInstance() {
+	public static IUserTracker getInstance() {
 		if(instance == null) {
 			instance = createInstance();
 		}
@@ -21,10 +21,14 @@ public class UserTrackerFactory {
 	 * Determine if we should track based on key inside RDF_MAP
 	 * @return
 	 */
-	private static IGoogleAnalytics createInstance() {
+	private static IUserTracker createInstance() {
 		String trackingOn = "true";
 		try {
-			trackingOn = DIHelper.getInstance().getProperty("GA_TRACKING");
+			trackingOn = DIHelper.getInstance().getProperty("T_ON");
+			// for the old key that was google analytics specific
+			if(trackingOn == null) {
+				trackingOn = DIHelper.getInstance().getProperty("GA_TRACKING");
+			}
 		} catch(Exception e) {
 			// this happens if DIHelper isn't loaded
 			// occurs when testing
@@ -35,8 +39,17 @@ public class UserTrackerFactory {
 			track = Boolean.valueOf(trackingOn);
 		}
 		if(track) {
-			return new GoogleAnalytics();
+			String endpoint = null;
+			try {
+				endpoint = DIHelper.getInstance().getProperty("T_ENDPOINT");
+				// set the endpoint
+				TrackRequestThread.setEndpoint(endpoint);
+			} catch(Exception e) {
+				// this happens if DIHelper isn't loaded
+				// occurs when testing
+			}
+			return new TableUserTracker();
 		}
-		return new NullGoogleAnalytics();
+		return new NullUserTracker();
 	}
 }

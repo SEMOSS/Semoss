@@ -15,7 +15,7 @@ public enum PixelDataType {
 
 	REMOVE_VARIABLE ("REMOVE_VARIABLE"),			// variable to be removed
 	REMOVE_TASK ("REMOVE_TASK"),					// task to be removed
-	CLEAR_INSIGHT ("CLEAR_INSIGHT"),				// insight to be removed
+	DROP_INSIGHT ("DROP_INSIGHT"),				// insight to be removed
 
 	SQLE ("SQLE"), 									// sql expression
 	E ("E"), 										// some other expression

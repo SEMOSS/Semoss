@@ -12,6 +12,8 @@ import prerna.sablecc2.reactor.imports.H2Importer;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 
@@ -42,6 +44,14 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		if(varName != null && !varName.isEmpty()) {
 			this.insight.getVarStore().put(varName, noun);
 		}
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				null, 
+				"GenerateH2FrameFromRVariable", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		return noun;
 	}
 

@@ -2,7 +2,9 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RSyntaxHelper;
@@ -13,6 +15,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 /**
@@ -69,7 +72,14 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		logger.info("Done iterating through data to determine outliers");
 
 		// track GA data
-		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "OutliersAlgorithm");
+//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "OutliersAlgorithm");
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				dataFrame, 
+				"OutliersAlgorithm", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		// create the new frame meta
 		meta.addProperty(frameName, frameName + "__" + newColName);

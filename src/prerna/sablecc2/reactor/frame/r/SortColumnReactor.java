@@ -6,6 +6,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class SortColumnReactor extends AbstractRFrameReactor {
 
@@ -47,6 +49,14 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 		} else if (sortDir.equalsIgnoreCase("desc")) {
 			script = table + " <- " + table + "[order(-rank(" + column + "))]";
 		}
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"SortColumn", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		// execute the r script
 		// script will be of the form: FRAME <- FRAME[order(rank(Director))]
 		frame.executeRScript(script);

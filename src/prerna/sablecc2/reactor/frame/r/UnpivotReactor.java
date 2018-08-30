@@ -11,6 +11,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class UnpivotReactor extends AbstractRFrameReactor {
 
@@ -75,8 +77,15 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		// if we are to replace the existing frame
 		script = table + " <- " + tempName;
 		frame.executeRScript(script);
-		recreateMetadata(table);
 		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"Unpivot", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
+		recreateMetadata(table);
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + tempName + ");");
 		cleanUpScript.append("gc();");

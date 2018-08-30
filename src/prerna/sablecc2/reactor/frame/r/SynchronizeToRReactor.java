@@ -41,33 +41,26 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-
 		// initialize the rJavaTranslator
 		init();
 
 		// get frame - we dont know what type of frame this is yet
 		ITableDataFrame frame = getFrame();
-
 		// get input
 		// get the desired table name for the r data table
 		String rDataTableName = getSyncedTableName();
-
 		// need to determine the type of frame
 		// synchronization method will depend on the frame type
-
 		if (frame instanceof H2Frame) {
 			synchronizeGridToR(frame, rDataTableName);
-
 		} else if (frame instanceof TinkerFrame) {
 			String wd = getWd();
 			synchronizeGraphToR(frame, rDataTableName, wd);
-
 		} else {
 			throw new IllegalArgumentException("Current frame type not supported");
 		}
 
 		return new NounMetadata(rDataTableName, PixelDataType.CONST_STRING);
-
 	}
 
 	//////////////////////////////////////////////////////////////////////

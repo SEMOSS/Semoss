@@ -31,6 +31,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 
 /**
@@ -315,6 +317,14 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 
         RDataTable returnTable = createFrameFromVaraible(finalResultFrame);
         this.insight.setDataMaker(returnTable);
+        
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				null, 
+				"CompareDbSemanticSimilarity", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+        
         return new NounMetadata(returnTable, PixelDataType.FRAME);
 	}
 	

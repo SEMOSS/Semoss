@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.List;
+import java.util.Vector;
+
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
@@ -7,6 +10,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class ToLowerCaseReactor extends AbstractRFrameReactor {
 	
@@ -29,28 +34,37 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 
 		//get table name
 		String table = frame.getTableName();
+		
 		// get inputs
-		GenRowStruct inputsGRS = this.getCurRow();
-		// keep all selectors that we are changing to lower case
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-				String column = getColumn(selectIndex);
-				// separate table from column name if necessary
-				if (column.contains("__")) {
-					String[] split = column.split("__");
-					column = split[1];
-					table = split[0];
-				}
-				// validate data type
-				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-				if (dataType.equals("STRING")) {
-					// script will take the form: FRAME$column <- tolower(FRAME$column)
-					String script = table + "$" + column + " <- tolower(" + table + "$" + column + ")";
-					// execute the r script
-					frame.executeRScript(script);
-				}
+		//get inputs
+		List<String> columns = getColumns();
+		StringBuilder builder = new StringBuilder();
+		for(int i = 0; i < columns.size(); i++) {
+			String col = columns.get(i);
+			if (col.contains("__")) {
+				String[] split = col.split("__");
+				col = split[1];
+				table = split[0];
+			}
+			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
+			if (dataType.equalsIgnoreCase("STRING")) {
+				// define the script to be executed
+				builder.append(table + "$" + col + " <- tolower(" + table + "$" + col + ")");
 			}
 		}
+		
+		// execute the r script
+		// script will be of the form:
+		// FRAME$column <- tolower(FRAME$column)
+		frame.executeRScript(builder.toString());
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"ToLower", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	
@@ -59,10 +73,27 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
-	private String getColumn(int i) {
-		NounMetadata input = this.getCurRow().getNoun(i);
-		String thisSelector = input.getValue() + "";
-		return thisSelector;
+
+	private List<String> getColumns() {
+		List<String> columns = new Vector<String>();
+
+		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+		if(colGrs != null && !colGrs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
+				String column = colGrs.get(selectIndex) + "";
+				columns.add(column);
+			}
+		} else {
+			GenRowStruct inputsGRS = this.getCurRow();
+			// keep track of selectors to change to upper case
+			if (inputsGRS != null && !inputsGRS.isEmpty()) {
+				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
+					String column = inputsGRS.get(selectIndex) + "";
+					columns.add(column);
+				}
+			}
+		}
+		
+		return columns;
 	}
 }

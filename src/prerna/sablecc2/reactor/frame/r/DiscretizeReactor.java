@@ -14,6 +14,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class DiscretizeReactor extends AbstractRFrameReactor {
 	/**
@@ -192,7 +194,13 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
-				PixelOperationType.FRAME_DATA_CHANGE);
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"Discretize", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 }

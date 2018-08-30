@@ -21,6 +21,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 
@@ -236,6 +238,14 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc()"+ RSyntaxHelper.unloadPackages(packages));
 			throw new IllegalArgumentException("Selected attributes are not valid for clustering.");
 		}
+		
+		String algName = multiOption ? "ClusterOptimization" : "Clustering";
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				algName, 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 	}
