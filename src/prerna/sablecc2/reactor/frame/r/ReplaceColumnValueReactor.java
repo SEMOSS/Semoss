@@ -1,11 +1,12 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 	
@@ -23,7 +24,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 
 	@Override
 	public NounMetadata execute() {
-		//initialize rJavaTranslator
+		organizeKeys();
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
@@ -33,16 +34,16 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 
 		// get inputs
 		//first input is the column that we are updating
-		String column = getUpdateColumn();
+		String column = this.keyValue.get(this.keysToGet[0]);
 		if (column.contains("__")) {
 			column = column.split("__")[1];
 		}
 
 		//second input is the old value
-		String oldValue = getOldValue();
+		String oldValue = this.keyValue.get(this.keysToGet[1]);
 
 		//third input is the new value
-		String newValue = getNewValue();
+		String newValue = this.keyValue.get(this.keysToGet[2]);
 
 		//use method to retrieve a single column type
 		String colDataType = getColumnType(table, column);
@@ -65,46 +66,17 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 			script = table + "$" + column + "[" + table + "$" + column + " == " + neededQuote + oldValue
 					+ neededQuote + "] <- " + neededQuote + newValue + neededQuote;
 		}
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"ReplaceColumnValue", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 			
 		//execute the r script
 		//script is of the form FRAME$Director[FRAME$Director == "oldVal"] <- "newVal"
 		frame.executeRScript(script);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	
-	private String getUpdateColumn() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			//first input is the column that we are updating
-			NounMetadata input1 = inputsGRS.getNoun(0);
-			String fullColumn = input1.getValue() + "";
-			if (fullColumn.length() == 0) {
-				throw new IllegalArgumentException ("Need to define column to update");
-			}
-			return fullColumn;
-		}
-		throw new IllegalArgumentException("Need to define column to update");
-	}
-	
-	private String getOldValue() {
-		NounMetadata input2 = this.getCurRow().getNoun(1);
-		String oldValue = input2.getValue() + ""; 
-		if (oldValue.length() == 0) {
-			throw new IllegalArgumentException("Need to define old value to replace");
-		}
-		return oldValue;
-	}
-	
-	private String getNewValue() {
-		NounMetadata input3 =this.getCurRow().getNoun(2);
-		String newValue = input3.getValue() + ""; 
-		return newValue;
-	}
-	
 }

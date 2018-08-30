@@ -9,6 +9,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class DuplicateColumnReactor extends AbstractRFrameReactor {
 
@@ -65,6 +67,13 @@ public class DuplicateColumnReactor extends AbstractRFrameReactor {
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
 		metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
 
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"DuplicateColumn", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
 		return retNoun;

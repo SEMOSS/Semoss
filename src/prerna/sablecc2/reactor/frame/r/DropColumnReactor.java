@@ -12,6 +12,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.nounmeta.RemoveHeaderNounMetadata;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class DropColumnReactor extends AbstractRFrameReactor {
 
@@ -74,8 +76,13 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 			frame.syncHeaders();
 		}
 		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"DropColumn", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-				
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new RemoveHeaderNounMetadata(remCols));
 		return retNoun;

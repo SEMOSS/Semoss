@@ -7,12 +7,13 @@ import java.util.Map;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.query.querystruct.transform.QSRenameColumnConverter;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class RenameColumnReactor extends AbstractRFrameReactor {
 
@@ -28,13 +29,14 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 
 		// get inputs
-		String originalColName = getOriginalColumn();
-		String updatedColName = getNewColumnName();
+		String originalColName = keyValue.get(this.keysToGet[0]);
+		String updatedColName = keyValue.get(this.keysToGet[1]);
 		// check that the frame isn't null
 		String table = frame.getTableName();
 		// check if new colName is valid
@@ -77,25 +79,14 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		modMap.put(originalColName, validNewHeader);
 		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap, false));
 		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"RenameColumn", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		// return the output
 		return retNoun;
-	}
-
-	private String getOriginalColumn() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		String originalColName = "";
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			NounMetadata input1 = inputsGRS.getNoun(0);
-			originalColName = input1.getValue() + "";
-		}
-		return originalColName;
-	}
-
-	private String getNewColumnName() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		String newColName = "";
-		NounMetadata input2 = inputsGRS.getNoun(1);
-		newColName = input2.getValue() + "";
-		return newColName;
 	}
 }

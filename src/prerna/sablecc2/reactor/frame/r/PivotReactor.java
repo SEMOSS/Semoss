@@ -13,6 +13,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class PivotReactor extends AbstractRFrameReactor {
 
@@ -137,6 +139,14 @@ public class PivotReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(" + newFrame + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"Pivot", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 		
