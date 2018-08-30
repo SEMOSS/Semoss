@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
@@ -119,30 +120,26 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		// construct a new dataframe to hold the results of the r script
 		String df2 = "PredictionTable" + Utility.getRandomString(10);
 
+		StringBuilder rsb = new StringBuilder();
+
 		// determine the path and source the script
 		String baseRScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "AnalyticsRoutineScripts";
 		String rScriptPath = (baseRScriptPath + "\\" + "master_concept.r").replace("\\", "/");
 		String sourceScript = "source(\"" + rScriptPath + "\");";
-		
+		rsb.append(sourceScript);
 		// run the function
 		// function script: PredictionTable<- concept_mgr(frame,c(1,2),1,20);
-		String rFunctionScript = df2 + " <- concept_mgr(" + dfName + "," + colSelectString + "," + numDisplayString + "," + randomValsString + ");";
+		rsb.append( df2 + " <- concept_mgr(" + dfName + "," + colSelectString + "," + numDisplayString + "," + randomValsString + ");");
 		// results should be in a data frame
-		String dataTableScript = df2 + " <- as.data.table(" + df2 + ");";
-		// run all of the above r scripts
+		rsb.append(RSyntaxHelper.asDataTable(df2, df2));
+		// clean up r temp variables
+		rsb.append("rm(" + dfName + ", concept_mgr, concept_xray, endLibs, "
+				+ "get_claims,get_concept, get_wiki_ids, is.letter, " + "most_frequent_concept, span, startLibs);");
+		rsb.append(RSyntaxHelper.unloadPackages(packages));
+		rsb.append("gc();");
 		logger.info("Running semantic blending script");
 		logger.info("This process may take a few minutes depending on the type of data and internet speed");
-		this.rJavaTranslator.runR(sourceScript + rFunctionScript + dataTableScript);
-		
-		// clean up r temp variables
-		StringBuilder cleanUpScript = new StringBuilder();
-		cleanUpScript.append("rm(" + dfName
-				+ ", concept_mgr, concept_xray, endLibs, "
-				+ "get_claims,get_concept, get_wiki_ids, is.letter, "
-				+ "most_frequent_concept, span, startLibs);");
-		cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
-		cleanUpScript.append("gc();");
-		this.rJavaTranslator.runR(cleanUpScript.toString());
+		this.rJavaTranslator.runR(rsb.toString());
 
 		// send to GA to store semantic names for predictions
 //		String[] colNamesGA = { "Original_Column", "Predicted_Concept", "Prob", "URL" };
@@ -178,19 +175,19 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 			String uniqueHeader = df2 + "__" + "Original_Column";
 			metaData.addProperty(df2, uniqueHeader);
 			metaData.setAliasToProperty(uniqueHeader, "Original_Column");
-			metaData.setDataTypeToProperty(uniqueHeader, "STRING");
+			metaData.setDataTypeToProperty(uniqueHeader, SemossDataType.STRING.toString());
 			uniqueHeader = df2 + "__" + "Predicted_Concept";
 			metaData.addProperty(df2, uniqueHeader);
 			metaData.setAliasToProperty(uniqueHeader, "Predicted_Concept");
-			metaData.setDataTypeToProperty(uniqueHeader, "STRING");
+			metaData.setDataTypeToProperty(uniqueHeader, SemossDataType.STRING.toString());
 			uniqueHeader = df2 + "__" + "URL";
 			metaData.addProperty(df2, uniqueHeader);
 			metaData.setAliasToProperty(uniqueHeader, "URL");
-			metaData.setDataTypeToProperty(uniqueHeader, "STRING");
+			metaData.setDataTypeToProperty(uniqueHeader, SemossDataType.STRING.toString());
 			uniqueHeader = df2 + "__" + "Prob";
 			metaData.addProperty(df2, uniqueHeader);
 			metaData.setAliasToProperty(uniqueHeader, "Prob");
-			metaData.setDataTypeToProperty(uniqueHeader, "NUMBER");
+			metaData.setDataTypeToProperty(uniqueHeader, SemossDataType.DOUBLE.toString());
 
 			// store the r variable
 			NounMetadata frameNoun = new NounMetadata(resultsTable, PixelDataType.FRAME);
