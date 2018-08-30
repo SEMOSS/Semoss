@@ -23,6 +23,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class MatrixRegressionReactor extends AbstractReactor {
@@ -130,7 +131,14 @@ public class MatrixRegressionReactor extends AbstractReactor {
 		// now return this object
 
 		// track GA data
-		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "MatrixRegression");
+//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "MatrixRegression");
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				dataFrame, 
+				"MatrixRegression", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 	}

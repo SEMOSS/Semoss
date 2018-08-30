@@ -7,6 +7,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class GetSemanticDescription extends AbstractRFrameReactor {
 
@@ -63,6 +65,13 @@ public class GetSemanticDescription extends AbstractRFrameReactor {
 			throw exception;
 		}
 
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				null, 
+				"SemanticDescription", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		RDataTable returnTable = createFrameFromVaraible(rFrame);
 		this.insight.setDataMaker(returnTable);
 		return new NounMetadata(returnTable, PixelDataType.FRAME);

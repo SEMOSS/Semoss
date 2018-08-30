@@ -5,6 +5,8 @@ import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class CountIfReactor extends AbstractRFrameReactor {
 
@@ -70,6 +72,13 @@ public class CountIfReactor extends AbstractRFrameReactor {
 		metaData.setDataTypeToProperty(table + "__" + newColName, "NUMBER");
 		this.getFrame().syncHeaders();
 
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"CountIf", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 

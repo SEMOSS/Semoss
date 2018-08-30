@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.qs.source;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import prerna.query.querystruct.AbstractFileQueryStruct;
@@ -12,7 +10,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class FileSourceReactor extends AbstractQueryStructReactor {
 
@@ -83,12 +80,12 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 		
 		qs.merge(this.qs);
 		
-		// Formatting and Tracking for Google Analytics
-		String FileName = getFileName();
-		List<String> heads = new ArrayList<String>(dataTypes.keySet());
-
 		// track GA data
-		UserTrackerFactory.getInstance().trackDragAndDrop(this.insight, heads, FileName);
+		// Formatting and Tracking for Google Analytics
+//		String FileName = getFileName();
+//		List<String> heads = new ArrayList<String>(dataTypes.keySet());
+//		UserTrackerFactory.getInstance().trackDragAndDrop(this.insight, heads, FileName);
+		
 		return qs;
 	}
 

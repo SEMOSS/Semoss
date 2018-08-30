@@ -104,6 +104,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				hasCache = true;
 				cachedInsight.setInsightName(newInsight.getInsightName());
 				newInsight = cachedInsight;
+				// need to transfer again
+				InsightUtility.transferDefaultVars(this.insight, newInsight);
 			}
 		}
 		
@@ -133,7 +135,10 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
 
 		// track GA data
-		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "openinsight", appId, rdbmsId, newInsight.getInsightName());
+//		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "openinsight", appId, rdbmsId, newInsight.getInsightName());
+		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackInsightExecution(newInsight);
 		
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
