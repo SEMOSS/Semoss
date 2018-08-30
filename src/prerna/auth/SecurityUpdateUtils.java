@@ -627,7 +627,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static boolean registerUser(String id, boolean admin) throws IllegalArgumentException{
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
 		if(!isNewUser) {			
-			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + id + "', 'ADMIN_ADDED_USER', 'FALSE');";
+			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + id + "', 'ADMIN_ADDED_USER', " + admin + ");";
 			securityDb.insertData(query);
 			securityDb.commit();
 			return true;
