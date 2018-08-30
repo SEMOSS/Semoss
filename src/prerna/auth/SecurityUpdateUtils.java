@@ -608,10 +608,26 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * @param userName	String representing the name of the user to add
 	 */
-	public static Boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException{
+	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException{
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getId());
 		if(!isNewUser) {			
 			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN) VALUES ('" + newUser.getId() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE');";
+			securityDb.insertData(query);
+			securityDb.commit();
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	/**
+	 * Adds a new user to the database. Does not create any relations, simply the node.
+	 * @param userName	String representing the name of the user to add
+	 */
+	public static boolean registerUser(String id, boolean admin) throws IllegalArgumentException{
+		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
+		if(!isNewUser) {			
+			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + id + "', 'ADMIN_ADDED_USER', 'FALSE');";
 			securityDb.insertData(query);
 			securityDb.commit();
 			return true;
