@@ -166,7 +166,10 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 	//////////////////////////////////////////////////////////////////////
 	
 	private String getUpdateColumn() {
-		GenRowStruct inputsGRS = this.getCurRow();
+		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[0]);
+		if (inputsGRS == null) {
+			inputsGRS = this.getCurRow();
+		}
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			// first noun will be the column to update
 			NounMetadata noun1 = inputsGRS.getNoun(0);
@@ -180,13 +183,30 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 	}
 	
 	private String getNewValue() {
-		NounMetadata noun2 = this.getCurRow().getNoun(1);
+		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[1]);
+		if (inputsGRS != null) {
+			return inputsGRS.get(0) + "";
+		}
+		inputsGRS = this.getCurRow();
+		NounMetadata noun2 = inputsGRS.getNoun(1);
 		String value = noun2.getValue() + "";
 		return value;
 	}
 	
 	private SelectQueryStruct getQueryStruct() {
-		NounMetadata filterNoun = this.getCurRow().getNoun(2);
+		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[2]);
+		if (inputsGRS != null) {
+			NounMetadata filterNoun = inputsGRS.getNoun(0);
+			// filter is query struct pksl type
+			// the qs is the value of the filterNoun
+			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+			if (qs == null) {
+				throw new IllegalArgumentException("Need to define filter condition");
+			}
+			return qs;
+		}
+		inputsGRS = this.getCurRow();
+		NounMetadata filterNoun = inputsGRS.getNoun(2);
 		// filter is query struct pksl type
 		// the qs is the value of the filterNoun
 		SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
