@@ -824,10 +824,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			Object[] values = row.getValues();
 			Map<String, String> rowData = new HashMap<>();
 			for(int idx = 0; idx < headers.length; idx++){
-				if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
-					rowData.put(headers[idx].toString().toLowerCase(), "Default");
+				if(values[idx] == null) {
+					rowData.put(headers[idx].toString().toLowerCase(), "null");
 				} else {
-					rowData.put(headers[idx].toString().toLowerCase(), values[idx].toString());
+					if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
+						rowData.put(headers[idx].toString().toLowerCase(), "Default");
+					} else {
+						rowData.put(headers[idx].toString().toLowerCase(), values[idx].toString());
+					}
 				}
 			}
 			ret.add(rowData);
