@@ -53,19 +53,19 @@ public class TrackRequestThread extends Thread {
 			httppost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
 			httppost.setHeader("Content-Type", "application/x-www-form-urlencoded");
 			// execute and get the response.
-//			httpclient.execute(httppost);
+			httpclient.execute(httppost);
 			
-			HttpResponse response = httpclient.execute(httppost);
-			HttpEntity entity = response.getEntity();
-			if (entity != null) {
-			    InputStream instream = entity.getContent();
-			    try {
-			        String responseString = IOUtils.toString(instream);
-			        System.out.println(responseString);
-			    } finally {
-			        instream.close();
-			    }
-			}
+//			HttpResponse response = httpclient.execute(httppost);
+//			HttpEntity entity = response.getEntity();
+//			if (entity != null) {
+//			    InputStream instream = entity.getContent();
+//			    try {
+//			        String responseString = IOUtils.toString(instream);
+//			        System.out.println(responseString);
+//			    } finally {
+//			        instream.close();
+//			    }
+//			}
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		} catch (ClientProtocolException e) {
