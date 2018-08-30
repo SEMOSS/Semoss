@@ -916,6 +916,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Check if the user is of the type requested
+	 * @param userId	String representing the id of the user to check
+	 */
+	public static Boolean isUserType(String userId, AuthProvider type) {
+		String query = "SELECT NAME FROM USER WHERE ID='" + userId + "' AND TYPE = '"+ type + "';";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<String[]> ret = flushRsToListOfStrArray(wrapper);
+		if(!ret.isEmpty()) {
+			return Boolean.parseBoolean(ret.get(0)[0]);
+		}
+		return false;
+	}
+	
+	/**
 	 * Check if any of the users is an admin
 	 * 
 	 * @param usersId	String representing the id of the user to check
