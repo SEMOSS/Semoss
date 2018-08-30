@@ -196,6 +196,26 @@ public class ZKClient implements Watcher{
 		// usally this is home/user
 	}
 	
+
+	public void deleteDB(String engineID)
+	{
+		// right now I dont have everything.. 
+		// but this publishes, major, minor, ip:port, cpu, memory
+		
+		try {
+			zk.delete(home + app + "/" + engineID, -1);
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// also need to publish to the user
+		// usally this is home/user
+	}
+
+	
 	// I need another where I say publish database
 	public void publishDB(String engineID)
 	{

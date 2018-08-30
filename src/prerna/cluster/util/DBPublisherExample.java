@@ -12,6 +12,7 @@ public class DBPublisherExample {
 		c.publishDB("123453");
 		c.host = "1.1.1.1:2000";
 		c.publishDB("1231aq");
+		c.deleteDB("1231aq");
 		System.out.println("Wait here.. ");
 		c.waitHere();
 	}
