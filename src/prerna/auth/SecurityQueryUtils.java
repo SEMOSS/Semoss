@@ -800,7 +800,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static List<Map<String, String>> getAllDbUsers(String userId) throws IllegalArgumentException{
 		List<Map<String, String>> ret = new ArrayList<>();  
 		if(isUserAdmin(userId)){
-			String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER WHERE TYPE != 'anonymous'";
+			String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER";
 			ret = getSimpleQuery(query);
 		} else {
 			throw new IllegalArgumentException("The user can't access to this resource. ");
