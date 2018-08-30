@@ -41,41 +41,40 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 		String table = frame.getTableName();
 		
 		// get inputs
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// add loop; this would apply if more than one column to drop
-			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-				String column = getColumn(selectIndex);
-				//clean the column name
-				if (column.contains("__")) {
-					column = column.split("__")[1];
-				}
-				remCols.add(column);
-				
-				// define the r script to be executed
-				String script = table + " <- " + table + "[," + column + ":=NULL]";
-				
-				//make sure that the column to be dropped exists; if not, throw error
-				String[] allCol = getColumns(table);
-				if (Arrays.asList(allCol).contains(column) != true) {
-					throw new IllegalArgumentException("Column doesn't exist.");
-				}
+		List<String> columnList = getColumns();
+		String[] allCol = getColumns(table);
 
-				// execute the script - it will be of the form:
-				// FRAME[,FRAME__ColToDrop:=NULL]
-				frame.executeRScript(script);
-
-				// update the metadata because the columns are changing
-				OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
-				metaData.dropProperty(table + "__" + column, table);
-				
-				// drop filters with this column
-				frame.getFrameFilters().removeColumnFilter(column);
+		// add loop; this would apply if more than one column to drop
+		for (String column : columnList) {
+			// clean the column name
+			if (column.contains("__")) {
+				column = column.split("__")[1];
 			}
-			// reset the frame headers
-			frame.syncHeaders();
+			remCols.add(column);
+
+			// define the r script to be executed
+			String script = table + " <- " + table + "[," + column + ":=NULL]";
+
+			// make sure that the column to be dropped exists; if not, throw
+			// error
+			if (Arrays.asList(allCol).contains(column) != true) {
+				throw new IllegalArgumentException("Column doesn't exist.");
+			}
+
+			// execute the script - it will be of the form:
+			// FRAME[,FRAME__ColToDrop:=NULL]
+			frame.executeRScript(script);
+
+			// update the metadata because the columns are changing
+			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
+			metaData.dropProperty(table + "__" + column, table);
+
+			// drop filters with this column
+			frame.getFrameFilters().removeColumnFilter(column);
 		}
-		
+		// reset the frame headers
+		frame.syncHeaders();
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
@@ -94,15 +93,26 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	
-	private String getColumn(int i) {
-		GenRowStruct inputsGRS = this.getCurRow();
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			String colName = inputsGRS.getNoun(i).getValue() + "";
-			if (colName.length() == 0) {
-				throw new IllegalArgumentException("Need to define the column to drop");
+	private List<String> getColumns() {
+		List<String> columns = new Vector<String>();
+
+		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+		if(colGrs != null && !colGrs.isEmpty()) {
+			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
+				String column = colGrs.get(selectIndex) + "";
+				columns.add(column);
 			}
-			return colName;
+		} else {
+			GenRowStruct inputsGRS = this.getCurRow();
+			// keep track of selectors to change to upper case
+			if (inputsGRS != null && !inputsGRS.isEmpty()) {
+				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
+					String column = inputsGRS.get(selectIndex) + "";
+					columns.add(column);
+				}
+			}
 		}
-		throw new IllegalArgumentException("Need to define the column to drop");
+		
+		return columns;
 	}
 }
