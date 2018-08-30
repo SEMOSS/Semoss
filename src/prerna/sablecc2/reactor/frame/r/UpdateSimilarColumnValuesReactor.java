@@ -11,6 +11,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -34,13 +35,19 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table" };
 		this.rJavaTranslator.checkPackages(packages);
+		
+		StringBuilder rsb = new StringBuilder();
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; ";
+		bestMatchScript = bestMatchScript.replace("\\", "/");
+		rsb.append(bestMatchScript);
 
 		// get single column input
 		String linkFrame = "link" + Utility.getRandomString(5);
 		RDataTable frame = (RDataTable) getFrame();
 		String frameName = frame.getTableName();
 		String col1 = matchesTable + "col1";
-		this.rJavaTranslator.runR(col1 + "<- as.character(" + frameName + "$" + column + ");");
+		rsb.append(col1 + "<- as.character(" + frameName + "$" + column + ");");
 
 		// iterate matches and create the link frame
 		List<String> allMatches = getInputList(MATCHES);
@@ -68,10 +75,10 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 			}
 			// add all matches provided
 			String script = linkFrame + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder	+ ")); ";
-			this.rJavaTranslator.runR(script);
+			rsb.append(script);
 		}
 		// make linkframe unique
-		this.rJavaTranslator.runR(linkFrame + " <- unique(" + linkFrame + ");");
+		rsb.append(linkFrame + " <- unique(" + linkFrame + ");");
 
 		// get current frame data type
 		boolean convertJoinColFromNum = false;
@@ -84,24 +91,30 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
 		// call the curate script
 		String resultFrame = Utility.getRandomString(8);
-		this.rJavaTranslator.runR(resultFrame + "<- curate(" + col1 + "," + linkFrame + ");");
+		rsb.append(resultFrame + "<- curate(" + col1 + "," + linkFrame + ");");
 
 		String tempColHeader = Utility.getRandomString(8);
 
 		// make resultFrame a DT and update the header to a temp name
-		this.rJavaTranslator.runR(resultFrame + " <- as.data.table(" + resultFrame + ");" + "names(" + resultFrame + ")<-\"" + tempColHeader + "\";");
+		rsb.append(resultFrame + " <- as.data.table(" + resultFrame + ");" + "names(" + resultFrame + ")<-\"" + tempColHeader + "\";");
+		
 		// add new temp name column to frame
-		this.rJavaTranslator.runR(frameName + " <- cbind(" + frameName + "," + resultFrame + ");");
+		rsb.append(frameName + " <- cbind(" + frameName + "," + resultFrame + ");");
+		
 		// delete existing column from frame
-		this.rJavaTranslator.runR(frameName + " <- " + frameName + "[,-c(\"" + column + "\")]");
+		rsb.append(frameName + " <- " + frameName + "[,-c(\"" + column + "\")]");
+		
 		// update temp column name to the original column name
-		this.rJavaTranslator.runR("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column + "\"");
+		rsb.append("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column + "\"");
+
 		// return data type to original state
 		if (convertJoinColFromNum) {
-			this.rJavaTranslator.runR(frameName + "$" + column + " <- as.numeric(as.character(" + frameName + "$" + column + "));");
+			rsb.append(frameName + "$" + column + " <- as.numeric(as.character(" + frameName + "$" + column + "));");
 		}
 
-		this.rJavaTranslator.runR("rm(" + resultFrame + "," + linkFrame + "," + col1 +  "," + matchesTable + ", best_match, best_match_nonzero, best_match_zero, blend, curate, self_match );");
+		rsb.append("rm(" + resultFrame + "," + linkFrame + "," + col1 +  "," + matchesTable + ", best_match, best_match_nonzero, best_match_zero, blend, curate, self_match );");
+		
+		this.rJavaTranslator.runR(rsb.toString());
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
@@ -109,8 +122,8 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 				frame, 
 				"UpdateSimilarColumnValues", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+
 		return retNoun;
 	}
 

@@ -43,7 +43,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		organizeKeys();
 
 		// check if packages are installed
-		String[] packages = { "RGoogleAnalytics", "httr", "data.table", "jsonlite", "plyr", "RJSONIO", "lubridate" };
+		String[] packages = { "RGoogleAnalytics", "httr", "jsonlite", "plyr", "RJSONIO", "lubridate" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// convert qs to physical names
