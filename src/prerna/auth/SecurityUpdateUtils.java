@@ -686,7 +686,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
         if(userId.equals(adminId) || SecurityQueryUtils.isUserAdmin(adminId)){
         	String name = userInfo.get("name") != null ? userInfo.get("name") : "";
         	String email = userInfo.get("email") != null ? userInfo.get("email") : "";
-            if(SecurityQueryUtils.checkUserExist(name, email)){
+            if(SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE) && SecurityQueryUtils.checkUserExist(name, email)){
                 throw new IllegalArgumentException("The user name or email already exist.");
             }
             String password = userInfo.get("password");
