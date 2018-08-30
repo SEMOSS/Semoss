@@ -12,6 +12,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
@@ -88,16 +90,12 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
 		// make resultFrame a DT and update the header to a temp name
 		this.rJavaTranslator.runR(resultFrame + " <- as.data.table(" + resultFrame + ");" + "names(" + resultFrame + ")<-\"" + tempColHeader + "\";");
-		
 		// add new temp name column to frame
 		this.rJavaTranslator.runR(frameName + " <- cbind(" + frameName + "," + resultFrame + ");");
-		
 		// delete existing column from frame
 		this.rJavaTranslator.runR(frameName + " <- " + frameName + "[,-c(\"" + column + "\")]");
-		
 		// update temp column name to the original column name
 		this.rJavaTranslator.runR("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column + "\"");
-
 		// return data type to original state
 		if (convertJoinColFromNum) {
 			this.rJavaTranslator.runR(frameName + "$" + column + " <- as.numeric(as.character(" + frameName + "$" + column + "));");
@@ -105,8 +103,14 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
 		this.rJavaTranslator.runR("rm(" + resultFrame + "," + linkFrame + "," + col1 +  "," + matchesTable + ", best_match, best_match_nonzero, best_match_zero, blend, curate, self_match );");
 		
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"UpdateSimilarColumnValues", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-
 		return retNoun;
 	}
 

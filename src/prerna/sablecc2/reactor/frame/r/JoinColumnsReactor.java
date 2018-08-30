@@ -7,6 +7,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.usertracking.AnalyticsTrackerHelper;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class JoinColumnsReactor extends AbstractRFrameReactor {
 
@@ -48,32 +50,39 @@ public class JoinColumnsReactor extends AbstractRFrameReactor {
 		rsb.append(table + "$" + newColName + " <- paste(");
 		
 		// the remaining inputs are all of the columns that we want to join
-			for (int i = 2; i < inputSize; i++) {
-				String column = getColumn(i);
-				// separate the column name from the frame name
-				if (column.contains("__")) {
-					column = column.split("__")[1];
-				} 
-				
-				// continue building the stringbuilder for the r script
-				rsb.append(table + "$" + column);
-				if (i < inputSize - 1) {
-					// add a comma between each column entry
-					rsb.append(", ");
-				}
+		for (int i = 2; i < inputSize; i++) {
+			String column = getColumn(i);
+			// separate the column name from the frame name
+			if (column.contains("__")) {
+				column = column.split("__")[1];
+			} 
+			
+			// continue building the stringbuilder for the r script
+			rsb.append(table + "$" + column);
+			if (i < inputSize - 1) {
+				// add a comma between each column entry
+				rsb.append(", ");
 			}
-			rsb.append(", sep = \"" + separator + "\")");
-			// convert the stringbuiler to a string and execute
-			// script will be of the form: FRAME$mynewcolumn <- paste(FRAME$Year, FRAME$Title, FRAME$Director, sep = ", ")
-			String script = rsb.toString();
-			frame.executeRScript(script);
-			// update the metadata because column data has changed
-			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
-			metaData.addProperty(table, table + "__" + newColName);
-			metaData.setAliasToProperty(table + "__" + newColName, newColName);
-			metaData.setDataTypeToProperty(table + "__" + newColName, "STRING");
-			this.getFrame().syncHeaders();
+		}
+		rsb.append(", sep = \"" + separator + "\")");
+		// convert the stringbuiler to a string and execute
+		// script will be of the form: FRAME$mynewcolumn <- paste(FRAME$Year, FRAME$Title, FRAME$Director, sep = ", ")
+		String script = rsb.toString();
+		frame.executeRScript(script);
+		// update the metadata because column data has changed
+		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
+		metaData.addProperty(table, table + "__" + newColName);
+		metaData.setAliasToProperty(table + "__" + newColName, newColName);
+		metaData.setDataTypeToProperty(table + "__" + newColName, "STRING");
+		this.getFrame().syncHeaders();
 
+		// NEW TRACKING
+		UserTrackerFactory.getInstance().trackAnalyticsWidget(
+				this.insight, 
+				frame, 
+				"JoinColumns", 
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	

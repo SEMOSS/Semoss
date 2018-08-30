@@ -48,6 +48,7 @@ import prerna.comments.InsightCommentHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
@@ -60,6 +61,7 @@ import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class Insight {
@@ -204,98 +206,49 @@ public class Insight {
 				}
 			}
 		}
+		// track the pixels
+		this.trackPixel(runner);
+		// return
 		return runner;
 	}
-
-	// run a new pixel routine
-//	public synchronized Map<String, Object> runPixel(String pixelString) {
-//		PixelRunner runner = getPixelRunner();
-//		LOGGER.info("Running >>> " + pixelString);
-//		runner.runPixel(pixelString, this);
-//		return collectPixelData(runner);
-//	}
-//	
-//	// run a new list of pixel routines
-//	public synchronized Map<String, Object> runPixel(List<String> pixelList) {
-//		PixelRunner runner = getPixelRunner();
-//		int size = pixelList.size();
-//		for(int i = 0; i < size; i++) {
-//			String pixelString = pixelList.get(i);
-//			LOGGER.info("Running >>> " + pixelString);
-//			try {
-//				runner.runPixel(pixelString, this);
-//			} catch(SemossPixelException e) {
-//				if(!e.isContinueThreadOfExecution()) {
-//					break;
-//				}
-//			}
-//		}
-//		return collectPixelData(runner);
-//	}
 	
-//	/**
-//	 * 
-//	 * @param runner
-//	 * @return
-//	 */
-//	private Map<String, Object> collectPixelData(PixelRunner runner) {
-//		// get the return values
-//		List<NounMetadata> resultList = runner.getResults();
-//		// get the expression which created the return
-//		// this matches with the above by index
-//		List<String> pixelStrings = runner.getPixelExpressions();
-//		List<Boolean> isMeta = runner.isMeta();
-//		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
-//		boolean invalidSyntax = runner.isInvalidSyntax();
-//		List<Map<String, Object>> retValues = new Vector<Map<String, Object>>();
-//		for (int i = 0; i < pixelStrings.size(); i++) {
-//			NounMetadata noun = resultList.get(i);
-//			Map<String, Object> ret = PixelUtility.processNounMetadata(noun);
-//			// get the expression which created this return
-//			String expression = pixelStrings.get(i);
-//			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
-//			ret.put("pixelExpression", expression);
-//			// save the expression for future use
-//			// only if it is not meta
-//			// and if it is not invalid syntax
-//			if (!isMeta.get(i) && !invalidSyntax) {
-//				ret.put("isMeta", false);
-//				this.pixelList.add(expression);
-//			} else {
-//				ret.put("isMeta", true);
-//			}
-//			// add it to the list
-//			retValues.add(ret);
-//		}
-//		
-//		Map<String, Object> retData = new Hashtable<String, Object>();
-//		retData.put("pixelReturn", retValues);
-//		retData.put("insightID", this.insightId);
-//		return retData;
-//	}
-
-	/**
-	 * 
-	 * @param curType
-	 * @param curExpression
-	 */
-	public void trackPixels(String curType, String curExpression) {
-		String thisType = curType;
-		String prevType = this.prevType;
-		String thisExpression = curExpression;
-		String thisPrevExpression = this.thisPrevExpression;
-		NounMetadata session = this.getVarStore().get("$SESSION_ID");
-		// session is null if opening a saved insight
-		// we don't need to track these pixels again
-		if (session != null) {
-			String userId = (String) session.getValue();
-			// fire and release...
-			UserTrackerFactory.getInstance().track(thisExpression, thisType, thisPrevExpression, prevType, userId);
-			// set this expression as insight level previous expression
-			this.thisPrevExpression = thisExpression;
-			this.prevType = curType;
+	private void trackPixel(PixelRunner runner) {
+		IUserTracker tracker = UserTrackerFactory.getInstance();
+		if(tracker.isActive()) {
+			List<String> pixelStrings = runner.getPixelExpressions();
+			List<Boolean> isMeta = runner.isMeta();
+			Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
+			for(int i = 0; i < pixelStrings.size(); i++) {
+				String expression = pixelStrings.get(i);
+				expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
+				boolean meta = isMeta.get(i);
+				tracker.trackPixelExecution(this, expression, meta);
+			}
 		}
 	}
+
+//	/**
+//	 * 
+//	 * @param curType
+//	 * @param curExpression
+//	 */
+//	public void trackPixels(String curType, String curExpression) {
+//		String thisType = curType;
+//		String prevType = this.prevType;
+//		String thisExpression = curExpression;
+//		String thisPrevExpression = this.thisPrevExpression;
+//		NounMetadata session = this.getVarStore().get("$SESSION_ID");
+//		// session is null if opening a saved insight
+//		// we don't need to track these pixels again
+//		if (session != null) {
+//			String userId = (String) session.getValue();
+//			// fire and release...
+//			UserTrackerFactory.getInstance().track(thisExpression, thisType, thisPrevExpression, prevType, userId);
+//			// set this expression as insight level previous expression
+//			this.thisPrevExpression = thisExpression;
+//			this.prevType = curType;
+//		}
+//	}
 
 	public PixelRunner getPixelRunner() {
 		PixelRunner runner = new PixelRunner();
