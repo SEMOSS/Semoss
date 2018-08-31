@@ -20,6 +20,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AuthProvider;
 import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
@@ -87,7 +88,7 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		final File file = new File(filePath);
 		// check security
 		User user = null;
-		boolean security = this.securityEnabled();
+		boolean security = AbstractSecurityUtils.securityEnabled();
 		if (security) {
 			user = this.insight.getUser();
 			if (user == null) {

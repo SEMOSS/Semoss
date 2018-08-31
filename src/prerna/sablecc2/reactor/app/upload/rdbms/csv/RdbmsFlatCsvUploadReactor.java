@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +17,7 @@ import org.apache.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AuthProvider;
 import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
@@ -78,7 +78,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		User user = null;
-		boolean security = this.securityEnabled();
+		boolean security = AbstractSecurityUtils.securityEnabled();
 		if(security) {
 			user = this.insight.getUser();
 			if(user == null) {

@@ -4,6 +4,7 @@ import java.util.Hashtable;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -44,7 +45,7 @@ public class InitAppRepo extends GitBaseReactor {
 		
 		// you can only push
 		// if you are the owner
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
 			if(!SecurityQueryUtils.userIsOwner(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");

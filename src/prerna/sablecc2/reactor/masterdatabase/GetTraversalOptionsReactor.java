@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -36,7 +37,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 		}
 		
 		List<String> engineFilters = null;
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			engineFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 		}
 		

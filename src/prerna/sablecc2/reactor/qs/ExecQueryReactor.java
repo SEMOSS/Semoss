@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.qs;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.User;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
@@ -59,7 +60,7 @@ public class ExecQueryReactor extends AbstractReactor {
 		}
 		
 		String userId = null;
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			User user = this.insight.getUser();
 			userId = user.getAccessToken(user.getLogins().get(0)).getId();
 		} else {

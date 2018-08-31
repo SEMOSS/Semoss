@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 
 import java.util.List;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -33,7 +34,7 @@ public class DatabaseSpecificConceptPropertiesReactor extends AbstractReactor {
 		}
 		String engineId = engineFilterGrs.get(0).toString();
 
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			List<String> appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			if(!appFilters.contains(engineId)) {

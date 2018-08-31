@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -50,7 +51,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to input the id for the insight");
 		}
 		
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			if(!SecurityQueryUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
 				throw new IllegalArgumentException("User does not have access to this insight");
 			}

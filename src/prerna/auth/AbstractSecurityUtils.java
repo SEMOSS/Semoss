@@ -22,6 +22,7 @@ import prerna.util.Utility;
 public abstract class AbstractSecurityUtils {
 
 	static RDBMSNativeEngine securityDb;
+	static boolean securityEnabled = false;
 	
 	/**
 	 * Only used for static references
@@ -33,6 +34,14 @@ public abstract class AbstractSecurityUtils {
 	public static void loadSecurityDatabase() {
 		securityDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
 		initialize();
+		
+		Object security = DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED);
+		if(security == null) {
+			securityEnabled = false;
+		} else {
+			securityEnabled = (security instanceof Boolean && ((boolean) security) ) || (Boolean.parseBoolean(security.toString()));
+		}
+		
 		// TODO: testing code!!!!
 		// TODO: testing code!!!!
 		// TODO: testing code!!!!
@@ -51,6 +60,10 @@ public abstract class AbstractSecurityUtils {
 //		securityDb.removeData(deleteQuery);
 	}
 
+	public static boolean securityEnabled() {
+		return securityEnabled;
+	}
+	
 	/**
 	 * Does this engine name already exist
 	 * @param appName
