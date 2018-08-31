@@ -3,6 +3,7 @@ package prerna.solr.reactor;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -29,7 +30,7 @@ public class AppInsightsReactor extends AbstractReactor {
 		
 		List<Map<String, Object>> results = null;
 		if(appId != null) {
-			if(this.securityEnabled()) {
+			if(AbstractSecurityUtils.securityEnabled()) {
 				if(SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
 					results = SecurityQueryUtils.searchUserInsights(this.insight.getUser(), appId, searchTerm, limit, offset);
 				} else {
@@ -39,7 +40,7 @@ public class AppInsightsReactor extends AbstractReactor {
 				results = SecurityQueryUtils.searchInsights(appId, searchTerm, limit, offset);
 			}
 		} else {
-			if(this.securityEnabled()) {
+			if(AbstractSecurityUtils.securityEnabled()) {
 				results = SecurityQueryUtils.searchUserInsightDataByName(this.insight.getUser(), searchTerm, limit, offset);
 			} else {
 				results = SecurityQueryUtils.searchAllInsightDataByName(searchTerm, limit, offset);

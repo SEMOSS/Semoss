@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -14,7 +15,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
@@ -41,7 +41,7 @@ public class SyncAppFilesOAuth extends GitBaseReactor {
 		
 		// you can only push
 		// if you are the owner
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
 			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");

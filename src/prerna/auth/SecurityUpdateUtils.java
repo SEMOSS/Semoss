@@ -46,6 +46,26 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
+		
+		boolean global = true;
+		if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
+			global = false;
+		}
+		
+		addApp(appId, global);
+	}
+	
+	/**
+	 * Add an entire engine into the security db
+	 * @param appId
+	 */
+	public static void addApp(String appId, boolean global) {
+		if(ignoreEngine(appId)) {
+			// dont add local master or security db to security db
+			return;
+		}
+		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
+		Properties prop = Utility.loadProperties(smssFile);
 
 		String appName = prop.getProperty(Constants.ENGINE_ALIAS);
 		if(appName == null) {
@@ -56,11 +76,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(prop.containsKey(Constants.RELOAD_INSIGHTS)) {
 			String booleanStr = prop.get(Constants.RELOAD_INSIGHTS).toString();
 			reloadInsights = Boolean.parseBoolean(booleanStr);
-		}
-		
-		boolean global = true;
-		if(prop.containsKey(Constants.HIDDEN_DATABASE) && "true".equalsIgnoreCase(prop.get(Constants.HIDDEN_DATABASE).toString().trim()) ) {
-			global = false;
 		}
 		
 		String[] typeAndCost = getAppTypeAndCost(prop);
@@ -253,7 +268,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * Default to set as not global
 	 */
 	public static void addEngine(String engineId, String engineName, String engineType, String engineCost) {
-		addEngine(engineId, engineName, engineType, engineCost, false);
+		addEngine(engineId, engineName, engineType, engineCost, !securityEnabled);
 	}
 	
 	public static void addEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {

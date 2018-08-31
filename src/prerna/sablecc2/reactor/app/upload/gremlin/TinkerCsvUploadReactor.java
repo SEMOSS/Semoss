@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AuthProvider;
 import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
@@ -68,7 +69,7 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		final boolean existing = UploadInputUtility.getExisting(this.store);
 		// check security
 		User user = null;
-		boolean security = this.securityEnabled();
+		boolean security = AbstractSecurityUtils.securityEnabled();
 		if(security) {
 			user = this.insight.getUser();
 			if(user == null) {

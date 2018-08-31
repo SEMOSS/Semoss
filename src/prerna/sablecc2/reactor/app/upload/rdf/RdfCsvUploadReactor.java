@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +15,7 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AuthProvider;
 import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
@@ -56,7 +56,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		final File file = new File(filePath);
 		// check security
 		User user = null;
-		boolean security = this.securityEnabled();
+		boolean security = AbstractSecurityUtils.securityEnabled();
 		if(security) {
 			user = this.insight.getUser();
 			if(user == null) {

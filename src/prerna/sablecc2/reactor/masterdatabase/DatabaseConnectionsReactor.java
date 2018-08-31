@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -31,7 +32,7 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
 		List<String> appFilters = null;
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			if(!appFilters.isEmpty()) {
 				if(engineId != null) {

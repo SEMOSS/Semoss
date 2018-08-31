@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.date.SemossDate;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,7 +22,7 @@ public class MyAppsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<Map<String, Object>> appInfo = new Vector<Map<String, Object>>();
 
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			appInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser());
 		} else {
 			appInfo = SecurityQueryUtils.getAllDatabaseList();
