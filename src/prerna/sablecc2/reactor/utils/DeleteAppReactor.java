@@ -36,7 +36,7 @@ public class DeleteAppReactor extends AbstractReactor {
 			// we may have the alias
 			if(AbstractSecurityUtils.securityEnabled()) {
 				appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-				if(!SecurityQueryUtils.isUserAdmin(userId) || !SecurityQueryUtils.isUserDatabaseOwner(userId, appId)) {
+				if(!SecurityQueryUtils.isUserAdmin(userId) && !SecurityQueryUtils.isUserDatabaseOwner(userId, appId)) {
 					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have permissions to database");
 				}
 			} else {
