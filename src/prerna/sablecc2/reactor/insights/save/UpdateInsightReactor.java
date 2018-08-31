@@ -135,7 +135,15 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param imageURL
 	 */
 	private void editRegisteredInsightAndMetadata(String appId, String existingRdbmsId, String insightName, String layout, String description, List<String> tags) {
-		SecurityUpdateUtils.updateInsight(appId, existingRdbmsId, insightName, false, layout);
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		SecurityUpdateUtils.updateInsight(appId, existingRdbmsId, insightName, true, layout);
 		//TODO: update tags and stuff
 	}
 	
