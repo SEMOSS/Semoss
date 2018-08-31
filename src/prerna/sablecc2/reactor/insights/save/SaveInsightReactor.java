@@ -135,8 +135,16 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param userId
 	 */
 	private void registerInsightAndMetadata(String appId, String insightIdToSave, String insightName, String layout, String description, List<String> tags) {
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
+		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
 		String userId = this.insight.getUserId();
-		SecurityUpdateUtils.addInsight(appId, insightIdToSave, insightName, false, layout);
+		SecurityUpdateUtils.addInsight(appId, insightIdToSave, insightName, true, layout);
 		SecurityUpdateUtils.addUserInsightCreator(userId, appId, insightIdToSave);
 		// TODO: add the description + tags
 	}
