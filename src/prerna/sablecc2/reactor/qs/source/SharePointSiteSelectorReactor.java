@@ -59,7 +59,7 @@ public class SharePointSiteSelectorReactor extends AbstractReactor{
 				throwLoginError(retMap);
 			}
 			else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.AZURE_GRAPH);
+				AccessToken msToken = user.getAccessToken(AuthProvider.MS);
 				accessToken=msToken.getAccess_token();
 			}
 		}

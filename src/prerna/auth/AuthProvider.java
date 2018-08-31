@@ -7,7 +7,7 @@ public enum AuthProvider {
 	TWITTER, 
 	SALESFORCE, 
 	GIT, 
-	AZURE_GRAPH, 
+	MS, // this is azure graph
 	DROPBOX, 
 	CAC, 
 	PRODUCT_HUNT, 
