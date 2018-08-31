@@ -2,6 +2,7 @@ package prerna.util.git.reactors;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -29,7 +30,7 @@ public class IsGit extends AbstractReactor {
 		}
 		String appName = null;
 		
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
 			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");

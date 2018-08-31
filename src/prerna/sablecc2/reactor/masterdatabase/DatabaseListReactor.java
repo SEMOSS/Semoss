@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -14,7 +15,7 @@ public class DatabaseListReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		List<Map<String, Object>> retList = null;
-		if(securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			retList = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser());
 		} else {
 			retList = SecurityQueryUtils.getAllDatabaseList();

@@ -11,7 +11,6 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -24,6 +23,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.auth.User;
@@ -80,7 +80,7 @@ public class UploadUtilities {
 	 */
 	public static void updateMetadata(String appId) throws Exception {
 		Utility.synchronizeEngineMetadata(appId);
-		SecurityUpdateUtils.addApp(appId);
+		SecurityUpdateUtils.addApp(appId, !AbstractSecurityUtils.securityEnabled());
 	}
 
 	

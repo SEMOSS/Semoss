@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AuthProvider;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.auth.User;
@@ -46,7 +47,7 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		String newAppId = UUID.randomUUID().toString();
 
 		User user = null;
-		boolean security = this.securityEnabled();
+		boolean security = AbstractSecurityUtils.securityEnabled();
 		if(security) {
 			user = this.insight.getUser();
 			if(user == null) {

@@ -3,6 +3,7 @@ package prerna.solr.reactor;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -26,7 +27,7 @@ public class AppInfoReactor extends AbstractReactor {
 		}
 		
 		List<Map<String, Object>> baseInfo = null;
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			if(!SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
 				// you dont have access
