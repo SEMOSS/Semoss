@@ -12,8 +12,8 @@ import prerna.util.BeanFiller;
 public class GoogleProfile implements IConnectorIOp{
 
 	private static String url = "https://www.googleapis.com/oauth2/v3/userinfo";
-	private static String [] beanProps = {"name", "gender", "locale", "id"}; // add is done when you have a list
-	private static String jsonPattern = "[name, gender, locale, sub]";
+	private static String [] beanProps = {"name", "gender", "locale", "email", "id"}; // add is done when you have a list
+	private static String jsonPattern = "[name, gender, locale, email, sub]";
 	
 	@Override
 	public String execute(User user, Hashtable params) {
