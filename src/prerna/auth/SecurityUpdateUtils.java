@@ -83,7 +83,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(engineExists && !reloadInsights) {
 			LOGGER.info("Security database already contains app with alias = " + appName);
 			// update engine properties anyway ... in case global was shifted for example
-			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
+//			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 			return;
 		} else if(!engineExists) {
 			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);

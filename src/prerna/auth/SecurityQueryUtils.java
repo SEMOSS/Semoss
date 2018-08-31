@@ -1370,9 +1370,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param users
 	 * @return
 	 */
-	public static String isGroupUsersWithDatabasePermissionAlready(String groupId, List<String> groups,
-			List<String> users) {
-
+	public static String isGroupUsersWithDatabasePermissionAlready(String groupId, List<String> groups, List<String> users) {
 		String ret = "";
 		// TODO Security check if the user logged in is the owner of the group being added (?)
 
