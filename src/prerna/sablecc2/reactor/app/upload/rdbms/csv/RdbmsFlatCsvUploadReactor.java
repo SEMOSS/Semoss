@@ -245,6 +245,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("7. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, helper.orderHeadersToGet(headers));
 		engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		logger.info("7. Complete");
