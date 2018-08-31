@@ -666,45 +666,52 @@ public abstract class AbstractEngine implements IEngine {
 	public void deleteDB() {
 		lOGGER.debug("closing " + this.engineName);
 		this.closeDB();
-		
+
 		File insightFile = SmssUtilities.getInsightsRdbmsFile(this.prop);
 		File owlFile = SmssUtilities.getOwlFile(this.prop);
 		File engineFolder = insightFile.getParentFile();
 		String folderName = engineFolder.getName();
-		try {
-			if(owlFile != null && owlFile.exists()) {
-				System.out.println("Deleting owl file " + owlFile.getAbsolutePath());
+		if(owlFile != null && owlFile.exists()) {
+			System.out.println("Deleting owl file " + owlFile.getAbsolutePath());
+			try {
 				FileUtils.forceDelete(owlFile);
+			} catch(IOException e) {
+				e.printStackTrace();
 			}
-			if(insightFile != null && insightFile.exists()) {
-				System.out.println("Deleting insight file " + insightFile.getAbsolutePath());
+		}
+		if(insightFile != null && insightFile.exists()) {
+			System.out.println("Deleting insight file " + insightFile.getAbsolutePath());
+			try {
 				FileUtils.forceDelete(insightFile);
+			} catch(IOException e) {
+				e.printStackTrace();
 			}
-			
-			//this check is to ensure we are deleting the right folder.
-			lOGGER.debug("checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
-			if(folderName.equals(SmssUtilities.getUniqueName(this.engineName, this.engineId))) {
-				lOGGER.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
-				try {
-					FileUtils.deleteDirectory(engineFolder);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+		}
+
+		//this check is to ensure we are deleting the right folder.
+		lOGGER.debug("checking folder name is matching up : " + folderName + " against " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		if(folderName.equals(SmssUtilities.getUniqueName(this.engineName, this.engineId))) {
+			lOGGER.debug("folder getting deleted is " + engineFolder.getAbsolutePath());
+			try {
+				FileUtils.deleteDirectory(engineFolder);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-			
-			lOGGER.debug("Deleting smss " + this.propFile);
-			File smssFile = new File(this.propFile);
+		}
+
+		lOGGER.debug("Deleting smss " + this.propFile);
+		File smssFile = new File(this.propFile);
+		try {
 			FileUtils.forceDelete(smssFile);
-
-			//remove from DIHelper
-			String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-			engineNames = engineNames.replace(";" + this.engineId, "");
-			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
-			DIHelper.getInstance().removeLocalProperty(this.engineId);
-
-		} catch (IOException e) {
+		} catch(IOException e) {
 			e.printStackTrace();
 		}
+
+		//remove from DIHelper
+		String engineNames = (String)DIHelper.getInstance().getLocalProp(Constants.ENGINES);
+		engineNames = engineNames.replace(";" + this.engineId, "");
+		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
+		DIHelper.getInstance().removeLocalProperty(this.engineId);
 	}
 	
 	@Override

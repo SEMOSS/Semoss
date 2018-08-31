@@ -65,6 +65,8 @@ public class DeleteAppReactor extends AbstractReactor {
 		// remove from dihelper... this is absurd
 		String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
 		engineNames = engineNames.replace(";" + engineId, "");
+		// in case it was the first engine loaded
+		engineNames = engineNames.replace(engineId + ";", "");
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
 
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
