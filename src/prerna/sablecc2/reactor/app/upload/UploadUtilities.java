@@ -9,13 +9,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 
@@ -30,19 +33,23 @@ import prerna.auth.User;
 import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.OWLER;
 import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.SQLQueryUtil;
 
@@ -864,6 +871,130 @@ public class UploadUtilities {
 			}
 		}
 	}
+	public static void addInsertFormInsight(String appId, IEngine insightEngine, OWLER owl, String[] headers) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		String insightName = "Insert form";
+		String layout = "default-handle";
+		Gson gson = GsonUtility.getDefaultGson();
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
+				+ gson.toJson(createForm(appId, owl, headers)) + "]}</encode>\");";
+		String[] pkqlRecipeToSave = { newPixel };
+		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		insightEngine.commit();
+	}
+	public static Map<String, Object> createForm(String appId, OWLER owl, String[] headers) {
+		Map<String, Object> formMap = new HashMap<>();
+		// need to get property types from the owl
+		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+		rfse.openFile(owl.getOwlPath(), null, null);
+		// we create the meta helper to facilitate querying the engine OWL
+		MetaHelper helper = new MetaHelper(rfse, null, null);
+		Vector<String> conceptsList = helper.getConcepts(true);
+		Map<String, SemossDataType> propMap = new HashMap<>();
+		Map<String, Map<String, SemossDataType>> existingMetaModel = new HashMap<>();
+		for (String conceptPhysicalUri : conceptsList) {
+			// so grab the conceptual name
+			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
+			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
+			List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
+			for (String prop : properties) {
+				// grab the conceptual name
+				String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(prop);
+				// get owl type
+				String owlType = helper.getDataTypes(propertyConceptualUri);
+				owlType = owlType.replace("TYPE:", "");
+				SemossDataType type = SemossDataType.convertStringToDataType(owlType);
+				// property conceptual uris are always /Column/Table
+				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+				propMap.put(propertyConceptualName, type);
+			}
+			existingMetaModel.put(conceptualName, propMap);
+		}
+		
+		// assuming this is a flat table so there is only one concept
+		String conceptualName = existingMetaModel.keySet().iterator().next();
+		propMap = existingMetaModel.get(conceptualName);
+		List<String> propertyList = new ArrayList<String>();
+		// order params by header order
+		for (String header : headers) {
+			if (propMap.containsKey(header)) {
+				propertyList.add(header);
+			}
+		}
+
+		// create values and into strings for query
+		StringBuilder intoString = new StringBuilder();
+		StringBuilder valuesString = new StringBuilder();
+		for (int i = 0; i < propertyList.size(); i++) {
+			String property = propertyList.get(i);
+			intoString.append(conceptualName + "__" + property);
+			valuesString.append("(\"<Parameter_" + i + ">\")");
+			if (i < propertyList.size() - 1) {
+				intoString.append(",");
+				valuesString.append(",");
+			}
+		}
+
+		formMap.put("query", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=[" + valuesString + "]);");
+		// TODO
+		formMap.put("label", "");
+		formMap.put("description", "");
+
+		// build param list
+		List<Map<String, Object>> paramList = new Vector<>();
+		for (int i = 0; i < propertyList.size(); i++) {
+			String property = propertyList.get(i);
+			// build param for each property
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put("paramName", "Parameter_" + i);
+			SemossDataType propType = propMap.get(property);
+			// build view for param map
+			Map<String, Object> viewMap = new HashMap<>();
+			viewMap.put("label", property);
+			// TODO
+			viewMap.put("description", "");
+			if (propType == SemossDataType.STRING) {
+				viewMap.put("displayType", "typeahead");
+			}
+			if (Utility.isNumericType(propType.toString())) {
+				viewMap.put("displayType", "number");
+			}
+			paramMap.put("view", viewMap);
+
+			// build model for param map
+			Map<String, Object> modelMap = new HashMap<>();
+			modelMap.put("defaultValue", "");
+			modelMap.put("defaultOptions", new Vector());
+			if (propType == SemossDataType.STRING) {
+				// if prop type is a string
+				modelMap.put("query",
+						"(Parameter_" + i + "_infinite = Database( database=[\"" + appId + "\"] )|" + "Select("
+								+ conceptualName + "__" + property + ").as([" + property + "])|" + "Filter("
+								+ conceptualName + "__" + property + " ?like \"<Parameter_" + i
+								+ "_search>\") | Iterate())| Collect(50);");
+				modelMap.put("infiniteQuery", "Parameter_" + i + "_infinite | Collect(50);");
+				modelMap.put("searchParam", "Parameter_" + i + "_search");
+				// add dependency
+				List<String> dependencies = new Vector<>();
+				dependencies.add("Parameter_" + i + "_search");
+				modelMap.put("dependsOn", dependencies);
+
+				// if prop type is a string build a search param
+				Map<String, Object> searchMap = new HashMap<>();
+				searchMap.put("paramName", "Parameter_" + i + "_search");
+				searchMap.put("view", false);
+				Map<String, Object> searchModelMap = new HashMap<>();
+				searchModelMap.put("defaultValue", "");
+				searchMap.put("model", searchModelMap);
+				paramList.add(searchMap);
+			}
+			paramMap.put("model", modelMap);
+			paramList.add(paramMap);
+		}
+		formMap.put("params", paramList);
+		formMap.put("execute", "Submit");
+		return formMap;
+	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -884,18 +1015,17 @@ public class UploadUtilities {
 		csvHelper.setDelimiter(delimiter.charAt(0));
 		csvHelper.parse(filePath);
 		
+		// if the user has cleaned any headers
+		if(newHeaders != null && !newHeaders.isEmpty()) {
+			csvHelper.modifyCleanedHeaders(newHeaders);
+		}
+		
 		// specify the columns to use
 		// default will include all
 		if(dataTypesMap != null && !dataTypesMap.isEmpty()) {
 			Set<String> headersToUse = new TreeSet<String>(dataTypesMap.keySet());
 			csvHelper.parseColumns(headersToUse.toArray(new String[]{}));
 		}
-
-		// if the user has cleaned any headers
-		if(newHeaders != null && !newHeaders.isEmpty()) {
-			csvHelper.modifyCleanedHeaders(newHeaders);
-		}
-
 		return csvHelper;
 	}
 
