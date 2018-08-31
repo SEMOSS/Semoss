@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.insights.save;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
@@ -32,7 +33,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			String appId = split[0];
 			String insightId = split[1];
 			
-			if(this.securityEnabled()) {
+			if(AbstractSecurityUtils.securityEnabled()) {
 				if(!SecurityQueryUtils.userCanEditInsight(this.insight.getUser(), appId, insightId)) {
 					throw new IllegalArgumentException("User does not have permission to edit this insight");
 				}
