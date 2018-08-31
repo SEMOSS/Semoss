@@ -3,7 +3,10 @@ package prerna.sablecc2.reactor.utils;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.auth.AbstractSecurityUtils;
+import prerna.auth.SecurityQueryUtils;
 import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -25,42 +28,26 @@ public class DeleteAppReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// UserPermissionsMasterDB permissions = new UserPermissionsMasterDB();
-		// ArrayList<String> ownedEngines = permissions
-		// .getUserOwnedEngines(((User)
-		// request.getSession().getAttribute(Constants.SESSION_USER)).getId());
 		List<String> appIds = getAppIds();
 		for (String appId : appIds) {
-			IEngine engine = Utility.getEngine(appId);
+			User user = this.insight.getUser();
+			String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+			
 			// we may have the alias
-			if(engine == null) {
-				// we may have the alias
-				engine = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias(appId));
-			}
-			if (engine != null) {
-				deleteEngine(engine);
+			if(AbstractSecurityUtils.securityEnabled()) {
+				appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
+				if(!SecurityQueryUtils.isUserAdmin(userId) || !SecurityQueryUtils.isUserDatabaseOwner(userId, appId)) {
+					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have permissions to database");
+				}
+			} else {
+				appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+				if(!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
+					throw new IllegalArgumentException("App " + appId + " does not exist");
+				}
 			}
 
-			// TODO session code
-			// IEngine engine = getEngine(engineString, request);
-			// if (this.securityEnabled) {
-			// if (ownedEngines.contains(engineString)) {
-			// deleteEngine(engine, request);
-			// permissions.deleteEngine(
-			// ((User)
-			// request.getSession().getAttribute(Constants.SESSION_USER)).getId(),
-			// engineString);
-			// } else {
-			//// return Response.status(400).entity("You do not have access
-			// to
-			// delete this database.").build();
-			// return WebUtility.getResponse("You do not have access to
-			// delete
-			// this database.", 400);
-			// }
-			// } else {
-			// deleteEngine(engine, request)
-			// }
+			IEngine engine = Utility.getEngine(appId);
+			deleteEngine(engine);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_ENGINE);
@@ -110,61 +97,4 @@ public class DeleteAppReactor extends AbstractReactor {
 		}
 		return appIds;
 	}
-
-
-	//	// session code
-	//	private boolean deleteEngine(IEngine coreEngine, HttpServletRequest request) {
-	//		String engineName = coreEngine.getEngineId();
-	//		coreEngine.deleteDB();
-	//		// remove from session
-	//		HttpSession session = request.getSession();
-	//		ArrayList<Hashtable<String, String>> engines = (ArrayList<Hashtable<String, String>>) session
-	//				.getAttribute(Constants.ENGINES);
-	//		for (Hashtable<String, String> engine : engines) {
-	//			String engName = engine.get("name");
-	//			if (engName.equals(engineName)) {
-	//				engines.remove(engine);
-	//				System.out.println("Removed from engines");
-	//				session.setAttribute(Constants.ENGINES, engines);
-	//				break;//
-	//			}
-	//		}
-	//		session.removeAttribute(engineName);
-	//
-	//		// remove from dihelper... this is absurd
-	//		String engineNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-	//		engineNames = engineNames.replace(";" + engineName, "");
-	//		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, engineNames);
-	//
-	//		DeleteFromMasterDB remover = new DeleteFromMasterDB();
-	//		remover.deleteEngineRDBMS(engineName);
-	//
-	//		SolrIndexEngine solrE;
-	//		try {
-	//			solrE = SolrIndexEngine.getInstance();
-	//			if (solrE.serverActive()) {
-	//				solrE.deleteEngine(engineName);
-	//			}
-	//		} catch (KeyManagementException e) {
-	//			e.printStackTrace();
-	//		} catch (NoSuchAlgorithmException e) {
-	//			e.printStackTrace();
-	//		} catch (KeyStoreException e) {
-	//			e.printStackTrace();
-	//		}
-	//
-	//		return true;
-	//	}
-	//
-	//	// session code
-	//	private AbstractEngine getEngine(String engineName, HttpServletRequest request) {
-	//		HttpSession session = request.getSession();
-	//		AbstractEngine engine = null;
-	//		if (session.getAttribute(engineName) instanceof IEngine)
-	//			engine = (AbstractEngine) session.getAttribute(engineName);
-	//		else
-	//			engine = (AbstractEngine) Utility.getEngine(engineName);
-	//		return engine;
-	//	}
-
 }
