@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -37,7 +38,7 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 		if(engineFilterGrs != null) {
 			eFilters = new Vector<String>();
 			String engineFilter = engineFilterGrs.get(0).toString();
-			if(this.securityEnabled()) {
+			if(AbstractSecurityUtils.securityEnabled()) {
 				engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
 			} else {
 				engineFilter = MasterDatabaseUtility.testEngineIdIfAlias(engineFilter);
@@ -45,7 +46,7 @@ public class DatabaseConceptPropertiesReactors extends AbstractReactor {
 			eFilters.add(engineFilter);
 		}
 		
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			List<String> appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			if(eFilters != null) {
 				if(!appFilters.contains(eFilters.get(0))) {
