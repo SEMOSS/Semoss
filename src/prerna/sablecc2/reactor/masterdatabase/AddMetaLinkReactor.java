@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 
 import java.util.List;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -32,7 +33,7 @@ public class AddMetaLinkReactor extends  AbstractMetaDBReactor  {
 	public NounMetadata execute() {
 		String engineId = getEngineId();
 
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");

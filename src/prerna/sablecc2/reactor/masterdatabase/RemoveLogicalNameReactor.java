@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.masterdatabase;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -22,7 +23,7 @@ public class RemoveLogicalNameReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		String engineId = getEngineId();
 
-		if(this.securityEnabled()) {
+		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
