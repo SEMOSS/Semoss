@@ -108,6 +108,9 @@ public class AccessToken {
 	}
 
 	public String getId() {
+		if(id == null) {
+			return email;
+		}
 		return id;
 	}
 
