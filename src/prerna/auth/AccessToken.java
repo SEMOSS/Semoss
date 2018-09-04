@@ -17,29 +17,23 @@ public class AccessToken {
 	String gender = null;
 	String locale = null;
 	
-	public void setAccess_token(String accessToken)
-	{
+	public void setAccess_token(String accessToken) {
 		this.access_token = accessToken;
 	}
 
-	public String getAccess_token()
-	{
+	public String getAccess_token() {
 		return this.access_token;
 	}
 
-	
-	public void setExpires_in(int expires_in)
-	{
+	public void setExpires_in(int expires_in) {
 		this.expires_in = expires_in;
 	}
 	
-	public void setToken_type(String token_type)
-	{
+	public void setToken_type(String token_type) {
 		this.token_type = token_type;
 	}
 	
-	public void init()
-	{
+	public void init() {
 		startTime = System.currentTimeMillis();
 	}
 
@@ -76,6 +70,9 @@ public class AccessToken {
 	}
 
 	public String getName() {
+		if(this.name == null) {
+			return this.username;
+		}
 		return name;
 	}
 
