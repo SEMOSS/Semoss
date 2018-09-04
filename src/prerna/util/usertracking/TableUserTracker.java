@@ -339,7 +339,7 @@ public class TableUserTracker implements IUserTracker {
 		
 		QUERY_STRUCT_TYPE type = qs.getQsType();
 		if(type == QUERY_STRUCT_TYPE.ENGINE) {
-			IEngine engine = qs.getEngine();
+			IEngine engine = qs.retrieveQueryStructEngine();
 			String engineId = engine.getEngineId();
 			String engineName = engine.getEngineName();
 			
@@ -535,7 +535,7 @@ public class TableUserTracker implements IUserTracker {
 			}
 			
 		} else if(type == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
-			IEngine engine = qs.getEngine();
+			IEngine engine = qs.retrieveQueryStructEngine();
 			String engineId = engine.getEngineId();
 			String engineName = engine.getEngineName();
 			
@@ -975,7 +975,7 @@ public class TableUserTracker implements IUserTracker {
 //		
 //		QUERY_STRUCT_TYPE type = qs.getQsType();
 //		if(type == QUERY_STRUCT_TYPE.ENGINE) {
-//			IEngine engine = qs.getEngine();
+//			IEngine engine = qs.retrieveQueryStructEngine();
 //			String engineId = engine.getEngineId();
 //			String engineName = engine.getEngineName();
 //			
