@@ -23,6 +23,7 @@ public abstract class AbstractSecurityUtils {
 
 	static RDBMSNativeEngine securityDb;
 	static boolean securityEnabled = false;
+	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
 	
 	/**
 	 * Only used for static references
@@ -334,6 +335,23 @@ public abstract class AbstractSecurityUtils {
 	/*
 	 * Utility methods
 	 */
+	
+	/**
+	 * Utility method to flush result set into list
+	 * Assumes single return at index 0
+	 * @param wrapper
+	 * @return
+	 */
+	static String flushToString(IRawSelectWrapper wrapper) {
+		try {
+			while(wrapper.hasNext()) {
+				return wrapper.next().getValues()[0].toString();
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+		return null;
+	}
 	
 	/**
 	 * Utility method to flush result set into list
