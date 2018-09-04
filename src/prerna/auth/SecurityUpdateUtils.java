@@ -631,6 +631,21 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.commit();
 			return true;
 		} else {
+			String query = "SELECT NAME FROM USER WHERE ID='" + newUser.getId() + "'";
+			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			String name = flushToString(wrapper);
+			if(ADMIN_ADDED_USER.equals(name)) {
+				// this user was added by the user
+				// and we need to update
+				String updateQuery = "UPDATE USER SET "
+						+ "NAME='"+ newUser.getName() + "', "
+						+ "USERNAME='" + newUser.getUsername() + "', "
+						+ "EMAIL='" + newUser.getEmail() + "', "
+						+ "TYPE='" + newUser.getProvider() + "' "
+						+ "WHERE ID='" + newUser.getId() + "';";
+				securityDb.insertData(updateQuery);
+				securityDb.commit();
+			}
 			return false;
 		}
 	}
@@ -642,7 +657,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static boolean registerUser(String id, boolean admin) throws IllegalArgumentException{
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
 		if(!isNewUser) {			
-			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + id + "', 'ADMIN_ADDED_USER', " + admin + ");";
+			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + id + "', '" + ADMIN_ADDED_USER + "', " + admin + ");";
 			securityDb.insertData(query);
 			securityDb.commit();
 			return true;
