@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.utils;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -35,6 +34,10 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	private static final String CLASS_NAME = ImageCaptureReactor.class.getName();
 	// get the directory separator
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
+	// need to get the context name for the instance
+	// set in the DBLoader on startup
+	private static String contextPath = null;
 	
 	public ImageCaptureReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_KEY.getKey()};
@@ -133,10 +136,10 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	 * @param sessionId
 	 */
 	private static void runHeadlessChrome(String feUrl, Insight insight, String params, String sessionId) {
+		feUrl = feUrl.trim();
 		String id = insight.getRdbmsId();
 		String engineId = insight.getEngineId();
 		String engineName = insight.getEngineName();
-		boolean securityEnabled = Boolean.parseBoolean((String)DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED));
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String imageDirStr = baseFolder + 
 				DIR_SEPARATOR + "db" + 
@@ -170,16 +173,22 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&hideMenu=true&drop=5000&animation=false";
 		}
 		
-		driver.get(url);
-		if(securityEnabled){
-			Cookie name = new Cookie("JSESSIONID", sessionId);
-			driver.manage().addCookie(name);
-			Set<Cookie> cookiesList =  driver.manage().getCookies();
-			for(Cookie getcookies :cookiesList) {
-			    System.out.println(getcookies );
+		// need to go to the base url first
+		// so that the cookie is applied at root level
+		
+		if(ImageCaptureReactor.contextPath != null) {
+			String startingUrl = feUrl;
+			if(startingUrl.endsWith("/")) {
+				startingUrl = startingUrl.substring(0, startingUrl.length()-1);
 			}
-			driver.navigate().to(url);
+			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/")+1) + ImageCaptureReactor.contextPath;
+			driver.get(baseUrl);
+		} else {
+			driver.get(url);
 		}
+		Cookie name = new Cookie("JSESSIONID", sessionId, "/");
+		driver.manage().addCookie(name);
+		driver.navigate().to(url);
 		
 		// time for FE to render the page before the image is taken
 	    try {
@@ -195,7 +204,12 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			e.printStackTrace();
 		}
 
+		driver.close();
 	    driver.quit();
+	}
+	
+	public static void setContextPath(String contextPath) {
+		ImageCaptureReactor.contextPath = contextPath;
 	}
 	
 //	private static String[] getCmdArray(String feUrl, Insight in, String params) {
