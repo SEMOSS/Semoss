@@ -334,6 +334,7 @@ import prerna.util.git.reactors.SyncApp;
 import prerna.util.git.reactors.SyncAppFiles;
 import prerna.util.git.reactors.SyncAppFilesOAuth;
 import prerna.util.git.reactors.SyncAppOAuth;
+import prerna.util.usertracking.reactors.WidgetTrackingReactor;
 
 public class ReactorFactory {
 
@@ -419,6 +420,7 @@ public class ReactorFactory {
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
+		reactorHash.put("WidgetT", WidgetTrackingReactor.class);
 		
 		//Database uploading utils
 		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
