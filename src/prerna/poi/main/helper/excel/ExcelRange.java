@@ -108,13 +108,29 @@ public class ExcelRange {
 		// this isn't that bad since ASCII 'A' starts at 1
 		String colStr = excelCellIndex.replaceAll("\\d+", "");
 		int colLength = colStr.length();
+		int counter = 0;
 		for(int i = colLength-1; i >= 0; i--) {
 			char c = colStr.charAt(i);
-			col += ((int) c) - ((int) 'A') + (26*i);
+			col += ((int) c) - ((int) 'A') + (26*(i+counter));
+			counter++;
 		}
 		col++;
 		
 		return new int[]{col, row};
+	}
+	
+	public static void main(String[] args) {
+		String rStr = "A1:BB9";
+		int[] rIdx = getSheetRangeIndex(rStr);
+		System.out.println("START : " + rIdx[0] + ", " + rIdx[1]);
+		System.out.println("END : " + rIdx[2] + ", " + rIdx[3]);
+
+		System.out.println(">>> ");
+		
+		rStr = "A1:AA9";
+		rIdx = getSheetRangeIndex(rStr);
+		System.out.println("START : " + rIdx[0] + ", " + rIdx[1]);
+		System.out.println("END : " + rIdx[2] + ", " + rIdx[3]);
 	}
 	
 }
