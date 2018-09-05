@@ -1,17 +1,34 @@
 
 package prerna.test;
 
-import java.io.*;
-import java.awt.Frame;
 import java.awt.FileDialog;
-
+import java.awt.Frame;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.rosuda.JRI.Rengine;
 import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.RList;
-import org.rosuda.JRI.RVector;
 import org.rosuda.JRI.RMainLoopCallbacks;
+import org.rosuda.JRI.RVector;
+import org.rosuda.JRI.Rengine;
+import org.rosuda.REngine.Rserve.RConnection;
+import org.rosuda.REngine.Rserve.RserveException;
+
+import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.DockerCertificates;
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerConfig;
+import com.spotify.docker.client.messages.ContainerCreation;
+import com.spotify.docker.client.messages.HostConfig;
+import com.spotify.docker.client.messages.PortBinding;
 
 class TextConsole implements RMainLoopCallbacks
 {
@@ -22,6 +39,7 @@ class TextConsole implements RMainLoopCallbacks
     public void rBusy(Rengine re, int which) {
         System.out.println("rBusy("+which+")");
     }
+    
     
     public String rReadConsole(Rengine re, String prompt, int addToHistory) {
         System.out.print(prompt);
@@ -59,7 +77,157 @@ class TextConsole implements RMainLoopCallbacks
 }
 
 public class TestR {
+	
+	DockerClient docker = null;
+	String containerId = null;
+	
+	
+    public void connectRServe(String host, int port)
+    {
+    	try {
+			@SuppressWarnings("unused")
+			RConnection rcon = new RConnection(host, port);
+			org.rosuda.REngine.REXP rexp = rcon.eval("installed.packages();");
+			System.out.println("Ok that worked.. " + rexp.toString());
+			rexp = rcon.eval("a <- 'moron'; a");
+			System.out.println("Ok that worked.. " + rexp.toString());
+			// trying the method that fails
+			rexp = rcon.eval("if(!exists(\"" + "default" + "\")) {" + "default" + "<- new.env();}");
+			System.out.println("Ok that worked.. " + rexp.toString());
+
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    public void stopContainer()
+    {
+    	try {
+			docker.killContainer(containerId);
+			docker.removeContainer(containerId);
+		} catch (DockerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    public void listContainers()
+    {
+		try {
+			List <Container> lc = docker.listContainers();
+			for(int cIndex = 0;cIndex < lc.size();cIndex++)
+			{
+				Container c = lc.get(cIndex);
+				System.out.println(c.id() + c.imageId());
+				System.out.println(c.names().get(0));
+			}
+		} catch (DockerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    }
+    
+    public void startContainer(String image_name)
+    {
+    	//docker.pull(image_name);
+    	
+    	// docker run -itd -p 6311:6311  deb-rserve1d /bin/bash -c "R CMD Rserve --RS-port 6311 && while :; do sleep 1;done"
+    	
+    	try {
+    		
+    		// configure port
+    		
+    		final String[] ports = {"6311"};
+    		final Map<String, List<PortBinding>> portBindings = new HashMap<>();
+
+    		for (String port : ports) {
+    		    List<PortBinding> hostPorts = new ArrayList<>();
+    		    hostPorts.add(PortBinding.of("HostPort", port));
+    		    portBindings.put(port+"/tcp", hostPorts);
+    		}
+
+
+    		String [] cmd = {"sh", "-c", "rserve.sh"};//, "&&", "while :;", "do sleep 1;", "done"};
+    		
+    		HostConfig hostConfig = HostConfig.builder().portBindings(portBindings).build();
+    		
+    		
+			ContainerConfig cInstance = ContainerConfig.builder()
+										.hostConfig(hostConfig)
+										.tty(true)
+										.cmd(cmd)
+										.image(image_name).build();
+			
+			ContainerCreation creation = docker.createContainer(cInstance);
+			System.out.println("Created with id.... " + creation.id());
+			
+			containerId = creation.id();
+			
+			docker.startContainer(creation.id());
+			
+			
+			
+		} catch (DockerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	
+    }
+    
+    
+    public void runDocker()
+    {
+    	try {
+			//final DockerClient docker = DefaultDockerClient.fromEnv().build();
+    		//final DockerClient docker = DefaultDockerClient.builder().uri(URI.create("tcp://192.168.99.100:2376")).build();
+			
+    		
+    		DockerCertificates defaultCertificates = new DockerCertificates(Paths.get("C:/Users/pkapaleeswaran/.docker/machine/machines/default"));    
+    		docker = DefaultDockerClient.builder()
+    		                .uri("https://192.168.99.100:2376")
+    		                .dockerCertificates(defaultCertificates)
+    		                .build();
+    		
+    		
+    		// list the containers
+    		System.out.println("Docker host... " + docker.getHost());
+			
+			
+			
+			
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+    }
+
     public static void main(String[] args) {
+    	
+    	TestR rc = new TestR();
+    	//rc.runDocker();
+    	//rc.startContainer("deb-rserve1e");
+    	//rc.listContainers();
+    	rc.connectRServe("192.168.99.100", 6311);
+    	
+    	//rc.stopContainer();
+    	
 	// just making sure we have the right version of everything
     	String tableTest = "helloworld";
     	String [] tables = tableTest.split("[.]");
@@ -83,11 +251,24 @@ public class TestR {
 		// 3) the callbacks are implemented by the TextConsole class above
 		Rengine re=new Rengine(args, true, null); // false, new TextConsole());
 		/*, repos='http://cran.us.r-project.org' */
+		System.out.println("version... " + re.eval("R.version['minor']").toString());
+		System.out.println("installed... " + re.eval("'moron' %in% rownames(installed.packages()) == TRUE").asBool().isTRUE());
 		System.out.println("DPLYR... " + re.eval("library(lattice)"));
 	
 		System.out.println("library(RJDBC)" + re.eval("library(RJDBC)"));
 		System.out.println("library data table" + re.eval("library(data.table)" ));
 		
+		// python
+		System.out.println("library(reticulate)" + re.eval("library(reticulate)"));
+		//System.out.println("repl " + re.eval("repl_python()"));
+		System.out.println("import" + re.eval("pd <- import(\"pandas\")"));
+		System.out.println("pandas load " + re.eval("k <- pd$read_csv(\"c:/users/pkapaleeswaran/workspacej3/datasets/Movie.csv\")"));
+		System.out.println("pandas load " + re.eval("k")); // <- pd.read_csv(\"c:/users/pkapaleeswaran/workspacej3/datasets/Movie.csv\")"));
+		
+		
+		System.out.println("Loading the data" + re.eval("tx <- read.csv(\"c:/users/pkapaleeswaran/workspacej3/datasets/TxContracts.csv\");" ));
+		System.out.println("Loading the data" + re.eval("tx"));
+
 		// load the drivers
 		System.out.println(" Load Driver...  " + re.eval("paste(capture.output(print(drv <- JDBC('org.h2.Driver', 'C:/Users/pkapaleeswaran/workspacej3/SemossWeb/RDFGraphLib/h2-1.4.185.jar', identifier.quote='`'),collapse='\n')"));
 		System.out.println("Connection.. " + re.eval("paste(capture.output(print(conn <- dbConnect(drv, 'jdbc:h2:tcp://192.168.1.8:5355/mem:test:LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0', 'sa', ''),collapse='\n')"));;
