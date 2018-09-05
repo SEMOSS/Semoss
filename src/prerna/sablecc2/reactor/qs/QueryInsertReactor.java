@@ -10,6 +10,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.User;
 import prerna.ds.h2.H2Frame;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -108,7 +109,7 @@ public class QueryInsertReactor extends AbstractReactor {
 			for(int i = 0; i < values.length; i++) {
 				if(i == values.length - 1) {
 					if(values[i] instanceof String) {
-						valuesSb.append("'" + values[i] + "'");
+						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
 					}
 					else {
 						valuesSb.append(values[i]);
@@ -116,7 +117,7 @@ public class QueryInsertReactor extends AbstractReactor {
 				}
 				else {
 					if(values[i] instanceof String) {
-						valuesSb.append("'" + values[i] + "', ");
+						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
 					}
 					else {
 						valuesSb.append(values[i] + ", ");
