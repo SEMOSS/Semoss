@@ -19,6 +19,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.forms.FormsReactor;
+import prerna.poi.main.helper.excel.ExcelDataValidationReactor;
 import prerna.query.querystruct.delete.QueryDeleteReactor;
 import prerna.query.querystruct.update.reactors.QueryUpdateReactor;
 import prerna.sablecc2.reactor.algorithms.AnomalyReactor;
@@ -43,6 +44,7 @@ import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
+import prerna.sablecc2.reactor.app.upload.GenerateExcelFormApp;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.PredictDataTypesReactor;
 import prerna.sablecc2.reactor.app.upload.PredictExcelRangeMetadataReactor;
@@ -426,8 +428,13 @@ public class ReactorFactory {
 		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
 		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
+		// Excel Data validation
+		reactorHash.put("GetExcelForm", ExcelDataValidationReactor.class);
+		
 
 		// Database Uploading
+		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
+		reactorHash.put("GenerateExcelFormApp", GenerateExcelFormApp.class);
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
 		reactorHash.put("RdbmsUploadExcelData", RdbmsFlatExcelUploadReactor.class);
 		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
@@ -742,8 +749,7 @@ public class ReactorFactory {
 		reactorHash.put("ModifyInsightComment", ModifyInsightCommentReactor.class);
 		reactorHash.put("GetInsightComments", GetInsightCommentsReactor.class);
 		
-		// Making Apps/Databases
-		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
+
 		
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
