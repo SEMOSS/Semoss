@@ -45,6 +45,8 @@ import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
+import prerna.poi.main.helper.excel.ExcelDataValidationHelper;
+import prerna.poi.main.helper.excel.ExcelDataValidationHelper.WIDGET_COMPONENT;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
@@ -871,6 +873,7 @@ public class UploadUtilities {
 			}
 		}
 	}
+	
 	public static void addInsertFormInsight(String appId, IEngine insightEngine, OWLER owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = "Insert form";
@@ -882,6 +885,7 @@ public class UploadUtilities {
 		admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
 	}
+	
 	public static Map<String, Object> createForm(String appId, OWLER owl, String[] headers) {
 		Map<String, Object> formMap = new HashMap<>();
 		// need to get property types from the owl
@@ -996,6 +1000,125 @@ public class UploadUtilities {
 		return formMap;
 	}
 	
+	/**
+	 * Create Excel form insight
+	 * @param insightEngine
+	 * @param appId
+	 * @param sheetName
+	 * @param dataValidationMap
+	 */
+	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName, Map<String, Object> dataValidationMap ) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		String insightName = sheetName + " form";
+		String layout = "default-handle";
+		Gson gson = GsonUtility.getDefaultGson();
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
+				+ gson.toJson(createForm(appId, sheetName, dataValidationMap)) + "]}</encode>\");";
+		String[] pkqlRecipeToSave = { newPixel };
+		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		insightEngine.commit();
+	}
+	
+	/**
+	 * Create smss form map from excel data validation
+	 * @param appId
+	 * @param dataValidationMap
+	 * @return
+	 */
+	public static Map<String, Object> createForm(String appId, String sheetName, Map<String, Object> dataValidationMap) {
+		Map<String, Object> formMap = new HashMap<>();
+		List<String> propertyList = new ArrayList<String>();
+		for (String header : dataValidationMap.keySet()) {
+			Map<String, Object> headerMap = (Map<String, Object>) dataValidationMap.get(header);
+			String dataType = (String) headerMap.get("type");
+			propertyList.add(header);
+		}
+
+		// create values and into strings for query
+		StringBuilder intoString = new StringBuilder();
+		StringBuilder valuesString = new StringBuilder();
+		for (int i = 0; i < propertyList.size(); i++) {
+			String property = propertyList.get(i);
+			intoString.append(sheetName + "__" + property);
+			valuesString.append("(\"<Parameter_" + i + ">\")");
+			if (i < propertyList.size() - 1) {
+				intoString.append(",");
+				valuesString.append(",");
+			}
+		}
+
+		formMap.put("query", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=[" + valuesString + "]);");
+		// TODO
+		formMap.put("label", "");
+		formMap.put("description", "");
+
+		// build param list
+		List<Map<String, Object>> paramList = new Vector<>();
+		for (int i = 0; i < propertyList.size(); i++) {
+			String property = propertyList.get(i);
+			Map<String,Object> propMap = (Map<String, Object>) dataValidationMap.get(property);
+			// build param for each property
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put("paramName", "Parameter_" + i);
+			String type = (String) propMap.get("type");
+			SemossDataType propType = SemossDataType.valueOf(type);
+			// build view for param map
+			Map<String, Object> viewMap = new HashMap<>();
+			viewMap.put("label", property);
+			// TODO
+			viewMap.put("description", "");
+			String validationType = (String) propMap.get("validationType");
+			int vt = ExcelDataValidationHelper.stringToValidationType(validationType);
+			WIDGET_COMPONENT wc = ExcelDataValidationHelper.validationTypeToComponent(vt);
+//			if (propType == SemossDataType.STRING) {
+//				viewMap.put("displayType", "typeahead");
+//			}
+//			if (Utility.isNumericType(propType.toString())) {
+//				viewMap.put("displayType", "number");
+//			}
+			viewMap.put("displayType", wc.toString().toLowerCase());
+			paramMap.put("view", viewMap);
+
+			// build model for param map
+			Map<String, Object> modelMap = new HashMap<>();
+			modelMap.put("defaultValue", "");
+			modelMap.put("defaultOptions", new Vector());
+			if (wc == WIDGET_COMPONENT.DROPDOWN) {
+				Vector values = (Vector) propMap.get("values");
+				modelMap.put("defaultOptions", values);
+
+			} else {
+				if (propType == SemossDataType.STRING) {
+					// if prop type is a string
+					modelMap.put("query",
+							"(Parameter_" + i + "_infinite = Database( database=[\"" + appId + "\"] )|" + "Select("
+									+ sheetName + "__" + property + ").as([" + property + "])|" + "Filter(" + sheetName
+									+ "__" + property + " ?like \"<Parameter_" + i
+									+ "_search>\") | Iterate())| Collect(50);");
+					modelMap.put("infiniteQuery", "Parameter_" + i + "_infinite | Collect(50);");
+					modelMap.put("searchParam", "Parameter_" + i + "_search");
+					// add dependency
+					List<String> dependencies = new Vector<>();
+					dependencies.add("Parameter_" + i + "_search");
+					modelMap.put("dependsOn", dependencies);
+
+					// if prop type is a string build a search param
+					Map<String, Object> searchMap = new HashMap<>();
+					searchMap.put("paramName", "Parameter_" + i + "_search");
+					searchMap.put("view", false);
+					Map<String, Object> searchModelMap = new HashMap<>();
+					searchModelMap.put("defaultValue", "");
+					searchMap.put("model", searchModelMap);
+					paramList.add(searchMap);
+				}
+			}
+			paramMap.put("model", modelMap);
+			paramList.add(paramMap);
+		}
+		formMap.put("params", paramList);
+		formMap.put("execute", "Submit");
+		return formMap;
+	}
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
