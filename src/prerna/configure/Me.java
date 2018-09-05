@@ -84,7 +84,7 @@ public class Me {
 		
 		cm.changeWebXML(homePath);
 		
-		cm.changeJS(homePath, port);
+//		cm.changeJS(homePath, port);
 		// adjust the ports
 		// this is to adjust app.config.js
 		// this is sitting in
