@@ -186,8 +186,10 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		} else {
 			driver.get(url);
 		}
-		Cookie name = new Cookie("JSESSIONID", sessionId, "/");
-		driver.manage().addCookie(name);
+		if(sessionId != null) {
+			Cookie name = new Cookie("JSESSIONID", sessionId, "/");
+			driver.manage().addCookie(name);
+		}
 		driver.navigate().to(url);
 		
 		// time for FE to render the page before the image is taken
@@ -209,6 +211,12 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	}
 	
 	public static void setContextPath(String contextPath) {
+		if(contextPath.startsWith("/")) {
+			contextPath = contextPath.substring(1);
+		}
+		if(contextPath.endsWith("/")) {
+			contextPath = contextPath.substring(0, contextPath.length()-1);
+		}
 		ImageCaptureReactor.contextPath = contextPath;
 	}
 	
