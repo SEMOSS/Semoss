@@ -93,6 +93,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "WHERE (ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
+				+ "AND (ENGINEPERMISSION.VISIBILITY = TRUE OR ENGINEPERMISSION.VISIBILITY IS NULL) "
 				+ "ORDER BY ENGINE.ENGINENAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
