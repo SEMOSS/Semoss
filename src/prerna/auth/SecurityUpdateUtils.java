@@ -951,7 +951,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param visibility
 	 */
 	public static void setDbVisibility(String userId, String engineId, String visibility){
-		
 		String query = "SELECT ENGINEID FROM ENGINEPERMISSION WHERE USERID = '?1' AND ENGINEID = '?2'";
 		query = query.replace("?1", userId);
 		query = query.replace("?2", engineId);
@@ -966,38 +965,34 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			return;
 		}
 		
-		query = "SELECT GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID, TEMP.AID "
-				+ "FROM GROUPENGINEPERMISSION JOIN (SELECT GROUPMEMBERSID AS AID, GROUPID FROM GROUPMEMBERS WHERE USERID = '?2') TEMP ON (GROUPENGINEPERMISSION.GROUPID = TEMP.GROUPID) "
-				+ "WHERE ENGINE = '?1'";
-		query = query.replace("?1", engineId);
-		query = query.replace("?2", userId);
+		// TODO: WHAT IS THIS CODE FOR???
+		// TODO: WHAT IS THIS CODE FOR???
+		// TODO: WHAT IS THIS CODE FOR???
+		// TODO: WHAT IS THIS CODE FOR???
+		// TODO: WHAT IS THIS CODE FOR???
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<Object[]> rows = flushRsToMatrix(wrapper);
+//		query = "SELECT GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID, TEMP.AID "
+//				+ "FROM GROUPENGINEPERMISSION JOIN (SELECT GROUPMEMBERSID AS AID, GROUPID FROM GROUPMEMBERS WHERE USERID = '?2') TEMP ON (GROUPENGINEPERMISSION.GROUPID = TEMP.GROUPID) "
+//				+ "WHERE ENGINE = '?1'";
+//		query = query.replace("?1", engineId);
+//		query = query.replace("?2", userId);
+//		
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		List<Object[]> rows = flushRsToMatrix(wrapper);
+//		
+//		for(Object[] row : rows){
+//			query = "UPDATE ENGINEGROUPMEMBERVISIBILITY SET VISIBILITY = '"+ visibility + 
+//					"' WHERE GROUPENGINEPERMISSIONID = '"+ row[0].toString() +"' AND GROUPMEMBERSID = '" + row[1].toString() +"'";
+//			securityDb.execUpdateAndRetrieveStatement(query, true);
+//			securityDb.commit();
+//			return;
+//		}
 		
-		for(Object[] row : rows){
-			query = "UPDATE ENGINEGROUPMEMBERVISIBILITY SET VISIBILITY = '"+ visibility + 
-					"' WHERE GROUPENGINEPERMISSIONID = '"+ row[0].toString() +"' AND GROUPMEMBERSID = '" + row[1].toString() +"'";
-			securityDb.execUpdateAndRetrieveStatement(query, true);
-			securityDb.commit();
-			return;
-		}
-		
-		Boolean isVisible = Boolean.parseBoolean(visibility);
-		
-		if(!isVisible){
-			query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID) VALUES ('?1', '?2')";
-			query = query.replace("?1", userId);
-			query = query.replace("?2", engineId);
-			securityDb.execUpdateAndRetrieveStatement(query, true);
-			securityDb.commit();
-		} else {
-			query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1' AND ENGINEID = '?2' AND PERMISSION IS NULL ";
-			query = query.replace("?1", userId);
-			query = query.replace("?2", engineId);
-			securityDb.execUpdateAndRetrieveStatement(query, true);
-			securityDb.commit();
-		}
+		// if we do not update
+		// we need to insert
+		String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY) VALUES ('" + userId + "', '" + engineId + "', " + visibility + ")";
+		securityDb.execUpdateAndRetrieveStatement(insertQuery, true);
+		securityDb.commit();
 	}
 	
 	/**
