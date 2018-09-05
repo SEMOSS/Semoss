@@ -1,0 +1,52 @@
+package prerna.poi.main.helper.excel;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
+import org.apache.poi.ss.usermodel.Sheet;
+
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
+
+/**
+ * This class stores and retrieves the data validation map from the database
+ *
+ */
+public class ExcelDataValidationReactor extends AbstractReactor {
+	
+	public ExcelDataValidationReactor() {
+		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SHEET_NAME.getKey()};
+	}
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String filePath = this.keyValue.get(this.keysToGet[0]);
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		helper.parse(filePath);
+		List<String> sheetNames = new Vector<>();
+		String sheetName = this.keyValue.get(this.keysToGet[1]);
+		if (sheetName == null) {
+			sheetNames = helper.getSheets();
+		} else {
+			sheetNames.add(sheetName);
+		}
+		
+		Map<String, Object> retMap = new HashMap<>();
+		for(String sheet:sheetNames) {
+			Sheet excelSheet = helper.getSheet(sheet);
+			Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(excelSheet);
+			if(!dataValidationMap.isEmpty()) {
+			retMap.put(sheet, dataValidationMap);
+			}
+		}
+		
+
+		return new NounMetadata(retMap, PixelDataType.MAP);
+	}
+
+}
