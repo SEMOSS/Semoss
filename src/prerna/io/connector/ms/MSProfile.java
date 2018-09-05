@@ -12,8 +12,8 @@ import prerna.util.BeanFiller;
 public class MSProfile implements IConnectorIOp{
 
 	private static String url = "https://graph.microsoft.com/v1.0/me/";
-	private static String [] beanProps = {"name"}; // add is done when you have a list
-	private static String jsonPattern = "[displayName]";
+	private static String [] beanProps = {"name","id","email"}; // add is done when you have a list
+	private static String jsonPattern = "[displayName,id,mail]";
 	
 	@Override
 	public String execute(User user, Hashtable params) {
