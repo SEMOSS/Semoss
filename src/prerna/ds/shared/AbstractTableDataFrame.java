@@ -44,6 +44,8 @@ import prerna.util.gson.GenRowFiltersAdapter;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
 	@Deprecated
 	public static final String SELECTORS = "selectors";
 	@Deprecated
@@ -468,14 +470,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	protected void saveMeta(CachePropFileFrameObject cf, String folderDir, String fileName) {
 		// save frame metadata
-		String metaFileName = folderDir + "\\METADATA__" + fileName + ".owl";
+		String metaFileName = folderDir + DIR_SEPARATOR + "METADATA__" + fileName + ".owl";
 		this.metaData.save(metaFileName);
 		cf.setFrameMetaCacheLocation(metaFileName);
 		
 		// save the frame filters
 		List<IQueryFilter> filters = this.grf.getFilters();
 		if(!filters.isEmpty()) {
-			String frameStateFileName = folderDir + "\\FRAME_STATE__" + fileName + ".json";
+			String frameStateFileName = folderDir + DIR_SEPARATOR + "FRAME_STATE__" + fileName + ".json";
 			StringWriter writer = new StringWriter();
 			JsonWriter jWriter = new JsonWriter(writer);
 			GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
