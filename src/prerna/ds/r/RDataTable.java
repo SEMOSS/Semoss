@@ -252,7 +252,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		cf.setFrameName(frameName);
 		
 		// save frame
-		String frameFileName = folderDir + "\\" + frameName + ".rda";
+		String frameFileName = folderDir + DIR_SEPARATOR + frameName + ".rda";
 		cf.setFrameCacheLocation(frameFileName);
 		this.builder.save(frameFileName, frameName);
 		
