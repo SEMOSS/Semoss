@@ -45,7 +45,6 @@ import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
-import prerna.sablecc2.reactor.app.upload.GenerateExcelFormApp;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.PredictDataTypesReactor;
 import prerna.sablecc2.reactor.app.upload.PredictExcelRangeMetadataReactor;
