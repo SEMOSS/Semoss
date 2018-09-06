@@ -221,7 +221,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		
 		String randFrameName = "Native" + Utility.getRandomString(6);
 		cf.setFrameName(randFrameName);
-		String frameFileName = folderDir + "\\" + randFrameName + ".json";
+		String frameFileName = folderDir + DIR_SEPARATOR + randFrameName + ".json";
 
 		// save frame - this is just the QS
 		StringWriter writer = new StringWriter();
