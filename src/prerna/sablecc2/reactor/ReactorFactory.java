@@ -43,6 +43,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
+import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateExcelFormApp;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
@@ -434,7 +435,7 @@ public class ReactorFactory {
 
 		// Database Uploading
 		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
-		reactorHash.put("GenerateExcelFormApp", GenerateExcelFormApp.class);
+		reactorHash.put("FormUpload", FormUploadReactor.class);
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
 		reactorHash.put("RdbmsUploadExcelData", RdbmsFlatExcelUploadReactor.class);
 		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
