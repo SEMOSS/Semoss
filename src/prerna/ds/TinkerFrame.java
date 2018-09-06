@@ -945,7 +945,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		String randFrameName = "Tinker" + Utility.getRandomString(6);
 		cf.setFrameName(randFrameName);
 
-		String frameFileName = folderDir + "\\" + randFrameName + ".tg";
+		String frameFileName = folderDir + DIR_SEPARATOR + randFrameName + ".tg";
 		// save frame
 		Builder<GryoIo> builder = IoCore.gryo();
 		builder.graph(g);

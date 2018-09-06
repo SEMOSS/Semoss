@@ -252,7 +252,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		cf.setFrameName(frameName);
 		
 		//save frame
-		String frameFileName = folderDir + "\\" + frameName + ".gz";
+		String frameFileName = folderDir + DIR_SEPARATOR + frameName + ".gz";
 		this.builder.save(frameFileName, frameName);
 		cf.setFrameCacheLocation(frameFileName);
 
