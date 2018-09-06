@@ -25,9 +25,7 @@ import prerna.util.gson.GsonUtility;
  * This class gets the data validation constraints from an excel sheet
  */
 public class ExcelDataValidationHelper {
-	public enum WIDGET_COMPONENT {
-		CHECKLIST, DROPDOWN, EXECUTE, FREETEXT, NUMBER, RADIO, SLIDER, TEXTAREA, TYPEAHEAD
-	};
+	public enum WIDGET_COMPONENT { CHECKLIST, DROPDOWN, EXECUTE, FREETEXT, NUMBER, RADIO, SLIDER, TEXTAREA, TYPEAHEAD };
 
 	public static Map<String, Object> getDataValidation(Sheet sheet) {
 		Map<String, Object> validationMap = new HashMap<>();
@@ -66,13 +64,13 @@ public class ExcelDataValidationHelper {
 				if (formula2 != null) {
 					headerMeta.put("f2", formula2);
 				}
-				if(validationType == DataValidationConstraint.ValidationType.INTEGER) {
+				if (validationType == DataValidationConstraint.ValidationType.INTEGER) {
 					headerMeta.put("type", SemossDataType.INT.toString());
 				}
-				if(validationType == DataValidationConstraint.ValidationType.DECIMAL) {
+				if (validationType == DataValidationConstraint.ValidationType.DECIMAL) {
 					headerMeta.put("type", SemossDataType.DOUBLE.toString());
 				}
-				if(validationType == DataValidationConstraint.ValidationType.TEXT_LENGTH) {
+				if (validationType == DataValidationConstraint.ValidationType.TEXT_LENGTH) {
 					headerMeta.put("type", SemossDataType.STRING.toString());
 				}
 
@@ -134,33 +132,33 @@ public class ExcelDataValidationHelper {
 		}
 		return validationName;
 	}
-	
+
 	public static int stringToValidationType(String validationType) {
 		int vt = ValidationType.ANY;
 		if (validationType.equals("ANY")) {
 			vt = DataValidationConstraint.ValidationType.ANY;
 		} else if (validationType.equals("INTEGER")) {
-			vt = DataValidationConstraint.ValidationType.INTEGER; 
+			vt = DataValidationConstraint.ValidationType.INTEGER;
 		} else if (validationType.equals("DECIMAL")) {
-			vt = DataValidationConstraint.ValidationType.DECIMAL; 
+			vt = DataValidationConstraint.ValidationType.DECIMAL;
 		} else if (validationType.equals("LIST")) {
-			vt = DataValidationConstraint.ValidationType.LIST; 
+			vt = DataValidationConstraint.ValidationType.LIST;
 		} else if (validationType.equals("DATE")) {
-			vt = DataValidationConstraint.ValidationType.DATE; 
+			vt = DataValidationConstraint.ValidationType.DATE;
 		} else if (validationType.equals("TIME")) {
-			vt = DataValidationConstraint.ValidationType.TIME; 
+			vt = DataValidationConstraint.ValidationType.TIME;
 		} else if (validationType.equals("TEXT_LENGTH")) {
-			vt = DataValidationConstraint.ValidationType.TEXT_LENGTH; 
+			vt = DataValidationConstraint.ValidationType.TEXT_LENGTH;
 		} else if (validationType.equals("FORMULA")) {
-			vt = DataValidationConstraint.ValidationType.FORMULA; 
-		}		
+			vt = DataValidationConstraint.ValidationType.FORMULA;
+		}
 		return vt;
 	}
-	
+
 	public static WIDGET_COMPONENT validationTypeToComponent(int validationType) {
 		WIDGET_COMPONENT widgetComponent = WIDGET_COMPONENT.FREETEXT;
 		if (validationType == DataValidationConstraint.ValidationType.ANY) {
-			
+
 		} else if (validationType == DataValidationConstraint.ValidationType.INTEGER) {
 			widgetComponent = WIDGET_COMPONENT.NUMBER;
 		} else if (validationType == DataValidationConstraint.ValidationType.DECIMAL) {
@@ -168,15 +166,37 @@ public class ExcelDataValidationHelper {
 		} else if (validationType == DataValidationConstraint.ValidationType.LIST) {
 			widgetComponent = WIDGET_COMPONENT.DROPDOWN;
 		} else if (validationType == DataValidationConstraint.ValidationType.DATE) {
-			
+
 		} else if (validationType == DataValidationConstraint.ValidationType.TIME) {
-			
+
 		} else if (validationType == DataValidationConstraint.ValidationType.TEXT_LENGTH) {
 			widgetComponent = WIDGET_COMPONENT.TEXTAREA;
 		} else if (validationType == DataValidationConstraint.ValidationType.FORMULA) {
 			widgetComponent = WIDGET_COMPONENT.FREETEXT;
 		}
 		return widgetComponent;
+	}
+
+	public static SemossDataType widgetComponentToDataType(WIDGET_COMPONENT widgetComponent) {
+		SemossDataType dataType = SemossDataType.STRING;
+		if (widgetComponent == WIDGET_COMPONENT.CHECKLIST) {
+
+		} else if (widgetComponent == WIDGET_COMPONENT.DROPDOWN) {
+
+		} else if (widgetComponent == WIDGET_COMPONENT.FREETEXT) {
+
+		} else if (widgetComponent == WIDGET_COMPONENT.NUMBER) {
+			dataType = SemossDataType.DOUBLE;
+		} else if (widgetComponent == WIDGET_COMPONENT.RADIO) {
+
+		} else if (widgetComponent == WIDGET_COMPONENT.SLIDER) {
+
+		} else if (widgetComponent == WIDGET_COMPONENT.TEXTAREA) {
+
+		} else if (widgetComponent == WIDGET_COMPONENT.TYPEAHEAD) {
+
+		}
+		return dataType;
 	}
 
 	public static String operatorToString(int operatorType) {
@@ -200,7 +220,7 @@ public class ExcelDataValidationHelper {
 		}
 		return operatorName;
 	}
-	
+
 	public static void main(String[] args) {
 		String fileLocation = "C:\\Users\\rramirezjimenez\\Documents\\My Received Files\\dropDown.xlsx";
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
