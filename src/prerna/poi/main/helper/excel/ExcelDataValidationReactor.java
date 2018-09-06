@@ -11,40 +11,41 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 
 /**
  * This class stores and retrieves the data validation map from the database
  *
  */
 public class ExcelDataValidationReactor extends AbstractReactor {
-	
+
 	public ExcelDataValidationReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SHEET_NAME.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.SHEET_NAME.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String filePath = this.keyValue.get(this.keysToGet[0]);
+		String appName = this.keyValue.get(this.keysToGet[1]);
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(filePath);
 		List<String> sheetNames = new Vector<>();
-		String sheetName = this.keyValue.get(this.keysToGet[1]);
+		String sheetName = this.keyValue.get(this.keysToGet[2]);
 		if (sheetName == null) {
 			sheetNames = helper.getSheets();
 		} else {
 			sheetNames.add(sheetName);
 		}
-		
 		Map<String, Object> retMap = new HashMap<>();
-		for(String sheet:sheetNames) {
+		for (String sheet : sheetNames) {
 			Sheet excelSheet = helper.getSheet(sheet);
 			Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(excelSheet);
-			if(!dataValidationMap.isEmpty()) {
-			retMap.put(sheet, dataValidationMap);
+			Map<String, Object> form = UploadUtilities.createForm(appName, sheet, dataValidationMap);
+			if (!form.isEmpty()) {
+				retMap.put(sheet, form);
 			}
 		}
-		
 
 		return new NounMetadata(retMap, PixelDataType.MAP);
 	}

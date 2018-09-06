@@ -1007,13 +1007,13 @@ public class UploadUtilities {
 	 * @param sheetName
 	 * @param dataValidationMap
 	 */
-	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName, Map<String, Object> dataValidationMap ) {
+	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName, Map<String, Object> widgetJson ) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = sheetName + " form";
 		String layout = "default-handle";
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
-				+ gson.toJson(createForm(appId, sheetName, dataValidationMap)) + "]}</encode>\");";
+				+ gson.toJson(widgetJson) + "]}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
 		admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
@@ -1040,7 +1040,7 @@ public class UploadUtilities {
 		for (int i = 0; i < propertyList.size(); i++) {
 			String property = propertyList.get(i);
 			intoString.append(sheetName + "__" + property);
-			valuesString.append("(\"<Parameter_" + i + ">\")");
+			valuesString.append(" \"<Parameter_" + i + ">\"");
 			if (i < propertyList.size() - 1) {
 				intoString.append(",");
 				valuesString.append(",");
@@ -1067,52 +1067,51 @@ public class UploadUtilities {
 			viewMap.put("label", property);
 			// TODO
 			viewMap.put("description", "");
+			// change validation type to display type
 			String validationType = (String) propMap.get("validationType");
 			int vt = ExcelDataValidationHelper.stringToValidationType(validationType);
 			WIDGET_COMPONENT wc = ExcelDataValidationHelper.validationTypeToComponent(vt);
-//			if (propType == SemossDataType.STRING) {
-//				viewMap.put("displayType", "typeahead");
-//			}
-//			if (Utility.isNumericType(propType.toString())) {
-//				viewMap.put("displayType", "number");
-//			}
 			viewMap.put("displayType", wc.toString().toLowerCase());
 			paramMap.put("view", viewMap);
-
 			// build model for param map
 			Map<String, Object> modelMap = new HashMap<>();
 			modelMap.put("defaultValue", "");
 			modelMap.put("defaultOptions", new Vector());
 			if (wc == WIDGET_COMPONENT.DROPDOWN) {
-				Vector values = (Vector) propMap.get("values");
+				String[] values = (String[]) propMap.get("values");
 				modelMap.put("defaultOptions", values);
 
 			} else {
-				if (propType == SemossDataType.STRING) {
-					// if prop type is a string
-					modelMap.put("query",
-							"(Parameter_" + i + "_infinite = Database( database=[\"" + appId + "\"] )|" + "Select("
-									+ sheetName + "__" + property + ").as([" + property + "])|" + "Filter(" + sheetName
-									+ "__" + property + " ?like \"<Parameter_" + i
-									+ "_search>\") | Iterate())| Collect(50);");
-					modelMap.put("infiniteQuery", "Parameter_" + i + "_infinite | Collect(50);");
-					modelMap.put("searchParam", "Parameter_" + i + "_search");
-					// add dependency
-					List<String> dependencies = new Vector<>();
-					dependencies.add("Parameter_" + i + "_search");
-					modelMap.put("dependsOn", dependencies);
+				if (wc != WIDGET_COMPONENT.TEXTAREA) {
+					if (propType == SemossDataType.STRING) {
+						// if prop type is a string
+						modelMap.put("query",
+								"(Parameter_" + i + "_infinite = Database( database=[\"" + appId + "\"] )|" + "Select("
+										+ sheetName + "__" + property + ").as([" + property + "])|" + "Filter("
+										+ sheetName + "__" + property + " ?like \"<Parameter_" + i
+										+ "_search>\") | Iterate())| Collect(50);");
+						modelMap.put("infiniteQuery", "Parameter_" + i + "_infinite | Collect(50);");
+						modelMap.put("searchParam", "Parameter_" + i + "_search");
+						// add dependency
+						List<String> dependencies = new Vector<>();
+						dependencies.add("Parameter_" + i + "_search");
+						modelMap.put("dependsOn", dependencies);
 
-					// if prop type is a string build a search param
-					Map<String, Object> searchMap = new HashMap<>();
-					searchMap.put("paramName", "Parameter_" + i + "_search");
-					searchMap.put("view", false);
-					Map<String, Object> searchModelMap = new HashMap<>();
-					searchModelMap.put("defaultValue", "");
-					searchMap.put("model", searchModelMap);
-					paramList.add(searchMap);
+						// if prop type is a string build a search param
+						Map<String, Object> searchMap = new HashMap<>();
+						searchMap.put("paramName", "Parameter_" + i + "_search");
+						searchMap.put("view", false);
+						Map<String, Object> searchModelMap = new HashMap<>();
+						searchModelMap.put("defaultValue", "");
+						searchMap.put("model", searchModelMap);
+						paramList.add(searchMap);
+					}
 				}
 			}
-			paramMap.put("model", modelMap);
+			if (wc != WIDGET_COMPONENT.TEXTAREA) {
+				paramMap.put("model", modelMap);
+			}
+			
 			paramList.add(paramMap);
 		}
 		formMap.put("params", paramList);
