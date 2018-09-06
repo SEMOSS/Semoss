@@ -261,6 +261,30 @@ public class PixelUtility {
 	
 	/**
 	 * 
+	 * @param pixel
+	 * @return {into, values}
+	 */
+	public static Object[] getFormWidgetInputs(String pixel) {
+		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
+		Object[] ret = new Object[2];
+		try {
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8"))), pixel.length())));
+			FormWidgetTranslation translation = new FormWidgetTranslation();
+			// parsing the pixel - this process also determines if expression is syntactically correct
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+			ret[0] = translation.getInto();
+			ret[1] =translation.getValues();
+			return ret;
+		} catch (ParserException | LexerException | IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 
 	 * @param expression
 	 * @param encodedTextToOriginal
 	 * @return
