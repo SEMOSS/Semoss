@@ -44,7 +44,7 @@ public interface IUserTracker {
 	 * @param insight
 	 * @param queryStruct
 	 */
-	void trackQueryData(Insight insight, SelectQueryStruct queryStruct);	
+	void trackQueryData(Insight in, SelectQueryStruct qs);	
 	
 	/**
 	 * Tracking insight execution
