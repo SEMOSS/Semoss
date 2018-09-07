@@ -53,7 +53,7 @@ public class NullUserTracker implements IUserTracker {
 	}
 
 	@Override
-	public void trackQueryData(Insight insight, SelectQueryStruct queryStruct) {
+	public void trackQueryData(Insight in, SelectQueryStruct qs) {
 		// TODO Auto-generated method stub
 		
 	}
