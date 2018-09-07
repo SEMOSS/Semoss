@@ -1,8 +1,10 @@
 package prerna.poi.main.helper.excel;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataValidation;
@@ -17,6 +19,7 @@ import org.apache.poi.ss.util.CellReference;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.poi.main.HeadersException;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
@@ -25,11 +28,17 @@ import prerna.util.gson.GsonUtility;
  * This class gets the data validation constraints from an excel sheet
  */
 public class ExcelDataValidationHelper {
-	public enum WIDGET_COMPONENT { CHECKLIST, DROPDOWN, EXECUTE, FREETEXT, NUMBER, RADIO, SLIDER, TEXTAREA, TYPEAHEAD };
-
-	public static Map<String, Object> getDataValidation(Sheet sheet) {
+	public enum WIDGET_COMPONENT {
+		CHECKLIST, DROPDOWN, EXECUTE, FREETEXT, NUMBER, RADIO, SLIDER, TEXTAREA, TYPEAHEAD
+	};
+	
+	
+	public static Map<String, Object> getDataValidation(Sheet sheet, Map<String, String> newHeaders) {
 		Map<String, Object> validationMap = new HashMap<>();
 		List<? extends DataValidation> validations = sheet.getDataValidations();
+		HeadersException headerChecker = HeadersException.getInstance();
+		List<String> newUniqueCleanHeaders = new Vector<String>();
+		// check if validations exist
 		for (DataValidation dv : validations) {
 			Map<String, Object> headerMeta = new HashMap<>();
 			DataValidationConstraint constraint = dv.getValidationConstraint();
@@ -44,7 +53,12 @@ public class ExcelDataValidationHelper {
 				Row row = sheet.getRow(cellReference.getRow() - 1);
 				Cell c = row.getCell(cellReference.getCol());
 				Object header = ExcelParsing.getCell(c);
-				cleanHeader = Utility.cleanString(header.toString(), true, true, false);
+				cleanHeader = headerChecker.recursivelyFixHeaders(header.toString(), newUniqueCleanHeaders);
+				// get new header from user input
+				if (newHeaders.containsKey(cleanHeader)) {
+					cleanHeader = newHeaders.get(cleanHeader);
+				}
+				newUniqueCleanHeaders.add(cleanHeader);
 				headerMeta.put("range", address);
 			}
 			boolean allowEmptyCells = dv.getEmptyCellAllowed();
@@ -102,10 +116,137 @@ public class ExcelDataValidationHelper {
 			} else if (validationType == DataValidationConstraint.ValidationType.FORMULA) {
 				headerMeta.put("type", SemossDataType.STRING.toString());
 			}
+
 			if (cleanHeader != null) {
 				validationMap.put(cleanHeader, headerMeta);
 			}
 
+		}
+		return validationMap;
+	}
+	
+
+	/**
+	 * Create data validation map from excel specific range
+	 * @param sheet
+	 * @param newHeaders
+	 * @param headers
+	 * @param types
+	 * @return
+	 */
+	public static Map<String, Object> getDataValidation(Sheet sheet, Map<String, String> newHeaders,
+			List<String> headers, List<SemossDataType> types) {
+		Map<String, Object> validationMap = new HashMap<>();
+		List<? extends DataValidation> validations = sheet.getDataValidations();
+		HeadersException headerChecker = HeadersException.getInstance();
+		List<String> newUniqueCleanHeaders = new Vector<String>();
+		// check if validations exist
+		for (DataValidation dv : validations) {
+			Map<String, Object> headerMeta = new HashMap<>();
+			DataValidationConstraint constraint = dv.getValidationConstraint();
+			CellRangeAddressList region = dv.getRegions();
+			CellRangeAddress[] cellRangeAddresses = region.getCellRangeAddresses();
+			String cleanHeader = null;
+			for (CellRangeAddress rangeAddress : cellRangeAddresses) {
+				String address = rangeAddress.formatAsString();
+				// get the header for the range
+				String[] split = address.split(":");
+				CellReference cellReference = new CellReference(split[0]);
+				Row row = sheet.getRow(cellReference.getRow() - 1);
+				Cell c = row.getCell(cellReference.getCol());
+				Object header = ExcelParsing.getCell(c);
+				cleanHeader = headerChecker.recursivelyFixHeaders(header.toString(), newUniqueCleanHeaders);
+				// get new header from user input
+				if (newHeaders.containsKey(cleanHeader)) {
+					cleanHeader = newHeaders.get(cleanHeader);
+				}
+				newUniqueCleanHeaders.add(cleanHeader);
+				headerMeta.put("range", address);
+			}
+			boolean allowEmptyCells = dv.getEmptyCellAllowed();
+			int validationType = constraint.getValidationType();
+			headerMeta.put("emptyCells", allowEmptyCells);
+			headerMeta.put("validationType", validationTypeToString(validationType));
+			if (validationType == DataValidationConstraint.ValidationType.ANY) {
+			} else if (validationType == DataValidationConstraint.ValidationType.INTEGER
+					|| validationType == DataValidationConstraint.ValidationType.TEXT_LENGTH
+					|| validationType == DataValidationConstraint.ValidationType.DECIMAL) {
+				int operator = constraint.getOperator();
+				String formula1 = constraint.getFormula1();
+				String formula2 = constraint.getFormula2();
+				headerMeta.put("operator", operatorToString(operator));
+				headerMeta.put("f1", formula1);
+				if (formula2 != null) {
+					headerMeta.put("f2", formula2);
+				}
+				if (validationType == DataValidationConstraint.ValidationType.INTEGER) {
+				}
+				if (validationType == DataValidationConstraint.ValidationType.DECIMAL) {
+				}
+				if (validationType == DataValidationConstraint.ValidationType.TEXT_LENGTH) {
+				}
+
+			} else if (validationType == DataValidationConstraint.ValidationType.LIST) {
+				String[] values = constraint.getExplicitListValues();
+				headerMeta.put("values", values);
+			} else if (validationType == DataValidationConstraint.ValidationType.DATE) {
+				int operator = constraint.getOperator();
+				String formula1 = constraint.getFormula1();
+				String formula2 = constraint.getFormula2();
+				headerMeta.put("operator", operatorToString(operator));
+				headerMeta.put("f1", formula1);
+				if (formula2 != null) {
+					headerMeta.put("f2", formula2);
+				}
+				headerMeta.put("type", SemossDataType.DATE.toString());
+			} else if (validationType == DataValidationConstraint.ValidationType.TIME) {
+				int operator = constraint.getOperator();
+				String formula1 = constraint.getFormula1();
+				String formula2 = constraint.getFormula2();
+				headerMeta.put("operator", operatorToString(operator));
+				headerMeta.put("f1", formula1);
+				if (formula2 != null) {
+					headerMeta.put("f2", formula2);
+				}
+
+			} else if (validationType == DataValidationConstraint.ValidationType.FORMULA) {
+			}
+
+			if (cleanHeader != null && headers.contains(cleanHeader)) {
+				validationMap.put(cleanHeader, headerMeta);
+				int index = headers.indexOf(cleanHeader);
+				SemossDataType type = types.get(index);
+				headerMeta.put("type", type.toString());
+				headers.remove(index);
+				types.remove(index);
+			}
+
+		}
+		// add remaining missing columns to validationMap
+		if(!validationMap.isEmpty()) {
+			for(int i = 0; i < headers.size(); i++) {
+				String header = headers.get(i);
+				SemossDataType type = types.get(i);
+				Map<String, Object> headerMeta = new HashMap<>();
+				
+				if(type == SemossDataType.STRING) {
+					headerMeta.put("type", SemossDataType.STRING.toString());
+					int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH; 
+					headerMeta.put("validationType", validationTypeToString(validationType));
+
+				}
+				if(Utility.isNumericType(type.toString())) {
+					headerMeta.put("type", SemossDataType.DOUBLE.toString());
+					int validationType = DataValidationConstraint.ValidationType.DECIMAL; 
+					headerMeta.put("validationType", validationTypeToString(validationType));
+				}
+				//TODO
+				headerMeta.put("range", "");
+				headerMeta.put("emptyCells", true);
+
+				validationMap.put(header, headerMeta);
+				
+			}
 		}
 		return validationMap;
 
@@ -170,7 +311,7 @@ public class ExcelDataValidationHelper {
 		} else if (validationType == DataValidationConstraint.ValidationType.TIME) {
 
 		} else if (validationType == DataValidationConstraint.ValidationType.TEXT_LENGTH) {
-			widgetComponent = WIDGET_COMPONENT.TEXTAREA;
+			widgetComponent = WIDGET_COMPONENT.FREETEXT;
 		} else if (validationType == DataValidationConstraint.ValidationType.FORMULA) {
 			widgetComponent = WIDGET_COMPONENT.FREETEXT;
 		}
@@ -227,7 +368,15 @@ public class ExcelDataValidationHelper {
 		helper.parse(fileLocation);
 		String sheetName = "Sheet1";
 		Sheet sheet = helper.getSheet(sheetName);
-		Map<String, Object> dataValidationMap = getDataValidation(sheet);
+		List<String> headers = new Vector<>();
+		headers.add("test");
+		headers.add("Age");
+		SemossDataType[] types = new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT };
+		List<SemossDataType> typeList = new Vector<>();
+		for(SemossDataType t:types) {
+			typeList.add(t);
+		}
+		Map<String, Object> dataValidationMap = getDataValidation(sheet, new HashMap<>(), headers, typeList);
 		Gson gson = GsonUtility.getDefaultGson();
 		Map<String, Object> form = UploadUtilities.createForm("test", sheetName, dataValidationMap);
 		System.out.println(gson.toJson(form));
