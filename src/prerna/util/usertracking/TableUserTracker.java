@@ -325,6 +325,16 @@ public class TableUserTracker implements IUserTracker {
 		
 	@Override
 	public void trackDataImport(Insight in, SelectQueryStruct qs) {
+		trackSelectQueryStructData(in, qs, "DATA_IMPORT");
+	}
+	
+	@Override
+	public void trackQueryData(Insight in, SelectQueryStruct qs) {
+		trackSelectQueryStructData(in, qs, "DATA_QUERY");
+	}
+
+	
+	private void trackSelectQueryStructData(Insight in, SelectQueryStruct qs, String widgetType) {
 		List<Object[]> rows = new Vector<Object[]>();
 		
 		String id = UUID.randomUUID().toString();
@@ -385,7 +395,7 @@ public class TableUserTracker implements IUserTracker {
 				// count
 				row[6] = uniqueCount;
 				// input type
-				row[7] = "DATA_IMPORT";
+				row[7] = widgetType;
 				// input subtype
 				row[8] = "ENGINE";
 				// input name
@@ -442,7 +452,7 @@ public class TableUserTracker implements IUserTracker {
 					Object[] row = new Object[15];
 					row[0] = id;
 					// input type
-					row[7] = "DATA_IMPORT";
+					row[7] = widgetType;
 					// input subtype
 					row[8] = "FRAME";
 					// input name
@@ -467,7 +477,7 @@ public class TableUserTracker implements IUserTracker {
 							Object[] row = new Object[15];
 							row[0] = id;
 							// input type
-							row[7] = "DATA_IMPORT";
+							row[7] = widgetType;
 							// input subtype
 							row[8] = "FRAME";
 							// input name
@@ -513,7 +523,7 @@ public class TableUserTracker implements IUserTracker {
 						// count
 						row[6] = uniqueCount;
 						// input type
-						row[7] = "DATA_IMPORT";
+						row[7] = widgetType;
 						// input subtype
 						row[8] = "FRAME";
 						// input name
@@ -546,7 +556,7 @@ public class TableUserTracker implements IUserTracker {
 			// engine name
 			row[2] = engineName;
 			// input type
-			row[7] = "DATA_IMPORT";
+			row[7] = widgetType;
 			// input subtype
 			row[8] = "RAW_ENGINE_QUERY";
 			// input name
@@ -571,7 +581,7 @@ public class TableUserTracker implements IUserTracker {
 			Object[] row = new Object[15];
 			row[0] = id;
 			// input type
-			row[7] = "DATA_IMPORT";
+			row[7] = widgetType;
 			// input subtype
 			row[8] = "RAW_FRAME_QUERY";
 			// input name
@@ -620,7 +630,7 @@ public class TableUserTracker implements IUserTracker {
 				// datatype
 				row[5] = dataType;
 				// input type
-				row[7] = "DATA_IMPORT";
+				row[7] = widgetType;
 				// input subtype
 				row[8] = "FILE";
 				// input name
@@ -645,7 +655,7 @@ public class TableUserTracker implements IUserTracker {
 				Object[] row = new Object[15];
 				row[0] = id;
 				// input type
-				row[7] = "DATA_IMPORT";
+				row[7] = widgetType;
 				// input subtype
 				row[8] = "LAMBDA";
 				// input name
@@ -666,28 +676,6 @@ public class TableUserTracker implements IUserTracker {
 		}
 		
 		sendTrackRequest("widget", rows);
-	}
-	
-
-	@Override
-	public void trackQueryData(Insight insight, SelectQueryStruct queryStruct) {
-		// TODO Auto-generated method stub
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-		System.out.println("IMPLEMENT THIS METHOD");
-
 	}
 	
 	@Override
