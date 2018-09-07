@@ -149,11 +149,13 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		
 		String os = System.getProperty("os.name").toUpperCase();
 		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
+		boolean linux = false;
 		if(os.contains("WIN")){
 			sysProp += "chromedriver-win.exe";
 		} else if(os.contains("MAC")) {
 			sysProp += "chromedriver-mac";
 		} else {
+			linux = true;
 			sysProp += "chromedriver-linux";
 		}
 		System.setProperty("webdriver.chrome.driver", sysProp);
@@ -162,8 +164,10 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		chromeOptions.addArguments("--headless");
 		chromeOptions.addArguments("--disable-gpu");
 		chromeOptions.addArguments("--window-size=1440,1440");
-		chromeOptions.addArguments("-disable-dev-shm-usage");
-		chromeOptions.addArguments("--no-sandbox");
+		if(linux) {
+			chromeOptions.addArguments("-disable-dev-shm-usage");
+			chromeOptions.addArguments("--no-sandbox");
+		}
 		if(feUrl.contains("localhost") && feUrl.contains("https")) {
 			chromeOptions.addArguments("--allow-insecure-localhost ");
 		}
@@ -208,7 +212,6 @@ public class ImageCaptureReactor  extends AbstractReactor {
 			e.printStackTrace();
 		}
 
-		driver.close();
 	    driver.quit();
 	}
 	
