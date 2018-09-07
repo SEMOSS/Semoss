@@ -162,6 +162,8 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		chromeOptions.addArguments("--headless");
 		chromeOptions.addArguments("--disable-gpu");
 		chromeOptions.addArguments("--window-size=1440,1440");
+		chromeOptions.addArguments("-disable-dev-shm-usage");
+		chromeOptions.addArguments("--no-sandbox");
 		if(feUrl.contains("localhost") && feUrl.contains("https")) {
 			chromeOptions.addArguments("--allow-insecure-localhost ");
 		}
