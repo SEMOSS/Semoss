@@ -4,15 +4,17 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.Sheet;
 
-import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AuthProvider;
@@ -29,6 +31,7 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.excel.ExcelBlock;
+import prerna.poi.main.helper.excel.ExcelDataValidationHelper;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.poi.main.helper.excel.ExcelSheetPreProcessor;
@@ -209,10 +212,102 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 			e.printStackTrace();
 		}
 		logger.info("5. Complete");
-
+		
 		logger.info("6. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		// create form insights
+		// user hasn't defined the data types
+		// that means i am going to assume that i should
+		// load everything
+		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+			// need to calculate all the ranges
+			ExcelWorkbookFilePreProcessor wProcessor = new ExcelWorkbookFilePreProcessor();
+			wProcessor.parse(helper.getFilePath());
+			wProcessor.determineTableRanges();
+			Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
+
+			for(String sheetName : sProcessor.keySet()) {
+				ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheetName);
+				List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
+				for(ExcelBlock eBlock : blocks) {
+					List<ExcelRange> ranges = eBlock.getRanges();
+					for(ExcelRange eRange : ranges) {
+						String range = eRange.getRangeSyntax();
+						boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
+						ExcelQueryStruct qs = new ExcelQueryStruct();
+						qs.setSheetName(sheetName);
+						qs.setSheetRange(range);
+						// sheetIterator will calculate all the types if necessary
+						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
+						Sheet sheet = sheetIterator.getSheet();
+						Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
+						String[] headers = sheetIterator.getHeaders();
+						SemossDataType[] types = sheetIterator.getTypes();
+						List<String> headersList = new Vector<>();
+						List<SemossDataType> typeList = new Vector<>();
+						for(int i = 0; i < headers.length; i++) {
+							headersList.add(headers[i]);
+							typeList.add(types[i]);
+						}
+						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, headersList, typeList);
+						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
+							Map<String, Object> widgetJson = UploadUtilities.createForm(newAppName, sheetName, dataValidationMap);
+							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
+						} else {
+							UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, headers);
+						}
+						
+						
+					}
+				}
+			}
+		} else {
+			// only load the things that are defined
+			for(String sheetName : dataTypesMap.keySet()) {
+				Map<String, Map<String, String>> rangeMaps = dataTypesMap.get(sheetName);
+				boolean singleRange = (rangeMaps.keySet().size() == 1);
+				for(String range : rangeMaps.keySet()) {
+					
+					ExcelQueryStruct qs = new ExcelQueryStruct();
+					qs.setSheetName(sheetName);
+					qs.setSheetRange(range);
+					qs.setColumnTypes(rangeMaps.get(range));
+					if (additionalDataTypeMap.containsKey(sheetName)) {
+						Map<String, Map<String, String>> aRangeMap = additionalDataTypeMap.get(sheetName);
+						if (aRangeMap.containsKey(range)) {
+							qs.setAdditionalTypes(aRangeMap.get(range));
+						}
+					}
+					if (newHeaders.containsKey(sheetName)) {
+						Map<String, Map<String, String>> aNewHeadersMap = newHeaders.get(sheetName);
+						if (aNewHeadersMap.containsKey(range)) {
+							qs.setNewHeaderNames(aNewHeadersMap.get(range));
+						}
+					}
+					Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
+					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
+					Sheet sheet = sheetIterator.getSheet();
+					String[] headers = sheetIterator.getHeaders();
+					SemossDataType[] types = sheetIterator.getTypes();
+					List<String> headersList = new Vector<>();
+					List<SemossDataType> typeList = new Vector<>();
+					for(int i = 0; i < headers.length; i++) {
+						headersList.add(headers[i]);
+						typeList.add(types[i]);
+					}
+					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, headersList, typeList);
+					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
+						Map<String, Object> widgetJson = UploadUtilities.createForm(newAppName, sheetName, dataValidationMap);
+						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
+					} else {
+						UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, headers);
+					}
+				}
+			}
+		}
+
+
 		engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
 		logger.info("6. Complete");
