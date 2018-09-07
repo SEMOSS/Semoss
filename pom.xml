@@ -733,7 +733,7 @@
 			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.google.guava/guava-collections -->
-		<dependency>
+		<!--  dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava-collections</artifactId>
 			<version>r03</version>
@@ -743,7 +743,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency -->
 		<dependency>
 			<groupId>com.github.spullara.mustache.java</groupId>
 			<artifactId>compiler</artifactId>
@@ -2629,6 +2629,12 @@
 		    <groupId>io.minio</groupId>
 		    <artifactId>minio</artifactId>
 		    <version>4.0.2</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>com.google.http-client</groupId>
+					<artifactId>google-http-client-xml</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.freemarker/freemarker -->
 		<dependency>
