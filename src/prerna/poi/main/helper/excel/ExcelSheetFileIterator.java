@@ -364,5 +364,8 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	public void setQs(ExcelQueryStruct qs) {
 		this.qs = qs;
 	}
+	public Sheet getSheet() {
+		return this.sheet;
+	}
 	
 }
