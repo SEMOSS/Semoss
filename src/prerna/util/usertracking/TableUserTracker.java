@@ -333,7 +333,6 @@ public class TableUserTracker implements IUserTracker {
 		trackSelectQueryStructData(in, qs, "DATA_QUERY");
 	}
 
-	
 	private void trackSelectQueryStructData(Insight in, SelectQueryStruct qs, String widgetType) {
 		List<Object[]> rows = new Vector<Object[]>();
 		
@@ -707,6 +706,11 @@ public class TableUserTracker implements IUserTracker {
 		row[5] = meta;
 		rows.add(row);
 		sendTrackRequest("pixel", rows);
+	}
+	
+	@Override
+	public void trackUserWidgetMods(List<Object[]> rows) {
+		sendTrackRequest("widget", rows);
 	}
 	
 	/**
