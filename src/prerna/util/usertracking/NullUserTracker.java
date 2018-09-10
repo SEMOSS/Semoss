@@ -59,7 +59,14 @@ public class NullUserTracker implements IUserTracker {
 	}
 	
 	@Override
+	public void trackUserWidgetMods(List<Object[]> rows) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
 	public boolean isActive() {
 		return false;
 	}
+
 }
