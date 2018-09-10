@@ -59,5 +59,11 @@ public interface IUserTracker {
 	 * @param meta
 	 */
 	void trackPixelExecution(Insight in, String pixel, boolean meta);
+	
+	/**
+	 * Track user changes to widgets
+	 * @param values
+	 */
+	void trackUserWidgetMods(List<Object[]> rows);
 
 }
