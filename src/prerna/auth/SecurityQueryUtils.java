@@ -795,55 +795,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Get all database users who aren't "Anonymous" type
-	 * @param User
-	 * @return
-	 * @throws IllegalArgumentException
-	 */
-	public static List<Map<String, String>> getAllDbUsers(User user) throws IllegalArgumentException{
-		List<Map<String, String>> ret = new ArrayList<>();  
-		if(userIsAdmin(user)){
-			String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER";
-			ret = getSimpleQuery(query);
-		} else {
-			throw new IllegalArgumentException("The user can't access to this resource. ");
-		}
-		return ret;
-	}
-
-	/**
-	 * Returns a list of values given a query with one column/variable.
-	 * 
-	 * @param query		Query to be executed to retrieve engine names
-	 * @return			List of engine names
-	 */
-	private static List<Map<String, String>> getSimpleQuery(String query) {
-		System.out.println("Executing security query: " + query);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<Map<String, String>> ret = new ArrayList<>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow row = wrapper.next();
-			Object[] headers = row.getHeaders();
-			Object[] values = row.getValues();
-			Map<String, String> rowData = new HashMap<>();
-			for(int idx = 0; idx < headers.length; idx++){
-				if(values[idx] == null) {
-					rowData.put(headers[idx].toString().toLowerCase(), "null");
-				} else {
-					if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
-						rowData.put(headers[idx].toString().toLowerCase(), "Default");
-					} else {
-						rowData.put(headers[idx].toString().toLowerCase(), values[idx].toString());
-					}
-				}
-			}
-			ret.add(rowData);
-		}
-
-		return ret;
-	}
-	
-	/**
 	 * Search if there's users containing 'searchTerm' in their email or name
 	 * @param searchTerm
 	 * @return
