@@ -252,7 +252,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						}
 						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, headersList, typeList);
 						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-							Map<String, Object> widgetJson = UploadUtilities.createForm(newAppName, sheetName, dataValidationMap);
+							Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap);
 							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 						} else {
 							UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, headers);
@@ -298,7 +298,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					}
 					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, headersList, typeList);
 					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-						Map<String, Object> widgetJson = UploadUtilities.createForm(newAppName, sheetName, dataValidationMap);
+						Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap);
 						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 					} else {
 						UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, headers);

@@ -44,7 +44,7 @@ public class ExcelDataValidationReactor extends AbstractReactor {
 		for (String sheet : sheetNames) {
 			Sheet excelSheet = helper.getSheet(sheet);
 			Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(excelSheet, newHeaders);
-			Map<String, Object> form = UploadUtilities.createForm(appName, sheet, dataValidationMap);
+			Map<String, Object> form = ExcelDataValidationHelper.createForm(appName, sheet, dataValidationMap);
 			if (!form.isEmpty()) {
 				retMap.put(sheet, form);
 			}
