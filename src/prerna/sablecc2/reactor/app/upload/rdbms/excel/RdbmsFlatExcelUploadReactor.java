@@ -220,25 +220,26 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		// user hasn't defined the data types
 		// that means i am going to assume that i should
 		// load everything
-		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
 			// need to calculate all the ranges
 			ExcelWorkbookFilePreProcessor wProcessor = new ExcelWorkbookFilePreProcessor();
 			wProcessor.parse(helper.getFilePath());
 			wProcessor.determineTableRanges();
 			Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
 
-			for(String sheetName : sProcessor.keySet()) {
+			for (String sheetName : sProcessor.keySet()) {
 				ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheetName);
 				List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
-				for(ExcelBlock eBlock : blocks) {
+				for (ExcelBlock eBlock : blocks) {
 					List<ExcelRange> ranges = eBlock.getRanges();
-					for(ExcelRange eRange : ranges) {
+					for (ExcelRange eRange : ranges) {
 						String range = eRange.getRangeSyntax();
 						boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
 						ExcelQueryStruct qs = new ExcelQueryStruct();
 						qs.setSheetName(sheetName);
 						qs.setSheetRange(range);
-						// sheetIterator will calculate all the types if necessary
+						// sheetIterator will calculate all the types if
+						// necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 						Sheet sheet = sheetIterator.getSheet();
 						Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
@@ -246,29 +247,29 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						SemossDataType[] types = sheetIterator.getTypes();
 						List<String> headersList = new Vector<>();
 						List<SemossDataType> typeList = new Vector<>();
-						for(int i = 0; i < headers.length; i++) {
+						for (int i = 0; i < headers.length; i++) {
 							headersList.add(headers[i]);
 							typeList.add(types[i]);
 						}
-						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, headersList, typeList);
+						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet,
+								newRangeHeaders, headersList, typeList);
 						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-							Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap);
+							Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap, headers);
 							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 						} else {
 							UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, headers);
 						}
-						
-						
+
 					}
 				}
 			}
 		} else {
 			// only load the things that are defined
-			for(String sheetName : dataTypesMap.keySet()) {
+			for (String sheetName : dataTypesMap.keySet()) {
 				Map<String, Map<String, String>> rangeMaps = dataTypesMap.get(sheetName);
 				boolean singleRange = (rangeMaps.keySet().size() == 1);
-				for(String range : rangeMaps.keySet()) {
-					
+				for (String range : rangeMaps.keySet()) {
+
 					ExcelQueryStruct qs = new ExcelQueryStruct();
 					qs.setSheetName(sheetName);
 					qs.setSheetRange(range);
@@ -292,13 +293,14 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					SemossDataType[] types = sheetIterator.getTypes();
 					List<String> headersList = new Vector<>();
 					List<SemossDataType> typeList = new Vector<>();
-					for(int i = 0; i < headers.length; i++) {
+					for (int i = 0; i < headers.length; i++) {
 						headersList.add(headers[i]);
 						typeList.add(types[i]);
 					}
-					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, headersList, typeList);
+					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet,
+							newRangeHeaders, headersList, typeList);
 					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-						Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap);
+						Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap, headers);
 						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 					} else {
 						UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, headers);
@@ -306,7 +308,6 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 				}
 			}
 		}
-
 
 		engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
