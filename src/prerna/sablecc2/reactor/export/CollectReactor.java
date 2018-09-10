@@ -29,11 +29,9 @@ public class CollectReactor extends TaskBuilderReactor {
 		this.task.setNumCollect(getTotalToCollect());
 		buildTask();
 		
-		// track GA data
+		// tracking
 		if (this.task instanceof BasicIteratorTask) {
 			try {
-//				UserTrackerFactory.getInstance().trackViz(this.task.getTaskOptions(), this.insight, ((BasicIteratorTask) task).getQueryStruct());
-				
 				// NEW TRACKER
 				if(this.task.getTaskOptions() != null && !this.task.getTaskOptions().isEmpty()) {
 					UserTrackerFactory.getInstance().trackVizWidget(this.insight, this.task.getTaskOptions(), ((BasicIteratorTask) task).getQueryStruct());
@@ -45,11 +43,7 @@ public class CollectReactor extends TaskBuilderReactor {
 			}
 		}
 		
-		
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA); //return the data
-//		Object data = this.task.collect(this.limit, collectMeta());
-//		NounMetadata result = new NounMetadata(data, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-//		return result;
 	}
 	
 	@Override
