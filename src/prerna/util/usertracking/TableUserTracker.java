@@ -115,6 +115,9 @@ public class TableUserTracker implements IUserTracker {
 						}
 						String engineId = engineQs[0];
 						String engineName = MasterDatabaseUtility.getEngineAliasForId(engineId);
+						if(engineName == null) {
+							engineName = engineId;
+						}
 						String table = engineQs[1];
 						String column = AbstractQuerySelector.PRIM_KEY_PLACEHOLDER;
 						if(table.contains("__")) {
@@ -272,6 +275,9 @@ public class TableUserTracker implements IUserTracker {
 							}
 							String engineId = engineQs[0];
 							String engineName = MasterDatabaseUtility.getEngineAliasForId(engineId);
+							if(engineName == null) {
+								engineName = engineId;
+							}
 							String table = engineQs[1];
 							String column = AbstractQuerySelector.PRIM_KEY_PLACEHOLDER;
 							if(table.contains("__")) {
@@ -497,6 +503,9 @@ public class TableUserTracker implements IUserTracker {
 						}
 						String engineId = engineQs[0];
 						String engineName = MasterDatabaseUtility.getEngineAliasForId(engineId);
+						if(engineName == null) {
+							engineName = engineId;
+						}
 						String table = engineQs[1];
 						String column = AbstractQuerySelector.PRIM_KEY_PLACEHOLDER;
 						if(table.contains("__")) {
