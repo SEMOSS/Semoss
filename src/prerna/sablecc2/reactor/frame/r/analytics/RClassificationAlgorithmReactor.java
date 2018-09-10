@@ -60,8 +60,12 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		rsb.append(predictionCol_R + "<- \"" + predictionCol + "\";");
 
 		List<String> attributes = getColumns();
-		if (attributes.contains(predictionCol))
+		if (attributes.contains(predictionCol)) {
 			attributes.remove(predictionCol);
+		}
+		if(attributes.isEmpty()) {
+			throw new IllegalArgumentException("Must define at least one attribute that is not the dimension to classify");
+		}
 		String attributes_R = "attributes" + Utility.getRandomString(8);
 		rsb.append(attributes_R + "<- " + RSyntaxHelper.createStringRColVec(attributes.toArray()) + ";");
 		
@@ -107,10 +111,6 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		// set call to R function
 		rsb.append(outputList_R + " <- getCTree( " + targetDt + "," + predictionCol_R + "," + attributes_R + ");");
 		
-		//if at a later time, we want to retrieve the predicted probability per terminal node - do so via:
-		//String[] probDtCols = this.rJavaTranslator.getColumns(outputList_R + "$predictedProbDt");
-		//this.rJavaTranslator.getBulkDataRow(outputList_R + "$predictedProbDt", probDtCols);
-		
 		// execute R
 		this.rJavaTranslator.runR(rsb.toString());
 		
@@ -142,14 +142,11 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		statList.add(statHash);
 		if (predictors != null && predictors.length > 0){
 			statHash = new Hashtable<String, String>();
-			statHash.put("Predictors", String.join(", ", predictors));
+			statHash.put("Relevant Predictors", String.join(", ", predictors));
 			statList.add(statHash);
 		}
 		vizData.put("stats", statList);
 
-		// track GA data
-//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Classification");
-		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
@@ -170,7 +167,7 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 			generateNodeTreeWithParenthesis(treeMap, ctreeArray[index]);
 		} else {
 			//multi node case
-			String[] treeStringArr = new String[ctreeArray.length - 9];
+			String[] treeStringArr = new String[ctreeArray.length - index - 4];
 			System.arraycopy(ctreeArray, index + 1, treeStringArr, 0, treeStringArr.length);
 			for (int i = 0; i < treeStringArr.length; i++ ){
 				treeStringArr[i] = treeStringArr[i].replaceAll("\\|\\s*\\[[0-9]+\\]\\s","");
