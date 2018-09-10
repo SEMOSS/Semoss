@@ -1,17 +1,19 @@
 package prerna.poi.main.helper.excel;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Comment;
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationConstraint;
+import org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType;
+import org.apache.poi.ss.usermodel.RichTextString;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.ss.util.CellReference;
@@ -20,6 +22,7 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
+import prerna.poi.main.helper.excel.ExcelDataValidationHelper.WIDGET_COMPONENT;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
@@ -52,6 +55,18 @@ public class ExcelDataValidationHelper {
 				CellReference cellReference = new CellReference(split[0]);
 				Row row = sheet.getRow(cellReference.getRow() - 1);
 				Cell c = row.getCell(cellReference.getCol());
+				// add header comment as description
+				Comment cellComment = c.getCellComment();
+				if (cellComment != null) {
+					RichTextString commentStr = cellComment.getString();
+					String comment = commentStr.getString();
+					// comment may have author
+					String author = cellComment.getAuthor();
+					if(author != null) {
+						comment = comment.replace(author+":\n", "");
+					}
+					headerMeta.put("description", comment);
+				}
 				Object header = ExcelParsing.getCell(c);
 				cleanHeader = headerChecker.recursivelyFixHeaders(header.toString(), newUniqueCleanHeaders);
 				// get new header from user input
@@ -154,6 +169,18 @@ public class ExcelDataValidationHelper {
 				CellReference cellReference = new CellReference(split[0]);
 				Row row = sheet.getRow(cellReference.getRow() - 1);
 				Cell c = row.getCell(cellReference.getCol());
+				// add header comment as description
+				Comment cellComment = c.getCellComment();
+				if (cellComment != null) {
+					RichTextString commentStr = cellComment.getString();
+					String comment = commentStr.getString();
+					// comment may have author
+					String author = cellComment.getAuthor();
+					if(author != null) {
+						comment = comment.replace(author+":\n", "");
+					}
+					headerMeta.put("description", comment);
+				}
 				Object header = ExcelParsing.getCell(c);
 				cleanHeader = headerChecker.recursivelyFixHeaders(header.toString(), newUniqueCleanHeaders);
 				// get new header from user input
@@ -250,6 +277,110 @@ public class ExcelDataValidationHelper {
 		}
 		return validationMap;
 
+	}
+	
+	/**
+	 * Create smss form map from excel data validation
+	 * @param appId
+	 * @param dataValidationMap
+	 * @return
+	 */
+	public static Map<String, Object> createForm(String appId, String sheetName, Map<String, Object> dataValidationMap) {
+		Map<String, Object> formMap = new HashMap<>();
+		List<String> propertyList = new ArrayList<String>();
+		for (String header : dataValidationMap.keySet()) {
+			Map<String, Object> headerMap = (Map<String, Object>) dataValidationMap.get(header);
+			String dataType = (String) headerMap.get("type");
+			propertyList.add(header);
+		}
+
+		// create values and into strings for query
+		StringBuilder intoString = new StringBuilder();
+		StringBuilder valuesString = new StringBuilder();
+		for (int i = 0; i < propertyList.size(); i++) {
+			String property = propertyList.get(i);
+			intoString.append(sheetName + "__" + property);
+			valuesString.append(" \"<Parameter_" + i + ">\"");
+			if (i < propertyList.size() - 1) {
+				intoString.append(",");
+				valuesString.append(",");
+			}
+		}
+
+		formMap.put("query", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=[" + valuesString + "]);");
+		// TODO
+		formMap.put("label", "");
+		formMap.put("description", "");
+
+		// build param list
+		List<Map<String, Object>> paramList = new Vector<>();
+		for (int i = 0; i < propertyList.size(); i++) {
+			String property = propertyList.get(i);
+			Map<String,Object> propMap = (Map<String, Object>) dataValidationMap.get(property);
+			// build param for each property
+			Map<String, Object> paramMap = new HashMap<>();
+			paramMap.put("paramName", "Parameter_" + i);
+			String type = (String) propMap.get("type");
+			SemossDataType propType = SemossDataType.valueOf(type);
+			// build view for param map
+			Map<String, Object> viewMap = new HashMap<>();
+			viewMap.put("label", property);
+			// TODO
+			String description = "";
+			if(propMap.containsKey("description")) {
+				description = (String) propMap.get("description");
+			}
+			viewMap.put("description", description);
+			// change validation type to display type
+			String validationType = (String) propMap.get("validationType");
+			int vt = ExcelDataValidationHelper.stringToValidationType(validationType);
+			WIDGET_COMPONENT wc = ExcelDataValidationHelper.validationTypeToComponent(vt);
+			viewMap.put("displayType", wc.toString().toLowerCase());
+			paramMap.put("view", viewMap);
+			// build model for param map
+			Map<String, Object> modelMap = new HashMap<>();
+			modelMap.put("defaultValue", "");
+			modelMap.put("defaultOptions", new Vector());
+			if (wc == WIDGET_COMPONENT.DROPDOWN) {
+				String[] values = (String[]) propMap.get("values");
+				modelMap.put("defaultOptions", values);
+
+			} else {
+				if (wc != WIDGET_COMPONENT.TEXTAREA) {
+					if (propType == SemossDataType.STRING) {
+						// if prop type is a string
+						modelMap.put("query",
+								"(Parameter_" + i + "_infinite = Database( database=[\"" + appId + "\"] )|" + "Select("
+										+ sheetName + "__" + property + ").as([" + property + "])|" + "Filter("
+										+ sheetName + "__" + property + " ?like \"<Parameter_" + i
+										+ "_search>\") | Iterate())| Collect(50);");
+						modelMap.put("infiniteQuery", "Parameter_" + i + "_infinite | Collect(50);");
+						modelMap.put("searchParam", "Parameter_" + i + "_search");
+						// add dependency
+						List<String> dependencies = new Vector<>();
+						dependencies.add("Parameter_" + i + "_search");
+						modelMap.put("dependsOn", dependencies);
+
+						// if prop type is a string build a search param
+						Map<String, Object> searchMap = new HashMap<>();
+						searchMap.put("paramName", "Parameter_" + i + "_search");
+						searchMap.put("view", false);
+						Map<String, Object> searchModelMap = new HashMap<>();
+						searchModelMap.put("defaultValue", "");
+						searchMap.put("model", searchModelMap);
+						paramList.add(searchMap);
+					}
+				}
+			}
+			if (wc != WIDGET_COMPONENT.TEXTAREA) {
+				paramMap.put("model", modelMap);
+			}
+			
+			paramList.add(paramMap);
+		}
+		formMap.put("params", paramList);
+		formMap.put("execute", "Submit");
+		return formMap;
 	}
 
 	public static String validationTypeToString(int validationType) {
@@ -363,7 +494,7 @@ public class ExcelDataValidationHelper {
 	}
 
 	public static void main(String[] args) {
-		String fileLocation = "C:\\Users\\rramirezjimenez\\Documents\\My Received Files\\dropDown.xlsx";
+		String fileLocation = "C:\\Users\\rramirezjimenez\\Desktop\\dropDown.xlsx";
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(fileLocation);
 		String sheetName = "Sheet1";
@@ -371,14 +502,15 @@ public class ExcelDataValidationHelper {
 		List<String> headers = new Vector<>();
 		headers.add("test");
 		headers.add("Age");
-		SemossDataType[] types = new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT };
+		headers.add("Gender");
+		SemossDataType[] types = new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT , SemossDataType.STRING};
 		List<SemossDataType> typeList = new Vector<>();
 		for(SemossDataType t:types) {
 			typeList.add(t);
 		}
 		Map<String, Object> dataValidationMap = getDataValidation(sheet, new HashMap<>(), headers, typeList);
 		Gson gson = GsonUtility.getDefaultGson();
-		Map<String, Object> form = UploadUtilities.createForm("test", sheetName, dataValidationMap);
+		Map<String, Object> form = createForm("test", sheetName, dataValidationMap);
 		System.out.println(gson.toJson(form));
 
 	}
