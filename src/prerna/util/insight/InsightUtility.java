@@ -147,9 +147,13 @@ public class InsightUtility {
 			}
 		}
 //		logger.info("Successfully removed all frames from insight");
-		
+		// need to keep session key
+		NounMetadata sessionKey = varStore.get(JobReactor.SESSION_KEY);
+		// clear insight
 		insight.getVarStore().clear();
-//		logger.info("Successfully removed all variables from varstore");
+		// add session key
+		insight.getVarStore().put(JobReactor.SESSION_KEY, sessionKey);
+		//		logger.info("Successfully removed all variables from varstore");
 
 		// also delete any files that were used
 //		List<FileMeta> fileData = insight.getFilesUsedInInsight();
