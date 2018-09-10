@@ -493,4 +493,39 @@ public abstract class AbstractSecurityUtils {
 		b.append(")");
 		return b.toString();
 	}
+	
+	////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Returns a list of values given a query with one column/variable.
+	 * @param query		Query to be executed to retrieve engine names
+	 * @return			List of engine names
+	 */
+	static List<Map<String, String>> getSimpleQuery(String query) {
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<Map<String, String>> ret = new ArrayList<>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] headers = row.getHeaders();
+			Object[] values = row.getValues();
+			Map<String, String> rowData = new HashMap<>();
+			for(int idx = 0; idx < headers.length; idx++){
+				if(values[idx] == null) {
+					rowData.put(headers[idx].toString().toLowerCase(), "null");
+				} else {
+					if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
+						rowData.put(headers[idx].toString().toLowerCase(), "Default");
+					} else {
+						rowData.put(headers[idx].toString().toLowerCase(), values[idx].toString());
+					}
+				}
+			}
+			ret.add(rowData);
+		}
+
+		return ret;
+	}
 }
