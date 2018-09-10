@@ -166,7 +166,7 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 			index = Arrays.asList(ctreeArray).indexOf("Fitted party:") + 1;
 			generateNodeTreeWithParenthesis(treeMap, ctreeArray[index]);
 		} else {
-			//multi node case
+			// multi node case
 			String[] treeStringArr = new String[ctreeArray.length - index - 4];
 			System.arraycopy(ctreeArray, index + 1, treeStringArr, 0, treeStringArr.length);
 			for (int i = 0; i < treeStringArr.length; i++ ){
