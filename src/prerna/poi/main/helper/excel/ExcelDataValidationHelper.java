@@ -22,8 +22,6 @@ import com.google.gson.Gson;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
-import prerna.poi.main.helper.excel.ExcelDataValidationHelper.WIDGET_COMPONENT;
-import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 
@@ -34,8 +32,7 @@ public class ExcelDataValidationHelper {
 	public enum WIDGET_COMPONENT {
 		CHECKLIST, DROPDOWN, EXECUTE, FREETEXT, NUMBER, RADIO, SLIDER, TEXTAREA, TYPEAHEAD
 	};
-	
-	
+
 	public static Map<String, Object> getDataValidation(Sheet sheet, Map<String, String> newHeaders) {
 		Map<String, Object> validationMap = new HashMap<>();
 		List<? extends DataValidation> validations = sheet.getDataValidations();
@@ -62,8 +59,8 @@ public class ExcelDataValidationHelper {
 					String comment = commentStr.getString();
 					// comment may have author
 					String author = cellComment.getAuthor();
-					if(author != null) {
-						comment = comment.replace(author+":\n", "");
+					if (author != null) {
+						comment = comment.replace(author + ":\n", "");
 					}
 					headerMeta.put("description", comment);
 				}
@@ -139,10 +136,10 @@ public class ExcelDataValidationHelper {
 		}
 		return validationMap;
 	}
-	
 
 	/**
 	 * Create data validation map from excel specific range
+	 * 
 	 * @param sheet
 	 * @param newHeaders
 	 * @param headers
@@ -176,8 +173,8 @@ public class ExcelDataValidationHelper {
 					String comment = commentStr.getString();
 					// comment may have author
 					String author = cellComment.getAuthor();
-					if(author != null) {
-						comment = comment.replace(author+":\n", "");
+					if (author != null) {
+						comment = comment.replace(author + ":\n", "");
 					}
 					headerMeta.put("description", comment);
 				}
@@ -250,50 +247,55 @@ public class ExcelDataValidationHelper {
 
 		}
 		// add remaining missing columns to validationMap
-		if(!validationMap.isEmpty()) {
-			for(int i = 0; i < headers.size(); i++) {
+		if (!validationMap.isEmpty()) {
+			for (int i = 0; i < headers.size(); i++) {
 				String header = headers.get(i);
 				SemossDataType type = types.get(i);
 				Map<String, Object> headerMeta = new HashMap<>();
-				
-				if(type == SemossDataType.STRING) {
+
+				if (type == SemossDataType.STRING) {
 					headerMeta.put("type", SemossDataType.STRING.toString());
-					int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH; 
+					int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH;
 					headerMeta.put("validationType", validationTypeToString(validationType));
 
 				}
-				if(Utility.isNumericType(type.toString())) {
+				if (Utility.isNumericType(type.toString())) {
 					headerMeta.put("type", SemossDataType.DOUBLE.toString());
-					int validationType = DataValidationConstraint.ValidationType.DECIMAL; 
+					int validationType = DataValidationConstraint.ValidationType.DECIMAL;
 					headerMeta.put("validationType", validationTypeToString(validationType));
 				}
-				//TODO
+				// TODO
 				headerMeta.put("range", "");
 				headerMeta.put("emptyCells", true);
 
 				validationMap.put(header, headerMeta);
-				
+
 			}
 		}
 		return validationMap;
 
 	}
-	
+
 	/**
 	 * Create smss form map from excel data validation
+	 * 
 	 * @param appId
 	 * @param dataValidationMap
 	 * @return
 	 */
-	public static Map<String, Object> createForm(String appId, String sheetName, Map<String, Object> dataValidationMap) {
+	public static Map<String, Object> createForm(String appId, String sheetName, Map<String, Object> dataValidationMap,
+			String[] headerList) {
 		Map<String, Object> formMap = new HashMap<>();
 		List<String> propertyList = new ArrayList<String>();
-		for (String header : dataValidationMap.keySet()) {
-			Map<String, Object> headerMap = (Map<String, Object>) dataValidationMap.get(header);
-			String dataType = (String) headerMap.get("type");
-			propertyList.add(header);
+		if (headerList != null && headerList.length > 0) {
+			for (String header : headerList) {
+				propertyList.add(header);
+			}
+		} else {
+			for (String header : dataValidationMap.keySet()) {
+				propertyList.add(header);
+			}
 		}
-
 		// create values and into strings for query
 		StringBuilder intoString = new StringBuilder();
 		StringBuilder valuesString = new StringBuilder();
@@ -307,7 +309,8 @@ public class ExcelDataValidationHelper {
 			}
 		}
 
-		formMap.put("query", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=[" + valuesString + "]);");
+		formMap.put("query", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=["
+				+ valuesString + "]);");
 		// TODO
 		formMap.put("label", "");
 		formMap.put("description", "");
@@ -316,7 +319,7 @@ public class ExcelDataValidationHelper {
 		List<Map<String, Object>> paramList = new Vector<>();
 		for (int i = 0; i < propertyList.size(); i++) {
 			String property = propertyList.get(i);
-			Map<String,Object> propMap = (Map<String, Object>) dataValidationMap.get(property);
+			Map<String, Object> propMap = (Map<String, Object>) dataValidationMap.get(property);
 			// build param for each property
 			Map<String, Object> paramMap = new HashMap<>();
 			paramMap.put("paramName", "Parameter_" + i);
@@ -327,7 +330,7 @@ public class ExcelDataValidationHelper {
 			viewMap.put("label", property);
 			// TODO
 			String description = "";
-			if(propMap.containsKey("description")) {
+			if (propMap.containsKey("description")) {
 				description = (String) propMap.get("description");
 			}
 			viewMap.put("description", description);
@@ -375,7 +378,7 @@ public class ExcelDataValidationHelper {
 			if (wc != WIDGET_COMPONENT.TEXTAREA) {
 				paramMap.put("model", modelMap);
 			}
-			
+
 			paramList.add(paramMap);
 		}
 		formMap.put("params", paramList);
@@ -503,14 +506,15 @@ public class ExcelDataValidationHelper {
 		headers.add("test");
 		headers.add("Age");
 		headers.add("Gender");
-		SemossDataType[] types = new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT , SemossDataType.STRING};
+		SemossDataType[] types = new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT,
+				SemossDataType.STRING };
 		List<SemossDataType> typeList = new Vector<>();
-		for(SemossDataType t:types) {
+		for (SemossDataType t : types) {
 			typeList.add(t);
 		}
 		Map<String, Object> dataValidationMap = getDataValidation(sheet, new HashMap<>(), headers, typeList);
 		Gson gson = GsonUtility.getDefaultGson();
-		Map<String, Object> form = createForm("test", sheetName, dataValidationMap);
+		Map<String, Object> form = createForm("test", sheetName, dataValidationMap, new String[] { "Age", "Gender" });
 		System.out.println(gson.toJson(form));
 
 	}

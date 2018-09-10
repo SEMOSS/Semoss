@@ -876,18 +876,54 @@ public class UploadUtilities {
 	
 	public static void addInsertFormInsight(String appId, IEngine insightEngine, OWLER owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String insightName = "Insert form";
+		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel( owl) ;
+		// assuming single sheet
+		String sheetName = metamodel.keySet().iterator().next();
+		String insightName = getInsightFormName(sheetName);
 		String layout = "default-handle";
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
-				+ gson.toJson(createForm(appId, owl, headers)) + "]}</encode>\");";
+				+ gson.toJson(createForm(appId, metamodel, headers)) + "]}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
 		admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
 	}
 	
-	public static Map<String, Object> createForm(String appId, OWLER owl, String[] headers) {
-		Map<String, Object> formMap = new HashMap<>();
+	/**
+	 * Create Excel form insight using data validation map
+	 * @param insightEngine
+	 * @param appId
+	 * @param sheetName
+	 * @param dataValidationMap
+	 */
+	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName, Map<String, Object> widgetJson ) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		String insightName = getInsightFormName(sheetName);
+		String layout = "default-handle";
+		Gson gson = GsonUtility.getDefaultGson();
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
+				+ gson.toJson(widgetJson) + "]}</encode>\");";
+		String[] pkqlRecipeToSave = { newPixel };
+		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		insightEngine.commit();
+	}
+	
+	/**
+	 * The name of the form insight for an excel sheet
+	 * @param sheetName
+	 * @return
+	 */
+	public static String getInsightFormName(String sheetName) {
+		// sheetNames are inserted as tables all caps
+		return sheetName.toUpperCase() + " form";
+	}
+	
+	/**
+	 * Map of concept to propMap with db type
+	 * @param owl
+	 * @return
+	 */
+	public static Map<String, Map<String, SemossDataType>>  getExistingMetamodel(OWLER owl) {
 		// need to get property types from the owl
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owl.getOwlPath(), null, null);
@@ -914,10 +950,15 @@ public class UploadUtilities {
 			}
 			existingMetaModel.put(conceptualName, propMap);
 		}
-		
+		return existingMetaModel;
+	}
+	
+	public static Map<String, Object> createForm(String appId, Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
+		Map<String, Object> formMap = new HashMap<>();
+		Map<String, SemossDataType> propMap = new HashMap<>();
 		// assuming this is a flat table so there is only one concept
-		String conceptualName = existingMetaModel.keySet().iterator().next();
-		propMap = existingMetaModel.get(conceptualName);
+		String conceptualName = existingMetamodel.keySet().iterator().next();
+		propMap = existingMetamodel.get(conceptualName);
 		List<String> propertyList = new ArrayList<String>();
 		// order params by header order
 		for (String header : headers) {
@@ -1000,24 +1041,7 @@ public class UploadUtilities {
 		return formMap;
 	}
 	
-	/**
-	 * Create Excel form insight
-	 * @param insightEngine
-	 * @param appId
-	 * @param sheetName
-	 * @param dataValidationMap
-	 */
-	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName, Map<String, Object> widgetJson ) {
-		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String insightName = sheetName + " form";
-		String layout = "default-handle";
-		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
-				+ gson.toJson(widgetJson) + "]}</encode>\");";
-		String[] pkqlRecipeToSave = { newPixel };
-		admin.addInsight(insightName, layout, pkqlRecipeToSave);
-		insightEngine.commit();
-	}
+
 	
 	
 	/////////////////////////////////////////////////////////////////////////////////////
