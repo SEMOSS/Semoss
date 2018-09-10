@@ -31,13 +31,16 @@ public class DeleteAppReactor extends AbstractReactor {
 		List<String> appIds = getAppIds();
 		for (String appId : appIds) {
 			User user = this.insight.getUser();
-			String userId = user.getAccessToken(user.getLogins().get(0)).getId();
 			
 			// we may have the alias
 			if(AbstractSecurityUtils.securityEnabled()) {
 				appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-				if(!SecurityQueryUtils.isUserAdmin(userId) && !SecurityQueryUtils.isUserDatabaseOwner(userId, appId)) {
-					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have permissions to database");
+				boolean isAdmin = SecurityQueryUtils.userIsAdmin(user);
+				if(!isAdmin) {
+					boolean isOwner = SecurityQueryUtils.userIsOwner(user, appId);
+					if(!isOwner) {
+						throw new IllegalArgumentException("App " + appId + " does not exist or user does not have permissions to database");
+					}
 				}
 			} else {
 				appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
