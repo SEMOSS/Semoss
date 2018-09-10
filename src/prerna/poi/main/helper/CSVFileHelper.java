@@ -115,6 +115,9 @@ public class CSVFileHelper {
 			allCsvHeaders = getNextRow();
 
 			// need to keep track and make sure our headers are good
+			if(allCsvHeaders == null) {
+				throw new IllegalArgumentException("No headers found");
+			}
 			int numCols = allCsvHeaders.length;
 			/*
 			 * THIS IS REALLY ANNOYING
