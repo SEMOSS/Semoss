@@ -529,7 +529,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	public static Boolean removeGroup(String userId, String groupId) {
 		String query;
-		if(SecurityQueryUtils.isUserAdmin(userId)){
+		if(SecurityQueryUtils.userIsAdmin(userId)){
 			query = "DELETE FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); ";
 			query += "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); ";
 			query += "DELETE FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "';";
@@ -547,7 +547,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static Boolean addUserToGroup(String userId, String groupId, String userIdToAdd) {
 		String query;
 		
-		if(SecurityQueryUtils.isUserAdmin(userId)){
+		if(SecurityQueryUtils.userIsAdmin(userId)){
 			query = "INSERT INTO GROUPMEMBERS (GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'), '" + userIdToAdd + "');";
 		} else {
 			query = "INSERT INTO GROUPMEMBERS (GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "'), '" + userIdToAdd + "');";
@@ -713,7 +713,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
         boolean first = true;
         String error = "";
         String userId = userInfo.remove("id");
-        if(userId.equals(adminId) || SecurityQueryUtils.isUserAdmin(adminId)){
+        if(userId.equals(adminId) || SecurityQueryUtils.userIsAdmin(adminId)){
         	String name = userInfo.get("name") != null ? userInfo.get("name") : "";
         	String email = userInfo.get("email") != null ? userInfo.get("email") : "";
             if(SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE) && SecurityQueryUtils.checkUserExist(name, email)){
@@ -767,7 +767,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param userDelete
 	 */
 	public static void deleteUser(String userId, String userDelete){
-		if(SecurityQueryUtils.isUserAdmin(userId)){
+		if(SecurityQueryUtils.userIsAdmin(userId)){
 			List<String> groups = SecurityQueryUtils.getGroupsOwnedByUser(userId);
 			for(String groupId : groups){
 				removeGroup(userId, groupId);
@@ -909,7 +909,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		List<Map<String, String>> groupsToAdd = groups.get("add");
 		List<Map<String, String>> groupsToRemove = groups.get("remove");
 		
-		if(isAdmin && !SecurityQueryUtils.isUserAdmin(userId)){
+		if(isAdmin && !SecurityQueryUtils.userIsAdmin(userId)){
 			throw new IllegalArgumentException("The user doesn't have the permissions to access this resource.");
 		}
 		
@@ -1020,7 +1020,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		Boolean isPublic = Boolean.parseBoolean(isP);
 		String query = "UPDATE ENGINE SET GLOBAL = '?1' WHERE ENGINEID = '?2'";
 		
-		if(isAdmin && !SecurityQueryUtils.isUserAdmin(userId)){
+		if(isAdmin && !SecurityQueryUtils.userIsAdmin(userId)){
 			throw new IllegalArgumentException("The user doesn't have the permission to access this resource.");
 		}
 		

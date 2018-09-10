@@ -194,8 +194,35 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////
 	
 	/**
+	 * Check if the user is an admin
+	 * @param userId	String representing the id of the user to check
+	 */
+	public static Boolean userIsAdmin(User user) {
+		String userFilters = getUserFilters(user);
+		String query = "SELECT * FROM USER WHERE ADMIN=TRUE AND ID IN " + userFilters + " LIMIT 1;";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			return wrapper.hasNext();
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
+	@Deprecated
+	public static Boolean userIsAdmin(String userId) {
+		String query = "SELECT ADMIN FROM USER WHERE ID ='" + userId + "';";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<String[]> ret = flushRsToListOfStrArray(wrapper);
+		if(!ret.isEmpty()) {
+			return Boolean.parseBoolean(ret.get(0)[0]);
+		}
+		return false;
+	}
+	
+	
+	/**
 	 * Determine if the user is the owner
-	 * @param userId
+	 * @param user
 	 * @param engineId
 	 * @return
 	 */
@@ -206,7 +233,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Determine if the user is the owner
-	 * @param userId
+	 * @param userFilters
 	 * @param engineId
 	 * @return
 	 */
@@ -639,29 +666,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return s;
 	}
 	
-	/**
-	 * Get all ids from user object
-	 * @param user
-	 * @return
-	 */
-	private static String getUserFilters(User user) {
-		StringBuilder b = new StringBuilder();
-		b.append("(");
-		if(user != null) {
-			List<AuthProvider> logins = user.getLogins();
-			if(!logins.isEmpty()) {
-				int numLogins = logins.size();
-				b.append("'").append(user.getAccessToken(logins.get(0)).getId()).append("'");
-				for(int i = 1; i < numLogins; i++) {
-					b.append(", '").append(user.getAccessToken(logins.get(i)).getId()).append("'");
-				}
-			}
-		}
-		b.append(")");
-		return b.toString();
-	}
-	
-	
 	//TODO:
 	//TODO:
 	//TODO:
@@ -715,7 +719,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	private static String getUsernameByUserId(String userId) {
-		// TODO Auto-generated method stub
 		String query = "SELECT NAME FROM USER WHERE ID = '?1'";
 		query = query.replace("?1", userId);
 
@@ -733,7 +736,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getUserId(String username) {
-		// TODO Auto-generated method stub
 		String query = "SELECT ID FROM USER WHERE USERNAME = '?1'";
 		query = query.replace("?1", username);
 
@@ -794,13 +796,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get all database users who aren't "Anonymous" type
-	 * @param userId
+	 * @param User
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static List<Map<String, String>> getAllDbUsers(String userId) throws IllegalArgumentException{
+	public static List<Map<String, String>> getAllDbUsers(User user) throws IllegalArgumentException{
 		List<Map<String, String>> ret = new ArrayList<>();  
-		if(isUserAdmin(userId)){
+		if(userIsAdmin(user)){
 			String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER";
 			ret = getSimpleQuery(query);
 		} else {
@@ -899,20 +901,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		} finally {
 			wrapper.cleanUp();
 		}
-	}
-	
-	/**
-	 * Check if the user is an admin
-	 * @param userId	String representing the id of the user to check
-	 */
-	public static Boolean isUserAdmin(String userId) {
-		String query = "SELECT ADMIN FROM USER WHERE ID='" + userId + "';";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<String[]> ret = flushRsToListOfStrArray(wrapper);
-		if(!ret.isEmpty()) {
-			return Boolean.parseBoolean(ret.get(0)[0]);
-		}
-		return false;
 	}
 	
 	/**
@@ -1147,7 +1135,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		ret.put("groups", new ArrayList<>());
 		ret.put("users", new ArrayList<>());
 
-		if(isAdmin && !isUserAdmin(userId)){
+		if(isAdmin && !userIsAdmin(userId)){
 			throw new IllegalArgumentException("This user is not an admin. ");
 		}
 
@@ -1414,7 +1402,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static List<Map<String, String>> getUserDatabases(String userId, boolean isAdmin){
 		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
 
-		if(isAdmin && !isUserAdmin(userId)){
+		if(isAdmin && !userIsAdmin(userId)){
 			throw new IllegalArgumentException("The user isn't an admin");
 		}
 

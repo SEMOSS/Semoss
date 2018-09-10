@@ -471,4 +471,26 @@ public abstract class AbstractSecurityUtils {
 		b.append(")");
 		return b.toString();
 	}
+	
+	/**
+	 * Get all ids from user object
+	 * @param user
+	 * @return
+	 */
+	static String getUserFilters(User user) {
+		StringBuilder b = new StringBuilder();
+		b.append("(");
+		if(user != null) {
+			List<AuthProvider> logins = user.getLogins();
+			if(!logins.isEmpty()) {
+				int numLogins = logins.size();
+				b.append("'").append(user.getAccessToken(logins.get(0)).getId()).append("'");
+				for(int i = 1; i < numLogins; i++) {
+					b.append(", '").append(user.getAccessToken(logins.get(i)).getId()).append("'");
+				}
+			}
+		}
+		b.append(")");
+		return b.toString();
+	}
 }
