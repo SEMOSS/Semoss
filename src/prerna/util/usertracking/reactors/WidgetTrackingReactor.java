@@ -8,6 +8,7 @@ import java.util.Vector;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -92,9 +93,14 @@ public class WidgetTrackingReactor extends AbstractReactor {
 			}
 		}
 		
+		NounMetadata noun;
+		if(rows.size() > 0) {
+			noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		} else {
+			noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+		}
 		
-		
-		return null;
+		return noun;
 	}
 
 	private GenRowStruct getGrs() {
