@@ -48,7 +48,6 @@ public class WidgetTrackingReactor extends AbstractReactor {
 				userId = RdbmsQueryBuilder.escapeForSQLStatement(userId);
 			}
 			
-			
 			int size = grs.size();
 			for(int i = 0; i < size; i++) {
 				Object mObj = grs.get(i);
@@ -63,16 +62,14 @@ public class WidgetTrackingReactor extends AbstractReactor {
 					Map m = (Map) mObj;
 					insightId = RdbmsQueryBuilder.escapeForSQLStatement(m.get("insightID").toString());
 					time = m.get("time").toString();
-					//TODO: have FE remove this so i can avoid these checks
-					if(time.contains("T")) {
-						time = time.replace('T', ' ');
+					if(m.get("change") != null  && m.get("change") instanceof Map) {
+						Map inMap = (Map) m.get("change");
+						subType = inMap.get("type").toString();
+						value = inMap.get("value").toString();
+					} else {
+						subType = m.get("type").toString();
+						value = m.get("value").toString();
 					}
-					if(time.contains("Z")) {
-						time = time.replace("Z", "");
-					}
-					Map inMap = (Map) m.get("change");
-					subType = inMap.get("type").toString();
-					value = inMap.get("value").toString();
 					
 					// generate row
 					Object[] row = new Object[15];
