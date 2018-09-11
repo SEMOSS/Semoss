@@ -16,7 +16,6 @@ import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
-	// pixel input keys
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
 
 	public ExtractAlphaCharsReactor() {
@@ -67,7 +66,7 @@ public class ExtractAlphaCharsReactor extends AbstractRFrameReactor {
 					this.rJavaTranslator.runR(update);
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
-					metaData.setDataTypeToProperty(table + "__" + newColumn, "String");
+					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.STRING.toString());
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}

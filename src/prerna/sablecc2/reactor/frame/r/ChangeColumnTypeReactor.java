@@ -21,20 +21,20 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 	
 	public ChangeColumnTypeReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		//get table name
+		// get table name
 		String table = frame.getTableName();
 		// get inputs
 		String column = this.keyValue.get(this.keysToGet[0]);
-		if(column == null) {
+		if (column == null) {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.COLUMN.getKey());
 		}
 		if (column.contains("__")) {
@@ -42,7 +42,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			column = split[1];
 		}
 		String newType = this.keyValue.get(this.keysToGet[1]);
-		if(newType == null) {
+		if (newType == null) {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.DATA_TYPE.getKey());
 		}
 		newType = SemossDataType.convertStringToDataType(newType).toString();
@@ -61,15 +61,14 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				// columns
 				if (df.equalsIgnoreCase("numeric")) {
 					String tempTable = Utility.getRandomString(6);
-					script = tempTable + " <- format(" + table + "$" + column + ", scientific = FALSE); ";
-					frame.executeRScript(script);
-					script = table + "$" + column + "<- " + tempTable;
-					frame.executeRScript(script);
-					script = table + "$" + column + " <- as.character(" + table + "$" + column + ");";
-					frame.executeRScript(script);
+					StringBuilder rsb = new StringBuilder();
+					rsb.append(tempTable + " <- format(" + table + "$" + column + ", scientific = FALSE); ");
+					rsb.append(table + "$" + column + "<- " + tempTable + ";");
+					rsb.append(table + "$" + column + " <- as.character(" + table + "$" + column + ");");
 					// perform variable cleanup
-					frame.executeRScript("rm(" + tempTable + ");");
-					frame.executeRScript("gc();");
+					rsb.append("rm(" + tempTable + ");");
+					rsb.append("gc();");
+					this.rJavaTranslator.runR(rsb.toString());
 				} else {
 					script = table + "$" + column + " <- as.character(" + table + "$" + column + ");";
 					frame.executeRScript(script);
@@ -90,21 +89,19 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				// get the column type of the existing column
 				String type = getColumnType(table, column);
 				String tempTable = Utility.getRandomString(6);
+				StringBuilder rsb = new StringBuilder();
 				if (type.equalsIgnoreCase("date")) {
 					String formatString = ", format = '" + dateFormat + "'";
-					script = tempTable + " <- format(" + table + "$" + column + formatString + ")";
-					frame.executeRScript(script);
-					script = table + "$" + column + " <- " + "as.Date(" + tempTable + formatString + ")";
-					frame.executeRScript(script);
+					rsb.append(tempTable + " <- format(" + table + "$" + column + formatString + ");");
+					rsb.append(table + "$" + column + " <- " + "as.Date(" + tempTable + formatString + ");");
 				} else {
-					script = tempTable + " <- as.Date(" + table + "$" + column + ", format='" + dateFormat + "')";
-					frame.executeRScript(script);
-					script = table + "$" + column + " <- " + tempTable;
-					frame.executeRScript(script);
+					rsb.append(tempTable + " <- as.Date(" + table + "$" + column + ", format='" + dateFormat + "');");
+					rsb.append(table + "$" + column + " <- " + tempTable + ";");
 				}
 				// perform variable cleanup
-				frame.executeRScript("rm(" + tempTable + ");");
-				frame.executeRScript("gc();");
+				rsb.append("rm(" + tempTable + ");");
+				rsb.append("gc();");
+				this.rJavaTranslator.runR(rsb.toString());
 			}
 			// update the metadata
 			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);
