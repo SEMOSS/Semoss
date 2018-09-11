@@ -22,7 +22,7 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 	 */
 	
 	public ToLowerCaseReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
 
 	@Override
@@ -32,14 +32,14 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
-		//get table name
+		// get table name
 		String table = frame.getTableName();
-		
+
 		// get inputs
-		//get inputs
+		// get inputs
 		List<String> columns = getColumns();
 		StringBuilder builder = new StringBuilder();
-		for(int i = 0; i < columns.size(); i++) {
+		for (int i = 0; i < columns.size(); i++) {
 			String col = columns.get(i);
 			if (col.contains("__")) {
 				String[] split = col.split("__");
@@ -57,7 +57,7 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 		// script will be of the form:
 		// FRAME$column <- tolower(FRAME$column)
 		frame.executeRScript(builder.toString());
-		
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
