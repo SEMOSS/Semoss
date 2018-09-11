@@ -1,9 +1,13 @@
 package prerna.auth.utils;
 
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
@@ -56,6 +60,67 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return getSimpleQuery(query);
 	}
 
+	/**
+	 * Update user information.
+	 * @param adminId
+	 * @param userInfo
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public boolean editUser(Map<String, Object> userInfo) {
+		String userId = userInfo.remove("id").toString();
+		if(userId == null || userId.toString().isEmpty()) {
+			throw new IllegalArgumentException("Must define which user we are editing");
+		}
+		String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
+		String email = userInfo.get("email") != null ? userInfo.get("email").toString() : "";
+		String password = userInfo.get("password") != null ? userInfo.get("password").toString() : "";
+		
+		// cannot edit a user to match another user when native... would cause some serious issues :/
+		boolean isNative = SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE);
+		if(isNative && SecurityQueryUtils.checkUserExist(name, email)){
+			throw new IllegalArgumentException("The user name or email already exist");
+		}
+		String error = "";
+		if(email != null && !email.isEmpty()){
+			error = validEmail(email);
+		}
+		if(password != null && !password.isEmpty()){
+            error += validPassword(password);
+            if(error.isEmpty()){
+                String newSalt = SecurityQueryUtils.generateSalt();
+                userInfo.put("password", SecurityQueryUtils.hash(password, newSalt));
+                userInfo.put("salt", newSalt);
+            }
+        }
+		if(error != null && !error.isEmpty()) {
+			throw new IllegalArgumentException(error);
+		}
+		
+		boolean first = true;
+		StringBuilder query = new StringBuilder("UPDATE USER SET ");
+		Set<String> keys = userInfo.keySet();
+		for(String k : keys) {
+			Object value = userInfo.get(k);
+			if(value == null || value.toString().isEmpty()) {
+				continue;
+			}
+			if(!first) {
+				query.append(", ");
+			}
+			query.append(k).append(" = '").append(RdbmsQueryBuilder.escapeForSQLStatement(value.toString())).append("'");
+			first = false;
+		}
+		query.append(" WHERE ID='").append(userId).append("'");
+		Statement stmt = securityDb.execUpdateAndRetrieveStatement(query.toString(), true);
+		if(stmt != null){
+			securityDb.commit();
+			return true;
+		}
+		
+		return false;
+    }
+	
 	/**
 	 * Delete a user and all its relationships.
 	 * @param userId
