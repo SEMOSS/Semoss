@@ -641,65 +641,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	/**
-	 * Update user information.
-	 * @param adminId
-	 * @param userInfo
-	 * @return
-	 * @throws IllegalArgumentException
-	 */
-	public static boolean editUser(String adminId, Map<String, Object> userInfo) throws IllegalArgumentException{
-        boolean first = true;
-        String error = "";
-        String userId = userInfo.remove("id").toString();
-        if(userId.equals(adminId) || SecurityQueryUtils.userIsAdmin(adminId)){
-        	String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
-        	String email = userInfo.get("email") != null ? userInfo.get("email").toString() : "";
-            if(SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE) && SecurityQueryUtils.checkUserExist(name, email)){
-                throw new IllegalArgumentException("The user name or email already exist.");
-            }
-            String password = userInfo.get("password").toString();
-            if(password != null && !password.isEmpty()){
-                error += NativeUserSecurityUtils.validPassword(password);
-                if(error.isEmpty()){
-                    String newSalt = SecurityQueryUtils.generateSalt();
-                    userInfo.put("password", SecurityQueryUtils.hash(password, newSalt));
-                    userInfo.put("salt", newSalt);
-                }
-            }
-            if(email != null && !email.isEmpty()){
-                error += NativeUserSecurityUtils.validEmail(email);
-            }
-            if(!error.isEmpty()){
-                throw new IllegalArgumentException(error);
-            }
-            String query = "UPDATE USER ";
-            for( Entry<String, Object> entry : userInfo.entrySet()){
-                String key = entry.getKey();
-                Object value = entry.getValue();
-                if(value != null && !value.toString().isEmpty()){
-                    if(first) {
-                        query += "SET " + key + " = '" + value + "'";
-                        first = false;
-                    } else {
-                        query += ", " + key + " = '" + value + "'";
-                    }
-                }
-            }
-            query += " WHERE ID = '" + userId + "'";
-            System.out.println("Executing security query: " + query);
-            Statement stmt = securityDb.execUpdateAndRetrieveStatement(query, true);
-            if(stmt != null){
-                securityDb.commit();
-            } else {
-                throw new IllegalArgumentException("An unexpected error happen. Please try again.");
-            }
-        } else {
-            throw new IllegalArgumentException("User is not allowed to perform this operation");
-        }
-        return true;
-    }
-	
 	/*
 	 * Permissions
 	 */
