@@ -27,6 +27,9 @@ public class JavaReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		// get the original security
+		this.curManager =  System.getSecurityManager();
+		
 		Logger logger = getLogger(CLASS_NAME);
 		this.store.toString();
 		String code = this.curRow.get(0).toString();
@@ -101,14 +104,10 @@ public class JavaReactor extends AbstractReactor {
 			jR.setRJavaTranslator(this.insight.getRJavaTranslator(this.getLogger(jR.getClass().getName())));
 			jR.In();
 			
-			// get the original security
-			this.curManager =  System.getSecurityManager();
 			// set the security so we cant send some crazy virus into semoss
 			System.setSecurityManager(new ReactorSecurityManager());
 			// call the process
 			jR.runCompiledCode();
-			// set back the original security manager
-			System.setSecurityManager(this.curManager);			
 
 			// remove class from pool
 			pool.removeClassPath(ccp);
@@ -131,6 +130,9 @@ public class JavaReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Code had syntax errors which could not be compiled for execution: " + e.getMessage());
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			// set back the original security manager
+			System.setSecurityManager(this.curManager);	
 		}
 		
 		return new NounMetadata("no output", PixelDataType.CONST_STRING, PixelOperationType.CODE_EXECUTION);
