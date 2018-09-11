@@ -203,7 +203,12 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 				"LOF", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		// now return this object
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		noun.addAdditionalReturn(
+				new NounMetadata(" FILL IN MESSAGE    ", 
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		return noun;
 	}
 
 	private void addUUIDColumnToOrigFrame(String frameName, OwlTemporalEngineMeta meta, String tempKeyCol){
