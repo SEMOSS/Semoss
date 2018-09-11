@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -31,7 +33,6 @@ import prerna.engine.impl.r.RSingleton;
 import prerna.poi.main.HeadersException;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
@@ -200,11 +201,22 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		final String sep = java.lang.System.getProperty("file.separator");
 		String random = Utility.getRandomString(10);
 		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output" + random + ".tsv";
-		gridFrame.execQuery("CALL CSVWRITE("
-				+ "'" + outputLocation + "', "
-				+ "'SELECT " + selectors + " FROM " + gridFrame.getTableName() + "', "
-				+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')"
-				+ ");");
+		ResultSet rs = null;
+		try {
+			rs = gridFrame.execQuery("CALL CSVWRITE("
+					+ "'" + outputLocation + "', "
+					+ "'SELECT " + selectors + " FROM " + gridFrame.getTableName() + "', "
+					+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')"
+					+ ");");
+		} finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
 		this.rJavaTranslator.executeEmptyR(frameName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
 		File f = new File(outputLocation);
