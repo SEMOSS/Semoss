@@ -200,7 +200,11 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		final String sep = java.lang.System.getProperty("file.separator");
 		String random = Utility.getRandomString(10);
 		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output" + random + ".tsv";
-		gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM " + gridFrame.getTableName() + "', STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\" \"'));");
+		gridFrame.execQuery("CALL CSVWRITE("
+				+ "'" + outputLocation + "', "
+				+ "'SELECT " + selectors + " FROM " + gridFrame.getTableName() + "', "
+				+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')"
+				+ ");");
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
 		this.rJavaTranslator.executeEmptyR(frameName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
 		File f = new File(outputLocation);
