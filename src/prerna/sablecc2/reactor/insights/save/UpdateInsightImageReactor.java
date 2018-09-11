@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.insights.save;
 
+import org.apache.log4j.Logger;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
@@ -8,8 +10,14 @@ import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 
 public class UpdateInsightImageReactor extends AbstractInsightReactor {
 
+	private static final String CLASS_NAME = UpdateInsightImageReactor.class.getName();
+	
 	@Override
 	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
+		logger.info("Starting image capture...");
+		logger.info("Operation can take up to 10 seconds to complete");
+		
 		String appId = getApp();
 		String rdbmsId = getRdbmsId();
 		String feUrl = getUrl();
