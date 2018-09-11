@@ -264,8 +264,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			
 			// and finally return all the panel ornaments
 			for(String panelId : panels.keySet()) {
+				String userDefinedLabel = "";
+				String panelLabel = panels.get(panelId).getPanelLabel();
+				if(panelLabel != null) {
+					userDefinedLabel = "Panel(" + panelId + ")|SetPanelLabel(\"" + panelLabel + "\");";
+				}
 				runner.runPixel(panelToPanelView.get(panelId)
-						+ "Panel(" + panelId + ")|SetPanelLabel(\"" + panels.get(panelId).getPanelLabel() + "\");"
+						+ userDefinedLabel
 						+ "Panel(" + panelId + ") | RetrievePanelOrnaments();"
 						+ "Panel(" + panelId + ") | RetrievePanelEvents();"
 						+ "Panel(" + panelId + ") | RetrievePanelComment();"
