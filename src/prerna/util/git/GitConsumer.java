@@ -20,7 +20,7 @@ import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
-import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;

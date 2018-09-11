@@ -1,8 +1,9 @@
-package prerna.auth;
+package prerna.auth.utils;
 
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 

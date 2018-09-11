@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.SecurityQueryUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;

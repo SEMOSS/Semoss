@@ -1,8 +1,8 @@
 package prerna.sablecc2.reactor.qs;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;

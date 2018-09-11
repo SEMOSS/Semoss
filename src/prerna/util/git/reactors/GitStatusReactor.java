@@ -3,8 +3,8 @@ package prerna.util.git.reactors;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AbstractSecurityUtils;
-import prerna.auth.SecurityQueryUtils;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
