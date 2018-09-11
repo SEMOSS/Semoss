@@ -22,7 +22,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 	 */
 	
 	public TrimReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
 
 	@Override
@@ -35,7 +35,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 		// get inputs
 		List<String> columns = getColumns();
 		StringBuilder builder = new StringBuilder();
-		for(int i = 0; i < columns.size(); i++) {
+		for (int i = 0; i < columns.size(); i++) {
 			String col = columns.get(i);
 			if (col.contains("__")) {
 				String[] split = col.split("__");
@@ -48,12 +48,12 @@ public class TrimReactor extends AbstractRFrameReactor {
 				builder.append(table + "$" + col + " <- str_trim(" + table + "$" + col + ")");
 			}
 		}
-		
+
 		// execute the r script
-		// script will be of the form: 
+		// script will be of the form:
 		// FRAME$column <- str_trim(FRAME$column)
 		frame.executeRScript(builder.toString());
-		
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
@@ -74,7 +74,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 		List<String> columns = new Vector<String>();
 
 		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
-		if(colGrs != null && !colGrs.isEmpty()) {
+		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
 				columns.add(column);
@@ -89,7 +89,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-		
+
 		return columns;
 	}
 }

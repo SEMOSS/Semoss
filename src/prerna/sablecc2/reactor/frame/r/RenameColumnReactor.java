@@ -24,7 +24,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 	 */
 	
 	public RenameColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -53,7 +53,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Column doesn't exist.");
 		}
 		String validNewHeader = getCleanNewHeader(table, updatedColName);
-		if (validNewHeader.equals("")){
+		if (validNewHeader.equals("")) {
 			throw new IllegalArgumentException("Provide valid new column name (no special characters)");
 		}
 		// define the r script to be executed

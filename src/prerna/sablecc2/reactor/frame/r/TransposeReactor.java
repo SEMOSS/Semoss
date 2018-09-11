@@ -13,23 +13,22 @@ public class TransposeReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		
 		/**
-		 * This reactor transposes the frame
-		 * No inputs are needed
+		 * This reactor transposes the frame No inputs are needed
 		 */
 
 		// get frame
-		//use init to initialize rJavaTranslator object that will be used later
+		// use init to initialize rJavaTranslator object that will be used later
 		init();
 		RDataTable frame = (RDataTable) getFrame();
-		
-		//get table name
+
+		// get table name
 		String table = frame.getTableName();
-		
-		//define r script string to be executed
+
+		// define r script string to be executed
 		String script = table + " <- " + table + "[, data.table(t(.SD), keep.rownames=TRUE)]";
-		//execute the r script
+		// execute the r script
 		frame.executeRScript(script);
-		
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
@@ -37,7 +36,7 @@ public class TransposeReactor extends AbstractRFrameReactor {
 				"Transpose", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		//with transpose - the column data is changing so we must reacreate metadata
+		// with transpose - the column data is changing so we must recreate metadata
 		recreateMetadata(table);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

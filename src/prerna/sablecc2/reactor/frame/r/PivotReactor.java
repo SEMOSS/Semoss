@@ -33,17 +33,18 @@ public class PivotReactor extends AbstractRFrameReactor {
 	private static final String AGGREGATE_FUNCTION_KEY = "function";
 	
 	public PivotReactor() {
-		this.keysToGet = new String[]{PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), AGGREGATE_FUNCTION_KEY};
+		this.keysToGet = new String[] { PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), AGGREGATE_FUNCTION_KEY };
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		//initialize the rJavaTranslator
+		organizeKeys();
+		// initialize the rJavaTranslator
 		init();
-		
+
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		//get frame name
+		// get frame name
 		String table = frame.getTableName();
 		// get inputs
 		// get the column to pivot
