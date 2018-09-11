@@ -162,7 +162,7 @@ public class FormUploadReactor extends AbstractReactor {
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
 		// insert form insights 
 		for(String sheetName : form.keySet()) {
 			Map<String, Object> sheetMap = (Map<String, Object>) form.get(sheetName);
