@@ -8,13 +8,11 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
 import prerna.auth.AccessToken;
-import prerna.auth.AuthProvider;
 import prerna.auth.EnginePermission;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
