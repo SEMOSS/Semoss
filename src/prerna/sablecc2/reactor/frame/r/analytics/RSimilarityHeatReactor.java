@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.r.analytics;
 
 import java.util.List;
 import java.util.Vector;
@@ -10,6 +10,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Utility;
 
 public class RSimilarityHeatReactor extends AbstractRFrameReactor {
@@ -33,7 +34,6 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		String tempFrame = Utility.getRandomString(8);
 		List<String> temp = getComparisonColumns();
 		temp.add(instanceCol);
-		String subset = RSyntaxHelper.createStringRColVec(temp.toArray());
 		// make frame with only used columns
 		rsb.append(RSyntaxHelper.getFrameSubset(tempFrame, frameName, temp.toArray()));
 		String mergeBy = RSyntaxHelper.createStringRColVec(comparisonColumn.toArray());
@@ -51,7 +51,13 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		rsb.append("rm(" + tempFrame + ")");
 		this.rJavaTranslator.runR(rsb.toString());
 		recreateMetadata(frameName);
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+
+		// now return this object
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		noun.addAdditionalReturn(
+				new NounMetadata("You've successfully completed running similarity heat and generated a new frame", 
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		return noun;
 	}
 	
 	private List<String> getComparisonColumns() {
