@@ -86,13 +86,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				String fileName = folderToWatch + "/" + newFile;
 				Utility.loadEngine(fileName, prop);
 			}
-		}catch(IOException e){
+		} catch(IOException e) {
 			e.printStackTrace();
-		}finally{
-			try{
-				if(fileIn!=null)
+		} finally {
+			try {
+				if(fileIn != null) {
 					fileIn.close();
-			}catch(IOException e) {
+				}
+			} catch(IOException e) {
 				e.printStackTrace();
 			}
 		}
@@ -167,18 +168,47 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					SecurityUpdateUtils.addApp(engineId);
 				}
 			}
-		}catch(Exception e){
+		} catch(Exception e){
 			e.printStackTrace();
-		}finally{
+		} finally {
 			try{
-				if(fileIn!=null)
+				if(fileIn != null) {
 					fileIn.close();
-			}catch(IOException e) {
+				}
+			} catch(IOException e) {
 				e.printStackTrace();
 			}
 		}
 		
 		return engineId;
+	}
+	
+	@Override
+	public void init() {
+		// we will load the local master database
+		// and the security database before we load anything else
+		File dir = new File(folderToWatch);
+		String[] fileNames = dir.list(this);
+
+		// find the local master
+		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
+		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
+		loadExistingDB(fileNames[localMasterIndex]);
+		// initialize the local master
+		MasterDatabaseUtility.initLocalMaster();
+					
+		/*
+		 * AFTER WE LOAD THE LOCAL MASTER - UPDATE LEGACY DATABASES
+		 * TO ADD USER SPECIFIC DATABASES / UNIQUE ENGINE NAMES
+		 */
+		SmssUpdater.run();
+		
+		// also need to load the security db
+		String securityDBName = Constants.SECURITY_DB + this.extension;
+		int securityIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, securityDBName);
+		loadExistingDB(fileNames[securityIndex]);
+		// initialize the security database
+		AbstractSecurityUtils.loadSecurityDatabase();
 	}
 
 	/**
@@ -192,77 +222,25 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
-		String[] engineNames = new String[fileNames.length];
+		String[] engineIds = new String[fileNames.length];
 		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
-		// trying to figure out where the local master database is in the scheme of things
-		// and then letting it load first
-		
-		// store the file index to start at
-		// in case the files do not find the local master or security db
-		// we at least start at the right index
-		// although, things will not work out well if security or local master are not found
-		int fileIdx = 0;
-		
-		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
-		if(localMasterIndex != -1) {
-			String temp = fileNames[0];
-			fileNames[0] = localMasterDBName;
-			fileNames[localMasterIndex] = temp;
-			localMasterIndex = 0;
-			// let us first load the master index
-			loadExistingDB(fileNames[0]);
-			// initialize the local master
-			MasterDatabaseUtility.initLocalMaster();
-			// update file index
-			fileIdx++;
-		}
-		
-		/*
-		 * AFTER WE LOAD THE LOCAL MASTER - UPDATE LEGACY DATABASES
-		 * TO ADD USER SPECIFIC DATABASES / UNIQUE ENGINE NAMES
-		 */
-		SmssUpdater.run();
-		
-		// recalculate everything
-		dir = new File(folderToWatch);
-		fileNames = dir.list(this);
-		engineNames = new String[fileNames.length];
-		localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
-		if(localMasterIndex != -1) {
-			String temp = fileNames[0];
-			fileNames[0] = localMasterDBName;
-			fileNames[localMasterIndex] = temp;
-		}
-		
-		// now continue normal flow
-		
-		// also need to load the security db
 		String securityDBName = Constants.SECURITY_DB + this.extension;
-		// trying to figure out where the security database is in the scheme of things
-		// and then letting it load second
-		int securityIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, securityDBName);
-		if(securityIndex != -1) {
-			String temp = fileNames[1];
-			fileNames[1] = securityDBName;
-			fileNames[securityIndex] = temp;
-			localMasterIndex = 1;
-			// let us now load the security db
-			loadExistingDB(fileNames[1]);
-			AbstractSecurityUtils.loadSecurityDatabase();
-			// update file index
-			fileIdx++;
-		}
 		
-		// now we start at index 2 since we index 0 is the local master and index 1 is security db
-		for (; fileIdx < fileNames.length; fileIdx++) {
+		// loop through and load all the engines
+		// but we will ignore the local master and security database
+		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
+				String fileName = fileNames[fileIdx];
+				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName)) {
+					// again, ignore local master + security
+					continue;
+				}
+				
 				// I really dont want to load anything here
 				// I only want to keep track of what are the engine names and their corresponding SMSS files
-				
-				String loadedEngineName = catalogDB(fileNames[fileIdx]);
-				// if the engine is hidden
-				// this will return null since no engine has been loaded
-				engineNames[fileIdx] = loadedEngineName;
+				// so we will catalog instead of load
+				String loadedEngineId = catalogDB(fileName);
+				engineIds[fileIdx] = loadedEngineId;
 			} catch (RuntimeException ex) {
 				ex.printStackTrace();
 				LOGGER.fatal("Engine Failed " + folderToWatch + "/" + fileNames[fileIdx]);
@@ -274,7 +252,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		
 		for(String engine : engines) {
-			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
+			if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
 				LOGGER.info("Deleting the engine from local master..... " + engine);
 				remover.deleteEngineRDBMS(engine);
 			}
@@ -282,7 +260,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		
 		engines = SecurityQueryUtils.getEngineIds();
 		for(String engine : engines) {
-			if(!ArrayUtilityMethods.arrayContainsValue(engineNames, engine)) {
+			if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
 				LOGGER.info("Deleting the engine from security..... " + engine);
 				SecurityUpdateUtils.deleteApp(engine);
 			}
