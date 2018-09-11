@@ -10,12 +10,10 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
-import jodd.util.BCrypt;
 import prerna.auth.AuthProvider;
 import prerna.auth.EnginePermission;
 import prerna.auth.User;
 import prerna.date.SemossDate;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
@@ -682,121 +680,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	//TODO:
 	//TODO:
 	
-	/*
-	 * Get user methods + log in
-	 */
-	
-	/**
-	 * Current salt generation by BCrypt
-	 * @return salt
-	 */
-	protected static String generateSalt(){
-		return BCrypt.gensalt();
-	}
-
-	/**
-	 * Create the password hash based on the password and salt provided.
-	 * @param password
-	 * @param salt
-	 * @return hash
-	 */
-	protected static String hash(String password, String salt) {
-		return BCrypt.hashpw(password, salt);
-	}
-	
-	/**
-	 * Verifies user information provided in the log in screen to allow or not 
-	 * the entry in the application.
-	 * @param user user name
-	 * @param password
-	 * @return true if user exist and password is correct otherwise false.
-	 */
-	public static boolean logIn(String user, String password){
-		Map<String, String> databaseUser = getUserFromDatabase(user);
-		if(!databaseUser.isEmpty()){
-			String typedHash = hash(password, databaseUser.get("SALT"));
-			return databaseUser.get("PASSWORD").equals(typedHash);
-		} else {
-			return false;
-		}
-	}
-	
-	private static String getUsernameByUserId(String userId) {
-		String query = "SELECT NAME FROM USER WHERE ID = '?1'";
-		query = query.replace("?1", userId);
-
-		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		if(sjsw.hasNext()) {
-			IHeadersDataRow sjss = sjsw.next();
-			return sjss.getValues()[0].toString();
-		}
-		return null;
-	}
-	
-	/**
-	 * Brings the user id from database.
-	 * @param username
-	 * @return userId if it exists otherwise null
-	 */
-	public static String getUserId(String username) {
-		String query = "SELECT ID FROM USER WHERE USERNAME = '?1'";
-		query = query.replace("?1", username);
-
-		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		if(sjsw.hasNext()) {
-			IHeadersDataRow sjss = sjsw.next();
-			return sjss.getValues()[0].toString();
-		}
-		return null;
-
-	}
-	
-	/**
-	 * Brings the user name from database.
-	 * @param username
-	 * @return userId if it exists otherwise null
-	 */
-	public static String getNameUser(String username) {
-		// TODO Auto-generated method stub
-		String query = "SELECT NAME FROM USER WHERE USERNAME = '?1'";
-		query = query.replace("?1", username);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		try{
-			if(wrapper.hasNext()) {
-				IHeadersDataRow sjss = wrapper.next();
-				return sjss.getValues()[0].toString();
-			}
-		} finally {
-			wrapper.cleanUp();
-		}
-		return null;
-
-	}
-
-	/**
-	 * Brings all the user basic information from the database.
-	 * @param username 
-	 * @return User retrieved from the database otherwise null.
-	 */
-	private static Map<String, String> getUserFromDatabase(String username) {
-		Map<String, String> user = new HashMap<String, String>();
-		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT FROM USER WHERE USERNAME='" + username + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		String[] names = wrapper.getHeaders();
-		if(wrapper.hasNext()) {
-			Object[] values = wrapper.next().getValues();
-			user.put(names[0], values[0].toString());
-			user.put(names[1], values[1].toString());
-			user.put(names[2], values[2].toString());
-			user.put(names[3], values[3].toString());
-			user.put(names[4], values[4].toString());
-			user.put(names[5], values[5].toString());
-			user.put(names[6], values[6].toString());
-			user.put(names[7], values[7].toString());
-		}
-		return user;
-	}
-
 	/**
 	 * Search if there's users containing 'searchTerm' in their email or name
 	 * @param searchTerm
@@ -1281,7 +1164,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				List<String[]> otherCoincidences = otherGroupsUserList.get(userId);
 				for(String[] coincidence : otherCoincidences){
 					String groupName = coincidence[1];
-					String groupOwner = getUsernameByUserId(coincidence[2]);
+					String groupOwner = NativeUserSecurityUtils.getUsernameByUserId(coincidence[2]);
 					ret += "The user " + user[4] + " in " + user[1] + " already has access to the database through " + groupName + " owned by " + groupOwner + ". ";
 				}
 			}
@@ -1421,7 +1304,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static String isUserWithDatabasePermissionAlready(String userId, List<String> groupsId, List<String> usersId){
 		String ret = "";
 
-		String username = getUsernameByUserId(userId);
+		String username = NativeUserSecurityUtils.getUsernameByUserId(userId);
 
 		if(usersId.contains(userId)){
 			ret += "The user " + username + " already has a direct relationship with the database. ";
