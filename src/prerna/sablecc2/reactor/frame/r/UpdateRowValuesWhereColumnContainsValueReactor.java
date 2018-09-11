@@ -29,7 +29,8 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 	 */
 	
 	public UpdateRowValuesWhereColumnContainsValueReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.QUERY_STRUCT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(),
+				ReactorKeysEnum.QUERY_STRUCT.getKey() };
 	}
 
 	@Override
@@ -41,20 +42,20 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 
 		// get frame name
 		String table = frame.getTableName();
-		
+
 		// create a string builder to keep track of the scripts to execute
 		StringBuilder sb = new StringBuilder();
-		
+
 		// get inputs
 		String updateCol = getUpdateColumn();
 		// separate the column name from the frame name
 		if (updateCol.contains("__")) {
 			updateCol = updateCol.split("__")[1];
-		} 
+		}
 
 		// second noun will be the value to update (the new value)
 		String value = getNewValue();
-		
+
 		// get data type of column being updated
 		String updateDataType = getColumnType(table, updateCol);
 
@@ -63,7 +64,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 				|| updateDataType.contains("factor")) {
 			value = "\"" + value + "\"";
 		}
-		
+
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
 		///////////////////// QUERY FILTER//////////////////////////////////
@@ -106,9 +107,10 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 				NounMetadata rightComp = queryFilter.getRComparison();
 
 				// account for quotes in the script where needed
-				String comparisonColType = getColumnType(table, columnComp);		
+				String comparisonColType = getColumnType(table, columnComp);
 
-				// now deal with the values that are being updated; there can be more than one (e.g., Genre == "Albert", "Alex", "Amy")
+				// now deal with the values that are being updated; there can be
+				// more than one (e.g., Genre == "Albert", "Alex", "Amy")
 				// this will give us the right side object - which may be a vector
 				Object rightCompValue = rightComp.getValue();
 
@@ -144,7 +146,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 			}
 		}
 
-		//execute the r scripts
+		// execute the r scripts
 		if (sb.length() > 0) {
 			this.rJavaTranslator.runR(sb.toString());
 		}
@@ -181,7 +183,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		}
 		throw new IllegalArgumentException("Need to define column to update");
 	}
-	
+
 	private String getNewValue() {
 		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[1]);
 		if (inputsGRS != null) {
@@ -192,7 +194,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		String value = noun2.getValue() + "";
 		return value;
 	}
-	
+
 	private SelectQueryStruct getQueryStruct() {
 		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[2]);
 		if (inputsGRS != null) {

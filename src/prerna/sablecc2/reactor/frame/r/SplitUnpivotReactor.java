@@ -24,40 +24,44 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 	 */
 	
 	public SplitUnpivotReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		//use init to initialize rJavaTranslator object that will be used later
+		// use init to initialize rJavaTranslator object that will be used later
 		init();
 		// get frame
-		RDataTable frame = (RDataTable) getFrame(); 
+		RDataTable frame = (RDataTable) getFrame();
 
-		//get table name
+		// get table name
 		String table = frame.getTableName();
 
-		//make a temporary table name
-		//we will reassign the table to this variable
-		//then assign back to the original table name
+		// make a temporary table name
+		// we will reassign the table to this variable
+		// then assign back to the original table name
 		String tempName = Utility.getRandomString(8);
-		//script to change the name of the table back to the original name - will be used later 
-		String frameReplaceScript = table + " <- " + tempName + ";"; 
-		//false columnReplaceScript indicates that we will not drop the original column of data
+		// script to change the name of the table back to the original name -
+		// will be used later
+		String frameReplaceScript = table + " <- " + tempName + ";";
+		// false columnReplaceScript indicates that we will not drop the
+		// original column of data
 		String columnReplaceScript = "FALSE";
 		String direction = "long";
 
-		//get the columns
-		//already cleaned to exclude the frame name
+		// get the columns
+		// already cleaned to exclude the frame name
 		List<String> columns = getColumns();
 
-		//get the delimiters
+		// get the delimiters
 		List<String> delimiters = getDelimiters();
 
-		//throw an error if the number of delimiters doesn't make sense
-		//delimiters must match the number of columns, or just use a single delimiter
+		// throw an error if the number of delimiters doesn't make sense
+		// delimiters must match the number of columns, or just use a single
+		// delimiter
 		if ((columns.size() != delimiters.size()) && delimiters.size() != 1) {
-			throw new IllegalArgumentException("Need to enter a single delimiter for all columns or one for each column");
+			throw new IllegalArgumentException(
+					"Need to enter a single delimiter for all columns or one for each column");
 		}
 
 		for (int i = 0; i < columns.size(); i++) {
@@ -69,52 +73,47 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 				delimiter = delimiters.get(i);
 			}
 
-			//build the script to execute
-			String script = tempName + " <- cSplit(" + table + ", "
-					+ "\"" + column
-					+ "\", \"" + delimiter
-					+ "\", direction = \"" + direction
-					+ "\", drop = " + columnReplaceScript+ ");" 
-					;
+			// build the script to execute
+			String script = tempName + " <- cSplit(" + table + ", " + "\"" + column + "\", \"" + delimiter
+					+ "\", direction = \"" + direction + "\", drop = " + columnReplaceScript + ");";
 
-			//evaluate the r script
+			// evaluate the r script
 			frame.executeRScript(script);
 
-			//get all the columns that are factors
+			// get all the columns that are factors
 			script = "sapply(" + tempName + ", is.factor);";
-			//keep track of which columns are factors
-			int [] factors = this.rJavaTranslator.getIntArray(script);			
-			String [] colNames = getColumns(tempName);
+			// keep track of which columns are factors
+			int[] factors = this.rJavaTranslator.getIntArray(script);
+			String[] colNames = getColumns(tempName);
 
 			// now I need to compose a string based on it
-			//we will convert the columns that are factors into strings using as.character
+			// we will convert the columns that are factors into strings using
+			// as.character
 			String conversionString = "";
-			for(int factorIndex = 0;factorIndex < factors.length;factorIndex++)
-			{
-				if(factors[factorIndex] == 1) // this is a factor
+			for (int factorIndex = 0; factorIndex < factors.length; factorIndex++) {
+				if (factors[factorIndex] == 1) // this is a factor
 				{
-					conversionString = conversionString + 
-							tempName + "$" + colNames[factorIndex] + " <- "
+					conversionString = conversionString + tempName + "$" + colNames[factorIndex] + " <- "
 							+ "as.character(" + tempName + "$" + colNames[factorIndex] + ");";
 				}
 			}
 
-			//convert factors
+			// convert factors
 			frame.executeRScript(conversionString);
-			//change table back to original name
+			// change table back to original name
 			frame.executeRScript(frameReplaceScript);
 			// perform variable cleanup
 			frame.executeRScript("rm(" + tempName + "); gc();");
 		}
-		
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
 				frame, 
 				"SplitUnpivot", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		//column header data is changing so we must recreate metadata
+
+		// column header data is changing so we must recreate metadata
 		recreateMetadata(table);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
@@ -126,8 +125,8 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 	//////////////////////////////////////////////////////////////////////
 
 	private List<String> getDelimiters() {
-		//inputs are passed based on a key
-		//store in a vector of inputs
+		// inputs are passed based on a key
+		// store in a vector of inputs
 		List<String> delInputs = new Vector<String>();
 		GenRowStruct delGRS = this.store.getNoun(keysToGet[1]);
 		if (delGRS != null) {
@@ -143,14 +142,14 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		//if it was passed based on a key
+		// if it was passed based on a key
 		List<String> colInputs = new Vector<String>();
 		GenRowStruct colGRS = this.store.getNoun(keysToGet[0]);
 		if (colGRS != null) {
 			int size = colGRS.size();
 			if (size > 0) {
 				for (int i = 0; i < size; i++) {
-					//get each individul column entry and clean 
+					// get each individul column entry and clean
 					String column = colGRS.get(i).toString();
 					if (column.contains("__")) {
 						column = column.split("__")[1];

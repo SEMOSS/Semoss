@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Vector;
 
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
@@ -26,20 +27,20 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 	 */
 	
 	public UnpivotReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		//initialize the rJavaTranslator
+		// initialize the rJavaTranslator
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 
-		//get frame name
+		// get frame name
 		String table = frame.getTableName();
-		
-		//get column inputs in an array
+
+		// get column inputs in an array
 		String[] columns = getStringArray();
 		
 		// makes the columns and converts them into rows
@@ -47,7 +48,7 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		String concatString = "";
 		String tempName = Utility.getRandomString(8);
 		int numColsToUnPivot = columns.length;
-		if(numColsToUnPivot > 0) {
+		if (numColsToUnPivot > 0) {
 			concatString = ", measure.vars = c(";
 			for (int colIndex = 0; colIndex < numColsToUnPivot; colIndex++) {
 				concatString = concatString + "\"" + columns[colIndex] + "\"";
@@ -90,7 +91,7 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(" + tempName + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	
@@ -107,20 +108,36 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 	}
 	
 	private String[] getStringArray() {
-		GenRowStruct inputsGRS = this.getCurRow();
-		String[] columns = new String[inputsGRS.size()];
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			//input is the columns to unpivot
-			for (int i = 0; i < inputsGRS.size(); i++) {
-				String column = getColumn(i);
-				//clean column
-				if (column.contains("__")) {
-					column = column.split("__")[1];
-					//add the columns to keep to the string array
-				}
-				columns[i] = column;
+		// get columns from key
+		String[] columns = null;
+		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
+		if(colGrs != null && !colGrs.isEmpty()) {
+			columns = new String[colGrs.size()];
+			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
+				String column = colGrs.get(selectIndex) + "";
+				columns[selectIndex] = column;
 			}
 			return columns;
+		} else{
+		
+		
+			// get columns from index
+			GenRowStruct inputsGRS = this.getCurRow();
+			columns = new String[inputsGRS.size()];
+			if (inputsGRS != null && !inputsGRS.isEmpty()) {
+				// input is the columns to unpivot
+				for (int i = 0; i < inputsGRS.size(); i++) {
+					NounMetadata input = this.getCurRow().getNoun(i);
+					String column = input.getValue() + "";
+					// clean column
+					if (column.contains("__")) {
+						column = column.split("__")[1];
+						// add the columns to keep to the string array
+					}
+					columns[i] = column;
+				}
+				return columns;
+			}
 		}
 		throw new IllegalArgumentException("Need to define columns to unpivot");
 	}

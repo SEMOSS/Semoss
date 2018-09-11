@@ -19,7 +19,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 	 */
 	
 	public ReplaceColumnValueReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
 	}
 
 	@Override
@@ -28,43 +28,41 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		
-		//get table name
+
+		// get table name
 		String table = frame.getTableName();
 
 		// get inputs
-		//first input is the column that we are updating
+		// first input is the column that we are updating
 		String column = this.keyValue.get(this.keysToGet[0]);
 		if (column.contains("__")) {
 			column = column.split("__")[1];
 		}
 
-		//second input is the old value
+		// second input is the old value
 		String oldValue = this.keyValue.get(this.keysToGet[1]);
 
-		//third input is the new value
+		// third input is the new value
 		String newValue = this.keyValue.get(this.keysToGet[2]);
 
-		//use method to retrieve a single column type
+		// use method to retrieve a single column type
 		String colDataType = getColumnType(table, column);
 		
-		//account for quotes that will be needed in the query with string values
+		// account for quotes that will be needed in the query with string values
 		String neededQuote = "";
 		if (colDataType.equalsIgnoreCase("string") || colDataType.equalsIgnoreCase("character")) {
 			neededQuote = "\"";
 		} else if (colDataType.equalsIgnoreCase("factor")) {
 			changeColumnType(frame, table, column, "string", "%Y/%m/%d");
-			neededQuote = "\"";	
+			neededQuote = "\"";
 		}
 			
 		String script = "";
 		if (oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("NA")) {
-			script = table + "$" + column + "[is.null(" + table + "$" + column + ")] <- " + neededQuote
-					+ newValue + neededQuote;
-		} 
-		else {
-			script = table + "$" + column + "[" + table + "$" + column + " == " + neededQuote + oldValue
-					+ neededQuote + "] <- " + neededQuote + newValue + neededQuote;
+			script = table + "$" + column + "[is.null(" + table + "$" + column + ")] <- " + neededQuote + newValue + neededQuote;
+		} else {
+			script = table + "$" + column + "[" + table + "$" + column + " == " + 
+					neededQuote + oldValue + neededQuote + "] <- " + neededQuote + newValue + neededQuote;
 		}
 		
 		// NEW TRACKING
@@ -74,8 +72,8 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 				"ReplaceColumnValue", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 			
-		//execute the r script
-		//script is of the form FRAME$Director[FRAME$Director == "oldVal"] <- "newVal"
+		// execute the r script
+		// script is of the form FRAME$Director[FRAME$Director == "oldVal"] <- "newVal"
 		frame.executeRScript(script);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

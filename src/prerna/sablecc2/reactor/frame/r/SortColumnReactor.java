@@ -19,28 +19,35 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 	 */
 	
 	public SortColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.SORT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.SORT.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		init();
 
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 
-		//get table name
+		// get table name
 		String table = frame.getTableName();
-		
+
 		// get inputs
-		//the first input is the column to sort
-		String column = getSortColumn();
+		// the first input is the column to sort
+		String column = this.keyValue.get(this.keysToGet[0]);
+		if (column == null) {
+			column = getSortColumn();
+		}
 		if (column.contains("__")) {
 			column = column.split("__")[1];
 		}
 
-		//second input is the sort direction
-		String sortDir = getSortDirection();
+		// second input is the sort direction
+		String sortDir = this.keyValue.get(this.keysToGet[0]);
+		if (sortDir == null) {
+			sortDir = getSortDirection();
+		}
 
 		// define the scripts based on the sort direction
 		String script = null;
@@ -82,14 +89,14 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define the column to sort");
 	}
-	
+
 	private String getSortDirection() {
 		// the second input will be the sort direction
 		NounMetadata input2 = this.getCurRow().getNoun(1);
 		String sortDir = input2.getValue() + "";
 		if (sortDir.length() == 0) {
 			throw new IllegalArgumentException("Need to specify sort direction");
-		}	
+		}
 		return sortDir;
 	}
 }
