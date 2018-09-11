@@ -9,7 +9,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import jodd.util.BCrypt;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -529,5 +532,47 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		return ret;
+	}
+	
+	
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+
+	static String validEmail(String email){
+		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
+			return  email + " is not a valid email address. ";
+		}
+		return "";
+	}
+	
+	static String validPassword(String password){
+		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
+        Matcher matcher = pattern.matcher(password);
+		
+		if(!matcher.lookingAt()){
+			return "Password doesn't comply with the security policies.";
+		}
+		return "";
+	}
+	
+	/**
+	 * Current salt generation by BCrypt
+	 * @return salt
+	 */
+	static String generateSalt(){
+		return BCrypt.gensalt();
+	}
+
+	/**
+	 * Create the password hash based on the password and salt provided.
+	 * @param password
+	 * @param salt
+	 * @return hash
+	 */
+	static String hash(String password, String salt) {
+		return BCrypt.hashpw(password, salt);
 	}
 }
