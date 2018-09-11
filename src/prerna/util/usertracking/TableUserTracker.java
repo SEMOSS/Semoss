@@ -514,7 +514,7 @@ public class TableUserTracker implements IUserTracker {
 							column = split[1];
 						}
 						String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
-						long uniqueCount = getUniqueValueCount(engineId, table, column);
+						Long uniqueCount = getUniqueValueCount(engineId, table, column);
 						
 						Object[] row = new Object[15];
 						row[0] = id;
