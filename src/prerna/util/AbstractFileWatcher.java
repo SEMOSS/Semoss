@@ -68,8 +68,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	 * Sets folder to watch.
 	 * @param folderToWatch String		Folder to watch.
 	 */
-	public void setFolderToWatch(String folderToWatch)
-	{
+	public void setFolderToWatch(String folderToWatch) {
 		this.folderToWatch = folderToWatch;
 	}
 
@@ -77,8 +76,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	 * Sets extension of files.
 	 * @param extension String		Extension of files.
 	 */
-	public void setExtension(String extension)
-	{
+	public void setExtension(String extension) {
 		this.extension = extension;
 	}
 	
@@ -86,8 +84,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	 * Sets engine.
 	 * @param engine IEngine		Engine to be set.
 	 */
-	public void setEngine(IEngine engine)
-	{
+	public void setEngine(IEngine engine) {
 		this.engine = engine;
 	}
 	
@@ -95,8 +92,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	 * Sets monitor.
 	 * @param monitor Object		Object to be monitored.
 	 */
-	public void setMonitor(Object monitor)
-	{
+	public void setMonitor(Object monitor) {
 		this.monitor = monitor;
 	}
 	
@@ -106,11 +102,25 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	public abstract void loadFirst();
 	
 	/**
+	 * Processes the file.
+	 * @param fileName String		Name of the file.
+	 */
+	public abstract void process(String fileName);
+	
+	/**
+	 * Optional method to be overriden
+	 * So that a watcher can perform any required operations
+	 * Prior to starting up its own thread
+	 */
+	public void init() {
+		
+	}
+	
+	/**
 	 * Starts the thread and processes new files from a given directory.
 	 */
 	@Override
-	public void run() 
-	{
+	public void run() {
 		WatchService watcher = null;
 		WatchKey key = null;
 		try {
@@ -166,23 +176,14 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	 * @return 					True if the name should be included in the file list. */
 	
 	@Override
-	public boolean accept(File arg0, String arg1) 
-	{
+	public boolean accept(File arg0, String arg1) {
 		return arg1.endsWith(extension);
 	}
 	
 	/**
 	 * Switch the thread to finish running
 	 */
-	public void shutdown() 
-	{
+	public void shutdown() 	{
 		this.stop  = true;
 	}
-	
-	/**
-	 * Processes the file.
-	 * @param fileName String		Name of the file.
-	 */
-	public abstract void process(String fileName);	
-	
 }
