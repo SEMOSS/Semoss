@@ -23,11 +23,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AuthProvider;
-import prerna.auth.SecurityQueryUtils;
-import prerna.auth.SecurityUpdateUtils;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.tinker.TinkerEngine;

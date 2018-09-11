@@ -36,9 +36,9 @@ import java.util.Properties;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.auth.AbstractSecurityUtils;
-import prerna.auth.SecurityQueryUtils;
-import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
