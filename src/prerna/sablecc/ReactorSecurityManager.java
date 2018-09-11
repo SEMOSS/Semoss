@@ -28,7 +28,6 @@ public class ReactorSecurityManager extends SecurityManager {
 	}
 	
 	public void checkPermission( Permission permission ) {
-		System.out.println(permission.getActions());
 		if( permission.getName().contains("exitVM") ) {
 			throw new SecurityException("Exit not permitted");
 		}
