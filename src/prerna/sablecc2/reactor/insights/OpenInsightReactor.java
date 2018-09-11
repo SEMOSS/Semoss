@@ -135,9 +135,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// update the universal view count
 		GlobalInsightCountUpdater.getInstance().addToQueue(appId, rdbmsId);
 
-		// track GA data
-//		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "openinsight", appId, rdbmsId, newInsight.getInsightName());
-		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackInsightExecution(newInsight);
 		
