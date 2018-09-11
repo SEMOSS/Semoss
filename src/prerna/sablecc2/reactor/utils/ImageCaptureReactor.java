@@ -46,6 +46,9 @@ public class ImageCaptureReactor  extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
+		logger.info("Starting image capture...");
+		logger.info("Operation can take up to 10 seconds to complete");
+		
 		organizeKeys();
 		String engineName = this.keyValue.get(this.keysToGet[0]);
 		String feUrl = this.keyValue.get(this.keysToGet[1]);
@@ -58,9 +61,7 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");
 		while(wrapper.hasNext()) {
 			String id = wrapper.next().getValues()[0] + "";
-			logger.info("Start image capture for insight id = " + id);
 			runImageCapture(feUrl, engineName, id, param, sessionId);
-			logger.info("Done saving image for insight id = " + id);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
