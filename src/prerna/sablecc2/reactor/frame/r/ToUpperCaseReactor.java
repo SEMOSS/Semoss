@@ -22,7 +22,7 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 	 */
 	
 	public ToUpperCaseReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
 	
 	@Override
@@ -31,13 +31,13 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
-		//get table name
+		// get table name
 		String table = frame.getTableName();
-		
-		//get inputs
+
+		// get inputs
 		List<String> columns = getColumns();
 		StringBuilder builder = new StringBuilder();
-		for(int i = 0; i < columns.size(); i++) {
+		for (int i = 0; i < columns.size(); i++) {
 			String col = columns.get(i);
 			if (col.contains("__")) {
 				String[] split = col.split("__");
@@ -76,7 +76,7 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 		List<String> columns = new Vector<String>();
 
 		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
-		if(colGrs != null && !colGrs.isEmpty()) {
+		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
 				columns.add(column);
@@ -91,7 +91,7 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-		
+
 		return columns;
 	}
 }
