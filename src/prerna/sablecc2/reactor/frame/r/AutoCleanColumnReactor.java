@@ -31,7 +31,7 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		boolean keepCol = getKeepColBool();
 		RDataTable frame = (RDataTable) this.getFrame();
 		String tableName = frame.getTableName();
-		
+
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table", "tm", "cluster" };
 		this.rJavaTranslator.checkPackages(packages);
@@ -55,27 +55,25 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 			// new col is mastered version of column
 			String tempCol = Utility.getRandomString(8);
 			String newHeaderName = getCleanNewHeader(tableName, column);
-			String script = tempCol + " <- " + tableName + "$" + column + ";" + 
-					tempCol + " <- master_col_data(as.character("+ tempCol + "));" + 
-					tableName + " <- " + "cbind(" + tableName + ", " + tempCol + ");" + 
-					tableName + "$"	+ newHeaderName + " <- " + tempCol + "; " + 
-					tableName + " <- " + tableName + "[,-c('" + tempCol + "')];" +
-					"rm(" + tempCol + ");";
-			
-			this.rJavaTranslator.runR(script);
+			StringBuilder script = new StringBuilder();
+			script.append(tempCol + " <- " + tableName + "$" + column + ";");
+			script.append(tempCol + " <- master_col_data(as.character(" + tempCol + "));");
+			script.append(tableName + " <- " + "cbind(" + tableName + ", " + tempCol + ");");
+			script.append(tableName + "$" + newHeaderName + " <- " + tempCol + "; ");
+			script.append(tableName + " <- " + tableName + "[,-c('" + tempCol + "')];");
+			script.append("rm(" + tempCol + ");");
+			this.rJavaTranslator.runR(script.toString());
 
 			// add meta data to frame
 			retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newHeaderName));
 			metaData.addProperty(tableName, tableName + "__" + newHeaderName);
 			metaData.setAliasToProperty(tableName + "__" + newHeaderName, newHeaderName);
-			metaData.setDataTypeToProperty(tableName + "__" + newHeaderName, "STRING");
+			metaData.setDataTypeToProperty(tableName + "__" + newHeaderName, SemossDataType.STRING.toString());
 		} else {
 			// execute the script on the column and replace original
 			this.rJavaTranslator.runR(tableName + "$" + column + " <- master_col_data(" + tableName + "$" + column + ");");
 		}
 		frame.syncHeaders();
-		// garbage clean up
-		this.rJavaTranslator.runR("gc();");
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
