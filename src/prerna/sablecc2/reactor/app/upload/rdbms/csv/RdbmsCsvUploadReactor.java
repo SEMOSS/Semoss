@@ -267,7 +267,7 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -390,7 +390,7 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		logger.info(stepCounter+". Complete");
 		
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, addedTables);
+		RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, owler, addedTables);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
