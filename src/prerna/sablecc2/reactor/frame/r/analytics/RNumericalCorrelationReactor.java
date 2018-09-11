@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.r.analytics;
 
 
 import java.util.List;
@@ -14,6 +14,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.reactor.frame.r.analytics.RNumericalCorrelationReactor;
+import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
@@ -101,7 +103,11 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		
 		// now return this object
 		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
-		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		noun.addAdditionalReturn(
+				new NounMetadata(" FILL IN MESSAGE    ", 
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		return noun;
 	}
 	
 	private String runRCorrelation(String frameName, String[] retHeaders) {
