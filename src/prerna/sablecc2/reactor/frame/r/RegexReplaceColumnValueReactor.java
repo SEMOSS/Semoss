@@ -21,7 +21,7 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 	 */
 	
 	public RegexReplaceColumnValueReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.REGEX.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
 	}
 
 	@Override
