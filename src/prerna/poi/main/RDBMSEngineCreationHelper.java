@@ -18,6 +18,7 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.OWLER;
 import prerna.util.Utility;
@@ -28,46 +29,19 @@ public class RDBMSEngineCreationHelper {
 		
 	}
 	
-	public static void insertAllTablesAsInsights(IEngine rdbmsEngine) {		
-		// get all the tables names in the database
-		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(rdbmsEngine);
-		insertAllTablesAsInsights(rdbmsEngine, existingMetaModel);
-	}
-	
 	/**
 	 * Create existing metamodel from owl to create insights
 	 * @param owl
 	 */
 	public static void insertAllTablesAsInsights(IEngine rdbmsEngine, OWLER owl) {
-		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-		rfse.openFile(owl.getOwlPath(), null, null);
-		// we create the meta helper to facilitate querying the engine OWL
-		MetaHelper helper = new MetaHelper(rfse, null, null);
-		Vector<String> conceptsList = helper.getConcepts(true);
-		Map<String, Map<String, String>> existingMetaModel = new HashMap<>();
-		for(String conceptPhysicalUri: conceptsList) {
-			// so grab the conceptual name
-			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
-			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
-			Map<String, String> propMap = new HashMap<>();
-			List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
-			for(String prop: properties) {
-				// so grab the conceptual name
-				String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(prop);
-				// property conceptual uris are always /Column/Table
-				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
-				propMap.put(propertyConceptualName, null);
-			}
-			existingMetaModel.put(conceptualName, propMap);
-		}
-		insertAllTablesAsInsights(rdbmsEngine, existingMetaModel);
-	}
-	public static void insertAllTablesAsInsights(IEngine rdbmsEngine, Map<String, Map<String, String>> existingMetaModel) {
+		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl);
 		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel, existingMetaModel.keySet());
 	}
 	
-	public static void insertNewTablesAsInsights(IEngine rdbmsEngine, Set<String> newTables) {
-		insertNewTablesAsInsights(rdbmsEngine, getExistingRDBMSStructure(rdbmsEngine, newTables), newTables);
+	public static void insertNewTablesAsInsights(IEngine rdbmsEngine, OWLER owl, Set<String> newTables) {
+		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl, newTables);
+		// use the keyset from the OWL to help with the upload
+		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel, existingMetaModel.keySet());
 	}
 	
 	public static void insertNewTablesAsInsights(IEngine rdbmsEngine,  Map<String, Map<String, String>> existingMetaModel, Set<String> newTables) {
@@ -99,7 +73,11 @@ public class RDBMSEngineCreationHelper {
 				int size = columnNames.size();
 				int counter = 0;
 				for(String col : columnNames) {
-					importPixel.append(newTable).append("__").append(col);
+					if(col.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+						importPixel.append(newTable);
+					} else {
+						importPixel.append(newTable).append("__").append(col);
+					}
 					if(counter + 1 != size) {
 						importPixel.append(", ");
 					}
@@ -111,7 +89,11 @@ public class RDBMSEngineCreationHelper {
 				StringBuilder viewPixel = new StringBuilder("Frame() | Select(");
 				counter = 0;
 				for(String col : columnNames) {
-					viewPixel.append("f$").append(col);
+					if(col.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+						viewPixel.append(newTable);
+					} else {
+						viewPixel.append(col);
+					}
 					if(counter + 1 != size) {
 						viewPixel.append(", ");
 					}
@@ -120,7 +102,13 @@ public class RDBMSEngineCreationHelper {
 				viewPixel.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[");
 				counter = 0;
 				for(String col : columnNames) {
-					viewPixel.append("\"").append(col).append("\"");
+					viewPixel.append("\"");
+					if(col.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+						viewPixel.append(newTable);
+					} else {
+						viewPixel.append(col);
+					}
+					viewPixel.append("\"");
 					if(counter + 1 != size) {
 						viewPixel.append(", ");
 					}
@@ -135,6 +123,97 @@ public class RDBMSEngineCreationHelper {
 			System.out.println("caught exception while adding question.................");
 			e.printStackTrace();
 		}
+	}
+	
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(OWLER owl) {
+		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+		rfse.openFile(owl.getOwlPath(), null, null);
+		// we create the meta helper to facilitate querying the engine OWL
+		MetaHelper helper = new MetaHelper(rfse, null, null);
+		Vector<String> conceptsList = helper.getConcepts(false);
+		Map<String, Map<String, String>> existingMetaModel = new HashMap<>();
+		for(String conceptPhysicalUri: conceptsList) {
+			// so grab the conceptual name
+			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
+			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
+			String conceptType = helper.getDataTypes(conceptPhysicalUri);
+			String type = "STRING";
+			if(conceptType != null && conceptType.toString().contains(":")) {
+				type = conceptType.split(":")[1];
+			}
+			Map<String, String> propMap = new HashMap<>();
+			// add the concept prim key
+			propMap.put(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER, type);
+			
+			// add the properties
+			List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
+			for(String propPhysicalUri : properties) {
+				// so grab the conceptual name
+				String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(propPhysicalUri);
+				// property conceptual uris are always /Column/Table
+				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+				String propertyType = helper.getDataTypes(propPhysicalUri);
+				String propType = "STRING";
+				if(propertyType != null && propertyType.toString().contains(":")) {
+					propType = propertyType.split(":")[1];
+				}
+				
+				propMap.put(propertyConceptualName, propType);
+			}
+			
+			
+			existingMetaModel.put(conceptualName, propMap);
+		}
+		
+		return existingMetaModel;
+	}
+	
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(OWLER owl, Set<String> tablesToRetrieve) {
+		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+		rfse.openFile(owl.getOwlPath(), null, null);
+		// we create the meta helper to facilitate querying the engine OWL
+		MetaHelper helper = new MetaHelper(rfse, null, null);
+		Vector<String> conceptsList = helper.getConcepts(false);
+		Map<String, Map<String, String>> existingMetaModel = new HashMap<>();
+		for(String conceptPhysicalUri: conceptsList) {
+			// so grab the conceptual name
+			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
+			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
+			
+			if(!tablesToRetrieve.contains(conceptualName.toUpperCase())) {
+				continue;
+			}
+			
+			String conceptType = helper.getDataTypes(conceptPhysicalUri);
+			String type = "STRING";
+			if(conceptType != null && conceptType.toString().contains(":")) {
+				type = conceptType.split(":")[1];
+			}
+			Map<String, String> propMap = new HashMap<>();
+			// add the concept prim key
+			propMap.put(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER, type);
+			
+			// add the properties
+			List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
+			for(String propPhysicalUri : properties) {
+				// so grab the conceptual name
+				String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(propPhysicalUri);
+				// property conceptual uris are always /Column/Table
+				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+				String propertyType = helper.getDataTypes(propPhysicalUri);
+				String propType = "STRING";
+				if(propertyType != null && propertyType.toString().contains(":")) {
+					propType = propertyType.split(":")[1];
+				}
+				
+				propMap.put(propertyConceptualName, propType);
+			}
+			
+			
+			existingMetaModel.put(conceptualName, propMap);
+		}
+		
+		return existingMetaModel;
 	}
 	
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine) {
