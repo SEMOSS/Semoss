@@ -149,14 +149,14 @@ public class ImageCaptureReactor  extends AbstractReactor {
 				DIR_SEPARATOR + "version" +
 				DIR_SEPARATOR + id;
 		} else {
-			String encodedParams = Utility.encodeURIComponent(params);
+			// params is already encodeed
 			imageDirStr = baseFolder + 
 					DIR_SEPARATOR + "db" + 
 					DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
 					DIR_SEPARATOR + "version" +
 					DIR_SEPARATOR + id + 
 					DIR_SEPARATOR + "params" + 
-					DIR_SEPARATOR + encodedParams;
+					DIR_SEPARATOR + params;
 		}
 		
 		String os = System.getProperty("os.name").toUpperCase();
