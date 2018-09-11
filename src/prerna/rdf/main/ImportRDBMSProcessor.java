@@ -85,7 +85,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		createBaseRelations();
 		
 		// generate base insights
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, this.owler);
 		return this.engine;
 	}
 
