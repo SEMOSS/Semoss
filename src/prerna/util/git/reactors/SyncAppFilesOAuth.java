@@ -7,8 +7,8 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import prerna.auth.AbstractSecurityUtils;
-import prerna.auth.SecurityQueryUtils;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;

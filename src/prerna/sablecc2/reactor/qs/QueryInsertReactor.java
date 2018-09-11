@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;

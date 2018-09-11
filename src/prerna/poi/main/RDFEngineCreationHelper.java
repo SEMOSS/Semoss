@@ -2,7 +2,7 @@ package prerna.poi.main;
 
 import java.util.Set;
 
-import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;

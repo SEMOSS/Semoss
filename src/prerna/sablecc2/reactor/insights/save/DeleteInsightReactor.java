@@ -1,8 +1,8 @@
 package prerna.sablecc2.reactor.insights.save;
 
-import prerna.auth.AbstractSecurityUtils;
-import prerna.auth.SecurityQueryUtils;
-import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.GenRowStruct;

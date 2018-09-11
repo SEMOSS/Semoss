@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
