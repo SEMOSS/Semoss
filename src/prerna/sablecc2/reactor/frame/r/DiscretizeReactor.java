@@ -126,11 +126,11 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 				} else {
 					try {
 						int numDigits = Integer.parseInt(numDigitsStr);
-						if (numDigitsStr.replaceAll("[\\D]", "").matches("^[0-9]*[1-9][0-9]*$")){
-							if (listSB.indexOf("(") == listSB.length()-1){
-								listSB.append("dig.lab=" + numDigits + ")" );
+						if (numDigitsStr.replaceAll("[\\D]", "").matches("^[0-9]*[1-9][0-9]*$")) {
+							if (listSB.indexOf("(") == listSB.length() - 1) {
+								listSB.append("dig.lab=" + numDigits + ")");
 							} else {
-								listSB.append(", dig.lab=" + numDigits + ")" );
+								listSB.append(", dig.lab=" + numDigits + ")");
 							}
 						} else {
 							throw new IllegalArgumentException("Number of digits specified must be a positive integer.");
@@ -155,12 +155,12 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 		sb.append(inputList_R + " <- list(" + inputListSB + ");");
 
 		// discretize r scripts
-		for (String fileName: new String[]{"Discretize_Source.R", "Discretize.R"}){
+		for (String fileName : new String[] { "Discretize_Source.R", "Discretize.R" }) {
 			String scriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\" + fileName;
 			scriptFilePath = scriptFilePath.replace("\\", "/");
 			sb.append("source(\"" + scriptFilePath + "\");");
 		}
-		
+
 		// set call to R function
 		sb.append(dtName + " <- discretizeColumnsDt( " + dtName + "," + inputList_R + ");");
 

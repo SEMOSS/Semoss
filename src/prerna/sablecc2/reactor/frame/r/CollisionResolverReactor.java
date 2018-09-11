@@ -21,9 +21,9 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class CollisionResolverReactor extends AbstractRFrameReactor {
 	public static final String DISTANCE_KEY = "dist";
 	private static final String CLASS_NAME = CollisionResolverReactor.class.getName();
-	
+
 	public CollisionResolverReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), DISTANCE_KEY};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), DISTANCE_KEY };
 	}
 
 	@Override
@@ -32,7 +32,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		// init rJavaTranslator
 		init();
 		// check r package dependencies
-		String[] packages = new String[] {  "RJSONIO", "tidyr", "stringdist", "parallel","fuzzyjoin" };
+		String[] packages = new String[] { "RJSONIO", "tidyr", "stringdist", "parallel", "fuzzyjoin" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// get frame and set up logger
@@ -69,7 +69,7 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		String join = "inner";
 
 		// build the collision command write to json variable
-		String outputJSON = "outputJSONcolResolver"+Utility.getRandomString(8);
+		String outputJSON = "outputJSONcolResolver" + Utility.getRandomString(8);
 		rsb.append(outputJSON);
 		rsb.append("<-  collision_resolver(");
 		rsb.append(randomDF + ",");

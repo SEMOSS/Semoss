@@ -19,7 +19,7 @@ public class CollapseReactor extends AbstractRFrameReactor {
 
 	public CollapseReactor() {
 		this.keysToGet = new String[] { "groupByColumn", ReactorKeysEnum.VALUE.getKey(),
-				ReactorKeysEnum.DELIMITER.getKey(), ReactorKeysEnum.MAINTAIN_COLUMNS.getKey()};
+				ReactorKeysEnum.DELIMITER.getKey(), ReactorKeysEnum.MAINTAIN_COLUMNS.getKey() };
 	}
 
 	@Override
@@ -62,13 +62,13 @@ public class CollapseReactor extends AbstractRFrameReactor {
 		String delimR = "'" + delim + "'";
 		rsb.append(aggFrame + " <- aggregate(" + tempFrame + "$" + valueCol + ", by = " + groupByColsR + ", paste, collapse=" + delimR + ");");		
 		
-		//rename columns
+		// rename columns
 		String names = RSyntaxHelper.createStringRColVec(newColNames);
-		rsb.append("colnames(" + aggFrame + ") <- " + names+";");
+		rsb.append("colnames(" + aggFrame + ") <- " + names + ";");
 		
 		// get columns to keep
 		HashSet<String> colsToKeep = getKeepCols();
-		if(colsToKeep != null) {
+		if (colsToKeep != null) {
 			// merge columns
 			colsToKeep.addAll(groupByCol);
 			String mergeFrame = Utility.getRandomString(8);
@@ -76,11 +76,11 @@ public class CollapseReactor extends AbstractRFrameReactor {
 			rsb.append(RSyntaxHelper.getFrameSubset(mergeFrame, frameName, colsToKeep.toArray()));
 			rsb.append(aggFrame + "<- merge(" + aggFrame + "," + mergeFrame + ", by = " + RSyntaxHelper.createStringRColVec(groupByCol.toArray()) + ");");
 		}
-		//  replace current frame with agg frame
+		// replace current frame with agg frame
 		rsb.append(RSyntaxHelper.asDataTable(frameName, aggFrame));
-		 rsb.append("rm(" + aggFrame + ");");
-		 rsb.append("rm(" + tempFrame + ");");
-		 rsb.append("gc();");
+		rsb.append("rm(" + aggFrame + ");");
+		rsb.append("rm(" + tempFrame + ");");
+		rsb.append("gc();");
 
 		this.rJavaTranslator.runR(rsb.toString());
 		recreateMetadata(frameName);
