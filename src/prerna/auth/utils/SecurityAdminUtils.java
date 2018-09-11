@@ -51,10 +51,41 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, String>> getAllUsers(User user) throws IllegalArgumentException{
+	public List<Map<String, Object>> getAllUsers(User user) throws IllegalArgumentException{
 		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER";
 		return getSimpleQuery(query);
 	}
 
+	/**
+	 * Delete a user and all its relationships.
+	 * @param userId
+	 * @param userDelete
+	 */
+	public boolean deleteUser(String userToDelete) {
+		List<String> groups = SecurityQueryUtils.getGroupsOwnedByUser(userToDelete);
+		for(String groupId : groups){
+			removeGroup(userToDelete, groupId);
+		}
+		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; DELETE FROM GROUPMEMBERS WHERE USERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
+		query = query.replace("?1", userToDelete);
+		securityDb.execUpdateAndRetrieveStatement(query, true);
+		securityDb.commit();
+		return true;
+	}
+	
+	/**
+	 * Remove a group
+	 * @param userId
+	 * @param groupId
+	 * @return
+	 */
+	private Boolean removeGroup(String userId, String groupId) {
+		String query = "DELETE FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); "
+				+ "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); "
+				+ "DELETE FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "';";
+		securityDb.execUpdateAndRetrieveStatement(query, true);
+		securityDb.commit();
+		return true;
+	}
 	
 }
