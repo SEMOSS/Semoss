@@ -1305,6 +1305,10 @@ public class OwlTemporalEngineMeta {
 		 * Since the column names stay the same, but tablename/rvarname get modified
 		 */
 		
+		if(oldTableName.equals(newTableName)) {
+			return;
+		}
+		
 		final String EMPTY_VALUE = "not_present";
 		
 		// first query to get all the information on the header
