@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.r.analytics;
 
 import java.util.List;
 import java.util.Vector;
@@ -13,6 +13,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
+import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
@@ -121,7 +122,11 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.executeEmptyR("rm(" + resultsList + "); gc();");
 
 		// now return this object - for the Scatterplot of Actuals vs Fitted
-		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		noun.addAdditionalReturn(
+				new NounMetadata(" FILL IN MESSAGE    ", 
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		return noun;
 	}
 	
 	////////////////////////////////////////////////////////////

@@ -192,7 +192,11 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 				"AssociatedLearning", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		noun.addAdditionalReturn(
+				new NounMetadata(" FILL IN MESSAGE    ", 
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		return noun;
 	}
 
 	///////////////////////////////////////////////////////////////////////
