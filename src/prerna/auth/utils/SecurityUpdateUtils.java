@@ -1,4 +1,4 @@
-package prerna.auth;
+package prerna.auth.utils;
 
 import java.io.File;
 import java.sql.PreparedStatement;
@@ -15,6 +15,9 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.EnginePermission;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;

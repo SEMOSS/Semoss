@@ -12,11 +12,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AbstractSecurityUtils;
 import prerna.auth.AuthProvider;
-import prerna.auth.SecurityQueryUtils;
-import prerna.auth.SecurityUpdateUtils;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;

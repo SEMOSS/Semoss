@@ -1,6 +1,6 @@
 package prerna.test;
 
-import prerna.auth.AbstractSecurityUtils;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.DIHelper;

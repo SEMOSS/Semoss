@@ -1,4 +1,4 @@
-package prerna.auth;
+package prerna.auth.utils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
