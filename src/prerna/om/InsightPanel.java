@@ -42,7 +42,6 @@ public class InsightPanel {
 	
 	public InsightPanel(String panelId) {
 		this.panelId = panelId;
-		this.panelLabel = panelId;
 		this.grf = new GenRowFilters();
 		this.orderBys = new ArrayList<QueryColumnOrderBySelector>();
 		this.ornaments = new HashMap<String, Object>();
@@ -365,6 +364,8 @@ public class InsightPanel {
 		this.grf = existingPanel.grf.copy();
 		this.view = existingPanel.view;
 		this.viewOptions = existingPanel.viewOptions;
-		this.panelLabel = existingPanel.panelLabel + " Clone";
+		if(existingPanel.panelLabel != null) {
+			this.panelLabel = existingPanel.panelLabel + " Clone";
+		}
 	}
 }
