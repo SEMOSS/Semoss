@@ -155,7 +155,12 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		// now return this object
-		return new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
+		NounMetadata noun = new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
+		noun.addAdditionalReturn(
+				new NounMetadata(" FILL IN MESSAGE    ", 
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		return noun;
+		
 	}
 	
 	private Map<String, Map> processTreeString(String[] ctreeArray) {

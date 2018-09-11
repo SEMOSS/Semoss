@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.r.analytics;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +13,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.r.analytics.ROutlierAlgorithmReactor;
+import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
@@ -87,7 +89,11 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		meta.setDataTypeToProperty(frameName + "__" + newColName, "STRING");
 		
 		// now return this object
-		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata noun = new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		noun.addAdditionalReturn(
+				new NounMetadata("You've successfully completed running outlier algorithm and added new column " + newColName + " to the dataframe", 
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		return noun;
 	}
 	
 	/**
