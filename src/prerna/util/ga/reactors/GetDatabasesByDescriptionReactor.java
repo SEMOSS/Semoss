@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import prerna.auth.SecurityQueryUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;

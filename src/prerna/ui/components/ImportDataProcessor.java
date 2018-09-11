@@ -49,7 +49,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.AbstractEngine;

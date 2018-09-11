@@ -40,7 +40,7 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailException;
 
-import prerna.auth.AbstractSecurityUtils;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;

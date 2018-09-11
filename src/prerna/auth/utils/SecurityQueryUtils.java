@@ -1,4 +1,4 @@
-package prerna.auth;
+package prerna.auth.utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,6 +11,9 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 
 import jodd.util.BCrypt;
+import prerna.auth.AuthProvider;
+import prerna.auth.EnginePermission;
+import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
