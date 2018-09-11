@@ -506,22 +506,22 @@ public abstract class AbstractSecurityUtils {
 	 * @param query		Query to be executed to retrieve engine names
 	 * @return			List of engine names
 	 */
-	static List<Map<String, String>> getSimpleQuery(String query) {
+	static List<Map<String, Object>> getSimpleQuery(String query) {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<Map<String, String>> ret = new ArrayList<>();
+		List<Map<String, Object>> ret = new Vector<Map<String, Object>>();
 		while(wrapper.hasNext()) {
 			IHeadersDataRow row = wrapper.next();
-			Object[] headers = row.getHeaders();
+			String[] headers = row.getHeaders();
 			Object[] values = row.getValues();
-			Map<String, String> rowData = new HashMap<>();
+			Map<String, Object> rowData = new HashMap<String, Object>();
 			for(int idx = 0; idx < headers.length; idx++){
 				if(values[idx] == null) {
-					rowData.put(headers[idx].toString().toLowerCase(), "null");
+					rowData.put(headers[idx].toLowerCase(), "null");
 				} else {
-					if(headers[idx].toString().toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
-						rowData.put(headers[idx].toString().toLowerCase(), "Default");
+					if(headers[idx].toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
+						rowData.put(headers[idx].toLowerCase(), "Default");
 					} else {
-						rowData.put(headers[idx].toString().toLowerCase(), values[idx].toString());
+						rowData.put(headers[idx].toLowerCase(), values[idx]);
 					}
 				}
 			}
