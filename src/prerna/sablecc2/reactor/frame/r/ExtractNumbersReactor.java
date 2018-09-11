@@ -19,7 +19,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 	public static final String NUMERIC_COLUMN_NAME = "_NUMERIC";
 	
 	public ExtractNumbersReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
 	}
 
 	@Override
@@ -113,5 +113,5 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		}
 		return override;
 	}
-	
+
 }
