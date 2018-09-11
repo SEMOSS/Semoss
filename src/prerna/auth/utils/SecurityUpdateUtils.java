@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
@@ -596,32 +594,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
         return true;
     }
 	
-	/*
-	 * Native user CRUD 
-	 */
-	
-	/**
-	 * Adds a new user to the database. Does not create any relations, simply the node.
-	 * @param userName	String representing the name of the user to add
-	 */
-	public static Boolean addNativeUser(AccessToken newUser, String password) throws IllegalArgumentException{
-		validInformation(newUser, password);
-		boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
-		if(!isNewUser) {			
-			String salt = SecurityQueryUtils.generateSalt();
-			String hashedPassword = (SecurityQueryUtils.hash(password, salt));
-			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('" + newUser.getEmail() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE', "
-					+ "'" + hashedPassword + "', '" + salt + "');";
-			
-			securityDb.insertData(query);
-			securityDb.commit();
-			return true;
-		} else {
-			return false;
-		}
-		
-	}
-	
 	/**
 	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * @param userName	String representing the name of the user to add
@@ -670,61 +642,25 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Basic validation of the user information before creating it.
-	 * @param newUser
-	 * @throws IllegalArgumentException
-	 */
-	private static void validInformation(AccessToken newUser, String password) throws IllegalArgumentException {
-		String error = "";
-		if(newUser.getUsername().isEmpty()){
-			error += "User name can not be empty. ";
-		}
-
-		error += validEmail(newUser.getEmail());
-		error += validPassword(password);
-		
-		if(!error.isEmpty()){
-			throw new IllegalArgumentException(error);
-		}
-	}
-	
-	private static String validEmail(String email){
-		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
-			return  email + " is not a valid email address. ";
-		}
-		return "";
-	}
-	
-	private static String validPassword(String password){
-		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
-        Matcher matcher = pattern.matcher(password);
-		
-		if(!matcher.lookingAt()){
-			return "Password doesn't comply with the security policies.";
-		}
-		return "";
-	}
-	
-	/**
 	 * Update user information.
 	 * @param adminId
 	 * @param userInfo
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public static boolean editUser(String adminId, Map<String, String> userInfo) throws IllegalArgumentException{
+	public static boolean editUser(String adminId, Map<String, Object> userInfo) throws IllegalArgumentException{
         boolean first = true;
         String error = "";
-        String userId = userInfo.remove("id");
+        String userId = userInfo.remove("id").toString();
         if(userId.equals(adminId) || SecurityQueryUtils.userIsAdmin(adminId)){
-        	String name = userInfo.get("name") != null ? userInfo.get("name") : "";
-        	String email = userInfo.get("email") != null ? userInfo.get("email") : "";
+        	String name = userInfo.get("name") != null ? userInfo.get("name").toString() : "";
+        	String email = userInfo.get("email") != null ? userInfo.get("email").toString() : "";
             if(SecurityQueryUtils.isUserType(userId, AuthProvider.NATIVE) && SecurityQueryUtils.checkUserExist(name, email)){
                 throw new IllegalArgumentException("The user name or email already exist.");
             }
-            String password = userInfo.get("password");
+            String password = userInfo.get("password").toString();
             if(password != null && !password.isEmpty()){
-                error += validPassword(password);
+                error += NativeUserSecurityUtils.validPassword(password);
                 if(error.isEmpty()){
                     String newSalt = SecurityQueryUtils.generateSalt();
                     userInfo.put("password", SecurityQueryUtils.hash(password, newSalt));
@@ -732,17 +668,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
                 }
             }
             if(email != null && !email.isEmpty()){
-                error += validEmail(email);
+                error += NativeUserSecurityUtils.validEmail(email);
             }
             if(!error.isEmpty()){
                 throw new IllegalArgumentException(error);
             }
             String query = "UPDATE USER ";
-            for( Entry<String, String> entry : userInfo.entrySet()){
+            for( Entry<String, Object> entry : userInfo.entrySet()){
                 String key = entry.getKey();
-                String value = entry.getValue();
-                if(value != null && !value.isEmpty()){
-                    if(first){
+                Object value = entry.getValue();
+                if(value != null && !value.toString().isEmpty()){
+                    if(first) {
                         query += "SET " + key + " = '" + value + "'";
                         first = false;
                     } else {
@@ -763,26 +699,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
         }
         return true;
     }
-	
-	/**
-	 * Delete a user and all its relationships.
-	 * @param userId
-	 * @param userDelete
-	 */
-	public static void deleteUser(String userId, String userDelete){
-		if(SecurityQueryUtils.userIsAdmin(userId)){
-			List<String> groups = SecurityQueryUtils.getGroupsOwnedByUser(userId);
-			for(String groupId : groups){
-				removeGroup(userId, groupId);
-			}
-			String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; DELETE FROM GROUPMEMBERS WHERE USERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
-			query = query.replace("?1", userDelete);
-			securityDb.execUpdateAndRetrieveStatement(query, true);
-			securityDb.commit();
-		} else {
-			throw new IllegalArgumentException("This user can't perfom this action.");
-		}
-	}
 	
 	/*
 	 * Permissions
