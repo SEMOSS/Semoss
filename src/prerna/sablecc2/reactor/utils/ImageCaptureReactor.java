@@ -141,11 +141,23 @@ public class ImageCaptureReactor  extends AbstractReactor {
 		String engineId = insight.getEngineId();
 		String engineName = insight.getEngineName();
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String imageDirStr = baseFolder + 
+		String imageDirStr = "";
+		if(params == null) {
+			imageDirStr = baseFolder + 
 				DIR_SEPARATOR + "db" + 
 				DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
 				DIR_SEPARATOR + "version" +
 				DIR_SEPARATOR + id;
+		} else {
+			String encodedParams = Utility.encodeURIComponent(params);
+			imageDirStr = baseFolder + 
+					DIR_SEPARATOR + "db" + 
+					DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) + 
+					DIR_SEPARATOR + "version" +
+					DIR_SEPARATOR + id + 
+					DIR_SEPARATOR + "params" + 
+					DIR_SEPARATOR + encodedParams;
+		}
 		
 		String os = System.getProperty("os.name").toUpperCase();
 		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
