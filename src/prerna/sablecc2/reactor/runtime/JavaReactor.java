@@ -23,13 +23,17 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class JavaReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = JavaReactor.class.getName();
-	private transient SecurityManager curManager = null;
+	// get the default manager
+	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	
 	@Override
 	public NounMetadata execute() {
-		// get the original security
-		this.curManager =  System.getSecurityManager();
-		
+		ReactorSecurityManager tempManager = new ReactorSecurityManager();
+		String className = "c" + System.currentTimeMillis();
+		String packageName = "t" + System.currentTimeMillis();
+		String uniqueName = packageName + "." + className;
+		tempManager.addClass(uniqueName);
+
 		Logger logger = getLogger(CLASS_NAME);
 		this.store.toString();
 		String code = this.curRow.get(0).toString();
@@ -72,8 +76,7 @@ public class JavaReactor extends AbstractReactor {
 				pool.importPackage(packageStr);
 			}		
 
-			String packageName = "t" + System.currentTimeMillis(); // make it unique
-			CtClass cc = pool.makeClass(packageName + ".c" + System.currentTimeMillis()); // the only reason I do this is if the user wants to do something else
+			CtClass cc = pool.makeClass(uniqueName); // the only reason I do this is if the user wants to do something else
 			
 			// the configuration of JRI vs. RServe
 			// is now encapsulated within Abstract + RJavaTranslator
@@ -102,10 +105,13 @@ public class JavaReactor extends AbstractReactor {
 			jR.setPixelPlanner(this.planner);
 			jR.setLogger(logger);
 			jR.setRJavaTranslator(this.insight.getRJavaTranslator(this.getLogger(jR.getClass().getName())));
+			// pass the managers inside
+			jR.setCurSecurityManager(defaultManager);
+			jR.setReactorManager(tempManager);
 			jR.In();
 			
 			// set the security so we cant send some crazy virus into semoss
-			System.setSecurityManager(new ReactorSecurityManager());
+			System.setSecurityManager(tempManager);
 			// call the process
 			jR.runCompiledCode();
 
@@ -131,8 +137,9 @@ public class JavaReactor extends AbstractReactor {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
+			tempManager.removeClass(uniqueName);
 			// set back the original security manager
-			System.setSecurityManager(this.curManager);	
+			System.setSecurityManager(defaultManager);	
 		}
 		
 		return new NounMetadata("no output", PixelDataType.CONST_STRING, PixelOperationType.CODE_EXECUTION);

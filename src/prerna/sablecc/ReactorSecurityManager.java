@@ -1,53 +1,60 @@
 package prerna.sablecc;
 
-import java.io.FileDescriptor;
 import java.security.Permission;
+import java.util.List;
+import java.util.Vector;
+
+import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
+import prerna.sablecc2.reactor.runtime.JavaReactor;
 
 public class ReactorSecurityManager extends SecurityManager {
+
+	private static List<String> classNamesToIgnore = new Vector<String>();
+	static {
+		classNamesToIgnore.add(JavaReactor.class.getName());
+		classNamesToIgnore.add(AbstractBaseRClass.class.getName());
+	}
 	
-    public void checkPermission( Permission permission ) {
-        if( "exitVM".equals( permission.getName() ) ) {
-          throw new SecurityException("Hello World") ;
-        	//System.out.println("No Exit baby.. ");
-        }
-      }
-    
-    // remove exit
-      public void checkExit( int status) {
-	        //if( "exitVM".equals( permission.getName() ) ) {
-    	  throw new SecurityException("Exit not permitted") ;	        	
-	        //}
-	   }
-
-      // remove exec
-      public void checkExec(String cmd)
-      {
-    	  throw new SecurityException("Exec not permitted " + cmd) ;	        	
-    	  
-      }
-      
-      /*public void checkPropertyAccess(String key)
-      {
-    	  throw new SecurityException("Property lookup not permitted.. " + key) ;	        	    	  
-      }*/
+	public ReactorSecurityManager() {
+		
+	}
 	
-    /*  public void checkRead(String file)
-      {
-    	  throw new SecurityException("File access not permitted.. " ) ;	        	    	      	  
-      }
+	public void addClass(String className) {
+		classNamesToIgnore.add(className);
+	}
 
-      public void checkRead(FileDescriptor desc)
-      {
-    	  throw new SecurityException("File access not permitted.. " ) ;	        	    	      	  
-      }
+	public void removeClass(String className) {
+		classNamesToIgnore.remove(className);
+	}
+	
+	public void checkPermission( Permission permission ) {
+		System.out.println(permission.getActions());
+		if( permission.getName().contains("exitVM") ) {
+			throw new SecurityException("Exit not permitted");
+		}
+	}
+	
+	// remove exit
+	public void checkExit(int status) {
+		if(blockThread()) {
+			throw new SecurityException("Exit not permitted");
+		}
+	}
 
-      public void checkWrite(String file)
-      {
-    	  throw new SecurityException("File access not permitted.. " ) ;	        	    	      	  
-      }
+	// remove exec
+	public void checkExec(String cmd) {
+		if(blockThread()) {
+			throw new SecurityException("Exec not permitted " + cmd);
+		}
+	}
 
-      public void checkWrite(FileDescriptor desc)
-      {
-    	  throw new SecurityException("File access not permitted.. " ) ;	        	    	      	  
-      }
-*/}
+	private boolean blockThread() {
+		for (StackTraceElement elem : Thread.currentThread().getStackTrace()) {
+			if (classNamesToIgnore.contains(elem.getClassName()) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+}
