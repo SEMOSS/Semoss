@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.insights;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import prerna.auth.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 
 public class GlobalInsightCountUpdater {
 
