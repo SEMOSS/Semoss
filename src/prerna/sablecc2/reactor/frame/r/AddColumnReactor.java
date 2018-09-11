@@ -21,7 +21,7 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 	 */
 	
 	public AddColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey() };
 	}
 
 	@Override
@@ -35,11 +35,11 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		
 		// get the column type and standardize
 		String colType = this.keyValue.get(this.keysToGet[1]);
-		if (colType == null){
+		if (colType == null) {
 			colType = SemossDataType.convertStringToDataType("STRING").toString();
 		}
-		
-		if (newColName == null || newColName.isEmpty()){
+
+		if (newColName == null || newColName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the new column name");
 		}
 
@@ -85,7 +85,7 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 			// if not a number or a date then assign to string
 			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.STRING.toString());
 		}
-		
+
 		// r temp variable clean up
 		if (tempTable != null) {
 			frame.executeRScript("rm(" + tempTable + ");");

@@ -37,9 +37,9 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 		// store the list of names being removed
 		List<String> remCols = new Vector<String>();
 		
-		//get table name 
+		// get table name
 		String table = frame.getTableName();
-		
+
 		// get inputs
 		List<String> columnList = getColumns();
 		String[] allCol = getColumns(table);
@@ -97,7 +97,7 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 		List<String> columns = new Vector<String>();
 
 		GenRowStruct colGrs = this.store.getNoun(this.keysToGet[0]);
-		if(colGrs != null && !colGrs.isEmpty()) {
+		if (colGrs != null && !colGrs.isEmpty()) {
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
 				columns.add(column);
@@ -112,7 +112,7 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-		
+
 		return columns;
 	}
 }
