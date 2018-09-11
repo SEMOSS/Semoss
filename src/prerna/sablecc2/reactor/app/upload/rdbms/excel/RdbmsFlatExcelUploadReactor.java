@@ -310,7 +310,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		}
 
 		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
 		logger.info("6. Complete");
 
 		logger.info("7. Process app metadata to allow for traversing across apps	");
@@ -384,7 +384,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info(stepCounter + ". Complete");
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine.getInsightDatabase());
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
 		logger.info(stepCounter + ". Complete");
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");

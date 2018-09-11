@@ -189,7 +189,7 @@ public class POIReader extends AbstractFileReader {
 			}
 			commitDB();
 			createBaseRelations();
-			RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+			RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, this.owler);
 		} catch(FileNotFoundException e) {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());

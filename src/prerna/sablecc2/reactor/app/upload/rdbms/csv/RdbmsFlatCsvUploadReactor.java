@@ -247,7 +247,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, helper.orderHeadersToGet(headers));
 		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
 		logger.info("7. Complete");
 
 		logger.info("8. Process app metadata to allow for traversing across apps	");
@@ -347,7 +347,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			logger.info(stepCounter + ". Start generating default app insights");
 			Set<String> newTableSet = new HashSet<String>();
 			newTableSet.add(tableToInsertInto);
-			RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, newTableSet);
+			RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, owler, newTableSet);
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 		} else {
