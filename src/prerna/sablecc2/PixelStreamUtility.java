@@ -225,20 +225,6 @@ public class PixelStreamUtility {
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
 
-			// add additional outputs
-			List<NounMetadata> addReturns = noun.getAdditionalReturn();
-			int numOutputs = addReturns.size();
-			if(numOutputs > 0) {
-				ps.print(",\"additionalOutput\":[");
-				for(int i = 0; i < numOutputs; i++) {
-					if(i > 0) {
-						ps.print(",");
-					}
-					processNounMetadata(in, ps, gson, addReturns.get(i), null, null);
-				}
-				ps.print("]");
-			}
-
 		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST || nounT == PixelDataType.VECTOR) {
 			// code is a tough one to process
 			// since many operations could have been performed
@@ -470,20 +456,20 @@ public class PixelStreamUtility {
 			ps.print(gson.toJson(noun.getValue()));
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
-			
-			// add additional outputs
-			List<NounMetadata> addReturns = noun.getAdditionalReturn();
-			int numOutputs = addReturns.size();
-			if(numOutputs > 0) {
-				ps.print(",\"additionalOutput\":[");
-				for(int i = 0; i < numOutputs; i++) {
-					if(i > 0) {
-						ps.print(",");
-					}
-					processNounMetadata(in, ps, gson, addReturns.get(i), null, null);
+		}
+		
+		// add additional outputs
+		List<NounMetadata> addReturns = noun.getAdditionalReturn();
+		int numOutputs = addReturns.size();
+		if(numOutputs > 0) {
+			ps.print(",\"additionalOutput\":[");
+			for(int i = 0; i < numOutputs; i++) {
+				if(i > 0) {
+					ps.print(",");
 				}
-				ps.print("]");
+				processNounMetadata(in, ps, gson, addReturns.get(i), null, null);
 			}
+			ps.print("]");
 		}
 
 		// close the map
