@@ -124,7 +124,7 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		// now return this object - for the Scatterplot of Actuals vs Fitted
 		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		noun.addAdditionalReturn(
-				new NounMetadata(" FILL IN MESSAGE    ", 
+				new NounMetadata(" Matrix regression ran successfully!    ", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}
