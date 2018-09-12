@@ -15,7 +15,8 @@
       <outputDirectory>db</outputDirectory>
 	  <includes>
 	    <include>Default</include>
-        <include>form_builder_engine</include>
+        <include>form_builder_engine/</include>
+        <include>form_builder_engine.smss</include>
         <include>LocalMasterDatabase/</include>
         <include>LocalMasterDatabase.smss</include>
         <include>security/</include>
