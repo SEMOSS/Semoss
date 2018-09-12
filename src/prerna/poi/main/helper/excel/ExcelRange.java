@@ -119,6 +119,10 @@ public class ExcelRange {
 		return new int[]{col, row};
 	}
 	
+	public int getStartRow() {
+		return this.startRow;
+	}
+	
 	public static void main(String[] args) {
 		String rStr = "A1:BB9";
 		int[] rIdx = getSheetRangeIndex(rStr);

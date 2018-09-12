@@ -1,6 +1,7 @@
 package prerna.poi.main.helper.excel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,15 +140,16 @@ public class ExcelDataValidationHelper {
 
 	/**
 	 * Create data validation map from excel specific range
-	 * 
 	 * @param sheet
 	 * @param newHeaders
 	 * @param headers
 	 * @param types
+	 * @param headerIndicies
+	 * @param startRow
 	 * @return
 	 */
-	public static Map<String, Object> getDataValidation(Sheet sheet, Map<String, String> newHeaders,
-			List<String> headers, List<SemossDataType> types) {
+	public static Map<String, Object> getDataValidation(Sheet sheet, Map<String, String> newHeaders, String[] headers,
+			SemossDataType[] types, int[] headerIndicies, int startRow) {
 		Map<String, Object> validationMap = new HashMap<>();
 		List<? extends DataValidation> validations = sheet.getDataValidations();
 		HeadersException headerChecker = HeadersException.getInstance();
@@ -236,40 +238,57 @@ public class ExcelDataValidationHelper {
 			} else if (validationType == DataValidationConstraint.ValidationType.FORMULA) {
 			}
 
-			if (cleanHeader != null && headers.contains(cleanHeader)) {
-				validationMap.put(cleanHeader, headerMeta);
-				int index = headers.indexOf(cleanHeader);
-				SemossDataType type = types.get(index);
+			if (cleanHeader != null && Arrays.asList(headers).contains(cleanHeader)) {
+				int index = Arrays.asList(headers).indexOf(cleanHeader);
+				SemossDataType type = types[index];
 				headerMeta.put("type", type.toString());
-				headers.remove(index);
-				types.remove(index);
+				validationMap.put(cleanHeader, headerMeta);
+				headers[index] = null;
+				types[index] = null;
 			}
 
 		}
 		// add remaining missing columns to validationMap
 		if (!validationMap.isEmpty()) {
-			for (int i = 0; i < headers.size(); i++) {
-				String header = headers.get(i);
-				SemossDataType type = types.get(i);
-				Map<String, Object> headerMeta = new HashMap<>();
+			for (int i = 0; i < headers.length; i++) {
+				String header = headers[i];
+				if (header != null) {
+					SemossDataType type = types[i];
+					Map<String, Object> headerMeta = new HashMap<>();
 
-				if (type == SemossDataType.STRING) {
-					headerMeta.put("type", SemossDataType.STRING.toString());
-					int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH;
-					headerMeta.put("validationType", validationTypeToString(validationType));
+					if (type == SemossDataType.STRING) {
+						headerMeta.put("type", SemossDataType.STRING.toString());
+						int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH;
+						headerMeta.put("validationType", validationTypeToString(validationType));
 
+					}
+					if (Utility.isNumericType(type.toString())) {
+						headerMeta.put("type", SemossDataType.DOUBLE.toString());
+						int validationType = DataValidationConstraint.ValidationType.DECIMAL;
+						headerMeta.put("validationType", validationTypeToString(validationType));
+					}
+					// TODO
+					headerMeta.put("range", "");
+					headerMeta.put("emptyCells", true);
+
+					// add comment
+					Row row = sheet.getRow(startRow - 1);
+					Cell c = row.getCell(headerIndicies[i] - 1);
+					// add header comment as description
+					Comment cellComment = c.getCellComment();
+					if (cellComment != null) {
+						RichTextString commentStr = cellComment.getString();
+						String comment = commentStr.getString();
+						// comment may have author
+						String author = cellComment.getAuthor();
+						if (author != null) {
+							comment = comment.replace(author + ":\n", "");
+						}
+						headerMeta.put("description", comment);
+					}
+
+					validationMap.put(header, headerMeta);
 				}
-				if (Utility.isNumericType(type.toString())) {
-					headerMeta.put("type", SemossDataType.DOUBLE.toString());
-					int validationType = DataValidationConstraint.ValidationType.DECIMAL;
-					headerMeta.put("validationType", validationTypeToString(validationType));
-				}
-				// TODO
-				headerMeta.put("range", "");
-				headerMeta.put("emptyCells", true);
-
-				validationMap.put(header, headerMeta);
-
 			}
 		}
 		return validationMap;
@@ -502,17 +521,11 @@ public class ExcelDataValidationHelper {
 		helper.parse(fileLocation);
 		String sheetName = "Sheet1";
 		Sheet sheet = helper.getSheet(sheetName);
-		List<String> headers = new Vector<>();
-		headers.add("test");
-		headers.add("Age");
-		headers.add("Gender");
+		String[] headers = new String[]{"AnyValue", "Age", "Gender"};
+		int[] headerInidcies = new int[]{3, 4, 1};
 		SemossDataType[] types = new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT,
 				SemossDataType.STRING };
-		List<SemossDataType> typeList = new Vector<>();
-		for (SemossDataType t : types) {
-			typeList.add(t);
-		}
-		Map<String, Object> dataValidationMap = getDataValidation(sheet, new HashMap<>(), headers, typeList);
+		Map<String, Object> dataValidationMap = getDataValidation(sheet, new HashMap<>(), headers, types, headerInidcies, 1);
 		Gson gson = GsonUtility.getDefaultGson();
 		Map<String, Object> form = createForm("test", sheetName, dataValidationMap, new String[] { "Age", "Gender" });
 		System.out.println(gson.toJson(form));

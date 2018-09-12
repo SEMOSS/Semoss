@@ -291,7 +291,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			}
 			
 			this.headers = orderedSelectors;
-			this.headerIndices = getHeaderIndicies(allHeaders, orderedSelectors);
+			this.headerIndices = findHeaderIndicies(allHeaders, orderedSelectors);
 			for(int i = 0; i < this.headers.length; i++) {
 				if(this.newHeaders.containsKey(this.headers[i])) {
 						this.headers[i] = this.newHeaders.get(this.headers[i]);
@@ -333,7 +333,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	 * @param headers
 	 * @return
 	 */
-	private int[] getHeaderIndicies(String[] sheetHeaders, String[] headers) {
+	private int[] findHeaderIndicies(String[] sheetHeaders, String[] headers) {
 		int numHeadersToGet = headers.length;
 		int[] indicesToGet = new int[numHeadersToGet];
 		for(int colIdx = 0; colIdx < numHeadersToGet; colIdx++) {
@@ -345,18 +345,17 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		
 		return indicesToGet;
 	}
-	
+
 	@Override
 	public void reset() {
 		// TODO Auto-generated method stub
 	}
 
-
 	@Override
 	public void cleanUp() {
 		// TODO Auto-generated method stub
 	}
-	
+
 	public ExcelQueryStruct getQs() {
 		return this.qs;
 	}
@@ -364,8 +363,13 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	public void setQs(ExcelQueryStruct qs) {
 		this.qs = qs;
 	}
+
 	public Sheet getSheet() {
 		return this.sheet;
 	}
-	
+
+	public int[] getHeaderIndicies() {
+		return this.headerIndices;
+	}
+
 }
