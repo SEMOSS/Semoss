@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
+
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -11,8 +13,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 
 public class SetPanelViewReactor extends AbstractInsightPanelReactor {
+	
+	private static Gson GSON = GsonUtility.getDefaultGson();
 	
 	public SetPanelViewReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.PANEL_VIEW_KEY.getKey(), ReactorKeysEnum.PANEL_VIEW_OPTIONS_KEY.getKey()};
@@ -29,29 +34,17 @@ public class SetPanelViewReactor extends AbstractInsightPanelReactor {
 		// get the view and options
 		String view = getPanelView();
 		String viewOptions = getPanelViewOptions();
-		
-		// if the view and current view are the same
-		// and the view options is empty
-		// keep the same view options that is on the panel
-		boolean overrideView = true;
-		String currentView = insightPanel.getPanelView();
-		if(view.equals(currentView)) {
-			if(viewOptions == null || viewOptions.isEmpty()) {
-				overrideView = false;
-			}
-		}
+		Map<String, String> viewOptionsMap = GSON.fromJson(viewOptions, Map.class);
 		
 		// set the new view
 		insightPanel.setPanelView(view);
-		if(overrideView) {
-			insightPanel.setPanelViewOptions(viewOptions);
-		}
+		insightPanel.appendPanelViewOptions(view, viewOptionsMap);
 		
-		Map<String, Object> returnMap = new HashMap<String, Object>();
+		Map<String, String> returnMap = new HashMap<String, String>();
 		returnMap.put("panelId", insightPanel.getPanelId());
 		returnMap.put("view", view);
-		// grab from panel since we do not know if we changed it or not
-		returnMap.put("options", insightPanel.getPanelViewOptions());
+		// grab the options for this view
+		returnMap.put("options", insightPanel.getPanelActiveViewOptions());
 		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_VIEW);
 	}
 
