@@ -115,15 +115,16 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 			appId = addToExistingApp(appIdOrName, filePath);
 		} else {
 			appId = generateNewApp(appIdOrName, filePath);
-		}
-		// even if no security, just add user as engine owner
-		if(user != null) {
-			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider ap : logins) {
-				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+			
+			// even if no security, just add user as engine owner
+			if(user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for(AuthProvider ap : logins) {
+					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+				}
 			}
 		}
-
+		
 		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
 		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}

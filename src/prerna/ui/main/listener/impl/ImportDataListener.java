@@ -96,9 +96,11 @@ public class ImportDataListener implements IChakraListener {
 			options.setImportMethod(ImportOptions.IMPORT_METHOD.CREATE_NEW);
 		} else if(selection.equals("Add to existing database engine")) {
 			options.setImportMethod(ImportOptions.IMPORT_METHOD.ADD_TO_EXISTING);
-		} else if(selection.equals("Modify/Replace data in existing engine")) {
-			options.setImportMethod(ImportOptions.IMPORT_METHOD.OVERRIDE);
-		} else if(selection.equals("Create new RDBMS connection")) {
+		} 
+//		else if(selection.equals("Modify/Replace data in existing engine")) {
+//			options.setImportMethod(ImportOptions.IMPORT_METHOD.OVERRIDE);
+//		}
+		else if(selection.equals("Create new RDBMS connection")) {
 			options.setImportMethod(ImportOptions.IMPORT_METHOD.CONNECT_TO_EXISTING_RDBMS);
 		}
 		
@@ -149,16 +151,16 @@ public class ImportDataListener implements IChakraListener {
 		options.setDbName(engineName);
 
 		try {
-			if(options.getImportMethod() == ImportOptions.IMPORT_METHOD.OVERRIDE) {
-				// check with user first
-				boolean proceedWithImport = runOverrideCheck(fileNames);
-				if(proceedWithImport){
-					processor.runProcessor(options);
-				}
-			}
-			else {
+//			if(options.getImportMethod() == ImportOptions.IMPORT_METHOD.OVERRIDE) {
+//				// check with user first
+//				boolean proceedWithImport = runOverrideCheck(fileNames);
+//				if(proceedWithImport){
+//					processor.runProcessor(options);
+//				}
+//			}
+//			else {
 				processor.runProcessor(options);
-			}
+//			}
 			
 			Utility.showMessage("Your database has been successfully updated!");
 		} catch(IOException ex) {

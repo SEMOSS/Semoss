@@ -28,12 +28,10 @@
 package prerna.ui.components;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -41,10 +39,6 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -67,7 +61,6 @@ import prerna.poi.main.RDBMSReader;
 import prerna.poi.main.RdfExcelTableReader;
 import prerna.poi.main.TinkerCsvReader;
 import prerna.poi.main.helper.ImportOptions;
-import prerna.poi.main.helper.ImportOptions.IMPORT_TYPE;
 import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -105,7 +98,7 @@ public class ImportDataProcessor {
 		switch(importMethod){
 		case CREATE_NEW : createNewDb(options); break;
 		case ADD_TO_EXISTING : addToExistingDb(options); break;
-		case OVERRIDE : overrideExistingDb(options); break;
+//		case OVERRIDE : overrideExistingDb(options); break;
 		case CONNECT_TO_EXISTING_RDBMS : createNewDb(options); break; // TODO: see if this should be refactored into create_new
 		default: errorMessage = "Import method, " + importMethod + ", is not supported.";
 		throw new IOException(errorMessage);
@@ -585,133 +578,133 @@ public class ImportDataProcessor {
 	}
 	
 	
-	// TODO: who really uses this?
-	// I CAN SEE THIS BEING USEFUL... BUT THIS NEEDS A LOT MORE THINKING WITH HOW IT SHOULD WORK
-	// AND NEEDS TO BE EXPANDED TO ALLOW FOR RDBMS
-	private boolean overrideExistingDb(ImportOptions options) {
-		ImportOptions.IMPORT_TYPE importType = options.getImportType();
-		String engineName = options.getDbName();
-		options.getBaseUrl();
-		String fileNames = options.getFileLocations();
-		
-		if(importType == IMPORT_TYPE.EXCEL_POI){
-			boolean success = true;
-			POIReader reader = new POIReader();
-			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
-			String[] files = fileNames.split(";");
-			for (String file : files) {
-				FileInputStream fileIn = null;
-				try {
-					fileIn = new FileInputStream(file);
-					XSSFWorkbook book = new XSSFWorkbook(fileIn);
-					XSSFSheet lSheet = book.getSheet("Loader");
-					int lastRow = lSheet.getLastRowNum();
-
-					ArrayList<String> nodes = new ArrayList<String>();
-					ArrayList<String[]> relationships = new ArrayList<String[]>();
-					for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
-						XSSFRow sheetNameRow = lSheet.getRow(rIndex);
-						XSSFCell cell = sheetNameRow.getCell(0);
-						XSSFSheet sheet = book.getSheet(cell.getStringCellValue());
-
-						XSSFRow row = sheet.getRow(0);
-						String sheetType = "";
-						if (row.getCell(0) != null) {
-							sheetType = row.getCell(0).getStringCellValue();
-						}
-						if ("Node".equalsIgnoreCase(sheetType)) {
-							if (row.getCell(1) != null) {
-								nodes.add(Utility.cleanString(row.getCell(1).getStringCellValue(),true));
-							}
-						}
-						if ("Relation".equalsIgnoreCase(sheetType)) {
-							String subject = "";
-							String object = "";
-							String relationship = "";
-							if (row.getCell(1) != null && row.getCell(2) != null) {
-								subject = row.getCell(1).getStringCellValue();
-								object = row.getCell(2).getStringCellValue();
-
-								row = sheet.getRow(1);
-								if (row.getCell(0) != null) {
-									relationship = row.getCell(0)
-											.getStringCellValue();
-								}
-
-								relationships.add(new String[] { Utility.cleanString(subject, true),
-										Utility.cleanString(relationship, true), Utility.cleanString(object, true) });
-							}
-						}
-					}
-					String deleteQuery = "";
-					UpdateProcessor proc = new UpdateProcessor();
-					proc.setEngine(engine);
-
-					int numberNodes = nodes.size();
-					if (numberNodes > 0) {
-						for (String node : nodes) {
-							deleteQuery = "DELETE {?s ?p ?prop. ?s ?x ?y} WHERE { {";
-							deleteQuery += "SELECT ?s ?p ?prop ?x ?y WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
-							deleteQuery += node;
-							deleteQuery += "> ;} {?s ?x ?y} MINUS {?x <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} ";
-							deleteQuery += "OPTIONAL{ {?p <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?s ?p ?prop ;} } } } ";
-							deleteQuery += "}";
-
-							proc.setQuery(deleteQuery);
-							logger.info(deleteQuery);
-							proc.setEngine(engine);
-							proc.processQuery();
-						}
-					}
-
-					int numberRelationships = relationships.size();
-					if (numberRelationships > 0) {
-						for (String[] rel : relationships) {
-							deleteQuery = "DELETE {?in ?relationship ?out. ?relationship ?contains ?prop} WHERE { {";
-							deleteQuery += "SELECT ?in ?relationship ?out ?contains ?prop WHERE { "
-									+ "{?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
-							deleteQuery += rel[0];
-							deleteQuery += "> ;} ";
-
-							deleteQuery += "{?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
-							deleteQuery += rel[2];
-							deleteQuery += "> ;} ";
-
-							deleteQuery += "{?relationship <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/";
-							deleteQuery += rel[1];
-							deleteQuery += "> ;} {?in ?relationship ?out ;} ";
-							deleteQuery += "OPTIONAL { {?relationship ?contains ?prop ;} } } } ";
-							deleteQuery += "}";
-
-							proc.setQuery(deleteQuery);
-							logger.info(deleteQuery);
-							proc.processQuery();
-						}
-					}
-
-					String owlFile = baseDirectory + "/" + DIHelper.getInstance().getProperty(engineName+"_"+Constants.OWL);
-					options.setOwlFileLocation(owlFile);
-					//reader.importFileWithConnection(engineName, file, customBaseUri, owlFile);
-					reader.importFileWithConnection(options);//seems tricky, might break as only one file is passed at a time during the loop, however, this file is not used anywhere as such..need to find the real use in the workflow.
-				} catch (Exception ex) {
-					success = false;
-					ex.printStackTrace();
-				}finally{
-					try{
-						if(fileIn!=null)
-							fileIn.close();
-					}catch(IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-			return success;
-		}
-		else{
-			// currently only processing override for excel
-			return false;
-		}
-	}
+//	// TODO: who really uses this?
+//	// I CAN SEE THIS BEING USEFUL... BUT THIS NEEDS A LOT MORE THINKING WITH HOW IT SHOULD WORK
+//	// AND NEEDS TO BE EXPANDED TO ALLOW FOR RDBMS
+//	private boolean overrideExistingDb(ImportOptions options) {
+//		ImportOptions.IMPORT_TYPE importType = options.getImportType();
+//		String engineName = options.getDbName();
+//		options.getBaseUrl();
+//		String fileNames = options.getFileLocations();
+//		
+//		if(importType == IMPORT_TYPE.EXCEL_POI){
+//			boolean success = true;
+//			POIReader reader = new POIReader();
+//			IEngine engine = (IEngine) DIHelper.getInstance().getLocalProp(engineName);
+//			String[] files = fileNames.split(";");
+//			for (String file : files) {
+//				FileInputStream fileIn = null;
+//				try {
+//					fileIn = new FileInputStream(file);
+//					XSSFWorkbook book = new XSSFWorkbook(fileIn);
+//					XSSFSheet lSheet = book.getSheet("Loader");
+//					int lastRow = lSheet.getLastRowNum();
+//
+//					ArrayList<String> nodes = new ArrayList<String>();
+//					ArrayList<String[]> relationships = new ArrayList<String[]>();
+//					for (int rIndex = 1; rIndex <= lastRow; rIndex++) {
+//						XSSFRow sheetNameRow = lSheet.getRow(rIndex);
+//						XSSFCell cell = sheetNameRow.getCell(0);
+//						XSSFSheet sheet = book.getSheet(cell.getStringCellValue());
+//
+//						XSSFRow row = sheet.getRow(0);
+//						String sheetType = "";
+//						if (row.getCell(0) != null) {
+//							sheetType = row.getCell(0).getStringCellValue();
+//						}
+//						if ("Node".equalsIgnoreCase(sheetType)) {
+//							if (row.getCell(1) != null) {
+//								nodes.add(Utility.cleanString(row.getCell(1).getStringCellValue(),true));
+//							}
+//						}
+//						if ("Relation".equalsIgnoreCase(sheetType)) {
+//							String subject = "";
+//							String object = "";
+//							String relationship = "";
+//							if (row.getCell(1) != null && row.getCell(2) != null) {
+//								subject = row.getCell(1).getStringCellValue();
+//								object = row.getCell(2).getStringCellValue();
+//
+//								row = sheet.getRow(1);
+//								if (row.getCell(0) != null) {
+//									relationship = row.getCell(0)
+//											.getStringCellValue();
+//								}
+//
+//								relationships.add(new String[] { Utility.cleanString(subject, true),
+//										Utility.cleanString(relationship, true), Utility.cleanString(object, true) });
+//							}
+//						}
+//					}
+//					String deleteQuery = "";
+//					UpdateProcessor proc = new UpdateProcessor();
+//					proc.setEngine(engine);
+//
+//					int numberNodes = nodes.size();
+//					if (numberNodes > 0) {
+//						for (String node : nodes) {
+//							deleteQuery = "DELETE {?s ?p ?prop. ?s ?x ?y} WHERE { {";
+//							deleteQuery += "SELECT ?s ?p ?prop ?x ?y WHERE { {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
+//							deleteQuery += node;
+//							deleteQuery += "> ;} {?s ?x ?y} MINUS {?x <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation> ;} ";
+//							deleteQuery += "OPTIONAL{ {?p <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> ;} {?s ?p ?prop ;} } } } ";
+//							deleteQuery += "}";
+//
+//							proc.setQuery(deleteQuery);
+//							logger.info(deleteQuery);
+//							proc.setEngine(engine);
+//							proc.processQuery();
+//						}
+//					}
+//
+//					int numberRelationships = relationships.size();
+//					if (numberRelationships > 0) {
+//						for (String[] rel : relationships) {
+//							deleteQuery = "DELETE {?in ?relationship ?out. ?relationship ?contains ?prop} WHERE { {";
+//							deleteQuery += "SELECT ?in ?relationship ?out ?contains ?prop WHERE { "
+//									+ "{?in <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
+//							deleteQuery += rel[0];
+//							deleteQuery += "> ;} ";
+//
+//							deleteQuery += "{?out <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/";
+//							deleteQuery += rel[2];
+//							deleteQuery += "> ;} ";
+//
+//							deleteQuery += "{?relationship <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/";
+//							deleteQuery += rel[1];
+//							deleteQuery += "> ;} {?in ?relationship ?out ;} ";
+//							deleteQuery += "OPTIONAL { {?relationship ?contains ?prop ;} } } } ";
+//							deleteQuery += "}";
+//
+//							proc.setQuery(deleteQuery);
+//							logger.info(deleteQuery);
+//							proc.processQuery();
+//						}
+//					}
+//
+//					String owlFile = baseDirectory + "/" + DIHelper.getInstance().getProperty(engineName+"_"+Constants.OWL);
+//					options.setOwlFileLocation(owlFile);
+//					//reader.importFileWithConnection(engineName, file, customBaseUri, owlFile);
+//					reader.importFileWithConnection(options);//seems tricky, might break as only one file is passed at a time during the loop, however, this file is not used anywhere as such..need to find the real use in the workflow.
+//				} catch (Exception ex) {
+//					success = false;
+//					ex.printStackTrace();
+//				}finally{
+//					try{
+//						if(fileIn!=null)
+//							fileIn.close();
+//					}catch(IOException e) {
+//						e.printStackTrace();
+//					}
+//				}
+//			}
+//			return success;
+//		}
+//		else{
+//			// currently only processing override for excel
+//			return false;
+//		}
+//	}
 	
 
 	// TOOD: need to go through and make prop file writer cleaner
