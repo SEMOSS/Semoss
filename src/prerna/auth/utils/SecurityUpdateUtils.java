@@ -289,7 +289,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addEngineOwner(String engineId, String userId) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID) VALUES ('" + userId + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "');";
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES ('" + userId + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "', TRUE);";
 		securityDb.insertData(query);
 	}
 	
