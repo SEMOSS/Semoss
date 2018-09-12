@@ -150,14 +150,10 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 
 		// set call to R function
 		String temp_R = "temp_R" + Utility.getRandomString(8);
-		if (substr == null) {
-			sb.append(temp_R + " <- runApriori( " + targetDt + "," + attrList_R + ");");
-		} else {
-			if (substr.indexOf(",") == 0) {
-				substr.deleteCharAt(0);
-			}
-			sb.append(temp_R + " <- runApriori( " + targetDt + "," + attrList_R + "," + substr + ");");
+		if (substr.indexOf(",") == 0) {
+			substr.deleteCharAt(0);
 		}
+		sb.append(temp_R + " <- runApriori( " + targetDt + "," + attrList_R + "," + substr + ");");
 		String rulesLength_R = "rulesLength" + Utility.getRandomString(8);
 		sb.append(rulesLength_R + "<-" + temp_R + "$rulesLength;");
 		String rulesDt_R = "rulesDt" + Utility.getRandomString(8);
@@ -194,7 +190,7 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		
 		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		noun.addAdditionalReturn(
-				new NounMetadata(" Associated Learning ran successfully!    ", 
+				new NounMetadata("Associated Learning ran successfully!", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}
