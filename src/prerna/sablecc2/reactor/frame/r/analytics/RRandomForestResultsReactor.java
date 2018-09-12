@@ -100,7 +100,7 @@ public class RRandomForestResultsReactor extends AbstractRFrameReactor{
 		
 		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		noun.addAdditionalReturn(
-				new NounMetadata(" Random Forest ran successfully!   ", 
+				new NounMetadata("Random Forest ran successfully!", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}
