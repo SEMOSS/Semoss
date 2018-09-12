@@ -300,7 +300,7 @@ public class InsightPanel {
 	}
 	
 	public void setPanelView(String view) {
-		this.view = view;;
+		this.view = view;
 	}
 
 	public String getPanelView() {
