@@ -876,7 +876,7 @@ public class UploadUtilities {
 	
 	public static void addInsertFormInsight(String appId, IEngine insightEngine, OWLER owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel( owl) ;
+		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owl);
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
 		String insightName = getInsightFormName(sheetName);
@@ -909,21 +909,23 @@ public class UploadUtilities {
 	}
 	
 	/**
-	 * The name of the form insight for an excel sheet
+	 * The name of the form insight
+	 * 
 	 * @param sheetName
 	 * @return
 	 */
 	public static String getInsightFormName(String sheetName) {
 		// sheetNames are inserted as tables all caps
-		return sheetName.toUpperCase() + " form";
+		return "Insert into " + sheetName.toUpperCase() + " Form";
 	}
 	
 	/**
 	 * Map of concept to propMap with db type
+	 * 
 	 * @param owl
 	 * @return
 	 */
-	public static Map<String, Map<String, SemossDataType>>  getExistingMetamodel(OWLER owl) {
+	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(OWLER owl) {
 		// need to get property types from the owl
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owl.getOwlPath(), null, null);
@@ -953,7 +955,8 @@ public class UploadUtilities {
 		return existingMetaModel;
 	}
 	
-	public static Map<String, Object> createForm(String appId, Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
+	public static Map<String, Object> createForm(String appId,
+			Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
 		Map<String, Object> formMap = new HashMap<>();
 		Map<String, SemossDataType> propMap = new HashMap<>();
 		// assuming this is a flat table so there is only one concept
@@ -979,8 +982,8 @@ public class UploadUtilities {
 				valuesString.append(",");
 			}
 		}
-
-		formMap.put("query", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=[" + valuesString + "]);");
+		String query = "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=[" + valuesString + "]);";
+		formMap.put("query", query);
 		// TODO
 		formMap.put("label", "");
 		formMap.put("description", "");
@@ -1039,6 +1042,60 @@ public class UploadUtilities {
 		formMap.put("params", paramList);
 		formMap.put("execute", "Submit");
 		return formMap;
+	}
+	
+	public static void addUpdateInsights(IEngine insightDatabase,  OWLER owl, String appId) { 
+		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
+		Map<String, Map<String, SemossDataType>> existingMetamodel = getExistingMetamodel(owl);
+		for (String concept : existingMetamodel.keySet()) {
+			String insightName = "Update " + concept;
+			String layout = "grid-delta";
+			Gson gson = GsonUtility.getDefaultGson();
+			String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>"
+					+ gson.toJson(createUpdateMap(appId, owl, concept, existingMetamodel.get(concept)))+"</encode>\");";
+			String[] pkqlRecipeToSave = { newPixel };
+			admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		}
+		insightDatabase.commit();
+	}
+
+	
+	public static Map<String, Object> createUpdateMap(String appId, OWLER owl, String concept,
+			Map<String, SemossDataType> propMap) {
+		Map<String, Object> updateMap = new HashMap<>();
+		updateMap.put("database", appId);
+		updateMap.put("table", concept);
+		// config map
+		Map<String, Object> configMap = new HashMap<>();
+		for (String property : propMap.keySet()) {
+
+			Map<String, Object> configPropMap = new HashMap<>();
+
+			SemossDataType type = propMap.get(property);
+			boolean readOnly = false;
+			if (property.equals(concept)) {
+				// assume this is the auto generated column
+				// users should not modify this
+				readOnly = true;
+			}
+			configPropMap.put("read-only", readOnly);
+			if (type == SemossDataType.DOUBLE) {
+				ArrayList<String> validationList = new ArrayList<>();
+				String regex = "^\\d+(\\.\\d*)?$";
+				validationList.add(regex);
+				configPropMap.put("validation", validationList);
+			} else if (type == SemossDataType.INT) {
+				ArrayList<String> validationList = new ArrayList<>();
+				String regex = "^\\d*$";
+				validationList.add(regex);
+				configPropMap.put("validation", validationList);
+			} else if (type == SemossDataType.STRING) {
+				configPropMap.put("selection-type", "database");
+			}
+			configMap.put(property, configPropMap);
+		}
+		updateMap.put("config", configMap);
+		return updateMap;
 	}
 	
 
