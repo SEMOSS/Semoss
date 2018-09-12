@@ -236,7 +236,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			for(String panelId : panels.keySet()) {
 				InsightPanel panel = panels.get(panelId);
 				String panelView = panel.getPanelView();
-				String panelViewOptions = panel.getPanelViewOptions();
+				String panelViewOptions = panel.getPanelActiveViewOptions();
 				
 				String pixelToRun = "";
 				if(panelViewOptions != null && !panelViewOptions.isEmpty()) {
