@@ -105,7 +105,7 @@ public class RNumericalCorrelationReactor extends AbstractRFrameReactor {
 		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
 		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		noun.addAdditionalReturn(
-				new NounMetadata("  Correlation ran successfully!        ", 
+				new NounMetadata("Numerical Correlation ran successfully!", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}

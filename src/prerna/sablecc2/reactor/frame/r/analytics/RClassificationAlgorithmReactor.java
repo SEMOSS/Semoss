@@ -157,7 +157,7 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		// now return this object
 		NounMetadata noun = new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 		noun.addAdditionalReturn(
-				new NounMetadata(" Classification ran successfully!    ", 
+				new NounMetadata("Classification ran successfully!", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 		
