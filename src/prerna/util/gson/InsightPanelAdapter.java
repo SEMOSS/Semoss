@@ -27,7 +27,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		out.name("panelId").value(value.getPanelId());
 		out.name("panelLabel").value(value.getPanelLabel());
 		out.name("view").value(value.getPanelView());
-		out.name("viewOptions").value(value.getPanelViewOptions());
+		out.name("viewOptions").value(value.getPanelActiveViewOptions());
+		out.name("viewOptionsMap").value(GSON.toJson(value.getPanelViewOptions()));
 		out.name("ornaments").value(GSON.toJson(value.getOrnaments()));
 		out.name("events").value(GSON.toJson(value.getEvents()));
 		out.name("comments").value(GSON.toJson(value.getComments()));
@@ -51,11 +52,11 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	
 	@Override
 	public InsightPanel read(JsonReader in) throws IOException {
-
 		String panelId = null;
 		String panelLabel = null;
 		String view = null;
 		String viewOptions = null;
+		Map<String, Map<String, String>> viewOptionsMap = null;
 		Map<String, Object> ornaments = null;
 		Map<String, Object> events = null;
 		GenRowFilters grf = null;
@@ -86,6 +87,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				view = value;
 			} else if(key.equals("viewOptions")) {
 				viewOptions = value;
+			} else if(key.equals("viewOptionsMap")) {
+				viewOptionsMap =  GSON.fromJson(value, Map.class);
 			} else if(key.equals("ornaments")) {
 				ornaments = GSON.fromJson(value, Map.class);
 			} else if(key.equals("events")) {
@@ -116,7 +119,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		InsightPanel panel = new InsightPanel(panelId);
 		panel.setPanelLabel(panelLabel);
 		panel.setPanelView(view);
-		panel.setPanelViewOptions(viewOptions);
+		panel.setPanelActiveViewOptions(viewOptions);
+		panel.setPanelViewOptions(viewOptionsMap);
 		panel.addOrnaments(ornaments);
 		panel.addEvents(events);
 		panel.addPanelFilters(grf);
