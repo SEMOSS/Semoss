@@ -43,7 +43,7 @@ public class GitStatusReactor extends AbstractReactor {
 		}
 		
 		List<Map<String, String>> fileInfo = GitUtils.getStatus(appId, appName);
-		return new NounMetadata(fileInfo, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
+		return new NounMetadata(fileInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.MARKET_PLACE);
 	}
 
 }
