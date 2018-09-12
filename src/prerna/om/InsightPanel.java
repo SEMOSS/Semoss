@@ -10,17 +10,22 @@ import com.google.gson.Gson;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.util.gson.GsonUtility;
 
 public class InsightPanel {
 
+	private static Gson GSON = GsonUtility.getDefaultGson();
+	
 	// unique id for the panel
 	private String panelId;
 	// label for the panel
 	private String panelLabel;
 	// current UI view for the panel
 	private String view;
-	// view options on the current view
+	// active view options
 	private String viewOptions;
+	// view options on the current view
+	private transient Map<String, Map<String, String>> viewOptionsMap;
 	// state held for UI options on the panel
 	private transient Map<String, Object> ornaments;
 	// state held for events on the panel
@@ -42,6 +47,7 @@ public class InsightPanel {
 	
 	public InsightPanel(String panelId) {
 		this.panelId = panelId;
+		this.viewOptionsMap = new HashMap<String, Map<String, String>>();
 		this.grf = new GenRowFilters();
 		this.orderBys = new ArrayList<QueryColumnOrderBySelector>();
 		this.ornaments = new HashMap<String, Object>();
@@ -301,18 +307,67 @@ public class InsightPanel {
 	
 	public void setPanelView(String view) {
 		this.view = view;
+		// set the current view options
+		Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
+		// set the current view options
+		if(thisViewMap == null) {
+			this.viewOptions = null;
+		} else {
+			this.viewOptions = GSON.toJson(thisViewMap);
+		}
 	}
 
 	public String getPanelView() {
 		return this.view;
 	}
 	
-	public void setPanelViewOptions(String viewOptions) {
+	/**
+	 * Append new view options for the given view
+	 * @param view
+	 * @param viewOptions
+	 */
+	public void appendPanelViewOptions(String view, Map<String, String> viewOptions) {
+		if(viewOptions != null && !viewOptions.isEmpty()) {
+			// view options is append only
+			if(this.viewOptionsMap.containsKey(view)) {
+				Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
+				thisViewMap.putAll(viewOptions);
+			} else {
+				this.viewOptionsMap.put(view, viewOptions);
+			}
+		}
+		
+		Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
+		// set the current view options
+		if(thisViewMap == null) {
+			this.viewOptions = null;
+		} else {
+			this.viewOptions = GSON.toJson(thisViewMap);
+		}
+	}
+	
+	public void setPanelActiveViewOptions(String viewOptions) {
 		this.viewOptions = viewOptions;
 	}
 	
-	public String getPanelViewOptions() {
+	public String getPanelActiveViewOptions() {
 		return this.viewOptions;
+	}
+	
+	public Map<String, Map<String, String>> getPanelViewOptions() {
+		return this.viewOptionsMap;
+	}
+	
+	public void setPanelViewOptions(Map<String, Map<String, String>> viewOptions) {
+		if(viewOptions != null) {
+			this.viewOptionsMap = viewOptions;
+		}
+		
+		// set the current view options
+		Map<String, String> thisViewMap = this.viewOptionsMap.get(view);
+		if(thisViewMap != null) {
+			this.viewOptions = GSON.toJson(thisViewMap);
+		}
 	}
 	
 	public void setPosition(Map<String, Object> position) {
@@ -353,19 +408,16 @@ public class InsightPanel {
 	 * @param existingPanel
 	 */
 	public void clone(InsightPanel existingPanel) {
-		//TODO: make sure I update this every time i add a new field!!!
-		//TODO: make sure I update this every time i add a new field!!!
-		//TODO: make sure I update this every time i add a new field!!!
-		//TODO: make sure I update this every time i add a new field!!!
 		Gson gson = new Gson();
+		this.view = existingPanel.view;
+		if(existingPanel.panelLabel != null) {
+			this.panelLabel = existingPanel.panelLabel + " Clone";
+		}
+		this.viewOptions = existingPanel.viewOptions;
+		this.viewOptionsMap.putAll(gson.fromJson(gson.toJson(existingPanel.viewOptionsMap), Map.class));
 		this.ornaments.putAll(gson.fromJson(gson.toJson(existingPanel.ornaments), Map.class));
 		this.comments.putAll(gson.fromJson(gson.toJson(existingPanel.comments), Map.class));
 		this.events.putAll(gson.fromJson(gson.toJson(existingPanel.events), Map.class));
 		this.grf = existingPanel.grf.copy();
-		this.view = existingPanel.view;
-		this.viewOptions = existingPanel.viewOptions;
-		if(existingPanel.panelLabel != null) {
-			this.panelLabel = existingPanel.panelLabel + " Clone";
-		}
 	}
 }
