@@ -3,6 +3,7 @@ package prerna.util.gson;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
@@ -17,7 +18,8 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	
 	private static final Gson GSON = GsonUtility.getDefaultGson();
-	
+	private static final Gson SIMPLE_GSON = new Gson();
+
 	@Override
 	public void write(JsonWriter out, InsightPanel value) throws IOException {
 		out.beginObject();
@@ -28,13 +30,25 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		out.name("viewOptions").value(value.getPanelViewOptions());
 		out.name("ornaments").value(GSON.toJson(value.getOrnaments()));
 		out.name("events").value(GSON.toJson(value.getEvents()));
-		out.name("filters").value(GSON.toJson(value.getPanelFilters()));
-		out.name("order").value(GSON.toJson(value.getPanelOrderBys()));
 		out.name("comments").value(GSON.toJson(value.getComments()));
 		out.name("position").value(GSON.toJson(value.getPosition()));
 
+		out.name("filters");
+		// this adapter will write an array
+		GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+		adapter.write(out, value.getPanelFilters());
+
+		out.name("order");
+		out.beginArray();
+		List<QueryColumnOrderBySelector> orders = value.getPanelOrderBys();
+		for(int i = 0; i < orders.size(); i++) {
+			out.value(SIMPLE_GSON.toJson(orders.get(i)));
+		}
+		out.endArray();
+		
 		out.endObject();
 	}
+	
 	@Override
 	public InsightPanel read(JsonReader in) throws IOException {
 
@@ -45,7 +59,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		Map<String, Object> ornaments = null;
 		Map<String, Object> events = null;
 		GenRowFilters grf = null;
-		List<QueryColumnOrderBySelector> orderBys = null;
+		List<QueryColumnOrderBySelector> orders = null;
 		Map<String, Map<String, Object>> comments = null;
 		Map<String, Object> position = null;
 		
@@ -57,7 +71,13 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				in.nextNull();
 				continue;
 			}
-			String value = in.nextString();
+			
+			// majority of things are just strings
+			String value = null;
+			if(in.peek() == JsonToken.STRING) {
+				value = in.nextString();
+			}
+			
 			if(key.equals("panelId")) {
 				panelId = value;
 			} else if(key.equals("panelLabel")) {
@@ -70,14 +90,25 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				ornaments = GSON.fromJson(value, Map.class);
 			} else if(key.equals("events")) {
 				events = GSON.fromJson(value, Map.class);
-			} else if(key.equals("fitlers")) {
-				grf = GSON.fromJson(value, GenRowFilters.class);
-			} else if(key.equals("order")) {
-				orderBys = GSON.fromJson(value, List.class);
 			} else if(key.equals("comments")) {
 				comments = GSON.fromJson(value, Map.class);
 			} else if(key.equals("position")) {
 				position = GSON.fromJson(value, Map.class);
+			} 
+			
+			// the values that are not strings
+			else if(key.equals("filters")) {
+				GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+				grf = adapter.read(in);
+			} else if(key.equals("order")) {
+				in.beginArray();
+				orders = new Vector<QueryColumnOrderBySelector>();
+				while(in.hasNext()) {
+					String str = in.nextString();
+					QueryColumnOrderBySelector s = SIMPLE_GSON.fromJson(str, QueryColumnOrderBySelector.class);
+					orders.add(s);
+				}
+				in.endArray();
 			}
 		}
 		in.endObject();
@@ -89,7 +120,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		panel.addOrnaments(ornaments);
 		panel.addEvents(events);
 		panel.addPanelFilters(grf);
-		panel.setPanelOrderBys(orderBys);
+		panel.setPanelOrderBys(orders);
 		panel.setComments(comments);
 		panel.setPosition(position);
 		return panel;
