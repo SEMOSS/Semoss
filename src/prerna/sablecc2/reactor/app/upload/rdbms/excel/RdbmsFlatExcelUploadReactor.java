@@ -243,21 +243,15 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 						Sheet sheet = sheetIterator.getSheet();
 						Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
-						String[] headers = sheetIterator.getHeaders();
+						int startRow = eRange.getStartRow();
 						SemossDataType[] types = sheetIterator.getTypes();
-						List<String> headersList = new Vector<>();
-						List<SemossDataType> typeList = new Vector<>();
-						for (int i = 0; i < headers.length; i++) {
-							headersList.add(headers[i]);
-							typeList.add(types[i]);
-						}
-						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet,
-								newRangeHeaders, headersList, typeList);
+						String[] headers = sheetIterator.getHeaders();
+						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders,  Arrays.copyOf(headers, headers.length), types,  sheetIterator.getHeaderIndicies(), startRow);
 						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-							Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap, headers);
+							Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
 							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 						} else {
-							UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, headers);
+							UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler,  Arrays.copyOf(headers, headers.length));
 						}
 
 					}
@@ -289,21 +283,18 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
 					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 					Sheet sheet = sheetIterator.getSheet();
-					String[] headers = sheetIterator.getHeaders();
+					int[] headerIndicies = sheetIterator.getHeaderIndicies();
+					ExcelRange eRange = new ExcelRange(range);
+					int startRow = eRange.getStartRow();
 					SemossDataType[] types = sheetIterator.getTypes();
-					List<String> headersList = new Vector<>();
-					List<SemossDataType> typeList = new Vector<>();
-					for (int i = 0; i < headers.length; i++) {
-						headersList.add(headers[i]);
-						typeList.add(types[i]);
-					}
-					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet,
-							newRangeHeaders, headersList, typeList);
+					String[] headers = sheetIterator.getHeaders();
+
+					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
 					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-						Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap, headers);
+						Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
 						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 					} else {
-						UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, headers);
+						UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, Arrays.copyOf(headers, headers.length));
 					}
 				}
 			}
