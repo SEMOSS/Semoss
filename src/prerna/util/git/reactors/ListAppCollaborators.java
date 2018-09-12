@@ -39,7 +39,7 @@ public class ListAppCollaborators extends GitBaseReactor {
 			String token = getToken();
 			collabs = GitCollaboratorUtils.listCollaborators(repository, token);
 		}
-		return new NounMetadata(collabs, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
+		return new NounMetadata(collabs, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.MARKET_PLACE);
 	}
 
 }
