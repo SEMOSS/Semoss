@@ -15,6 +15,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class UploadInputUtility {
+	
 	public static final String APP = ReactorKeysEnum.APP.getKey();
 	public static final String FILE_PATH = ReactorKeysEnum.FILE_PATH.getKey();
 	public static final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();

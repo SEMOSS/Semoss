@@ -93,13 +93,13 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 			appId = addToExistingApp(appIdOrName, filePath);
 		} else {
 			appId = generateNewApp(appIdOrName, filePath);
-		}
-		
-		// even if no security, just add user as engine owner
-		if(user != null) {
-			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider ap : logins) {
-				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+			
+			// even if no security, just add user as engine owner
+			if(user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for(AuthProvider ap : logins) {
+					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+				}
 			}
 		}
 		
