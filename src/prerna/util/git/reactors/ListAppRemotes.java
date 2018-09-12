@@ -56,6 +56,6 @@ public class ListAppRemotes extends AbstractReactor {
 		logger.info("Getting remotes configures on " + dbName);
 		
 		List<Map<String, String>> repoList = GitRepoUtils.listConfigRemotes(dbName);
-		return new NounMetadata(repoList, PixelDataType.VECTOR, PixelOperationType.MARKET_PLACE);
+		return new NounMetadata(repoList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.MARKET_PLACE);
 	}
 }
