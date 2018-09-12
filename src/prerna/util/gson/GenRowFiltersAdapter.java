@@ -16,8 +16,11 @@ public class GenRowFiltersAdapter extends TypeAdapter<GenRowFilters> {
 	@Override
 	public GenRowFilters read(JsonReader in) throws IOException {
 		if (in.peek() == JsonToken.NULL) {
-			in.nextNull();
-			return null;
+			// just keep an array so that I do not accidentily 
+			// embed other values of objects that have a grf
+			in.beginArray();
+			in.endArray();
+			return new GenRowFilters();
 		}
 		
 		GenRowFilters grf = new GenRowFilters();
