@@ -97,75 +97,84 @@ public class TableUserTracker implements IUserTracker {
 		for (String panelId : taskOptions.getPanelIds()) {
 			String layout = taskOptions.getLayout(panelId);
 			Map<String, Object> alignmentMap = taskOptions.getAlignmentMap(panelId);
-			for (String uiCompName : alignmentMap.keySet()) {
-				// ui name can be label, value, x, y, etc.
-				if(!(alignmentMap.get(uiCompName) instanceof List)) {
-					continue;
-				}
-				List<String> columnsInUICompName = (List<String>) alignmentMap.get(uiCompName);
-				// now we want to generate a map for each input in this uiCompName
-				for (String columnAlias : columnsInUICompName) {
-					String uniqueMetaName = aliasHash.get(columnAlias);
-					List<String[]> dbInfo = meta.getDatabaseInformation(uniqueMetaName);
-					int size = dbInfo.size();
-					for(int i = 0; i < size; i++) {
-						String[] engineQs = dbInfo.get(i);
-						if (engineQs.length != 2) {
-							continue;
+			if(alignmentMap == null) {
+				// ummm
+				// there is a weird task option
+				// could be a color by value thing
+				// will just track this as data query
+				trackQueryData(in, qs);
+			} else {
+				for (String uiCompName : alignmentMap.keySet()) {
+					// ui name can be label, value, x, y, etc.
+					if(!(alignmentMap.get(uiCompName) instanceof List)) {
+						continue;
+					}
+					List<String> columnsInUICompName = (List<String>) alignmentMap.get(uiCompName);
+					// now we want to generate a map for each input in this uiCompName
+					for (String columnAlias : columnsInUICompName) {
+						String uniqueMetaName = aliasHash.get(columnAlias);
+						List<String[]> dbInfo = meta.getDatabaseInformation(uniqueMetaName);
+						int size = dbInfo.size();
+						for(int i = 0; i < size; i++) {
+							String[] engineQs = dbInfo.get(i);
+							if (engineQs.length != 2) {
+								continue;
+							}
+							String engineId = engineQs[0];
+							String engineName = MasterDatabaseUtility.getEngineAliasForId(engineId);
+							if(engineName == null) {
+								engineName = engineId;
+							}
+							String table = engineQs[1];
+							String column = AbstractQuerySelector.PRIM_KEY_PLACEHOLDER;
+							if(table.contains("__")) {
+								String[] split = table.split("__");
+								table = split[0];
+								column = split[1];
+							}
+							String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
+							Long uniqueCount = getUniqueValueCount(engineId, table, column);
+							
+							Object[] row = new Object[15];
+							row[0] = id;
+							// engine id
+							row[1] = engineId;
+							// engine name
+							row[2] = engineName;
+							// table name
+							row[3] = table;
+							// column name
+							row[4] = column;
+							// datatype
+							row[5] = dataType;
+							// count
+							row[6] = uniqueCount;
+							// input type
+							row[7] = "VISUALIZATION";
+							// input subtype
+							row[8] = layout;
+							// input name
+							row[9] = uiCompName;
+							// input value
+							row[10] = columnAlias;
+							// session id
+							row[11] = sessionId;
+							// insight id
+							row[12] = insightId;
+							// user id
+							row[13] = userId;
+							// time
+							row[14] = time;
+							// add batch
+							rows.add(row);
 						}
-						String engineId = engineQs[0];
-						String engineName = MasterDatabaseUtility.getEngineAliasForId(engineId);
-						if(engineName == null) {
-							engineName = engineId;
-						}
-						String table = engineQs[1];
-						String column = AbstractQuerySelector.PRIM_KEY_PLACEHOLDER;
-						if(table.contains("__")) {
-							String[] split = table.split("__");
-							table = split[0];
-							column = split[1];
-						}
-						String dataType = meta.getHeaderTypeAsString(uniqueMetaName);
-						Long uniqueCount = getUniqueValueCount(engineId, table, column);
-						
-						Object[] row = new Object[15];
-						row[0] = id;
-						// engine id
-						row[1] = engineId;
-						// engine name
-						row[2] = engineName;
-						// table name
-						row[3] = table;
-						// column name
-						row[4] = column;
-						// datatype
-						row[5] = dataType;
-						// count
-						row[6] = uniqueCount;
-						// input type
-						row[7] = "VISUALIZATION";
-						// input subtype
-						row[8] = layout;
-						// input name
-						row[9] = uiCompName;
-						// input value
-						row[10] = columnAlias;
-						// session id
-						row[11] = sessionId;
-						// insight id
-						row[12] = insightId;
-						// user id
-						row[13] = userId;
-						// time
-						row[14] = time;
-						// add batch
-						rows.add(row);
 					}
 				}
 			}
+			
+			// track
+			sendTrackRequest("widget", rows);
 		}
-		
-		sendTrackRequest("widget", rows);
 	}
 
 	@Override
