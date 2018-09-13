@@ -37,6 +37,8 @@ public class InsightParamTranslation extends DepthFirstAdapter {
         		hasParam = true;
         	} else if(view.equals("\"default-handle\"")) {
         		hasParam = true;
+        	} else if(view.equals("\"grid-delta\"")) {
+        		hasParam = true;
         	}
         }
 	}
