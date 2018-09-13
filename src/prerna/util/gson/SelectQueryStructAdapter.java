@@ -19,7 +19,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 
-public class QueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
+public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 
 	private static final Gson SIMPLE_GSON = new Gson();
 
