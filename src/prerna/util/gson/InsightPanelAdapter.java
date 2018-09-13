@@ -1,6 +1,7 @@
 package prerna.util.gson;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -12,6 +13,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.om.InsightPanel;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 
@@ -36,8 +38,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 
 		out.name("filters");
 		// this adapter will write an array
-		GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
-		adapter.write(out, value.getPanelFilters());
+		GenRowFiltersAdapter grsAdapter = new GenRowFiltersAdapter();
+		grsAdapter.write(out, value.getPanelFilters());
 
 		out.name("order");
 		out.beginArray();
@@ -46,6 +48,17 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 			out.value(SIMPLE_GSON.toJson(orders.get(i)));
 		}
 		out.endArray();
+		
+		out.name("cbv");
+		out.beginObject();
+		Map<String, SelectQueryStruct> cbvMap = value.getColorByValue();
+		for(String key : cbvMap.keySet()) {
+			out.name(key);
+			SelectQueryStructAdapter qsAdapter = new SelectQueryStructAdapter();
+			qsAdapter.write(out, cbvMap.get(key));;
+		}
+		out.endObject();
+		
 		
 		out.endObject();
 	}
@@ -63,6 +76,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		List<QueryColumnOrderBySelector> orders = null;
 		Map<String, Map<String, Object>> comments = null;
 		Map<String, Object> position = null;
+		Map<String, SelectQueryStruct> cbvMap = null;
 		
 		in.beginObject();
 		while(in.hasNext()) {
@@ -112,6 +126,16 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 					orders.add(s);
 				}
 				in.endArray();
+			} else if(key.equals("cbv")) {
+				cbvMap = new HashMap<String, SelectQueryStruct>();
+				in.beginObject();
+				while(in.hasNext()) {
+					String cbvName = in.nextString();
+					SelectQueryStructAdapter qsAdapter = new SelectQueryStructAdapter();
+					SelectQueryStruct qs = qsAdapter.read(in);
+					cbvMap.put(cbvName, qs);
+				}
+				in.endObject();
 			}
 		}
 		in.endObject();
@@ -127,6 +151,9 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		panel.setPanelOrderBys(orders);
 		panel.setComments(comments);
 		panel.setPosition(position);
+		if(cbvMap != null) {
+			panel.getColorByValue().putAll(cbvMap);
+		}
 		return panel;
 	}
 
