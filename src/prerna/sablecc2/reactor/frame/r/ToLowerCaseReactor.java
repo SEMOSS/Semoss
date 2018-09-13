@@ -49,7 +49,7 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
-				builder.append(table + "$" + col + " <- tolower(" + table + "$" + col + ")");
+				builder.append(table + "$" + col + " <- tolower(" + table + "$" + col + ");");
 			}
 		}
 		
