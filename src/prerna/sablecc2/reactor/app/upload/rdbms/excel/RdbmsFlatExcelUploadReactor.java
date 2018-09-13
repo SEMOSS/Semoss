@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -216,6 +215,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("6. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
 		// create form insights
 		// user hasn't defined the data types
 		// that means i am going to assume that i should
@@ -226,7 +226,6 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 			wProcessor.parse(helper.getFilePath());
 			wProcessor.determineTableRanges();
 			Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
-
 			for (String sheetName : sProcessor.keySet()) {
 				ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheetName);
 				List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
@@ -250,10 +249,13 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
 							Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
 							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
+							Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(newAppId, sheetName, dataValidationMap);
+							UploadUtilities.addUpdateInsights(insightDatabase, newAppId, sheetName.toUpperCase(), updateForm);;
 						} else {
-							UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler,  Arrays.copyOf(headers, headers.length));
+							Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName.toUpperCase());
+							UploadUtilities.addInsertFormInsight(insightDatabase, newAppId, sheetName, propMap, Arrays.copyOf(headers, headers.length));
+							UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId, sheetName.toUpperCase(), propMap);
 						}
-
 					}
 				}
 			}
@@ -263,7 +265,6 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 				Map<String, Map<String, String>> rangeMaps = dataTypesMap.get(sheetName);
 				boolean singleRange = (rangeMaps.keySet().size() == 1);
 				for (String range : rangeMaps.keySet()) {
-
 					ExcelQueryStruct qs = new ExcelQueryStruct();
 					qs.setSheetName(sheetName);
 					qs.setSheetRange(range);
@@ -288,18 +289,19 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					int startRow = eRange.getStartRow();
 					SemossDataType[] types = sheetIterator.getTypes();
 					String[] headers = sheetIterator.getHeaders();
-
 					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
 					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
 						Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
 						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
+						Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(newAppId, sheetName, dataValidationMap);
+						UploadUtilities.addUpdateInsights(insightDatabase, newAppId, sheetName.toUpperCase(), updateForm);;
 					} else {
 						UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, Arrays.copyOf(headers, headers.length));
-					}
+						Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName.toUpperCase());
+						UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId, sheetName.toUpperCase(), propMap);					}
 				}
 			}
 		}
-
 		engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
 		logger.info("6. Complete");
@@ -324,7 +326,6 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		// update DIHelper & engine smss file location
 		engine.setPropFile(smssFile.getAbsolutePath());
 		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
-		
 		return newAppId;
 	}
 
