@@ -27,6 +27,8 @@ public class TrimReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		// initialize rJavaTranslator
+		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		String table = frame.getTableName();

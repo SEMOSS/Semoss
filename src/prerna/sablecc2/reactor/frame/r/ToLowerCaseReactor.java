@@ -27,6 +27,7 @@ public class ToLowerCaseReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		// initialize rJavaTranslator
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
