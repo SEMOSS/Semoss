@@ -47,7 +47,7 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
-				builder.append(table + "$" + col + " <- toupper(" + table + "$" + col + ")");
+				builder.append(table + "$" + col + " <- toupper(" + table + "$" + col + ");");
 			}
 		}
 		
