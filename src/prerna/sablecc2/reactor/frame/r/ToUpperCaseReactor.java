@@ -27,6 +27,8 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		// initialize rJavaTranslator
+		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();

@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
@@ -30,51 +29,37 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		// initialize rJavaTranslator
 		init();
-		
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		
-		// store the list of names being removed
-		List<String> remCols = new Vector<String>();
-		
+		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
+
 		// get table name
 		String table = frame.getTableName();
 
+		// store the list of names being removed
+		List<String> remCols = new Vector<String>();
+		
 		// get inputs
-		List<String> columnList = getColumns();
-		String[] allCol = getColumns(table);
-
-		// add loop; this would apply if more than one column to drop
-		for (String column : columnList) {
-			// clean the column name
-			if (column.contains("__")) {
-				column = column.split("__")[1];
+		List<String> columns = getColumns();
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < columns.size(); i++) {
+			String col = columns.get(i);
+			if (col.contains("__")) {
+				String[] split = col.split("__");
+				col = split[1];
+				table = split[0];
 			}
-			remCols.add(column);
+			// define the script to be executed
+			builder.append(table + " <- " + table + "[," + col + ":=NULL];");
+			remCols.add(col);
 
-			// define the r script to be executed
-			String script = table + " <- " + table + "[," + column + ":=NULL]";
-
-			// make sure that the column to be dropped exists; if not, throw
-			// error
-			if (Arrays.asList(allCol).contains(column) != true) {
-				throw new IllegalArgumentException("Column doesn't exist.");
-			}
-
-			// execute the script - it will be of the form:
-			// FRAME[,FRAME__ColToDrop:=NULL]
-			frame.executeRScript(script);
-
-			// update the metadata because the columns are changing
-			OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
-			metaData.dropProperty(table + "__" + column, table);
-
+			metaData.dropProperty(table + "__" + col, table);
 			// drop filters with this column
-			frame.getFrameFilters().removeColumnFilter(column);
+			frame.getFrameFilters().removeColumnFilter(col);
 		}
 		// reset the frame headers
 		frame.syncHeaders();
-
+		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
