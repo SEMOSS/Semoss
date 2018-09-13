@@ -109,7 +109,7 @@ public class JobManager {
 		}
 		synchronized(outputList) {
 			int size = outputList.size();
-			List<String> output = outputList.subList(offset, size);
+			List<String> output = new Vector<String>(outputList.subList(offset, size));
 			int newOffset = offset+output.size();
 			// update the offset
 			stdOutOffset.put(jobId, newOffset);
@@ -124,7 +124,7 @@ public class JobManager {
 		}
 		synchronized(outputList) {
 			int size = outputList.size();
-			List<String> output = outputList.subList(offset, size);
+			List<String> output =  new Vector<String>(outputList.subList(offset, size));
 			int newOffset = offset+output.size();
 			// update the offset
 			errorOffset.put(jobId, newOffset);
@@ -147,14 +147,14 @@ public class JobManager {
 		
 		// trim the error list
 		synchronized(errorList)	{
-			errorList = errorList.subList(curErr, errorList.size() - 1);
+			errorList =  new Vector<String>(errorList.subList(curErr, errorList.size() - 1));
 			jobError.put(jobId, errorList);
 			errorOffset.put(jobId, 0);
 		}
 		
 		// trim the outputlist
 		synchronized(outputList) {
-			outputList = outputList.subList(curOut, outputList.size() - 1);
+			outputList =  new Vector<String>(outputList.subList(curOut, outputList.size() - 1));
 			jobStdOut.put(jobId, outputList);
 			stdOutOffset.put(jobId, 0);
 		}
