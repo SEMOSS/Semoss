@@ -140,6 +140,7 @@ public class ExcelDataValidationHelper {
 
 	/**
 	 * Create data validation map from excel specific range
+	 * 
 	 * @param sheet
 	 * @param newHeaders
 	 * @param headers
@@ -405,6 +406,57 @@ public class ExcelDataValidationHelper {
 		return formMap;
 	}
 
+	/**
+	 * Create the grid delta map
+	 * 
+	 * @param appId
+	 * @param sheetName
+	 * @param dataValidationMap
+	 * @param headerList
+	 * @return
+	 */
+	public static Map<String, Object> createUpdateForm(String appId, String sheetName,
+			Map<String, Object> dataValidationMap) {
+
+		Map<String, Object> updateMap = new HashMap<>();
+		updateMap.put("database", appId);
+		updateMap.put("table", sheetName.toUpperCase());
+		// config map
+		Map<String, Object> configMap = new HashMap<>();
+		for (String property : dataValidationMap.keySet()) {
+			Map<String, Object> propMap = (Map<String, Object>) dataValidationMap.get(property);
+			Map<String, Object> configPropMap = new HashMap<>();
+			String propType = (String) propMap.get("type");
+			SemossDataType type = SemossDataType.convertStringToDataType(propType);
+			boolean readOnly = false;
+			configPropMap.put("read-only", readOnly);
+			String validationType = (String) propMap.get("validationType");
+			if (validationType.equals("LIST")) {
+				String[] values = (String[]) propMap.get("values");
+				configPropMap.put("seletion-type", "custom");
+				configPropMap.put("selections", values);
+
+			} else {
+				if (type == SemossDataType.DOUBLE) {
+					ArrayList<String> validationList = new ArrayList<>();
+					String regex = "^\\d+(\\.\\d*)?$";
+					validationList.add(regex);
+					configPropMap.put("validation", validationList);
+				} else if (type == SemossDataType.INT) {
+					ArrayList<String> validationList = new ArrayList<>();
+					String regex = "^\\d*$";
+					validationList.add(regex);
+					configPropMap.put("validation", validationList);
+				} else if (type == SemossDataType.STRING) {
+					configPropMap.put("selection-type", "database");
+				} // TODO date
+			}
+			configMap.put(property, configPropMap);
+		}
+		updateMap.put("config", configMap);
+		return updateMap;
+	}
+
 	public static String validationTypeToString(int validationType) {
 		String validationName = "";
 		if (validationType == DataValidationConstraint.ValidationType.ANY) {
@@ -521,11 +573,13 @@ public class ExcelDataValidationHelper {
 		helper.parse(fileLocation);
 		String sheetName = "Sheet1";
 		Sheet sheet = helper.getSheet(sheetName);
-		String[] headers = new String[]{"AnyValue", "Age", "Gender"};
-		int[] headerInidcies = new int[]{3, 4, 1};
+		String[] headers = new String[] { "AnyValue", "Age", "Gender" };
+		int[] headerInidcies = new int[] { 3, 4, 1 };
 		SemossDataType[] types = new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT,
 				SemossDataType.STRING };
-		Map<String, Object> dataValidationMap = getDataValidation(sheet, new HashMap<>(), headers, types, headerInidcies, 1);
+		Map<String, Object> dataValidationMap = getDataValidation(sheet, new HashMap<>(), headers, types,
+				headerInidcies, 1);
+		createUpdateForm("appID", sheetName, dataValidationMap);
 		Gson gson = GsonUtility.getDefaultGson();
 		Map<String, Object> form = createForm("test", sheetName, dataValidationMap, new String[] { "Age", "Gender" });
 		System.out.println(gson.toJson(form));
