@@ -47,7 +47,7 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 			} else if(key.equals("taskOptions")) {
 				tOptions = GSON.fromJson(in.nextString(), TaskOptions.class);
 			} else if(key.equals("qs")) {
-				QueryStructAdapter adapter = new QueryStructAdapter();
+				SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 				qs = adapter.read(in);
 			}
 		}
@@ -75,7 +75,7 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 		out.name("taskOptions").value(GSON.toJson(value.getTaskOptions()));
 		out.name("qs");
 		SelectQueryStruct qs = value.getQueryStruct();
-		QueryStructAdapter adapter = new QueryStructAdapter();
+		SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 		adapter.write(out, qs);
 		out.endObject();
 	}

@@ -6,7 +6,7 @@ import com.google.gson.TypeAdapter;
 
 import prerna.util.gson.AndQueryFilterAdapter;
 import prerna.util.gson.OrQueryFilterAdapter;
-import prerna.util.gson.QueryStructAdapter;
+import prerna.util.gson.SelectQueryStructAdapter;
 import prerna.util.gson.SimpleQueryFilterAdapter;
 
 public interface IQueryFilter {
@@ -173,7 +173,7 @@ public interface IQueryFilter {
 		} else if(type == QUERY_FILTER_TYPE.AND) {
 			return new AndQueryFilterAdapter();
 		} else if(type == QUERY_FILTER_TYPE.SUBQUERY) {
-			return new QueryStructAdapter();
+			return new SelectQueryStructAdapter();
 		}
 		
 		return null;

@@ -32,7 +32,7 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Utility;
-import prerna.util.gson.QueryStructAdapter;
+import prerna.util.gson.SelectQueryStructAdapter;
 
 public class NativeFrame extends AbstractTableDataFrame {
 
@@ -226,7 +226,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		// save frame - this is just the QS
 		StringWriter writer = new StringWriter();
 		JsonWriter jWriter = new JsonWriter(writer);
-		QueryStructAdapter adapter = new QueryStructAdapter();
+		SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 		try {
 			adapter.write(jWriter, this.qs);
 			FileUtils.writeStringToFile(new File(frameFileName), writer.toString());
@@ -247,7 +247,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		try {
 			StringReader reader = new StringReader(FileUtils.readFileToString(new File(cf.getFrameCacheLocation())));
 			JsonReader jReader = new JsonReader(reader);
-			QueryStructAdapter adapter = new QueryStructAdapter();
+			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 			this.qs = adapter.read(jReader);
 		} catch (IOException e) {
 			e.printStackTrace();
