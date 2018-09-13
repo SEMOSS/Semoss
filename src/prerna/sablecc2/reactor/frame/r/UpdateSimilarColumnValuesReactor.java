@@ -38,7 +38,7 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 		
 		StringBuilder rsb = new StringBuilder();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; ";
+		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\");";
 		bestMatchScript = bestMatchScript.replace("\\", "/");
 		rsb.append(bestMatchScript);
 
@@ -102,10 +102,10 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 		rsb.append(frameName + " <- cbind(" + frameName + "," + resultFrame + ");");
 		
 		// delete existing column from frame
-		rsb.append(frameName + " <- " + frameName + "[,-c(\"" + column + "\")]");
+		rsb.append(frameName + " <- " + frameName + "[,-c(\"" + column + "\")];");
 		
 		// update temp column name to the original column name
-		rsb.append("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column + "\"");
+		rsb.append("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column + "\";");
 
 		// return data type to original state
 		if (convertJoinColFromNum) {
