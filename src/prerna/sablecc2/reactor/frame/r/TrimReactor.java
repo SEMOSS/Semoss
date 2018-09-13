@@ -45,7 +45,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
-				builder.append(table + "$" + col + " <- str_trim(" + table + "$" + col + ")");
+				builder.append(table + "$" + col + " <- str_trim(" + table + "$" + col + ");");
 			}
 		}
 
