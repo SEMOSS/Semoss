@@ -39,7 +39,7 @@ public class GsonUtility {
 				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 				
 				// qs
-				.registerTypeAdapter(SelectQueryStruct.class, new QueryStructAdapter())
+				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
 				
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
