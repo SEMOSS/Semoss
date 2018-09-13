@@ -45,8 +45,6 @@ import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
-import prerna.poi.main.helper.excel.ExcelDataValidationHelper;
-import prerna.poi.main.helper.excel.ExcelDataValidationHelper.WIDGET_COMPONENT;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
@@ -874,6 +872,14 @@ public class UploadUtilities {
 		}
 	}
 	
+	/**
+	 * Add insert form for csv
+	 * 
+	 * @param appId
+	 * @param insightEngine
+	 * @param owl
+	 * @param headers
+	 */
 	public static void addInsertFormInsight(String appId, IEngine insightEngine, OWLER owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owl);
@@ -890,13 +896,40 @@ public class UploadUtilities {
 	}
 	
 	/**
+	 * Add insert form for excel
+	 * 
+	 * @param insightDatabase
+	 * @param appId
+	 * @param sheetName
+	 * @param propMap
+	 * @param headers
+	 */
+	public static void addInsertFormInsight(IEngine insightDatabase, String appId, String sheetName,
+			Map<String, SemossDataType> propMap, String[] headers) {
+		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
+		Map<String, Map<String, SemossDataType>> metamodel = new HashMap<>();
+		metamodel.put(sheetName, propMap);
+		// assuming single sheet
+		String insightName = getInsightFormName(sheetName);
+		String layout = "default-handle";
+		Gson gson = GsonUtility.getDefaultGson();
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
+				+ gson.toJson(createForm(appId, metamodel, headers)) + "]}</encode>\");";
+		String[] pkqlRecipeToSave = { newPixel };
+		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		insightDatabase.commit();
+	}
+
+	/**
 	 * Create Excel form insight using data validation map
+	 * 
 	 * @param insightEngine
 	 * @param appId
 	 * @param sheetName
 	 * @param dataValidationMap
 	 */
-	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName, Map<String, Object> widgetJson ) {
+	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName,
+			Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = getInsightFormName(sheetName);
 		String layout = "default-handle";
@@ -907,7 +940,7 @@ public class UploadUtilities {
 		admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
 	}
-	
+
 	/**
 	 * The name of the form insight
 	 * 
@@ -932,9 +965,9 @@ public class UploadUtilities {
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
 		Vector<String> conceptsList = helper.getConcepts(true);
-		Map<String, SemossDataType> propMap = new HashMap<>();
 		Map<String, Map<String, SemossDataType>> existingMetaModel = new HashMap<>();
 		for (String conceptPhysicalUri : conceptsList) {
+			Map<String, SemossDataType> propMap = new HashMap<>();
 			// so grab the conceptual name
 			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
 			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
@@ -982,7 +1015,8 @@ public class UploadUtilities {
 				valuesString.append(",");
 			}
 		}
-		String query = "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=[" + valuesString + "]);";
+		String query = "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=["
+				+ valuesString + "]);";
 		formMap.put("query", query);
 		// TODO
 		formMap.put("label", "");
@@ -1043,8 +1077,15 @@ public class UploadUtilities {
 		formMap.put("execute", "Submit");
 		return formMap;
 	}
-	
-	public static void addUpdateInsights(IEngine insightDatabase,  OWLER owl, String appId) { 
+
+	/**
+	 * Add grid delta insight for engine
+	 * 
+	 * @param insightDatabase
+	 * @param owl
+	 * @param appId
+	 */
+	public static void addUpdateInsights(IEngine insightDatabase, OWLER owl, String appId) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		Map<String, Map<String, SemossDataType>> existingMetamodel = getExistingMetamodel(owl);
 		for (String concept : existingMetamodel.keySet()) {
@@ -1052,14 +1093,57 @@ public class UploadUtilities {
 			String layout = "grid-delta";
 			Gson gson = GsonUtility.getDefaultGson();
 			String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>"
-					+ gson.toJson(createUpdateMap(appId, owl, concept, existingMetamodel.get(concept)))+"</encode>\");";
+					+ gson.toJson(createUpdateMap(appId, owl, concept, existingMetamodel.get(concept)))
+					+ "</encode>\");";
 			String[] pkqlRecipeToSave = { newPixel };
 			admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		}
 		insightDatabase.commit();
 	}
 
-	
+	/**
+	 * Add grid delta insight for a specific concept
+	 * 
+	 * @param insightDatabase
+	 * @param owl
+	 * @param appId
+	 * @param concept
+	 * @param propMap
+	 */
+	public static void addUpdateInsights(IEngine insightDatabase, OWLER owl, String appId, String concept,
+			Map<String, SemossDataType> propMap) {
+		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
+		String insightName = "Update " + concept;
+		String layout = "grid-delta";
+		Gson gson = GsonUtility.getDefaultGson();
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>"
+				+ gson.toJson(createUpdateMap(appId, owl, concept, propMap)) + "</encode>\");";
+		String[] pkqlRecipeToSave = { newPixel };
+		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		insightDatabase.commit();
+	}
+
+	/**
+	 * Add grid delta insight for excel form
+	 * 
+	 * @param insightDatabase
+	 * @param appId
+	 * @param sheetName
+	 * @param updateForm
+	 */
+	public static void addUpdateInsights(IEngine insightDatabase, String appId, String sheetName,
+			Map<String, Object> updateForm) {
+		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
+		String insightName = "Update " + sheetName;
+		String layout = "grid-delta";
+		Gson gson = GsonUtility.getDefaultGson();
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>"
+				+ gson.toJson(updateForm) + "</encode>\");";
+		String[] pkqlRecipeToSave = { newPixel };
+		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		insightDatabase.commit();
+	}
+
 	public static Map<String, Object> createUpdateMap(String appId, OWLER owl, String concept,
 			Map<String, SemossDataType> propMap) {
 		Map<String, Object> updateMap = new HashMap<>();
@@ -1097,7 +1181,6 @@ public class UploadUtilities {
 		updateMap.put("config", configMap);
 		return updateMap;
 	}
-	
 
 	
 	
@@ -1217,5 +1300,7 @@ public class UploadUtilities {
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}
+
+
 
 }
