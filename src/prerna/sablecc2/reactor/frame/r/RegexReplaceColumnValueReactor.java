@@ -75,7 +75,7 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 			script += table + "$" + column + " <- as.numeric(" + table + "$" + column + ");";
 		}
 
-		frame.executeRScript(script);
+		this.rJavaTranslator.runR(script);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
