@@ -56,7 +56,7 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 		// execute the r script
 		// script will be of the form:
 		// FRAME$column <- toupper(FRAME$column)
-		frame.executeRScript(builder.toString());
+		this.rJavaTranslator.runR(builder.toString());
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
