@@ -1185,7 +1185,7 @@ public class UploadUtilities {
 				validationList.add(regex);
 				configPropMap.put("validation", validationList);
 			} else if (type == SemossDataType.STRING) {
-				configPropMap.put("selection-type", "database");
+//				configPropMap.put("selection-type", "database");
 			} else if(type == SemossDataType.DATE) {
 				// yyyy-mm-dd
 				ArrayList<String> validationList = new ArrayList<>();
@@ -1317,7 +1317,5 @@ public class UploadUtilities {
 		Map<String, Object> retMap = baseInfo.get(0);
 		return retMap;
 	}
-
-
 
 }
