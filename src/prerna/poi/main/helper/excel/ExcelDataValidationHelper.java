@@ -129,11 +129,9 @@ public class ExcelDataValidationHelper {
 			} else if (validationType == DataValidationConstraint.ValidationType.FORMULA) {
 				headerMeta.put("type", SemossDataType.STRING.toString());
 			}
-
 			if (cleanHeader != null) {
 				validationMap.put(cleanHeader, headerMeta);
 			}
-
 		}
 		return validationMap;
 	}
@@ -235,10 +233,8 @@ public class ExcelDataValidationHelper {
 				if (formula2 != null) {
 					headerMeta.put("f2", formula2);
 				}
-
 			} else if (validationType == DataValidationConstraint.ValidationType.FORMULA) {
 			}
-
 			if (cleanHeader != null && Arrays.asList(headers).contains(cleanHeader)) {
 				int index = Arrays.asList(headers).indexOf(cleanHeader);
 				SemossDataType type = types[index];
@@ -247,7 +243,6 @@ public class ExcelDataValidationHelper {
 				headers[index] = null;
 				types[index] = null;
 			}
-
 		}
 		// add remaining missing columns to validationMap
 		if (!validationMap.isEmpty()) {
@@ -256,12 +251,10 @@ public class ExcelDataValidationHelper {
 				if (header != null) {
 					SemossDataType type = types[i];
 					Map<String, Object> headerMeta = new HashMap<>();
-
 					if (type == SemossDataType.STRING) {
 						headerMeta.put("type", SemossDataType.STRING.toString());
 						int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH;
 						headerMeta.put("validationType", validationTypeToString(validationType));
-
 					}
 					if (Utility.isNumericType(type.toString())) {
 						headerMeta.put("type", SemossDataType.DOUBLE.toString());
@@ -271,7 +264,6 @@ public class ExcelDataValidationHelper {
 					// TODO
 					headerMeta.put("range", "");
 					headerMeta.put("emptyCells", true);
-
 					// add comment
 					Row row = sheet.getRow(startRow - 1);
 					Cell c = row.getCell(headerIndicies[i] - 1);
@@ -287,13 +279,11 @@ public class ExcelDataValidationHelper {
 						}
 						headerMeta.put("description", comment);
 					}
-
 					validationMap.put(header, headerMeta);
 				}
 			}
 		}
 		return validationMap;
-
 	}
 
 	/**
@@ -303,8 +293,8 @@ public class ExcelDataValidationHelper {
 	 * @param dataValidationMap
 	 * @return
 	 */
-	public static Map<String, Object> createForm(String appId, String sheetName, Map<String, Object> dataValidationMap,
-			String[] headerList) {
+	public static Map<String, Object> createInsertForm(String appId, String sheetName,
+			Map<String, Object> dataValidationMap, String[] headerList) {
 		Map<String, Object> formMap = new HashMap<>();
 		List<String> propertyList = new ArrayList<String>();
 		if (headerList != null && headerList.length > 0) {
@@ -328,13 +318,11 @@ public class ExcelDataValidationHelper {
 				valuesString.append(",");
 			}
 		}
-
 		formMap.put("query", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=["
 				+ valuesString + "]);");
 		// TODO
 		formMap.put("label", "");
 		formMap.put("description", "");
-
 		// build param list
 		List<Map<String, Object>> paramList = new Vector<>();
 		for (int i = 0; i < propertyList.size(); i++) {
@@ -348,10 +336,16 @@ public class ExcelDataValidationHelper {
 			// build view for param map
 			Map<String, Object> viewMap = new HashMap<>();
 			viewMap.put("label", property);
-			// TODO
 			String description = "";
 			if (propMap.containsKey("description")) {
 				description = (String) propMap.get("description");
+			}
+			if (propType == SemossDataType.DATE) {
+				if (description.length() > 0) {
+					description += " Please enter a date (yyyy-mm-dd)";
+				} else {
+					description = "Please enter a date (yyyy-mm-dd)";
+				}
 			}
 			viewMap.put("description", description);
 			// change validation type to display type
@@ -367,7 +361,6 @@ public class ExcelDataValidationHelper {
 			if (wc == WIDGET_COMPONENT.DROPDOWN) {
 				String[] values = (String[]) propMap.get("values");
 				modelMap.put("defaultOptions", values);
-
 			} else {
 				if (wc != WIDGET_COMPONENT.TEXTAREA) {
 					if (propType == SemossDataType.STRING) {
@@ -383,7 +376,6 @@ public class ExcelDataValidationHelper {
 						List<String> dependencies = new Vector<>();
 						dependencies.add("Parameter_" + i + "_search");
 						modelMap.put("dependsOn", dependencies);
-
 						// if prop type is a string build a search param
 						Map<String, Object> searchMap = new HashMap<>();
 						searchMap.put("paramName", "Parameter_" + i + "_search");
@@ -398,7 +390,6 @@ public class ExcelDataValidationHelper {
 			if (wc != WIDGET_COMPONENT.TEXTAREA) {
 				paramMap.put("model", modelMap);
 			}
-
 			paramList.add(paramMap);
 		}
 		formMap.put("params", paramList);
@@ -417,7 +408,6 @@ public class ExcelDataValidationHelper {
 	 */
 	public static Map<String, Object> createUpdateForm(String appId, String sheetName,
 			Map<String, Object> dataValidationMap) {
-
 		Map<String, Object> updateMap = new HashMap<>();
 		updateMap.put("database", appId);
 		updateMap.put("table", sheetName.toUpperCase());
@@ -435,7 +425,6 @@ public class ExcelDataValidationHelper {
 				String[] values = (String[]) propMap.get("values");
 				configPropMap.put("seletion-type", "custom");
 				configPropMap.put("selections", values);
-
 			} else {
 				if (type == SemossDataType.DOUBLE) {
 					ArrayList<String> validationList = new ArrayList<>();
@@ -449,7 +438,12 @@ public class ExcelDataValidationHelper {
 					configPropMap.put("validation", validationList);
 				} else if (type == SemossDataType.STRING) {
 					configPropMap.put("selection-type", "database");
-				} // TODO date
+				} else if (type == SemossDataType.DATE) {
+					ArrayList<String> validationList = new ArrayList<>();
+					String regex = "^\\d{4}-\\d{2}-\\d{2}$";
+					validationList.add(regex);
+					configPropMap.put("validation", validationList);
+				}
 			}
 			configMap.put(property, configPropMap);
 		}
@@ -526,21 +520,14 @@ public class ExcelDataValidationHelper {
 	public static SemossDataType widgetComponentToDataType(WIDGET_COMPONENT widgetComponent) {
 		SemossDataType dataType = SemossDataType.STRING;
 		if (widgetComponent == WIDGET_COMPONENT.CHECKLIST) {
-
 		} else if (widgetComponent == WIDGET_COMPONENT.DROPDOWN) {
-
 		} else if (widgetComponent == WIDGET_COMPONENT.FREETEXT) {
-
 		} else if (widgetComponent == WIDGET_COMPONENT.NUMBER) {
 			dataType = SemossDataType.DOUBLE;
 		} else if (widgetComponent == WIDGET_COMPONENT.RADIO) {
-
 		} else if (widgetComponent == WIDGET_COMPONENT.SLIDER) {
-
 		} else if (widgetComponent == WIDGET_COMPONENT.TEXTAREA) {
-
 		} else if (widgetComponent == WIDGET_COMPONENT.TYPEAHEAD) {
-
 		}
 		return dataType;
 	}
@@ -568,20 +555,20 @@ public class ExcelDataValidationHelper {
 	}
 
 	public static void main(String[] args) {
-		String fileLocation = "C:\\Users\\rramirezjimenez\\Desktop\\dropDown.xlsx";
+		String fileLocation = "C:\\Users\\rramirezjimenez\\Desktop\\SweatShirt.xlsx";
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(fileLocation);
-		String sheetName = "Sheet1";
+		String sheetName = "test";
 		Sheet sheet = helper.getSheet(sheetName);
-		String[] headers = new String[] { "AnyValue", "Age", "Gender" };
-		int[] headerInidcies = new int[] { 3, 4, 1 };
-		SemossDataType[] types = new SemossDataType[] { SemossDataType.STRING, SemossDataType.INT,
-				SemossDataType.STRING };
+		String[] headers = new String[] { "Date_1" };
+		int[] headerInidcies = new int[] { 1 };
+		SemossDataType[] types = new SemossDataType[] { SemossDataType.DATE };
 		Map<String, Object> dataValidationMap = getDataValidation(sheet, new HashMap<>(), headers, types,
 				headerInidcies, 1);
 		createUpdateForm("appID", sheetName, dataValidationMap);
 		Gson gson = GsonUtility.getDefaultGson();
-		Map<String, Object> form = createForm("test", sheetName, dataValidationMap, new String[] { "Age", "Gender" });
+		Map<String, Object> form = createInsertForm("test", sheetName, dataValidationMap,
+				new String[] { "Age", "Gender" });
 		System.out.println(gson.toJson(form));
 
 	}
