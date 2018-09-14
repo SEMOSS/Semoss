@@ -437,7 +437,7 @@ public class ExcelDataValidationHelper {
 					validationList.add(regex);
 					configPropMap.put("validation", validationList);
 				} else if (type == SemossDataType.STRING) {
-					configPropMap.put("selection-type", "database");
+//					configPropMap.put("selection-type", "database");
 				} else if (type == SemossDataType.DATE) {
 					ArrayList<String> validationList = new ArrayList<>();
 					String regex = "^\\d{4}-\\d{2}-\\d{2}$";
