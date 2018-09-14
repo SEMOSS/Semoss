@@ -889,7 +889,7 @@ public class UploadUtilities {
 		String layout = "default-handle";
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
-				+ gson.toJson(createForm(appId, metamodel, headers)) + "]}</encode>\");";
+				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "]}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
 		admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
@@ -914,7 +914,7 @@ public class UploadUtilities {
 		String layout = "default-handle";
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
-				+ gson.toJson(createForm(appId, metamodel, headers)) + "]}</encode>\");";
+				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "]}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
 		admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightDatabase.commit();
@@ -988,7 +988,14 @@ public class UploadUtilities {
 		return existingMetaModel;
 	}
 	
-	public static Map<String, Object> createForm(String appId,
+	/**
+	 * 
+	 * @param appId
+	 * @param existingMetamodel
+	 * @param headers
+	 * @return
+	 */
+	public static Map<String, Object> createInsertForm(String appId,
 			Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
 		Map<String, Object> formMap = new HashMap<>();
 		Map<String, SemossDataType> propMap = new HashMap<>();
@@ -1033,8 +1040,12 @@ public class UploadUtilities {
 			// build view for param map
 			Map<String, Object> viewMap = new HashMap<>();
 			viewMap.put("label", property);
-			// TODO
-			viewMap.put("description", "");
+			String description = "";
+			if(propType== SemossDataType.DATE) {
+				description = "Please enter a date (yyyy-mm-dd)";
+				viewMap.put("displayType", "freetext");
+			}
+			viewMap.put("description", description);
 			if (propType == SemossDataType.STRING) {
 				viewMap.put("displayType", "typeahead");
 			}
@@ -1175,6 +1186,12 @@ public class UploadUtilities {
 				configPropMap.put("validation", validationList);
 			} else if (type == SemossDataType.STRING) {
 				configPropMap.put("selection-type", "database");
+			} else if(type == SemossDataType.DATE) {
+				// yyyy-mm-dd
+				ArrayList<String> validationList = new ArrayList<>();
+				String regex = "^\\d{4}-\\d{2}-\\d{2}$";
+				validationList.add(regex);
+				configPropMap.put("validation", validationList);
 			}
 			configMap.put(property, configPropMap);
 		}
