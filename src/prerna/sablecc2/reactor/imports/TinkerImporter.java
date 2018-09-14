@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -354,7 +355,7 @@ public class TinkerImporter implements IImporter {
 			autoRowIdx = autoRowIdx.substring(0, autoRowIdx.indexOf("_____UNIQUE"));
 		}
 		autoRowIdx = autoRowIdx + "_ROW_ID";
-		Set<String> cols = new HashSet<String>();
+		Set<String> cols = new TreeSet<String>();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		for(int i = 0; i < selectors.size(); i++) {
 			QueryColumnSelector c = (QueryColumnSelector) selectors.get(i);
