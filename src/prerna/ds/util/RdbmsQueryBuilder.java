@@ -97,7 +97,7 @@ public class RdbmsQueryBuilder {
 		}
 		String type = types[0].toLowerCase();
 		String prefix = "";
-		if(type.contains("varchar") || type.contains("timestamp") || type.contains("date") || type.contains("clob")) {
+		if(type.contains("varchar") || type.contains("timestamp") || type.contains("date") || type.contains("clob") || type.equals("string")) {
 			if(data[0] != null) {
 				prefix = "'";
 			} else {
@@ -109,7 +109,7 @@ public class RdbmsQueryBuilder {
 		retString.append(") VALUES (" + prefix + data[0] + prefix);
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
 			type = types[colIndex].toLowerCase();
-			if(type.contains("varchar") || type.contains("timestamp") || type.contains("date") || type.contains("clob")) {
+			if(type.contains("varchar") || type.contains("timestamp") || type.contains("date") || type.contains("clob") || type.equals("string")) {
 				if(data[colIndex] != null) {
 					prefix = "'";
 				} else {
