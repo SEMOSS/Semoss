@@ -21,7 +21,7 @@ public class CountIfReactor extends AbstractRFrameReactor {
 	 */
 	
 	public CountIfReactor() {
-		this.keysToGet = new String[] { "countCol", ReactorKeysEnum.REGEX.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.REGEX.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -126,15 +126,4 @@ public class CountIfReactor extends AbstractRFrameReactor {
 		return column;
 	}
 	
-	///////////////////////// KEYS /////////////////////////////////////
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("countCol")) {
-			return "The column used to count instances of the regular expression";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
-	}
-
 }
