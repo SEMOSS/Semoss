@@ -30,6 +30,7 @@ public class JoinColumnsReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
