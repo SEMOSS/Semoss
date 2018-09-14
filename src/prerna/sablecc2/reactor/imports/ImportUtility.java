@@ -564,6 +564,75 @@ public class ImportUtility {
 	}
 	
 	/**
+	 * Set the metadata information in the frame based on the QS information as a full graph
+	 * @param dataframe
+	 * @param qs
+	 * @param edgeHash 
+	 * @param frameTableName
+	 */
+	public static void parseFileQueryStructAsGraph(ITableDataFrame dataframe, SelectQueryStruct qs, Map<String, Set<String>> edgeHash) {
+		List<IQuerySelector> selectors = qs.getSelectors();
+		String engineName = qs.getEngineId();
+		
+		// define the frame table name as a primary key within the meta
+		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
+
+		Map<String, String> aliasMap = new HashMap<String, String>();
+		
+		// loop through all the selectors
+		// insert them into the frame
+		int numSelectors = selectors.size();
+		for(int i = 0; i < numSelectors; i++) {
+			IQuerySelector selector = selectors.get(i);
+			String alias = selector.getAlias();
+			String qsName = selector.getQueryStructName();
+			boolean isDerived = selector.isDerived();
+			String dataType = selector.getDataType();
+			
+			metaData.addVertex(alias);
+			metaData.setQueryStructNameToVertex(alias, engineName, qsName);
+			metaData.setDerivedToVertex(alias, isDerived);
+			metaData.setAliasToVertex(alias, alias);
+
+			// this is so we can properly match for relationships
+			aliasMap.put(qsName, alias);
+			
+			if(dataType == null) {
+				// this only happens when we have a column selector
+				// and we need to query the local master
+				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
+				String table = cSelect.getTable();
+				String column = cSelect.getColumn();
+				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
+					metaData.setDataTypeToVertex(alias, type);
+				} else {
+					String type = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
+					metaData.setDataTypeToVertex(alias, type);
+				}
+			} else {
+				metaData.setDataTypeToVertex(alias, dataType);
+			}
+		}
+		
+		// also need to account for the file row id to each header
+		for(String upVertex : edgeHash.keySet()) {
+			Set<String> downstreamVertices = edgeHash.get(upVertex);
+			for(String downVertex : downstreamVertices) {
+				String up = upVertex;
+				if(aliasMap.containsKey(upVertex)) {
+					up = aliasMap.get(upVertex);
+				}
+				String down = downVertex;
+				if(aliasMap.containsKey(downVertex)) {
+					down = aliasMap.get(downVertex);
+				}
+				metaData.addRelationship(up, down, "inner.join");
+			}
+		}
+	}
+	
+	/**
 	 * Get the edge hash corresponding to the relationships defined within the qs
 	 * @param qs
 	 * @return

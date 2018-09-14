@@ -9,12 +9,16 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FilenameUtils;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
@@ -40,12 +44,20 @@ public class TinkerImporter implements IImporter {
 	
 	@Override
 	public void insertData() {
-		// get the edge hash so we know how to add data connections
-		Map<String, Set<String>> edgeHash = ImportUtility.getEdgeHash(this.qs);
-		// create the metadata
-		ImportUtility.parseQueryStructAsGraph(this.dataframe, this.qs, edgeHash);
-		// add the data
-		processImport(edgeHash, null);
+		if(this.qs instanceof AbstractFileQueryStruct) {
+			Map<String, Set<String>> edgeHash = genFileEdgeHash( (AbstractFileQueryStruct) qs);
+			// create the metadata
+			ImportUtility.parseFileQueryStructAsGraph(this.dataframe, this.qs, edgeHash);
+			// add the data
+			processFileImport(edgeHash, ((AbstractFileQueryStruct) qs).getNewHeaderNames(), edgeHash.keySet().iterator().next() );
+		} else {
+			// get the edge hash so we know how to add data connections
+			Map<String, Set<String>> edgeHash = ImportUtility.getEdgeHash(this.qs);
+			// create the metadata
+			ImportUtility.parseQueryStructAsGraph(this.dataframe, this.qs, edgeHash);
+			// add the data
+			processImport(edgeHash, null);
+		}
 	}
 	
 	@Override
@@ -85,6 +97,44 @@ public class TinkerImporter implements IImporter {
 		}
 	}
 
+	/**
+	 * Flush out the iterator into the tinker frame using the specified edge relationships
+	 * @param edgeHash
+	 */
+	private void processFileImport(Map<String, Set<String>> edgeHash, Map<String, String> headerAlias, String autoRowIdx) {
+		Map<Integer, Set<Integer>> cardinality = null;
+		String[] headers = null;
+		int counter = 1;
+		while(this.it.hasNext()) {
+			IHeadersDataRow row = it.next();
+			if(cardinality == null) {
+				headers = row.getHeaders();
+				String[] newHeaders = new String[headers.length+1];
+				newHeaders[0] = autoRowIdx;
+				System.arraycopy(headers,0,newHeaders,1,headers.length);
+				headers = newHeaders;
+				// update the headers with the join info
+				// so we create the vertices correctly
+				if(headerAlias != null && !headerAlias.isEmpty()) {
+					for(int i = 0; i < headers.length; i++) {
+						if(headerAlias.containsKey(headers[i])) {
+							headers[i] = headerAlias.get(headers[i]);
+							continue;
+						}
+					}
+				}
+				// get the cardinality with the new headers since the edge hash is also modified
+				cardinality = Utility.getCardinalityOfValues(headers, edgeHash);
+			}
+			
+			Object[] values = row.getValues();
+			Object[] newValues = new Object[values.length+1];
+			newValues[0] = counter++;
+			System.arraycopy(values,0,newValues,1,values.length);
+			dataframe.addRelationship(headers, newValues, cardinality);
+		}
+	}
+	
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
 		List<String[]> existingRels = this.dataframe.getMetaData().getAllRelationships();
@@ -294,5 +344,25 @@ public class TinkerImporter implements IImporter {
 			}
 		}
 		return joinMap;
+	}
+	
+	private Map<String, Set<String>> genFileEdgeHash(AbstractFileQueryStruct qs) {
+		String autoRowIdx = qs.getFilePath();
+		autoRowIdx = FilenameUtils.getBaseName(autoRowIdx);
+		// remove the ugly stuff we add to make this unique
+		if(autoRowIdx.contains("_____UNIQUE")) {
+			autoRowIdx = autoRowIdx.substring(0, autoRowIdx.indexOf("_____UNIQUE"));
+		}
+		autoRowIdx = autoRowIdx + "_ROW_ID";
+		Set<String> cols = new HashSet<String>();
+		List<IQuerySelector> selectors = qs.getSelectors();
+		for(int i = 0; i < selectors.size(); i++) {
+			QueryColumnSelector c = (QueryColumnSelector) selectors.get(i);
+			cols.add(c.getColumn());
+		}
+		
+		Map<String, Set<String>> edgeMap = new HashMap<String, Set<String>>();
+		edgeMap.put(autoRowIdx, cols);
+		return edgeMap;
 	}
 }
