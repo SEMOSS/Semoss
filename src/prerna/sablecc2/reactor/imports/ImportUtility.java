@@ -617,6 +617,13 @@ public class ImportUtility {
 		
 		// also need to account for the file row id to each header
 		for(String upVertex : edgeHash.keySet()) {
+			// add this to the meta
+			metaData.addVertex(upVertex);
+			metaData.setQueryStructNameToVertex(upVertex, engineName, upVertex);
+			metaData.setDerivedToVertex(upVertex, true);
+			metaData.setAliasToVertex(upVertex, upVertex);
+			metaData.setDataTypeToVertex(upVertex, "STRING");
+
 			Set<String> downstreamVertices = edgeHash.get(upVertex);
 			for(String downVertex : downstreamVertices) {
 				String up = upVertex;
