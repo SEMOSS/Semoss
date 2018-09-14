@@ -247,7 +247,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						String[] headers = sheetIterator.getHeaders();
 						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders,  Arrays.copyOf(headers, headers.length), types,  sheetIterator.getHeaderIndicies(), startRow);
 						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-							Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
+							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
 							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 							Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(newAppId, sheetName, dataValidationMap);
 							UploadUtilities.addUpdateInsights(insightDatabase, newAppId, sheetName.toUpperCase(), updateForm);;
@@ -289,9 +289,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					int startRow = eRange.getStartRow();
 					SemossDataType[] types = sheetIterator.getTypes();
 					String[] headers = sheetIterator.getHeaders();
+					System.out.println();
 					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
 					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
-						Map<String, Object> widgetJson = ExcelDataValidationHelper.createForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
+						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
 						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 						Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(newAppId, sheetName, dataValidationMap);
 						UploadUtilities.addUpdateInsights(insightDatabase, newAppId, sheetName.toUpperCase(), updateForm);;
