@@ -42,6 +42,10 @@ public class UserTrackerFactory {
 			String endpoint = null;
 			try {
 				endpoint = DIHelper.getInstance().getProperty("T_ENDPOINT");
+				if(endpoint == null) {
+					// well, can't do much without an endpoint
+					return new NullUserTracker();
+				}
 				// set the endpoint
 				TrackRequestThread.setEndpoint(endpoint);
 			} catch(Exception e) {
