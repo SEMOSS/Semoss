@@ -303,7 +303,7 @@ public class MergeDataReactor extends AbstractReactor {
 	 * Getters for the reactor
 	 */
 	
-	private ITableDataFrame getFrame() {
+	protected ITableDataFrame getFrame() {
 		// try specific key
 		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
@@ -318,7 +318,7 @@ public class MergeDataReactor extends AbstractReactor {
 		return (ITableDataFrame) this.insight.getDataMaker();
 	}
 	
-	private SelectQueryStruct getQueryStruct() {
+	protected SelectQueryStruct getQueryStruct() {
 		SelectQueryStruct queryStruct = null;
 
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
@@ -336,7 +336,7 @@ public class MergeDataReactor extends AbstractReactor {
 		return queryStruct;
 	}
 	
-	private List<Join> getJoins() {
+	protected List<Join> getJoins() {
 		List<Join> joins = new Vector<Join>();
 		// try specific key
 		{
