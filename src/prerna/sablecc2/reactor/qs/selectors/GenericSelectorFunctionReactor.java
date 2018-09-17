@@ -1,6 +1,8 @@
 package prerna.sablecc2.reactor.qs.selectors;
 
+import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -14,36 +16,35 @@ public class GenericSelectorFunctionReactor extends QuerySelectReactor {
 	
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
-		QueryFunctionSelector functionSelector = null;
-		
 		// try to create the function selector
+		List<IQuerySelector> innerSelectors = new Vector<IQuerySelector>();
 		GenRowStruct qsInputs = this.getCurRow();
 		if(qsInputs != null && !qsInputs.isEmpty()) {
 			for(int selectIndex = 0;selectIndex < qsInputs.size();selectIndex++) {
 				NounMetadata input = qsInputs.getNoun(selectIndex);
 				IQuerySelector innerSelector = getSelector(input);
-				functionSelector = genFunctionSelector(function, innerSelector);
-				qs.addSelector(functionSelector);
+				innerSelectors.add(innerSelector);
 			}
 		}
 		
-		if(functionSelector != null) {
-			Set<String> keys = this.store.getNounKeys();
-			for(String key : keys) {
-				if(key.equals("all")) {
-					continue;
-				}
-				GenRowStruct grs = this.store.getNoun(key);
-				int num = grs.size();
-				Object[] additionalParams = new Object[num+1];
-				additionalParams[0] = key;
-				for(int i = 0; i < num; i++) {
-					additionalParams[i+1] = grs.get(i);
-				}
-				
-				functionSelector.addAdditionalParam(additionalParams);
+		QueryFunctionSelector functionSelector = genFunctionSelector(function, innerSelectors);
+		qs.addSelector(functionSelector);
+		Set<String> keys = this.store.getNounKeys();
+		for(String key : keys) {
+			if(key.equals("all")) {
+				continue;
 			}
+			GenRowStruct grs = this.store.getNoun(key);
+			int num = grs.size();
+			Object[] additionalParams = new Object[num+1];
+			additionalParams[0] = key;
+			for(int i = 0; i < num; i++) {
+				additionalParams[i+1] = grs.get(i);
+			}
+			
+			functionSelector.addAdditionalParam(additionalParams);
 		}
+		
 		return qs;
 	}
 	
