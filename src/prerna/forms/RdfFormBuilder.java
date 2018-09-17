@@ -150,7 +150,17 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 						}
 					}
 
-					this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
+					if(propertyValue instanceof Date) {
+						Date propDateValue = (Date) propertyValue;
+						this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
+						propDateValue.setHours(12);
+						this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
+						propDateValue.setHours(0);
+						this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propDateValue, false});
+					} else {
+						this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
+					}
+					
 					if(propertyValue instanceof String) {
 						// TODO: trying to account for more FE issues
 						// TODO: trying to account for more FE issues
@@ -262,6 +272,8 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 								// just ignore old dates and don't save them
 								continue;
 							}
+							// always set the time to 12
+							((Date) propertyValue).setHours(12);
 						} catch (ParseException e) {
 							propertyValue = propertyValue.toString();
 						}
