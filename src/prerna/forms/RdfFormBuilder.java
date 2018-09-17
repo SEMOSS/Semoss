@@ -115,27 +115,40 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 
 				for(int j = 0; j < properties.size(); j++) {
 					Map<String, Object> property = properties.get(j);
+					propertyURI = property.get("propertyName").toString();
 					propertyValue = property.get("propertyValue");
+					
+					// TODO: trying to account for more FE issues - delete original value being sent
+					// TODO: trying to account for more FE issues - delete original value being sent
+					// TODO: trying to account for more FE issues - delete original value being sent
+					this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
+					this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, Utility.cleanString(propertyValue.toString(), true, false, true), false});
+
 					if(propertyValue instanceof String) {
 						// check if string val is a date
 						SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+						try {
+							dateFormat.setLenient(false);
+							propertyValue= (Date) dateFormat.parse(((String) propertyValue).trim());
+						} catch (ParseException e) {
+							// TODO: trying to account for more FE issues
+							// TODO: trying to account for more FE issues
+							// TODO: trying to account for more FE issues
 							try {
+								dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
 								dateFormat.setLenient(false);
 								propertyValue= (Date) dateFormat.parse(((String) propertyValue).trim());
-							} catch (ParseException e) {
-								// TODO: trying to account for more FE issues
-								// TODO: trying to account for more FE issues
-								// TODO: trying to account for more FE issues
+							} catch (ParseException e2) {
 								dateFormat = new SimpleDateFormat("MMM_dd,_yyyy");
 								try {
 									dateFormat.setLenient(false);
 									propertyValue= (Date) dateFormat.parse(((String) propertyValue).trim());
-								} catch (ParseException e2) {									
+								} catch (ParseException e4) {									
 									propertyValue = propertyValue.toString();
 								}
 							}
+						}
 					}
-					propertyURI = property.get("propertyName").toString();
 
 					this.engine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{instanceConceptURI, propertyURI, propertyValue, false});
 					if(propertyValue instanceof String) {
@@ -206,6 +219,7 @@ public class RdfFormBuilder extends AbstractFormBuilder {
 						try {
 							dateFormat.setLenient(true);
 							propertyValue= (Date) dateFormat.parse(((String) propertyValue).trim());
+							((Date) propertyValue).setHours(12);
 						} catch (ParseException e) {
 							propertyValue = propertyValue.toString();
 						}
