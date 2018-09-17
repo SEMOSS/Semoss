@@ -13,6 +13,7 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.AbstractQueryInterpreter;
@@ -259,7 +260,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if(constant instanceof Number) {
 			return constant.toString();
 		} else {
-			return "\"" + constant + "\"";
+			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(constant + "") + "'";
 		}
 	}
 
