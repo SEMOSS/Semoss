@@ -17,10 +17,10 @@ rpa.config.directory C:\\workspace\\Semoss_Dev\\rpa
 
 BaseFolder	C:\\workspace\\Semoss_Dev
 LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
-GOOGLE_CHROME_HOME C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe 
 ADDITIONAL_REACTORS C:\\workspace\\Semoss_Dev\\reactors.json
 SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
 
+USE_R true
 R_CONNECTION_JRI	true
 R_MEM_LIMIT 4096
 FRAME_SIZE_LIMIT -1
