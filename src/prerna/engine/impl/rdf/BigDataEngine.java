@@ -376,9 +376,11 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			predString = Utility.cleanString(pred, false);
 			newPred = vf.createURI(predString);
 
-			if(!concept)
-			{
-				if(object.getClass() == new Double(1).getClass())
+			if(!concept) {
+				if(object == null) {
+					sc.removeStatements(newSub, newPred, null);
+				}
+				else if(object.getClass() == new Double(1).getClass())
 				{
 					logger.debug("Found Double " + object);
 					sc.removeStatements(newSub, newPred, vf.createLiteral(((Double)object).doubleValue()));
@@ -398,11 +400,10 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 					// try to see if it already has properties then add to it
 					//					String cleanValue = value.replaceAll("/", "-").replaceAll("\"", "'");			
 					sc.removeStatements(newSub, newPred, vf.createLiteral(value));
-				} 
-			}
-			else
+				}
+			} else {
 				sc.removeStatements(newSub, newPred, vf.createURI(object+""));
-
+			}
 		} catch (SailException e) {
 			e.printStackTrace();
 		}
