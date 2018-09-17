@@ -25,6 +25,8 @@ public class RJavaTranslatorFactory {
 		isWin = (OS.indexOf("win") >= 0);
 	}
 
+	// determine if we should even try to do R
+	private static boolean USE_R = true;
 	// this is so we only grab from DIHelper once
 	private static boolean INIT = false;
 	// this will be the specific class we want
@@ -48,6 +50,15 @@ public class RJavaTranslatorFactory {
 	 * This will determine the translator class to use (Rserve or JRI)
 	 */
 	private static void init() {
+		String useRStr =  DIHelper.getInstance().getProperty(Constants.USE_R);
+		if(useRStr != null) {
+			RJavaTranslatorFactory.USE_R = Boolean.parseBoolean(useRStr);
+			if(!RJavaTranslatorFactory.USE_R) {
+				INIT = true;
+				return;
+			}
+		}
+		
 		String rMemory = DIHelper.getInstance().getProperty(Constants.R_MEM_LIMIT);
 		if(rMemory != null) {
 			RJavaTranslatorFactory.rMemory = rMemory; 
@@ -84,6 +95,10 @@ public class RJavaTranslatorFactory {
 	public static void initRConnection() {
 		if(!INIT) {
 			init();
+		}
+		
+		if(!USE_R) {
+			throw new IllegalArgumentException("R is set to false for this instance");
 		}
 
 		if(!getAttemptConnection()) {
@@ -136,6 +151,10 @@ public class RJavaTranslatorFactory {
 			init();
 		}
 
+		if(!USE_R) {
+			throw new IllegalArgumentException("R is set to false for this instance");
+		}
+		
 		if(!getAttemptConnection()) {
 			throw new IllegalArgumentException("Cannot find valid R paths to connect to R");
 		}
