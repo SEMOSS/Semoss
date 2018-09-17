@@ -1,26 +1,22 @@
 package prerna.util.usertracking;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 
 public class TrackRequestThread extends Thread {
 
+	private static final Logger LOGGER = LogManager.getLogger(TrackRequestThread.class);
 	private static final Gson GSON = new Gson();
 	
 	private static String endpoint;
@@ -66,11 +62,10 @@ public class TrackRequestThread extends Thread {
 //			        instream.close();
 //			    }
 //			}
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
+		} catch (Exception e) {
+			LOGGER.error("Error connecting to semoss management server");
+			LOGGER.error("Error connecting to semoss management server");
+			LOGGER.error("Error connecting to semoss management server");
 			e.printStackTrace();
 		}
 	}
