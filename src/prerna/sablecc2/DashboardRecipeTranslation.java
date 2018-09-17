@@ -20,8 +20,8 @@ public class DashboardRecipeTranslation extends DepthFirstAdapter {
 	public void caseAConfiguration(AConfiguration node) {
         List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
         for(PRoutine e : copy) {
-        	String expression = e.toString();
-        	LOGGER.info("Processing " + expression);
+//        	String expression = e.toString();
+//        	LOGGER.info("Processing " + expression);
         	e.apply(this);
         }
 	}

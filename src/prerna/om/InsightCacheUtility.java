@@ -22,6 +22,8 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -37,6 +39,7 @@ import prerna.util.gson.InsightAdapter;
 
 public class InsightCacheUtility {
 
+	private static final Logger LOGGER = LogManager.getLogger(InsightCacheUtility.class);
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static byte[] buffer = new byte[2048];
 
@@ -207,6 +210,9 @@ public class InsightCacheUtility {
 			Gson gson = GsonUtility.getDefaultGson();
 			return gson.fromJson(jsonString, Map.class);
 		} catch(Exception e) {
+			LOGGER.info("Error retrieving cache for " + rdbmsId);
+			LOGGER.info("Error retrieving cache for " + rdbmsId);
+			LOGGER.info("Error retrieving cache for " + rdbmsId);
 			e.printStackTrace();
 		} finally {
 			if(zis != null) {
