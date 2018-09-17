@@ -30,7 +30,7 @@ import prerna.util.Utility;
 public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private static final Logger LOGGER = LogManager.getLogger(RawSesameSelectWrapper.class.getName());
-	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.ssss'Z'");
+	private static SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'");
 
 	private TupleQueryResult tqr = null;
 
