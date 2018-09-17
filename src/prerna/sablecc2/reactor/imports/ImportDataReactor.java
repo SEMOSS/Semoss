@@ -79,7 +79,7 @@ public class ImportDataReactor extends AbstractReactor {
 		return retNoun;
 	}
 
-	private SelectQueryStruct getQueryStruct() {
+	protected SelectQueryStruct getQueryStruct() {
 		GenRowStruct allNouns = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
 		SelectQueryStruct queryStruct = null;
 		if(allNouns != null) {

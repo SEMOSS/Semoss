@@ -140,10 +140,15 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				} else {
 					val = rs.getString(colNum);
 				}
-
+				
+				// need to account for null values
+				if(rs.wasNull()) {
+					val = null;
+				}
+				
 				row[colNum-1] = val;
 			}
-
+			
 			// return the header row
 			return new HeadersDataRow(headers, rawHeaders, row, row);
 		} else {

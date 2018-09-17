@@ -348,7 +348,7 @@ public class AuditDatabase {
 					val = colVal.toString();
 				}
 			} else {
-				val = colVal.toString();
+				val = colVal + "";
 			}
 			
 			qsname = col.getQueryStructName();
