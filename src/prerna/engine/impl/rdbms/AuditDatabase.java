@@ -276,6 +276,9 @@ public class AuditDatabase {
 		String time = getTime();
 
 		for(String alteredColumn : constraintMap.keySet()) {
+			if(alteredColumn.contains("__")) {
+				alteredColumn = alteredColumn.split("__")[1];
+			}
 			String oldValue = constraintMap.get(alteredColumn);
 			
 			Object[] insert = new Object[INSERT_SIZE];
