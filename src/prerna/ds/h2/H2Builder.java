@@ -242,11 +242,15 @@ public class H2Builder {
 							}
 						}
 					} else {
-						String value = nextRow[colIndex] + "";
-						if(value.length() > 800) {
-							value = value.substring(0, 796) + "...";
+						if(nextRow[colIndex] == null) {
+							ps.setNull(colIndex + 1, java.sql.Types.VARCHAR);
+						} else {
+							String value = nextRow[colIndex] + "";
+							if(value.length() > 800) {
+								value = value.substring(0, 796) + "...";
+							}
+							ps.setString(colIndex + 1, value + "");
 						}
-						ps.setString(colIndex + 1, value + "");
 					}
 				}
 				// add it
