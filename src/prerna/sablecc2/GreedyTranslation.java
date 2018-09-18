@@ -217,7 +217,7 @@ public class GreedyTranslation extends LazyTranslation {
 	}
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, List<String> unexecutedPixels) {
-		errorNoun.addAdditionalReturn(new NounMetadata(unexecutedPixels, PixelDataType.VECTOR, PixelOperationType.UNEXECUTED_PIXELS));
+		errorNoun.addAdditionalReturn(new NounMetadata(unexecutedPixels, PixelDataType.CONST_STRING, PixelOperationType.UNEXECUTED_PIXELS));
 		this.runner.addResult(pixelExpression, errorNoun, this.isMeta);
 		curReactor = null;
 		prevReactor = null;
