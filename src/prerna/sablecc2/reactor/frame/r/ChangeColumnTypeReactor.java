@@ -95,7 +95,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 					rsb.append(tempTable + " <- format(" + table + "$" + column + formatString + ");");
 					rsb.append(table + "$" + column + " <- " + "as.Date(" + tempTable + formatString + ");");
 				} else {
-					rsb.append(tempTable + " <- as.Date(" + table + "$" + column + ", format='" + dateFormat + "');");
+					rsb.append(tempTable + " <- as.character(as.Date(" + table + "$" + column + ", format='" + dateFormat + "'));");
 					rsb.append(table + "$" + column + " <- " + tempTable + ";");
 				}
 				// perform variable cleanup
