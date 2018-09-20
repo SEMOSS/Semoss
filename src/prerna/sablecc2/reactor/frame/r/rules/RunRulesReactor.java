@@ -205,7 +205,6 @@ public class RunRulesReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(createCF, getDqFrame, getErrorFrame, getDF, run.seq, escapeRegexR);");
 		cleanUpScript.append("rm(" + errorFrame + ");");
 		cleanUpScript.append("gc();");
-		cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		if (ruleColumns != null) {
 			for (String newColName : ruleColumns) {
