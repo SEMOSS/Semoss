@@ -192,7 +192,6 @@ public class XrayMetamodelReactor extends AbstractRFrameReactor {
 			cleanUpScript.append("rm(" + tempFrame + ");");
 			cleanUpScript.append("rm(" + countFrame + ");");
 			cleanUpScript.append("gc();");
-			cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 			this.rJavaTranslator.runR(cleanUpScript.toString());
 
 		}

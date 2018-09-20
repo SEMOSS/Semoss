@@ -98,7 +98,6 @@ public class CollisionResolverReactor extends AbstractRFrameReactor {
 		cleanUpScript.append("rm(" + "i" + ");");
 		cleanUpScript.append("rm(" + "value" + ");");
 		cleanUpScript.append("rm(" + "count" + ");");
-		cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		List<Object> jsonMap = new ArrayList<Object>();

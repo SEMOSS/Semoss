@@ -39,7 +39,7 @@ public class UpdateGAHistoricalDataReactor extends AbstractRFrameReactor {
 			// do nothing
 		}
 		
-		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages) + updateGAHistoricalDataRSyntax(dateRange) + RSyntaxHelper.unloadPackages(packages));
+		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages) + updateGAHistoricalDataRSyntax(dateRange));
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 	
