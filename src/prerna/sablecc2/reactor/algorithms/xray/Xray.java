@@ -268,7 +268,6 @@ public class Xray {
 		cleanUpScript.append("rm(" + "run_lsh_matching" + ");");
 		cleanUpScript.append("rm(" + "span" + ");");
 		cleanUpScript.append("rm(" + lookupFrame + ");");
-		cleanUpScript.append(RSyntaxHelper.unloadPackages(packages));
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		return rFrameName;
 	}
@@ -681,8 +680,6 @@ public class Xray {
 			if (semanticMode) {
 				rsb.append("rm(" + semanticResults + ");");
 			}
-			// clean up packages
-			rsb.append(RSyntaxHelper.unloadPackages(encodePackages));
 			// run r script
 			this.rJavaTranslator.runR(rsb.toString());
 		}
@@ -756,7 +753,6 @@ public class Xray {
 			}
 			// clean up r temp variables
 			rsb.append("rm(" + dfName + ",concept_mgr, concept_xray, encode_instances, get_claims, get_concept, get_wiki_ids, is.letter, most_frequent_concept, span);");
-			rsb.append(RSyntaxHelper.unloadPackages(encodePackages));
 			this.rJavaTranslator.runR(rsb.toString());
 
 		}
