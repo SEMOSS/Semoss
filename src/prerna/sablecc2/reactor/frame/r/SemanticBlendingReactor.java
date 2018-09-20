@@ -135,7 +135,6 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		// clean up r temp variables
 		rsb.append("rm(" + dfName + ", concept_mgr, concept_xray, endLibs, "
 				+ "get_claims,get_concept, get_wiki_ids, is.letter, " + "most_frequent_concept, span, startLibs);");
-		rsb.append(RSyntaxHelper.unloadPackages(packages));
 		rsb.append("gc();");
 		logger.info("Running semantic blending script");
 		logger.info("This process may take a few minutes depending on the type of data and internet speed");
