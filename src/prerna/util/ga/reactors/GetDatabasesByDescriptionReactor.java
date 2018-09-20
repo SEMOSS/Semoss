@@ -90,7 +90,6 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor  {
 		
 		// garbage clean up
 		StringBuilder gc = new StringBuilder();
-		gc.append(RSyntaxHelper.unloadPackages(packages));
 		gc.append("rm(" + output + ",blend_mgr, data_domain_mgr, read_datamatrix, "
 				+ "exec_tfidf, remove_files, fileroot, output, blend_tracking_semantic, "
 				+ "get_userdata, dataitem_history, get_dataitem_rating, assign_unique_concepts, "

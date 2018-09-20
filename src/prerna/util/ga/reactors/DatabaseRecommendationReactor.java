@@ -177,7 +177,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 					+ "locate_user_communities, drilldown_communities, locate_data_communities, "
 					+ "get_items_users, refresh_base);";
 			// remove packages
-			this.rJavaTranslator.runR(gc + RSyntaxHelper.unloadPackages(packages));
+			this.rJavaTranslator.runR(gc);
 		}
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.RECOMMENDATION);
 	}
