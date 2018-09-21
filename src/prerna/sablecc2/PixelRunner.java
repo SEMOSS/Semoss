@@ -35,11 +35,11 @@ public class PixelRunner {
 	 * @param frame					The data maker to run the pixel expression on
 	 */
 	
-	private Insight insight = null;
-	private List<NounMetadata> results = new Vector<NounMetadata>();
-	private List<String> pixelExpression = new Vector<String>();
-	private List<Boolean> isMeta = new Vector<Boolean>();
-	private Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
+	protected Insight insight = null;
+	protected List<NounMetadata> results = new Vector<NounMetadata>();
+	protected List<String> pixelExpression = new Vector<String>();
+	protected List<Boolean> isMeta = new Vector<Boolean>();
+	protected Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
 	
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
@@ -131,7 +131,10 @@ public class PixelRunner {
 	}
 	
 	////////////////////////////////////////////////////////
-	
+	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
+
 	/*
 	 * Other methods here
 	 */
