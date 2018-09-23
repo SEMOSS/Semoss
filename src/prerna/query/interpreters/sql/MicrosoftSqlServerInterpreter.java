@@ -6,17 +6,17 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 
-public class MicrosoftSqlServerQueryInterpreter extends SqlInterpreter {
+public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 
-	public MicrosoftSqlServerQueryInterpreter() {
+	public MicrosoftSqlServerInterpreter() {
 		
 	}
 
-	public MicrosoftSqlServerQueryInterpreter(IEngine engine) {
+	public MicrosoftSqlServerInterpreter(IEngine engine) {
 		super(engine);
 	}
 	
-	public MicrosoftSqlServerQueryInterpreter(ITableDataFrame frame) {
+	public MicrosoftSqlServerInterpreter(ITableDataFrame frame) {
 		super(frame);
 	}
 	

@@ -40,7 +40,6 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
-import schemacrawler.tools.commandline.AdditionalConfigOptionsParser;
 
 public class SqlInterpreter extends AbstractQueryInterpreter {
 	
