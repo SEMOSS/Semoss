@@ -6,6 +6,17 @@ import prerna.query.interpreters.sql.ImpalaInterpreter;
 
 public class ImpalaEngine extends RDBMSNativeEngine {
 
+	/*
+	 * WE ONLY HAVE THIS CLASS BECAUSE OF THE QUEYR WRAPPER
+	 * WEIRD WORD LOWER CASEING HAPPENS FROM THE RESUTL SET METADATA
+	 * SO WE HAVE OUR OWN ENGINE AND IT HAS ITS OWN ENGINE TYPE WITH ASSOCIATED 
+	 * WRAPPER
+	 * 
+	 * PLEASE TRY TO USE THE DEFAULT RDBMSNativeEngine WHEN POSSIBLE
+	 * INSTEAD OF MAKING A NEW CLASS
+	 * 
+	 */
+	
 	public ImpalaEngine() {
 		
 	}
