@@ -18,6 +18,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -170,8 +171,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public boolean isEmpty() {
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(
-				this.qs.retrieveQueryStructEngine(), this.qs);
+		IEngine engine = this.qs.retrieveQueryStructEngine();
+		if(engine == null) {
+			return true;
+		}
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, this.qs);
 		boolean empty = it.hasNext();
 		it.cleanUp();
 		return empty;
