@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import prerna.util.Utility;
+
 public class SqlJoinStructList {
 
 	private List<SqlJoinStruct> joins = new Vector<SqlJoinStruct>();
@@ -102,9 +104,23 @@ public class SqlJoinStructList {
 					// or left to right
 					jSyntax.append(" ").append(j.getReverseJoinType()).append(" ");
 					jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
-				} else {
+
+					// add source table since it is now defined
+					definedTables.add(sourceTable);
+				} else if(!definedTables.contains(targetTable)) {
 					// need to define the target
 					jSyntax.append(" ").append(jType).append(" ");
+					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
+
+					// add target table as it is now defined
+					definedTables.add(targetTable);
+				} else {
+					// both are defined
+					// need to make a new alias for the table
+					// at this point, i am not using this to bring in new values
+					// but to filter 
+					jSyntax.append(" ").append(jType).append(" ");
+					targetTableAlias = targetTableAlias + Utility.getRandomString(6);
 					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
 				}
 				
