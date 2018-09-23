@@ -422,7 +422,7 @@ public class PixelUtility {
 		// recipe is the query
 		map.put("query", fullRecipe.toString());
 		map.put("label", insightName);
-		map.put("description", "Auto generated Param Insight");
+		map.put("description", "Please select paramters for the insight");
 		// add params
 		List<Map<String, Object>> paramList = new Vector<Map<String, Object>>();
 		for(String param : params) {
@@ -442,8 +442,7 @@ public class PixelUtility {
 			// nested map for view
 			Map<String, Object> paramViewMap = new LinkedHashMap<String, Object>();
 			paramViewMap.put("displayType", "checklist");
-			paramViewMap.put("label", "Select an Instance");
-			paramViewMap.put("description", "Select an Instance Of The Parameter");
+			paramViewMap.put("label", "Select an Instance Of The Parameter : " + param);
 			// nested attributes map within nested view map
 			Map<String, Boolean> paramViewAttrMap = new LinkedHashMap<String, Boolean>();
 			paramViewAttrMap.put("searchable", true);
