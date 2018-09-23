@@ -71,7 +71,6 @@ public class ImportDataReactor extends AbstractReactor {
 		}
 		
 		// track GA data
-//		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
