@@ -28,10 +28,10 @@ public class PostgresInterpreter extends SqlInterpreter {
 	protected void addJoin(String fromCol, String thisComparator, String toCol) {
 		// get the parts of the join
 		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
-		String targetTable = relConProp[0];
-		String targetColumn = relConProp[1];
-		String sourceTable = relConProp[2];
-		String sourceColumn = relConProp[3];
+		String sourceTable = relConProp[0];
+		String sourceColumn = relConProp[1];
+		String targetTable = relConProp[2];
+		String targetColumn = relConProp[3];
 		
 		String compName = thisComparator.replace(".", " ");
 		SqlJoinStruct jStruct = new SqlJoinStruct();

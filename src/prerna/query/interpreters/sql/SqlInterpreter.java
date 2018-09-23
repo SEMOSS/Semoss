@@ -396,20 +396,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
-		Map<String, Map<String, List>> relationsData = qs.getRelations();
-		// loop through all the relationships
-		// realize we can be joining on properties within a table
-		for(String startConceptProperty : relationsData.keySet() ) {
-			// the key for this object is the specific type of join to be used
-			// between this instance and all the other ones
-			Map<String, List> joinMap = relationsData.get(startConceptProperty);
-			for(String comparator : joinMap.keySet()) {
-				List<String> joinColumns = joinMap.get(comparator);
-				for(String endConceptProperty : joinColumns) {
-					// go through and perform the actual join
-					addJoin(startConceptProperty, comparator, endConceptProperty);
-				}
-			}
+		for(String[] relationsData : qs.getRelationsSet()) {
+			addJoin(relationsData[0], relationsData[1], relationsData[2]);
 		}
 	}
 
@@ -424,10 +412,10 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected void addJoin(String fromCol, String thisComparator, String toCol) {
 		// get the parts of the join
 		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
-		String targetTable = relConProp[0];
-		String targetColumn = relConProp[1];
-		String sourceTable = relConProp[2];
-		String sourceColumn = relConProp[3];
+		String sourceTable = relConProp[0];
+		String sourceColumn = relConProp[1];
+		String targetTable = relConProp[2];
+		String targetColumn = relConProp[3];
 		
 		String compName = thisComparator.replace(".", " ");
 		SqlJoinStruct jStruct = new SqlJoinStruct();
