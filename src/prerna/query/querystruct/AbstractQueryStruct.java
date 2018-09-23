@@ -243,7 +243,7 @@ public abstract class AbstractQueryStruct {
 	}
 	
 	public IEngine retrieveQueryStructEngine() {
-		if(this.engine == null) {
+		if(this.engine == null && this.engineId != null) {
 			this.engine = Utility.getEngine(this.engineId);
 		}
 		return this.engine;
