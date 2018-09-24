@@ -49,7 +49,7 @@ public class ConcatLambda extends AbstractMapLambda {
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
 		this.headerInfo = headerInfo;
 		
-		// figure out which indices are those we want to convert to a double
+		// figure out which indices are those we want to use
 		this.colIndices = new ArrayList<Integer>();
 		this.constantValues = new ArrayList<Object>();
 		int totalCols = headerInfo.size();
@@ -83,7 +83,7 @@ public class ConcatLambda extends AbstractMapLambda {
 			if(constantValues.isEmpty()) {
 				// throw error
 				throw new SemossPixelException(
-						new NounMetadata("No input recognized in Concat Lambda", 
+						new NounMetadata("No input recognized in concat", 
 								PixelDataType.CONST_STRING, 
 								PixelOperationType.ERROR));
 			}

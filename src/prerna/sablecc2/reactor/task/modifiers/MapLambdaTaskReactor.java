@@ -28,7 +28,7 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 		
 		IMapLambda mapLambda = MapLambdaFactory.getLambda(lambda);
 		if(mapLambda == null) {
-			throw new IllegalArgumentException("Unknown transformation type");
+			throw new IllegalArgumentException("Unknown transformation type = " + lambda);
 		}
 		mapLambda.setUser(this.insight.getUser());
 		mapLambda.init(this.task.getHeaderInfo(), columns);
@@ -53,7 +53,7 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 			return colGrs.get(0).toString();
 		}
 		
-		throw new IllegalArgumentException("Unknown transformation type");
+		throw new IllegalArgumentException("No transformation type was entered");
 	}
 	
 	private List<String> getColumns() {
