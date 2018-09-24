@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.task.lambda.map;
+package prerna.sablecc2.reactor.task.lambda.map.function;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.google.GoogleLatLongGetter;
 import prerna.om.GeoLocation;
+import prerna.sablecc2.reactor.task.lambda.map.AbstractMapLambda;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
