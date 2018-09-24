@@ -7,8 +7,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.reactor.task.lambda.map.IMapLambda;
-import prerna.sablecc2.reactor.task.lambda.map.MapLambdaFactory;
 import prerna.sablecc2.reactor.task.lambda.map.MapLambdaTask;
+import prerna.sablecc2.reactor.task.lambda.map.function.MapLambdaFactory;
 
 public class MapLambdaTaskReactor extends TaskBuilderReactor {
 

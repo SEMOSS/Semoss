@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.task.lambda.map;
+package prerna.sablecc2.reactor.task.lambda.map.function;
 
 import java.text.DateFormat;
 import java.text.ParseException;
