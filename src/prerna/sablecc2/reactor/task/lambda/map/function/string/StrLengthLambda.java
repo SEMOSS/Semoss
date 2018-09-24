@@ -44,7 +44,7 @@ public class StrLengthLambda extends AbstractMapLambda {
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
 		this.headerInfo = headerInfo;
 		
-		// figure out which indices are those we want to convert to a double
+		// figure out which indices are those we want to use
 		this.colIndices = new ArrayList<Integer>();
 		this.constantValues = new ArrayList<Object>();
 		int totalCols = headerInfo.size();
