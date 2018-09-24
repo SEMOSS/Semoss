@@ -5,6 +5,7 @@ import java.util.Map;
 
 import prerna.sablecc2.reactor.task.lambda.map.IMapLambda;
 import prerna.sablecc2.reactor.task.lambda.map.function.string.ConcatLambda;
+import prerna.sablecc2.reactor.task.lambda.map.function.string.StrLengthLambda;
 
 public class MapLambdaFactory {
 
@@ -28,7 +29,7 @@ public class MapLambdaFactory {
 		
 		// string manipulation
 		mapLambdas.put("CONCAT", ConcatLambda.class);
-//		mapLambdas.put("LENGTH", GoogleLatLongLambda.class);
+		mapLambdas.put("LEN", StrLengthLambda.class);
 //		mapLambdas.put("TRIM", GoogleLatLongLambda.class);
 //		mapLambdas.put("SUBSTR", GoogleLatLongLambda.class);
 //		mapLambdas.put("SUBSTRING", GoogleLatLongLambda.class);
