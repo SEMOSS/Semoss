@@ -272,7 +272,7 @@ import prerna.sablecc2.reactor.task.TaskFormatReactor;
 import prerna.sablecc2.reactor.task.TaskLookupReactor;
 import prerna.sablecc2.reactor.task.TaskMetaCollectorReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
-import prerna.sablecc2.reactor.task.lambda.map.ApplyFormattingTaskReactor;
+import prerna.sablecc2.reactor.task.lambda.map.function.ApplyFormattingTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.FilterLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.FlatMapLambdaTaskReactor;
 import prerna.sablecc2.reactor.task.modifiers.GenericMapLambdaTaskReactor;
