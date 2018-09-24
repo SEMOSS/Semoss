@@ -6,43 +6,38 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.lambda.map.AbstractMapLambda;
 
-public class ConcatLambda extends AbstractMapLambda {
+public class StrLengthLambda extends AbstractMapLambda {
 
 	private int numCols;
 	// store indices of column values
 	private List<Integer> colIndices;
-	// store constants to concat
 	private List<Object> constantValues;
-	// dynamically create the concat column name
-	private String concatColumn;
-	private String[] concatColumnArr;
+	// dynamically create the length column name
+	private String strLenColumn;
+	private String[] strLenColumnArr;
 	
 	@Override
 	public IHeadersDataRow process(IHeadersDataRow row) {
 		Object[] values = row.getValues();
 		
 		int counter = 0;
-		String concatValue = "";
+		int len = 0;
 		for(int i = 0; i < numCols; i++) {
 			int indexToGet = colIndices.get(i).intValue();
 			if(indexToGet >= 0) {
-				concatValue += values[indexToGet].toString();
+				len += values[indexToGet].toString().length();
 			} else {
-				concatValue += this.constantValues.get(counter);
+				len += this.constantValues.get(counter).toString().length();
 				counter++;
 			}
 		}
 		
 		// copy the row so we dont mess up references
 		IHeadersDataRow rowCopy = row.copy();
-		rowCopy.addFields(this.concatColumnArr, new Object[]{concatValue});
-		return rowCopy;		
+		rowCopy.addFields(this.strLenColumnArr, new Object[]{len});
+		return rowCopy;
 	}
 	
 	@Override
@@ -62,10 +57,10 @@ public class ConcatLambda extends AbstractMapLambda {
 				Map<String, Object> headerMap = headerInfo.get(j);
 				String alias = headerMap.get("alias").toString();
 				if(alias.equals(valueToFind)) {
-					if(this.concatColumn == null) {
-						this.concatColumn = "Concat_" + alias;
+					if(this.strLenColumn == null) {
+						this.strLenColumn = "LEN_" + alias;
 					} else {
-						this.concatColumn += "_" + alias;
+						this.strLenColumn += "_" + alias;
 					}
 					this.colIndices.add(new Integer(j));
 					continue NEXT_COLUMN;
@@ -74,34 +69,23 @@ public class ConcatLambda extends AbstractMapLambda {
 			// if we got to this point, we have a header we did not find
 			// so it must be a constant
 			this.colIndices.add(new Integer(-1));
-			constantValues.add(valueToFind);
-		}
-		
-		// in case you want me to concat some random stuff
-		// and do not pass in any values
-		if(this.concatColumn == null) {
-			if(constantValues.isEmpty()) {
-				// throw error
-				throw new SemossPixelException(
-						new NounMetadata("No input recognized in Concat Lambda", 
-								PixelDataType.CONST_STRING, 
-								PixelOperationType.ERROR));
-			}
+			this.constantValues.add(valueToFind);
 			
-			// loop through and append
-			this.concatColumn = "Concat";
-			for(Object o : constantValues) {
-				this.concatColumn += "_" + o;
+			// also include it in the str length name
+			if(this.strLenColumn == null) {
+				this.strLenColumn = "LEN_" + valueToFind.replaceAll("\\s+", "_");
+			} else {
+				this.strLenColumn += "_" + valueToFind.replaceAll("\\s+", "_");
 			}
 		}
 		
-		this.concatColumnArr = new String[]{this.concatColumn};
+		this.strLenColumnArr = new String[]{this.strLenColumn};
 		
 		// need to add a new entity for the column
 		Map<String, Object> headerMap = new HashMap<String, Object>();
-		headerMap.put("alias", this.concatColumn);
-		headerMap.put("header", this.concatColumn);
-		headerMap.put("type", "STRING");
+		headerMap.put("alias", this.strLenColumn);
+		headerMap.put("header", this.strLenColumn);
+		headerMap.put("type", "NUMBER");
 		headerMap.put("derived", true);
 		this.headerInfo.add(headerMap);
 		
