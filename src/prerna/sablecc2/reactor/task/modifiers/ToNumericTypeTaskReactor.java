@@ -7,7 +7,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.reactor.task.lambda.map.MapLambdaTask;
-import prerna.sablecc2.reactor.task.lambda.map.ToNumericTypeLambda;
+import prerna.sablecc2.reactor.task.lambda.map.function.ToNumericTypeLambda;
 
 public class ToNumericTypeTaskReactor extends TaskBuilderReactor {
 

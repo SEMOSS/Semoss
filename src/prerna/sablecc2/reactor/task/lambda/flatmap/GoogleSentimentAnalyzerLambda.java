@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.task.lambda.map;
+package prerna.sablecc2.reactor.task.lambda.flatmap;
 
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -9,15 +9,14 @@ import java.util.Vector;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.io.connector.google.GoogleEntityResolver;
-import prerna.om.EntityResolution;
+import prerna.io.connector.google.GoogleSentimentAnalyzer;
+import prerna.om.SentimentAnalysis;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.task.lambda.flatmap.AbstractFlatMapLambda;
 
-public class GoogleEntityAnalyzerLambda extends AbstractFlatMapLambda {
+public class GoogleSentimentAnalyzerLambda extends AbstractFlatMapLambda {
 
 	// col index we care about to get lat/long from
 	private int colIndex;
@@ -36,22 +35,22 @@ public class GoogleEntityAnalyzerLambda extends AbstractFlatMapLambda {
 		
 		// construct new values to append onto the row
 		// add new headers
-		String[] newHeaders = new String[]{"entity_name", "entity_type", "wiki_url", "content", "content_subtype"};
+		String[] newHeaders = new String[]{"sentence", "magnitude", "score"};
 		
 		List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
 		try {
 			// loop through the results
-			GoogleEntityResolver goog = new GoogleEntityResolver();
+			GoogleSentimentAnalyzer goog = new GoogleSentimentAnalyzer();
 			Object resultObj = goog.execute(this.user, params);
 			if(resultObj instanceof List) {
-				List<EntityResolution> results = (List<EntityResolution>) resultObj;
+				List<SentimentAnalysis> results = (List<SentimentAnalysis>) resultObj;
 				for(int i = 0; i < results.size(); i++) {
-					EntityResolution entity = results.get(i);
-					processEntity(entity, newHeaders, row, retList);
+					SentimentAnalysis sentiment = results.get(i);
+					processSentiment(sentiment, newHeaders, row, retList);
 				}
 			} else {
-				EntityResolution entity = (EntityResolution) resultObj;
-				processEntity(entity, newHeaders, row, retList);
+				SentimentAnalysis sentiment = (SentimentAnalysis) resultObj;
+				processSentiment(sentiment, newHeaders, row, retList);
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -60,20 +59,31 @@ public class GoogleEntityAnalyzerLambda extends AbstractFlatMapLambda {
 		return retList;
 	}
 	
-	private void processEntity(EntityResolution entity, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
-		Object[] newValues = new Object[5];
-		newValues[0] = entity.getEntity_name();
-		newValues[1] = entity.getEntity_type();
-		newValues[2] = entity.getWiki_url();
-		newValues[3] = entity.getContent();
-		newValues[4] = entity.getContent_subtype();
-
+	/**
+	 * Process a sentiment
+	 * @param sentiment
+	 * @param newHeaders
+	 * @param curRow
+	 * @param retList
+	 */
+	private void processSentiment(SentimentAnalysis sentiment, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
+		Object[] newValues = new Object[3];
+		newValues[0] = sentiment.getSentence();
+		if(newValues[0] != null) {
+			newValues[0] = newValues[0].toString()
+					.replace("\n", " *LINE BREAK* ")
+					.replace("\r", " *LINE BREAK* ")
+					.replace("\t", " ")
+					.replace("\"", "");
+		}
+		newValues[1] = sentiment.getMagnitude();
+		newValues[2] = sentiment.getScore();
+		
 		// copy the row so we dont mess up references
 		IHeadersDataRow rowCopy = curRow.copy();
 		rowCopy.addFields(newHeaders, newValues);
 		retList.add(rowCopy);
 	}
-	
 	
 	@Override
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
@@ -103,16 +113,12 @@ public class GoogleEntityAnalyzerLambda extends AbstractFlatMapLambda {
 		}
 		
 		// this modifies the header info map by reference
-		Map<String, Object> entityHeader = getBaseHeader("entity_name", "STRING");
-		this.headerInfo.add(entityHeader);
-		Map<String, Object> typeHeader = getBaseHeader("entity_type", "STRING");
-		this.headerInfo.add(typeHeader);
-		Map<String, Object> wikiHeader = getBaseHeader("wiki_url", "STRING");
-		this.headerInfo.add(wikiHeader);
-		Map<String, Object> contentHeader = getBaseHeader("content", "STRING");
-		this.headerInfo.add(contentHeader);
-		Map<String, Object> contentTypeHeader = getBaseHeader("content_subtype", "STRING");
-		this.headerInfo.add(contentTypeHeader);
+		Map<String, Object> sentenceHeader = getBaseHeader("sentence", "STRING");
+		this.headerInfo.add(sentenceHeader);
+		Map<String, Object> magnitudeHeader = getBaseHeader("magnitude", "NUMBER");
+		this.headerInfo.add(magnitudeHeader);
+		Map<String, Object> scoreHeader = getBaseHeader("score", "NUMBER");
+		this.headerInfo.add(scoreHeader);
 	}
 	
 	/**

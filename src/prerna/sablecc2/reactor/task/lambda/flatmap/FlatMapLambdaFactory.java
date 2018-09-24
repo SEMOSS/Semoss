@@ -3,9 +3,6 @@ package prerna.sablecc2.reactor.task.lambda.flatmap;
 import java.util.HashMap;
 import java.util.Map;
 
-import prerna.sablecc2.reactor.task.lambda.map.GoogleEntityAnalyzerLambda;
-import prerna.sablecc2.reactor.task.lambda.map.GoogleSentimentAnalyzerLambda;
-
 public class FlatMapLambdaFactory {
 
 	public static Map<String, Class> flatMapLambdas = new HashMap<String, Class>();
