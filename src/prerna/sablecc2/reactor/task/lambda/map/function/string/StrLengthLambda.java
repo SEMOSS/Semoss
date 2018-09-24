@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.lambda.map.AbstractMapLambda;
 
 public class StrLengthLambda extends AbstractMapLambda {
@@ -78,6 +82,15 @@ public class StrLengthLambda extends AbstractMapLambda {
 				this.strLenColumn += "_" + valueToFind.replaceAll("\\s+", "_");
 			}
 		}
+		
+		if(this.strLenColumn == null) {
+			// throw error
+			throw new SemossPixelException(
+					new NounMetadata("No input recognized in concat", 
+							PixelDataType.CONST_STRING, 
+							PixelOperationType.ERROR));
+		}
+		
 		
 		this.strLenColumnArr = new String[]{this.strLenColumn};
 		
