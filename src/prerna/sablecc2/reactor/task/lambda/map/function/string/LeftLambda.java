@@ -82,7 +82,7 @@ public class LeftLambda extends AbstractMapLambda {
 		if(this.leftColumn == null) {
 			// throw an error
 			throw new SemossPixelException(
-					new NounMetadata("Could not find column " + valueToFind,
+					new NounMetadata("Could not find column " + valueToFind + " in Left routine",
 							PixelDataType.CONST_STRING, 
 							PixelOperationType.ERROR));
 		}

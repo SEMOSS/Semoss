@@ -2,17 +2,23 @@ package prerna.sablecc2.reactor.app.upload;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
@@ -35,19 +41,28 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String appId = UUID.randomUUID().toString();
-
 		Logger logger = getLogger(CLASS_NAME);
 		this.organizeKeys();
 		String appName = this.keyValue.get(this.keysToGet[0]);
 		if(appName == null || appName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the app");
 		}
-		// need to make sure the app is unique
-		if(SecurityUpdateUtils.containsEngine(appName)) {
-			throw new IllegalArgumentException("App name already exists.  Please provide a unique app name");
+		
+		User user = null;
+		boolean security = AbstractSecurityUtils.securityEnabled();
+		if(security) {
+			user = this.insight.getUser();
+			if(user == null) {
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
+						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
 		}
 		
+		String appId = UUID.randomUUID().toString();
+
 		// need to make sure we are not overriding something that already exists in the file system
 		final String FILE_SEP = System.getProperty("file.separator");
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -116,6 +131,14 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		appEng.setPropFile(smssFile.getAbsolutePath());
 		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		DIHelper.getInstance().setLocalProperty(appId, appEng);
+		
+		// even if no security, just add user as engine owner
+		if(user != null) {
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider ap : logins) {
+				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+			}
+		}
 		
 		return new NounMetadata(appId, PixelDataType.CONST_STRING);
 	}
