@@ -29,15 +29,15 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class ImageCaptureReactor  extends AbstractReactor {
+public class ImageCaptureReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = ImageCaptureReactor.class.getName();
 	// get the directory separator
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	// need to get the context name for the instance
 	// set in the DBLoader on startup
-	private static String contextPath = null;
+	protected static String contextPath = null;
 	
 	public ImageCaptureReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_KEY.getKey()};
