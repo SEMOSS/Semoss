@@ -46,6 +46,14 @@ public interface IHeadersDataRow{
 	 * @param addValues
 	 */
 	void addFields(String[] addHeaders, Object[] addValues);
+
+	/**
+	 * Add a single new column and value
+	 * @param addHeader
+	 * @param addValues
+	 */
+	void addFields(String addHeader, Object addValues);
+
 	
 	/**
 	 * Copy the headers row
@@ -66,5 +74,6 @@ public interface IHeadersDataRow{
 	
 	// gets a particular field
 	Object getField(String fieldName);
+
 	
 }
