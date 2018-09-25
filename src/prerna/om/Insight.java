@@ -29,6 +29,7 @@ package prerna.om;
 
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -660,8 +661,9 @@ public class Insight {
 		// TODO: need to do better clean up
 		// like actually removing the data makers so we do not 
 		// have too much in memory
-		Set<String> keys = this.varStore.getKeys();
-		for(String key : keys) {
+		Iterator<String> keys = this.varStore.getKeys().iterator();
+		while(keys.hasNext()) {
+			String key = keys.next();
 			if(key.equals(JobReactor.JOB_KEY) || key.equals(JobReactor.SESSION_KEY) || key.equals(JobReactor.INSIGHT_KEY)) {
 				continue;
 			}
@@ -674,7 +676,7 @@ public class Insight {
 				}
 			}
 			// now remove the key
-			this.varStore.remove(key);
+			keys.remove();
 		}
 		
 		// copy over the recipe to a new list

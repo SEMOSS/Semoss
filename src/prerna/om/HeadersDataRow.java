@@ -132,6 +132,28 @@ public class HeadersDataRow implements IHeadersDataRow{
 	}
 	
 	@Override
+	public void addFields(String addHeader, Object addValues) {
+		// we will make new arrays and copy over the values
+		int totalLength = this.recordLength + 1;
+		String[] newHeaders = new String[totalLength];
+		Object[] newValues = new Object[totalLength];
+		
+		System.arraycopy(this.headers, 0, newHeaders, 0, this.recordLength);
+		System.arraycopy(this.values, 0, newValues, 0, this.recordLength);
+		
+		// add the new values into the new headers / values
+		newHeaders[this.recordLength] = addHeader;
+		newValues[this.recordLength] = addValues;
+		
+		// adjust references
+		this.headers = newHeaders;
+		this.values = newValues;
+		// TODO: expose raw headers and raw values as well
+		this.rawHeaders = this.headers;
+		this.rawValues = this.values;
+	}
+	
+	@Override
 	public IHeadersDataRow copy() {
 		// convert the main portions and return new
 		Gson gson = GsonUtility.getDefaultGson();
