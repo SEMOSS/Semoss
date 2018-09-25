@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.sablecc2.reactor.task.lambda.map.IMapLambda;
+import prerna.sablecc2.reactor.task.lambda.map.function.math.PercentLambda;
 import prerna.sablecc2.reactor.task.lambda.map.function.string.ConcatLambda;
 import prerna.sablecc2.reactor.task.lambda.map.function.string.LeftLambda;
 import prerna.sablecc2.reactor.task.lambda.map.function.string.RightLambda;
@@ -49,9 +50,9 @@ public class MapLambdaFactory {
 //		mapLambdas.put("MAX", GoogleLatLongLambda.class);
 //		mapLambdas.put("MIN", GoogleLatLongLambda.class);
 //		mapLambdas.put("MEDIAN", GoogleLatLongLambda.class);
-//		mapLambdas.put("PERCENTAGE", GoogleLatLongLambda.class);
+		mapLambdas.put("PERCENT", PercentLambda.class);
 //		mapLambdas.put("ROUND", GoogleLatLongLambda.class);
-//		mapLambdas.put("POWER", GoogleLatLongLambda.class);
+//		mapLambdas.put("POWER", PercentLambda.class);
 	}
 
 	public static IMapLambda getLambda(String transType) {
