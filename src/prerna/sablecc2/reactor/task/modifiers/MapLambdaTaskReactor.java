@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.task.modifiers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -18,19 +19,21 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 	 */
 	
 	public MapLambdaTaskReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.LAMBDA.getKey(), ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.LAMBDA.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.PARAM_KEY.getKey()};
 	}
 	
 	@Override
 	protected void buildTask() {
 		String lambda = getLambda();
 		List<String> columns = getColumns();
-		
+		Map params = getMap();
+
 		IMapLambda mapLambda = MapLambdaFactory.getLambda(lambda);
 		if(mapLambda == null) {
 			throw new IllegalArgumentException("Unknown transformation type = " + lambda);
 		}
 		mapLambda.setUser(this.insight.getUser());
+		mapLambda.setParams(params);
 		mapLambda.init(this.task.getHeaderInfo(), columns);
 		
 		// create a new task and add to stores
@@ -65,6 +68,15 @@ public class MapLambdaTaskReactor extends TaskBuilderReactor {
 				columns.add(colGrs.get(i).toString());
 			}
 			return columns;
+		}
+		
+		return null;
+	}
+	
+	private Map getMap() {
+		GenRowStruct colGrs = this.store.getNoun(keysToGet[2]);
+		if(colGrs != null && !colGrs.isEmpty()) {
+			return (Map) colGrs.get(0);
 		}
 		
 		return null;

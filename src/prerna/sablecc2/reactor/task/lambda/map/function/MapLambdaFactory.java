@@ -5,7 +5,10 @@ import java.util.Map;
 
 import prerna.sablecc2.reactor.task.lambda.map.IMapLambda;
 import prerna.sablecc2.reactor.task.lambda.map.function.string.ConcatLambda;
+import prerna.sablecc2.reactor.task.lambda.map.function.string.LeftLambda;
+import prerna.sablecc2.reactor.task.lambda.map.function.string.RightLambda;
 import prerna.sablecc2.reactor.task.lambda.map.function.string.StrLengthLambda;
+import prerna.sablecc2.reactor.task.lambda.map.function.string.SubstringLambda;
 import prerna.sablecc2.reactor.task.lambda.map.function.string.TrimLambda;
 
 public class MapLambdaFactory {
@@ -32,11 +35,11 @@ public class MapLambdaFactory {
 		mapLambdas.put("CONCAT", ConcatLambda.class);
 		mapLambdas.put("LEN", StrLengthLambda.class);
 		mapLambdas.put("TRIM", TrimLambda.class);
-//		mapLambdas.put("SUBSTR", GoogleLatLongLambda.class);
-//		mapLambdas.put("SUBSTRING", GoogleLatLongLambda.class);
-//		mapLambdas.put("LEFT", GoogleLatLongLambda.class);
-//		mapLambdas.put("MID", GoogleLatLongLambda.class);
-//		mapLambdas.put("RIGHT", GoogleLatLongLambda.class);
+		mapLambdas.put("SUBSTR", SubstringLambda.class);
+		mapLambdas.put("SUBSTRING", SubstringLambda.class);
+		mapLambdas.put("MID", SubstringLambda.class);
+		mapLambdas.put("LEFT", LeftLambda.class);
+		mapLambdas.put("RIGHT", RightLambda.class);
 //		mapLambdas.put("SPLIT", GoogleLatLongLambda.class);
 //		mapLambdas.put("REGEX_REPLACE", GoogleLatLongLambda.class);
 //

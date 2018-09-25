@@ -185,6 +185,12 @@ public class SelectStatement  implements ISelectStatement {
 		return null;
 	}
 
+	@Override
+	public void addFields(String addHeader, Object addValues) {
+		// TODO Auto-generated method stub
+		
+	}
+
 //	@Override
 //	public boolean equals(ISelectStatement other){
 //		boolean equal = false;

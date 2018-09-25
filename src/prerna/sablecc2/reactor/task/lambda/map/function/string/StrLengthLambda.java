@@ -20,14 +20,13 @@ public class StrLengthLambda extends AbstractMapLambda {
 	private List<Object> constantValues;
 	// dynamically create the length column name
 	private String strLenColumn;
-	private String[] strLenColumnArr;
 	
 	@Override
 	public IHeadersDataRow process(IHeadersDataRow row) {
 		Object[] values = row.getValues();
 		
 		int counter = 0;
-		int len = 0;
+		Integer len = new Integer(0);
 		for(int i = 0; i < numCols; i++) {
 			int indexToGet = colIndices.get(i).intValue();
 			if(indexToGet >= 0) {
@@ -40,7 +39,7 @@ public class StrLengthLambda extends AbstractMapLambda {
 		
 		// copy the row so we dont mess up references
 		IHeadersDataRow rowCopy = row.copy();
-		rowCopy.addFields(this.strLenColumnArr, new Object[]{len});
+		rowCopy.addFields(this.strLenColumn, len);
 		return rowCopy;
 	}
 	
@@ -90,9 +89,6 @@ public class StrLengthLambda extends AbstractMapLambda {
 							PixelDataType.CONST_STRING, 
 							PixelOperationType.ERROR));
 		}
-		
-		
-		this.strLenColumnArr = new String[]{this.strLenColumn};
 		
 		// need to add a new entity for the column
 		Map<String, Object> headerMap = new HashMap<String, Object>();
