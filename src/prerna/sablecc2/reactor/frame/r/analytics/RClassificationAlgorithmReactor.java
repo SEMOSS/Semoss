@@ -125,7 +125,19 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		
 		if (ctreeArray == null || ctreeArray.length == 0) {
-			throw new IllegalArgumentException("A decision tree could not be constructed for the requested dataset. Please retry with different data points.");
+			Map<String, Object> vizData = new HashMap<String, Object>();
+			vizData.put("name", "Decision Tree For " + predictionCol);
+			vizData.put("layout", "Dendrogram");
+			vizData.put("panelId", getPanelId());
+			// make an empty map
+			Map<String, Map> classificationMap = new HashMap<String, Map>();
+			classificationMap.put("No Tree Generated", new HashMap());
+			vizData.put("children", classificationMap);
+			NounMetadata noun = new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
+			noun.addAdditionalReturn(
+					new NounMetadata("A decision tree could not be constructed for the requested dataset. Please retry with different data points.", 
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			return noun;
 		}
 
 		Map<String, Object> vizData = new HashMap<String, Object>();
