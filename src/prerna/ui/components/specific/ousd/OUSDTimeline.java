@@ -425,7 +425,7 @@ public class OUSDTimeline {
 				String rowName = row[0] + "";
 				LOGGER.info(rowName);
 				Object value = row[fyIdx];
-				if(value!=null && !value.toString().isEmpty()){
+				if(value!=null && !value.toString().isEmpty() && !value.toString().equals("null")){
 					if (rowName.endsWith(this.savingThisYear) || rowName.endsWith(this.prevSavings)){
 						annlSavings = annlSavings + Double.parseDouble(value.toString().replace("$", "").replace(",", ""));
 						LOGGER.info("in year " + fyIdx + " ADDING SAVINGS  " + rowName + "   new value is   " + annlSavings);
@@ -451,7 +451,7 @@ public class OUSDTimeline {
 	}
 
 	public String[] getCostSavingsHeaders(){
-		return new String[] {"Transition Year", "Annual Savings", "Annual Expenses", "Annual Cash Flow", "Cumulative Net Savings"};
+		return new String[] {"Transition_Year", "Annual_Savings", "Annual_Expenses", "Annual_Cash_Flow", "Cumulative_Net_Savings"};
 	}
 
 	public String getCostSavingsTitle(){
@@ -619,8 +619,11 @@ public class OUSDTimeline {
 		remainingSystemBudgets[0] = name + this.opCost;
 
 		for(int i=1; i<names.length; i++){
-
-			double year = Double.parseDouble(names[i].toString());
+			String yearStr = names[i].toString().replace("F", "");
+			if(yearStr.equals("System")) {
+				continue;
+			}
+			double year = Double.parseDouble(yearStr);
 			if(year<yearList.get(0)){
 				continue;
 			}
