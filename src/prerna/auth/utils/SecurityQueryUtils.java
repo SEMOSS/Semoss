@@ -93,8 +93,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "WHERE (ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
-				+ "AND (ENGINEPERMISSION.VISIBILITY = TRUE OR ENGINEPERMISSION.VISIBILITY IS NULL) "
+				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
+				+ "WHERE (ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) "
+				+ "OR (ENGINE.GLOBAL=TRUE AND USERID IS NULL) "
 				+ "ORDER BY ENGINE.ENGINENAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
@@ -392,7 +393,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.INSIGHTID=INSIGHT.INSIGHTID "
 				+ "WHERE "
-				+ "INSIGHT.ENGINEID='" + engineId + "' "
+				+ "AND INSIGHT.ENGINEID='" + engineId + "' "
 				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
 						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
@@ -597,11 +598,18 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.INSIGHTID=INSIGHT.INSIGHTID "
+				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
+				+ "LEFT JOIN USERINSIGHTPERMISSION ON USER.ID=USERINSIGHTPERMISSION.USERID "
 				+ "WHERE "
-				+ "(USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
-						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
+				// engine is visible to me
+				+ "( (ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) "
+				+ "OR (ENGINE.GLOBAL=TRUE AND ENGINEPERMISSION.USERID IS NULL) " 
+				// have access to insight
+				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
+						// if i own this, i dont care what permissions you want to give me + i want to see this engine
+						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) )) "
+				// and match what i search
+				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i') " : "")
 				+ "ORDER BY INSIGHT.INSIGHTNAME "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
