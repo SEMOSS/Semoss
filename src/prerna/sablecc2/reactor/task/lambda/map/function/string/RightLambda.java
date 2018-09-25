@@ -76,7 +76,7 @@ public class RightLambda extends AbstractMapLambda {
 		if(this.rightColumn == null) {
 			// throw an error
 			throw new SemossPixelException(
-					new NounMetadata("Could not find column " + valueToFind,
+					new NounMetadata("Could not find column " + valueToFind + " in Right routine",
 							PixelDataType.CONST_STRING, 
 							PixelOperationType.ERROR));
 		}

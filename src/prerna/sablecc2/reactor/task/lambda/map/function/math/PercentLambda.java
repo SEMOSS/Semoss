@@ -17,7 +17,7 @@ public class PercentLambda extends AbstractMapLambda {
 	private int numCols;
 	// store indices of column values
 	private List<Integer> colIndices;
-	// dynamically create the trim column names
+	// dynamically create the percent column names
 	private String[] percentColumnArr;
 	
 	@Override
@@ -85,7 +85,7 @@ public class PercentLambda extends AbstractMapLambda {
 			
 			// throw an error
 			throw new SemossPixelException(
-					new NounMetadata("No column input recognized in Trim", 
+					new NounMetadata("Could not find column " + valueToFind + " in Percent routine",
 							PixelDataType.CONST_STRING, 
 							PixelOperationType.ERROR));
 		}
