@@ -82,7 +82,7 @@ public class SubstringLambda extends AbstractMapLambda {
 		if(this.substringColumn == null) {
 			// throw an error
 			throw new SemossPixelException(
-					new NounMetadata("Could not find column " + valueToFind,
+					new NounMetadata("Could not find column " + valueToFind + " in Substring routine",
 							PixelDataType.CONST_STRING, 
 							PixelOperationType.ERROR));
 		}

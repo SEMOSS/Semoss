@@ -61,7 +61,7 @@ public class TrimLambda extends AbstractMapLambda {
 			
 			// throw an error
 			throw new SemossPixelException(
-					new NounMetadata("No column input recognized in Trim", 
+					new NounMetadata("Could not find column " + valueToFind + " in Trim routine",
 							PixelDataType.CONST_STRING, 
 							PixelOperationType.ERROR));
 		}
