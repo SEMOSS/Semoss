@@ -21,7 +21,6 @@ public class ConcatLambda extends AbstractMapLambda {
 	private List<Object> constantValues;
 	// dynamically create the concat column name
 	private String concatColumn;
-	private String[] concatColumnArr;
 	
 	@Override
 	public IHeadersDataRow process(IHeadersDataRow row) {
@@ -41,7 +40,7 @@ public class ConcatLambda extends AbstractMapLambda {
 		
 		// copy the row so we dont mess up references
 		IHeadersDataRow rowCopy = row.copy();
-		rowCopy.addFields(this.concatColumnArr, new Object[]{concatValue});
+		rowCopy.addFields(this.concatColumn, concatValue);
 		return rowCopy;		
 	}
 	
@@ -94,8 +93,6 @@ public class ConcatLambda extends AbstractMapLambda {
 				this.concatColumn += "_" + o;
 			}
 		}
-		
-		this.concatColumnArr = new String[]{this.concatColumn};
 		
 		// need to add a new entity for the column
 		Map<String, Object> headerMap = new HashMap<String, Object>();
