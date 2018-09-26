@@ -1,88 +1,73 @@
-get_userdata<-function(startDate,endDate,tokenPath){
+dataitem_history_do<-function(fileroot){
 # Description
-# Retrieve the event data from GA project site then parse 
-# and assemble them with the requested level of details
+# Extract from GA tracking data queries data items history
 # Arguments
-# startDate - starting date for analysis
-# endDate - en date for analysis
-
-library(RGoogleAnalytics);
-library(httr);
-set_config(config(ssl_verifypeer = 0L))
-
-load(tokenPath)
-# Validate the token
-ValidateToken(token)
-
-viewID="ga:151491080"
-dim=c("1","2","3","4","5")
-query.list<-Init(
-            start.date=startDate,
-            end.date=endDate, 
-            dimensions=paste0(toString(paste("ga:dimension", dim, sep="")),", ga:date"),
-            metrics="ga:totalEvents",
-			sort="-ga:date",
-            max.results=50000,
-            table.id=viewID  
-        )
-ga.query<-QueryBuilder(query.list)
-#ga.df <- GetReportData(ga.query, token)
-#ga.df <- tryCatch({
-#    GetReportData(ga.query, token,paginate_query = T)
-#  }, error = function(e) {
-#    return(data.frame(dimension1 = character(), dimension2 = character(), dimension3 = character(), dimension4 = character(),dimension5 = character(),date = #character(), totalEvents=numeric(1)))
-#  })
-ga.df <- tryCatch({
-	GetReportData(ga.query, token,paginate_query = T)
-	}, error = function(e) {
-	return(GetReportData(ga.query, token))
-})
-gc()
-return(ga.df)
+# fileroot - the root of family of file containing local data recommendation info
+	
+	library(data.table)
+	df<-read.table(file = paste0(fileroot,"-dataquery.tsv"), sep = '\t', header = TRUE)
+	ids<-unique(as.character(df$ID))
+	n<-length(ids)
+	if(n>0){
+		x<-data.table(dbid=character(),database=character(),table=character(),column=character(),user=character(),daysago=integer())
+		for(i in 1:n){
+			unit<-df[df$ID %in% ids[i],]
+			m<-nrow(unit)
+			for(j in 1:m){
+				daysago<-as.integer(Sys.Date()-as.Date(unit[j,"TIME"]))
+				x<-rbindlist(list(x,list(as.character(unit[j,"ENGINE_ID"]),as.character(unit[j,"ENGINE_NAME"]),
+				as.character(unit[j,"TABLE_NAME"]),as.character(unit[j,"COLUMN_NAME"]),as.character(unit[j,"USER_ID"]),
+				daysago)))
+			}
+		}
+	}
+	saveRDS(x,paste0(fileroot,"-history.rds"))
+	gc()
 }
 
 
-dataitem_history<-function(df,fileroot){
+dataitem_history_dopar<-function(fileroot){
 # Description
 # Extract from GA tracking data queries data items history
 # Arguments
 # df - data queries info from the tracked period
 # filename - name of the file the data items history will be saved to
-	sep="$"
-	z<-df[df$dimension1=="dataquery",c("dimension2","dimension5","date")]
+	
+	library(doParallel)
 	library(data.table)
-	library(jsonlite)
-	x<-data.table(dbid=character(),database=character(),table=character(),column=character(),user=character(),daysago=integer())
-	n<-nrow(z)
-	for(i in 1:n){
-		tryCatch({
-			recdate<-as.Date(paste0(substr(z[i,3],1,4),"-",substr(z[i,3],5,6),"-",substr(z[i,3],7,8)))
-			data<-fromJSON(z[i,1])
-			user<-z[i,2]
-			rows<-data[[1]]
-			cols<-ncol(rows)
-			m<-nrow(rows)
-			if(m > 0){
-				for(j in 1:m){
-					daysago<-as.integer(Sys.Date()-recdate)
-					if(cols==6){
-						x<-rbindlist(list(x,list(rows[j,1],"",rows[j,2],rows[j,3],user,daysago)))
-					}else if(cols==7){
-						x<-rbindlist(list(x,list(rows[j,2],rows[j,1],rows[j,3],rows[j,4],user,daysago)))
-					}
-				}
+
+	df<-read.table(file = paste0(fileroot,"-dataquery.tsv"), sep = '\t', header = TRUE)
+	parseRows<-function(unit){	
+		x<-data.table(dbid=character(),database=character(),table=character(),column=character(),user=character(),daysago=integer())
+		
+		m<-nrow(unit)
+		for(j in 1:m){
+				daysago<-as.integer(Sys.Date()-as.Date(unit[j,"TIME"]))
+				x<-rbindlist(list(x,list(as.character(unit[j,"ENGINE_ID"]),as.character(unit[j,"ENGINE_NAME"]),
+				as.character(unit[j,"TABLE_NAME"]),as.character(unit[j,"COLUMN_NAME"]),as.character(unit[j,"USER_ID"]),
+				daysago)))
 			}
-		}, warning = function(w) {
-			#warning-handler-code
-		}, error = function(e) {
-			#error-handler-code
-		}, finally = {
-			#cleanup-code
-		})
+		return(x)
+	}		
+
+	ids<-unique(as.character(df$ID))
+	n<-length(ids)
+	if(n>0){
+		cores <- detectCores(logical = FALSE)
+		cl <- makeCluster(cores)
+		registerDoParallel(cl, cores=cores)
+		r<-foreach(i=1:n, .init=data.frame(),.combine=rbind, .packages=c("data.table" )) %dopar% 
+		{
+			unit<-df[df$ID %in% ids[i],]
+			parseRows(unit)
+		}
+		stopImplicitCluster()
+		stopCluster(cl)
 	}
+	saveRDS(r,paste0(fileroot,"-history.rds"))
 	gc()
-	saveRDS(x,paste0(fileroot,"-history.rds"))
 }
+
 
 get_dataitem_rating<-function(fileroot,type,tfidf){
 # Description
@@ -496,7 +481,7 @@ locate_user_communities<-function(fileroot){
 # Arguments
 # fileroot - file root containing the latest data items matrix
 	library(igraph)
-	r<-read_datamatrix(fileroot)
+	#r<-read_datamatrix(fileroot)
 	sim<-readRDS(paste0(fileroot,"-usersim.rds"))
 	
 	diag(sim)=0
@@ -530,6 +515,16 @@ drilldown_communities<-function(comList,ind){
 	myList[[3]]<-com.ind
 	gc()
 	return(myList)
+}
+
+locate_data_district<-function(fileroot,users=vector()){
+	if(length(users) > 0){
+		neighbors<-unlist(locate_data_communities(fileroot,users)[[4]])
+		neighbors<-neighbors[neighbors !="null"]
+		out<-locate_data_communities(fileroot,neighbors)
+		saveRDS(unlist(out[[3]]),paste0(fileroot,"-datadistrict.rds"))
+		gc()
+	}
 }
 
 locate_data_communities<-function(fileroot,users=vector(),items=vector()){
@@ -625,13 +620,13 @@ get_items_users<-function(fileroot,items){
 	return(items_users)
 }
 
-refresh_base<-function(df,fileroot){
+refresh_base<-function(fileroot){
 # Description
 # Manage data domain construction
 # arguments
 # df - dataframe with data tracking info
 # fileroot - file root of the data domain files
-	dataitem_history(df,fileroot)
+	dataitem_history_dopar(fileroot)
 	get_dataitem_rating(fileroot,type="database",tfidf=T)
 	#build_sim(fileroot)
 }
@@ -670,11 +665,15 @@ blend_tracking_semantic<-function(r,s){
 }
 
 blend_mgr<-function(fileroot){
-	r<-readRDS(paste0(fileroot,"-matrix.rds"))
-	s<-readRDS(paste0(fileroot,"-database-sim.rds"))
-	x<-blend_tracking_semantic(r,s)
-	saveRDS(x,paste0(fileroot,"-blended-matrix.rds"))
-	gc()
+	if(file.exists(paste0(fileroot,"-matrix.rds")) & file.exists(paste0(fileroot,"-database-sim.rds"))){
+		r<-readRDS(paste0(fileroot,"-matrix.rds"))
+		s<-readRDS(paste0(fileroot,"-database-sim.rds"))
+		x<-blend_tracking_semantic(r,s)
+		saveRDS(x,paste0(fileroot,"-blended-matrix.rds"))
+		gc()
+	}else{
+		print("Database user matrix or database similarity matrix is not found")
+	}
 	
 }
 
@@ -684,7 +683,7 @@ remove_files<-function(fileroot){
 	file.remove(filenames)
 }
 
-data_domain_mgr<-function(startDate,endDate,fileroot){
+data_domain_mgr<-function(fileroot){
 # Description
 # Construct data domain to provide  a user data recommendations
 # Arguments
@@ -693,22 +692,103 @@ data_domain_mgr<-function(startDate,endDate,fileroot){
 # fileroot - file root of the data domain files
 	# retrieve tracking data
 	remove_files(fileroot)
-	df<-get_userdata(startDate,endDate,"./token_file")
-	# construct user data rating matrix
-	refresh_base(df,fileroot)
 
-	# construct data semantic history
-	found<-datasemantic_history(df,fileroot) # should be called with local semantic update
-	if(found){
+	# construct user data rating matrixsemantic_tracking_mgr
+	refresh_base(fileroot)
+
+	# update data semantic history based on the csv retrieve from the semantic tracking table
+	filename<-paste0(fileroot,"-datasemantic.tsv")
+	if(file.exists(filename)){
+		df<-read.table(file = filename, sep = '\t', header = TRUE)
+		saveRDS(df,paste0(fileroot,"-semantic-history.rds"))
 		# New addition - calculate databases domain (documents, term document matrix, lsi space)
 		build_dbid_domain(fileroot)
 		# construct data semantic similarity
-		column_lsi_mgr(fileroot,"description","score",0.8)
+		column_lsi_mgr(fileroot,"DESCRIPTION","SCORE",0.8)
 		compute_column_desc_sim(fileroot)
 		compute_entity_sim(fileroot)
 		# blend data semantic into user item rating matrix
 		blend_mgr(fileroot)
+	}else{
+		print("Semantic data update not found!")
 	}
+
+	# construct user similarity and data similarity matrices
+	build_sim(fileroot)
+	gc()
+}
+
+refresh_data_mgr<-function(fileroot,users=vector()){
+# Description
+# Construct data domain to provide  a user data recommendations with the existing local semantic file
+# Arguments
+# startDate - starting date for the data retrieval tracking span
+# endDate - ending date for the data retrieval tracking span
+# fileroot - file root of the data domain files
+
+	# construct user data rating matrix
+	refresh_base(fileroot)
+
+	filename<-paste0(fileroot,"-semantic-history.rds")
+	if(file.exists(filename)){
+		# New addition - calculate databases domain (documents, term document matrix, lsi space)
+		build_dbid_domain(fileroot)
+		# construct data semantic similarity
+		column_lsi_mgr(fileroot,"DESCRIPTION","SCORE",0.8)
+		compute_column_desc_sim(fileroot)
+		compute_entity_sim(fileroot)
+		# blend data semantic into user item rating matrix
+		blend_mgr(fileroot)
+	}else{
+		print("Semantic history data not found")
+	}
+	# construct user similarity and data similarity matrices
+	build_sim(fileroot)
+	# construct neighborhood data communities
+	locate_data_district(fileroot,users)
+	gc()
+}
+
+refresh_semantic_mgr<-function(fileroot){
+# Description
+# Construct data domain to provide  a user data recommendations
+# Arguments
+# fileroot - file root of the data domain files
+# df_sample - the sample of instances from the database we are uploading
+
+	
+	# update data semantic history based on the tsv retrieve from the semantic tracking table
+	filename<-paste0(fileroot,"-datasemantic.tsv")
+	if(file.exists(filename)){
+		# read new semantic file
+		df<-read.table(file = filename, sep = '\t', header = TRUE)
+		
+		# if the semantic history file exists update it with new data, otherwise save new as existing
+		filename<-paste0(fileroot,"-semantic-history.rds")
+		if(file.exists(filename)){
+			df$Original_Column<-paste(df$ENGINE_ID,df$ENGINE_NAME,df$TABLE_NAME,sep="$")
+			exist_df<-readRDS(filename)
+			exist_df$Original_Column<-paste(exist_df$ENGINE_ID,exist_df$ENGINE_NAME,exist_df$TABLE_NAME,sep="$")
+			exist_df<-exist_df[!(exist_df$Original_Column %in% df$Original_Column),]
+			exist_df<-rbind(exist_df,df)
+			exist_df<-exist_df[,!(colnames(exist_df) == "Original_Column")]
+			saveRDS(exist_df,filename)
+		}else{
+			saveRDS(df,filename)
+		}
+		
+		# New addition - calculate databases domain (documents, term document matrix, lsi space)
+		build_dbid_domain(fileroot)
+		# construct data semantic similarity
+		column_lsi_mgr(fileroot,"DESCRIPTION","SCORE",0.8)
+		compute_column_desc_sim(fileroot)
+		compute_entity_sim(fileroot)
+		# blend data semantic into user item rating matrix
+		blend_mgr(fileroot)
+	}else{
+		print("Semantic data update not found!")
+	}
+
 	# construct user similarity and data similarity matrices
 	build_sim(fileroot)
 	gc()

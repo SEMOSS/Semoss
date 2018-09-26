@@ -55,7 +55,10 @@ build_tdm<-function(desc_tbl,desc_col,freq_col,vocabulary=NULL,weighted=TRUE){
 	# Aggregate scores and compute count
 	freq<-count(desc_tbl$Original_Column)
 	names(freq)[1]<-"Original_Column"
-	freq1<-aggregate(desc_tbl$score,list(desc_tbl$Original_Column),sum)
+	
+	cmd<-paste0("freq1<-aggregate(desc_tbl$",freq_col,",list(desc_tbl$Original_Column),sum)")
+	eval(parse( text=cmd ))
+	#freq1<-aggregate(desc_tbl$SCORE,list(desc_tbl$Original_Column),sum)
 	names(freq1)[1]<-"Original_Column"
 	freq<-merge(freq,freq1,by.x="Original_Column",by.y="Original_Column")
 	names(freq)[3]<-"score"
