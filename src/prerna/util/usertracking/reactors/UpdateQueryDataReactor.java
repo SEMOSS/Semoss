@@ -7,9 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -19,17 +19,15 @@ import prerna.util.Utility;
  * Creates the .rds files used to generate data recommendations
  */
 public class UpdateQueryDataReactor extends AbstractRFrameReactor {
-	protected AbstractRJavaTranslator rJavaTranslator;
 	private static final String CLASS_NAME = UpdateQueryDataReactor.class.getName();
 
 	@Override
 	public NounMetadata execute() {
-
+		init();
 		// NEW: Updating "dataquery.tsv" and storing it in working directory
 		String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/query";
 		String FILE_NAME = "dataitem-dataquery.tsv";
 		String path = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\";
-
 		try {
 			InputStream in = new URL(FILE_URL).openStream();
 			Files.copy(in, Paths.get(path + FILE_NAME), StandardCopyOption.REPLACE_EXISTING);
@@ -38,9 +36,6 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 		}
 
 		// Updating the local file using "dataquery.tsv"
-		this.rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
-		this.rJavaTranslator.startR();
-		//TODO call init
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String rwd = "wd_" + Utility.getRandomString(8);
 		StringBuilder rsb = new StringBuilder();
@@ -80,8 +75,7 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 				+ "\"remove_files\",           \"semantic_tracking_mgr\", \"" + rwd + "\")";
 
 		this.rJavaTranslator.runR(gc);
-
-		return null;
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 }
