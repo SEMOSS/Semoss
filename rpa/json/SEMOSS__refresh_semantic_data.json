@@ -1,0 +1,10 @@
+{
+  "-jobName": "refresh_semantic_data",
+  "-jobGroup": "SEMOSS",
+  "-jobCronExpression": "0 0 9 ? * WED *",
+  "-jobClass": "RunPixelJob",
+  "pixel": "UpdateSemanticData()",
+  "-jobTriggerOnLoad": false,
+  "-active": true,
+  "hidden":true
+}
