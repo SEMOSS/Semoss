@@ -7,9 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -19,11 +19,11 @@ import prerna.util.Utility;
  */
 public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 
-	protected AbstractRJavaTranslator rJavaTranslator;
 	private static final String CLASS_NAME = UpdateSemanticDataReactor.class.getName();
 
 	@Override
 	public NounMetadata execute() {
+		init();
 		// NEW: Updating "datasemantic.tsv" and storing it in working directory
 		String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/semantic";
 		String FILE_NAME = "dataitem-datasemantic.tsv";
@@ -37,8 +37,6 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 		}
 
 		// Updating the local file using "datasemantic.tsv"
-		this.rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(CLASS_NAME));
-		this.rJavaTranslator.startR();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String rwd = "wd_" + Utility.getRandomString(8);
 		StringBuilder rsb = new StringBuilder();
@@ -86,8 +84,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 				+ "\"refresh_semantic_mgr\",               \"remove_files\"," + "\"semantic_tracking_mgr\", \"" + rwd
 				+ "\");";
 		this.rJavaTranslator.runR(gc);
-
-		return null;
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 }
