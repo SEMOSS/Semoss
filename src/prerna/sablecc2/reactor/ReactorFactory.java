@@ -300,7 +300,6 @@ import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
 import prerna.sablecc2.reactor.utils.PostRequestReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
-import prerna.sablecc2.reactor.utils.StoreUniqueColumnsReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.sablecc2.reactor.workflow.InsightDatasourcesReactor;
@@ -316,7 +315,6 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ga.reactors.DatabaseRecommendationReactor;
 import prerna.util.ga.reactors.GetDatabasesByDescriptionReactor;
-import prerna.util.ga.reactors.UpdateGAHistoricalDataReactor;
 import prerna.util.ga.reactors.VisualizationRecommendationReactor;
 import prerna.util.git.reactors.AddAppCollaborator;
 import prerna.util.git.reactors.CopyAppRepo;
@@ -336,6 +334,9 @@ import prerna.util.git.reactors.SyncApp;
 import prerna.util.git.reactors.SyncAppFiles;
 import prerna.util.git.reactors.SyncAppFilesOAuth;
 import prerna.util.git.reactors.SyncAppOAuth;
+import prerna.util.usertracking.reactors.StoreUniqueColumnsReactor;
+import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
+import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
 import prerna.util.usertracking.reactors.WidgetTrackingReactor;
 
 public class ReactorFactory {
@@ -756,11 +757,12 @@ public class ReactorFactory {
 		reactorHash.put("UnscheduleJob", UnscheduleJobReactor.class);
 		reactorHash.put("ListAllJobs", ListAllJobsReactor.class);
 		reactorHash.put("RescheduleExistingJob", RescheduleExistingJobReactor.class);
-
-		// GA
+		// User Tracking
+		reactorHash.put("UpdateSemanticData", UpdateSemanticDataReactor.class);
+		reactorHash.put("UpdateQueryData", UpdateQueryDataReactor.class);
+		// Recommendations
 		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationReactor.class);
 		reactorHash.put("VizRecommendations", VisualizationRecommendationReactor.class);
-		reactorHash.put("UpdateGAHistoricalData", UpdateGAHistoricalDataReactor.class);
 		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		
 		// Dates
