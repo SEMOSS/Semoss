@@ -45,32 +45,52 @@ build_data_landmarks<-function(fileroot){
 }
 
 build_dbid_domain<-function(fileroot){
+# Description
+# Constructs LSA space for given databases on their descriptions
+# Arguments
+# fileroot - name of the file root for the data items history will be saved to
 	SEP<-"$"
-	x<-readRDS(paste0(fileroot,"-semantic-history.rds"))
-	#x$Original_Column<-sapply(strsplit(x$Original_Column, "[$]"), "[", 1)
-	x$Original_Column<-paste0(sapply(strsplit(x$Original_Column, "[$]"), "[", 1),SEP,sapply(strsplit(x$Original_Column, "[$]"), "[", 2),SEP)
-	x<-x[order(x$Original_Column),]
-	dbids<-unique(x$Original_Column)
-	library(data.table)
-	tbl<-data.table(Original_Column=character(),description=character(),score=numeric(),user=character());
-	n<-length(dbids)
-	if(n>0){
-		for(i in 1:n){
-			y<-x[x$Original_Column==dbids[i],]
-			if(nrow(y)>0){
-				z<-Reduce(paste,y$description)
-				tbl<-rbindlist(list(tbl,list(dbids[i],z,1,as.character(y[1,"user"]))))
+	filename<-paste0(fileroot,"-semantic-history.rds")
+	if(file.exists(filename)){
+		x<-readRDS(paste0(fileroot,"-semantic-history.rds"))
+		x$Original_Column<-paste0(x$ENGINE_ID,SEP,x$ENGINE_NAME)
+		x<-x[order(x$Original_Column),]
+		dbids<-unique(x$Original_Column)
+		library(data.table)
+		tbl<-data.table(Original_Column=character(),description=character(),score=numeric(),user=character());
+		n<-length(dbids)
+		if(n>0){
+			for(i in 1:n){
+				y<-x[x$Original_Column==dbids[i],]
+				if(nrow(y)>0){
+					z<-Reduce(paste,y$DESCRIPTION)
+					if("USER_ID" %in% colnames(x)){
+						tbl<-rbindlist(list(tbl,list(dbids[i],z,1,as.character(y[1,"USER_ID"]))))
+					}else{
+						tbl<-rbindlist(list(tbl,list(dbids[i],z,1,"")))
+					}
+				}
 			}
+			saveRDS(tbl,paste0(fileroot,"-dbid-desc.rds"))
 		}
-		saveRDS(tbl,paste0(fileroot,"-dbid-desc.rds"))
+		lsa_filename<-paste0(fileroot,"-dbid-desc-lsa")
+		lsi_mgr(tbl,"description","score",filename_lsa=lsa_filename)
+	}else{
+		print("Semantic history data not found")
 	}
-	lsa_filename<-paste0(fileroot,"-dbid-desc-lsa")
-	lsi_mgr(tbl,"description","score",filename_lsa=lsa_filename)
 	gc()
 }
 
 find_db<-function(fileroot,query_string,margin=0.1,low_limit=0.5){
+# Description
+# Discoverers the the database(s) most similar to a give search string
+# Arguments
+# fileroot - name of the file root for the data items history will be saved to
+# quesry_string - search string to find similar databases
+# low_limit - the lowest level of similarity between the search string and database required
+# margin - the margin between the most similar database to the search string and that is still acceptable
 	# retrieve lsa space info
+	library(data.table)
 	query_tbl<-data.table(description=character(),score=numeric());
 	query_tbl<-rbindlist(list(query_tbl,list(query_string,1)))
 	myLSAspace=readRDS(paste0(fileroot,"-dbid-desc-lsa.rds"))
@@ -84,7 +104,7 @@ find_db<-function(fileroot,query_string,margin=0.1,low_limit=0.5){
 	dbids<-get_similar_doc("description",lookup_tbl,q_doc,myLSAspace,margin,low_limit,orig_col="Original_Column")
 	dbids$dbid<-sapply(strsplit(dbids$item_id, "[$]"), "[", 1)
 	dbids$dbname<-sapply(strsplit(dbids$item_id, "[$]"), "[", 2)
-	dbids<-dbids<-dbids[,c(3,4,2)]
+	dbids<-dbids[,c(3,4,2)]
 	gc()
 	return(dbids)
 }
