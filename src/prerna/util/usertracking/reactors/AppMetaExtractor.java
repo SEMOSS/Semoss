@@ -35,12 +35,12 @@ import prerna.util.usertracking.TrackRequestThread;
  * Adds unique count to owl file for each column
  *
  */
-public class StoreUniqueColumnsReactor extends AbstractRFrameReactor {
+public class AppMetaExtractor extends AbstractRFrameReactor {
 	
-	private static final String CLASS_NAME = StoreUniqueColumnsReactor.class.getName();
+	private static final String CLASS_NAME = AppMetaExtractor.class.getName();
 	public static final String DESCRIPTIONS_BOOL = "descriptions";
 
-	public StoreUniqueColumnsReactor() {
+	public AppMetaExtractor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), DESCRIPTIONS_BOOL};
 	}
 
