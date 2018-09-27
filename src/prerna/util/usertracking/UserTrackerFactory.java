@@ -5,16 +5,21 @@ import prerna.util.DIHelper;
 public class UserTrackerFactory {
 
 	private static IUserTracker instance;
+	private static boolean tOn = false;
 	
 	private UserTrackerFactory() {
 		
 	}
 	
 	public static IUserTracker getInstance() {
-		if(instance == null) {
+		if (instance == null) {
 			instance = createInstance();
 		}
 		return instance;
+	}
+
+	public static boolean isTracking() {
+		return tOn;
 	}
 	
 	/**
@@ -52,6 +57,7 @@ public class UserTrackerFactory {
 				// this happens if DIHelper isn't loaded
 				// occurs when testing
 			}
+			tOn= true;
 			return new TableUserTracker();
 		}
 		return new NullUserTracker();
