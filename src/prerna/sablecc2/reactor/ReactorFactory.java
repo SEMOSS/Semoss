@@ -334,7 +334,7 @@ import prerna.util.git.reactors.SyncApp;
 import prerna.util.git.reactors.SyncAppFiles;
 import prerna.util.git.reactors.SyncAppFilesOAuth;
 import prerna.util.git.reactors.SyncAppOAuth;
-import prerna.util.usertracking.reactors.StoreUniqueColumnsReactor;
+import prerna.util.usertracking.reactors.AppMetaExtractor;
 import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
 import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
 import prerna.util.usertracking.reactors.WidgetTrackingReactor;
@@ -419,16 +419,16 @@ public class ReactorFactory {
 		reactorHash.put("PostRequest", PostRequestReactor.class);
 		reactorHash.put("IsAppInsight", IsAppInsightReactor.class);
 		reactorHash.put("CheckRPackages", CheckRPackagesReactor.class);
-		reactorHash.put("StoreUniqueValuesCount", StoreUniqueColumnsReactor.class);
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
 		reactorHash.put("WidgetT", WidgetTrackingReactor.class);
 		
-		//Database uploading utils
+		// Database uploading utils
 		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
 		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
+		reactorHash.put("ExtractAppMeta", AppMetaExtractor.class);
 		// Excel Data validation
 		reactorHash.put("GetExcelForm", ExcelDataValidationReactor.class);
 		
