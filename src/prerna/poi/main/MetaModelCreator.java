@@ -24,6 +24,8 @@ import prerna.util.ArrayUtilityMethods;
  */
 public class MetaModelCreator {
 
+	private CSVFileHelper helper;
+	
 	// column headers
 	private String[] columnHeaders;
 	private Map<String, SemossDataType> dataTypeMap;
@@ -33,7 +35,7 @@ public class MetaModelCreator {
 	private CreatorMode mode;
 
 	//start and end row to read, won't be less than 2
-	private int endRow = 2; 
+	private int endRow = Integer.MAX_VALUE; 
 	private int startRow = 2;
 	
 	//the instance data we will use for prediction
@@ -57,6 +59,8 @@ public class MetaModelCreator {
 	public enum CreatorMode {AUTO, PROP};
 
 	public MetaModelCreator(CSVFileHelper helper, CreatorMode setting) {
+		this.helper = helper;
+		
 		this.mode = setting;
 		this.columnHeaders = helper.getHeaders();
 
@@ -73,20 +77,6 @@ public class MetaModelCreator {
 				additionalDataTypeMap.put(columnHeaders[colIdx], (String) prediction[1]);
 			}
 		}
-		
-		// if the mode is not set
-		// it means we are dealing with the new flat table
-		this.data = new ArrayList<>(500);
-
-		String [] cells = null;
-		int count = 1;
-		while((cells = helper.getNextRow()) != null) {
-			if(count <= limit) {
-				data.add(cells);
-			}
-			count++;
-		}
-		this.endRow = count;
 	}
 	
 	public MetaModelCreator(CSVFileHelper helper, CreatorMode setting, String propFile) {
@@ -121,19 +111,6 @@ public class MetaModelCreator {
 			}
 			dataTypeMap.put(columnHeaders[colIdx], SemossDataType.convertStringToDataType(dataType));
 		}
-		
-		// if the mode is not set
-		// it means we are dealing with the new flat table
-		this.data = new ArrayList<>(500);
-		String [] cells = null;
-		int count = 1;
-		while((cells = helper.getNextRow()) != null) {
-			if(count <= limit) {
-				data.add(cells);
-			}
-			count++;
-		}
-		this.endRow = count;
 	}
 
 	/**
@@ -142,7 +119,7 @@ public class MetaModelCreator {
 	public void constructMetaModel() throws Exception{		
 		switch (this.mode) {
 		case AUTO: {
-			autoGenerateMetaModel(); break;
+			genData(); autoGenerateMetaModel(); break;
 		}
 
 		case PROP: {
@@ -152,6 +129,22 @@ public class MetaModelCreator {
 		default: break;
 		
 		}
+	}
+	
+	private void genData() {
+		// if the mode is not set
+		// it means we are dealing with the new flat table
+		this.data = new ArrayList<>(500);
+
+		String [] cells = null;
+		int count = 1;
+		while((cells = helper.getNextRow()) != null) {
+			if(count <= limit) {
+				data.add(cells);
+			}
+			count++;
+		}
+		this.endRow = count;
 	}
 
 	/**
@@ -536,6 +529,16 @@ public class MetaModelCreator {
 	public Map<String, String> getAdditionalDataTypeMap() {
 		return this.additionalDataTypeMap;
 	}
+	
+	//////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////
+	
 	
 	//Use this to test metamodel creator
 	public static void main(String[] args) {
