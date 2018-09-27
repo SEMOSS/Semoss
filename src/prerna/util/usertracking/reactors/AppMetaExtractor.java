@@ -29,6 +29,7 @@ import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.usertracking.TrackRequestThread;
+import prerna.util.usertracking.UserTrackerFactory;
 
 /**
  * Generates column descriptions and stores in the tracking database
@@ -67,9 +68,11 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 			owl.addUniqueCounts(engine);
 		}
 		
-		// store descriptions if requested
-		if(descriptions){
-			storeColumnDescriptions(engine);
+		if (UserTrackerFactory.isTracking()) {
+			// store descriptions if requested
+			if (descriptions) {
+				storeColumnDescriptions(engine);
+			}
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
