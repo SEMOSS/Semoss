@@ -150,6 +150,10 @@ public class SemossDate {
 	 */
 	public Date getDate() {
 		if(this.date == null) {
+			if(this.strDate == null || this.strDate.isEmpty()) {
+				// do not even attempt if empty or null
+				return null;
+			}
 			SimpleDateFormat formatter = new SimpleDateFormat(this.pattern);
 			try {
 				this.date = formatter.parse(this.strDate);
