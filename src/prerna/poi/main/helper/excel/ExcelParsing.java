@@ -18,6 +18,8 @@ import prerna.poi.main.helper.FileHelperUtil;
 
 public class ExcelParsing {
 
+	private static final int NUM_ROWS_TO_PREDICT_TYPES = 500;
+	
 	private ExcelParsing() {
 		
 	}
@@ -95,9 +97,9 @@ public class ExcelParsing {
 	private static void predictTypesLoop(Sheet sheet, int[] rangeIndex, Object[][] predictedTypes, List<Map<String, Integer>> additionalFormatTracker, int cellIndex, int colIndex) {
 		int startRow = rangeIndex[1];
 		int endRow = rangeIndex[3];
-		// only use up to 1000 rows for determining the types
-		if(endRow - startRow > 1000) {
-			endRow = startRow + 1000;
+		// only use up to 500 rows for determining the types
+		if(endRow - startRow > NUM_ROWS_TO_PREDICT_TYPES) {
+			endRow = startRow + NUM_ROWS_TO_PREDICT_TYPES;
 		}
 
 		SemossDataType type = null;
