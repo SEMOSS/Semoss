@@ -527,21 +527,18 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// need to account for null inputs
-		boolean addNullCheck = false;
-		if(objects.contains(null)) {
-			addNullCheck = true;
+		boolean addNullCheck = objects.contains(null);
+		if(addNullCheck) {
 			objects.remove(null);
 		}
 		
-		StringBuilder filterBuilder = null;
+		StringBuilder filterBuilder = new StringBuilder();;
 		// add the null check now
 		if(addNullCheck) {
 			// can only work if comparator is == or !=
 			if(thisComparator.equals("==")) {
-				filterBuilder = new StringBuilder();
 				filterBuilder.append("is.na(").append(leftSelectorExpression).append(") ");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-				filterBuilder = new StringBuilder();
 				filterBuilder.append("!is.na(").append(leftSelectorExpression).append(") ");
 			}
 		}
@@ -549,13 +546,6 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		// if there are other instances as well
 		// also add that
 		if(!objects.isEmpty()) {
-			if(filterBuilder == null) {
-				filterBuilder = new StringBuilder();
-			} else {
-				// we added a null check above
-				filterBuilder.append("| ");
-			}
-		
 			boolean multi = false;
 			String myFilterFormatted = null;
 			// format the objects based on the type of the column
@@ -567,7 +557,24 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				// since we cannot use "in" with dates
 				myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), leftDataType);
 			}
-					
+			
+			// account for bad input
+			// example - filtering out empty + null when its a number...
+			if(myFilterFormatted.isEmpty()) {
+				return filterBuilder;
+			}
+			
+			if(addNullCheck) {
+				// we added a null check above
+				// we need to wrap 
+				filterBuilder.insert(0, "(");
+				if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+					filterBuilder.append("& ");
+				} else {
+					filterBuilder.append("| ");
+				}
+			}
+			
 			if(multi) {
 				// special processing for date types
 				if(SemossDataType.DATE == leftDataType) {
@@ -621,6 +628,12 @@ public class RInterpreter extends AbstractQueryInterpreter {
 				}
 			}
 		}
+		
+		if(addNullCheck) {
+			// close due to wrapping
+			filterBuilder.append(")");
+		}
+		
 		return filterBuilder;
 	}
 	
