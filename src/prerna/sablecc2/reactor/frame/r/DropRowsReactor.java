@@ -83,15 +83,13 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 					Object[] arr = (Object[]) value;
 					Object val = arr[0];
 					if (dataType.equalsIgnoreCase("string") || dataType.equalsIgnoreCase("character")) {
-						if (val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
+						if (val == null || val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
 							script.append("is.na(").append(frameExpression).append(") ");
 						} else {
 							if (nounComparator.equals("like")) {
-								script.append("like(").append(frameExpression).append(",").append("\"").append(val)
-										.append("\")");
+								script.append("like(").append(frameExpression).append(",").append("\"").append(val).append("\")");
 							} else {
-								script.append(frameExpression).append(nounComparator).append("\"").append(val)
-										.append("\"");
+								script.append(frameExpression).append(nounComparator).append("\"").append(val).append("\"");
 							}
 						}
 					} else {
@@ -109,8 +107,8 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 									script.append(" | ").append("like(").append(frameExpression).append(",")
 											.append("\"").append(val).append("\")");
 								} else {
-									script.append(" | ").append(frameExpression).append(nounComparator).append("\"")
-											.append(val).append("\"");
+									script.append(" | ").append(frameExpression).append(nounComparator)
+											.append("\"").append(val).append("\"");
 								}
 							}
 						} else {
@@ -150,20 +148,24 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 						script.append(" | ").append(frameExpression).append(nounComparator).append(val);
 					}
 				} else {
-					if (dataType.equalsIgnoreCase("character") || dataType.equalsIgnoreCase("string")) {
-						if (value.toString().equalsIgnoreCase("NULL") || value.toString().equalsIgnoreCase("NA")) {
-							script.append("is.na(").append(frameExpression).append(") ");
-						} else {
+					if (value == null || value.toString().equalsIgnoreCase("NULL") || value.toString().equalsIgnoreCase("NA")) {
+						script.append("is.na(").append(frameExpression).append(") ");
+					} else {
+						if (dataType.equalsIgnoreCase("character") || dataType.equalsIgnoreCase("string")) {
 							if (nounComparator.equals("like")) {
 								script.append("like(").append(frameExpression).append(",").append("\"").append(value)
-										.append("\")");
+								.append("\")");
 							} else {
-								script.append(frameExpression).append(nounComparator).append("\"").append(value)
-										.append("\"");
+								script.append(frameExpression).append(nounComparator).append("\"").append(value).append("\"");
+							}
+						} else {
+							// if empty, and its not a character, it should be a null check
+							if (dataType.equalsIgnoreCase("numeric") || dataType.equalsIgnoreCase("integer")) {
+								script.append("is.na(").append(frameExpression).append(") ");
+							} else {
+								script.append(frameExpression).append(nounComparator).append(value);
 							}
 						}
-					} else {
-						script.append(frameExpression).append(nounComparator).append(value);
 					}
 				}
 			}
