@@ -23,8 +23,9 @@ import prerna.util.Utility;
 
 public class CSVFileHelper {
 	
-	private static final int NUM_ROWS_TO_PREDICT_TYPES = 1000;
-	
+	private static final int NUM_ROWS_TO_PREDICT_TYPES = 500;
+	private static final int NUM_EMPTY_ROWS_TO_IGNORE = 10_000;
+
 	private CsvParser parser = null;
 	private CsvParserSettings settings = null;
 	private char delimiter = ',';
@@ -284,6 +285,7 @@ public class CSVFileHelper {
 			parseColumns(new String[]{col});
 
 			int rowCounter = 0;
+			int emptyCounter = 0;
 			SemossDataType type = null;
 			Map<String, Integer> formatTracker = new HashMap<String, Integer>();
 			additionalFormatTracker.add(colIndex, formatTracker);
@@ -291,7 +293,15 @@ public class CSVFileHelper {
 			String[] row = null;
 			WHILE_LOOP : while(rowCounter < NUM_ROWS_TO_PREDICT_TYPES && ( row = parser.parseNext()) != null) {
 				String val = row[0];
+				// ignore empty values
+				// we will account for a certain amount of empty values
 				if(val.isEmpty()) {
+					emptyCounter++;
+					// if we are over our empty limit
+					// nothing to do
+					if(emptyCounter > NUM_EMPTY_ROWS_TO_IGNORE) {
+						break;
+					}
 					continue;
 				}
 				Object[] prediction = Utility.determineInputType(val);
@@ -322,76 +332,74 @@ public class CSVFileHelper {
 					// just set the type and we are done
 					// we only need to go through when we hit a difference
 					type = newTypePrediction;
+					rowCounter++;
 					continue;
 				}
 				
-				if(type == newTypePrediction) {
-					// well, nothing for us to do if its the same
-					// again, we handle additional formatting
-					// at the top
-					continue;
-				}
-				
-				// if we hit an integer
-				else if(newTypePrediction == SemossDataType.INT) {
-					if(type == SemossDataType.DOUBLE) {
-						// the type stays as double
-						type = SemossDataType.DOUBLE;
-					} else {
-						// we have a number and something else we dont know
-						// default to string
-						type = SemossDataType.STRING;
-						// clear the tracker so we dont send additional format logic
-						formatTracker.clear();
-						break WHILE_LOOP;
+				// well, nothing for us to do if its the same
+				if(type != newTypePrediction) {
+					// if we hit an integer
+					if(newTypePrediction == SemossDataType.INT) {
+						if(type == SemossDataType.DOUBLE) {
+							// the type stays as double
+							type = SemossDataType.DOUBLE;
+						} else {
+							// we have a number and something else we dont know
+							// default to string
+							type = SemossDataType.STRING;
+							// clear the tracker so we dont send additional format logic
+							formatTracker.clear();
+							break WHILE_LOOP;
+						}
+					}
+					
+					// if we hit a double
+					else if(newTypePrediction == SemossDataType.DOUBLE) {
+						if(type == SemossDataType.INT) {
+							// the type stays as double
+							type = SemossDataType.DOUBLE;
+						} else {
+							// we have a number and something else we dont know
+							// default to string
+							type = SemossDataType.STRING;
+							// clear the tracker so we dont send additional format logic
+							formatTracker.clear();
+							break WHILE_LOOP;
+						}
+					}
+					
+					// if we hit a date
+					else if(newTypePrediction == SemossDataType.DATE) {
+						if(type == SemossDataType.TIMESTAMP) {
+							// stick with timestamp
+							type = SemossDataType.TIMESTAMP;
+						} else {
+							// we have a number and something else we dont know
+							// default to string
+							type = SemossDataType.STRING;
+							// clear the tracker so we dont send additional format logic
+							formatTracker.clear();
+							break WHILE_LOOP;
+						}
+					}
+					
+					// if we hit a timestamp
+					else if(newTypePrediction == SemossDataType.TIMESTAMP) {
+						if(type == SemossDataType.DATE) {
+							// stick with timestamp
+							type = SemossDataType.TIMESTAMP;
+						} else {
+							// we have a number and something else we dont know
+							// default to string
+							type = SemossDataType.STRING;
+							// clear the tracker so we dont send additional format logic
+							formatTracker.clear();
+							break WHILE_LOOP;
+						}
 					}
 				}
 				
-				// if we hit a double
-				else if(newTypePrediction == SemossDataType.DOUBLE) {
-					if(type == SemossDataType.INT) {
-						// the type stays as double
-						type = SemossDataType.DOUBLE;
-					} else {
-						// we have a number and something else we dont know
-						// default to string
-						type = SemossDataType.STRING;
-						// clear the tracker so we dont send additional format logic
-						formatTracker.clear();
-						break WHILE_LOOP;
-					}
-				}
-				
-				// if we hit a date
-				else if(newTypePrediction == SemossDataType.DATE) {
-					if(type == SemossDataType.TIMESTAMP) {
-						// stick with timestamp
-						type = SemossDataType.TIMESTAMP;
-					} else {
-						// we have a number and something else we dont know
-						// default to string
-						type = SemossDataType.STRING;
-						// clear the tracker so we dont send additional format logic
-						formatTracker.clear();
-						break WHILE_LOOP;
-					}
-				}
-				
-				// if we hit a timestamp
-				else if(newTypePrediction == SemossDataType.TIMESTAMP) {
-					if(type == SemossDataType.DATE) {
-						// stick with timestamp
-						type = SemossDataType.TIMESTAMP;
-					} else {
-						// we have a number and something else we dont know
-						// default to string
-						type = SemossDataType.STRING;
-						// clear the tracker so we dont send additional format logic
-						formatTracker.clear();
-						break WHILE_LOOP;
-					}
-				}
-				
+				// increment row
 				rowCounter++;
 			}
 			// if an entire column is empty, type will be null
