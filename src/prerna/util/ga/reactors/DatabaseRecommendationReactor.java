@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -37,27 +36,12 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		Logger logger = getLogger(CLASS_NAME);
 		HashMap<String, Object> recommendations = new HashMap<String, Object>();
-
-		// check if packages are installed
 		String[] packages = { "igraph", "jsonlite" };
-
-		String packageError = "";
-		int[] confirmedPackages = this.rJavaTranslator.getIntArray("which(as.logical(lapply(list('"
-				+ StringUtils.join(packages, "','") + "')" + ", require, character.only=TRUE))==F)");
-		// missing packages
-		if (confirmedPackages.length > 0) {
-			for (int i : confirmedPackages) {
-				int index = i - 1;
-				packageError += packages[index] + "\n";
-			}
-			String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
-			logger.info(errorMessage);
-		} else {
+		if (rJavaTranslator.checkPackages(packages, logger)) {
 			// Step 1:
 			// Run an R script to generate all communities, then get
 			// additional data for each engine that exists on this machine,
 			// package it up as a map to add to a list of outputs for the FE.
-
 			boolean accessFlag = getAccessBool();
 			String userName = "null";
 			User user = this.insight.getUser();
@@ -78,8 +62,6 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			// Run another R script to generate user specific recommendations,
 			// add additional data and package as a map to be added to the list
 			// for the FE.
-
-			// run plain db recommendations script
 			String userSpecificOutput = Utility.getRandomString(8);
 			rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName + "\",fileroot);");
 			rsb.append(userSpecificOutput + "<- jsonlite::toJSON(as.data.table(" + userSpecificOutput
@@ -133,7 +115,6 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 				}
 			}
 			recommendations.put("Communities", communitiesList);
-
 			// parse R json response for final recommendation data
 			String userSpecificJson = this.rJavaTranslator.getString(userSpecificOutput);
 			// the script failed or they dont have the historical data
@@ -179,7 +160,6 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 				}
 			}
 			recommendations.put("Recommendations", recommendationsFinal);
-
 			// garbage cleanup -- R script might already do this
 			String gc = "rm(" + communityOutput + ", " + userSpecificOutput
 					+ ",blend_mgr, data_domain_mgr, read_datamatrix, exec_tfidf, "
@@ -190,7 +170,6 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 					+ "get_item_recom, get_user_recom, hop_away_recom_mgr, hop_away_mgr,"
 					+ "locate_user_communities, drilldown_communities, locate_data_communities, "
 					+ "get_items_users, refresh_base);";
-			// remove packages
 			this.rJavaTranslator.runR(gc);
 		}
 		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE,
