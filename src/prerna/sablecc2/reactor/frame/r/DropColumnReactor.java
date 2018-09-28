@@ -57,6 +57,10 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 			// drop filters with this column
 			frame.getFrameFilters().removeColumnFilter(col);
 		}
+
+		// run the script
+		this.rJavaTranslator.runR(builder.toString());
+		
 		// reset the frame headers
 		frame.syncHeaders();
 		
