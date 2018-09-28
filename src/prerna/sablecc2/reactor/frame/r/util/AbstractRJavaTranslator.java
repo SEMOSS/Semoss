@@ -315,10 +315,37 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	}
 
 	/**
-	 * Check if r packages are install throw an error is an r package is missing
+	 * Check if r packages are installed
+	 * 
 	 * @param packages
+	 * @throws IllegalArgumentException
+	 *             error if an r package is missing
 	 */
-    public void checkPackages(String[] packages) {
+	public void checkPackages(String[] packages) {
+		String packageError = "";
+		int[] confirmedPackages = this.getIntArray("which(as.logical(lapply(list('" + StringUtils.join(packages, "','")
+				+ "')" + ", require, character.only=TRUE))==F)");
+
+		if (confirmedPackages.length > 0) {
+			for (int i : confirmedPackages) {
+				int index = i - 1;
+				packageError += packages[index] + "\n";
+			}
+			String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
+			throw new IllegalArgumentException(errorMessage);
+		}
+	}
+
+	/**
+	 * Check if r packages are installed
+	 * 
+	 * @param packages
+	 * @param logger
+	 *            log missing packages
+	 * @return true/false if all packages are installed
+	 */
+    public boolean checkPackages(String[] packages, Logger logger) {
+    	boolean installed = true;
     	String packageError = "";
     	int[] confirmedPackages = this.getIntArray("which(as.logical(lapply(list('" + StringUtils.join(packages,"','") + "')"
     			+ ", require, character.only=TRUE))==F)");
@@ -327,10 +354,12 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
     		for (int i : confirmedPackages){
     			int index = i - 1;
     			packageError += packages[index] + "\n";
+    			installed = false;
     		}
     		String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
-    		throw new IllegalArgumentException(errorMessage);
+    		logger.info(errorMessage);
     	}
+		return installed;
     }
     
 	@Override
