@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -41,7 +42,8 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 		String[] packages = { "igraph", "jsonlite" };
 
 		String packageError = "";
-		int[] confirmedPackages = this.rJavaTranslator.getIntArray("which(as.logical(lapply(list('" + StringUtils.join(packages, "','") + "')" + ", require, character.only=TRUE))==F)");
+		int[] confirmedPackages = this.rJavaTranslator.getIntArray("which(as.logical(lapply(list('"
+				+ StringUtils.join(packages, "','") + "')" + ", require, character.only=TRUE))==F)");
 		// missing packages
 		if (confirmedPackages.length > 0) {
 			for (int i : confirmedPackages) {
@@ -55,14 +57,18 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			// Run an R script to generate all communities, then get
 			// additional data for each engine that exists on this machine,
 			// package it up as a map to add to a list of outputs for the FE.
-			
+
 			boolean accessFlag = getAccessBool();
-			String userName = System.getProperty("user.name");
+			String userName = "null";
+			User user = this.insight.getUser();
+			if (user != null) {
+				userName = user.getAccessToken(user.getLogins().get(0)).getId();
+			}
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			StringBuilder rsb = new StringBuilder();
 			rsb.append(RSyntaxHelper.loadPackages(packages));
-			rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");;
-			rsb.append( "fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ");
+			rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");
+			rsb.append("fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ");
 
 			// run communities script
 			String communityOutput = Utility.getRandomString(8);
@@ -75,16 +81,19 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 
 			// run plain db recommendations script
 			String userSpecificOutput = Utility.getRandomString(8);
-			rsb.append(userSpecificOutput+"<- dataitem_recom_mgr(\"" + userName + "\",fileroot);");
-			rsb.append(userSpecificOutput + "<- jsonlite::toJSON(as.data.table(" + userSpecificOutput + "[2])[,1:2], byrow = TRUE, colNames = TRUE);");
-			this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));			
+			rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName + "\",fileroot);");
+			rsb.append(userSpecificOutput + "<- jsonlite::toJSON(as.data.table(" + userSpecificOutput
+					+ "[2])[,1:2], byrow = TRUE, colNames = TRUE);");
+			this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));
 			List<String> enginesWithAccess = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			ArrayList<Object> communitiesList = new ArrayList<Object>();
 			String communityJson = this.rJavaTranslator.getString(communityOutput);
 			// the script failed or they dont have the historical data
 			if (communityJson != null) {
 				Gson gson = new Gson();
-				ArrayList<HashMap<String, ArrayList<String>>> myList = gson.fromJson(communityJson, new TypeToken<ArrayList<HashMap<String, ArrayList<String>>>>() {}.getType());
+				ArrayList<HashMap<String, ArrayList<String>>> myList = gson.fromJson(communityJson,
+						new TypeToken<ArrayList<HashMap<String, ArrayList<String>>>>() {
+						}.getType());
 
 				// parse R json response for final recommendation data
 				for (int i = 0; i < myList.size(); i++) {
@@ -94,18 +103,20 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 						ArrayList<HashMap<String, Object>> convertedMembers = new ArrayList<HashMap<String, Object>>();
 						for (String member : communityMembers) {
 							String[] id = member.split("\\$");
-							// limit to 10 dbs. Id and name have to be included to be used
+							// limit to 10 dbs. Id and name have to be included
+							// to be used
 							if (id != null && id.length > 1 && communitiesList.size() < 10) {
-								// only send 10 and make sure they exist on this machine
+								// only send 10 and make sure they exist on this
+								// machine
 								HashMap<String, Object> engineDetail = new HashMap<String, Object>();
 								String alias = id[1];
 								String engId = id[0];
 								boolean access = enginesWithAccess.contains(id[0]);
-								if (accessFlag && !access){
+								if (accessFlag && !access) {
 									continue;
 								}
 								String type = "";
-								if (access){
+								if (access) {
 									type = (Utility.getEngine(engId)).getEngineType() + "";
 								}
 								engineDetail.put("appName", alias);
@@ -115,7 +126,7 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 								convertedMembers.add(engineDetail);
 							}
 						}
-						if(!convertedMembers.isEmpty()){
+						if (!convertedMembers.isEmpty()) {
 							communitiesList.add(convertedMembers);
 						}
 					}
@@ -129,15 +140,18 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			ArrayList<Object> recommendationsFinal = new ArrayList<Object>();
 			if (userSpecificJson != null) {
 				Gson gson = new Gson();
-				ArrayList<Map<String, String>> recList = gson.fromJson(userSpecificJson, new TypeToken<ArrayList<HashMap<String, String>>>() {}.getType());
+				ArrayList<Map<String, String>> recList = gson.fromJson(userSpecificJson,
+						new TypeToken<ArrayList<HashMap<String, String>>>() {
+						}.getType());
 				for (int i = 0; i < recList.size(); i++) {
 					Map<String, String> itemMap = recList.get(i);
-					if (itemMap.isEmpty() || itemMap.get("item") == null){
+					if (itemMap.isEmpty() || itemMap.get("item") == null) {
 						continue;
 					}
 					String item = itemMap.get("item");
 					String[] vals = item.split("\\$");
-					// limit to 10 dbs. Id and name have to be included to be used
+					// limit to 10 dbs. Id and name have to be included to be
+					// used
 					if (vals != null && vals.length > 1 && recommendationsFinal.size() < 10) {
 						// only send 10 and make sure they exist on this machine
 						ArrayList<HashMap<String, Object>> convertedMembers = new ArrayList<HashMap<String, Object>>();
@@ -146,11 +160,11 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 						String freq = recList.get(i).get("score");
 						String alias = vals[1];
 						boolean access = enginesWithAccess.contains(vals[0]);
-						if (accessFlag && !access){
+						if (accessFlag && !access) {
 							continue;
 						}
 						String type = "";
-						if (access){
+						if (access) {
 							type = (Utility.getEngine(engId)).getEngineType() + "";
 						}
 						// only return databases the user can access
@@ -179,7 +193,8 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			// remove packages
 			this.rJavaTranslator.runR(gc);
 		}
-		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.RECOMMENDATION);
+		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.RECOMMENDATION);
 	}
 
 	private boolean getAccessBool() {
