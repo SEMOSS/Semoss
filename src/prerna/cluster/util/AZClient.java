@@ -6,11 +6,13 @@ import java.security.InvalidKeyException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Map;
+
+import org.apache.zookeeper.Watcher.Event.EventType;
 
 import prerna.util.DIHelper;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.StorageUri;
@@ -31,13 +33,17 @@ public class AZClient {
 	public static final String SAS_URL = "SAS_URL";
 	public static final String AZ_URI = "AZ_URI";
 	public static final String STORAGE = "STORAGE"; // says if this is local / cluster
-	public static final String ZK_SERVER = "zk";
-	public static final String KEY_HOME = "khome"; // this is where the various keys are cycled
+	public static final String KEY_HOME = "KEY_HOME"; // this is where the various keys are cycled
+	
+	public String azKeyRoot = "/khome";
 	
 	static AZClient client = null;
 	
 	CloudBlobClient serviceClient = null;
 	SharedAccessBlobPolicy sasConstraints = null;
+	String connectionString = null;
+	String blobURI = null;
+	String sasURL = null;
 	
 	protected AZClient()
 	{
@@ -62,9 +68,14 @@ public class AZClient {
 		// and register for the key change
 		// if not.. the storage key is sitting some place pick it up and get it
 		String storage = DIHelper.getInstance().getProperty(STORAGE);
-		String connectionString = null;
-		String blobURI = null;
-		String sasURL = null;
+		
+		Map <String, String> env = System.getenv();
+		if(env.containsKey(KEY_HOME))
+			azKeyRoot = env.get(KEY_HOME);
+
+		if(env.containsKey(KEY_HOME.toUpperCase()))
+			azKeyRoot = env.get(KEY_HOME.toUpperCase());
+
 		
 		if(storage == null || storage.equalsIgnoreCase("LOCAL"))
 		{
@@ -77,8 +88,24 @@ public class AZClient {
 		else
 		{
 			// need the zk piece here
+			ZKClient client = ZKClient.getInstance();
+			connectionString = client.getNodeData(azKeyRoot, client.zk);
+			
+			// if SAS_URL it should starts with SAS_URL=			
+			if(connectionString.startsWith("SAS_URL="))
+				sasURL = connectionString.replace("SAS_URL=", "");
+			
+			AZStorageListener azList = new AZStorageListener();
+			
+			client.watchEvent(azKeyRoot, EventType.NodeDataChanged, azList);
+			
 		}
 
+		createServiceClient();
+	}
+	
+	public void createServiceClient()
+	{
 		try {
 			if(sasURL != null)
 			{
@@ -107,6 +134,7 @@ public class AZClient {
 	{
 		String retString = null;
 		try {
+			//createServiceClient();
 			CloudBlobContainer container = serviceClient.getContainerReference(containerName);
 			container.createIfNotExists();
 			retString = container.getUri() + "?" + container.generateSharedAccessSignature(getSASConstraints(), null); 
@@ -123,6 +151,17 @@ public class AZClient {
 		}
 		
 		return retString;
+	}
+	
+	// swaps the key
+	public void swapKey(String key)
+	{
+		// if sasURL is null then it is account
+		if(sasURL != null)
+			sasURL = key;
+		else
+			connectionString = key;
+		createServiceClient();
 	}
 	
 	public void quarantineContainer(String containerName)
