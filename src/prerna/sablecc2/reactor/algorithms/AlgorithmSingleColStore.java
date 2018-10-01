@@ -4,6 +4,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 
@@ -11,6 +12,7 @@ public class AlgorithmSingleColStore<T> implements Iterator<IHeadersDataRow> {
 
 	private Map<Object, T> store = new Hashtable<Object, T>();
 	private String[] headers;
+	private SemossDataType[] types;
 	
 	// for iterating
 	private boolean init = false;
@@ -35,6 +37,10 @@ public class AlgorithmSingleColStore<T> implements Iterator<IHeadersDataRow> {
 	
 	public void setHeaders(String[] headers) {
 		this.headers = headers;
+	}
+	
+	public void setTypes(SemossDataType[] types) {
+		this.types = types;
 	}
 	
 	@Override

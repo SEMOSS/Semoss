@@ -71,7 +71,7 @@ public class RImporter implements IImporter {
 		// we will flush out the iterator into a CSV file
 		// and use fread() into the temp name
 		String tempTableName = Utility.getRandomString(6);
-		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs);
+		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs, it);
 		this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
 	
 		if(builder.isEmpty(tempTableName)) {
