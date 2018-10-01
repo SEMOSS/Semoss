@@ -36,6 +36,7 @@ public class JobThread extends Thread {
 			//hold();
 			status = JobStatus.COMPLETE;
 		}catch (Exception ex) {
+			ex.printStackTrace();
 			status = JobStatus.ERROR;
 		}
 	}
