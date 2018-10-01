@@ -1,11 +1,6 @@
 package prerna.util.usertracking.reactors;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -16,8 +11,8 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 /**
  * Pulls user query information from tracking end point from the widget table
- * Updates the dataitemquery.tsv containing user query information 
- * Creates the .rds files used to generate data recommendations
+ * Updates the dataitemquery.tsv containing user query information Creates the
+ * .rds files used to generate data recommendations
  */
 public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = UpdateQueryDataReactor.class.getName();
@@ -26,23 +21,38 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		if (UserTrackerFactory.isTracking()) {
 			init();
-			// NEW: Updating "dataquery.tsv" and storing it in working directory
+			String[] packages = new String[] { "Rcpp", "lattice", "codetools", "digest", "foreach", "SnowballC", "lsa",
+					"grid", "plyr", "R6", "futile.options", "magrittr", "formatR", "RcppParallel", "stringi",
+					"data.table", "doParallel", "futile.logger", "Matrix", "lambda.r", "tools", "iterators", "stringr",
+					"mlapi", "text2vec", "parallel", "compiler" };
+			this.rJavaTranslator.checkPackages(packages);
+			// Updating "dataquery.tsv" and storing it in working directory
 			String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/query";
 			String FILE_NAME = "dataitem-dataquery.tsv";
 			String path = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\";
-			try {
-				InputStream in = new URL(FILE_URL).openStream();
-				Files.copy(in, Paths.get(path + FILE_NAME), StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			Logger logger = getLogger(CLASS_NAME);
+			logger.info("Cacheing data query file");
+			long start = System.currentTimeMillis();
+			Utility.copyURLtoFile(FILE_URL, path + FILE_NAME);
+			long end = System.currentTimeMillis();
+			logger.info("Cacheing time " + (end - start) + " ms");
+
+			// Visualization Data
+			logger.info("Cacheing data visualization  file");
+			start = System.currentTimeMillis();
+			FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/visualization";
+			FILE_NAME = "dataitem-visualization.tsv";
+			path = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\";
+			Utility.copyURLtoFile(FILE_URL, path + FILE_NAME);
+			end = System.currentTimeMillis();
+			logger.info("Cacheing time " + (end - start) + " ms");
 
 			// Updating the local file using "dataquery.tsv"
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			String rwd = "wd_" + Utility.getRandomString(8);
 			StringBuilder rsb = new StringBuilder();
 			rsb.append(rwd + "<- getwd();");
-			rsb.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");\n");
+			rsb.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");");
 
 			// generate script for database recommendations
 			rsb.append("source(\"db_recom.r\");");
@@ -50,6 +60,7 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 			rsb.append("source(\"SemanticSimilarity\\lsi_dataitem.r\");");
 			rsb.append("source(\"topic_modelling.r\");");
 			String fileroot = baseFolder + "\\R\\Recommendations\\dataitem";
+			rsb.append("refresh_data_mgr(\"" + fileroot + "\");");
 			rsb.append("data_domain_mgr(\"" + fileroot + "\");");
 			// set the work directory back to normal
 			rsb.append("setwd(" + rwd + ");");
