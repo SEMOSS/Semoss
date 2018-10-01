@@ -746,7 +746,7 @@ public class TableUserTracker implements IUserTracker {
 		row[0] = vStore.get(JobReactor.SESSION_KEY).getValue().toString();
 		row[1] = in.getInsightId();
 		User user = in.getUser();
-		if(user != null) {
+		if(user != null && !user.getLogins().isEmpty()) {
 			String userId = user.getAccessToken(user.getLogins().get(0)).getId();
 			row[2] = userId;
 		}
