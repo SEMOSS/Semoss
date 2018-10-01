@@ -119,9 +119,10 @@ public class APIReactor extends AbstractQueryStructReactor {
 				aliasProp.put("mandatory_input", "");
 			engine.setProp(aliasProp);
 
-			String engineName = Utility.getRandomString(6);
+			String engineName = apiType + Utility.getRandomString(6);
 			qs.setEngineId(engineName);
 			qs.setEngine(engine);
+			engine.setEngineId(engineName);
 		}
 	}
 	
