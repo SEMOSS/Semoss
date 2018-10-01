@@ -1,11 +1,6 @@
 package prerna.util.usertracking.reactors;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -15,8 +10,8 @@ import prerna.util.Utility;
 import prerna.util.usertracking.UserTrackerFactory;
 
 /**
- * Pulls column descriptions from semantic table
- * Generates the .rds files to create recommendations and search
+ * Pulls column descriptions from semantic table Generates the .rds files to
+ * create recommendations and search
  */
 public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 
@@ -28,23 +23,27 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 			init();
 			// NEW: Updating "datasemantic.tsv" and storing it in working
 			// directory
+			String[] packages = new String[] { "Rcpp", "lattice", "codetools", "digest", "foreach", "SnowballC", "lsa",
+					"plyr", "grid", "R6", "futile.options", "magrittr", "formatR", "RcppParallel", "stringi",
+					"data.table", "futile.logger", "Matrix", "lambda.r", "tools", "iterators", "stringr", "mlapi",
+					"text2vec", "compiler" };
+			this.rJavaTranslator.checkPackages(packages);
 			String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/semantic";
 			String FILE_NAME = "dataitem-datasemantic.tsv";
 			String path = DIHelper.getInstance().getProperty("BaseFolder") + "\\R\\Recommendations\\";
-
-			try {
-				InputStream in = new URL(FILE_URL).openStream();
-				Files.copy(in, Paths.get(path + FILE_NAME), StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			Logger logger = getLogger(CLASS_NAME);
+			logger.info("Cacheing data semantic file");
+			long start = System.currentTimeMillis();
+			Utility.copyURLtoFile(FILE_URL, path + FILE_NAME);
+			long end = System.currentTimeMillis();
+			logger.info("Cacheing time " + (end - start) + " ms");
 
 			// Updating the local file using "datasemantic.tsv"
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			String rwd = "wd_" + Utility.getRandomString(8);
 			StringBuilder rsb = new StringBuilder();
 			rsb.append(rwd + "<- getwd();");
-			rsb.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");\n");
+			rsb.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");");
 
 			// generate script for database recommendations
 			rsb.append("source(\"db_recom.r\");");
@@ -58,8 +57,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 			// garbage collection
 			String script = rsb.toString().replace("\\", "/");
 			this.rJavaTranslator.runR(script);
-			String gc = "rm(\"a5_97b6491748854929b50f55f5818b1634\",\"a7_120653ab56db4706b2c536434b3514d3\","
-					+ "\"apply_tfidf\",                        \"assign_unique_concepts\","
+			String gc = "rm(\"apply_tfidf\",                        \"assign_unique_concepts\","
 					+ "\"blend_mgr\",                          \"blend_tracking_semantic\","
 					+ "\"breakdown\",                          \"build_data_landmarks\","
 					+ "\"build_dbid_domain\",                  \"build_query_doc\","
@@ -67,8 +65,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 					+ "\"build_tdm\",                          \"col2db\","
 					+ "\"col2tbl\",                            \"column_doc_mgr_do\","
 					+ "\"column_doc_mgr_dopar\",               \"column_lsi_mgr\","
-					+ "\"compute_column_desc_sim\",            \"compute_entity_sim\","
-					+ "\"con\",                                \"construct_column_doc\","
+					+ "\"compute_column_desc_sim\",            \"compute_entity_sim\"," + "\"construct_column_doc\","
 					+ "\"constructName\",                      \"cosine_jaccard_sim\","
 					+ "\"create_column_doc\",                  \"data_domain_mgr\","
 					+ "\"dataitem_history_do\",                \"dataitem_history_dopar\","
