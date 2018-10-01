@@ -262,12 +262,20 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	private Connection getConnection(){
 		Connection connObj = null;
-		if(isConnected()){
-			return engineConn;
-		}
-		if(this.dataSource!=null){
+		if(isConnected()) {
 			try {
-				connObj= dataSource.getConnection();
+				// re-establish bad connections
+				if(this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
+					this.engineConn = connBuilder.build();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			connObj = engineConn;
+		}
+		if(this.dataSource != null){
+			try {
+				connObj = dataSource.getConnection();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
