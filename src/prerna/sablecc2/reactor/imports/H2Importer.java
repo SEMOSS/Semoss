@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -14,8 +15,11 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -94,7 +98,7 @@ public class H2Importer implements IImporter {
 		// merge vs. a join on the frame
 		// we will do this based on 
 		String[] origHeaders = this.dataframe.getColumnHeaders();
-		List<IQuerySelector> newSelectors = this.qs.getSelectors();
+		List<IQuerySelector> newSelectors = getSelectors();
 		int numNew = newSelectors.size();
 		String[] newHeaders = new String[numNew];
 		for(int i = 0; i < numNew; i++) {
@@ -109,6 +113,21 @@ public class H2Importer implements IImporter {
 		}
 	}
 	
+	private List<IQuerySelector> getSelectors() {
+		if(this.qs instanceof HardSelectQueryStruct) {
+			// we are querying a frame or engine
+			// it is a raw select wrapper
+			String[] headers = ((IRawSelectWrapper) this.it).getHeaders();
+			List<IQuerySelector> selectors = new Vector<IQuerySelector>();
+			for(int i = 0; i < headers.length; i++) {
+				selectors.add(new QueryColumnSelector(headers[i]));
+			}
+			return selectors;
+		} else {
+			return qs.getSelectors();
+		}
+	}
+	
 	private ITableDataFrame performMerge(List<Join> joins, String[] origHeaders, String[] newHeaders) {
 		// need to know the starting headers
 		// we will lose this once we synchronize the frame with the new header info
@@ -119,7 +138,7 @@ public class H2Importer implements IImporter {
 		// define a new temporary table with a random name
 		// we will flush out the iterator into this table
 		String rightTableName = Utility.getRandomString(6);
-		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs);
+		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs, this.it);
 		this.dataframe.addRowsViaIterator(this.it, rightTableName, rightTableTypes);
 		
 		String mergeTable = rightTableName;
@@ -203,7 +222,7 @@ public class H2Importer implements IImporter {
 		Map<String, SemossDataType> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
 
 		// get the columns and types of the new columns we are about to add
-		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs);
+		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs, this.it);
 
 		// these will only be used if we have an outer join!
 		String leftJoinReturnTableName = null;
@@ -442,7 +461,7 @@ public class H2Importer implements IImporter {
 						startNode = startNode.split("__")[1];
 					}
 					String endNode = join.getQualifier();
-					if(newHeaders[i].equals(endNode)) {
+					if(newHeaders[i].equalsIgnoreCase(endNode)) {
 						continue;
 					} else {
 						return false;
