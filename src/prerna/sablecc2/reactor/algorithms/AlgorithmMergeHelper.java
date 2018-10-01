@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.query.querystruct.LambdaQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -22,6 +23,7 @@ public class AlgorithmMergeHelper {
 	public static ITableDataFrame mergeSimpleAlgResult(ITableDataFrame dataFrame, String colNmae, String algorithmColName, String algorithmColType, AlgorithmSingleColStore results) {
 		// set the headers in the result so the iterator it generates is accurate
 		String[] cleanHeaders = new String[2];
+		SemossDataType[] types = new SemossDataType[2];
 		//merge data to frame
 		LambdaQueryStruct qs = new LambdaQueryStruct();
 		// fill in QS with new header info
@@ -64,6 +66,10 @@ public class AlgorithmMergeHelper {
 		qs.setColumnTypes(dataTypes);
 		
 		results.setHeaders(cleanHeaders);
+		types[0] = SemossDataType.convertStringToDataType(dataTypes.get(cleanHeaders[0]));
+		types[1] = SemossDataType.convertStringToDataType(dataTypes.get(cleanHeaders[1]));
+		results.setTypes(types);
+		
 		IImporter importer = ImportFactory.getImporter(dataFrame, qs, results);
 		List<Join> joins = new ArrayList<Join>();
 		Join j = new Join(existingUniqueColName, "left.outer.join", existingUniqueColName);
