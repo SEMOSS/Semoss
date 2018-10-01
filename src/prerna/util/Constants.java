@@ -502,6 +502,9 @@ public class Constants {
 	// how much R memory to allocate
 	public static final String R_MEM_LIMIT = "R_MEM_LIMIT";
 	
+	// is this server running locally
+	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
+	
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
