@@ -168,7 +168,7 @@ public class RdbmsQueryBuilder {
 			}
 			
 			// keep track of join columns on the right table
-			rightTableJoinCols.add(rightTableJoinCol);
+			rightTableJoinCols.add(rightTableJoinCol.toUpperCase());
 			
 			String joinType = j.getJoinType();
 			String joinSql = null;
@@ -261,7 +261,7 @@ public class RdbmsQueryBuilder {
 			if(rightTableCol.contains("__")) {
 				rightTableCol = rightTableCol.split("__")[1];
 			}
-			if(rightTableJoinCols.contains(rightTableCol)) {
+			if(rightTableJoinCols.contains(rightTableCol.toUpperCase())) {
 				counter++;
 				continue;
 			}

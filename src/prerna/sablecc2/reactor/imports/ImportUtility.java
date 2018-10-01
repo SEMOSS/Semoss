@@ -864,7 +864,7 @@ public class ImportUtility {
 
 	// get the data types based on the QueryStruct
 
-	public static Map<String, SemossDataType> getTypesFromQs(SelectQueryStruct qs) {
+	public static Map<String, SemossDataType> getTypesFromQs(SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE) {
 			return getMetaDataFromEngineQs(qs);
@@ -876,10 +876,25 @@ public class ImportUtility {
 			return getMetaDataFromExcelQs((ExcelQueryStruct)qs);
 		} else if(qsType == QUERY_STRUCT_TYPE.LAMBDA) {
 			return getMetaDataFromLambdaQs((LambdaQueryStruct)qs);
+		} else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			return getMetaDataFromQuery((IRawSelectWrapper)it);
+		} else if(qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			return getMetaDataFromQuery((IRawSelectWrapper)it);
 		}
 		else {
 			throw new IllegalArgumentException("Haven't implemented this in ImportUtility yet...");
 		}
+	}
+	
+	private static Map<String, SemossDataType> getMetaDataFromQuery(IRawSelectWrapper wrapper) {
+		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
+
+		String[] headers = wrapper.getHeaders();
+		SemossDataType[] types = wrapper.getTypes();
+		for(int i = 0; i < headers.length; i++) {
+			metaData.put(headers[i], types[i]);
+		}
+		return metaData;
 	}
 	
 	private static Map<String, SemossDataType> getMetaDataFromLambdaQs(LambdaQueryStruct qs) {
@@ -1085,7 +1100,7 @@ public class ImportUtility {
 		boolean foundColumnJoin = false;
 
 		int numSelectors = columns.length;
-		for(int i = 0; i < numSelectors; i++) {
+		SELECTOR : for(int i = 0; i < numSelectors; i++) {
 			String alias = columns[i];
 			for(Join j : joins) {
 				String newColName = j.getQualifier();
@@ -1093,7 +1108,7 @@ public class ImportUtility {
 				// and we do not want to add it as a header
 				if(alias.equals(newColName)) {
 					foundColumnJoin = true;
-					continue;
+					continue SELECTOR;
 				}
 			}
 			
