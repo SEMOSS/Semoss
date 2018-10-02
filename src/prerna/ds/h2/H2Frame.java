@@ -210,7 +210,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		RawRDBMSSelectWrapper it = new RawRDBMSSelectWrapper();
 		it.directExecutionViaConnection(this.builder.getConnection(), query, false);
 		long end = System.currentTimeMillis();
-		logger.info("Time to execute query on H2FRAME = " + (end-start) + "ms");
+		logger.info("Time to execute query on frame = " + (end-start) + "ms");
 		return it;
 	}
 	
