@@ -47,10 +47,19 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 				port = (String) nounPort.getValue();
 			}
 		}
-		logger.info("Connection right now is set to.. " + retCon);
+		
+		if(this.retCon == null) {
+			logger.info("R Connection has not been defined yet...");
+		} else {
+			logger.info("Retrieving existing R Connection...");
+		}
+		
 		if (this.retCon == null) {
 			try {
+				logger.info("Starting R Connection... ");
 				this.retCon = RSingleton.getConnection();
+				logger.info("Successfully created R Connection... ");
+				
 //				port = Utility.findOpenPort();
 //				logger.info("Starting it on port.. " + port);
 //				// need to find a way to get a common name
