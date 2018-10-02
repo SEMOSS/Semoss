@@ -33,7 +33,7 @@ public class AppInfoReactor extends AbstractReactor {
 				// you dont have access
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
-			// user has access!i
+			// user has access!
 			baseInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), appId);
 		} else {
 			// just grab the info
