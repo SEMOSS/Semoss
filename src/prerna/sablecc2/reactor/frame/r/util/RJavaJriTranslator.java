@@ -70,9 +70,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			}
 		}
 		if(retEngine == null) {
-			logger.info("R Connection has not been defined yet");
+			logger.info("R Connection has not been defined yet...");
 		} else {
-			logger.info("Connection right now is set to: " + retEngine);
+			logger.info("Retrieving existing R Connection...");
 		}
 		
 		if(retEngine == null) {
@@ -81,8 +81,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				lock.lock();
 				try {
 					// start the R Engine
+					logger.info("Starting R Connection... ");
 					retEngine = generateEngine();
-					logger.info("Successfully created engine.. ");
+					logger.info("Successfully created R Connection... ");
 	
 					// load all the libraries
 					Object ret = retEngine.eval("library(splitstackshape);");
