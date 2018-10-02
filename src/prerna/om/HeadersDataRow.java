@@ -1,7 +1,6 @@
 package prerna.om;
 
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.Vector;
 
 import com.google.gson.Gson;
@@ -22,7 +21,6 @@ public class HeadersDataRow implements IHeadersDataRow{
 	
 	private Vector <Object> vecValues = null;
 	private Vector <String> vecHeaders = null;
-	private Hashtable <String, Integer> headerCardinalityHash = new Hashtable <String, Integer>();
 	
 	public HeadersDataRow(String[] headers, Object[] values) {
 		this(headers, headers, values, values);
@@ -208,5 +206,10 @@ public class HeadersDataRow implements IHeadersDataRow{
 	@Override
 	public String[] getRawHeaders() {
 		return rawHeaders;
+	}
+
+	@Override
+	public HEADERS_DATA_ROW_TYPE getHeaderType() {
+		return IHeadersDataRow.HEADERS_DATA_ROW_TYPE.HEADERS_DATA_ROW;
 	}
 }

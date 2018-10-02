@@ -6,6 +6,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.date.SemossDate;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.om.HeadersDataRow;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -64,6 +66,10 @@ public class GsonUtility {
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
 				.registerTypeAdapter(SEMOSSEdge.class, new SEMOSSEdgeAdapter())
+				
+				// cluster
+				.registerTypeAdapter(IHeadersDataRow.class, new IHeadersDataRowAdapter())
+				.registerTypeAdapter(HeadersDataRow.class, new HeadersDataRowAdapter())
 				;
 		
 		if(testing) {
