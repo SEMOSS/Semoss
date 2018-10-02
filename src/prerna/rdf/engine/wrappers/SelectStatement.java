@@ -191,6 +191,12 @@ public class SelectStatement  implements ISelectStatement {
 		
 	}
 
+	@Override
+	public HEADERS_DATA_ROW_TYPE getHeaderType() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 //	@Override
 //	public boolean equals(ISelectStatement other){
 //		boolean equal = false;
