@@ -23,6 +23,8 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
+		String[] packages  = new String[] {"data.table", "plyr"};
+		this.rJavaTranslator.checkPackages(packages);
 		// get Pixel inputs
 		RDataTable frame = (RDataTable) this.getFrame();
 		String frameName = frame.getTableName();
@@ -43,7 +45,7 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		rsb.append(tempFrame + " <- " + tempFrame + "[" + tempFrame + "$" + instanceCol + ".x != " + tempFrame + "$" + instanceCol + ".y,];");
 		//# drop opposites i.e. a=b and b=a
 		rsb.append(tempFrame + " <- " + tempFrame + "[!duplicated(apply(" + tempFrame + ",1,function(x) paste(sort(x),collapse=''))),];");
-		rsb.append(tempFrame + " <- count(" + tempFrame + ", c('" + instanceCol + ".x', '" + instanceCol + ".y')); ");
+		rsb.append(tempFrame + " <- plyr::count(" + tempFrame + ", c('" + instanceCol + ".x', '" + instanceCol + ".y')); ");
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, instanceCol + ".x", instanceCol + "_1"));
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, instanceCol + ".y", instanceCol + "_2"));
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, "freq", "Heat"));
