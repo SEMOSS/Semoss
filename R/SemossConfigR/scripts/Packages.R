@@ -46,11 +46,12 @@ install.packages("plyr")
 install.packages("WikidataR")
 install.packages("curl")
 install.packages("openssl")
-#install.packages("httr")
 install.packages("jsonlite")
 install.packages("WikipediR")
 install.packages("LSAfun")
 install.packages("text2vec")
+#install.packages("httr")
+
 
 # Database semantic
 install.packages("lsa")
@@ -59,10 +60,36 @@ install.packages("lsa")
 #install.packages("plyr")
 #install.packages("stringdist")
 
-# Google Analytics
-url <- "https://cran.r-project.org/src/contrib/Archive/RGoogleAnalytics/RGoogleAnalytics_0.1.1.tar.gz"
-install.packages(url, repos=NULL)
-install.packages("lubridate")
+# Recommendations
+install.packages('Rcpp')
+install.packages('lattice')
+install.packages('codetools')
+install.packages('digest')
+install.packages('foreach')
+install.packages('SnowballC')
+install.packages('futile.options')
+install.packages('futile.logger')
+install.packages('magrittr')
+install.packages('formatR')
+install.packages('RcppParallel')
+install.packages('stringi')
+install.packages("Matrix")
+install.packages("lambda.r")
+install.packages("doParallel")
+install.packages('grid')
+install.packages('tools')
+install.packages('iterators')
+install.packages('mlapi')
+install.packages('compiler')
+install.packages('lubridate')
+#install.packages("stringr")
+#install.packages("text2vec")
+#install.packages("parallel")
+#install.packages('lsa')
+#install.packages('plyr')
+#install.packages("R6")
+#install.packages("doParallel")
+
 
 # Edit Rules
 install.packages("validate")
@@ -73,21 +100,20 @@ install.packages("settings")
 install.packages("RcppProgress")
 install.packages("withr")
 install.packages("NLP")
-#install.packages("tidyr")
-#install.packages("devtools")
 install.packages("memoise")
-install.packages("digest")
 install.packages("tidyselect")
 #install.packages("purrr")
+#install.packages("tidyr")
+#install.packages("devtools")
+#install.packages("digest")
 
 # Xray Metamodel
 # install.packages("jsonlite")
 
-
 # Database Recommmendations
-#install.packages("RCurl")
 install.packages("XML")
 install.packages("doParallel")
+#install.packages("RCurl")
 
 # Auto clean
 install.packages("tm")
@@ -101,22 +127,22 @@ install.packages("arules")
 #install.packages("dplyr")
 
 # Classification
-#install.packages("data.table")
 install.packages("partykit")
 #install.packages("dplyr")
+#install.packages("data.table")
 
 # Clustering
 install.packages("cluster")
 
 # LOF
 install.packages("Rlof")
+install.packages("VGAM")
 #install.packages("data.table")
 #install.packages("dplyr")
-install.packages("VGAM")
 
 # Outlier
-#install.packages("data.table")
 install.packages("HDoutliers")
+#install.packages("data.table")
 
 # Random Forest
 install.packages("randomForest")
