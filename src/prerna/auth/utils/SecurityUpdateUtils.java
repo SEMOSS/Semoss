@@ -99,6 +99,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String userName = "sa";
 		String password = "";
 		RDBMSNativeEngine rne = new RDBMSNativeEngine();
+		rne.setEngineId(appId + "_InsightsRDBMS");
 		rne.makeConnection(jdbcURL, userName, password);
 		
 		// i need to delete any current insights for the app
