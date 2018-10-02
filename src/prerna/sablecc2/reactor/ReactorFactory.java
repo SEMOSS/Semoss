@@ -241,6 +241,8 @@ import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.DropBoxFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.DropBoxListFilesReactor;
+import prerna.sablecc2.reactor.qs.source.ExternalJDBCDatabaseReactor;
+import prerna.sablecc2.reactor.qs.source.ExternalJDBCTableReactor;
 import prerna.sablecc2.reactor.qs.source.ExternalJdbcSchemaReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
@@ -506,6 +508,8 @@ public class ReactorFactory {
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
 		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
+		reactorHash.put("ExternalJdbcDatabase", ExternalJDBCDatabaseReactor.class);
+		reactorHash.put("ExternalJdbcTable", ExternalJDBCTableReactor.class);
 		reactorHash.put("URLSource", URLSourceReactor.class);
 		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
 		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
