@@ -63,6 +63,7 @@ public class ZKClient implements Watcher{
 	public String host = "192.168.99.100:8888";
 	public String user = "generic";
 	public String home = "/semoss_root";
+	public String container = "/container";
 	public String app = "/app";
 	public String semossHome = "/opt/semosshome/";
 	
@@ -88,10 +89,10 @@ public class ZKClient implements Watcher{
 		{
 			zkClient = new ZKClient();
 			zkClient.init();
-			if(zkClient.connected)
-			{
-				return zkClient;
-			}
+		}
+		if(zkClient.connected)
+		{
+			return zkClient;
 		}
 		return null;
 	}
@@ -166,6 +167,7 @@ public class ZKClient implements Watcher{
 			if(env.containsKey(SEMOSS_HOME.toUpperCase()))
 				semossHome = env.get(SEMOSS_HOME.toUpperCase());
 			
+			// TODO >>>timb:not sure if the host is needed for both the engine and user containers
 			if(zkServer != null && host != null)
 			{
 				// open zk
@@ -199,6 +201,30 @@ public class ZKClient implements Watcher{
 	}
 	
 
+	public void publishContainer(String ipPort) {
+		try {
+			zk.create(home + container + "/" + ipPort ,  host.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void deleteContainer(String ipPort) {
+		try {
+			zk.delete(home + container + "/" + ipPort, -1);
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	public void deleteDB(String engineID)
 	{
 		// right now I dont have everything.. 
@@ -216,7 +242,6 @@ public class ZKClient implements Watcher{
 		// also need to publish to the user
 		// usally this is home/user
 	}
-
 	
 	// I need another where I say publish database
 	public void publishDB(String engineID)
@@ -226,12 +251,29 @@ public class ZKClient implements Watcher{
 		try {
 			zk.create(home + app + "/" + engineID ,  host.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
 		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			// TODO >>>timb: need to not create if exists
+			System.out.println("Node already exists for " + engineID);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	// TODO >>>timb:ought to do a true zk watch on this (event comes in, then process in some way)
+	public String getHostForDB(String engineID) throws KeeperException, InterruptedException {
+		List<String> apps = zk.getChildren(home + app, false);
+		String host = null;
+		for (String app : apps) {
+			String[] appAndHost = app.split("@");
+			String appId = appAndHost[0];
+			
+			// Since the insights RDBMS engineId = appId_InsightsRDBMS
+			if (engineID.startsWith(appId)) {
+				host = appAndHost[1];
+				break;
+			}
+		}
+		return host;
 	}
 	
 	public String getPayload()

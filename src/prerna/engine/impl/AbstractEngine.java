@@ -177,6 +177,7 @@ public abstract class AbstractEngine implements IEngine {
 					prop.put(Constants.CONNECTION_URL, connURL);
 					prop.put(Constants.USERNAME, insightUsername);
 					this.insightRDBMS.setProperties(prop);
+					this.insightRDBMS.setEngineId(engineId + "_InsightsRDBMS");
 					this.insightRDBMS.openDB(null);
 					
 					boolean tableExists = false;

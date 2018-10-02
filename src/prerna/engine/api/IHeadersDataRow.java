@@ -1,7 +1,21 @@
 package prerna.engine.api;
 
+import com.google.gson.TypeAdapter;
+
+import prerna.util.gson.HeadersDataRowAdapter;
+import prerna.util.gson.IHeadersDataRowAdapter;
+
 public interface IHeadersDataRow{
 
+	// Right now there is only one implementation of IHeadersDataRow
+	enum HEADERS_DATA_ROW_TYPE {HEADERS_DATA_ROW};
+	
+	/**
+	 * Get the type of the header
+	 * @return
+	 */
+	HEADERS_DATA_ROW_TYPE getHeaderType();
+	
 	/**
 	 * Get the headers corresponding to the values by index
 	 * @return
@@ -75,5 +89,31 @@ public interface IHeadersDataRow{
 	// gets a particular field
 	Object getField(String fieldName);
 
+	/*
+	 * 
+	 * Methods around serialization
+	 * 
+	 */
+	
+	// Right now only one ;)
+	static TypeAdapter getAdapterForHeader(HEADERS_DATA_ROW_TYPE type) {
+		if(type == HEADERS_DATA_ROW_TYPE.HEADERS_DATA_ROW) {
+			return new HeadersDataRowAdapter();
+		}		
+		return null;
+	}
+	
+	/**
+	 * Convert string to SELECTOR_TYPE
+	 * @param s
+	 * @return
+	 */
+	static HEADERS_DATA_ROW_TYPE convertStringToHeaderType(String s) {
+		if(s.equals(HEADERS_DATA_ROW_TYPE.HEADERS_DATA_ROW.toString())) {
+			return HEADERS_DATA_ROW_TYPE.HEADERS_DATA_ROW;
+		}
+		return null;
+	}
+	
 	
 }
