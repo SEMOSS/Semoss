@@ -12,7 +12,7 @@ public abstract class GitBaseReactor extends AbstractReactor {
 
 	public String getToken() {
 		User user = insight.getUser();
-		AccessToken gitAccess = user.getAccessToken(AuthProvider.GIT);
+		AccessToken gitAccess = user.getAccessToken(AuthProvider.GITHUB);
 		if(gitAccess == null) {
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "git");

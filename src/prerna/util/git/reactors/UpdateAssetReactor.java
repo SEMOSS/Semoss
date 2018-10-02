@@ -36,7 +36,7 @@ public class UpdateAssetReactor extends AbstractReactor {
 		
 		User user = insight.getUser();
 		String oauth = null;
-		AccessToken gitAccess = user.getAccessToken(AuthProvider.GIT);
+		AccessToken gitAccess = user.getAccessToken(AuthProvider.GITHUB);
 		
 		if(gitAccess == null)
 		{
