@@ -202,5 +202,11 @@ public class AZClient {
 
 	}
 
+	public static void main(String[] args) {
+		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
+		AZClient client = new AZClient();
+		client.init();
+		System.out.println(client.getSAS("timb"));
+	}
 
 }

@@ -103,6 +103,8 @@ import com.ibm.icu.text.DecimalFormat;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.ZKClient;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -2522,6 +2524,30 @@ public class Utility {
 				}
 			} else {
 				System.out.println("There is no SMSS File for the engine " + engineId + "...");
+			}
+		}
+
+		// TODO >>>timb: Centralize this ZK env check stuff // TODO >>>timb: remove node exists error or catch it 
+		// Start with because the insights RDBMS has the id security_InsightsRDBMS
+		if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase") || engineId.startsWith("form_builder_engine"))) {
+			Map<String, String> envMap = System.getenv();
+			if(envMap.containsKey(ZKClient.ZK_SERVER) || envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
+				if(ClusterUtil.LOAD_ENGINES_LOCALLY) {
+					
+					// Only publish if actually loading on this box
+					// TODO >>>timb: this logic only works insofar as we are assuming a user-based docker layer in addition to the app containers
+					String host = "unknown";
+					
+					if(envMap.containsKey(ZKClient.HOST))
+						host = envMap.get(ZKClient.HOST);
+					
+					if(envMap.containsKey(ZKClient.HOST.toUpperCase()))
+						host = envMap.get(ZKClient.HOST.toUpperCase());
+					
+					// we are in business
+					ZKClient client = ZKClient.getInstance();
+					client.publishDB(engineId + "@" + host);
+				}
 			}
 		}
 
