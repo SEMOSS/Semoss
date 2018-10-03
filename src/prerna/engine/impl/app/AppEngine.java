@@ -21,16 +21,15 @@ public class AppEngine extends AbstractEngine {
 		this.baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		this.prop = Utility.loadProperties(propFile);
 		
-		// get engineName
+		// get id & name
+		this.engineId = this.prop.getProperty(Constants.ENGINE);
 		this.engineName = this.prop.getProperty(Constants.ENGINE_ALIAS);
+		
 		// since the URL is most likely parameterized for sharing
 		// create the param hash to fill it in
 		Hashtable <String, String> paramHash = new Hashtable <String, String>();
 		paramHash.put("BaseFolder", baseFolder);
-		if(this.engineName != null) {
-			paramHash.put(Constants.ENGINE, SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		}
-		
+		paramHash.put(Constants.ENGINE, SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		String insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
 		insightDatabaseLoc = Utility.fillParam2(insightDatabaseLoc, paramHash);
 
