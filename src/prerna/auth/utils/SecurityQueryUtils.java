@@ -82,6 +82,31 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	/*
 	 * Querying engine data
 	 */
+	
+	/**
+	 * Get all databases for setting options that the user has access to
+	 * @param usersId
+	 * @param isAdmin
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllUserDatabaseSettings(User user) {
+		String userFilters = getUserFilters(user);
+		String query = "SELECT DISTINCT "
+				+ "ENGINE.ENGINEID as \"app_id\", "
+				+ "ENGINE.ENGINENAME as \"app_name\", "
+				+ "ENGINE.GLOBAL as \"app_global\", "
+				+ "ENGINEPERMISSION.VISIBILITY as \"app_visibility\", "
+				+ "COALESCE(PERMISSION.NAME, 'READ_ONLY') as \"app_permission\" "
+				+ "FROM ENGINE "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
+				+ "LEFT JOIN PERMISSION ON PERMISSION.ID=ENGINEPERMISSION.PERMISSION "
+				+ "WHERE ENGINEPERMISSION.USERID IN " + userFilters + " "
+				+ "OR (ENGINE.GLOBAL=TRUE AND USERID IS NULL) "
+				+ "ORDER BY ENGINE.ENGINENAME";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
 
 	/**
 	 * Get the list of the engine information that the user has access to
@@ -1238,70 +1263,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * Engines
 	 */
 
-	/**
-	 * Get all databases that a certain user has access to.
-	 * @param usersId
-	 * @param isAdmin
-	 * @return
-	 */
-	public static List<Map<String, String>> getUserDatabases(String userId, boolean isAdmin){
-		List<Map<String, String>> ret = new ArrayList<Map<String, String>>();
-
-		if(isAdmin && !userIsAdmin(userId)){
-			throw new IllegalArgumentException("The user isn't an admin");
-		}
-
-		String query = "";
-		List<String[]> engines = new ArrayList<>();
-
-		if(!isAdmin){
-			query = "SELECT ENGINE.ENGINEID AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC, ENGINEPERMISSION.PERMISSION AS DB_PERMISSION, ENGINEPERMISSION.VISIBILITY AS VISIBILITY "
-					+ "FROM ENGINEPERMISSION JOIN ENGINE ON(ENGINEPERMISSION.ENGINEID = ENGINE.ENGINEID)  "
-					+ "WHERE ENGINEPERMISSION.USERID = '?1'";
-			query = query.replace("?1", userId);
-
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			engines = flushRsToListOfStrArray(wrapper);
-		
-
-			query = "SELECT GROUPENGINEPERMISSION.ENGINE AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC, GROUPENGINEPERMISSION.PERMISSION AS DB_PERMISSION, ENGINEGROUPMEMBERVISIBILITY.VISIBILITY AS VISIBILITY "
-					+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) JOIN ENGINE ON (GROUPENGINEPERMISSION.ENGINE = ENGINE.ENGINEID) "
-					+ "JOIN ENGINEGROUPMEMBERVISIBILITY ON(GROUPMEMBERS.GROUPMEMBERSID = ENGINEGROUPMEMBERVISIBILITY.GROUPMEMBERSID AND GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID = ENGINEGROUPMEMBERVISIBILITY.GROUPENGINEPERMISSIONID)  "
-					+ "WHERE GROUPMEMBERS.USERID = '?1'";
-			query = query.replace("?1", userId);
-			
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			engines.addAll(flushRsToListOfStrArray(wrapper));
-
-			engines.addAll(getPublicEngines(engines, null));
-		} else {
-			query = "SELECT ENGINE.ENGINEID AS DB_ID, ENGINE.ENGINENAME AS DB_NAME, ENGINE.GLOBAL AS PUBLIC "
-					+ "FROM ENGINE "
-					+ "WHERE ENGINE.ENGINEID != '1'";
-
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			engines = flushRsToListOfStrArray(wrapper);
-		}
-
-		for(String[] engine : engines) {
-			Map<String, String> dbProp = new HashMap<>();
-
-			dbProp.put("db_id", engine[0]);
-			dbProp.put("db_name", engine[1]);
-			dbProp.put("db_public", engine[2]);
-			if(!isAdmin){
-				if(engine[3] == null){
-					dbProp.put("db_permission", EnginePermission.EDIT.getPermission());
-				} else {
-					dbProp.put("db_permission", EnginePermission.getPermissionValueById(engine[3]));
-				}
-				dbProp.put("db_visibility", engine[4]);
-			}
-			ret.add(dbProp);
-		}
-		return ret;
-	}
-	
 	/**
 	 * Check if user already has a relationship with a certain database
 	 * @param userId
