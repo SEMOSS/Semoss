@@ -1123,10 +1123,15 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
 		interp.setLogger(this.logger);
 		interp.setQueryStruct(qs);
+		logger.info("Generating Gremlin query...");
 		RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interp, qs);
 		gdi.execute();
+		logger.info("Done generating query...");
+		
+		logger.info("Executing query...");
 		QueryStructExpressionIterator qsd = new QueryStructExpressionIterator(gdi, qs);
 		qsd.execute();
+		logger.info("Done executing query");
 		return qsd;
 	}
 	

@@ -197,9 +197,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 		
 		if(query.length() > 500) {
-			logger.info("SQL QUERY....  " + query.substring(0,  500) + "...");
+			logger.debug("SQL QUERY....  " + query.substring(0,  500) + "...");
 		} else {
-			logger.info("SQL QUERY....  " + query);
+			logger.debug("SQL QUERY....  " + query);
 		}
 
 		return query.toString();
