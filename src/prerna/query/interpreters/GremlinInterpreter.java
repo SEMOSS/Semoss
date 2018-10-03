@@ -73,9 +73,9 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		
 		String query = this.gt.toString();
 		if(query.length() > 500) {
-			logger.info("GREMLIN QUERY....  " + query.substring(0,  500) + "...");
+			logger.debug("GREMLIN QUERY....  " + query.substring(0,  500) + "...");
 		} else {
-			logger.info("GREMLIN QUERY....  " + query);
+			logger.debug("GREMLIN QUERY....  " + query);
 		}
 		return this.gt;
 	}

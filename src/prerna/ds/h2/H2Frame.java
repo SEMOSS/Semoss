@@ -206,6 +206,7 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(String query) {
+		logger.info("Executing query...");
 		long start = System.currentTimeMillis();
 		RawRDBMSSelectWrapper it = new RawRDBMSSelectWrapper();
 		it.directExecutionViaConnection(this.builder.getConnection(), query, false);
@@ -216,11 +217,13 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
+		logger.info("Generating SQL query...");
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		SqlInterpreter interp = new SqlInterpreter(this);
 		interp.setQueryStruct(qs);
 		interp.setLogger(this.logger);
 		String iteratorQuery = interp.composeQuery();
+		logger.info("Done generating SQL query");
 		return query(iteratorQuery);
 	}
 

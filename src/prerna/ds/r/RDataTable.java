@@ -149,11 +149,15 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
+		logger.info("Generating R Data Table query...");
 		String query = interp.composeQuery();
-		
+		logger.info("Done generating R Data Table query");
+
+		logger.info("Executing query...");
 		RIterator output = new RIterator(this.builder, query, qs);
 		RawRSelectWrapper it = new RawRSelectWrapper();
 		it.directExecution(output);
+		logger.info("Done executing query");
 		return it;
 	}
 	
