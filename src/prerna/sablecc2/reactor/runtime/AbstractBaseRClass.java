@@ -337,7 +337,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			importer.insertData();
 
 		} else {
-			throw new IllegalArgumentException("Frame must be of type H2");
+			throw new IllegalArgumentException("Frame must be a grid or a native frame in order to move into R for 'Clean Data' and 'Analyze Data' widgets");
 		}
 		// now we return the data
 		this.nounMetaOutput.add(new NounMetadata(table, PixelDataType.FRAME, PixelOperationType.FRAME));
