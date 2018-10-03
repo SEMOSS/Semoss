@@ -55,7 +55,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	public List<Map<String, Object>> getAllUsers(User user) throws IllegalArgumentException{
+	public List<Map<String, Object>> getAllUsers() throws IllegalArgumentException{
 		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER";
 		return getSimpleQuery(query);
 	}
@@ -136,6 +136,23 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
 		return true;
+	}
+	
+	/**
+	 * Get all databases options
+	 * @param usersId
+	 * @param isAdmin
+	 * @return
+	 */
+	public List<Map<String, Object>> getAllUserDatabaseSettings() {
+		String query = "SELECT DISTINCT "
+				+ "ENGINE.ENGINEID as \"app_id\", "
+				+ "ENGINE.ENGINENAME as \"app_name\", "
+				+ "ENGINE.GLOBAL as \"app_global\" "
+				+ "FROM ENGINE "
+				+ "ORDER BY ENGINE.ENGINENAME";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
 	}
 	
 	/**

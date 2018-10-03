@@ -895,7 +895,7 @@ public class ReactorFactory {
 		
 	}
 	
-	private static void populatePandasFrameHash(Map<String, Class> rFrameHash) {
+	private static void populatePandasFrameHash(Map<String, Class> pandasFrameHash) {
 		// TODO Auto-generated method stub
 
 	}
