@@ -9,7 +9,7 @@ import org.apache.log4j.PatternLayout;
 public class InMemoryConsole extends Logger {
 	
 	// the default is mute
-	public enum LOG_LEVEL {BASIC, INFO, WARN, FATAL, MUTE};
+	public enum LOG_LEVEL {BASIC, INFO, DEBUG, WARN, FATAL, MUTE};
 	private LOG_LEVEL level = LOG_LEVEL.BASIC;
 
 	private String jobID;
@@ -65,9 +65,16 @@ public class InMemoryConsole extends Logger {
 	public void info(Object message)
 	{
 		super.info(message);
-		if(level == LOG_LEVEL.INFO || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
-//			message = this.name + " >> " + message;
+		if(level == LOG_LEVEL.INFO || level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
 			JobManager.getManager().addStdOut(jobID, message + "");
+		}
+	}
+	
+	@Override
+	public void debug(Object message) {
+		super.debug(message);
+		if(level == LOG_LEVEL.DEBUG || level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL) {
+			JobManager.getManager().addStdErr(jobID, message + "");
 		}
 	}
 	
@@ -77,8 +84,7 @@ public class InMemoryConsole extends Logger {
 		super.warn(message);
 		if(level == LOG_LEVEL.WARN || level == LOG_LEVEL.FATAL)
 		{
-//			message = this.name + " >> " + message;
-			JobManager.getManager().addStdOut(jobID, message + "");
+			JobManager.getManager().addStdErr(jobID, message + "");
 		}
 	}
 
@@ -88,8 +94,7 @@ public class InMemoryConsole extends Logger {
 		super.fatal(message);
 		if(level == LOG_LEVEL.FATAL)
 		{
-//			message = this.name + " >> " + message;
-			JobManager.getManager().addStdOut(jobID, message + "");
+			JobManager.getManager().addStdErr(jobID, message + "");
 		}
 	}
 }
