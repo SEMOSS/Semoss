@@ -395,7 +395,8 @@ public class RFrameBuilder {
 		if (!columnIndexSet.contains(tableName + "+++" + colName)) {
 			long start = System.currentTimeMillis();
 			String rIndex = null;
-			logger.info("CREATING INDEX ON R TABLE = " + tableName + " ON COLUMN = " + colName);
+			logger.info("Generating index on R Data Table on column = " + colName);
+			logger.debug("CREATING INDEX ON R TABLE = " + tableName + " ON COLUMN = " + colName);
 			try {
 				rIndex = "CREATE INDEX ON " + tableName + "(" + colName + ")";
 				this.rJavaTranslator.executeEmptyR("setindex(" + tableName + "," + colName + ");");
@@ -404,9 +405,10 @@ public class RFrameBuilder {
 					columnIndexSet.add(tableName + "+++" + colName);		
 				}
 				long end = System.currentTimeMillis();
-				logger.info("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
+				logger.debug("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
+				logger.info("Finished generating indices on R Data Table on column = " + colName);
 			} catch (Exception e) {
-				logger.info("ERROR WITH R INDEX !!! " + rIndex);
+				logger.debug("ERROR WITH R INDEX !!! " + rIndex);
 				e.printStackTrace();
 			}
 		}
@@ -419,7 +421,8 @@ public class RFrameBuilder {
 		if (colNamesSet.size() > 0 ){
 			long start = System.currentTimeMillis();
 			String rIndex = null;
-			logger.info("CREATING INDEX ON R TABLE = " + tableName + " ON COLUMN(S) = " + StringUtils.join(colNamesSet,", "));
+			logger.info("Generating index on R Data Table on columns = " + StringUtils.join(colNamesSet,", "));
+			logger.debug("CREATING INDEX ON R TABLE = " + tableName + " ON COLUMN(S) = " + StringUtils.join(colNamesSet,", "));
 			try {
 				rIndex = "CREATE INDEX ON " + tableName + "(" + StringUtils.join(colNamesSet,", ") + ")";
 				this.rJavaTranslator.executeEmptyR("invisible(lapply(c('" + StringUtils.join(colNamesSet,"','") + "')" + ", setindexv, x= " + tableName + "));");
@@ -441,9 +444,10 @@ public class RFrameBuilder {
 				}
 				
 				long end = System.currentTimeMillis();
-				logger.info("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
+				logger.debug("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
+				logger.info("Finished generating indices on R Data Table on columns = " + StringUtils.join(colNamesSet,", "));
 			} catch (Exception e) {
-				logger.info("ERROR WITH R INDEX !!! " + rIndex);
+				logger.debug("ERROR WITH R INDEX !!! " + rIndex);
 				e.printStackTrace();
 			}
 			

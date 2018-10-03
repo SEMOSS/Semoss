@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.h2.tools.RunScript;
@@ -435,9 +436,9 @@ public class H2Builder {
 					}
 					
 					String alterQuery = RdbmsQueryBuilder.makeAlter(tableName, newHeaders.toArray(new String[] {}), newTypes.toArray(new String[] {}));
-					logger.info("ALTERING TABLE: " + alterQuery);
+					logger.debug("ALTERING TABLE: " + alterQuery);
 					runQuery(alterQuery);
-					logger.info("DONE ALTER TABLE");
+					logger.debug("DONE ALTER TABLE");
 					
 					for(String[] tableColIndex : indicesToAdd ) {
 						addColumnIndex(tableColIndex[0], tableColIndex[1]);
@@ -446,8 +447,10 @@ public class H2Builder {
 			} else {
 				// if table doesn't exist then create one with headers and types
 				String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
-				logger.info("CREATING TABLE: " + createTable);
+				logger.info("Generating SQL table");
+				logger.debug("CREATING TABLE: " + createTable);
 				runQuery(createTable);
+				logger.info("Finished generating SQL table");
 			}
 		} catch (Exception e1) {
 			e1.printStackTrace();
@@ -654,7 +657,7 @@ public class H2Builder {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			logger.info("DROPPED H2 TABLE ::: " + tableName);
+			logger.info("DROPPED SQL TABLE ::: " + tableName);
 		} else {
 			logger.info("TABLE " + tableName + " DOES NOT EXIST");
 		}
@@ -1000,7 +1003,8 @@ public class H2Builder {
 			long start = System.currentTimeMillis();
 
 			String indexSql = null;
-			logger.info("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
+			logger.info("Generating index on SQL Table on column = " + colName);
+			logger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			try {
 				String indexName = colName + "_INDEX_" + getNextNumber();
 				indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
@@ -1009,9 +1013,10 @@ public class H2Builder {
 				
 				long end = System.currentTimeMillis();
 
-				logger.info("TIME FOR INDEX CREATION = " + (end - start) + " ms");
+				logger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
+				logger.info("Finished generating indices on SQL Table on column = " + colName);
 			} catch (Exception e) {
-				logger.info("ERROR WITH INDEX !!! " + indexSql);
+				logger.debug("ERROR WITH INDEX !!! " + indexSql);
 				e.printStackTrace();
 			}
 		}
@@ -1026,8 +1031,9 @@ public class H2Builder {
 		if (!multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
 			long start = System.currentTimeMillis();
 
-			StringBuilder indexSqlBuilder = new StringBuilder();;
-			logger.info("CREATING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexNameBuilder);
+			StringBuilder indexSqlBuilder = new StringBuilder();
+			logger.info("Generating index on SQL Table columns = " + StringUtils.join(colNames,", "));
+			logger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexNameBuilder);
 			try {
 				String indexName = multiColIndexNameBuilder + "_INDEX_" + getNextNumber();
 				indexSqlBuilder.append("CREATE INDEX ").append(indexName).append(" ON ").append(tableName)
@@ -1042,9 +1048,10 @@ public class H2Builder {
 				
 				long end = System.currentTimeMillis();
 
-				logger.info("TIME FOR INDEX CREATION = " + (end - start) + " ms");
+				logger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
+				logger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames,", "));
 			} catch (Exception e) {
-				logger.info("ERROR WITH INDEX !!! " + multiColIndexName);
+				logger.debug("ERROR WITH INDEX !!! " + multiColIndexName);
 				e.printStackTrace();
 			}
 		}
@@ -1052,7 +1059,8 @@ public class H2Builder {
 
 	protected void removeColumnIndex(String tableName, String colName) {
 		if (columnIndexMap.containsKey(tableName + "+++" + colName)) {
-			logger.info("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
+			logger.info("Removing index on SQL Table column = " + colName);
+			logger.debug("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			String indexName = columnIndexMap.remove(tableName +  "+++" + colName);
 			try {
 				runQuery("DROP INDEX " + indexName);
@@ -1171,17 +1179,17 @@ public class H2Builder {
 			File dbLocation = null;
 			Connection previousConnection = null;
 			if (isInMem) {
-				logger.info("CONVERTING FROM IN-MEMORY H2-DATABASE TO ON-DISK H2-DATABASE!");
+				logger.debug("CONVERTING FROM IN-MEMORY H2-DATABASE TO ON-DISK H2-DATABASE!");
 				
 				// if was in mem but want to push to specific existing location
 				if (physicalDbLocation != null && !physicalDbLocation.isEmpty()) {
 					dbLocation = new File(physicalDbLocation);
 				}
 			} else {
-				logger.info("CHANGEING SCHEMA FOR EXISTING ON-DISK H2-DATABASE!");
+				logger.debug("CHANGEING SCHEMA FOR EXISTING ON-DISK H2-DATABASE!");
 				
 				if (physicalDbLocation == null || physicalDbLocation.isEmpty()) {
-					logger.info("SCHEMA IS ALREADY ON DISK AND DID NOT PROVIDE NEW SCHEMA TO CHAGNE TO!");
+					logger.debug("SCHEMA IS ALREADY ON DISK AND DID NOT PROVIDE NEW SCHEMA TO CHAGNE TO!");
 					return this.conn;
 				}
 
@@ -1451,7 +1459,8 @@ public class H2Builder {
 	// use this when result set is not expected back
 	public void runQuery(String query) throws Exception {
 		long start = System.currentTimeMillis();
-		logger.info("Running query : " + query);
+		logger.info("Running SQL query");
+		logger.debug("Running query : " + query);
 		Statement stmt = null;
 		try {
 			stmt = getConnection().createStatement();

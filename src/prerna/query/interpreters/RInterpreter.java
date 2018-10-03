@@ -137,9 +137,9 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		}
 
 		if(query.length() > 500) {
-			logger.info("R QUERY....  " + query.substring(0,  500) + "...");
+			logger.debug("R QUERY....  " + query.substring(0,  500) + "...");
 		} else {
-			logger.info("R QUERY....  " + query);
+			logger.debug("R QUERY....  " + query);
 		}
 
 		return query.toString();
