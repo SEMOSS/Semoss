@@ -1118,7 +1118,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
-		qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
+//		qs.mergeRelations(flushRelationships(this.metaData.getAllRelationships()));
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		GremlinInterpreter interp = new GremlinInterpreter(this.g.traversal(), this.metaData);
 		interp.setLogger(this.logger);
