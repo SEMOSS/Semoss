@@ -124,8 +124,12 @@ public class WrapperManager {
 			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 			break;
 		}
+		case REMOTE_SEMOSS : {
+			
+		}
 		default: {
-
+			//TODO: build iterator
+			break;
 		}
 		}
 
@@ -180,6 +184,10 @@ public class WrapperManager {
 			returnWrapper = new WebWrapper();
 			break;
 		}
+		case REMOTE_SEMOSS : {
+			//TODO: build iterator
+			break;
+		}
 		default: {
 
 		}
@@ -192,6 +200,15 @@ public class WrapperManager {
 
 		return returnWrapper;
 	}
+	
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Deprecated methods
+	 */
 
 	@Deprecated
 	public ISelectWrapper getSWrapper(IEngine engine, String query) {
