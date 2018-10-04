@@ -20,7 +20,7 @@ import prerna.om.HeadersDataRow;
 import prerna.util.ConnectionUtils;
 
 // TODO >>>timb: so right now this is the only wrapper extending this class, will need to extend to others (What to do with RDF???)
-public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
+public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IRawSelectWrapper {
 
 	protected Connection conn = null;
 	protected Statement stmt = null;
@@ -40,7 +40,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	protected boolean closeConnectionAfterExecution = false;
 	
 	@Override
-	public void execute() {
+	public void localExecute() {
 		try {
 			Map<String, Object> map = (Map<String, Object>) engine.execQuery(query);
 			this.stmt = (Statement) map.get(RDBMSNativeEngine.STATEMENT_OBJECT);
@@ -65,7 +65,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	@Override
-	public IHeadersDataRow next() {
+	public IHeadersDataRow localNext() {
 		if(currRow == null) {
 			hasNext();
 		}
@@ -79,7 +79,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	@Override
-	public boolean hasNext() {
+	public boolean localHasNext() {
 		if(this.closedConnection) {
 			return false;
 		}
@@ -187,12 +187,12 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	@Override
-	public String[] getHeaders() {
+	public String[] localGetHeaders() {
 		return headers;
 	}
 
 	@Override
-	public SemossDataType[] getTypes() {
+	public SemossDataType[] localGetTypes() {
 		return types;
 	}
 
@@ -205,7 +205,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public void cleanUp() {
+	public void localCleanUp() {
 		if(this.closedConnection) {
 			return;
 		}
@@ -236,7 +236,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public long getNumRecords() {
+	public long localGetNumRecords() {
 		String query = "select (count(*) * " + this.numColumns + ") from (" + this.query + ")";
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -269,7 +269,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public void reset() {
+	public void localReset() {
 		// close current stuff
 		// but we shouldn't close the connection
 		// so store whatever that boolean is as temp
