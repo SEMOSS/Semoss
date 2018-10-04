@@ -5,8 +5,6 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.h2.H2Frame;
-import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc2.om.InMemStore;
@@ -65,19 +63,8 @@ public class InsightUtility {
 		PixelDataType nType = noun.getNounType();
 		if(nType == PixelDataType.FRAME) {
 			ITableDataFrame dm = (ITableDataFrame) noun.getValue();
-			//TODO: expose a delete on the frame to hide this crap
-			// drop the existing tables/connections if present
-			if(dm instanceof H2Frame) {
-				H2Frame frame = (H2Frame)dm;
-				frame.dropTable();
-				if(!frame.isInMem()) {
-					frame.dropOnDiskTemporalSchema();
-				}
-			} else if(dm instanceof RDataTable) {
-				RDataTable frame = (RDataTable)dm;
-				frame.executeRScript("gc(" + frame.getTableName() + ");");
-			}
-			
+			dm.close();
+
 			// if it is the current frame
 			// also remove it
 			if(dm == varStore.get(Insight.CUR_FRAME_KEY)) {
@@ -131,19 +118,7 @@ public class InsightUtility {
 			PixelDataType nType = noun.getNounType();
 			if(nType == PixelDataType.FRAME) {
 				ITableDataFrame dm = (ITableDataFrame) noun.getValue();
-//				dm.setLogger(logger);
-				//TODO: expose a delete on the frame to hide this crap
-				// drop the existing tables/connections if present
-				if(dm instanceof H2Frame) {
-					H2Frame frame = (H2Frame)dm;
-					frame.dropTable();
-					if(!frame.isInMem()) {
-						frame.dropOnDiskTemporalSchema();
-					}
-				} else if(dm instanceof RDataTable) {
-					RDataTable frame = (RDataTable) dm;
-					frame.closeConnection();
-				}
+				dm.close();
 			}
 		}
 //		logger.info("Successfully removed all frames from insight");

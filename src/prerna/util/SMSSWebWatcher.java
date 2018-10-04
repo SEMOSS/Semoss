@@ -39,7 +39,6 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -128,7 +127,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 					engineTypeString = "RDBMS";
 				} else if(rawType.contains("AppEngine")) {
 					engineTypeString = "APP";
-				} else {
+				} else if(rawType.contains("RemoteSemossEngine")) {
+					engineTypeString = "REMOTE";
+				}
+				// default is some rdf
+				else {
 					engineTypeString = "RDF";
 				}
 				DIHelper.getInstance().getCoreProp().setProperty(engineId + "_" + Constants.TYPE, engineTypeString);
@@ -144,28 +147,36 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// if the db folder exsits.. nothing to do
 				// else this needs to be open db
 				// and then register this engine
-				if(prop.containsKey(Constants.ENGINE_TYPE) && prop.get(Constants.ENGINE_TYPE).toString().toUpperCase().contains("REMOTE"))
-				{
-					// this is a remote engine which needs to be registered
-					// but need to see if I need to open DB or not
-					// may be this logic is sitting within open DB
-					// or not
-					try {
-						engine = (IEngine) Class.forName(prop.get(Constants.ENGINE_TYPE)+"").newInstance();
-						engine.openDB(newFile);
-						engine.closeDB();
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+//				if(prop.containsKey(Constants.ENGINE_TYPE) && prop.get(Constants.ENGINE_TYPE).toString().toUpperCase().contains("REMOTE"))
+//				{
+//					// this is a remote engine which needs to be registered
+//					// but need to see if I need to open DB or not
+//					// may be this logic is sitting within open DB
+//					// or not
+//					try {
+//						engine = (IEngine) Class.forName(prop.get(Constants.ENGINE_TYPE)+"").newInstance();
+//						engine.openDB(newFile);
+//						engine.closeDB();
+//					} catch (Exception e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//				}
+				
+				//TODO: need to account for remote!!!!
+				//TODO: need to account for remote!!!!
+				//TODO: need to account for remote!!!!
+				//TODO: need to account for remote!!!!
+				if(!engineTypeString.equals("REMOTE")) {
+					boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
+					boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
+					if(!isLocal & !isSecurity) {
+						// sync up the engine metadata now
+						Utility.synchronizeEngineMetadata(engineId);
+						SecurityUpdateUtils.addApp(engineId);
 					}
-				}
-			
-				boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
-				boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
-				if(!isLocal & !isSecurity) {
-					// sync up the engine metadata now
-					Utility.synchronizeEngineMetadata(engineId);
-					SecurityUpdateUtils.addApp(engineId);
+				} else {
+					System.out.println("Ignoring remote engine ... " + prop.getProperty(Constants.ENGINE_ALIAS) + " >>> " + engineId );
 				}
 			}
 		} catch(Exception e){

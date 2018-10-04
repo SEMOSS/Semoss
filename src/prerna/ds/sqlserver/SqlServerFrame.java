@@ -22,20 +22,6 @@ public class SqlServerFrame extends H2Frame {
 		return "SqlServerFrame";
 	}
 	
-	@Override
-	public void dropTable() {
-		//DO NOTHING!!!
-		System.err.println(" >>>>>>>>>>>>>>>>>>> FOR DEBUGGING PURPOSES NOT DROPPING TABLE" );
-		System.err.println(" >>>>>>>>>>>>>>>>>>> FOR DEBUGGING PURPOSES NOT DROPPING TABLE" );
-		System.err.println(" >>>>>>>>>>>>>>>>>>> FOR DEBUGGING PURPOSES NOT DROPPING TABLE" );
-		System.err.println(" >>>>>>>>>>>>>>>>>>> FOR DEBUGGING PURPOSES NOT DROPPING TABLE" );
-	}
-	
-	@Override
-	public void dropOnDiskTemporalSchema() {
-		this.builder.closeConnection();
-	}
-
 	public void connectToExistingTable(String tableName) {
 		LinkedHashMap<String, String> dataTypeMap = this.builder.connectToExistingTable(tableName);
 		

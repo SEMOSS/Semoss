@@ -512,8 +512,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 	}
 	
+	@Override
+	public void close() {
+		this.metaData.close();
+		logger.debug("Successfully dropped frame metadata");
+	}
 	
-
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -688,6 +692,11 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			logger.info("Collected Raw Data: "+(System.currentTimeMillis() - startTime));
 		}
 		return retHash;
+	}
+	
+	@Deprecated
+	public String getFilterString() {
+		return "";
 	}
 
 //	@Override

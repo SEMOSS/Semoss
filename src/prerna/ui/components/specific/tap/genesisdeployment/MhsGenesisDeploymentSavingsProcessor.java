@@ -27,12 +27,9 @@
  *******************************************************************************/
 package prerna.ui.components.specific.tap.genesisdeployment;
 
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -687,11 +684,8 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			e.printStackTrace();
 		}
 
-		tempFrame.dropTable();
-		if(!tempFrame.isInMem()) {
-			tempFrame.dropOnDiskTemporalSchema();
-		}
-
+		tempFrame.close();
+		
 		return mainSustainmentFrame;
 	}
 
@@ -896,10 +890,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 					}
 
 					// drop the intermediary temp frame
-					tempFrame.dropTable();
-					if(!tempFrame.isInMem()) {
-						tempFrame.dropOnDiskTemporalSchema();
-					}
+					tempFrame.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}

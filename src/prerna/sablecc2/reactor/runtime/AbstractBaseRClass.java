@@ -302,7 +302,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			String tableName = gridFrame.getBuilder().getTableName();
 			synchronizeGridToR(rVarName);
 			if(replaceDefaultInsightFrame) {
-				gridFrame.dropOnDiskTemporalSchema();
+				gridFrame.close();
 			}
 			
 			// now that we have created the frame
@@ -452,7 +452,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			// drop the existing table
 			if (frameIsH2) {
 				frameToUse.setUserId(schemaName);
-				((H2Frame) dataframe).dropTable();
+				((H2Frame) dataframe).close();
 			} else {
 				// this is set when we set the original dataframe
 				// within the reactor
