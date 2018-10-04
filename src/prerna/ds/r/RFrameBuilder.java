@@ -454,6 +454,11 @@ public class RFrameBuilder {
 		}
 	}
 	
+	public void dropTable() {
+		evalR("rm(" + this.dataTableName + ")");
+		evalR("gc()");
+	}
+	
 	/*
 	 * Wrappers around existing emthods in rJavaTranslator
 	 */
@@ -606,5 +611,4 @@ public class RFrameBuilder {
 			System.out.println("OK");
 		}
 	}
-	
 }
