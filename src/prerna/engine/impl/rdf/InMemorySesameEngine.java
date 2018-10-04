@@ -85,11 +85,12 @@ public class InMemorySesameEngine extends AbstractEngine {
 	 * Method setRepositoryConnection. Sets the repository connection.
 	 * @param rc RepositoryConnection. The repository connection that this is being set to.
 	 */
-	public void setRepositoryConnection(RepositoryConnection rc)
+	public void setRepositoryConnection(RepositoryConnection rc) 
 	{
 		this.rc = rc;
-		sc = ((SailRepositoryConnection) rc).getSailConnection();
-		vf = rc.getValueFactory();
+		this.sc = ((SailRepositoryConnection) rc).getSailConnection();
+		this.vf = rc.getValueFactory();
+		this.connected = true;
 	}
 	
 	/**
@@ -117,14 +118,15 @@ public class InMemorySesameEngine extends AbstractEngine {
 	 * safely ends the active transactions and closes the engine.
 	 */
 	public void closeDB() {
-		// ng.stopTransaction(Conclusion.SUCCESS);
-		try {
-			rc.close();
-			connected = false;
-		} catch (RepositoryException e) {
-			e.printStackTrace();
+		if(connected) {
+			try {
+				rc.clear();
+				rc.close();
+				connected = false;
+			} catch (RepositoryException e) {
+				e.printStackTrace();
+			}
 		}
-		// ng.shutdown();
 	}
 
 	/**
