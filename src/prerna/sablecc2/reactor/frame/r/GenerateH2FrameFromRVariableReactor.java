@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import prerna.ds.h2.H2Frame;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -63,9 +64,11 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	public void syncFromR(AbstractRJavaTranslator rJavaTranslator, String rFrameName, H2Frame frame) {
 		// generate the QS
 		// set the column names and types
-		rJavaTranslator.executeR(rFrameName + " <- as.data.table(" + rFrameName + ")");
+		rJavaTranslator.executeR(RSyntaxHelper.asDataTable(rFrameName, rFrameName));
 		// recreate a new frame and set the frame name
 		String[] colNames = rJavaTranslator.getColumns(rFrameName);
+		rJavaTranslator.runR(RSyntaxHelper.cleanFrameHeaders(rFrameName, colNames));
+		colNames = rJavaTranslator.getColumns(rFrameName);
 		String[] colTypes = rJavaTranslator.getColumnTypes(rFrameName);
 
 		if (colNames == null || colTypes == null) {
