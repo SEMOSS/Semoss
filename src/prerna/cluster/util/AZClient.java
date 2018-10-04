@@ -1,5 +1,8 @@
 package prerna.cluster.util;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -11,6 +14,7 @@ import java.util.Map;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
@@ -180,6 +184,7 @@ public class AZClient {
         // get the current time + 24 hours or some
         
         Calendar calendar = Calendar.getInstance();
+        
         calendar.add(Calendar.MINUTE, +20);
         Date date = calendar.getTime();
         
@@ -201,12 +206,34 @@ public class AZClient {
         return sasConstraints;
 
 	}
-
-	public static void main(String[] args) {
+	
+	public static void main(String[] args) throws IOException, InterruptedException {
 		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
-		AZClient client = new AZClient();
-		client.init();
-		System.out.println(client.getSAS("timb"));
+		String sourceContainer = "timb";
+		String sourceProvider = "azureblob";
+		String targetDirectory = "C:\\Users\\tbanach\\Documents\\Workspace\\RCloneDirectory\\TimB\\";
+		AZClient.getInstance().pullApp(sourceContainer, sourceProvider, targetDirectory);
 	}
 
+	public void pullApp(String sourceContainer, String sourceProvider, String targetDirectory) throws IOException, InterruptedException {
+		System.out.println("Generating SAS for container=" + sourceContainer);
+		String sasUrl = client.getSAS(sourceContainer);
+		String rcloneConfig = Utility.getRandomString(10);
+		System.out.println("Pulling app from container=" + sourceContainer + " to target=" + targetDirectory);
+		runProcess("rclone", "config", "create", rcloneConfig, sourceProvider, "sas_url", sasUrl);
+		runProcess("rclone", "ls", rcloneConfig + ":");
+		runProcess("rclone", "copy", rcloneConfig + ":", targetDirectory);
+		runProcess("rclone", "config", "delete", rcloneConfig);
+		System.out.println("Done pulling app from container=" + sourceContainer + " to target=" + targetDirectory);
+	}
+	
+	private static void runProcess(String... command) throws IOException, InterruptedException {
+		ProcessBuilder pb = new ProcessBuilder(command);
+		pb.directory(new File(System.getProperty("user.home")));
+	    pb.redirectOutput(Redirect.INHERIT);
+	    pb.redirectError(Redirect.INHERIT);
+		Process p = pb.start();
+		p.waitFor();
+	}
+		
 }
