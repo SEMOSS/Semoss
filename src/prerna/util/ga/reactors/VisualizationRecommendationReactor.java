@@ -9,8 +9,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -19,6 +19,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
@@ -28,17 +29,27 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 	public static final String MAX_RECOMMENDATIONS = "max";
 
 	/**
-	 * This reactor generates visualization recommendations based on the data in the current frame. 
-	 * It runs 2 R functions, both using historical data tracked in google analytics. 
-	 * One script recommends based on exact matches and semantic matches of columns and the other uses data types, results are combined.
+	 * This reactor generates visualization recommendations based on the data in
+	 * the current frame. It runs 2 R functions, both using historical data
+	 * tracked in server database One script recommends based on exact matches
+	 * and semantic matches of columns and the other uses data types, results
+	 * are combined.
 	 */
-	
+
 	public VisualizationRecommendationReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), MAX_RECOMMENDATIONS };
 	}
 
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		if (user == null) {
+			String message = "Please login to enable recommendation features.";
+			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException exception = new SemossPixelException(noun);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		init();
 		organizeKeys();
 
@@ -49,7 +60,8 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		// convert qs to physical names
 		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
 		if (frame == null) {
-			return new NounMetadata(new HashMap(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
+			return new NounMetadata(new HashMap(), PixelDataType.CUSTOM_DATA_STRUCTURE,
+					PixelOperationType.VIZ_RECOMMENDATION);
 		}
 		String[] qsHeaders = frame.getQsHeaders();
 		OwlTemporalEngineMeta meta = frame.getMetaData();
@@ -57,7 +69,8 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		// prep script components
 		StringBuilder builder = new StringBuilder();
 		String inputFrame = "inputFrame." + Utility.getRandomString(8);
-		builder.append(inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);");
+		builder.append(inputFrame
+				+ " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);");
 
 		// iterate selectors and update data table builder section of R script
 		Map<String, String> aliasHash = new HashMap<String, String>();
@@ -65,14 +78,14 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		for (int i = 0; i < qsHeaders.length; i++) {
 			String name = qsHeaders[i];
 			String alias = name;
-			if(alias.contains("__")) {
+			if (alias.contains("__")) {
 				alias = name.split("__")[1];
 			}
 			List<String[]> dbInfo = meta.getDatabaseInformation(name);
 			int size = dbInfo.size();
 			for (int j = 0; j < size; j++) {
 				String[] engineQs = dbInfo.get(0);
-				if(engineQs.length == 1) {
+				if (engineQs.length == 1) {
 					// we do not know the source of this column
 					continue;
 				}
@@ -88,7 +101,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 
 				// add row to data type R df used for offline recommendations
 				String dataType = meta.getHeaderTypeAsString(name);
-				
+
 				// get unique column values
 				IEngine engine = Utility.getEngine(db);
 				RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
@@ -130,31 +143,32 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 			maxRecommendations = "5";
 		}
 
-		builder.append("source(\"" + baseFolder + "\\R\\Recommendations\\viz_tracking.r\") ; ");
-		builder.append(RSyntaxHelper.getFReadSyntax(historicalDf, baseFolder + "\\R\\Recommendations\\historicalData\\viz_user_history.csv"));
-		builder.append(RSyntaxHelper.asDataFrame(historicalDf, historicalDf));
-		builder.append(recommend + "<-viz_recom_mgr(" + historicalDf + "," + inputFrame + ", \"Grid\", 5); ");
+		builder.append("source(\"" + baseFolder + "\\R\\Recommendations\\viz_recom.r\") ; ");
+		builder.append(recommend + "<-viz_recom_mgr(\"dataitem\"," + inputFrame + ", \"Grid\", 5); ");
 		builder.append("library(jsonlite);");
-		builder.append( outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);");
-		
-		// combine script pieces and execute in R
+		builder.append(outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);");
 		this.rJavaTranslator.runR(builder.toString().replace("\\", "/"));
 
 		// receive json string from R
 		String json = this.rJavaTranslator.getString(outputJson + ";");
 		Map recommendations = new HashMap<String, HashMap<String, String>>();
-		Gson gson = new Gson();
-		
+
 		// garbage cleanup -- R script might already do this
-		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", " + "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
+		String gc = "rm(" + outputJson + ", " + recommend + ", " + historicalDf + ", "
+				+ "viz_history, viz_recom, get_userdata, get_reference, viz_recom_offline, viz_recom_mgr);";
 
 		this.rJavaTranslator.runR(gc);
 		// if recommendations fail return empty map
 		if (json == null) {
-			return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
+			return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE,
+					PixelOperationType.VIZ_RECOMMENDATION);
 		}
+
 		// converting physical column names to frame aliases
-		ArrayList<Map<String, String>> myList = gson.fromJson(json, new TypeToken<ArrayList<HashMap<String, String>>>(){}.getType());
+		Gson gson = new Gson();
+		ArrayList<Map<String, String>> myList = gson.fromJson(json,
+				new TypeToken<ArrayList<HashMap<String, String>>>() {
+				}.getType());
 		for (int i = 0; i < myList.size(); i++) {
 			// get all values from R json
 			Map map = new HashMap<String, String>();
@@ -179,7 +193,8 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_RECOMMENDATION);
+		return new NounMetadata(recommendations, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.VIZ_RECOMMENDATION);
 	}
 
 	@Override
