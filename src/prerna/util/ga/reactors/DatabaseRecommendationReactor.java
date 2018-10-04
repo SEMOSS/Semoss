@@ -1,5 +1,6 @@
 package prerna.util.ga.reactors;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +18,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
@@ -37,18 +39,36 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		HashMap<String, Object> recommendations = new HashMap<String, Object>();
 		String[] packages = { "igraph", "jsonlite" };
-		if (rJavaTranslator.checkPackages(packages, logger)) {
+		String userName = "null";
+		User user = this.insight.getUser();
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+
+		// Check to make sure that the necessary files exist
+		File itemsim = new File(baseFolder + "\\R\\Recommendations\\dataitem-itemsim.rds");
+		File usersim = new File(baseFolder + "\\R\\Recommendations\\dataitem-usersim.rds");
+		if (!itemsim.exists() || !usersim.exists()) {
+			String message = "Necessary files missing to generate recommendations. Please run UpdateQueryData().";
+			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException exception = new SemossPixelException(noun);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+
+		if (user == null) {
+			String message = "Please login to enable recommendation features.";
+			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException exception = new SemossPixelException(noun);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+
+		if (rJavaTranslator.checkPackages(packages, logger) && user != null) {
 			// Step 1:
 			// Run an R script to generate all communities, then get
 			// additional data for each engine that exists on this machine,
 			// package it up as a map to add to a list of outputs for the FE.
 			boolean accessFlag = getAccessBool();
-			String userName = "null";
-			User user = this.insight.getUser();
-			if (user != null) {
-				userName = user.getAccessToken(user.getLogins().get(0)).getId();
-			}
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+			userName = user.getAccessToken(user.getLogins().get(0)).getId();
 			StringBuilder rsb = new StringBuilder();
 			rsb.append(RSyntaxHelper.loadPackages(packages));
 			rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");
