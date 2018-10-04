@@ -26,8 +26,8 @@ datasemantic_history<-function(fileroot){
 		colnames(df)[1]<-"ENGINE_ID"
 		df$ENGINE_ID<-sapply(strsplit(df_desc$Original_Column, "[$]"), "[", 1)
 		df$ENGINE_NAME<-sapply(strsplit(df_desc$Original_Column, "[$]"), "[", 2)
-		df$TABLE<-sapply(strsplit(df_desc$Original_Column, "[$]"), "[", 3)
-		df$COLUMN<-sapply(strsplit(df_desc$Original_Column, "[$]"), "[", 4)
+		df$TABLE_NAME<-sapply(strsplit(df_desc$Original_Column, "[$]"), "[", 3)
+		df$COLUMN_NAME<-sapply(strsplit(df_desc$Original_Column, "[$]"), "[", 4)
 		df$Original_Column<-df_desc$Original_Column
 		df<-unique(df)
 		m<-nrow(df)
