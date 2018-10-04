@@ -209,22 +209,38 @@ public class AZClient {
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
-		String sourceContainer = "timb";
-		String sourceProvider = "azureblob";
-		String targetDirectory = "C:\\Users\\tbanach\\Documents\\Workspace\\RCloneDirectory\\TimB\\";
-		AZClient.getInstance().pullApp(sourceContainer, sourceProvider, targetDirectory);
+		String container = "timb";
+		String provider = "azureblob";
+		String directory = "C:\\Users\\tbanach\\Documents\\Workspace\\RCloneDirectory\\TimB\\";
+		AZClient.getInstance().pullApp(container, provider, directory);
+		File test = new File(directory + "test.txt");
+		test.createNewFile();
+		AZClient.getInstance().pushApp(container, provider, directory);
 	}
-
+	
+	// TODO >>>timb: make these based on app id and not the the directory (make util for general files, then one for app id)
 	public void pullApp(String sourceContainer, String sourceProvider, String targetDirectory) throws IOException, InterruptedException {
 		System.out.println("Generating SAS for container=" + sourceContainer);
 		String sasUrl = client.getSAS(sourceContainer);
 		String rcloneConfig = Utility.getRandomString(10);
-		System.out.println("Pulling app from container=" + sourceContainer + " to target=" + targetDirectory);
+		System.out.println("Pulling app from remote=" + sourceContainer + " to target=" + targetDirectory);
 		runProcess("rclone", "config", "create", rcloneConfig, sourceProvider, "sas_url", sasUrl);
 		runProcess("rclone", "ls", rcloneConfig + ":");
 		runProcess("rclone", "copy", rcloneConfig + ":", targetDirectory);
 		runProcess("rclone", "config", "delete", rcloneConfig);
-		System.out.println("Done pulling app from container=" + sourceContainer + " to target=" + targetDirectory);
+		System.out.println("Done pulling app from remote=" + sourceContainer + " to target=" + targetDirectory);
+	}
+
+	public void pushApp(String targetContainer, String targetProvider, String sourceDirectory) throws IOException, InterruptedException {
+		System.out.println("Generating SAS for container=" + targetContainer);
+		String sasUrl = client.getSAS(targetContainer);
+		String rcloneConfig = Utility.getRandomString(10);
+		System.out.println("Pushing app from source=" + sourceDirectory + " to remote=" + targetContainer);
+		runProcess("rclone", "config", "create", rcloneConfig, targetProvider, "sas_url", sasUrl);
+		runProcess("rclone", "copy",  sourceDirectory, rcloneConfig + ":");
+		runProcess("rclone", "ls", rcloneConfig + ":");
+		runProcess("rclone", "config", "delete", rcloneConfig);
+		System.out.println("Done pushing app from source=" + sourceDirectory + " to remote=" + targetContainer);
 	}
 	
 	private static void runProcess(String... command) throws IOException, InterruptedException {
