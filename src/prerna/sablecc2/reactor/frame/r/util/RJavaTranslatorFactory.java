@@ -123,7 +123,7 @@ public class RJavaTranslatorFactory {
 	 * Stop the R connection if running
 	 */
 	public static void stopRConnection() {
-		if(!INIT) {
+		if(INIT) {
 			try {
 				AbstractRJavaTranslator newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
 				Insight dummyIn = new Insight();
