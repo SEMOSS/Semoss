@@ -341,6 +341,12 @@ public class RiGraph extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public void close() {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String uniqueHeaderName, List<String> attributeUniqueHeaderName) {
