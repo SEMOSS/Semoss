@@ -19,6 +19,8 @@ public class RemoteSemossEngine extends AbstractEngine {
 		// get id & name
 		this.engineId = this.prop.getProperty(Constants.ENGINE);
 		this.engineName = this.prop.getProperty(Constants.ENGINE_ALIAS);
+		
+		this.remoteAddress = this.prop.getProperty("REMOTE_ADDRESS");
 	}
 	
 	@Override

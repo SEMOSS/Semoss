@@ -153,6 +153,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return 0;
 	}
 	
+	@Override
+	public void close() {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////
 	
 	

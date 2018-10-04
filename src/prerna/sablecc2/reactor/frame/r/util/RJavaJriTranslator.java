@@ -510,7 +510,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void initREnv() {
 		if(engine != null) {
-			engine.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
+//			engine.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
 		}
 	}
 

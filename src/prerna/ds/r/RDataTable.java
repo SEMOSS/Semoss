@@ -64,24 +64,11 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.builder.setLogger(logger);
 	}
 	
-	public void closeConnection() {
-		// now we only hold 1 connection
-		// do not do this...
-//		if(this.builder.getConnection() != null) {
-//			try {
-//				this.builder.getConnection().shutdown();
-//			} catch (RserveException e) {
-//				logger.info("R Connection is already closed...");
-//			}
-//		}
-	}
-	
-	public String getFilterString() {
-		//TODO:
-		//TODO:
-		return "";
-	}
-	
+	//////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////
+
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
 		// we really need another way to get the data types....
 		Map<String, SemossDataType> rawDataTypeMap = this.metaData.getHeaderToTypeMap();
@@ -311,9 +298,27 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	// generates a row id and binds it
-	public void generateRowIdWithName()
-	{
+	public void generateRowIdWithName() {
 		this.builder.genRowId(getTableName(), "PRIM_KEY_PLACEHOLDER");
+	}
+	
+	@Override
+	public void close() {
+		super.close();
+		this.builder.dropTable();
+		closeConnection();
+	}
+	
+	public void closeConnection() {
+		// now we only hold 1 connection
+		// do not do this...
+//		if(this.builder.getConnection() != null) {
+//			try {
+//				this.builder.getConnection().shutdown();
+//			} catch (RserveException e) {
+//				logger.info("R Connection is already closed...");
+//			}
+//		}
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -389,5 +394,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
+	
+
+	
+	
 
 }

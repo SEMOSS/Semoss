@@ -108,6 +108,14 @@ public class H2Frame extends AbstractTableDataFrame {
 		this.logger = logger;
 		this.builder.setLogger(logger);
 	}
+
+	public String getSchema() {
+		return this.builder.getSchema();
+	}
+
+	public boolean isInMem() {
+		return this.builder.isInMem();
+	}
 	
 	/*************************** AGGREGATION METHODS *************************/
 
@@ -164,10 +172,6 @@ public class H2Frame extends AbstractTableDataFrame {
 
 	
 	/************************** END AGGREGATION METHODS **********************/
-
-	public boolean isInMem() {
-		return this.builder.isInMem();
-	}
 	
 	public void convertToOnDiskFrame(String schema) {
 		String previousPhysicalSchema = null;
@@ -189,21 +193,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		}
 	}
 	
-	public void dropOnDiskTemporalSchema() {
-		if(!isInMem()) {
-			this.builder.closeConnection();
-			String schema = getSchema();
-			File file = new File(schema);
-			String folder = file.getParent();
-			logger.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
-			ICache.deleteFolder(folder);
-		}
-	}
-	
-	public String getSchema() {
-		return this.builder.getSchema();
-	}
-
 	@Override
 	public IRawSelectWrapper query(String query) {
 		logger.info("Executing query...");
@@ -301,16 +290,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		return this.builder.isEmpty(builder.tableName);
 	}
 	
-	/**
-	 * Drop the table and drop the server associated with it if it exists
-	 */
-	public void dropTable() {
-		this.builder.dropTable();
-		if(this.builder.server != null) {
-			this.builder.server.shutdown();
-		}
-	}
-
 	@Override
 	public String getDataMakerName() {
 		return H2Frame.DATA_MAKER_NAME;
@@ -404,15 +383,6 @@ public class H2Frame extends AbstractTableDataFrame {
 		this.builder.removeColumnIndex(tableName, columnName);
 	}
 
-	/**
-	 * Need to return the filters on the frame for reactors
-	 * @return
-	 */
-	public String getSqlFilter() {
-		return null;
-//		return this.builder.getSqlFitler();
-	}
-
 	public void deleteAllRows() {
 		String tableName = getTableName();
 		this.builder.deleteAllRows(tableName);
@@ -433,6 +403,30 @@ public class H2Frame extends AbstractTableDataFrame {
 			meta.setDataTypeToProperty(tableName + "__" + newHeaders[i], types[i]);
 		}
 	}
+	
+	@Override
+	public void close() {
+		super.close();
+		this.builder.dropTable();
+		if(this.builder.server != null) {
+			this.builder.server.shutdown();
+		}
+		if(!isInMem()) {
+			dropOnDiskTemporalSchema();
+		}
+	}
+	
+	private void dropOnDiskTemporalSchema() {
+		if(!isInMem()) {
+			this.builder.closeConnection();
+			String schema = getSchema();
+			File file = new File(schema);
+			String folder = file.getParent();
+			logger.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
+			ICache.deleteFolder(folder);
+		}
+	}
+	
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -728,7 +722,6 @@ public class H2Frame extends AbstractTableDataFrame {
 //
 //		this.builder.processIterator(iterator, adjustedColHeaders,valueHeaders, types, jType);
 	}
-
 
 //	/**
 //	 * Determine if all the headers are taken into consideration within the
