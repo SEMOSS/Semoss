@@ -1,5 +1,6 @@
 package prerna.util.usertracking.reactors.recommendations;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +14,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
@@ -38,20 +40,32 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		// Test with:
-		// GetDatabasesByDescription(description=["movie director money"],
-		// access=[FALSE]);
+		// GetDatabasesByDescription(description=["movie director money"], access=[FALSE]);
 		// GetDatabasesByDescription(description=["movie director money"]);
+		Logger logger = getLogger(CLASS_NAME);
+
+		// Check to make sure that these files exist before searching
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		File lsa = new File(baseFolder + "\\R\\Recommendations\\dataitem-dbid-desc-lsa.rds");
+		File vocab = new File(baseFolder + "\\R\\Recommendations\\dataitem-dbid-desc-lsa-vocab.rds");
+		File desc = new File(baseFolder + "\\R\\Recommendations\\dataitem-dbid-desc.rds");
+		if (!lsa.exists() || !vocab.exists() || !desc.exists()) {
+			String message = "Necessary files missing to generate search results. Please run UpdateQueryData() and UpdateSemanticData().";
+			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException exception = new SemossPixelException(noun);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		init();
 		organizeKeys();
-		Logger logger = getLogger(CLASS_NAME);
 		ArrayList<Object> recommendations = new ArrayList<Object>();
 		if (UserTrackerFactory.isTracking()) {
-			String workDir = "wd" + Utility.getRandomString(8);
-			StringBuilder sb = new StringBuilder();
-			sb.append(workDir + "<- getwd();");
 			// check R packages
 			String[] packages = { "lsa", "text2vec" };
 			this.rJavaTranslator.checkPackages(packages);
+			String workDir = "wd" + Utility.getRandomString(8);
+			StringBuilder sb = new StringBuilder();
+			sb.append(workDir + "<- getwd();");
 			// get input parameters
 			boolean accessFlag = getAccessBool();
 			String description = this.keyValue.get(this.keysToGet[0]);
