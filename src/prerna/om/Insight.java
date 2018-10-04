@@ -41,6 +41,7 @@ import java.util.Vector;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.cache.CacheFactory;
@@ -633,12 +634,8 @@ public class Insight {
 		Set<String> keys = this.varStore.getKeys();
 		for(String key : keys) {
 			NounMetadata noun = this.varStore.get(key);
-			if(noun.getValue() instanceof H2Frame) {
-				H2Frame frame = (H2Frame) noun.getValue();
-				frame.dropTable();
-				if(!frame.isInMem()) {
-					frame.dropOnDiskTemporalSchema();
-				}
+			if(noun.getValue() instanceof ITableDataFrame) {
+				((ITableDataFrame) noun.getValue()).close();
 			}
 		}
 		
@@ -668,12 +665,8 @@ public class Insight {
 				continue;
 			}
 			NounMetadata noun = this.varStore.get(key);
-			if(noun.getValue() instanceof H2Frame) {
-				H2Frame frame = (H2Frame) noun.getValue();
-				frame.dropTable();
-				if(!frame.isInMem()) {
-					frame.dropOnDiskTemporalSchema();
-				}
+			if(noun.getValue() instanceof ITableDataFrame) {
+				((ITableDataFrame) noun.getValue()).close();
 			}
 			// now remove the key
 			keys.remove();

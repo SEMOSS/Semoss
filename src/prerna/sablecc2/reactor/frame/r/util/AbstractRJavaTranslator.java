@@ -402,13 +402,15 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			e.printStackTrace();
 		}
 		
+		String randomVariable = "con" + Utility.getRandomString(6);
 		File f = new File(tempFileLocation);
 		try {
 			script = script.trim();
 			if(!script.endsWith(";")) {
 				script = script +";";
 			}
-			script = "con <- file(\"" + outputLoc + "\"); sink(con, append=TRUE, type=\"output\"); sink(con, append=TRUE, type=\"message\"); " + script + " sink();";
+			script = randomVariable + "<- file(\"" + outputLoc + "\"); sink(" + randomVariable + ", append=TRUE, type=\"output\"); "
+					+ "sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + script + " sink();";
 			FileUtils.writeStringToFile(f, script);
 		} catch (IOException e1) {
 			System.out.println("Error in writing R script for execution!");
@@ -428,6 +430,10 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			f.delete();
 			outputF.delete();
 		}
+		
+		// drop the random con variable
+		this.executeEmptyR("rm(" + randomVariable + ")");
+		this.executeEmptyR("gc()");
 		
 		// return the final output
 		return scriptOutput.trim();

@@ -1243,6 +1243,13 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		return isUnique;
 	}
 	
+	@Override
+	public void close() {
+		super.close();
+		this.g.clear();
+		this.g.close();
+	}
+	
 	
 	
 	

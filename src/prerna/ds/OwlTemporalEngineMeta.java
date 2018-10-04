@@ -1808,6 +1808,13 @@ public class OwlTemporalEngineMeta {
 		}
 	}
 	
+	/**
+	 * Close the meta data
+	 */
+	public void close() {
+		this.myEng.closeDB();
+	}
+	
 //	public void load(String fileName){
 //		Model model = ModelFactory.createDefaultModel();
 //		FileReader in = null;

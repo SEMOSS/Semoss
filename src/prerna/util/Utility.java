@@ -2398,6 +2398,11 @@ public class Utility {
 			return;
 		}
 		
+		// TODO: NEED TO STILL BUILD THIS OUT!
+		if(rawType.contains("RemoteSemossEngine")) {
+			return;
+		}
+		
 		AddToMasterDB adder = new AddToMasterDB();
 
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");

@@ -35,7 +35,7 @@ public class SqlExpressionBuilder extends AbstractExpressionBuilder {
 //		}
 		
 		// add filters
-		String filters = frame.getSqlFilter();
+		String filters = frame.getFilterString();
 		if(filters != null && !filters.isEmpty()) {
 			builder.append(filters);
 		}

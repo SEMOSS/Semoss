@@ -159,6 +159,11 @@ public interface ITableDataFrame extends IDataMaker {
 	
 	void setLogger(Logger logger);
 	
+	/**
+	 * Used to delete the frame
+	 */
+	void close();
+	
 	//////////////////////////////////////////////////
 	
 	// Info that is cached on the frame
