@@ -7,7 +7,6 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.User;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -23,7 +22,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
@@ -32,17 +30,17 @@ import prerna.util.usertracking.TrackRequestThread;
 import prerna.util.usertracking.UserTrackerFactory;
 
 /**
- * Generates column descriptions and stores in the tracking database
- * Adds unique count to owl file for each column
+ * Generates column descriptions and stores in the tracking database Adds unique
+ * count to owl file for each column
  *
  */
 public class AppMetaExtractor extends AbstractRFrameReactor {
-	
+
 	private static final String CLASS_NAME = AppMetaExtractor.class.getName();
 	public static final String DESCRIPTIONS_BOOL = "descriptions";
 
 	public AppMetaExtractor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), DESCRIPTIONS_BOOL};
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), DESCRIPTIONS_BOOL };
 	}
 
 	@Override
@@ -56,66 +54,56 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 		IEngine engine = Utility.getEngine(engineName);
 
 		// validate engine exists
-		if (engine == null){
+		if (engine == null) {
 			throw new IllegalArgumentException("Engine doesnt exist");
 		}
 		String owlPath = engine.getOWL();
 
 		// only executes for rdbms, tinker, and rdf
 		ENGINE_TYPE engineType = engine.getEngineType();
-		if (engineType.equals(ENGINE_TYPE.RDBMS) || engineType.equals(ENGINE_TYPE.SESAME) || engineType.equals(ENGINE_TYPE.TINKER)) {
+		if (engineType.equals(ENGINE_TYPE.RDBMS) || engineType.equals(ENGINE_TYPE.SESAME)
+				|| engineType.equals(ENGINE_TYPE.TINKER)) {
 			OWLER owl = new OWLER(engine, owlPath);
 			owl.addUniqueCounts(engine);
 		}
-		
+
 		if (UserTrackerFactory.isTracking()) {
 			// store descriptions if requested
 			if (descriptions) {
 				storeColumnDescriptions(engine);
 			}
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
-	
+
 	private boolean getDescriptionsBool() {
 		GenRowStruct boolGrs = this.store.getNoun(DESCRIPTIONS_BOOL);
-		if(boolGrs != null) {
-			if(boolGrs.size() > 0) {
+		if (boolGrs != null) {
+			if (boolGrs.size() > 0) {
 				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
 				return (boolean) val.get(0);
 			}
 		}
 		return false;
 	}
-	
+
 	private void storeColumnDescriptions(IEngine engine) {
-		// source all the new r scripts -- check later to see which ones are
-		// truly necessary to source
-		
-		String[] packages = new String[] {"data.table", "WikidataR"};
+		String[] packages = new String[] { "data.table", "WikidataR", "curl", "doParallel", "XML" };
 		Logger logger = this.getLogger(CLASS_NAME);
-		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
-		rJavaTranslator.startR();
+		this.rJavaTranslator.checkPackages(packages);
 		StringBuilder rsb = new StringBuilder();
-		
 		String wd = "wd" + Utility.getRandomString(5);
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		rsb.append(wd +"<- getwd();");
+		rsb.append(wd + "<- getwd();");
 		rsb.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");\n");
 		rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\SemanticSimilarity\\lsi_dataitem.r\");\n");
 		rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\");\n");
 		rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\datasemantic.r\");\n");
 		rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\topic_modelling.r\");\n");
-		rJavaTranslator.runR(rsb.toString().replace("\\", "/"));
+		this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));
 
 		// GENERATING DESCRIPTIONS
-		String userId = "null";
-		User user = this.insight.getUser();
-		if(user != null) {
-			userId = user.getAccessToken(user.getLogins().get(0)).getId();
-		}
-		
 		String rTempTable = "semanticTempTable";
 		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engine.getEngineId());
 		String engineName = engine.getEngineName();
@@ -123,7 +111,8 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 		String seperator = "$";
 		List<Object[]> list = new ArrayList<Object[]>();
 
-		// iterate through all the rows and sample about 15 rows from each of
+		// iterate through all the rows and sample about 15 rows from each
+		// of
 		// those
 		for (Object[] tableCol : allTableCols) {
 			SelectQueryStruct qs = new SelectQueryStruct();
@@ -166,9 +155,10 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 					// write to csv and read into R
 					String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/"
 							+ Utility.getRandomString(6) + ".tsv";
-					String header = engine.getEngineId() + seperator + engine.getEngineName() + seperator + table + seperator + col;
+					String header = engine.getEngineId() + seperator + engine.getEngineName() + seperator + table
+							+ seperator + col;
 					File newFile = CompareDbSemanticSimiliarity.writeResultToFile(newFileLoc, iterator, header);
-					sb.append(RSyntaxHelper.getFReadSyntax(rTempTable, newFile.getAbsolutePath(), "\\t")+"\n");
+					sb.append(RSyntaxHelper.getFReadSyntax(rTempTable, newFile.getAbsolutePath(), "\\t") + "\n");
 
 					// get random subset of column data
 
@@ -176,7 +166,8 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 					sb.append(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),15),c(");
 					sb.append("\"" + engineID + seperator + engineName + seperator + table + seperator + col + "\"");
 					sb.append(")];}\n");
-					logger.info("Generating and storing descriptions for : " + engine.getEngineName() + ", " + table + ", " + col);
+					logger.info("Generating and storing descriptions for : " + engine.getEngineName() + ", " + table
+							+ ", " + col);
 
 					// execute script to get descriptions for this column
 					sb.append(RSyntaxHelper.asDataFrame(rTempTable, rTempTable) + "\n");
@@ -187,40 +178,28 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 					sb.append("result <- result[(result$ENGINE_ID== \"" + engineID + "\" & result$ENGINE_NAME== \""
 							+ engineName + "\" & result$TABLE== \"" + table + "\" & result$COLUMN== \"" + col
 							+ "\"),]");
-					rJavaTranslator.runR(sb.toString());
+					this.rJavaTranslator.runR(sb.toString());
 					newFile.delete();
-					descriptions = rJavaTranslator.getString("result$DESCRIPTION[1]");
+					descriptions = this.rJavaTranslator.getString("as.character(result[1,\"DESCRIPTION\"])");
 					if (descriptions == null) {
 						// no results found
 						continue;
+
 					}
 
-					// Truncate row lengths to be the appropriate lengths before
+					// Truncate row lengths to be the appropriate lengths
+					// before
 					// sending to table
-					if (engineID.length() > 50) {
-						logger.info("Engine ID was too long. Had to truncate.");
-						engineID = engineID.substring(0, 49);
-					} else if (engineName.length() > 255) {
-						logger.info("Engine Name was too long. Had to truncate.");
-						engineName = engineName.substring(0, 254);
-					} else if (table.length() > 255) {
-						logger.info("Table Name was too long. Had to truncate.");
-						table = table.substring(0, 254);
-					} else if (col.length() > 255) {
-						logger.info("Column Name was too long. Had to truncate.");
-						col = col.substring(0, 254);
-					} else if (descriptions.length() > 1000) {
+					if (descriptions.length() > 1000) {
 						logger.info("Description was too long. Had to truncate.");
 						descriptions = descriptions.substring(0, 999);
-					} else if (userId.length() > 50) {
-						logger.info("User ID string was too long. Had to truncate.");
-						userId = userId.substring(0, 49);
 					}
 
-					// Add a new row into the table with the necessary details
+					// Add a new row into the table with the necessary
+					// details
 					// We check to see if this table already exists in the
 					// endpoint
-					Object[] newRow = { engineID, engineName, table, col, descriptions, userId };
+					Object[] newRow = { engineID, engineName, table, col, descriptions };
 					list.add(newRow);
 				} else {
 					continue;
@@ -259,7 +238,7 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 				+ "\"refresh_data_mgr\",                   \"refresh_semantic_mgr\",              "
 				+ "\"remove_files\",                       \"semantic_tracking_mgr\",             "
 				+ "\"semanticTempTable\")";
-		rJavaTranslator.runR(gc);
+		this.rJavaTranslator.runR(gc);
 	}
 
 	private void sendTrackRequest(String type, List<Object[]> rows) {
