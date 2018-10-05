@@ -49,9 +49,11 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.openrdf.sail.SailException;
 
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.ImportOptions;
+import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
@@ -1229,14 +1231,14 @@ public class POIReader extends AbstractFileReader {
 			int offset = 1;
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				if(nextRow.getCell(2) != null) {
+					// make it a string so i can easily parse it
 					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
 					Cell instanceObjectNodeCell = nextRow.getCell(2);
-					if (instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != Cell.CELL_TYPE_BLANK
-							&& !instanceObjectNodeCell.toString().isEmpty()) {
-						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
-					} else {
+					// if empty, ignore
+					if(ExcelParsing.isEmptyCell(instanceObjectNodeCell)) {
 						continue;
 					}
+					instanceObjectNode = nextRow.getCell(2).getStringCellValue();
 				}
 				startCol++;
 				offset++;
@@ -1249,24 +1251,16 @@ public class POIReader extends AbstractFileReader {
 					continue;
 				}
 				String propName = propNames.elementAt(colIndex - offset).toString();
-				String propValue = "";
-				if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == Cell.CELL_TYPE_BLANK
-						|| nextRow.getCell(colIndex).toString().isEmpty()) {
+				// ignore bad data
+				if(ExcelParsing.isEmptyCell(nextRow.getCell(colIndex))) {
 					continue;
 				}
-				if (nextRow.getCell(colIndex).getCellType() == Cell.CELL_TYPE_NUMERIC) {
-					if (DateUtil.isCellDateFormatted(nextRow.getCell(colIndex))) {
-						Date date = (Date) nextRow.getCell(colIndex).getDateCellValue();
-						propHash.put(propName, date);
-					} else {
-						Double dbl = new Double(nextRow.getCell(colIndex).getNumericCellValue());
-						propHash.put(propName, dbl);
-					}
-				} else {
-					nextRow.getCell(colIndex).setCellType(Cell.CELL_TYPE_STRING);
-					propValue = nextRow.getCell(colIndex).getStringCellValue();
-					propHash.put(propName, propValue);
+				
+				Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
+				if(propValue instanceof SemossDate) {
+					propValue = ((SemossDate) propValue).getDate();
 				}
+				propHash.put(propName, propValue);
 			}
 
 			if (sheetType.equalsIgnoreCase("Relation")) {

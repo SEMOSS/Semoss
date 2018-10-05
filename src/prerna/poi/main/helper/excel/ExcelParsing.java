@@ -24,6 +24,15 @@ public class ExcelParsing {
 		
 	}
 	
+	public static boolean isEmptyCell(Cell thisCell) {
+		if (thisCell == null 
+				|| thisCell.getCellType() == Cell.CELL_TYPE_BLANK
+				|| thisCell.toString().trim().isEmpty()) {
+			return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * Get the cell values
 	 * @param thisCell
