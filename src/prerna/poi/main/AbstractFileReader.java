@@ -243,17 +243,8 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 				}
 			} else if (propHash.get(key) instanceof Date) {
 				Date value = (Date) propHash.get(key);
-				DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-				String date = df.format(value);
-				Date dateFormatted;
-				try {
-					dateFormatted = df.parse(date);
-				} catch (ParseException e) {
-					logger.error("ERROR: could not parse date: " + date);
-					continue;
-				}
-				// logger.info("Processing Date value " + dateFormatted);
-				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, dateFormatted, false });
+				// logger.info("Processing Date value " + value);
+				engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { instanceURI, propURI, value, false });
 				if(subjectNodeType != null && !subjectNodeType.isEmpty()) {
 					owler.addProp(subjectNodeType, key, "DATE");
 				}
