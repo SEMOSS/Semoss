@@ -1,6 +1,7 @@
 package prerna.query.interpreters;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,9 +16,11 @@ import com.hp.hpl.jena.vocabulary.XSD;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AbstractListFilter;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter.QUERY_FILTER_TYPE;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
@@ -67,7 +70,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	
 	// filtered columns
 	private Set<String> qsFilteredColumns;
-	
+	private Set<String> qsFilteredColumnsToNull;
 	// store the engine
 	private IEngine engine;
 	
@@ -96,7 +99,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		this.addedSelectors = new HashMap<String, String>();
 		GenRowFilters combinedFilters = this.qs.getCombinedFilters();
 		qsFilteredColumns = combinedFilters.getAllQsFilteredColumns();
-		
+		qsFilteredColumnsToNull = getFilteredColumnsToNull(combinedFilters.getFilters());
 		// add the join where clause
 		addJoins(this.qs.getRelations());
 				
@@ -279,7 +282,9 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		if(!this.addedSelectors.containsKey(propVarName)) {
 			String propUri = engine.getPhysicalUriFromConceptualUri(SEMOSS_PROPERTY_PREFIX + "/" + property);
 			// add the pattern around the property
-			if(this.qsFilteredColumns.contains(propVarName)) {
+			// if filtered and not to a null
+			// no need for optional
+			if(this.qsFilteredColumns.contains(propVarName) && !this.qsFilteredColumnsToNull.contains(propVarName)) {
 				this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
 			} else {
 				this.selectorWhereClause.append("OPTIONAL{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
@@ -542,8 +547,20 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	 */
 	private StringBuilder addColToValuesFilter(String leftCleanVarName, String thisComparator, List<Object> rightObjects, 
 			PixelDataType nounType, boolean isProp, String baseUri, boolean isSimple) {
+		
+		// need to account for null inputs
+		boolean addNullCheck = false;
+		boolean hasMoreValuesThanNull = true;
+		if(rightObjects.contains(null)) {
+			addNullCheck = true;
+			rightObjects.remove(null);
+			if(rightObjects.isEmpty()) {
+				hasMoreValuesThanNull = false;
+			}
+		}
+		
 		int numObjects = rightObjects.size();
-		if(numObjects == 1 && isSimple && thisComparator.equals("==")) {
+		if(!addNullCheck && numObjects == 1 && isSimple && thisComparator.equals("==")) {
 			// can add a bind
 			if(isProp) {
 				if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
@@ -559,7 +576,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			// do not return anything
 			// since it is simple and we will append this at the start
 			return null;
-		} else if(!bindingsAdded && isSimple && numObjects > 1 && thisComparator.equals("==")){
+		} else if(!addNullCheck && !bindingsAdded && isSimple && numObjects > 1 && thisComparator.equals("==")){
 			// add bindings at end
 			this.bindingsWhereClause = new StringBuilder();
 			this.bindingsWhereClause.append("BINDINGS ?").append(leftCleanVarName).append("{");
@@ -592,67 +609,91 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			if(thisComparator.equals("==")) {
 				thisComparator = "=";
 			}
-			// based on the input, set the filter information
-			// if it is a like, we will use a regex filter
-			// otherwise, normal filter
-			if(thisComparator.equals("?like")) {
-				if(isProp) {
-					if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
-								filterBuilder.append(" || ");
-							}
-							filterBuilder.append("REGEX(STR(?").append(leftCleanVarName).append("), \"").append(rightObjects.get(i)).append("\", 'i')");
-						}
-					} else {
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
-								filterBuilder.append(" || ");
-							}
-							filterBuilder.append("REGEX(?").append(leftCleanVarName).append(", \"").append(rightObjects.get(i)).append("\", 'i')");
-						}
-					}
+			
+			if(addNullCheck) {
+				if(thisComparator.equals("=")) {
+					filterBuilder.append("!BOUND(?").append(leftCleanVarName).append(")");
 				} else {
-					String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
-					for(int i = 0; i < numObjects; i++) {
-						if(i != 0) {
-							filterBuilder.append(" || ");
-						}
-						filterBuilder.append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
-								.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i)).append("\", 'i')");
-					}
-				}
-			} else {
-				if(isProp) {
-					if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
-								this.filtersWhereClause.append(" || ");
-							}
-							filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
-								.append("\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">");
-						}
-					} else {
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
-								filterBuilder.append(" || ");
-							}
-							filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
-								.append("\"").append(rightObjects.get(i)).append("\"");
-						}
-					}
-				} else {
-					String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
-					for(int i = 0; i < numObjects; i++) {
-						if(i != 0) {
-							filterBuilder.append(" || ");
-						}
-						filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
-							.append("<").append(baseUri).append(concpetType).append("/").append(rightObjects.get(i)).append(">");
-					}
+					filterBuilder.append("BOUND(?").append(leftCleanVarName).append(")");
 				}
 			}
-			// close the filter object
+			
+			if(hasMoreValuesThanNull) {
+				
+				// if we added a null check
+				// we need to add and or to the rest of everything
+				if(addNullCheck) {
+					filterBuilder.append(" || (");
+				}
+				
+				// based on the input, set the filter information
+				// if it is a like, we will use a regex filter
+				// otherwise, normal filter
+				if(thisComparator.equals("?like")) {
+					if(isProp) {
+						if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
+							for(int i = 0; i < numObjects; i++) {
+								if(i != 0) {
+									filterBuilder.append(" || ");
+								}
+								filterBuilder.append("REGEX(STR(?").append(leftCleanVarName).append("), \"").append(rightObjects.get(i)).append("\", 'i')");
+							}
+						} else {
+							for(int i = 0; i < numObjects; i++) {
+								if(i != 0) {
+									filterBuilder.append(" || ");
+								}
+								filterBuilder.append("REGEX(?").append(leftCleanVarName).append(", \"").append(rightObjects.get(i)).append("\", 'i')");
+							}
+						}
+					} else {
+						String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
+						for(int i = 0; i < numObjects; i++) {
+							if(i != 0) {
+								filterBuilder.append(" || ");
+							}
+							filterBuilder.append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
+									.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i)).append("\", 'i')");
+						}
+					}
+				} else {
+					if(isProp) {
+						if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
+							for(int i = 0; i < numObjects; i++) {
+								if(i != 0) {
+									this.filtersWhereClause.append(" || ");
+								}
+								filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
+									.append("\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">");
+							}
+						} else {
+							for(int i = 0; i < numObjects; i++) {
+								if(i != 0) {
+									filterBuilder.append(" || ");
+								}
+								filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
+									.append("\"").append(rightObjects.get(i)).append("\"");
+							}
+						}
+					} else {
+						String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
+						for(int i = 0; i < numObjects; i++) {
+							if(i != 0) {
+								filterBuilder.append(" || ");
+							}
+							filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
+								.append("<").append(baseUri).append(concpetType).append("/").append(rightObjects.get(i)).append(">");
+						}
+					}
+				}
+				
+				
+				// close if added null check
+				if(addNullCheck) {
+					filterBuilder.append(")");
+				}
+			}
+			
 			return filterBuilder;
 		}
 	}
@@ -730,5 +771,48 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			// remember to close the direction block
 			this.sortByClause.append(") ");
 		}
+	}
+	
+	/**
+	 * Need to determine if a filter is set to equal null 
+	 * Need to make sure this property definition is an optional
+	 * @param combinedFilters
+	 * @return
+	 */
+	private Set<String> getFilteredColumnsToNull(List<IQueryFilter> filters) {
+		Set<String> qsColumnsEqualNull = new HashSet<String>();
+		for(IQueryFilter f : filters) {
+			if(f.getQueryFilterType() == QUERY_FILTER_TYPE.SIMPLE) {
+				SimpleQueryFilter simpleF = (SimpleQueryFilter) f;
+				
+				IQuerySelector selector = null;
+				Object val = null;
+				if(simpleF.getFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+					selector = (IQuerySelector) simpleF.getLComparison().getValue();
+					val = simpleF.getRComparison().getValue();
+				} else if(simpleF.getFilterType() == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
+					val = simpleF.getLComparison().getValue();
+					selector = (IQuerySelector) simpleF.getRComparison().getValue();
+				} else {
+					// ignore other types
+					continue;
+				}
+				
+				if(val == null) {
+					qsColumnsEqualNull.add(selector.getQueryStructName()); 
+				} else {
+					if(val instanceof List) {
+						if(((List) val).contains(null)) {
+							qsColumnsEqualNull.add(selector.getQueryStructName()); 
+						}
+					}
+				}
+			} else if(f.getQueryFilterType() == QUERY_FILTER_TYPE.OR || f.getQueryFilterType() == QUERY_FILTER_TYPE.AND) {
+				AbstractListFilter listF = (AbstractListFilter) f;
+				qsColumnsEqualNull.addAll(getFilteredColumnsToNull(listF.getFilterList()));
+			}
+		}
+		
+		return qsColumnsEqualNull;
 	}
 }
