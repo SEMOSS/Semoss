@@ -161,14 +161,14 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 				return new Double(((Literal)val).doubleValue());
 			}
 
-			if(val!=null){
-				String value = val+"";
+			if(val != null){
+				String value = val + "";
 				return Utility.getInstanceName(value);
 			}
 		} catch(RuntimeException ex) {
 			LOGGER.debug(ex);
 		}
-		return "";
+		return val;
 	}
 
 	@Override
