@@ -301,9 +301,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			H2Frame gridFrame = (H2Frame) dataframe;
 			String tableName = gridFrame.getBuilder().getTableName();
 			synchronizeGridToR(rVarName);
-			if(replaceDefaultInsightFrame) {
-				gridFrame.close();
-			}
 			
 			// now that we have created the frame
 			// we need to set the metadata for the frame
@@ -311,6 +308,10 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			newMeta.modifyVertexName(tableName, rVarName);
 			table.setMetaData(newMeta);
 
+			if(replaceDefaultInsightFrame) {
+				gridFrame.close();
+			}
+			
 		} else if(dataframe  instanceof RDataTable){
 			// ughhh... why are you calling this?
 			// i will just change the r var name
@@ -448,6 +449,12 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			frameToUse = new H2Frame();
 			tableName = frameToUse.getTableName();
 
+			// if we can use the existing metadata, use it
+			if(syncExistingRMetadata) {
+				newMeta = this.dataframe.getMetaData().copy();
+				newMeta.modifyVertexName(frameName, frameToUse.getTableName());
+			} 
+			
 			// set the correct schema in the new frame
 			// drop the existing table
 			if (frameIsH2) {
@@ -458,12 +465,9 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				// within the reactor
 				frameToUse.setUserId(this.insight.getUserId());
 			}
-
-			// if we can use the existing metadata, use it
-			if(syncExistingRMetadata) {
-				newMeta = this.dataframe.getMetaData().copy();
-				newMeta.modifyVertexName(frameName, frameToUse.getTableName());
-			} 
+			
+			
+			
 			//			else {
 			//				// create a prim key one
 			//				Map<String, Set<String>> edgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(colNames);
