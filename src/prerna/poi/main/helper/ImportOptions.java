@@ -56,7 +56,8 @@ public class ImportOptions {
 		ROW_KEY,				// What to put in a prop file to grab the current row number
 		CREATE_INDEXES,			// If true, RDBMSReader will create indexes when cleaning up tables
 		TINKER_DRIVER_TYPE,		//.tg, neo4j, .xml, .json
-		ENGINE_ID
+		ENGINE_ID,
+		CSV_DATATYPES           // used for defining a metamodel
 	};
 	
 	/**
@@ -427,6 +428,17 @@ public class ImportOptions {
 	}
 	public String getEngineID() {
 		return (String) this.thisMap.get(IMPORT_OPTIONS.ENGINE_ID);
+	}
+	
+	/**
+	 * Used to get the new data types map used for uploading data with reactors
+	 * @param dataTypes
+	 */
+	public void setDataTypes(Map[] dataTypes) {
+		this.thisMap.put(IMPORT_OPTIONS.CSV_DATATYPES, dataTypes);
+	}
+	public Map[] getDataTypes() {
+		return (Map[]) this.thisMap.get(IMPORT_OPTIONS.CSV_DATATYPES);
 	}
 	
 	///////////////////////////// end getters & setters /////////////////////////////////////
