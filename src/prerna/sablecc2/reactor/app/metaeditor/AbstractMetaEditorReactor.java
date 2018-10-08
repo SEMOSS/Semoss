@@ -34,7 +34,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		return appId;
 	}
 	
-	protected RDFFileSesameEngine getOwlEngine(String appId) {
+	protected RDFFileSesameEngine loadOwlEngineFile(String appId) {
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
 		String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
