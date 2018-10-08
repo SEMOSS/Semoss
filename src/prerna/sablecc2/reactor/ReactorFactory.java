@@ -43,6 +43,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.AddOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.AddOwlRelationshipReactor;
 import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
 import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
@@ -580,6 +581,8 @@ public class ReactorFactory {
 		// app meta and local master utilities
 		reactorHash.put("ReloadAppOwl", ReloadAppOwlReactor.class);
 		reactorHash.put("AddOwlRelationship", AddOwlRelationshipReactor.class);
+		reactorHash.put("AddOwlLogicalNames", AddOwlLogicalNamesReactor.class);
+		
 		reactorHash.put("SyncAppWithLocalMaster", SyncAppWithLocalMasterReactor.class);
 		reactorHash.put("QueryTranslator", DatabaseQueryTranslator.class);
 		// logical name operations
