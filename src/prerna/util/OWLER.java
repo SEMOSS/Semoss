@@ -727,40 +727,6 @@ public class OWLER {
 	/////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL /////////////////////////////////
 
 	
-	///////////////////// TESTING /////////////////////
-	public static void main(String [] args) {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		OWLER owler = new OWLER( "C:\\workspace\\Semoss_Dev\\city_county_match_OWL.OWL", IEngine.ENGINE_TYPE.RDBMS);
-		
-		owler.addConcept("CITY_STATE ", "CITY_STATE", "VARCHAR(54)");
-		owler.addProp("CITY_STATE", "CITY_STATE", "COUNTY_STATE", "VARCHAR(61)", null);
-
-		// load the owl into a rfse
-		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-		try {
-			owler.export();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		owler.getOwlAsString();
-		rfse.openFile(owler.getOwlPath(), "RDF/XML", BASE_URI);
-	}
-		
-	public String getOwlAsString() {
-		// this will both write the owl to a file and print it onto the console
-		String owl = null;
-		try {
-			owl = engine.exportBaseEngAsString(true);
-			System.out.println("OWL.. " + owl);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		return owl;
-	}
-	///////////////////// END TESTING /////////////////////
-
-	
 	///////////////// GETTERS ///////////////////////
 	
 	/**
@@ -794,9 +760,6 @@ public class OWLER {
 	///////////////// END GETTERS ///////////////////////
 
 	///////////////// SETTERS ///////////////////////
-	/*
-	 * These methods are not actually used.. kinda here just in case we end up needing them
-	 */
 	
 	public void setOwlPath(String owlPath) {
 		this.owlPath = owlPath;
@@ -812,4 +775,36 @@ public class OWLER {
 	}
 	///////////////// END SETTERS ///////////////////////
 	
+	///////////////////// TESTING /////////////////////
+	public static void main(String [] args) {
+		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+		OWLER owler = new OWLER( "C:\\workspace\\Semoss_Dev\\city_county_match_OWL.OWL", IEngine.ENGINE_TYPE.RDBMS);
+		
+		owler.addConcept("CITY_STATE ", "CITY_STATE", "VARCHAR(54)");
+		owler.addProp("CITY_STATE", "CITY_STATE", "COUNTY_STATE", "VARCHAR(61)", null);
+
+		// load the owl into a rfse
+		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
+		try {
+			owler.export();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		owler.getOwlAsString();
+		rfse.openFile(owler.getOwlPath(), "RDF/XML", BASE_URI);
+	}
+		
+	public String getOwlAsString() {
+		// this will both write the owl to a file and print it onto the console
+		String owl = null;
+		try {
+			owl = engine.exportBaseEngAsString(true);
+			System.out.println("OWL.. " + owl);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return owl;
+	}
+	///////////////////// END TESTING /////////////////////
 }

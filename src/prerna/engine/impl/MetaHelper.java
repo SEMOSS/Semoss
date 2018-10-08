@@ -589,8 +589,12 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public RDFFileSesameEngine getBaseDataEngine() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.baseDataEngine;
+	}
+
+	@Override
+	public void setBaseDataEngine(RDFFileSesameEngine baseDataEngine) {
+		this.baseDataEngine = baseDataEngine;
 	}
 
 }
