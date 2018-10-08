@@ -220,4 +220,8 @@ public class CSVPropFileBuilder{
 	public String getPropFile() {
 		return propFile.toString();
 	}
+	
+	public Map<String, String> getDataTypeHash() {
+		return this.dataTypeHash;
+	}
 }
