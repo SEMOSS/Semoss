@@ -380,6 +380,25 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * 
+ 	 * @param engineId
+	 * @param insightId
+	 * @param insightName
+	 * @param global
+	 * @param exCount
+	 * @param lastModified
+	 * @param layout
+	 */
+	public static void updateInsightName(String engineId, String insightId, String insightName) {
+		LocalDateTime now = LocalDateTime.now();
+		String nowString = java.sql.Timestamp.valueOf(now).toString();
+		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', LASTMODIFIEDON='" + nowString + "' "
+				+ "WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
+		securityDb.insertData(query);
+		securityDb.commit();
+	}
+	
+	/**
+	 * 
 	 * @param engineId
 	 * @param insightId
 	 */

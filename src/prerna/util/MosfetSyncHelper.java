@@ -338,4 +338,30 @@ public class MosfetSyncHelper {
 		return mosfetFile;
 	}
 	
+	public static File updateMosfitFileInsightName(File mosfetFile, String insightName) {
+		// read the existing file
+		Map output = getMosfitMap(mosfetFile);
+		// override the insight name
+		output.put(INSIGHT_NAME_KEY, insightName);
+		
+		// write as normal
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+		String json = gson.toJson(output);
+		mosfetFile.delete();
+		try {
+			mosfetFile.createNewFile();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		try {
+			// write json to file
+			FileUtils.writeStringToFile(mosfetFile, json);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		return mosfetFile;
+	}
+	
 }
