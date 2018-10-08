@@ -43,6 +43,8 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.AddOwlRelationshipReactor;
+import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
 import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
@@ -575,7 +577,9 @@ public class ReactorFactory {
 		reactorHash.put("FederationBlend", AdvancedFederationBlend.class);
 		reactorHash.put("FederationBestMatches", AdvancedFederationGetBestMatch.class);
 
-		// local master utilities
+		// app meta and local master utilities
+		reactorHash.put("ReloadAppOwl", ReloadAppOwlReactor.class);
+		reactorHash.put("AddOwlRelationship", AddOwlRelationshipReactor.class);
 		reactorHash.put("SyncAppWithLocalMaster", SyncAppWithLocalMasterReactor.class);
 		reactorHash.put("QueryTranslator", DatabaseQueryTranslator.class);
 		// logical name operations
