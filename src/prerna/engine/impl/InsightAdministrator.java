@@ -88,7 +88,7 @@ public class InsightAdministrator {
 	}
 	
 	public void updateInsight(String existingRdbmsId, String insightName, String layout, String[] pixelRecipeToSave, boolean hidden) {
-		LOGGER.info("Modifying insert id :::: " + existingRdbmsId);
+		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
 		LOGGER.info("Adding new question with name :::: " + insightName);
 		LOGGER.info("Adding new question with layout :::: " + layout);
 		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
@@ -104,6 +104,19 @@ public class InsightAdministrator {
 		updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
 		updateQuery.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
 		
+		// now run the query and commit
+		this.insightEngine.insertData(updateQuery.toString());
+		this.insightEngine.commit();
+	}
+	
+	public void updateInsightName(String existingRdbmsId, String insightName) {
+		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
+		LOGGER.info("Adding new question with name :::: " + insightName);
+		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
+		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
+				.append(QUESTION_NAME_COL).append(" = '").append(insightName)
+				.append("' WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
+	
 		// now run the query and commit
 		this.insightEngine.insertData(updateQuery.toString());
 		this.insightEngine.commit();
