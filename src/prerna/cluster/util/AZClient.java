@@ -1,21 +1,33 @@
 package prerna.cluster.util;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.zookeeper.Watcher.Event.EventType;
 
+import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+import com.google.common.io.Files;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
@@ -32,6 +44,9 @@ public class AZClient {
 	// does some basic ops
 	// get the SAS URL for a given container - boolean create or not
 	// Delete the container
+		
+	private static final String PROVIDER = "azureblob";
+	private static final String FILE_SEPARATOR = System.getProperty("file.separator");
 	
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
 	public static final String SAS_URL = "SAS_URL";
@@ -48,6 +63,7 @@ public class AZClient {
 	String connectionString = null;
 	String blobURI = null;
 	String sasURL = null;
+	String dbFolder = null;
 	
 	protected AZClient()
 	{
@@ -72,6 +88,7 @@ public class AZClient {
 		// and register for the key change
 		// if not.. the storage key is sitting some place pick it up and get it
 		String storage = DIHelper.getInstance().getProperty(STORAGE);
+		dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "db";
 		
 		Map <String, String> env = System.getenv();
 		if(env.containsKey(KEY_HOME))
@@ -209,47 +226,135 @@ public class AZClient {
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
-		String container = "timb";
-		String provider = "azureblob";
-		String directory = "C:\\Users\\tbanach\\Documents\\Workspace\\RCloneDirectory\\TimB\\";
-		AZClient.getInstance().pullApp(container, provider, directory);
-		File test = new File(directory + "test.txt");
-		test.createNewFile();
-		AZClient.getInstance().pushApp(container, provider, directory);
+		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
+		AZClient.getInstance().pushApp(appId);
+		AZClient.getInstance().pullApp(appId);
 	}
 	
-	// TODO >>>timb: make these based on app id and not the the directory (make util for general files, then one for app id)
-	public void pullApp(String sourceContainer, String sourceProvider, String targetDirectory) throws IOException, InterruptedException {
-		System.out.println("Generating SAS for container=" + sourceContainer);
-		String sasUrl = client.getSAS(sourceContainer);
-		String rcloneConfig = Utility.getRandomString(10);
-		System.out.println("Pulling app from remote=" + sourceContainer + " to target=" + targetDirectory);
-		runProcess("rclone", "config", "create", rcloneConfig, sourceProvider, "sas_url", sasUrl);
-		runProcess("rclone", "ls", rcloneConfig + ":");
-		runProcess("rclone", "copy", rcloneConfig + ":", targetDirectory);
-		runProcess("rclone", "config", "delete", rcloneConfig);
-		System.out.println("Done pulling app from remote=" + sourceContainer + " to target=" + targetDirectory);
-	}
+	public void pullApp(String appId) throws IOException, InterruptedException {
+		
+		// List the smss directory to get the alias + app id
+		String smssContainer = appId + "-smss";
+		String smssConfig = createRcloneConfig(smssContainer);
+		List<String> results = runProcess("rclone", "ls", smssConfig + ":");
+		String smss = null;
+		for (String result : results) {
+			if (result.endsWith(".smss")) {
+				smss = result.substring(result.lastIndexOf(' ') + 1);
+				break;
+			}
+		}
+		if (smss == null) {
+			System.err.println("Failed to pull app for appid=" + appId);
+			return;
+		}
+		String aliasAppId = smss.replaceAll(".smss", "");
+		
+		// Pull the contents of the app folder before the smss
+		File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
+		appFolder.mkdir();
+		String appConfig = createRcloneConfig(appId);
+		System.out.println("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
+		runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
+		System.out.println("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
+		deleteRcloneConfig(appConfig);
 
-	public void pushApp(String targetContainer, String targetProvider, String sourceDirectory) throws IOException, InterruptedException {
-		System.out.println("Generating SAS for container=" + targetContainer);
-		String sasUrl = client.getSAS(targetContainer);
-		String rcloneConfig = Utility.getRandomString(10);
-		System.out.println("Pushing app from source=" + sourceDirectory + " to remote=" + targetContainer);
-		runProcess("rclone", "config", "create", rcloneConfig, targetProvider, "sas_url", sasUrl);
-		runProcess("rclone", "copy",  sourceDirectory, rcloneConfig + ":");
-		runProcess("rclone", "ls", rcloneConfig + ":");
-		runProcess("rclone", "config", "delete", rcloneConfig);
-		System.out.println("Done pushing app from source=" + sourceDirectory + " to remote=" + targetContainer);
+		// Now pull the smss
+		System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
+		runProcess("rclone", "copy", smssConfig + ":", dbFolder);
+		System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+		deleteRcloneConfig(smssConfig);
 	}
 	
-	private static void runProcess(String... command) throws IOException, InterruptedException {
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.directory(new File(System.getProperty("user.home")));
-	    pb.redirectOutput(Redirect.INHERIT);
-	    pb.redirectError(Redirect.INHERIT);
-		Process p = pb.start();
-		p.waitFor();
+	public void pushApp(String appId) throws IOException, InterruptedException {
+		File temp = null;
+		File copy = null;
+		try {
+			File db = new File(dbFolder);
+			List<File> files = Arrays.stream(db.listFiles()).parallel().filter(s -> s.getName().contains(appId)).collect(Collectors.toList());
+			for (File file : files) {
+				String remote = file.isDirectory() ? appId : appId + "-smss";
+				String rcloneConfig = createRcloneConfig(remote);
+				System.out.println("Pushing from source=" + file.getName() + " to remote=" + remote);
+				if (file.isDirectory()) {
+					System.out.println("(directory)");
+					runProcess("rclone", "copy", file.getPath(), rcloneConfig + ":");
+				} else {
+					System.out.println("(file)");
+					String tempFolder = Utility.getRandomString(10);
+					temp = new File(file.getParent() + FILE_SEPARATOR + tempFolder);
+					temp.mkdir();
+					copy = new File(temp.getPath() + FILE_SEPARATOR + file.getName());
+					Files.copy(file, copy);
+					runProcess("rclone", "copy", temp.getPath(), rcloneConfig + ":");
+				}
+				System.out.println("Done pushing from source=" + file.getName() + " to remote=" + remote);
+				runProcess("rclone", "ls", rcloneConfig + ":");
+				deleteRcloneConfig(rcloneConfig);
+			}
+		} finally {
+			if (copy != null) {
+				copy.delete();
+			}
+			if (temp != null) {
+				temp.delete();
+			}
+		}
+	}
+	
+	// TODO >>>timb: need to delete too
+	
+	private static String createRcloneConfig(String container) throws IOException, InterruptedException {
+		System.out.println("Generating SAS for container=" + container);
+		String sasUrl = client.getSAS(container);
+		String rcloneConfig = Utility.getRandomString(10);
+		runProcess("rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
+		return rcloneConfig;
+	}
+	
+	private static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
+		runProcess("rclone", "config", "delete", rcloneConfig);
+	}
+	
+	private static List<String> runProcess(String... command) throws IOException, InterruptedException {
+		Process p = null;
+		try {
+			ProcessBuilder pb = new ProcessBuilder(command);
+			pb.directory(new File(System.getProperty("user.home")));
+		    pb.redirectOutput(Redirect.PIPE);
+		    pb.redirectError(Redirect.PIPE);
+			p = pb.start();
+			p.waitFor();
+			List<String> results = streamOutput(p.getInputStream());
+			streamError(p.getErrorStream());
+			return results;
+		} finally {
+			if (p != null) {
+				p.destroyForcibly();
+			}
+		}
+	}
+	
+	private static List<String> streamOutput(InputStream stream) throws IOException {
+		return stream(stream, false);
+	}
+	
+	private static List<String> streamError(InputStream stream) throws IOException {
+		return stream(stream, true);
+	}
+	
+	private static List<String> stream(InputStream stream, boolean error) throws IOException {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+			List<String> lines = reader.lines().collect(Collectors.toList());
+			for(String line : lines) {
+				if (error) {
+					System.err.println(line);
+				} else {
+					System.out.println(line);
+				}
+			}
+			return lines;
+		}
 	}
 		
 }
