@@ -144,6 +144,7 @@ import prerna.sablecc2.reactor.insights.save.DeleteInsightCacheReactor;
 import prerna.sablecc2.reactor.insights.save.DeleteInsightReactor;
 import prerna.sablecc2.reactor.insights.save.SaveInsightReactor;
 import prerna.sablecc2.reactor.insights.save.UpdateInsightImageReactor;
+import prerna.sablecc2.reactor.insights.save.UpdateInsightNameReactor;
 import prerna.sablecc2.reactor.insights.save.UpdateInsightReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
@@ -455,9 +456,6 @@ public class ReactorFactory {
 		reactorHash.put("GetDSEGraphMetaModel", GetDSEGraphMetaModelReactor.class);
 		reactorHash.put("CreateExternalDSEGraphDatabase", CreateExternalDSEGraphDBReactor.class);
 		
-		// Semantic blending
-		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
-		
 		// Query Struct Reactors
 		// builds the select portion of the QS
 		reactorHash.put("With", WithReactor.class);
@@ -657,6 +655,7 @@ public class ReactorFactory {
 		// Save Reactors
 		reactorHash.put("SaveInsight", SaveInsightReactor.class);
 		reactorHash.put("UpdateInsight", UpdateInsightReactor.class);
+		reactorHash.put("UpdateInsightName", UpdateInsightNameReactor.class);
 		reactorHash.put("DeleteInsight", DeleteInsightReactor.class);
 
 		// Dashboard Reactors
@@ -697,6 +696,8 @@ public class ReactorFactory {
 		reactorHash.put("GetExternalSchema", GetExternalDBSchemaReactor.class);
 		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
 		reactorHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
+		
+		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
 		reactorHash.put("SemanticDescription", GetSemanticDescription.class);
 		// similar reactors to x-ray
 		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMapping.class);
