@@ -156,13 +156,7 @@ public final class ZipDatabase {
 			File[] files = dir.listFiles();
 			if(files != null) {
 				for(File file : files) {
-					if(file.isDirectory()) {
-						// skip random directories for now
-						// TODO: make it recursive
-						continue;
-					}
-					System.out.println("Saving file " + file.getName());
-					addFolderToZipFile(file, zos);
+					addAllToZip(file, zos);
 				}
 			}
 
@@ -196,23 +190,30 @@ public final class ZipDatabase {
 		return new File(zipFilePath);
 	}
 
-	private static void addFolderToZipFile(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
-		ZipEntry zipEntry = new ZipEntry(file.getParent().substring(file.getParent().lastIndexOf("\\") + 1) + FILE_SEPARATOR + file.getName());
-		zos.putNextEntry(zipEntry);
-
-		FileInputStream fis = null;
-		try {
-			int length;
-			fis = new FileInputStream(file);
-			while ((length = fis.read(buffer)) >= 0) {
-				zos.write(buffer, 0, length);
+	private static void addAllToZip(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
+		if(file.isDirectory()) {
+			File[] files = file.listFiles();
+			for(File f : files) {
+				addAllToZip(f, zos);
 			}
-		} finally {
-			if(fis != null) {
-				fis.close();
+		} else {
+			ZipEntry zipEntry = new ZipEntry(file.getParent().substring(file.getParent().lastIndexOf("\\") + 1) + FILE_SEPARATOR + file.getName());
+			zos.putNextEntry(zipEntry);
+	
+			FileInputStream fis = null;
+			try {
+				int length;
+				fis = new FileInputStream(file);
+				while ((length = fis.read(buffer)) >= 0) {
+					zos.write(buffer, 0, length);
+				}
+			} finally {
+				if(fis != null) {
+					fis.close();
+				}
 			}
+			zos.closeEntry();
 		}
-		zos.closeEntry();
 	}
 
 	private static void addToZipFile(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
