@@ -167,6 +167,7 @@ import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToLogicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor;
+import prerna.sablecc2.reactor.masterdatabase.SyncAppWithLocalMasterReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
 import prerna.sablecc2.reactor.panel.AddPanelReactor;
 import prerna.sablecc2.reactor.panel.ClosePanelReactor;
@@ -577,8 +578,9 @@ public class ReactorFactory {
 		reactorHash.put("FederationBestMatches", AdvancedFederationGetBestMatch.class);
 
 		// local master utilities
+		reactorHash.put("SyncAppWithLocalMaster", SyncAppWithLocalMasterReactor.class);
 		reactorHash.put("QueryTranslator", DatabaseQueryTranslator.class);
-		// Logical name operations
+		// logical name operations
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
 		reactorHash.put("RemoveLogicalNames", RemoveLogicalNameReactor.class);
