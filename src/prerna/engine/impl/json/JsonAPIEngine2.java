@@ -125,14 +125,20 @@ public class JsonAPIEngine2 extends JsonAPIEngine {
 			// is custom_distance so we pass in those values accordingly
 			// the opposite case is that these two are equal since
 			// there is no = sign
-			if(jsonPaths[pathIndex].contains("=")) {
-				String[] split = jsonPaths[pathIndex].split("=");
+			String jsonHeader = jsonPaths[pathIndex];
+			String queryHeader = jsonHeader;
+			// check aliasMap
+			if(this.prop.get(jsonHeader) != null) {
+				queryHeader = (String) this.prop.get(jsonHeader);
+			}
+			if(jsonHeader.contains("=")) {
+				String[] split = jsonHeader.split("=");
 				composer.append(split[1]);
 				headers[pathIndex] = split[0];
 			} else {
 				// normal case
-				composer.append(jsonPaths[pathIndex]);
-				headers[pathIndex] = jsonPaths[pathIndex];
+				composer.append(queryHeader);
+				headers[pathIndex] = jsonHeader;
 			}
 		}
 		
