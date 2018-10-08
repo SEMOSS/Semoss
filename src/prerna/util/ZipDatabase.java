@@ -156,7 +156,8 @@ public final class ZipDatabase {
 			File[] files = dir.listFiles();
 			if(files != null) {
 				for(File file : files) {
-					addAllToZip(file, zos);
+					String prefix = file.getParent().substring(file.getParent().lastIndexOf("\\") + 1);
+					addAllToZip(file, zos, prefix);
 				}
 			}
 
@@ -190,14 +191,15 @@ public final class ZipDatabase {
 		return new File(zipFilePath);
 	}
 
-	private static void addAllToZip(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
+	private static void addAllToZip(File file, ZipOutputStream zos, String prefix) throws FileNotFoundException, IOException {
 		if(file.isDirectory()) {
+			String subPrefix = prefix + FILE_SEPARATOR + file.getName();
 			File[] files = file.listFiles();
-			for(File f : files) {
-				addAllToZip(f, zos);
+			for(File subF : files) {
+				addAllToZip(subF, zos, subPrefix);
 			}
 		} else {
-			ZipEntry zipEntry = new ZipEntry(file.getParent().substring(file.getParent().lastIndexOf("\\") + 1) + FILE_SEPARATOR + file.getName());
+			ZipEntry zipEntry = new ZipEntry(prefix + FILE_SEPARATOR + file.getName());
 			zos.putNextEntry(zipEntry);
 	
 			FileInputStream fis = null;
