@@ -31,7 +31,7 @@ public class ReloadAppOwlReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine oldOwlEngine =  engine.getBaseDataEngine();
 		// load a new owl engine from the file
-		RDFFileSesameEngine updatedOwlEngine = getOwlEngine(appId);
+		RDFFileSesameEngine updatedOwlEngine = loadOwlEngineFile(appId);
 		// replace
 		engine.setBaseDataEngine(updatedOwlEngine);
 		// close the old engine
