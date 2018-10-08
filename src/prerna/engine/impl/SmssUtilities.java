@@ -160,7 +160,11 @@ public class SmssUtilities {
 			return null;
 		}
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String dataFile = baseFolder + DIR_SEPARATOR + prop.getProperty(AbstractEngine.DATA_FILE);
+		String dataSuffix = prop.getProperty(AbstractEngine.DATA_FILE);
+		if(dataSuffix.startsWith("@BaseFolder@/")) {
+			dataSuffix = dataSuffix.substring("@BaseFolder@/".length());
+		}
+		String dataFile = baseFolder + DIR_SEPARATOR + dataSuffix;
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		File owl = new File(dataFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
