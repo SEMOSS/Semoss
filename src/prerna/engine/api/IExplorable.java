@@ -81,6 +81,8 @@ public interface IExplorable {
 	 */
 	RDFFileSesameEngine getBaseDataEngine();
 	
+	void setBaseDataEngine(RDFFileSesameEngine baseDataEngine);
+	
 	// commits the OWL
 	void commitOWL();
 	

@@ -405,6 +405,12 @@ public abstract class AbstractEngine implements IEngine {
 	public RDFFileSesameEngine getBaseDataEngine() {
 		return this.baseDataEngine;
 	}
+	
+	@Override
+	public void setBaseDataEngine(RDFFileSesameEngine baseDataEngine) {
+		this.baseDataEngine = baseDataEngine;
+		this.owlHelper = new MetaHelper(this.baseDataEngine, getEngineType(), this.engineId);
+	}
 
 	/**
 	 * Sets the base data hash
