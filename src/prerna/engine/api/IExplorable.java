@@ -29,6 +29,7 @@ package prerna.engine.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -178,5 +179,7 @@ public interface IExplorable {
 
 	// REFAC: Change this to engine - this should be local master
 	String getPhysicalUriFromConceptualUri(String propertyName, String parentName);
+
+	Set<String> getLogicalNames(String physicalURI);
 
 }
