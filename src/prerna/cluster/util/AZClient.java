@@ -252,7 +252,8 @@ public class AZClient {
 	}
 	
 	// TODO >>>timb: rclone delete on app delete (security utils)
-	
+	// TODO >>>timb: need to remove file lock to pull
+	// TODO >>>timb: close engine and reopen like export
 	public void pullApp(String appId) throws IOException, InterruptedException {
 		
 		// Check whether the engine already exists
@@ -292,7 +293,7 @@ public class AZClient {
 		deleteRcloneConfig(smssConfig);
 		
 		if (newEngine) {
-			SMSSWebWatcher.catalogDB(dbFolder + FILE_SEPARATOR + smss, dbFolder);
+			SMSSWebWatcher.catalogDB(smss, dbFolder);
 		}
 	}
 	
