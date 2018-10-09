@@ -107,6 +107,36 @@ public class MasterDatabaseUtility {
 	 * @param conceptualName
 	 * @return
 	 */
+	public static Set<String> getAllLogicalNamesFromConceptualRDBMS(String conceptualName) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		
+		Set<String> logicalNames = new TreeSet<String>();
+		ResultSet rs = null;
+		Statement stmt = null;
+		try {
+			String logicalQuery = "select distinct c.logicalname from "
+								+ "concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and "
+								+ "c.conceptualname = '" + conceptualName + "' order by c.logicalname";
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(logicalQuery);
+			while (rs.next()) {
+				String logicalName = rs.getString(1);
+				logicalNames.add(logicalName);
+			}
+		} catch(Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		return logicalNames;
+	}
+	
+	/**
+	 * Return all the logical names for a given conceptual name
+	 * @param conceptualName
+	 * @return
+	 */
 	public static List<String> getAllLogicalNamesFromConceptualRDBMS(List<String> conceptualName, String engineFilter) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
@@ -124,7 +154,7 @@ public class MasterDatabaseUtility {
 		ResultSet rs = null;
 		Statement stmt = null;
 		try {
-			String logicalQuery = "select distinct c.logicalname, ec.physicalname from "
+			String logicalQuery = "select distinct c.logicalname from "
 								+ "concept c, engineconcept ec, engine e where ec.localconceptid=c.localconceptid and "
 								+ "c.conceptualname in " + conceptList + engineFilterStr + " order by c.logicalname";
 			stmt = conn.createStatement();
