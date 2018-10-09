@@ -39,6 +39,7 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -56,7 +57,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		catalogDB(fileName);
+		catalogDB(fileName, folderToWatch);
 	}
 
 	/**
@@ -105,8 +106,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
-	 */
-	public String catalogDB(String newFile) {
+	 */	
+	public static String catalogDB(String newFile, String folderToWatch) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		String engineId = null;
@@ -250,7 +251,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				// I really dont want to load anything here
 				// I only want to keep track of what are the engine names and their corresponding SMSS files
 				// so we will catalog instead of load
-				String loadedEngineId = catalogDB(fileName);
+				String loadedEngineId = catalogDB(fileName, folderToWatch);
 				engineIds[fileIdx] = loadedEngineId;
 			} catch (RuntimeException ex) {
 				ex.printStackTrace();
@@ -259,24 +260,25 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		}
 		
 		// remove unused databases
-		List<String> engines = MasterDatabaseUtility.getAllEngineIds();
-		DeleteFromMasterDB remover = new DeleteFromMasterDB();
-		
-		for(String engine : engines) {
-			if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-				LOGGER.info("Deleting the engine from local master..... " + engine);
-				remover.deleteEngineRDBMS(engine);
+		if (!ClusterUtil.IS_CLUSTER) {
+			List<String> engines = MasterDatabaseUtility.getAllEngineIds();
+			DeleteFromMasterDB remover = new DeleteFromMasterDB();
+			
+			for(String engine : engines) {
+				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
+					LOGGER.info("Deleting the engine from local master..... " + engine);
+					remover.deleteEngineRDBMS(engine);
+				}
+			}
+			
+			engines = SecurityQueryUtils.getEngineIds();
+			for(String engine : engines) {
+				if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
+					LOGGER.info("Deleting the engine from security..... " + engine);
+					SecurityUpdateUtils.deleteApp(engine);
+				}
 			}
 		}
-		
-		engines = SecurityQueryUtils.getEngineIds();
-		for(String engine : engines) {
-			if(!ArrayUtilityMethods.arrayContainsValue(engineIds, engine)) {
-				LOGGER.info("Deleting the engine from security..... " + engine);
-				SecurityUpdateUtils.deleteApp(engine);
-			}
-		}	
-
 	}
 
 	/**
