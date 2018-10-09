@@ -36,10 +36,7 @@ public class OWLER {
 	public static final String DEFAULT_NODE_CLASS = "Concept";
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
 	public static final String DEFAULT_PROP_CLASS = "Relation/Contains";
-	public static final String PHYSICAL_NAME = "http://semoss.org/ontologies/physical/property";
-	public static final String PHYSICAL_TABLE = "http://semoss.org/ontologies/physical/table";
 	public static final String CONCEPTUAL_RELATION_NAME = "Conceptual";
-	public static final String DEFAULT_COMPOSITE_CLASS = "Composite";
 	
 	// hashtable of concepts
 	private Hashtable<String, String> conceptHash = new Hashtable<String, String>();
@@ -70,17 +67,10 @@ public class OWLER {
 		String baseSubject = BASE_URI + DEFAULT_NODE_CLASS ;
 		String baseRelation = BASE_URI + DEFAULT_RELATION_CLASS;
 		
-		// for composite keys
-		String baseComposite = BASE_URI + DEFAULT_COMPOSITE_CLASS;
-		
 		String predicate = RDF.TYPE.stringValue();
 
 		engine.addToBaseEngine(baseSubject, predicate, RDFS.CLASS.stringValue());
 		engine.addToBaseEngine(baseRelation, predicate, RDF.PROPERTY.stringValue());
-		
-		// for composite keys
-		// TODO no longer need this here after finished refactoring multiple pk
-//		engine.addToBaseEngine(baseComposite, predicate, RDFS.CLASS.stringValue());
 	}
 	
 	/**
@@ -118,7 +108,6 @@ public class OWLER {
 
 	
 	/////////////////// ADDING CONCEPTS INTO THE OWL /////////////////////////////////
-	// TODO update documentation here once multiple pk thing is finalized
 	/*
 	 * This method is overloaded to make it easier to add concepts into the owl file
 	 * The overloading exists since some fields are not required as a result of the difference
@@ -145,29 +134,19 @@ public class OWLER {
 	 */
 
 	/**
-	 * Adding a concept into the OWL
-	 * There are some differences based on how the information is used based on if it is a 
-	 * RDF engine or a RDBMS engine
+	 * Wrapper around the main addConcept method.  Simplifies the call to use only one column name.
 	 * @param tableName				For RDF: This is the name of the concept
 	 * 								For RDBMS: This is the name of the table where the concept exists
-	 * @param colNames				For RDF: This is NOT used
-	 * 								For RDBMS: This is the name of the columns that contain the concept instances
-	 *								Multiple columns suggest a composite primary key
+	 * @param colName				For RDF: This is NOT used
+	 * 								For RDBMS: This is the name of the column that contain the concept instances
 	 * @param baseURI				This is the base URI for all the meta URIs
 	 * 								99.99999% of the time this should be the following string "http://semoss.org/ontologies/"
-	 * @param dataTypes				The dataTypes for the concept, corresponding to the columns in colNames
+	 * @param dataType				The dataType for the concept
 	 * @return						Returns the physical URI for the node
 	 * 								The return is only used in RDF databases where the instance URI must be linked
 	 * 								to the meta URI
-	 */
-	public String addConcept(String tableName, String[] colNames, String baseURI, String[] dataTypes) {
-		
-		// check whether the concept contains a composite key
-		boolean compositeKey = colNames.length > 1;
-		
-		// determine the column name, if there is more than one entry this will add the appropriate separator
-		String colName = String.join(Constants.COMPOSITE_KEY_SEPARATOR, colNames);
-		
+	 */	
+	public String addConcept(String tableName, String colName, String baseURI, String dataType) {
 		// since the column name is sometimes null or empty,
 		// need to construct the key in a similar manner to how the subject is created
 		String key = tableName + colName;
@@ -181,7 +160,7 @@ public class OWLER {
 				key = colName + tableName;
 			}
 		}
-		
+
 		// since RDF uses this multiple times, don't create it each time and just store it in a hash to send back
 		if(!conceptHash.containsKey(key)) {
 			// generate the base node uri and base relationship uri
@@ -192,13 +171,11 @@ public class OWLER {
 			// not sure when we would every pass in another baseURI....
 			String baseNodeURI = baseURI + DEFAULT_NODE_CLASS;
 			String baseRelation = baseURI + DEFAULT_RELATION_CLASS;
-			
-			// also generate the uri for primary key and composite key
-			String baseComposite = baseURI + DEFAULT_COMPOSITE_CLASS;
 
 			// here is the logic to create the physical uri for the concept
 			// the base URI for the concept will be the baseNodeURI
 			String subject = baseNodeURI + "/";
+			
 			// we also want to keep track of what the conceptual name is
 			// jk, this will always be the table name now
 			// if it is an RDBMS engine, we need to account when the table name and column name are not the same
@@ -216,64 +193,27 @@ public class OWLER {
 				// just add the table name since that is supposed to hold the concept name
 				subject += tableName;
 			}
-			
+
 			// now lets start to add the triples
 			// lets add the triples pertaining to those numbered above
-			
+
 			// 1) adding the physical URI concept as a subClassOf the baseNodeURI
 			engine.addToBaseEngine(subject, RDFS.SUBCLASSOF.stringValue(), baseNodeURI);
-			
+
 			// 2) now lets add the dataType of the concept
 			// determine the dataType
-			String dataType;
-			if (compositeKey) {
-				// if this is a composite key, then its type is composite
-				dataType = Constants.COMPOSITE_KEY_TYPE;
-			} else if (dataTypes.length > 0) {
-				// if not a composite key, then just pull the single data type
-				dataType = dataTypes[0];
-			} else {
+			if(dataType == null || !dataType.isEmpty()) {
 				// otherwise default to string
 				dataType = "STRING";
 			}
 			String typeObject = "TYPE:" + dataType;
 			String dataTypeUri = RDFS.CLASS.stringValue();
 			engine.addToBaseEngine(subject, dataTypeUri, typeObject);
-			
-			// 3) mark the type of the column as either a composite key or primary key
-			// Only add primary key tag for RDBMS
-			// TODO - refactoring to get away from using the URI:KEY, instead inferring from delimiter
-			// Thus commenting this out
-			/*
-			if (compositeKey) {
-				engine.addToBaseEngine(subject, RDF.TYPE.stringValue(), baseComposite);
-			} else if (type.equals(IEngine.ENGINE_TYPE.RDBMS)) {
-				engine.addToBaseEngine(new Object[] {subject, Constants.META_KEY, subject, false});
-			}
-			*/
-			
+
 			// store it in the hash for future use
-			// Needs to be done before adding properties 
-			// (if a composite key, properties are added in the next step)
 			conceptHash.put(key, subject);
-			
-			// TODO Commenting this out now, as we should be able to infer that all the delimited concepts
-			// in the composite key are also concepts
-			/*
-			// 4) if the concept has a composite key, add each individual column as a property as necessary
-			// then add a triple for each
-			if (compositeKey) {
-				for (int i = 0; i < colNames.length; i++) {
-					String conceptURI = addConcept(tableName, colName, colNames[i], dataTypes[i]);
-					String propURI = addProp(tableName, colName, colNames[i], dataTypes[i]);
-					
-					// If we want to add them as additional concepts, put that here
-//					engine.addToBaseEngine(new Object[] {subject, Constants.META_KEY, conceptURI, false});
-				}
-			}
-			*/
-			
-			// 5) now lets add the physical URI concept to the conceptual concept URI
+
+			// 3) now lets add the physical URI concept to the conceptual concept URI
 			// one of the advantages of the conceptual URI is that we can specify a concept in a database even
 			// if it contains any of the special characters that are not allowed in PKQL
 			// the conceptual name is the clean version of the name ... for now
@@ -282,44 +222,10 @@ public class OWLER {
 			conceptualNames.add(conceptualNode);
 			String conceptualSubject = baseNodeURI + "/" + conceptualNode;
 			engine.addToBaseEngine(subject, conceptualRelationship, conceptualSubject);
-		}		
+		}
 		return conceptHash.get(key);
 	}
-	
-	/**
-	 * Wrapper around the main addConcept method.  Simplifies the call to use only one column name.
-	 * @param tableName				For RDF: This is the name of the concept
-	 * 								For RDBMS: This is the name of the table where the concept exists
-	 * @param colName				For RDF: This is NOT used
-	 * 								For RDBMS: This is the name of the column that contain the concept instances
-	 * @param baseURI				This is the base URI for all the meta URIs
-	 * 								99.99999% of the time this should be the following string "http://semoss.org/ontologies/"
-	 * @param dataType				The dataType for the concept
-	 * @return						Returns the physical URI for the node
-	 * 								The return is only used in RDF databases where the instance URI must be linked
-	 * 								to the meta URI
-	 */
-	public String addConcept(String tableName, String colName, String baseURI, String dataType) {
-		return addConcept(tableName, new String[] {colName}, baseURI, new String[] {dataType});
-	}
-	
-	/**
-	 * Wrapper around the main addConcept method.  Simplifies the call to use the default 
-	 * base SEMOSS_URI.  This version takes in the table name and column names, so it is primarily
-	 * meant to be used for RDBMS engines
-	 * @param tableName				For RDF: This is the name of the concept
-	 * 								For RDBMS: This is the name of the table where the concept exists
-	 * @param colNames				For RDF: This is NOT used
-	 * 								For RDBMS: This is the name of the columns that contain the concept instances
-	 *								Multiple columns suggest a composite primary key
-	 * @param baseURI				This is the base URI for all the meta URIs
-	 * @param dataTypes				The dataTypes for the concept, corresponding to the columns in colNames
-	 * @return						Returns the physical URI for the node
-	 */
-	public String addConcept(String tableName, String[] colNames, String[] dataTypes) {
-		return addConcept(tableName, colNames, SEMOSS_URI, dataTypes);
-	}
-	
+
 	/**
 	 * Wrapper around the main addConcept method.  Simplifies the call to use the default 
 	 * base SEMOSS_URI.  This version takes in the table name and column name, so it is primarily
@@ -747,12 +653,15 @@ public class OWLER {
 	public Hashtable<String, String> getConceptHash() {
 		return conceptHash;
 	}
+	
 	public Hashtable<String, String> getRelationHash() {
 		return relationHash;
 	}
+	
 	public Hashtable<String, String> getPropHash() {
 		return propHash;
 	}
+	
 	public Set<String> getConceptualNodes() {
 		return conceptualNames;
 	}
