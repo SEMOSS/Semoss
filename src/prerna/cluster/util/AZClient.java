@@ -25,6 +25,7 @@ import prerna.engine.api.IEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
 
 import com.google.common.io.Files;
@@ -71,7 +72,8 @@ public class AZClient {
 	}
 	
 	// create an instance
-	public static AZClient getInstance()
+	// Also needs to be synchronized so multiple calls don't try to init at the same time
+	public static synchronized AZClient getInstance()
 	{
 		if(client == null)
 		{
@@ -101,6 +103,7 @@ public class AZClient {
 		if(storage == null || storage.equalsIgnoreCase("LOCAL"))
 		{
 			// dont bother with anything
+			// TODO >>>timb: these should all be centralized somewhere so we know what is needed for cluster
 			connectionString = DIHelper.getInstance().getProperty(AZ_CONN_STRING);
 			blobURI = DIHelper.getInstance().getProperty(AZ_URI);
 			sasURL = DIHelper.getInstance().getProperty(SAS_URL);
@@ -226,12 +229,35 @@ public class AZClient {
 	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
-		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
-		AZClient.getInstance().pushApp(appId);
-		AZClient.getInstance().pullApp(appId);
+//		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
+		System.out.println(AZClient.getInstance().getSAS("timb"));
+//		AZClient.getInstance().pushAllApps();
+//		AZClient.getInstance().pushApp(appId);
+//		AZClient.getInstance().pullApp(appId);
 	}
 	
+	private void pushAllApps() throws IOException, InterruptedException {
+		File db = new File(dbFolder);
+		for (File file : db.listFiles()) {
+			String fname = file.getName();
+			if (file.isFile() && fname.endsWith(".smss") && !fname.equals("security.smss") && !fname.equals("LocalMasterDatabase.smss")) {
+				String appId = fname.replaceAll(".smss", "").substring(fname.indexOf("__") + 2);
+				System.out.println("Syncing db for " + appId);
+//				AZClient.getInstance().pushApp(appId);
+				Thread pushAppThread = new Thread(new PushAppRunner(appId));
+				pushAppThread.start();
+			}
+		}
+		
+	}
+	
+	// TODO >>>timb: rclone delete on app delete (security utils)
+	
 	public void pullApp(String appId) throws IOException, InterruptedException {
+		
+		// Check whether the engine already exists
+		IEngine engine = Utility.getEngine(appId);
+		boolean newEngine = engine == null;
 		
 		// List the smss directory to get the alias + app id
 		String smssContainer = appId + "-smss";
@@ -264,6 +290,10 @@ public class AZClient {
 		runProcess("rclone", "copy", smssConfig + ":", dbFolder);
 		System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 		deleteRcloneConfig(smssConfig);
+		
+		if (newEngine) {
+			SMSSWebWatcher.catalogDB(dbFolder + FILE_SEPARATOR + smss, dbFolder);
+		}
 	}
 	
 	public void pushApp(String appId) throws IOException, InterruptedException {
@@ -289,7 +319,6 @@ public class AZClient {
 					runProcess("rclone", "copy", temp.getPath(), rcloneConfig + ":");
 				}
 				System.out.println("Done pushing from source=" + file.getName() + " to remote=" + remote);
-				runProcess("rclone", "ls", rcloneConfig + ":");
 				deleteRcloneConfig(rcloneConfig);
 			}
 		} finally {
@@ -303,7 +332,6 @@ public class AZClient {
 	}
 	
 	// TODO >>>timb: need to delete too
-	
 	private static String createRcloneConfig(String container) throws IOException, InterruptedException {
 		System.out.println("Generating SAS for container=" + container);
 		String sasUrl = client.getSAS(container);
@@ -316,7 +344,8 @@ public class AZClient {
 		runProcess("rclone", "config", "delete", rcloneConfig);
 	}
 	
-	private static List<String> runProcess(String... command) throws IOException, InterruptedException {
+	// Unfortunately the processes have to be synchronized, otherwise rclone throws errors when it tries to access the config file at the same time
+	private static synchronized List<String> runProcess(String... command) throws IOException, InterruptedException {
 		Process p = null;
 		try {
 			ProcessBuilder pb = new ProcessBuilder(command);
