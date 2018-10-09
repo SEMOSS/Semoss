@@ -2533,6 +2533,7 @@ public class Utility {
 		}
 
 		// TODO >>>timb: Centralize this ZK env check stuff // TODO >>>timb: remove node exists error or catch it 
+		// TODO >>>cluster: tag
 		// Start with because the insights RDBMS has the id security_InsightsRDBMS
 		if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase") || engineId.startsWith("form_builder_engine"))) {
 			Map<String, String> envMap = System.getenv();

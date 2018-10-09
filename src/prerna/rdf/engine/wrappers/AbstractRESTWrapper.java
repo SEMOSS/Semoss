@@ -233,9 +233,6 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 		return post(action, appId, params);
 	}
 	
-	// TODO >>>timb: setup the subclasses properly
-	// TODO >>>timb: set SEMOSS_LOAD_ENGINES_LOCALLY to false in env vars and restart eclipse
-	// TODO >>>timb: then, place a debugger on the execute here and see if it posts properly 
 	@Override
 	public void execute() {
 		if (isLocal()) {
