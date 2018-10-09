@@ -254,7 +254,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		while(wrapper.hasNext()) {
-			int permission = ((Number) wrapper.next().getValues()[0]).intValue();
+			Object val = wrapper.next().getValues()[0];
+			if(val == null) {
+				return false;
+			}
+			int permission = ((Number) val).intValue();
 			if(EnginePermission.isOwner(permission)) {
 				return true;
 			}
