@@ -9,13 +9,10 @@ import java.util.Set;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -37,6 +34,7 @@ public class OWLER {
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
 	public static final String DEFAULT_PROP_CLASS = "Relation/Contains";
 	public static final String CONCEPTUAL_RELATION_NAME = "Conceptual";
+	public static final String LOGICAL_RELATION_NAME = "Logical";
 	
 	// hashtable of concepts
 	private Hashtable<String, String> conceptHash = new Hashtable<String, String>();
@@ -584,16 +582,15 @@ public class OWLER {
 	 * This method will calculate the unique values in each column/property
 	 * and add it to the owl file.
 	 * 
-	 * @param engine
+	 * @param queryEngine
 	 */
-	public void addUniqueCounts(IEngine engine){
-		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(engine.getEngineId());
-		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
+	public void addUniqueCounts(IEngine queryEngine){
+		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(queryEngine.getEngineId());
 		
 		for (String tab : concepts){
 			// query for unique column values and dont 
 			// store it if it returns null
-			SelectQueryStruct qs2 = new SelectQueryStruct();
+			SelectQueryStruct qs = new SelectQueryStruct();
 			QueryFunctionSelector newSelector = new QueryFunctionSelector();
 			newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
 			newSelector.setDistinct(true);
@@ -601,21 +598,21 @@ public class OWLER {
 			innerSelector.setTable(tab);
 			innerSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			newSelector.addInnerSelector(innerSelector);
-			qs2.addSelector(newSelector);
-			qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+			qs.addSelector(newSelector);
+			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 			
-			Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+			Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(queryEngine, qs);
 			if (!it.hasNext()) {
 				continue;
 			}
 			long uniqueRows = ((Number) it.next().getValues()[0]).longValue();
-			String baseUri = engine.getNodeBaseUri();
+			String baseUri = queryEngine.getNodeBaseUri();
 			String conceptUri = baseUri + tab + "/" + Utility.getInstanceName(tab);
 			String prop = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
-			owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
-			owlEngine.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+			this.engine.addToBaseEngine(conceptUri, prop, uniqueRows, false);
+			this.engine.addToBaseEngine(conceptUri, prop, uniqueRows, false);
 			
-			List<String> properties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(tab, engine.getEngineId());
+			List<String> properties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(tab, queryEngine.getEngineId());
 			for (int i = 0; i < properties.size() ; i++){
 				if (properties.get(i).equals(tab)){
 					continue;
@@ -623,7 +620,7 @@ public class OWLER {
 				
 				// query for unique column values and dont 
 				// store it if it returns null
-				qs2 = new SelectQueryStruct();
+				qs = new SelectQueryStruct();
 				newSelector = new QueryFunctionSelector();
 				newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
 				newSelector.setDistinct(true);
@@ -631,10 +628,10 @@ public class OWLER {
 				innerSelector.setTable(tab);
 				innerSelector.setColumn(properties.get(i));
 				newSelector.addInnerSelector(innerSelector);
-				qs2.addSelector(newSelector);
-				qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+				qs.addSelector(newSelector);
+				qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 				
-				it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
+				it = WrapperManager.getInstance().getRawWrapper(queryEngine, qs);
 				if (!it.hasNext()) {
 					continue;
 				}
@@ -643,27 +640,55 @@ public class OWLER {
 				// update the owl file and export it
 				conceptUri = baseUri + properties.get(i) + "/" + Utility.getInstanceName(tab);
 				prop = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
-				owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
-				owlEngine.doAction(ACTION_TYPE.ADD_STATEMENT, new Object[]{conceptUri, prop, uniqueRows, false});
+				this.engine.addToBaseEngine(conceptUri, prop, uniqueRows, false);
+				this.engine.addToBaseEngine(conceptUri, prop, uniqueRows, false);
 			}
-
 		}
-		owlEngine.commit();
+		this.engine.commit();
 		try {
-			owlEngine.exportDB();
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			this.engine.exportBaseEng(true);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
 	/////////////////// END ADDING PROPERTIES TO CONCEPTS INTO THE OWL /////////////////////////////////
+
+	/////////////////// ADD LOGICAL NAMES INTO THE OWL /////////////////////////////////
+
+	/**
+	 * This assumes the table/column already exists
+	 * @param table
+	 * @param column
+	 * @param logicalNames
+	 */
+	public void addLogicalNames(String table, String column, String...logicalNames) {
+		String toConceptURI = addConcept(table, column, null);
+		
+		String baseRelation = BASE_URI + DEFAULT_RELATION_CLASS;
+		String logicalRelation = baseRelation + "/" + LOGICAL_RELATION_NAME;
+		
+		if(logicalNames != null) {
+			for(String lName : logicalNames) {
+				this.engine.addToBaseEngine(new Object[]{toConceptURI, logicalRelation, lName, false});
+			}
+		}
+	}
+	
+	public void deleteLogicalName(String table, String column, String... logicalNames) {
+		String toConceptURI = addConcept(table, column, null);
+		
+		String baseRelation = BASE_URI + DEFAULT_RELATION_CLASS;
+		String logicalRelation = baseRelation + "/" + LOGICAL_RELATION_NAME;
+		
+		if(logicalNames != null) {
+			for(String lName : logicalNames) {
+				this.engine.removeFromBaseEngine(new Object[]{toConceptURI, logicalRelation, lName, false});
+			}
+		}
+	}
+	
+	/////////////////// END ADDING LOGICAL NAMES INTO THE OWL /////////////////////////////////
 
 	
 	/////////////////// ADDITIONAL METHODS TO INSERT INTO THE OWL /////////////////////////////////
