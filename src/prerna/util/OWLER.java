@@ -377,6 +377,66 @@ public class OWLER {
 	}
 	
 	/**
+	 * This does the same thing as addRelationship but removes instead of add statements
+	 * @param fromTable
+	 * @param fromColumn
+	 * @param toTable
+	 * @param toColumn
+	 * @param predicate
+	 */
+	public void removeRelation(String fromTable, String fromColumn, String toTable, String toColumn, String predicate) {
+		// need to make sure both the fromConcept and the toConcept are already defined as concepts
+		// TODO: this works for RDBMS even though it only takes in the concept names because we usually perform
+		// 		the addConcept call before... this is really just intended to retrieve the concept URIs from the
+		// 		conceptHash as they should already there
+		String fromConceptURI = addConcept(fromTable, fromColumn, null);
+		String toConceptURI = addConcept(toTable, toColumn, null);
+		
+		// if a predicate is not defined, we create it based on the connection
+		// TODO: this makes a lot of assumptions regarding the structure of the database
+		// 		the assumption is only accurate for databases that we create within the tool through upload
+		if(predicate == null) {
+			// assume the foreign key is on the toTable
+			// this will be the foreign key column in the toTable, which is the from column name + "_FK"
+			// however, if from column is empty, it will be the assumption that from column is the same as from table
+			
+			// store the foreign key column
+			String fk_Col = null;
+			// this will be the column name in case it is empty and the same as the table name
+			String fromCol = null;
+			if(!fromColumn.isEmpty()) {
+				fk_Col = fromColumn;
+				fromCol = fromColumn;
+			} else {
+				// if the fromColumn is empty, assume it is the same as the table
+				fk_Col = fromTable;
+				fromCol = fromTable;
+			}
+			fk_Col += "_FK";
+			
+			// generate the predicate string
+			predicate = fromTable + "." + fromCol + "." + toTable + "." + fk_Col;
+		}
+		
+		// TODO: this always assumes the baseURI for the relationship is the default semoss uri
+		// create the base relationship uri
+		String baseRelationURI = SEMOSS_URI + DEFAULT_RELATION_CLASS;
+		String predicateSubject = baseRelationURI + "/" + predicate;
+		
+		// now lets start to add the triples
+		// lets add the triples pertaining to those numbered above
+		
+		// 1) now add the physical relationship URI
+		engine.removeFromBaseEngine(predicateSubject, RDFS.SUBPROPERTYOF.stringValue(), baseRelationURI);
+		
+		// 2) now add the relationship between the two nodes
+		engine.removeFromBaseEngine(fromConceptURI, predicateSubject, toConceptURI);
+		
+		// lastly, store it in the hash for future use
+		relationHash.remove(fromTable + fromColumn + toTable + toColumn + predicate);
+	}
+	
+	/**
 	 * Adds a relationship between two concepts within the OWL
 	 * @param fromConcept			For RDF: This is the name of the start concept
 	 * 								For RDBMS: This is the name of the table AND column name (they are the same) for
