@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -199,6 +200,21 @@ public class AddToMasterDB {
 			// this concept already exists
 			// so we will just grab the ID
 			conceptGuid = this.conceptIdHash.get(conceptualName + "_CONCEPTUAL");
+			
+			Set<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualName);
+			// add new logicals
+			Set<String> logicals = helper.getLogicalNames(conceptPhysicalUri);
+			if(!logicals.isEmpty()) {
+				colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+			
+				for(String logical : logicals) {
+					if(!curLogicals.contains(logical)) {
+						insertValues = new String[]{conceptGuid, conceptualName, logical, "NewDomain", ""};
+						insertQuery("Concept", colNames, types, insertValues);
+					}
+				}
+			}
 		} else {
 			// we need to create a new one
 			conceptGuid = UUID.randomUUID().toString();
@@ -212,6 +228,13 @@ public class AddToMasterDB {
 			// right now, default is to add the conceptual name as a logical name
 			insertValues = new String[]{conceptGuid, conceptualName, conceptualName, "NewDomain", ""};
 			insertQuery("Concept", colNames, types, insertValues);
+			
+			// also add all the logical names
+			Set<String> logicals = helper.getLogicalNames(conceptPhysicalUri);
+			for(String logical : logicals) {
+				insertValues = new String[]{conceptGuid, conceptualName, logical, "NewDomain", ""};
+				insertQuery("Concept", colNames, types, insertValues);
+			}
 		}
 		
 		// now that we have either retrieved an existing concept id or made a new one
@@ -279,6 +302,21 @@ public class AddToMasterDB {
 			// this concept already exists
 			// so we will just grab the ID
 			propertyGuid = this.conceptIdHash.get(propertyConceptualName);
+			
+			Set<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(propertyConceptualName);
+			// add new logicals
+			Set<String> logicals = helper.getLogicalNames(propertyPhysicalUri);
+			if(!logicals.isEmpty()) {
+				colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+			
+				for(String logical : logicals) {
+					if(!curLogicals.contains(logical)) {
+						insertValues = new String[]{propertyGuid, propertyConceptualName, logical, "NewDomain", ""};
+						insertQuery("Concept", colNames, types, insertValues);
+					}
+				}
+			}
 		} else {
 			// we need to create a new one
 			propertyGuid = UUID.randomUUID().toString();
@@ -292,6 +330,13 @@ public class AddToMasterDB {
 			// right now, default is to add the conceptual name as a logical name
 			insertValues = new String[]{propertyGuid, propertyConceptualName, propertyConceptualName, "NewDomain", ""};
 			insertQuery("Concept", colNames, types, insertValues);
+			
+			// also add all the logical names
+			Set<String> logicals = helper.getLogicalNames(propertyPhysicalUri);
+			for(String logical : logicals) {
+				insertValues = new String[]{propertyGuid, propertyConceptualName, logical, "NewDomain", ""};
+				insertQuery("Concept", colNames, types, insertValues);
+			}
 		}
 		
 		// now that we have either retrieved an existing property id or made a new one

@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -591,4 +593,18 @@ public class MetaHelper implements IExplorable {
 		this.baseDataEngine = baseDataEngine;
 	}
 
+	@Override
+	public Set<String> getLogicalNames(String physicalURI) {
+		String query = "SELECT DISTINCT ?logical WHERE { "
+				+ "BIND(<" + physicalURI + "> AS ?uri) "
+				+ "{?uri <http://semoss.org/ontologies/Relation/Logical> ?logical } "
+				+ "}";
+
+		Set<String> logicals = new TreeSet<String>();
+		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+		while(manager.hasNext()) {
+			logicals.add(manager.next().getValues()[0].toString());
+		}
+		return logicals;
+	}
 }
