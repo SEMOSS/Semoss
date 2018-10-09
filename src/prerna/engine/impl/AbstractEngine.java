@@ -891,6 +891,11 @@ public abstract class AbstractEngine implements IEngine {
 		return this.owlHelper.getAdtlDataTypes(uris);
 	}
 	
+	@Override
+	public Set<String> getLogicalNames(String physicalURI) {
+		return this.owlHelper.getLogicalNames(physicalURI);
+	}
+	
 	public String getParentOfProperty(String prop) {
 		if(!prop.startsWith("http://")) {
 			prop = "http://semoss.org/ontologies/Relation/Contains/" + prop;
