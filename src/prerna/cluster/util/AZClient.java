@@ -282,7 +282,22 @@ public class AZClient {
 		appFolder.mkdir();
 		String appConfig = createRcloneConfig(appId);
 		System.out.println("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
-		runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
+		
+		// If it is a new engine, just pull
+		if (newEngine) {
+			runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
+		} else {
+			
+			// Otherwise, need to remove any locks then reopen
+			try {
+				engine.closeDB();
+				runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
+			} finally {
+				DIHelper.getInstance().removeLocalProperty(appId);
+				Utility.getEngine(appId);
+			}
+		}
+		
 		System.out.println("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
 		deleteRcloneConfig(appConfig);
 
