@@ -220,21 +220,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	
-	/**
-	 * Check if the user is an admin
-	 * @param userId	String representing the id of the user to check
-	 */
-	public static Boolean userIsAdmin(User user) {
-		String userFilters = getUserFilters(user);
-		String query = "SELECT * FROM USER WHERE ADMIN=TRUE AND ID IN " + userFilters + " LIMIT 1;";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		try {
-			return wrapper.hasNext();
-		} finally {
-			wrapper.cleanUp();
-		}
-	}
-	
 	@Deprecated
 	public static Boolean userIsAdmin(String userId) {
 		String query = "SELECT ADMIN FROM USER WHERE ID ='" + userId + "';";
