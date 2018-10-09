@@ -147,9 +147,6 @@ public interface IExplorable {
 	
 	String getNodeBaseUri();
 	
-	// REFAC: Change this to engine - this should be local master
-	String getConceptUri4PhysicalName(String physicalName);
-	
 	/**
 	 * Get the datatypes for the uri from the associated owl file
 	 * @param uris
@@ -174,12 +171,7 @@ public interface IExplorable {
 	// REFAC: this has no meaning.. sorry
 	String getParentOfProperty(String property);
 	
-	// and this also has no meaning.. not sure
-	List<String> getParentOfProperty2(String property);
-	
-	// 
 	SelectQueryStruct getDatabaseQueryStruct();
-	
 	
 	// REFAC: Change this to engine - this should be local master
 	Map<String, Object> getMetamodel();
