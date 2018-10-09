@@ -558,12 +558,6 @@ public class MetaHelper implements IExplorable {
 	}
 	
 	@Override
-	public List<String> getParentOfProperty2(String property) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public void setInsightDatabase(IEngine insightDatabase) {
 		// TODO Auto-generated method stub
 		

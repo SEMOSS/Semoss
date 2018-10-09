@@ -128,7 +128,6 @@ public abstract class AbstractEngine implements IEngine {
 	private String owl;
 	private String insightDatabaseLoc;
 
-	private transient Map<String, String> tableUriCache = new HashMap<String, String>();
 	private Hashtable<String, String> baseDataHash;
 	private String baseUri;
 	
@@ -548,26 +547,6 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	/**
-	 * Goes to the owl using a regex sparql query to get the physical uri
-	 * @param physicalName e.g. Studio
-	 * @return e.g. http://semoss.org/ontologies/Concept/Studio
-	 */
-	public String getConceptUri4PhysicalName(String physicalName){
-		if(tableUriCache.containsKey(physicalName)){
-			return tableUriCache.get(physicalName);
-		}
-		Vector<String> cons = this.getConcepts(false);
-		for(String checkUri : cons){
-			if(Utility.getInstanceName(checkUri).equals(physicalName)){
-				tableUriCache.put(physicalName, checkUri);
-				return checkUri;
-			}
-		}
-
-		return "unable to get table uri for " + physicalName;
-	}
-
-	/**
 	 * Returns the set of properties for a given concept
 	 * @param concept					The concept URI
 	 * 									Assumes the concept URI is the conceptual URI
@@ -940,30 +919,6 @@ public abstract class AbstractEngine implements IEngine {
 			return node;
 		}
 		return null;
-	}
-	
-	public List<String> getParentOfProperty2(String prop) {
-		List<String> retList = new Vector<String>();
-		
-		if(!prop.startsWith("http://")) {
-			prop = "http://semoss.org/ontologies/Relation/Contains/" + prop;
-		}
-
-		// in new schema, try the conceptual
-		String query = "SELECT DISTINCT ?concept WHERE { "
-				+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?phyProp }"
-				+ "{?phyProp <http://semoss.org/ontologies/Relation/Conceptual> <" + prop + ">}"
-				+ "}";
-		
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
-		String[] names = wrapper.getPhysicalVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String node = ss.getRawVar(names[0]).toString();
-			retList.add(node);
-		}
-		
-		return retList;
 	}
 	
 	/**
