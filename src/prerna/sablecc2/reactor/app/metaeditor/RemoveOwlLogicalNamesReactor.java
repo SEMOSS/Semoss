@@ -12,9 +12,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
+public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
-	public AddOwlLogicalNamesReactor() {
+	public RemoveOwlLogicalNamesReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
 	}
 	
@@ -42,13 +42,13 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names : " + Arrays.toString(logicalNames), 
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove logical names : " + Arrays.toString(logicalNames), 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names : " + Arrays.toString(logicalNames), 
+		noun.addAdditionalReturn(new NounMetadata("Successfully removed logical names : " + Arrays.toString(logicalNames), 
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}
