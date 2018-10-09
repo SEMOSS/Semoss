@@ -5,9 +5,7 @@ import java.io.StringWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import org.openrdf.repository.RepositoryException;
@@ -28,7 +26,6 @@ public class BaseDatabaseCreator {
 	public static final String TIME_URL = "http://semoss.org/ontologies/Concept/TimeStamp";
 	
 	private RDFFileSesameEngine baseEng;
-	protected Hashtable<String, String> baseDataHash = new Hashtable<String, String>();
 
 	//open without connection
 	public BaseDatabaseCreator(String owlFile) {
@@ -38,10 +35,8 @@ public class BaseDatabaseCreator {
 	}
 
 	//open with connection
-	@SuppressWarnings("unchecked")
 	public BaseDatabaseCreator(IEngine engine, String owlFile) {
 		baseEng = ((AbstractEngine) engine).getBaseDataEngine();
-		baseDataHash = ((AbstractEngine) engine).getBaseHash();
 		baseEng.setFileName(owlFile);
 	}
 
@@ -61,15 +56,34 @@ public class BaseDatabaseCreator {
 		String cleanObj = Utility.cleanString(obj, false);
 
 		baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, cleanObj, concept});
-		baseDataHash.put(cleanSub, cleanSub);
-		baseDataHash.put(cleanPred, cleanPred);
-		baseDataHash.put(cleanObj, cleanObj);
+	}
+	
+	/**
+	 * Adding information into the base engine
+	 * Currently assumes we are only adding URIs (object is never a literal)
+	 * @param triple 			The triple to load into the engine and into baseDataHash
+	 */
+	public void removeFromBaseEngine(Object[] triple) {
+		String sub = (String) triple[0];
+		String pred = (String) triple[1];
+		String obj = (String) triple[2];
+		boolean concept = Boolean.valueOf((boolean) triple[3]);
+
+		String cleanSub = Utility.cleanString(sub, false);
+		String cleanPred = Utility.cleanString(pred, false);
+		String cleanObj = Utility.cleanString(obj, false);
+
+		baseEng.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{cleanSub, cleanPred, cleanObj, concept});
 	}
 	
 	// set this as separate pieces as well
-	public void addToBaseEngine(String subject, String predicate, String object)
-	{
+	public void addToBaseEngine(String subject, String predicate, String object) {
 		addToBaseEngine(new Object[]{subject, predicate, object, true});
+	}
+	
+	// set this as separate pieces as well
+	public void removeFromBaseEngine(String subject, String predicate, String object) {
+		removeFromBaseEngine(new Object[]{subject, predicate, object, true});
 	}
 
 	/**
@@ -158,13 +172,6 @@ public class BaseDatabaseCreator {
 	
 	/**
 	 * 
-	 */
-	public Map<String, String> getBaseDataHash() {
-		return this.baseDataHash;
-	}
-
-	/**
-	 * 
 	 * @return
 	 */
 	public RDFFileSesameEngine getBaseEng() {
@@ -178,7 +185,4 @@ public class BaseDatabaseCreator {
 		this.baseEng.closeDB();
 	}
 	
-	public void removeFromBaseEngine(Object[] triple){
-		this.baseEng.removeStatement(triple);
-	}
 }
