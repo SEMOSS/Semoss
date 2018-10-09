@@ -48,14 +48,20 @@ public class BaseDatabaseCreator {
 	public void addToBaseEngine(Object[] triple) {
 		String sub = (String) triple[0];
 		String pred = (String) triple[1];
-		String obj = (String) triple[2];
+		// is this a URI or a literal?
 		boolean concept = Boolean.valueOf((boolean) triple[3]);
 
 		String cleanSub = Utility.cleanString(sub, false);
 		String cleanPred = Utility.cleanString(pred, false);
-		String cleanObj = Utility.cleanString(obj, false);
-
-		baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, cleanObj, concept});
+		
+		Object objValue = triple[2];
+		// if it is a URI
+		// gotta clean up the value
+		if(concept) {
+			objValue = Utility.cleanString(objValue.toString(), false);
+		}
+		
+		baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
 	}
 	
 	/**
@@ -81,11 +87,19 @@ public class BaseDatabaseCreator {
 		addToBaseEngine(new Object[]{subject, predicate, object, true});
 	}
 	
+	public void addToBaseEngine(String subject, String predicate, Object object, boolean isUri) {
+		addToBaseEngine(new Object[]{subject, predicate, object, isUri});
+	}
+	
 	// set this as separate pieces as well
 	public void removeFromBaseEngine(String subject, String predicate, String object) {
 		removeFromBaseEngine(new Object[]{subject, predicate, object, true});
 	}
 
+	public void removeFromBaseEngine(String subject, String predicate, Object object, boolean isUri) {
+		removeFromBaseEngine(new Object[]{subject, predicate, object, isUri});
+	}
+	
 	/**
 	 * 
 	 * @throws IOException
