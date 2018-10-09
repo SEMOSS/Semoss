@@ -21,21 +21,28 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.data.Stat;
 
-import prerna.util.Utility;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import freemarker.template.TemplateExceptionHandler;
 import freemarker.template.Version;
 
-public class NGINXAppListener extends NGINXDomainListener implements IZKListener {
+public class NGINXDomainListener implements IZKListener {
 
 	//static String semossHome = "/opt/semosshome/";
 	static String semossHome = "c:/users/pkapaleeswaran/workspacej3/docker/";
+	NGINXAppListener appListener = null;
+	
+	List <String> domains2Watch = null;
 	
 	
 	public static final String SEMOSS_HOME = "sem";
 	
+	static
+	{
+		if(System.getenv().containsKey(SEMOSS_HOME))
+			semossHome = System.getenv().get(SEMOSS_HOME);		
+	}
 	
 	@Override
 	public void process(String path, ZooKeeper zk) {
@@ -45,22 +52,19 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 		
 	}
 	
+	private IZKListener getListener()
+	{
+		if(appListener == null)
+			appListener = new NGINXAppListener();
+		return appListener;
+	}
+	
 	public void regenConfig(String path, ZooKeeper zk)
 	{
-		// when it comes here
-		// I need to navigate up a level to get to the domains and regenerate
-		
+		// need to pick every children at this level and go back and get its children
 		
 		Map <String, Map<String, String>> domain = new HashMap<String, Map<String, String>>();
-		System.out.println("Pulling specific APP.." + path);
 
-		// navigate one level up
-		String watchPath = path;
-		String [] pathTokens = path.split("/");
-		String lastPath = pathTokens[pathTokens.length - 1];
-		
-		path = path.replace("/" + lastPath, "");
-		
 		try {
 			
 			// get all the domains first
@@ -88,7 +92,7 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 				
 			}	
 			genNginx(domain);
-			watchDomains(watchPath);
+			watchDomains(path);
 			
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
@@ -99,17 +103,15 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 		}
 		
 		
-		
 	}
 	
 	protected void watchDomains(String path)
 	{
 		System.out.println("Registering Domains.. ");
-		//Thread.sleep(3000);
 		// register all the domains again
-		ZKClient.getInstance().watchEvent(path, EventType.NodeChildrenChanged, this, false);
+		//for(int domainIndex = 0;domainIndex < domains2Watch.size();domainIndex++)
+		//	ZKClient.getInstance().watchEvent(path +"/"+ domains2Watch.get(domainIndex), EventType.NodeChildrenChanged, getListener(), false);
 	}
-
 	
 	public void genNginx(Map map)
 	{
@@ -155,8 +157,9 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 			
 			if(Files.exists(Paths.get(backConfig)))
 				Files.delete(Paths.get(backConfig));
-			
-			Files.copy(Paths.get(curConfig), Paths.get(backConfig));
+		
+			if(Files.exists(Paths.get(curConfig)))
+				Files.copy(Paths.get(curConfig), Paths.get(backConfig));
 			
 			
 		}catch (Exception ex)

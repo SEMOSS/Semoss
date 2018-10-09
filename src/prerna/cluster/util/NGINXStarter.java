@@ -34,12 +34,15 @@ public class NGINXStarter {
 	{
 		if(zkClient == null)
 			zkClient = ZKClient.getInstance();
-		NGINXAppListener nginxListener = new NGINXAppListener();
+		NGINXDomainListener nginxListener = new NGINXDomainListener();
+		zkClient.watchEvent(zkClient.home, EventType.NodeDataChanged, nginxListener);
 		
 		// generate once for the first time
-		nginxListener.regenConfig(zkClient.home + zkClient.app, zkClient.zk);
+		//nginxListener.regenConfig(zkClient.home + zkClient.app, zkClient.zk);
+		nginxListener.regenConfig(zkClient.home, zkClient.zk);
 		
-		zkClient.watchEvent(zkClient.home + zkClient.app, EventType.NodeChildrenChanged, nginxListener);
+		//zkClient.watchEvent(zkClient.home + zkClient.app, EventType.NodeChildrenChanged, nginxListener);
+		
 		
 		while(true)
 		{

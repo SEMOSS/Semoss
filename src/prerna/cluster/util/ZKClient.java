@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,9 +16,11 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.Stat;
+
+import ucar.nc2.time.Calendar;
 
 
 public class ZKClient implements Watcher{
@@ -73,6 +77,7 @@ public class ZKClient implements Watcher{
 	public static ZKClient zkClient = null;
 	
 	Map <String, List<IZKListener>> listeners = new HashMap<String, List<IZKListener>>();
+	Map <String, Boolean> repeat = new HashMap<String, Boolean>();
 	
 	
 	
@@ -189,6 +194,7 @@ public class ZKClient implements Watcher{
 		
 		try {
 			zk.create(home +"/semoss" , getPayload().getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+			touchRoot();
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -204,6 +210,7 @@ public class ZKClient implements Watcher{
 	public void publishContainer(String ipPort) {
 		try {
 			zk.create(home + container + "/" + ipPort ,  host.getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+			touchRoot();
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -304,6 +311,11 @@ public class ZKClient implements Watcher{
 	
 	public void watchEvent(String path, EventType eventType, IZKListener listener)
 	{	
+		watchEvent(path, eventType, listener, true);
+	}
+
+	public void watchEvent(String path, EventType eventType, IZKListener listener, boolean watchAgain)
+	{
 		String key = path + "_" + eventType;
 		List <IZKListener> llist = new Vector<IZKListener>();
 		if(listeners.containsKey(key))
@@ -311,7 +323,19 @@ public class ZKClient implements Watcher{
 		
 		llist.add(listener);
 		listeners.put(path + "_" + eventType, llist);
-		watchPath(path);
+		repeat.put(path + "_" + eventType, watchAgain);
+
+		if(eventType == EventType.NodeChildrenChanged)
+			watchPath(path);
+		
+		else if(eventType == EventType.NodeDataChanged)
+			watchPathD(path);
+
+	}
+	
+	public void removeWatch(String path, EventType eventType)
+	{
+		
 	}
 	
 	public void watchPath(String path)
@@ -324,7 +348,32 @@ public class ZKClient implements Watcher{
 			e.printStackTrace();
 		}		
 	}
+
+	public void watchPathD(String path)
+	{
+		// reset the watch
+		try {
+			zk.getData(path , true, null);
+		} catch (KeeperException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+	}
 	
+	public void touchRoot()
+	{
+		try
+		{
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");  
+			   LocalDateTime now = LocalDateTime.now();  
+			   System.out.println(dtf.format(now));  
+			zk.setData(home, dtf.format(now).getBytes(), -1);
+		}catch(Exception ex)
+		{
+			
+		}
+	}
+
 	@Override
 	public void process(WatchedEvent event) {	
 		// TODO Auto-generated method stub
@@ -353,9 +402,18 @@ public class ZKClient implements Watcher{
 				}
 				
 			}
+			if(event.getType() == EventType.NodeChildrenChanged)
+				watchPath(path);
 			
-			watchPath(path);
-		}
+			else if(event.getType() == EventType.NodeDataChanged)
+				watchPathD(path);
+			
+/*			if(repeat.containsKey(key) && repeat.get(key))
+			else
+			{
+				listeners.remove(key);
+			}
+*/		}
 		
 	}
 	
