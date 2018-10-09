@@ -19,7 +19,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
 import prerna.util.ConnectionUtils;
 
-// TODO >>>timb: so right now this is the only wrapper extending this class, will need to extend to others (What to do with RDF???)
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	protected Connection conn = null;
