@@ -23,6 +23,9 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	
 	private static final String CLASS_NAME = ExternalJdbcSchemaReactor.class.getName();
 	
+	public static final String TABLES_KEY = "tables";
+	public static final String RELATIONS_KEY = "relationships";
+	
 	public ExternalJdbcSchemaReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(), 
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), 
@@ -186,8 +189,8 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		logger.info("Done parsing database metadata");
 		
 		HashMap<String, Object> ret = new HashMap<String, Object>();
-		ret.put("tables", databaseTables);
-		ret.put("relationships", databaseJoins);
+		ret.put(TABLES_KEY, databaseTables);
+		ret.put(RELATIONS_KEY, databaseJoins);
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 	
