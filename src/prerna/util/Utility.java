@@ -103,6 +103,7 @@ import com.ibm.icu.text.DecimalFormat;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.AZClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.date.SemossDate;
@@ -2487,25 +2488,52 @@ public class Utility {
 	@Deprecated
 	public static IEngine getEngine(String engineId) {
 		IEngine engine = null;
-		if(DIHelper.getInstance().getLocalProp(engineId) != null) {
+
+		// If the engine has already been loaded, then return it
+		// Don't acquire the lock here, because that would slow things down
+		if (DIHelper.getInstance().getLocalProp(engineId) != null) {
 			engine = (IEngine) DIHelper.getInstance().getLocalProp(engineId);
+
+			// TODO >>>timb: why is this here?
 			engineLocks.remove(engineId);
+
+		// Else, need to load the engine
 		} else {
-			// start the engine using the smss file
-			String smssFile = (String) DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
-			// start it up
-			if(smssFile != null) {
-				ReentrantLock lock = getEngineLock(engineId);
-				lock.lock();
-				try {
-					// need to do a double check
-					// so if a different thread was waiting for the engine to load
-					// it doesn't go through this process again
-					if(DIHelper.getInstance().getLocalProp(engineId) != null)  {
-						return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
+
+			// Acquire the lock on the engine,
+			// don't want several calls to try and load the engine at the same
+			// time
+			ReentrantLock lock = getEngineLock(engineId);
+			lock.lock();
+
+			// Need to do a double check here,
+			// so if a different thread was waiting for the engine to load,
+			// it doesn't go through this process again
+			if (DIHelper.getInstance().getLocalProp(engineId) != null) {
+				return (IEngine) DIHelper.getInstance().getLocalProp(engineId);
+			}
+
+			// If in a clustered environment, then pull the app first
+			// TODO >>>timb: need to pull sec and lmd each time. They also need
+			// correct jdbcs...
+			try {
+				if (ClusterUtil.IS_CLUSTER) {
+					try {
+						AZClient.getInstance().pullApp(engineId);
+					} catch (IOException | InterruptedException e) {
+						return null;
 					}
-					
-					// actual process to load
+				}
+
+				// Now that the app has been pulled, grab the smss file
+				String smssFile = (String) DIHelper.getInstance().getCoreProp()
+						.getProperty(engineId + "_" + Constants.STORE);
+
+				// Start up the engine using the details in the smss
+				if (smssFile != null) {
+
+					// Actual process to load
+					// TODO >>>timb: clean this up while we are at it
 					FileInputStream fis = null;
 					try {
 						Properties daProp = new Properties();
@@ -2516,7 +2544,7 @@ public class Utility {
 					} catch (IOException e) {
 						e.printStackTrace();
 					} finally {
-						if(fis != null) {
+						if (fis != null) {
 							try {
 								fis.close();
 							} catch (IOException e) {
@@ -2524,36 +2552,39 @@ public class Utility {
 							}
 						}
 					}
-				} finally {
-					lock.unlock();
+				} else {
+					System.out.println("There is no SMSS File for the engine " + engineId + "...");
 				}
-			} else {
-				System.out.println("There is no SMSS File for the engine " + engineId + "...");
-			}
-		}
-
-		// TODO >>>timb: Centralize this ZK env check stuff // TODO >>>timb: remove node exists error or catch it 
-		// TODO >>>cluster: tag
-		// Start with because the insights RDBMS has the id security_InsightsRDBMS
-		if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase") || engineId.startsWith("form_builder_engine"))) {
-			Map<String, String> envMap = System.getenv();
-			if(envMap.containsKey(ZKClient.ZK_SERVER) || envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
-				if(ClusterUtil.LOAD_ENGINES_LOCALLY) {
-					
-					// Only publish if actually loading on this box
-					// TODO >>>timb: this logic only works insofar as we are assuming a user-based docker layer in addition to the app containers
-					String host = "unknown";
-					
-					if(envMap.containsKey(ZKClient.HOST))
-						host = envMap.get(ZKClient.HOST);
-					
-					if(envMap.containsKey(ZKClient.HOST.toUpperCase()))
-						host = envMap.get(ZKClient.HOST.toUpperCase());
-					
-					// we are in business
-					ZKClient client = ZKClient.getInstance();
-					client.publishDB(engineId + "@" + host);
+				
+				// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
+				// TODO >>>timb: remove node exists error or catch it 
+				// TODO >>>cluster: tag
+				// Start with because the insights RDBMS has the id security_InsightsRDBMS
+				if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase") || engineId.startsWith("form_builder_engine"))) {
+					Map<String, String> envMap = System.getenv();
+					if(envMap.containsKey(ZKClient.ZK_SERVER) || envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
+						if(ClusterUtil.LOAD_ENGINES_LOCALLY) {
+							
+							// Only publish if actually loading on this box
+							// TODO >>>timb: this logic only works insofar as we are assuming a user-based docker layer in addition to the app containers
+							String host = "unknown";
+							
+							if(envMap.containsKey(ZKClient.HOST))
+								host = envMap.get(ZKClient.HOST);
+							
+							if(envMap.containsKey(ZKClient.HOST.toUpperCase()))
+								host = envMap.get(ZKClient.HOST.toUpperCase());
+							
+							// we are in business
+							ZKClient client = ZKClient.getInstance();
+							client.publishDB(engineId + "@" + host);
+						}
+					}
 				}
+			} finally {
+				
+				// Make sure to unlock now
+				lock.unlock();
 			}
 		}
 
