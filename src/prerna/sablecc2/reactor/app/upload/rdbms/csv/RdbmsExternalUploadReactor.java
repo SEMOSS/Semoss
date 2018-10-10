@@ -31,6 +31,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
+import prerna.sablecc2.reactor.qs.source.ExternalJdbcSchemaReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
@@ -113,8 +114,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		
 		// the logical metamodel for the upload
 		Map<String, Object> externalMetamodel = getMetamodel();
-		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get(Constants.NODE_PROP);
-		List<Map<String, Object>> relationships = (List<Map<String, Object>>) externalMetamodel.get(Constants.RELATION);
+		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
+		List<Map<String, Object>> relationships = (List<Map<String, Object>>) externalMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
 		logger.info(stepCounter + ". Create properties file for database...");
 		File tempSmss = null;
 		// Create default RDBMS engine or Impala
