@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -22,7 +21,6 @@ import java.util.stream.Collectors;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 import prerna.engine.api.IEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SMSSWebWatcher;
@@ -251,14 +249,22 @@ public class AZClient {
 		
 	}
 	
+	public void updateApp(String appId) throws IOException, InterruptedException {
+		if (Utility.getEngine(appId) == null) {
+			throw new IllegalArgumentException("App needs to be defined in order to update...");
+		}
+		pullApp(appId, false);
+	}
+	
+	// TODO >>>timb: need to ctrl shift g this guy
+	public void pullApp(String appId) throws IOException, InterruptedException {
+		pullApp(appId, true);
+	}
+	
 	// TODO >>>timb: rclone delete on app delete (security utils)
 	// TODO >>>timb: need to remove file lock to pull
 	// TODO >>>timb: close engine and reopen like export
-	public void pullApp(String appId) throws IOException, InterruptedException {
-		
-		// Check whether the engine already exists
-		IEngine engine = Utility.getEngine(appId);
-		boolean newEngine = engine == null;
+	private void pullApp(String appId, boolean newEngine) throws IOException, InterruptedException {
 		
 		// List the smss directory to get the alias + app id
 		String smssContainer = appId + "-smss";
@@ -290,6 +296,7 @@ public class AZClient {
 			
 			// Otherwise, need to remove any locks then reopen
 			try {
+				IEngine engine = Utility.getEngine(appId);
 				engine.closeDB();
 				runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
 			} finally {
