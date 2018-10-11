@@ -2,9 +2,10 @@ package prerna.engine.impl.json;
 
 import java.util.Hashtable;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import net.minidev.json.JSONArray;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
@@ -36,18 +37,27 @@ public class JsonWrapper2 extends JsonWrapper {
 
 		Object[] values = new Object[this.numColumns];
 		for(int colIndex = 0; colIndex < this.numColumns; colIndex++) {
-			Object thisValue = null;
+			Object retValue = null;
+			JsonNode value = thisRow.get(colIndex);
 			if(types[colIndex] == SemossDataType.STRING) {
-				thisValue = thisRow.get(colIndex).asText("");
+				// check if value is an object if so stringify
+				if(value.isArray()) {
+					ArrayNode arrayValue = (ArrayNode)value;
+					retValue = arrayValue.toString();
+				}
+				else if (value.isObject()) {
+					ObjectNode objectValue = (ObjectNode) value;
+					retValue = objectValue.toString();
+				} else {
+					retValue = value.asText("");
+				}
 			} else if(types[colIndex] == SemossDataType.DOUBLE) {
-				thisValue = thisRow.get(colIndex).asDouble();
+				retValue = value.asDouble();
 			} else if(types[colIndex] == SemossDataType.INT) {
-				thisValue = thisRow.get(colIndex).asInt();
-			} else if(thisValue instanceof JSONArray) {
-				// need to do the magic of delimiters etc. 
+				retValue = value.asInt();
 			}
 			
-			values[colIndex] = thisValue;
+			values[colIndex] = retValue;
 		}
 		this.curRow++;
 
