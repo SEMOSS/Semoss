@@ -120,7 +120,7 @@ public abstract class AbstractEngine implements IEngine {
 	protected RDBMSNativeEngine insightRDBMS;
 	protected String insightDriver = "org.h2.Driver";
 	protected String insightRDBMSType = "H2_DB";
-	protected String connectionURLStart = "jdbc:h2:";
+	protected String connectionURLStart = "jdbc:h2:nio:";
 	protected String connectionURLEnd = ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	protected String insightUsername = "sa";
 
@@ -291,6 +291,7 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		if(this.insightRDBMS != null) {
 			lOGGER.debug("closing its insight engine ");
+			this.insightRDBMS.shutdown();
 			this.insightRDBMS.closeDB();
 		}
 	}

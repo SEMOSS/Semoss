@@ -125,10 +125,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			}
 		}
 		
-		if (ClusterUtil.IS_CLUSTER) {
-			Thread pushAppThread = new Thread(new PushAppRunner(appId));
-			pushAppThread.start();
-		}
+		ClusterUtil.reactorPushApp(appId);
 		
 		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
 		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
