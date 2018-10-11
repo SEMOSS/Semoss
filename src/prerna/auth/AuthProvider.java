@@ -11,7 +11,8 @@ public enum AuthProvider {
 
 	// this one is kinda special ...
 	CAC, 
-
+	WINDOWS_USER,
+	
 	// these are not used as much ...
 	FACEBOOK, 
 	TWITTER, 
