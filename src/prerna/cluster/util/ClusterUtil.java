@@ -1,5 +1,12 @@
 package prerna.cluster.util;
 
+import java.io.IOException;
+
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
 public class ClusterUtil {
 
 	// Env vars used in clustered deployments
@@ -11,5 +18,17 @@ public class ClusterUtil {
 	private static final String LOAD_ENGINES_LOCALLY_KEY = "SEMOSS_LOAD_ENGINES_LOCALLY";
 	public static final boolean LOAD_ENGINES_LOCALLY = System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)
 			? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY)) : true;
-		
+	
+	public static void reactorPushApp(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				AZClient.getInstance().pushApp(appId);
+			} catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to push app to cloud storage", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(true);
+				throw err;
+			}
+		}
+	}
 }
