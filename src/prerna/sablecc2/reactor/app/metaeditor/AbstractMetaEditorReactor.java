@@ -20,14 +20,15 @@ import prerna.util.Utility;
 public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 
 	protected String getAppId(String appId) {
+		String testId = appId;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+			testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
+			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), testId)) {
 				throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
 			}
 		} else {
-			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
+			testId = MasterDatabaseUtility.testEngineIdIfAlias(testId);
+			if(!MasterDatabaseUtility.getAllEngineIds().contains(testId)) {
 				throw new IllegalArgumentException("App " + appId + " does not exist");
 			}
 		}
