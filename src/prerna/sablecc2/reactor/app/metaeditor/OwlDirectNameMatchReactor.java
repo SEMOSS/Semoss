@@ -62,6 +62,7 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 		typesMap.put("targetCol", SemossDataType.STRING);
 		typesMap.put("sourceTable", SemossDataType.STRING);
 		typesMap.put("sourceCol", SemossDataType.STRING);
+		typesMap.put("distance", SemossDataType.DOUBLE);
 
 		H2Frame frame = new H2Frame();
 		
@@ -70,21 +71,25 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 		meta.addProperty(frame.getTableName(), frame.getTableName() + "__targetCol");
 		meta.addProperty(frame.getTableName(), frame.getTableName() + "__sourceTable");
 		meta.addProperty(frame.getTableName(), frame.getTableName() + "__sourceCol");
-		
+		meta.addProperty(frame.getTableName(), frame.getTableName() + "__distance");
+
 		meta.setDataTypeToProperty(frame.getTableName() + "__targetTable", "STRING");
 		meta.setDataTypeToProperty(frame.getTableName() + "__targetCol", "STRING");
 		meta.setDataTypeToProperty(frame.getTableName() + "__sourceTable", "STRING");
 		meta.setDataTypeToProperty(frame.getTableName() + "__sourceCol", "STRING");
-		
+		meta.setDataTypeToProperty(frame.getTableName() + "__distance", "DOUBLE");
+
 		meta.setAliasToProperty(frame.getTableName() + "__targetTable", "targetTable");
 		meta.setAliasToProperty(frame.getTableName() + "__targetCol", "targetCol");
 		meta.setAliasToProperty(frame.getTableName() + "__sourceTable", "sourceTable");
 		meta.setAliasToProperty(frame.getTableName() + "__sourceCol", "sourceCol");
-		
+		meta.setAliasToProperty(frame.getTableName() + "__distance", "distance");
+
 		meta.setDerivedToProperty(frame.getTableName() + "__targetTable", true);
 		meta.setDerivedToProperty(frame.getTableName() + "__targetCol", true);
 		meta.setDerivedToProperty(frame.getTableName() + "__sourceTable", true);
 		meta.setDerivedToProperty(frame.getTableName() + "__sourceCol", true);
+		meta.setDerivedToProperty(frame.getTableName() + "__distance", true);
 		frame.setMetaData(meta);
 
 		frame.addRowsViaIterator(new Iterator<IHeadersDataRow>() {
@@ -125,8 +130,9 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 							String testColumn = sourceColumnsToTest.get(cIndex);
 							if(containsIgnoreCase(targetColumnsToTest, testColumn)) {
 								// we have a match!!!
-								String[] headers = new String[]{"targetTable", "targetCol", "sourceTable", "sourceCol"};
-								Object[] value = new Object[]{sourceTable, testColumn, targetTable, testColumn};
+								// always send a distance measure of 1
+								String[] headers = new String[]{"targetTable", "targetCol", "sourceTable", "sourceCol", "distance"};
+								Object[] value = new Object[]{sourceTable, testColumn, targetTable, testColumn, 1.0};
 								rows.add(new HeadersDataRow(headers, value));
 							}
 						}
