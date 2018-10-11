@@ -11,6 +11,8 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.PushAppRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -111,6 +113,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
 			storeImageFromPng(base64Image, existingId, engine.getEngineId(), engine.getEngineName());
+		}
+		
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread pushAppThread = new Thread(new PushAppRunner(appId));
+			pushAppThread.start();
 		}
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();

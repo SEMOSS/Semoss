@@ -11,6 +11,8 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.PushAppRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -120,6 +122,11 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 //		// track GA data
 //		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "saveinsight", appId, newRdbmsId, insightName);
 
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread pushAppThread = new Thread(new PushAppRunner(appId));
+			pushAppThread.start();
+		}
+		
 		return noun;
 	}
 	

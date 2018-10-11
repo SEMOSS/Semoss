@@ -2487,6 +2487,18 @@ public class Utility {
 	 */
 	@Deprecated
 	public static IEngine getEngine(String engineId) {
+		return getEngine(engineId, true);
+	}
+	
+	/**
+	 * 
+	 * @param engineId - engine to get
+	 * @return
+	 * 
+	 * Use this method to get the engine when the engine hasn't been loaded
+	 */
+	@Deprecated
+	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = null;
 
 		// If the engine has already been loaded, then return it
@@ -2517,7 +2529,7 @@ public class Utility {
 			// TODO >>>timb: need to pull sec and lmd each time. They also need
 			// correct jdbcs...
 			try {
-				if (ClusterUtil.IS_CLUSTER) {
+				if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 					try {
 						AZClient.getInstance().pullApp(engineId);
 					} catch (IOException | InterruptedException e) {
