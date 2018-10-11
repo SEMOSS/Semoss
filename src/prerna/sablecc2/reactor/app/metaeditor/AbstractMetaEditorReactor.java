@@ -32,7 +32,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 				throw new IllegalArgumentException("App " + appId + " does not exist");
 			}
 		}
-		return appId;
+		return testId;
 	}
 	
 	protected RDFFileSesameEngine loadOwlEngineFile(String appId) {
