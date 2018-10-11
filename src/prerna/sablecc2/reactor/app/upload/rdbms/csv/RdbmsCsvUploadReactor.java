@@ -25,6 +25,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.AZClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.PushAppRunner;
 import prerna.date.SemossDate;
@@ -127,11 +128,8 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 			}
 		}
 		
-		if (ClusterUtil.IS_CLUSTER) {
-			Thread pushAppThread = new Thread(new PushAppRunner(appId));
-			pushAppThread.start();
-		}
-		
+		ClusterUtil.reactorPushApp(appId);
+
 		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
 		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}

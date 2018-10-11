@@ -341,7 +341,7 @@ public class AZClient {
 				if (file.isDirectory()) {
 					System.out.println("(directory)");
 					engine.closeDB();
-					runProcess("rclone", "copy", "--ignore-size", file.getPath(), rcloneConfig + ":");
+					runProcess("rclone", "copy", file.getPath(), rcloneConfig + ":");
 					DIHelper.getInstance().removeLocalProperty(appId);
 					Utility.getEngine(appId, false);
 					opened = true;

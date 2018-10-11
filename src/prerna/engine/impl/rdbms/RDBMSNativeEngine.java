@@ -547,6 +547,19 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return new SQLQueryParser();
 	}
 
+	
+	public void shutdown() {
+		try {
+			Connection conn = getConnection();
+			Statement stmt = conn.createStatement();
+			stmt.execute("SHUTDOWN");
+			// return to pool
+		} catch (Exception e) {
+			LOGGER.error("Unable to shutdown.", e);
+		}
+		return;
+	}
+	
 	@Override
 	public void removeData(String query) {
 		try {
