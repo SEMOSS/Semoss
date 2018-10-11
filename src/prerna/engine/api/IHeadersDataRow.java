@@ -3,7 +3,6 @@ package prerna.engine.api;
 import com.google.gson.TypeAdapter;
 
 import prerna.util.gson.HeadersDataRowAdapter;
-import prerna.util.gson.IHeadersDataRowAdapter;
 
 public interface IHeadersDataRow{
 
