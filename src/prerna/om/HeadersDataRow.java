@@ -11,7 +11,7 @@ import prerna.util.gson.GsonUtility;
 public class HeadersDataRow implements IHeadersDataRow{
 
 	/**
-	 * Base componenents corresponding to a header row
+	 * Base components corresponding to a header row
 	 */
 	private String[] headers;
 	private String[] rawHeaders;
