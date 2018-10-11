@@ -249,11 +249,6 @@
 		</repository>
 	</repositories>
 	<dependencies>
-	  	<dependency>
-	        <groupId>org.seleniumhq.selenium</groupId>
-	        <artifactId>selenium-java</artifactId>
-	        <version>3.4.0</version>
-	    </dependency>  
 		<dependency>
 			<groupId>jdk.tools</groupId>
 			<artifactId>jdk.tools</artifactId>
@@ -1782,17 +1777,17 @@
 			<version>3.1.0</version>
 		</dependency-->
 		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
 			<version>4.3.0</version>
-		</dependency-->
+		</dependency>
 		<!-- cleanup -->
-		<!--dependency>
+		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna-platform</artifactId>
 			<version>4.3.0</version>
-		</dependency-->
+		</dependency>
 		<dependency>
 			<groupId>nz.ac.waikato.cms.weka</groupId>
 			<artifactId>weka</artifactId>
@@ -2271,11 +2266,6 @@
 		</dependency-->
 		<!-- sql database connectors -->
 		<dependency>
-			<groupId>org.mariadb.jdbc</groupId>
-			<artifactId>mariadb-java-client</artifactId>
-			<version>1.1.7</version>
-		</dependency>
-		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<version>1.4.195</version>
@@ -2614,6 +2604,16 @@
 		    <groupId>org.seleniumhq.selenium</groupId>
 		    <artifactId>selenium-java</artifactId>
 		    <version>3.4.0</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>net.java.dev.jna</groupId>
+					<artifactId>jna</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>net.java.dev.jna</groupId>
+					<artifactId>jna-platform</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 		    <groupId>net.lingala.zip4j</groupId>
@@ -2624,6 +2624,16 @@
 		    <groupId>org.apache.jclouds</groupId>
 		    <artifactId>jclouds-all</artifactId>
 		    <version>2.1.0</version>
+		    <exclusions>
+				<exclusion>
+					<groupId>net.java.dev.jna</groupId>
+					<artifactId>jna</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>net.java.dev.jna</groupId>
+					<artifactId>jna-platform</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 		    <groupId>io.minio</groupId>
