@@ -20,6 +20,8 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.PushAppRunner;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
@@ -127,6 +129,11 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 			}
 		}
 
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread pushAppThread = new Thread(new PushAppRunner(appId));
+			pushAppThread.start();
+		}
+		
 		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
 		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}

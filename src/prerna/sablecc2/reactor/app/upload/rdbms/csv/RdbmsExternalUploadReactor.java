@@ -16,6 +16,8 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.PushAppRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
@@ -73,6 +75,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			for(AuthProvider ap : logins) {
 				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
 			}
+		}
+		
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread pushAppThread = new Thread(new PushAppRunner(appId));
+			pushAppThread.start();
 		}
 		
 		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
