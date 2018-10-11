@@ -48,13 +48,13 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 			List<String> properties = app.getProperties4Concept(cUri, false);
 			for(String pUri : properties) {
 				// load all upper case to ignore case
-				columnNames.add(Utility.getClassName(pUri).toUpperCase());
+				columnNames.add(Utility.getClassName(pUri));
 			}
 			
 			// add the prim column as well
-			columnNames.add(Utility.getClassName(cUri).toUpperCase());
+			columnNames.add(Utility.getClassName(cUri));
 			
-			tableToCol.put(Utility.getInstanceName(cUri).toUpperCase(), columnNames);
+			tableToCol.put(Utility.getInstanceName(cUri), columnNames);
 		}
 		
 		Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>();
@@ -123,7 +123,7 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 
 						for(int cIndex = 0; cIndex < sourceColumnsToTest.size(); cIndex++) {
 							String testColumn = sourceColumnsToTest.get(cIndex);
-							if(targetColumnsToTest.contains(testColumn)) {
+							if(containsIgnoreCase(targetColumnsToTest, testColumn)) {
 								// we have a match!!!
 								String[] headers = new String[]{"targetTable", "targetCol", "sourceTable", "sourceCol"};
 								Object[] value = new Object[]{sourceTable, testColumn, targetTable, testColumn};
@@ -142,6 +142,15 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 					}
 				}
 
+				return false;
+			}
+
+			private boolean containsIgnoreCase(List<String> targetColumnsToTest, String testColumn) {
+				for(String s : targetColumnsToTest) {
+					if(s.equalsIgnoreCase(testColumn)) {
+						return true;
+					}
+				}
 				return false;
 			}
 			
