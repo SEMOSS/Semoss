@@ -11,14 +11,15 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
 import freemarker.template.Configuration;
@@ -34,6 +35,7 @@ public class NGINXDomainListener implements IZKListener {
 	NGINXAppListener appListener = null;
 	
 	List <String> domains2Watch = null;
+	List <String> childPaths = new ArrayList<String>();
 	
 	
 	public static final String SEMOSS_HOME = "sem";
@@ -64,7 +66,7 @@ public class NGINXDomainListener implements IZKListener {
 		// need to pick every children at this level and go back and get its children
 		
 		Map <String, Map<String, String>> domain = new HashMap<String, Map<String, String>>();
-
+		List <String> newPaths = new ArrayList<String>();
 		try {
 			
 			// get all the domains first
@@ -81,6 +83,8 @@ public class NGINXDomainListener implements IZKListener {
 				{
 					String childName = children.get(childIndex);
 					String newPath = path + "/" + childPath + "/" + childName;
+					if(!childPaths.contains(newPath))
+						newPaths.add(newPath);
 					System.out.println("Child is.. " + childName);
 					String output = getNodeData(newPath, zk);
 					System.out.println("And the URL I need to register is.. " + output);
@@ -92,7 +96,7 @@ public class NGINXDomainListener implements IZKListener {
 				
 			}	
 			genNginx(domain);
-			watchDomains(path);
+			watchDomains(newPaths);
 			
 		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
@@ -105,12 +109,13 @@ public class NGINXDomainListener implements IZKListener {
 		
 	}
 	
-	protected void watchDomains(String path)
+	protected void watchDomains(List <String> paths)
 	{
 		System.out.println("Registering Domains.. ");
 		// register all the domains again
-		//for(int domainIndex = 0;domainIndex < domains2Watch.size();domainIndex++)
-		//	ZKClient.getInstance().watchEvent(path +"/"+ domains2Watch.get(domainIndex), EventType.NodeChildrenChanged, getListener(), false);
+		for(int domainIndex = 0;domainIndex < paths.size();domainIndex++)
+			ZKClient.getInstance().watchEvent(paths.get(domainIndex), EventType.NodeDeleted, getListener(), false);
+		childPaths.addAll(paths);
 	}
 	
 	public void genNginx(Map map)

@@ -57,9 +57,13 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 		// navigate one level up
 		String watchPath = path;
 		String [] pathTokens = path.split("/");
-		String lastPath = pathTokens[pathTokens.length - 1];
-		
+		String lastPath = pathTokens[pathTokens.length - 1];		
 		path = path.replace("/" + lastPath, "");
+		
+		lastPath = pathTokens[pathTokens.length - 2];
+		path = path.replace("/" + lastPath, "");
+		
+		System.out.println("Final Domain Pull.. " + path);
 		
 		try {
 			
@@ -107,7 +111,7 @@ public class NGINXAppListener extends NGINXDomainListener implements IZKListener
 		System.out.println("Registering Domains.. ");
 		//Thread.sleep(3000);
 		// register all the domains again
-		ZKClient.getInstance().watchEvent(path, EventType.NodeChildrenChanged, this, false);
+		//ZKClient.getInstance().watchEvent(path, EventType.NodeChildrenChanged, this, false);
 	}
 
 	
