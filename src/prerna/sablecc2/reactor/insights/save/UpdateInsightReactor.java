@@ -115,10 +115,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			storeImageFromPng(base64Image, existingId, engine.getEngineId(), engine.getEngineName());
 		}
 		
-		if (ClusterUtil.IS_CLUSTER) {
-			Thread pushAppThread = new Thread(new PushAppRunner(appId));
-			pushAppThread.start();
-		}
+		ClusterUtil.reactorPushApp(appId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
