@@ -249,8 +249,10 @@ public class AZClient {
 		
 	}
 	
+	// TODO >>>timb: pixel to update app so that neel can add refresh button or something
+	// TODO >>>timb: still need to test this method
 	public void updateApp(String appId) throws IOException, InterruptedException {
-		if (Utility.getEngine(appId) == null) {
+		if (Utility.getEngine(appId, false) == null) {
 			throw new IllegalArgumentException("App needs to be defined in order to update...");
 		}
 		pullApp(appId, false);
@@ -295,13 +297,13 @@ public class AZClient {
 		} else {
 			
 			// Otherwise, need to remove any locks then reopen
+			IEngine engine = Utility.getEngine(appId, false);
 			try {
-				IEngine engine = Utility.getEngine(appId);
 				engine.closeDB();
 				runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
 			} finally {
 				DIHelper.getInstance().removeLocalProperty(appId);
-				Utility.getEngine(appId);
+				Utility.getEngine(appId, false);
 			}
 		}
 		
@@ -320,18 +322,29 @@ public class AZClient {
 	}
 	
 	public void pushApp(String appId) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(appId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
 		File temp = null;
 		File copy = null;
+		File db = new File(dbFolder);
+		String smss = Arrays.stream(db.listFiles()).parallel().filter(s -> s.getName().contains(appId))
+				.filter(s -> s.getName().endsWith(".smss")).collect(Collectors.toList()).get(0).getName();
+		List<File> files = Arrays.stream(db.listFiles()).parallel().filter(s -> s.getName().contains(appId)).collect(Collectors.toList());
+		boolean opened = false;
 		try {
-			File db = new File(dbFolder);
-			List<File> files = Arrays.stream(db.listFiles()).parallel().filter(s -> s.getName().contains(appId)).collect(Collectors.toList());
 			for (File file : files) {
 				String remote = file.isDirectory() ? appId : appId + "-smss";
 				String rcloneConfig = createRcloneConfig(remote);
 				System.out.println("Pushing from source=" + file.getName() + " to remote=" + remote);
 				if (file.isDirectory()) {
 					System.out.println("(directory)");
-					runProcess("rclone", "copy", file.getPath(), rcloneConfig + ":");
+					engine.closeDB();
+					runProcess("rclone", "copy", "--ignore-size", file.getPath(), rcloneConfig + ":");
+					DIHelper.getInstance().removeLocalProperty(appId);
+					Utility.getEngine(appId, false);
+					opened = true;
 				} else {
 					System.out.println("(file)");
 					String tempFolder = Utility.getRandomString(10);
@@ -350,6 +363,10 @@ public class AZClient {
 			}
 			if (temp != null) {
 				temp.delete();
+			}
+			if (!opened) {
+				DIHelper.getInstance().removeLocalProperty(appId);
+				Utility.getEngine(appId, false);
 			}
 		}
 	}
