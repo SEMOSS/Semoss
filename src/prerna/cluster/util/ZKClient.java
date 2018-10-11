@@ -325,7 +325,7 @@ public class ZKClient implements Watcher{
 		if(eventType == EventType.NodeChildrenChanged)
 			watchPath(path);
 		
-		else if(eventType == EventType.NodeDataChanged)
+		else if(eventType == EventType.NodeDataChanged || eventType == EventType.NodeDeleted)
 			watchPathD(path);
 
 	}
@@ -399,12 +399,14 @@ public class ZKClient implements Watcher{
 				}
 				
 			}
-			if(event.getType() == EventType.NodeChildrenChanged)
-				watchPath(path);
-			
-			else if(event.getType() == EventType.NodeDataChanged)
-				watchPathD(path);
-			
+			if(repeat.containsKey(key) && repeat.get(key))
+			{
+				if(event.getType() == EventType.NodeChildrenChanged)
+					watchPath(path);
+				
+				else if(event.getType() == EventType.NodeDataChanged || event.getType() == EventType.NodeDeleted)
+					watchPathD(path);
+			}			
 /*			if(repeat.containsKey(key) && repeat.get(key))
 			else
 			{
