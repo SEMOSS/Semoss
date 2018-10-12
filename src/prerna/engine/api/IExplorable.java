@@ -175,7 +175,7 @@ public interface IExplorable {
 	SelectQueryStruct getDatabaseQueryStruct();
 	
 	// REFAC: Change this to engine - this should be local master
-	Map<String, Object> getMetamodel();
+	Map<String, Object[]> getMetamodel();
 
 	// REFAC: Change this to engine - this should be local master
 	String getPhysicalUriFromConceptualUri(String propertyName, String parentName);
