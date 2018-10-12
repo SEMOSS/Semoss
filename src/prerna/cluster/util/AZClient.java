@@ -203,7 +203,7 @@ public class AZClient {
         
         Calendar calendar = Calendar.getInstance();
         
-        calendar.add(Calendar.MINUTE, +20);
+        calendar.add(Calendar.HOUR, +24);
         Date date = calendar.getTime();
         
         sasConstraints.setSharedAccessExpiryTime(date);
