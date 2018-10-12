@@ -241,8 +241,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	 * @param dataTypes
 	 * @param nodesAndPrimKeys
 	 */
-	private void parseRelationships(OWLER owler, List<Map<String, Object>> relationships,
-			Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
+	private void parseRelationships(OWLER owler, List<Map<String, Object>> relationships, Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
 		for (Map relation : relationships) {
 			String subject = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.FROM_TABLE).toString());
 			String object = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.TO_TABLE).toString());

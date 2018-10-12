@@ -532,7 +532,7 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public Map<String, Object> getMetamodel() {
+	public Map<String, Object[]> getMetamodel() {
 		// TODO Auto-generated method stub
 		return null;
 	}
