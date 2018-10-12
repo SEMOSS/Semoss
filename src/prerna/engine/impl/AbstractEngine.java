@@ -37,18 +37,19 @@ import java.nio.file.Files;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.auth.utils.SecurityUpdateUtils;
@@ -59,10 +60,9 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.nameserver.utility.MetamodelVertex;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
-import prerna.om.SEMOSSEdge;
-import prerna.om.SEMOSSVertex;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SparqlInterpreter;
@@ -936,62 +936,59 @@ public abstract class AbstractEngine implements IEngine {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// query to get all the concepts and properties for selectors
-		String getSelectorsInformation = "SELECT DISTINCT ?conceptualConcept ?conceptualProperty WHERE { "
-				+ "{?concept2 <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-				+ "{?concept2 <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualConcept }"
+		String getSelectorsInformation = "SELECT DISTINCT ?conceptualConcept ?property WHERE { "
+				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ "{?concept <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualConcept }"
 				+ "OPTIONAL {"
-				+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
-				+ "{?concept2 <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property } "
-				+ "{?property <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualProperty }"
+					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
+					+ "{?concept <" + OWL.DATATYPEPROPERTY.toString() + "> ?property } "
+					+ "{?property <http://semoss.org/ontologies/Relation/Conceptual> ?conceptualProperty }"
 				+ "}" // END OPTIONAL
 				+ "}"; // END WHERE
 
 		// execute the query and loop through and add it into the QS
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getSelectorsInformation);
-		String[] names = wrapper.getPhysicalVariables();
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getSelectorsInformation);
 		// we will keep a set of the concepts such that we know when we need to append a PRIM_KEY_PLACEHOLDER
 		Set<String> conceptSet = new HashSet<String>();
 		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String conceptURI = ss.getRawVar(names[0]) + "";
-			if(conceptURI.equals("http://semoss.org/ontologies/Concept")) {
+			IHeadersDataRow hrow = wrapper.next();
+			System.out.println(hrow);
+			Object[] row = hrow.getValues();
+			Object[] raw = hrow.getRawValues();
+			if(raw[0].toString().equals("http://semoss.org/ontologies/Concept")) {
 				continue;
 			}
-
-			Object property = ss.getVar(names[1]);
-			String concept = conceptURI.replaceAll(".*/Concept/", "");
-			if(concept.contains("/")) {
-				concept = concept.substring(0, concept.indexOf("/"));
+			
+			String concept = row[0].toString();
+			if(!conceptSet.contains(concept)) {
+				qs.addSelector(new QueryColumnSelector(concept));
 			}
-			if(!conceptSet.contains(concept)) {			
-				qs.addSelector(concept, null);
-				conceptSet.add(concept);
-			}
-
+			
+			Object property = raw[1];
 			if(property != null && !property.toString().isEmpty()) {
-				qs.addSelector(concept, property.toString());
+				qs.addSelector(new QueryColumnSelector(concept + "__" + Utility.getClassName(property.toString())));
 			}
 		}
 		// no need to keep this anymore
+		conceptSet.clear();
 		conceptSet = null;
 
 		// query to get all the relationships 
 		String getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?toConceptualConcept WHERE { "
 				+ "{?fromConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
 				+ "{?toConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} "
+				+ "{?rel <" + RDFS.SUBPROPERTYOF.toString() + "> <http://semoss.org/ontologies/Relation>} "
 				+ "{?fromConcept ?rel ?toConcept} "
 				+ "{?fromConcept <http://semoss.org/ontologies/Relation/Conceptual> ?fromConceptualConcept }"
 				+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }"
 				+ "}"; // END WHERE
 
-		wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, getRelationshipsInformation);
-		names = wrapper.getPhysicalVariables();
+		wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getRelationshipsInformation);
 		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String fromConcept = ss.getVar(names[0]) + "";
-			String toConcept = ss.getVar(names[1]) + "";
-
+			IHeadersDataRow hrow = wrapper.next();
+			Object[] row = hrow.getValues();
+			String fromConcept = row[0].toString();
+			String toConcept = row[1].toString();
 			qs.addRelation(fromConcept, toConcept, "inner.join");
 		}
 
@@ -1003,23 +1000,13 @@ public abstract class AbstractEngine implements IEngine {
 	 * This will return the metamodel object used to view on dagger for an engine
 	 * @return
 	 */
-	public Map<String, Object> getMetamodel() {
-		// create the return object map and put all values inside
-		// when objects are modified, they get modified in the retObj as well
-		// yay modifying references
-		Map<String, Object> retObj = new Hashtable<String, Object>();
-		List<SEMOSSVertex> nodes = new Vector<SEMOSSVertex>();
-		List<SEMOSSEdge> edges = new Vector<SEMOSSEdge>();
-		retObj.put("nodes", nodes);
-		retObj.put("edges", edges);
-
+	public Map<String, Object[]> getMetamodel() {
 		// create this from the query struct
 		SelectQueryStruct qs = getDatabaseQueryStruct();
 
-		// need to store the edges in a way that we can easily get them
-		Map<String, SEMOSSVertex> vertStore = new Hashtable<String, SEMOSSVertex>();
-
-		// first get all the nodes
+		Map<String, MetamodelVertex> tableToVert = new TreeMap<String, MetamodelVertex>();
+		Map<String, Map<String, String>> edgesHash = new TreeMap<String, Map<String, String>>();
+		
 		List<IQuerySelector> vertices = qs.getSelectors();
 		for(IQuerySelector selector : vertices) {
 			// database query struct always returns columns
@@ -1027,26 +1014,16 @@ public abstract class AbstractEngine implements IEngine {
 			String concept = cSelector.getTable();
 			String prop = cSelector.getColumn();
 			
-			SEMOSSVertex vert = null;
-			if(vertStore.containsKey(concept)) {
-				// we got the vertex before
-				vert = vertStore.get(concept);
-			} else {
-				// new vertex
-				vert = new SEMOSSVertex("http://semoss.org/ontologies/Concept/" + concept);
-				vert.putProperty("PhysicalName", concept);
-				
-				// add to nodes map
-				vertStore.put(concept, vert);
-				// add to nodes list
-				nodes.add(vert);
+			if(!tableToVert.containsKey(concept)) {
+				MetamodelVertex vert = new MetamodelVertex(concept);
+				tableToVert.put(concept, vert);
 			}
 			
-			// see if we need to add the property
 			if(!prop.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				vert.setProperty("http://semoss.org/ontologies/Relation/Contains/" + prop, prop);
+				tableToVert.get(concept).addProperty(prop);
 			}
 		}
+		
 		
 		// now go through all the relations
 		// remember, the map is the {fromConcept -> { joinType -> [toConcept1, toConcept2] } }
@@ -1054,28 +1031,23 @@ public abstract class AbstractEngine implements IEngine {
 		// remember the edge names are not every actually used
 		Map<String, Map<String, List>> relations = qs.getRelations();
 		for(String fromConcept : relations.keySet()) {
-			// get the from-vertex
-			SEMOSSVertex fromVert = vertStore.get(fromConcept);
-
 			// need to iterate through the join types to get to the toConcpets
 			Map<String, List> joinsMap = relations.get(fromConcept);
 			for(String joinType : joinsMap.keySet()) {
 				List<Object> toConcepts = joinsMap.get(joinType);
 				
 				for(Object toConcept : toConcepts) {
-					// get the to-vertex
-					SEMOSSVertex toVert = vertStore.get(toConcept);
-					
-					// create the edge
-					// edge name doesn't actually matter
-					SEMOSSEdge edge = new SEMOSSEdge(fromVert, toVert, "http://semoss.org/ontologies/Relation/" + fromConcept + ":" + toConcept);
-					
-					// add it to the edge list
-					edges.add(edge);
+					Map<String, String> edgeMap = new TreeMap<String, String>();
+					edgeMap.put("source", fromConcept);
+					edgeMap.put("target", toConcept + "");
+					edgesHash.put(fromConcept + "-" + toConcept, edgeMap);
 				}
 			}
 		}
 		
+		Map<String, Object[]> retObj = new Hashtable<String, Object[]>();
+		retObj.put("nodes", tableToVert.values().toArray());
+		retObj.put("edges", edgesHash.values().toArray());
 		return retObj;
 	}
 	
