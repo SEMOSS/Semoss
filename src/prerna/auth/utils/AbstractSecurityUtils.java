@@ -55,12 +55,32 @@ public abstract class AbstractSecurityUtils {
 	
 	/**
 	 * Does this engine name already exist
+	 * @param user
 	 * @param appName
 	 * @return
 	 */
-	@Deprecated
-	//TODO: needs to account for a user having the app name already
-	public static boolean containsEngine(String appName) {
+	public static boolean userContainsEngineName(User user, String appName) {
+		if(ignoreEngine(appName)) {
+			// dont add local master or security db to security db
+			return true;
+		}
+		String query = "SELECT ENGINEID "
+				+ "FROM ENGINE "
+				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2)";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if(wrapper.hasNext()) {
+				return true;
+			} else {
+				return false;
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
+	public static boolean containsEngineName(String appName) {
 		if(ignoreEngine(appName)) {
 			// dont add local master or security db to security db
 			return true;

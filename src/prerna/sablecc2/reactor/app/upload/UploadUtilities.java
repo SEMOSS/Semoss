@@ -100,12 +100,17 @@ public class UploadUtilities {
 	 * @param appName
 	 * @throws IOException
 	 */
-	public static void validateApp(String appName) throws IOException {
+	public static void validateApp(User user, String appName) throws IOException {
 		if(appName == null || appName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the app");
 		}
 		// need to make sure the app is unique
-		boolean containsApp = SecurityUpdateUtils.containsEngine(appName);
+		boolean containsApp = false;
+		if(AbstractSecurityUtils.securityEnabled()) {
+			containsApp = AbstractSecurityUtils.userContainsEngineName(user, appName);
+		} else {
+			containsApp = AbstractSecurityUtils.containsEngineName(appName);
+		}
 		if(containsApp) {
 			throw new IOException("App name already exists.  Please provide a unique app name");
 		}
