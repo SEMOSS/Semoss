@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.Vector;
@@ -23,12 +24,18 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
@@ -45,6 +52,20 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 
 	@Override
 	public NounMetadata execute() {
+		// check security
+		User user = null;
+		boolean security = AbstractSecurityUtils.securityEnabled();
+		if(security) {
+			user = this.insight.getUser();
+			if(user == null) {
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
+						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		
 		organizeKeys();
 		final String appIdOrName = UploadInputUtility.getAppName(this.store);
 		final boolean existing = UploadInputUtility.getExisting(this.store);
@@ -55,21 +76,39 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		}
 		String returnId = null;
 		if (existing) {
+			
+			if(security) {
+				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
+					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+					SemossPixelException err = new SemossPixelException(noun);
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
+			}
+			
 			returnId = addToExistingApp(appIdOrName, filePath);
 		} else {
-			returnId = generateNewApp(appIdOrName, filePath);
+			returnId = generateNewApp(user, appIdOrName, filePath);
+			
+			// even if no security, just add user as engine owner
+			if(user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for(AuthProvider ap : logins) {
+					SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
+				}
+			}
 		}
 		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	private String generateNewApp(String newAppName, String filePath) {
+	private String generateNewApp(User user, String newAppName, String filePath) {
 		Logger logger = getLogger(CLASS_NAME);
 		String newAppId = UUID.randomUUID().toString();
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start validating app");
 		try {
-			UploadUtilities.validateApp(newAppName);
+			UploadUtilities.validateApp(user, newAppName);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}

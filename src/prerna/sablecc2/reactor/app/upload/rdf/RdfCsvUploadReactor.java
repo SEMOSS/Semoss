@@ -21,7 +21,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.PushAppRunner;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -52,10 +51,6 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 
 	@Override
 	public NounMetadata execute() {
-		final String appIdOrName = UploadInputUtility.getAppName(this.store);
-		final boolean existing = UploadInputUtility.getExisting(this.store);
-		final String filePath = UploadInputUtility.getFilePath(this.store);
-		final File file = new File(filePath);
 		// check security
 		User user = null;
 		boolean security = AbstractSecurityUtils.securityEnabled();
@@ -69,11 +64,18 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 				throw err;
 			}
 		}
+
+		final String appIdOrName = UploadInputUtility.getAppName(this.store);
+		final boolean existing = UploadInputUtility.getExisting(this.store);
+		final String filePath = UploadInputUtility.getFilePath(this.store);
+		final File file = new File(filePath);
+		
 		if (!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
 		String appId = null;
 		if (existing) {
+			
 			if(security) {
 				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
 					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -82,15 +84,17 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 					throw err;
 				}
 			}
+			
 			appId = addToExistingApp(appIdOrName, filePath);
 		} else {
-			appId = generateNewApp(appIdOrName, filePath);
-		}
-		// even if no security, just add user as engine owner
-		if(user != null) {
-			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider ap : logins) {
-				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+			appId = generateNewApp(user, appIdOrName, filePath);
+			
+			// even if no security, just add user as engine owner
+			if(user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for(AuthProvider ap : logins) {
+					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+				}
 			}
 		}
 		
@@ -100,7 +104,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	private String generateNewApp(String newAppName, String filePath) {
+	private String generateNewApp(User user, String newAppName, String filePath) {
 		Logger logger = getLogger(CLASS_NAME);
 		String newAppId = UUID.randomUUID().toString();
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
@@ -110,7 +114,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		int stepCounter = 1;
 		logger.info(stepCounter + ".Start validating app");
 		try {
-			UploadUtilities.validateApp(newAppName);
+			UploadUtilities.validateApp(user, newAppName);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
