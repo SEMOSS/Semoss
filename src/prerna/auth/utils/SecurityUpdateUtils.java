@@ -625,20 +625,30 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			securityDb.commit();
 			return true;
 		} else {
-			String query = "SELECT NAME FROM USER WHERE ID='" + newUser.getId() + "'";
+			String query = "SELECT NAME FROM USER WHERE "
+					+ "NAME='" + ADMIN_ADDED_USER + "' AND "
+					// this matching the ID field to the email because admin added user only sets the id field
+					+ "(ID='" + newUser.getId() + "' OR ID='" + newUser.getEmail() + "')";
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			try {
+				if(wrapper.hasNext()) {
+					// this user was added by the user
+					// and we need to update
+					String updateQuery = "UPDATE USER SET "
+							+ "NAME='"+ newUser.getName() + "', "
+							+ "USERNAME='" + newUser.getUsername() + "', "
+							+ "EMAIL='" + newUser.getEmail() + "', "
+							+ "TYPE='" + newUser.getProvider() + "' "
+							+ "WHERE ID='" + newUser.getId() + "';";
+					securityDb.insertData(updateQuery);
+					securityDb.commit();	
+				}
+			}finally {
+				wrapper.cleanUp();
+			}
 			String name = flushToString(wrapper);
 			if(ADMIN_ADDED_USER.equals(name)) {
-				// this user was added by the user
-				// and we need to update
-				String updateQuery = "UPDATE USER SET "
-						+ "NAME='"+ newUser.getName() + "', "
-						+ "USERNAME='" + newUser.getUsername() + "', "
-						+ "EMAIL='" + newUser.getEmail() + "', "
-						+ "TYPE='" + newUser.getProvider() + "' "
-						+ "WHERE ID='" + newUser.getId() + "';";
-				securityDb.insertData(updateQuery);
-				securityDb.commit();
+				
 			}
 			return false;
 		}
