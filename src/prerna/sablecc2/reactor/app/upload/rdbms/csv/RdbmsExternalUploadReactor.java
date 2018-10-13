@@ -16,9 +16,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.AZClient;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.PushAppRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
@@ -67,8 +65,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		
 		organizeKeys();
 		final String newAppName = UploadInputUtility.getAppName(this.store);
-		String appId = null;
-		appId = generateNewApp(newAppName);
+		String appId = generateNewApp(user, newAppName);
 		
 		// even if no security, just add user as engine owner
 		if(user != null) {
@@ -84,14 +81,14 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	private String generateNewApp(String newAppName) {
+	private String generateNewApp(User user, String newAppName) {
 		Logger logger = getLogger(CLASS_NAME);
 		String newAppId = UUID.randomUUID().toString();
 		int stepCounter = 1;
 		// start by validation
 		logger.info(stepCounter + ".Start validating app");
 		try {
-			UploadUtilities.validateApp(newAppName);
+			UploadUtilities.validateApp(user, newAppName);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

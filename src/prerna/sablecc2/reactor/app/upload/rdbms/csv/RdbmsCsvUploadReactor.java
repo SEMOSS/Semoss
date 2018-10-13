@@ -25,9 +25,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.AZClient;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.PushAppRunner;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -117,7 +115,7 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 			}
 			appId = addToExistingApp(appIdOrName, filePath);
 		} else {
-			appId = generateNewApp(appIdOrName, filePath);
+			appId = generateNewApp(user, appIdOrName, filePath);
 			
 			// even if no security, just add user as engine owner
 			if(user != null) {
@@ -134,7 +132,7 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	public String generateNewApp(String newAppName, String filePath) {
+	public String generateNewApp(User user, String newAppName, String filePath) {
 		Logger logger = getLogger(CLASS_NAME);
 		String newAppId = UUID.randomUUID().toString();
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
@@ -145,7 +143,7 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start validating app");
 		try {
-			UploadUtilities.validateApp(newAppName);
+			UploadUtilities.validateApp(user, newAppName);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}
