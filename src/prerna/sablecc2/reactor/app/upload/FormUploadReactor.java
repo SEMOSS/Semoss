@@ -18,7 +18,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.PushAppRunner;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -84,7 +83,7 @@ public class FormUploadReactor extends AbstractReactor {
 			
 			appId = addToExistingApp(appIdOrName, form);
 		} else {
-			appId = generateNewApp(appIdOrName, form);
+			appId = generateNewApp(user, appIdOrName, form);
 			
 			// even if no security, just add user as engine owner
 			if(user != null) {
@@ -102,14 +101,14 @@ public class FormUploadReactor extends AbstractReactor {
 			
 	}
 
-	private String generateNewApp(String newAppName, Map<String, Object> form) {
+	private String generateNewApp(User user, String newAppName, Map<String, Object> form) {
 		Logger logger = getLogger(CLASS_NAME);
 		String newAppId = UUID.randomUUID().toString();
 
 		// start by validation
 		logger.info("Start validating app");
 		try {
-			UploadUtilities.validateApp(newAppName);
+			UploadUtilities.validateApp(user, newAppName);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}

@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.app.upload;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -22,7 +23,7 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * Execution methods
 	 */
 
-	public abstract String generateNewApp(String appName, String filePath, Logger logger);
+	public abstract String generateNewApp(User user, String appName, String filePath, Logger logger);
 
 	public abstract String addToExistingApp(String appName, String filePath, Logger logger);
 
