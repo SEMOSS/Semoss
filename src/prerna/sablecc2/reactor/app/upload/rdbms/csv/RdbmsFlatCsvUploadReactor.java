@@ -23,7 +23,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.PushAppRunner;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
@@ -114,7 +113,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			
 			appId = addToExistingApp(appIdOrName, filePath, logger);
 		} else {
-			appId = generateNewApp(appIdOrName, filePath, logger);
+			appId = generateNewApp(user, appIdOrName, filePath, logger);
 			
 			// even if no security, just add user as engine owner
 			if(user != null) {
@@ -137,7 +136,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 * @param filePath
 	 */
 	@Override
-	public String generateNewApp(final String newAppName, final String filePath, Logger logger) {
+	public String generateNewApp(User user, final String newAppName, final String filePath, Logger logger) {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -162,7 +161,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		// start by validation
 		logger.info("Start validating app");
 		try {
-			UploadUtilities.validateApp(newAppName);
+			UploadUtilities.validateApp(user, newAppName);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}

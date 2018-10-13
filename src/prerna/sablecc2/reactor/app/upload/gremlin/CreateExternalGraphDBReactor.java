@@ -119,7 +119,7 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 		// start by validation
 		logger.info("Start validating app");
 		try {
-			UploadUtilities.validateApp(newAppName);
+			UploadUtilities.validateApp(user, newAppName);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}

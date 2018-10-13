@@ -118,7 +118,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 			
 			appId = addToExistingApp(appIdOrName, filePath, logger);
 		} else {
-			appId = generateNewApp(appIdOrName, filePath, logger);
+			appId = generateNewApp(user, appIdOrName, filePath, logger);
 			
 			// even if no security, just add user as engine owner
 			if(user != null) {
@@ -136,7 +136,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	}
 
 	@Override
-	public String generateNewApp(String newAppName, String filePath, Logger logger) {
+	public String generateNewApp(User user, String newAppName, String filePath, Logger logger) {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -160,7 +160,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		// start by validation
 		logger.info("Start validating app");
 		try {
-			UploadUtilities.validateApp(newAppName);
+			UploadUtilities.validateApp(user, newAppName);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}
