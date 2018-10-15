@@ -22,7 +22,7 @@ import prerna.util.Utility;
 public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 
 	private static final String CLASS_NAME = OwlIndirectNameMatchReactor.class.getName();
-	
+
 	/*
 	 * This reactor get the columns that match between all the tables
 	 * 

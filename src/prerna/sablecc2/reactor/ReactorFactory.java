@@ -43,6 +43,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.AddBulkOwlRelationshipsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.AddOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.AddOwlRelationshipReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlDirectNameMatchReactor;
@@ -586,6 +587,7 @@ public class ReactorFactory {
 		reactorHash.put("ReloadAppOwl", ReloadAppOwlReactor.class);
 		reactorHash.put("GetOwlMetamodel", OwlMetamodelReactor.class);
 		reactorHash.put("AddOwlRelationship", AddOwlRelationshipReactor.class);
+		reactorHash.put("AddBulkOwlRelationships", AddBulkOwlRelationshipsReactor.class);
 		reactorHash.put("RemoveOwlRelationship", RemoveOwlRelationshipReactor.class);
 		reactorHash.put("AddOwlLogicalNames", AddOwlLogicalNamesReactor.class);
 		reactorHash.put("FindDirectOwlRelationships", OwlDirectNameMatchReactor.class);
