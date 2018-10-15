@@ -45,9 +45,12 @@ public class AZClient {
 	// Delete the container
 		
 	private static final String PROVIDER = "azureblob";
+	private static final String SMSS_POSTFIX = "-smss";
 	private static final String FILE_SEPARATOR = System.getProperty("file.separator");
 	
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
+	public static final String AZ_NAME = "AZ_NAME";
+	public static final String AZ_KEY = "AZ_KEY";
 	public static final String SAS_URL = "SAS_URL";
 	public static final String AZ_URI = "AZ_URI";
 	public static final String STORAGE = "STORAGE"; // says if this is local / cluster
@@ -60,6 +63,8 @@ public class AZClient {
 	CloudBlobClient serviceClient = null;
 	SharedAccessBlobPolicy sasConstraints = null;
 	String connectionString = null;
+	String name = null;
+	String key = null;
 	String blobURI = null;
 	String sasURL = null;
 	String dbFolder = null;
@@ -103,6 +108,8 @@ public class AZClient {
 			// dont bother with anything
 			// TODO >>>timb: these should all be centralized somewhere so we know what is needed for cluster
 			connectionString = DIHelper.getInstance().getProperty(AZ_CONN_STRING);
+			name = DIHelper.getInstance().getProperty(AZ_NAME);
+			key = DIHelper.getInstance().getProperty(AZ_KEY);
 			blobURI = DIHelper.getInstance().getProperty(AZ_URI);
 			sasURL = DIHelper.getInstance().getProperty(SAS_URL);
 
@@ -228,12 +235,15 @@ public class AZClient {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
 //		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
-		System.out.println(AZClient.getInstance().getSAS("timb"));
+//		System.out.println(AZClient.getInstance().getSAS("timb"));
+		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
 //		AZClient.getInstance().pushAllApps();
 //		AZClient.getInstance().pushApp(appId);
 //		AZClient.getInstance().pullApp(appId);
 	}
 	
+	// Private util method for pushing all apps if needed
+	/*
 	private void pushAllApps() throws IOException, InterruptedException {
 		File db = new File(dbFolder);
 		for (File file : db.listFiles()) {
@@ -241,13 +251,142 @@ public class AZClient {
 			if (file.isFile() && fname.endsWith(".smss") && !fname.equals("security.smss") && !fname.equals("LocalMasterDatabase.smss")) {
 				String appId = fname.replaceAll(".smss", "").substring(fname.indexOf("__") + 2);
 				System.out.println("Syncing db for " + appId);
-//				AZClient.getInstance().pushApp(appId);
 				Thread pushAppThread = new Thread(new PushAppRunner(appId));
 				pushAppThread.start();
 			}
-		}
-		
+		}	
 	}
+	*/
+
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////// Push ////////////////////////////////////////////
+	
+	public void pushApp(String appId) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(appId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+	
+		File db = new File(dbFolder);
+		List<File> files = Arrays.stream(db.listFiles()).parallel().filter(s -> s.getName().contains(appId)).collect(Collectors.toList());
+		
+		boolean opened = false;
+		try {
+			for (File file : files) {
+				
+				File temp = null;
+				File copy = null;
+				
+				String remote = file.isDirectory() ? appId : appId + "-smss";
+				String rcloneConfig = createRcloneConfig(remote);
+				try {
+					System.out.println("Pushing from source=" + file.getName() + " to remote=" + remote);
+					if (file.isDirectory()) {
+						System.out.println("(directory)");
+						engine.closeDB();
+						runProcess("rclone", "copy", file.getPath(), rcloneConfig + ":");
+						DIHelper.getInstance().removeLocalProperty(appId);
+						Utility.getEngine(appId, false);
+						opened = true;
+					} else {
+						System.out.println("(file)");
+						String tempFolder = Utility.getRandomString(10);
+						temp = new File(file.getParent() + FILE_SEPARATOR + tempFolder);
+						temp.mkdir();
+						copy = new File(temp.getPath() + FILE_SEPARATOR + file.getName());
+						Files.copy(file, copy);
+						runProcess("rclone", "copy", temp.getPath(), rcloneConfig + ":");
+					}
+					System.out.println("Done pushing from source=" + file.getName() + " to remote=" + remote);
+				} finally {
+					if (copy != null) {
+						copy.delete();
+					}
+					if (temp != null) {
+						temp.delete();
+					}
+					deleteRcloneConfig(rcloneConfig);
+				}				
+			}
+		} finally {
+			if (!opened) {
+				DIHelper.getInstance().removeLocalProperty(appId);
+				Utility.getEngine(appId, false);
+			}
+		}
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////// Pull ////////////////////////////////////////////
+	
+	public void pullApp(String appId) throws IOException, InterruptedException {
+		pullApp(appId, true);
+	}
+	
+	private void pullApp(String appId, boolean newEngine) throws IOException, InterruptedException {
+		
+		// List the smss directory to get the alias + app id
+		String smssContainer = appId + SMSS_POSTFIX;
+		String smssConfig = createRcloneConfig(smssContainer);
+		try {
+			List<String> results = runProcess("rclone", "ls", smssConfig + ":");
+			String smss = null;
+			for (String result : results) {
+				if (result.endsWith(".smss")) {
+					smss = result.substring(result.lastIndexOf(' ') + 1);
+					break;
+				}
+			}
+			if (smss == null) {
+				System.err.println("Failed to pull app for appid=" + appId);
+				return;
+			}
+			String aliasAppId = smss.replaceAll(".smss", "");
+			
+			// Pull the contents of the app folder before the smss
+			File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
+			appFolder.mkdir();
+			System.out.println("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
+			
+			// If it is a new engine, just pull
+			String appConfig = createRcloneConfig(appId);
+			try {
+				if (newEngine) {
+					runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
+				} else {
+					
+					// Otherwise, need to remove any locks then reopen
+					IEngine engine = Utility.getEngine(appId, false);
+					try {
+						engine.closeDB();
+						runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
+					} finally {
+						DIHelper.getInstance().removeLocalProperty(appId);
+						Utility.getEngine(appId, false);
+					}
+				}
+			} finally {
+				deleteRcloneConfig(appConfig);
+			}
+
+			System.out.println("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
+	
+			// Now pull the smss
+			System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
+			runProcess("rclone", "copy", smssConfig + ":", dbFolder);
+			System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+			
+			// Catalog the db if it is new
+			if (newEngine) {
+				SMSSWebWatcher.catalogDB(smss, dbFolder);
+			}
+		} finally {
+			deleteRcloneConfig(smssConfig);
+		}
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////// Update///////////////////////////////////////////
 	
 	// TODO >>>timb: pixel to update app so that neel can add refresh button or something
 	// TODO >>>timb: still need to test this method
@@ -258,120 +397,29 @@ public class AZClient {
 		pullApp(appId, false);
 	}
 	
-	// TODO >>>timb: need to ctrl shift g this guy
-	public void pullApp(String appId) throws IOException, InterruptedException {
-		pullApp(appId, true);
-	}
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////// Delete //////////////////////////////////////////
 	
-	// TODO >>>timb: rclone delete on app delete (security utils)
-	// TODO >>>timb: need to remove file lock to pull
-	// TODO >>>timb: close engine and reopen like export
-	private void pullApp(String appId, boolean newEngine) throws IOException, InterruptedException {
-		
-		// List the smss directory to get the alias + app id
-		String smssContainer = appId + "-smss";
-		String smssConfig = createRcloneConfig(smssContainer);
-		List<String> results = runProcess("rclone", "ls", smssConfig + ":");
-		String smss = null;
-		for (String result : results) {
-			if (result.endsWith(".smss")) {
-				smss = result.substring(result.lastIndexOf(' ') + 1);
-				break;
-			}
-		}
-		if (smss == null) {
-			System.err.println("Failed to pull app for appid=" + appId);
-			return;
-		}
-		String aliasAppId = smss.replaceAll(".smss", "");
-		
-		// Pull the contents of the app folder before the smss
-		File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
-		appFolder.mkdir();
-		String appConfig = createRcloneConfig(appId);
-		System.out.println("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
-		
-		// If it is a new engine, just pull
-		if (newEngine) {
-			runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
-		} else {
-			
-			// Otherwise, need to remove any locks then reopen
-			IEngine engine = Utility.getEngine(appId, false);
-			try {
-				engine.closeDB();
-				runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
-			} finally {
-				DIHelper.getInstance().removeLocalProperty(appId);
-				Utility.getEngine(appId, false);
-			}
-		}
-		
-		System.out.println("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
-		deleteRcloneConfig(appConfig);
-
-		// Now pull the smss
-		System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
-		runProcess("rclone", "copy", smssConfig + ":", dbFolder);
-		System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
-		deleteRcloneConfig(smssConfig);
-		
-		if (newEngine) {
-			SMSSWebWatcher.catalogDB(smss, dbFolder);
-		}
-	}
-	
-	public void pushApp(String appId) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
-		if (engine == null) {
-			throw new IllegalArgumentException("App not found...");
-		}
-		File temp = null;
-		File copy = null;
-		File db = new File(dbFolder);
-		String smss = Arrays.stream(db.listFiles()).parallel().filter(s -> s.getName().contains(appId))
-				.filter(s -> s.getName().endsWith(".smss")).collect(Collectors.toList()).get(0).getName();
-		List<File> files = Arrays.stream(db.listFiles()).parallel().filter(s -> s.getName().contains(appId)).collect(Collectors.toList());
-		boolean opened = false;
+	// TODO >>>timb: test out delete functionality
+	public void deleteApp(String appId) throws IOException, InterruptedException {
+		String rcloneConfig = Utility.getRandomString(10);
 		try {
-			for (File file : files) {
-				String remote = file.isDirectory() ? appId : appId + "-smss";
-				String rcloneConfig = createRcloneConfig(remote);
-				System.out.println("Pushing from source=" + file.getName() + " to remote=" + remote);
-				if (file.isDirectory()) {
-					System.out.println("(directory)");
-					engine.closeDB();
-					runProcess("rclone", "copy", file.getPath(), rcloneConfig + ":");
-					DIHelper.getInstance().removeLocalProperty(appId);
-					Utility.getEngine(appId, false);
-					opened = true;
-				} else {
-					System.out.println("(file)");
-					String tempFolder = Utility.getRandomString(10);
-					temp = new File(file.getParent() + FILE_SEPARATOR + tempFolder);
-					temp.mkdir();
-					copy = new File(temp.getPath() + FILE_SEPARATOR + file.getName());
-					Files.copy(file, copy);
-					runProcess("rclone", "copy", temp.getPath(), rcloneConfig + ":");
-				}
-				System.out.println("Done pushing from source=" + file.getName() + " to remote=" + remote);
-				deleteRcloneConfig(rcloneConfig);
-			}
+			runProcess("rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+			
+			System.out.println("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+			runProcess("rclone", "delete", rcloneConfig + ":" + appId);
+			runProcess("rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+			runProcess("rclone", "rmdir", rcloneConfig + ":" + appId);
+			runProcess("rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+			System.out.println("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
 		} finally {
-			if (copy != null) {
-				copy.delete();
-			}
-			if (temp != null) {
-				temp.delete();
-			}
-			if (!opened) {
-				DIHelper.getInstance().removeLocalProperty(appId);
-				Utility.getEngine(appId, false);
-			}
+			deleteRcloneConfig(rcloneConfig);
 		}
 	}
+			
+	//////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////// Static Util Methods ////////////////////////////////////
 	
-	// TODO >>>timb: need to delete too
 	private static String createRcloneConfig(String container) throws IOException, InterruptedException {
 		System.out.println("Generating SAS for container=" + container);
 		String sasUrl = client.getSAS(container);
