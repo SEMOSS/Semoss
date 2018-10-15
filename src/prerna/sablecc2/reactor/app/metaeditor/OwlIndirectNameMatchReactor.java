@@ -25,6 +25,48 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 	
 	/*
 	 * This reactor get the columns that match between all the tables
+	 * 
+	 * Here is an example script that you would expect from this routine:
+
+			library(stringdist);
+			library(data.table);
+			
+			# get all the columns and tables in 2 lists matched by index
+			allTables_aeBUZ8K <- c('city','city','city','city','city','countrylanguage','countrylanguage','countrylanguage','countrylanguage','country','country','country','country','country','country','country','country','country','country','country','country','country','country','country');
+			allColumns_aBRGQIz <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
+			
+			# get all the unique column values
+			indirectNameMatch_atJfEgY <- unique(allColumns_aBRGQIz);
+			# compare all the unique values to themselves
+			# this is a matrix with the distance values
+			aLdvslD <-stringdistmatrix(indirectNameMatch_atJfEgY,indirectNameMatch_atJfEgY, method="jw", p=0.1);
+			
+			# we will switch together the starting frame
+			# that contains sourceColumn, sourceTable, and distance
+			aQlyW8E <- dim(aLdvslD);
+			distance_axvuZaN <- round(as.vector(aLdvslD), 4);
+			aH92GSs <- rep(indirectNameMatch_atJfEgY, each=aQlyW8E[2]);
+			a4SP43L <- rep(indirectNameMatch_atJfEgY, aQlyW8E[1]);
+			matches_a4mfL5c <- as.data.table(as.data.frame(cbind(aH92GSs,a4SP43L,distance_axvuZaN)));
+
+			# convert the distance to a number and rename
+			matches_a4mfL5c[,3] <- as.numeric(as.character(matches_a4mfL5c$distance_axvuZaN));
+			names(matches_a4mfL5c) <- c('sourceCol', 'targetCol', 'distance');
+			
+			# generate a new table so we can join back the tables into the frame
+			tableToCol_aDxlJ5W <- data.table(allTables_aeBUZ8K, allColumns_aBRGQIz);
+			names(tableToCol_aDxlJ5W) <- c('table', 'column');
+			
+			# start the merge and rename as we add each table column
+			matches_a4mfL5c <- merge(matches_a4mfL5c,tableToCol_aDxlJ5W,by.x='sourceCol', by.y='column', allow.cartesian=TRUE);
+			names(matches_a4mfL5c) <- c('sourceCol', 'targetCol', 'distance', 'sourceTable');
+			matches_a4mfL5c <- merge(matches_a4mfL5c,tableToCol_aDxlJ5W,by.x='targetCol', by.y='column', allow.cartesian=TRUE);
+			names(matches_a4mfL5c) <- c('sourceCol', 'targetCol', 'distance', 'sourceTable', 'targetTable');
+			
+			# we do not want inner table joins
+			# so we will drop those
+			matches_a4mfL5c <- matches_a4mfL5c[targetTable != sourceTable];
+	 * 
 	 */
 	
 	public OwlIndirectNameMatchReactor() {
