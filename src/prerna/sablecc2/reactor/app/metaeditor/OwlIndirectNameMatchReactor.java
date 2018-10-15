@@ -36,17 +36,17 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 			allColumns_aBRGQIz <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
 			
 			# get all the unique column values
-			indirectNameMatch_atJfEgY <- unique(allColumns_aBRGQIz);
+			uniqueColNames_atJfEgY <- unique(allColumns_aBRGQIz);
 			# compare all the unique values to themselves
 			# this is a matrix with the distance values
-			aLdvslD <-stringdistmatrix(indirectNameMatch_atJfEgY,indirectNameMatch_atJfEgY, method="jw", p=0.1);
+			aLdvslD <-stringdistmatrix(uniqueColNames_atJfEgY,uniqueColNames_atJfEgY, method="jw", p=0.1);
 			
 			# we will switch together the starting frame
 			# that contains sourceColumn, sourceTable, and distance
 			aQlyW8E <- dim(aLdvslD);
 			distance_axvuZaN <- round(as.vector(aLdvslD), 4);
-			aH92GSs <- rep(indirectNameMatch_atJfEgY, each=aQlyW8E[2]);
-			a4SP43L <- rep(indirectNameMatch_atJfEgY, aQlyW8E[1]);
+			aH92GSs <- rep(uniqueColNames_atJfEgY, each=aQlyW8E[2]);
+			a4SP43L <- rep(uniqueColNames_atJfEgY, aQlyW8E[1]);
 			matches_a4mfL5c <- as.data.table(as.data.frame(cbind(aH92GSs,a4SP43L,distance_axvuZaN)));
 
 			# convert the distance to a number and rename
@@ -66,6 +66,17 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 			# we do not want inner table joins
 			# so we will drop those
 			matches_a4mfL5c <- matches_a4mfL5c[targetTable != sourceTable];
+			
+			function_remove_inverts <- function(dt) {
+			  for(i in dim(dt[1])) {
+			    dt <- dt[dt[, dt$sourceTable[i] == dt$targetTable 
+			                  & dt$targetTable[i] == dt$sourceTable
+			                  & dt$sourceCol[i] == dt$targetCol 
+			                  & dt$targetCol[i] == dt$sourceCol
+			                ]]
+			  }
+			}
+			
 	 * 
 	 */
 	
@@ -147,7 +158,7 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 		script.append(");");
 
 		// get all the unique columns as well
-		String uniqueColumnNamesVar = "indirectNameMatch_" + Utility.getRandomString(6);
+		String uniqueColumnNamesVar = "uniqueColNames_" + Utility.getRandomString(6);
 		script.append(uniqueColumnNamesVar).append(" <- unique(").append(allColumnsVar).append(");");
 
 		String stringMatchVariable = Utility.getRandomString(6);
@@ -217,6 +228,26 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 		// we shouldn't have self joins
 		// so we will drop columns where table name is the same as both source and target
 		script.append(matchDataFrame).append(" <- ").append(matchDataFrame).append("[targetTable != sourceTable];");
+		
+		// remove unwanted vars
+		script.append("rm(")
+			.append(allTablesVar)
+			.append(",")
+			.append(allColumnsVar)
+			.append(",")
+			.append(uniqueColumnNamesVar)
+			.append(",")
+			.append(tableToColVar)
+			.append(",")
+			.append(size)
+			.append(",")
+			.append(colnames1)
+			.append(",")
+			.append(colnames2)
+			.append(",")
+			.append(distanceCol)
+			.append(");gc()");
+			;
 		
 		// execute!
 		logger.info("Running script to determine distance among column headers..");
