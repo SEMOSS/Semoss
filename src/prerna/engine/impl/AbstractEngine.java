@@ -952,7 +952,6 @@ public abstract class AbstractEngine implements IEngine {
 		Set<String> conceptSet = new HashSet<String>();
 		while(wrapper.hasNext()) {
 			IHeadersDataRow hrow = wrapper.next();
-			System.out.println(hrow);
 			Object[] row = hrow.getValues();
 			Object[] raw = hrow.getRawValues();
 			if(raw[0].toString().equals("http://semoss.org/ontologies/Concept")) {
