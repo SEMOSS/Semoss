@@ -260,7 +260,10 @@ public class MetaHelper implements IExplorable {
 	public Vector<String> getConcepts(boolean conceptualNames) {
 		String query = "";
 		if(!conceptualNames) {
-			query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
+			query = "SELECT ?concept WHERE {"
+					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+					+ "Filter(?concept != <http://semoss.org/ontologies/Concept>)"
+					+ "}";
 		} else {
 			query = "SELECT DISTINCT (COALESCE(?conceptual, ?concept) AS ?retConcept) WHERE { "
 					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
