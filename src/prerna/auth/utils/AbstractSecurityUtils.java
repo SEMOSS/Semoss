@@ -64,7 +64,7 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
-		String query = "SELECT ENGINEID "
+		String query = "SELECT ENGINE.ENGINEID "
 				+ "FROM ENGINE "
 				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2)";
