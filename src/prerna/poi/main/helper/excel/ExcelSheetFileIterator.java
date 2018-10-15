@@ -67,16 +67,29 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		// need to figure out the selectors
 		setSelectors(qs.getSelectors());
 		
-		if(this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
+		// if the user has specified headers in the dataTypeMap
+		if (this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
+			// grab the headers defined in the dataTypeMap
+			this.headers = dataTypeMap.keySet().toArray(new String[dataTypeMap.size()]);
+			// get the header indicies
+			String[] headersInRange = this.sProcessor.getCleanedRangeHeaders(this.range);
+			this.headerIndices = this.findHeaderIndicies(headersInRange, this.headers);
+			
+			// get additional datatypes
 			this.types = new SemossDataType[this.headers.length];
 			this.additionalTypes = new String[this.headers.length];
-			
 			for (int index = 0; index < this.headers.length; index++) {
-				this.types[index] = SemossDataType.convertStringToDataType(dataTypeMap.get(this.headers[index]));
-				if(this.additionalTypesMap != null) {
+				String header = this.headers[index];
+				this.types[index] = SemossDataType.convertStringToDataType(dataTypeMap.get(header));
+				if (this.additionalTypesMap != null) {
 					this.additionalTypes[index] = additionalTypesMap.get(this.headers[index]);
 				}
+				// update new header name
+				if (this.newHeaders != null && this.newHeaders.containsKey(header)) {
+					this.headers[index] = this.newHeaders.get(header);
+				}
 			}
+
 		}
 		else {
 			setUnknownTypes();
