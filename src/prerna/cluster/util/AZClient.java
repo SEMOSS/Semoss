@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -59,7 +60,8 @@ public class AZClient {
 	public String azKeyRoot = "/khome";
 	
 	static AZClient client = null;
-	
+	static String rcloneConfigFolder = null;
+
 	CloudBlobClient serviceClient = null;
 	SharedAccessBlobPolicy sasConstraints = null;
 	String connectionString = null;
@@ -89,6 +91,9 @@ public class AZClient {
 	// initialize
 	public void init()
 	{
+		rcloneConfigFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "rcloneConfig";		
+		new File(rcloneConfigFolder).mkdir();
+		
 		// if the zookeeper is defined.. find from zookeeper what the key is
 		// and register for the key change
 		// if not.. the storage key is sitting some place pick it up and get it
@@ -236,27 +241,10 @@ public class AZClient {
 		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
 //		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
 //		System.out.println(AZClient.getInstance().getSAS("timb"));
-		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
-//		AZClient.getInstance().pushAllApps();
+//		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
 //		AZClient.getInstance().pushApp(appId);
 //		AZClient.getInstance().pullApp(appId);
 	}
-	
-	// Private util method for pushing all apps if needed
-	/*
-	private void pushAllApps() throws IOException, InterruptedException {
-		File db = new File(dbFolder);
-		for (File file : db.listFiles()) {
-			String fname = file.getName();
-			if (file.isFile() && fname.endsWith(".smss") && !fname.equals("security.smss") && !fname.equals("LocalMasterDatabase.smss")) {
-				String appId = fname.replaceAll(".smss", "").substring(fname.indexOf("__") + 2);
-				System.out.println("Syncing db for " + appId);
-				Thread pushAppThread = new Thread(new PushAppRunner(appId));
-				pushAppThread.start();
-			}
-		}	
-	}
-	*/
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////// Push ////////////////////////////////////////////
@@ -284,7 +272,7 @@ public class AZClient {
 					if (file.isDirectory()) {
 						System.out.println("(directory)");
 						engine.closeDB();
-						runProcess("rclone", "copy", file.getPath(), rcloneConfig + ":");
+						runRcloneProcess(rcloneConfig, "rclone", "copy", file.getPath(), rcloneConfig + ":");
 						DIHelper.getInstance().removeLocalProperty(appId);
 						Utility.getEngine(appId, false);
 						opened = true;
@@ -295,7 +283,7 @@ public class AZClient {
 						temp.mkdir();
 						copy = new File(temp.getPath() + FILE_SEPARATOR + file.getName());
 						Files.copy(file, copy);
-						runProcess("rclone", "copy", temp.getPath(), rcloneConfig + ":");
+						runRcloneProcess(rcloneConfig, "rclone", "copy", temp.getPath(), rcloneConfig + ":");
 					}
 					System.out.println("Done pushing from source=" + file.getName() + " to remote=" + remote);
 				} finally {
@@ -329,7 +317,7 @@ public class AZClient {
 		String smssContainer = appId + SMSS_POSTFIX;
 		String smssConfig = createRcloneConfig(smssContainer);
 		try {
-			List<String> results = runProcess("rclone", "ls", smssConfig + ":");
+			List<String> results = runRcloneProcess(smssConfig, "rclone", "ls", smssConfig + ":");
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -352,14 +340,14 @@ public class AZClient {
 			String appConfig = createRcloneConfig(appId);
 			try {
 				if (newEngine) {
-					runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
+					runRcloneProcess(appConfig, "rclone", "copy", appConfig + ":", appFolder.getPath());
 				} else {
 					
 					// Otherwise, need to remove any locks then reopen
 					IEngine engine = Utility.getEngine(appId, false);
 					try {
 						engine.closeDB();
-						runProcess("rclone", "copy", appConfig + ":", appFolder.getPath());
+						runRcloneProcess(appConfig, "rclone", "copy", appConfig + ":", appFolder.getPath());
 					} finally {
 						DIHelper.getInstance().removeLocalProperty(appId);
 						Utility.getEngine(appId, false);
@@ -373,7 +361,7 @@ public class AZClient {
 	
 			// Now pull the smss
 			System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
-			runProcess("rclone", "copy", smssConfig + ":", dbFolder);
+			runRcloneProcess(smssConfig, "rclone", "copy", smssConfig + ":", dbFolder);
 			System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 			
 			// Catalog the db if it is new
@@ -404,13 +392,14 @@ public class AZClient {
 	public void deleteApp(String appId) throws IOException, InterruptedException {
 		String rcloneConfig = Utility.getRandomString(10);
 		try {
-			runProcess("rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+			
 			
 			System.out.println("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
-			runProcess("rclone", "delete", rcloneConfig + ":" + appId);
-			runProcess("rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
-			runProcess("rclone", "rmdir", rcloneConfig + ":" + appId);
-			runProcess("rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
 			System.out.println("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
 		} finally {
 			deleteRcloneConfig(rcloneConfig);
@@ -424,16 +413,34 @@ public class AZClient {
 		System.out.println("Generating SAS for container=" + container);
 		String sasUrl = client.getSAS(container);
 		String rcloneConfig = Utility.getRandomString(10);
-		runProcess("rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
+		runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
 		return rcloneConfig;
 	}
 	
 	private static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
-		runProcess("rclone", "config", "delete", rcloneConfig);
+		String configPath = getConfigPath(rcloneConfig);
+		try {
+			runRcloneProcess(rcloneConfig, "rclone", "config", "delete", rcloneConfig);
+		} finally {
+			new File(configPath).delete();
+		}
 	}
 	
-	// Unfortunately the processes have to be synchronized, otherwise rclone throws errors when it tries to access the config file at the same time
-	private static synchronized List<String> runProcess(String... command) throws IOException, InterruptedException {
+	private static List<String> runRcloneProcess(String rcloneConfig, String... command) throws IOException, InterruptedException {
+		String configPath = getConfigPath(rcloneConfig);
+		List<String> commandList = new ArrayList<>();
+		commandList.addAll(Arrays.asList(command));
+		commandList.add("--config");
+		commandList.add(configPath);
+		String[] newCommand = commandList.toArray(new String[] {});
+		return runAnyProcess(newCommand);	
+	}
+	
+	private static String getConfigPath(String rcloneConfig) {
+		return rcloneConfigFolder + FILE_SEPARATOR + rcloneConfig + ".conf";
+	}
+	
+	private static List<String> runAnyProcess(String... command) throws IOException, InterruptedException {
 		Process p = null;
 		try {
 			ProcessBuilder pb = new ProcessBuilder(command);
