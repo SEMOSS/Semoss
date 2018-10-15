@@ -4,6 +4,7 @@ import java.io.File;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -24,13 +25,14 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		if (UserTrackerFactory.isTracking()) {
 			init();
-			String[] packages = new String[] { "Rcpp", "lattice", "codetools", "digest", "foreach", "SnowballC", "lsa",
-					"grid", "plyr", "R6", "futile.options", "magrittr", "formatR", "RcppParallel", "stringi",
-					"data.table", "doParallel", "futile.logger", "Matrix", "lambda.r", "tools", "iterators", "stringr",
-					"mlapi", "text2vec", "parallel", "compiler" };
+			String[] packages = new String[] { "igraph", "doParallel", "foreach", "parallel", "iterators", "lsa",
+					"SnowballC", "codetools", "compiler" };
 			this.rJavaTranslator.checkPackages(packages);
 			Logger logger = getLogger(CLASS_NAME);
 
+			//Getting the user info
+			User user = this.insight.getUser();
+			String userName = "";
 			// Updating "dataquery.tsv" and storing it in working directory
 			String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/query";
 			String FILE_NAME = "dataitem-dataquery.tsv";
@@ -75,9 +77,15 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 				rsb.append("source(\"topic_modelling.r\");");
 				rsb.append("source(\"viz_recom.r\");");
 				String fileroot = baseFolder + "\\R\\Recommendations\\dataitem";
-				rsb.append("refresh_data_mgr(\"" + fileroot + "\");");
-				rsb.append("data_domain_mgr(\"" + fileroot + "\");");
-				rsb.append("viz_history(\" " + fileroot + "\")");
+				if(user != null) {
+					userName = user.getAccessToken(user.getLogins().get(0)).getId();
+					rsb.append("refresh_data_mgr(\"" + fileroot + "\", \"" + userName + "\");");
+				}else {
+					String message = "Unable to generage datadistrict file. Please login and run UpdateQueryData() again for enhanced data.";
+					logger.info(message);
+					rsb.append("refresh_data_mgr(\"" + fileroot + "\");");
+				}
+				rsb.append("viz_history(\" " + fileroot + "\");");
 				// set the work directory back to normal
 				rsb.append("setwd(" + rwd + ");");
 				// garbage collection

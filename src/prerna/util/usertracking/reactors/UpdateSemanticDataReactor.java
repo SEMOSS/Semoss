@@ -27,10 +27,9 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 			Logger logger = getLogger(CLASS_NAME);
 			// NEW: Updating "datasemantic.tsv" and storing it in working
 			// directory
-			String[] packages = new String[] { "Rcpp", "lattice", "codetools", "digest", "foreach", "SnowballC", "lsa",
-					"plyr", "grid", "R6", "futile.options", "magrittr", "formatR", "RcppParallel", "stringi",
-					"data.table", "futile.logger", "Matrix", "lambda.r", "tools", "iterators", "stringr", "mlapi",
-					"text2vec", "compiler" };
+			String[] packages = new String[] { "mlapi", "text2vec", "lattice", "foreach", "grid", "lambda.r",
+					"futile.logger", "iterators", "RcppParallel", "digest", "Matrix", "lsa", "formatR",
+					"futile.options", "codetools", "SnowballC", "compiler" };
 			this.rJavaTranslator.checkPackages(packages);
 			String extension = "?databases=";
 			// read datadistrict file
@@ -45,8 +44,11 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 				String script = sb.toString().replace("\\", "/");
 				relevantEngines = this.rJavaTranslator.getStringArray(script);
 			} else {
-				logger.info("-datadistrict.rds file does not appear. Cannot Update.");
-				return null;
+				String message = "Unable to access required dataitem-datadistrict.rds file to update semantic data.";
+				NounMetadata retNoun = new NounMetadata(false, PixelDataType.BOOLEAN);
+				retNoun.addAdditionalReturn(
+						new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				return retNoun;
 			}
 
 			// generate list of databases and store it into an array
