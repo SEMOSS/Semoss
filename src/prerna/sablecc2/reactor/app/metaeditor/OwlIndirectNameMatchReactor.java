@@ -219,8 +219,10 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 		script.append(matchDataFrame).append(" <- ").append(matchDataFrame).append("[targetTable != sourceTable];");
 		
 		// execute!
+		logger.info("Running script to determine distance among column headers..");
 		rJavaTranslator.runR(script.toString());
-		
+		logger.info("Finished running script!");
+
 		// recreate a new frame and set the frame name
 		String[] colNames = new String[]{"sourceCol", "targetCol", "distance", "sourceTable", "targetTable"};
 		String[] colTypes = new String[]{"character", "character", "numeric", "character", "character"};

@@ -3,6 +3,8 @@ package prerna.sablecc2.reactor.app.metaeditor;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -20,6 +22,7 @@ import prerna.util.Utility;
 
 public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 
+	private static final String CLASS_NAME = AddBulkOwlRelationshipsReactor.class.getName();
 	private static final String PROP_MAX = "propagation";
 	
 	/*
@@ -32,6 +35,8 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
+
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		String distanceStr = this.keyValue.get(this.keysToGet[2]);
@@ -67,8 +72,13 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, "<=" , rComparison);
 		qs.addExplicitFilter(filter);
 		
+		int counter = 0;
+		logger.info("Retrieving values to insert");
 		IRawSelectWrapper iterator = frame.query(qs);
 		while(iterator.hasNext()) {
+			if(counter % 100 == 0) {
+				logger.info("Adding " + counter + " relationship");
+			}
 			IHeadersDataRow row = iterator.next();
 			Object[] values = row.getValues();
 			
@@ -91,8 +101,10 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 			// add the relationship
 			owler.addRelation(startT, startC, endT, endC, rel);
 		}
-		
+		logger.info("Done adding relationships");
+
 		// commit all the changes
+		logger.info("Committing relationships");
 		owler.commit();
 
 		try {
