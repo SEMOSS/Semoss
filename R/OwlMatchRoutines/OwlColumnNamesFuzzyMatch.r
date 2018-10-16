@@ -19,9 +19,9 @@ getColumnFuzzyMatches<-function(allTables, allColumns) {
   tableToCol <- data.table(allTables, allColumns);
   names(tableToCol) <- c('table', 'column');
   matching_frame <- merge(matching_frame,tableToCol, by.x='sourceCol', by.y='column', allow.cartesian=TRUE);
-  names(matching_frame) <- c('sourceCol', 'targetCol', 'distance', 'sourceTable');
+  colnames(matching_frame)[which(names(matching_frame) == "table")] <- "sourceTable";
   matching_frame <- merge(matching_frame,tableToCol, by.x='targetCol', by.y='column', allow.cartesian=TRUE);
-  names(matching_frame) <- c('sourceCol', 'targetCol', 'distance', 'sourceTable', 'targetTable');
+  colnames(matching_frame)[which(names(matching_frame) == "table")] <- "targetTable";
   # ignore same table joins
   matching_frame <- matching_frame[targetTable != sourceTable];
   
