@@ -351,9 +351,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		String mathExpr = selector.getMathExpr();
 		
 		if(mathExpr.equals("/")) {
-			return "(" + processSelector(leftSelector, false) + " " + mathExpr + " NULLIF(" + processSelector(rightSelector, false) + ",0))";
+			return "( CAST(" + processSelector(leftSelector, false) + " AS DECIMAL) " + mathExpr + " CAST(NULLIF(" + processSelector(rightSelector, false) + ",0) AS DECIMAL) )";
 		} else {
-			return "(" + processSelector(leftSelector, false) + " " + mathExpr + " " + processSelector(rightSelector, false) + ")";
+			return "( CAST(" + processSelector(leftSelector, false) + "  AS DECIMAL) " + mathExpr + " CAST(" + processSelector(rightSelector, false) + " AS DECIMAL) )";
 		}
 	}
 	
