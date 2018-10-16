@@ -114,4 +114,18 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		owler.setPropHash(propHash);
 		owler.setRelationHash(relationHash);
 	}
+	
+	/**
+     * Get the base folder
+     * @return
+     */
+     protected String getBaseFolder() {
+          String baseFolder = null;
+          try {
+              baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+          } catch (Exception ignored) {
+              // logger.info("No BaseFolder detected... most likely running as test...");
+          }
+          return baseFolder;
+     }
 }
