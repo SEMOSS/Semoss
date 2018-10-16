@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.cluster;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,10 +46,15 @@ public class OpenAppReactor extends AbstractReactor {
 		if(baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any app data");
 		}
-		
+				
 		IEngine engine = Utility.getEngine(appId);
 		
-		return new NounMetadata(engine != null, PixelDataType.BOOLEAN, PixelOperationType.OPEN_APP);
+		Map<String, Object> returnMap = new HashMap<String, Object>();
+		returnMap.put("app_name", engine.getEngineName());
+		returnMap.put("app_id", engine.getEngineId());
+		returnMap.put("app_type", engine.getEngineType().toString());
+		
+		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_APP);
 	}
 
 }
