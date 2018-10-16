@@ -1,14 +1,16 @@
 span<-function(a){
   if(length(a) == 1 & is.na(a[1])){
-    x<-0
+    x<-0;
   }else{
-    x<-length(a)
+    x<-length(a);
   }
-  return(x)
+  return(x);
 }
 
 splitCamelCase<-function(a){
-  paste(gsub("([A-Z])", " \\1", a));
+  a<-paste(gsub("([A-Z])", " \\1", a));
+  a<-gsub("_", " ", a);
+  return(a);
 }
 
 generateDescriptionFrame<-function(uniqueValues){
