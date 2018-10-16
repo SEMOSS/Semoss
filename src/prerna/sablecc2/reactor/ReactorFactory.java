@@ -70,6 +70,7 @@ import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsExternalUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsFlatExcelUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdf.RdfCsvUploadReactor;
+import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.DropBoxUploaderReactor;
@@ -776,7 +777,8 @@ public class ReactorFactory {
 		reactorHash.put("ModifyInsightComment", ModifyInsightCommentReactor.class);
 		reactorHash.put("GetInsightComments", GetInsightCommentsReactor.class);
 		
-
+		// Cluster
+		reactorHash.put("UpdateApp", UpdateAppReactor.class);
 		
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
