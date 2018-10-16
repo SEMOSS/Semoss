@@ -81,7 +81,7 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 	 */
 	
 	public OwlIndirectNameMatchReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), "dist"};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
 	}
 	
 	@Override
