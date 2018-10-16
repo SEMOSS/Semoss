@@ -42,19 +42,19 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   WORDSTOEXCLUDE<-c('a',"the","this","these","their","that","those","then","and","an","as","over","with","within","without","when","why","how","in",
                     "on","of","or","to","by","from","for","at","so","then","thus","here","there");
   
-  prep_fun = tolower;
-  tok_fun = word_tokenizer;
-  tokens = itoken(colToDescriptionFrame$description, 
+  prep_fun<-tolower;
+  tok_fun<-word_tokenizer;
+  tokens<-itoken(colToDescriptionFrame$description, 
                   preprocessor = prep_fun, 
                   tokenizer = tok_fun, 
                   ids = colToDescriptionFrame$column, 
                   progressbar = FALSE);
-  vocab = create_vocabulary(tokens, stopwords = WORDSTOEXCLUDE, ngram=c(ngram_min=1L,ngram_max=1L));
-  vocab<-vocab[nchar(vocab$term) >= MINWORDLENGTH,];
-  vectorizer = vocab_vectorizer(vocab);
-  dtm = create_dtm(tokens, vectorizer);
-  myMatrix<-as.textmatrix(t(as.matrix(dtm)));
-  cosineSimMatrix<-cosine(myMatrix);
+  vocab <- create_vocabulary(tokens, stopwords = WORDSTOEXCLUDE, ngram=c(ngram_min=1L,ngram_max=1L));
+  vocab <- vocab[nchar(vocab$term) >= MINWORDLENGTH,];
+  vectorizer <- vocab_vectorizer(vocab);
+  dtm <- create_dtm(tokens, vectorizer);
+  myMatrix <- as.textmatrix(t(as.matrix(dtm)));
+  cosineSimMatrix <- cosine(myMatrix);
   
   # need to go through and merge the cosine distance
   # in addition to the column / tables
