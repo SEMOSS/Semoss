@@ -26,7 +26,7 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 	/**
 	 * Example script to run:
 	 
-	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlColumnNamesFuzzyMatch.r");
+	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlColumnNamesFuzzyMatch.R");
 	 allTables_aQC7ep4 <- c('city','city','city','city','city','countrylanguage','countrylanguage','countrylanguage','countrylanguage','country','country','country','country','country','country','country','country','country','country','country','country','country','country','country');
 	 allColumns_aHGRoJ8 <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
 	 matches_awiHmTT<- getColumnFuzzyMatches(allTables_aQC7ep4,allColumns_aHGRoJ8);
@@ -81,7 +81,7 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 		StringBuilder script = new StringBuilder();
 		
 		// first source the file where we have the main method for running
-		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlColumnNamesFuzzyMatch.r"; 
+		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlColumnNamesFuzzyMatch.R"; 
 		rScriptPath = rScriptPath.replace("\\", "/");
 		script.append("source(\"" + rScriptPath + "\");");
 		
