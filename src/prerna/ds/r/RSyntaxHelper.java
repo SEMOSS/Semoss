@@ -120,6 +120,26 @@ public class RSyntaxHelper {
 	}
 	
 	/**
+	 * Convert a list to a r column vector of strings
+	 * @param tableNamesList
+	 * @return
+	 */
+	public static Object createStringRColVec(List<String> tableNamesList) {
+		StringBuilder str = new StringBuilder("c(");
+		int i = 0;
+		int size = tableNamesList.size();
+		for(; i < size; i++) {
+			str.append("\"").append(tableNamesList.get(i)).append("\"");
+			// if not the last entry, append a "," to separate entries
+			if( (i+1) != size) {
+				str.append(",");
+			}
+		}
+		str.append(")");
+		return str.toString();
+	}
+	
+	/**
 	 * Convert a java object[] into a r column vector
 	 * @param row				The object[] to convert
 	 * @param dataType			The data type for each entry in the object[]
