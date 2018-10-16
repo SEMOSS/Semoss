@@ -120,7 +120,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 		StringBuilder script = new StringBuilder();
 		
 		// first source the file where we have the main method for running
-		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlInstanceCosineDistance.r"; 
+		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlInstanceCosineDistance.R"; 
 		rScriptPath = rScriptPath.replace("\\", "/");
 		script.append("source(\"" + rScriptPath + "\");");
 		
