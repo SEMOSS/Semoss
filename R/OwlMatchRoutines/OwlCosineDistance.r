@@ -72,9 +72,9 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   tableToCol <- data.table(allTables, allColumns);
   names(tableToCol) <- c('table', 'column');
   similarity_frame <- merge(similarity_frame,tableToCol, by.x='sourceCol', by.y='column', allow.cartesian=TRUE);
-  names(similarity_frame) <- c('sourceCol', 'targetCol', 'distance', 'sourceTable');
+  colnames(similarity_frame)[which(names(similarity_frame) == "table")] <- "sourceTable";
   similarity_frame <- merge(similarity_frame,tableToCol, by.x='targetCol', by.y='column', allow.cartesian=TRUE);
-  names(similarity_frame) <- c('sourceCol', 'targetCol', 'distance', 'sourceTable', 'targetTable');
+  colnames(similarity_frame)[which(names(similarity_frame) == "table")] <- "targetTable";
   # ignore same table joins
   similarity_frame <- similarity_frame[targetTable != sourceTable];
   
