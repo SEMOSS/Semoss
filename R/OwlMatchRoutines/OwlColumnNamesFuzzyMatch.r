@@ -11,10 +11,13 @@ getColumnFuzzyMatches<-function(allTables, allColumns) {
   col2 <- rep(uniqueColumnNames, dimensions[1]);
   
   matching_frame <- as.data.table(as.data.frame(cbind(col1, col2, distance_vector)));
-  matching_frame[,3] <- as.numeric(as.character(matching_frame$distance_vector));
+  
+  # we want to show 1 as being 100% match
+  # so we will do 1-distance value
+  matching_frame[,3] <- 1-as.numeric(as.character(matching_frame$distance_vector));
+  names(matching_frame) <- c('sourceCol', 'targetCol', 'distance');
   
   # merge back the table column names
-  names(matching_frame) <- c('sourceCol', 'targetCol', 'distance');
   # create the table and column frame
   tableToCol <- data.table(allTables, allColumns);
   names(tableToCol) <- c('table', 'column');
