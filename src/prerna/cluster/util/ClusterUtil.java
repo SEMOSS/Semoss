@@ -26,7 +26,7 @@ public class ClusterUtil {
 			} catch (IOException | InterruptedException e) {
 				NounMetadata noun = new NounMetadata("Failed to push app to cloud storage", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(true);
+				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
