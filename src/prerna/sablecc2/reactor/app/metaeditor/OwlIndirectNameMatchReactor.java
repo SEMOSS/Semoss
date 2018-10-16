@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
@@ -8,6 +7,7 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -92,30 +92,10 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 		// and all the columns
 		// this is required for joining back
 		String allTablesVar = "allTables_" + Utility.getRandomString(6);
-		script.append(allTablesVar).append(" <- c(");
-		{
-			Iterator<String> it = tableNamesList.iterator();
-			if(it.hasNext()) {
-				script.append("'").append(it.next()).append("'");
-			}
-			while(it.hasNext()) {
-				script.append(",'").append(it.next()).append("'");
-			}
-		}
-		script.append(");");
+		script.append(allTablesVar).append(" <- ").append(RSyntaxHelper.createStringRColVec(tableNamesList)).append(";");
 		// now repeat for columns
 		String allColumnsVar = "allColumns_" + Utility.getRandomString(6);
-		script.append(allColumnsVar).append(" <- c(");
-		{
-			Iterator<String> it = columnNamesList.iterator();
-			if(it.hasNext()) {
-				script.append("'").append(it.next()).append("'");
-			}
-			while(it.hasNext()) {
-				script.append(",'").append(it.next()).append("'");
-			}
-		}
-		script.append(");");
+		script.append(allColumnsVar).append(" <- ").append(RSyntaxHelper.createStringRColVec(columnNamesList)).append(";");
 
 		// now that we have defined the inputs, just need to run the "main" method of the script
 		String matchDataFrame = "matches_" + Utility.getRandomString(6);
