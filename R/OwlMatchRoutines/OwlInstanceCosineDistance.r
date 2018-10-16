@@ -13,30 +13,43 @@ splitCamelCase<-function(a){
   return(a);
 }
 
-generateDescriptionFrame<-function(uniqueValues){
+generateDescriptionFrame<-function(allColumns, sampleInstances){
   library(WikidataR);
   
-  uniqueDescriptions <- array();
-  numUnique = length(uniqueValues);
-  for(i in 1:numUnique) {
-    values <- find_item(splitCamelCase(uniqueValues[i]));
-    data <- lapply(values, function(x) { cbind(x$label, x$description) } );
-    uniqueDescriptions[span(uniqueDescriptions)+1] <- paste(lapply(data, function(x) { paste(x, collapse= ' ') }), collapse=' ');
+  columnDescriptions <- array();
+  numColumns = length(sampleInstances);
+  for(i in 1:numColumns) {
+    instances <- sampleInstances[[i]];
+    numInstances <- length(instances);
+    if(numInstances == 0) {
+      columnDescriptions[span(columnDescriptions)+1] <- "";
+    } else {
+      instanceDescription <- array();
+      for(j in 1:numInstances) {
+        # grab for this instance the values
+        # print(paste(i, " ::: ", j, " ::: ", splitCamelCase(instances[j]) ));
+        values <- find_item(splitCamelCase(instances[j]));
+        datavalues <- lapply(values, function(x) { cbind(x$label, x$description) } );
+        # push into the description array for this instance
+        instanceDescription[span(instanceDescription)+1] <- paste(lapply(datavalues, function(x) { paste(x, collapse= ' ') }), collapse=' ');
+      }
+      # collapse all of the descriptions
+      columnDescriptions[span(columnDescriptions)+1] <- paste(instanceDescription, collapse=' ');
+    }
   }
   
-  colToDescriptionFrame <- data.table(uniqueValues, uniqueDescriptions);
+  colToDescriptionFrame <- data.table(allColumns, columnDescriptions);
   names(colToDescriptionFrame) <- c('column', 'description');
-  rm(numUnique);
+  rm(numColumns, allColumns, instanceDescription, columnDescriptions, values, datavalues);
   return(colToDescriptionFrame);
 }
 
-getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
+getDocumentCostineSimilarityMatrix<-function(allTables, allColumns, sampleInstancesList) {
   library(text2vec);
   library(data.table);
   library(lsa);
   
-  uniqueColumnNames = unique(allColumns);
-  colToDescriptionFrame <- generateDescriptionFrame(uniqueColumnNames);
+  colToDescriptionFrame <- generateDescriptionFrame(allColumns, sampleInstancesList);
   
   MINWORDLENGTH<-2;
   WORDSTOEXCLUDE<-c('a',"the","this","these","their","that","those","then","and","an","as","over","with","within","without","when","why","how","in",
@@ -60,8 +73,8 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   # in addition to the column / tables
   dimensions <- dim(cosineSimMatrix);
   cosine_distance <- round(as.vector(cosineSimMatrix), 4);
-  col1 <- rep(uniqueColumnNames, each=dimensions[2]);
-  col2 <- rep(uniqueColumnNames, dimensions[1]);
+  col1 <- rep(allColumns, each=dimensions[2]);
+  col2 <- rep(allColumns, dimensions[1]);
   
   similarity_frame <- as.data.table(as.data.frame(cbind(col1, col2, cosine_distance)));
   similarity_frame[,3] <- as.numeric(as.character(similarity_frame$cosine_distance));
@@ -83,7 +96,7 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   # ignore same table joins
   similarity_frame <- similarity_frame[targetTable != sourceTable];
   
-  rm(allTables, allColumns, uniqueColumnNames, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
+  rm(allTables, allColumns, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
      dimensions, cosine_distance, col1, col2, tableToCol);
   
   return(similarity_frame);
