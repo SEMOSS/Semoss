@@ -77,7 +77,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		IRawSelectWrapper iterator = frame.query(qs);
 		while(iterator.hasNext()) {
 			if(counter % 100 == 0) {
-				logger.info("Adding " + counter + " relationship");
+				logger.info("Adding relationship : #" + (counter+1));
 			}
 			IHeadersDataRow row = iterator.next();
 			Object[] values = row.getValues();
@@ -102,6 +102,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 			owler.addRelation(startT, startC, endT, endC, rel);
 		}
 		logger.info("Done adding relationships");
+		logger.info("Total relationships added = " + counter);
 
 		// commit all the changes
 		logger.info("Committing relationships");
