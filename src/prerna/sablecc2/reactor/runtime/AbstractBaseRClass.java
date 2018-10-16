@@ -295,8 +295,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				storeVariable(R_PORT, new NounMetadata(table.getPort(), PixelDataType.CONST_STRING));
 			}
 		}
+		// if currently no frame
+		// return empty one
+		if(dataframe == null) {
+			return table;
+		}
+		
 		table.setUserId(dataframe.getUserId());
-
 		if (dataframe instanceof H2Frame) {
 			H2Frame gridFrame = (H2Frame) dataframe;
 			String tableName = gridFrame.getBuilder().getTableName();
