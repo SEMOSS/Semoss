@@ -121,7 +121,9 @@ public enum PixelOperationType {
 	CLOUD_FILE_LIST,
 	
 	// Cluster
+	OPEN_APP,
 	UPDATE_APP,
+	CLEANUP_APPS,
 	
 	// RECIPE COMMENTS
 	RECIPE_COMMENT,
