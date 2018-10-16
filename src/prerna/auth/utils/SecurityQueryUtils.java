@@ -168,7 +168,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String filter = createFilter(engineFilter); 
 		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
 				+ "FROM ENGINE "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
  				+ (!filter.isEmpty() ? ("WHERE ENGINE.ENGINEID " + filter + " ") : "")
 				+ "ORDER BY ENGINE.ENGINENAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
