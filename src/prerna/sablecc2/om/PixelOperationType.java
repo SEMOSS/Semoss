@@ -120,6 +120,9 @@ public enum PixelOperationType {
 	GOOGLE_DRIVE_LIST,
 	CLOUD_FILE_LIST,
 	
+	// Cluster
+	UPDATE_APP,
+	
 	// RECIPE COMMENTS
 	RECIPE_COMMENT,
 	
