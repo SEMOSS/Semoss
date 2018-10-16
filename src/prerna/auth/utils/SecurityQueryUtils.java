@@ -284,7 +284,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				return false;
 			}
 			int permission = ((Number) val).intValue();
-			if(EnginePermission.isOwner(permission)) {
+			if(EnginePermission.isEditor(permission)) {
 				return true;
 			}
 		}
