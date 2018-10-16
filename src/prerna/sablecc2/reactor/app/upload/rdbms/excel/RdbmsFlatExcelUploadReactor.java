@@ -245,20 +245,25 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						// necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 						Sheet sheet = sheetIterator.getSheet();
+						int[] headerIndicies = sheetIterator.getHeaderIndicies();
 						Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
 						int startRow = eRange.getStartRow();
 						SemossDataType[] types = sheetIterator.getTypes();
 						String[] headers = sheetIterator.getHeaders();
-						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders,  Arrays.copyOf(headers, headers.length), types,  sheetIterator.getHeaderIndicies(), startRow);
+						Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
+						sheetName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
 						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
 							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
 							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 							Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(newAppId, sheetName, dataValidationMap);
-							UploadUtilities.addUpdateInsights(insightDatabase, newAppId, sheetName.toUpperCase(), updateForm);;
+							UploadUtilities.addUpdateInsights(insightDatabase, newAppId,sheetName, updateForm);
 						} else {
-							Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName.toUpperCase());
-							UploadUtilities.addInsertFormInsight(insightDatabase, newAppId, sheetName, propMap, Arrays.copyOf(headers, headers.length));
-							UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId, sheetName.toUpperCase(), propMap);
+							// get header descriptions
+							dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
+							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
+							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);							
+							Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName);
+							UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId, sheetName, propMap);
 						}
 					}
 				}
@@ -293,17 +298,22 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 					int startRow = eRange.getStartRow();
 					SemossDataType[] types = sheetIterator.getTypes();
 					String[] headers = sheetIterator.getHeaders();
-					System.out.println();
 					Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
+					sheetName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
 					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
 						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
 						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 						Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(newAppId, sheetName, dataValidationMap);
-						UploadUtilities.addUpdateInsights(insightDatabase, newAppId, sheetName.toUpperCase(), updateForm);;
+						UploadUtilities.addUpdateInsights(insightDatabase, newAppId, sheetName, updateForm);
+						;
 					} else {
-						UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, Arrays.copyOf(headers, headers.length));
-						Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName.toUpperCase());
-						UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId, sheetName.toUpperCase(), propMap);					}
+						// get header descriptions
+						dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
+						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
+						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
+						Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName);
+						UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId, sheetName, propMap);
+					}
 				}
 			}
 		}
@@ -504,7 +514,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Done parsing sheet metadata");
 
 		logger.info("Create table...");
-		String tableName = RDBMSEngineCreationHelper.cleanTableName(sheetName.replace(" ", "_")).toUpperCase();
+		String tableName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
 		if(!singleRange) {
 			tableName += "_" + RDBMSEngineCreationHelper.cleanTableName(qs.getSheetRange()).toUpperCase();
 		}

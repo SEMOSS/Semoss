@@ -238,10 +238,12 @@ public class ExcelDataValidationHelper {
 			if (cleanHeader != null && Arrays.asList(headers).contains(cleanHeader)) {
 				int index = Arrays.asList(headers).indexOf(cleanHeader);
 				SemossDataType type = types[index];
-				headerMeta.put("type", type.toString());
-				validationMap.put(cleanHeader, headerMeta);
-				headers[index] = null;
-				types[index] = null;
+				if (type != null) {
+					headerMeta.put("type", type.toString());
+					validationMap.put(cleanHeader, headerMeta);
+					headers[index] = null;
+					types[index] = null;
+				}
 			}
 		}
 		// add remaining missing columns to validationMap
@@ -281,6 +283,58 @@ public class ExcelDataValidationHelper {
 					}
 					validationMap.put(header, headerMeta);
 				}
+			}
+		}
+		return validationMap;
+	}
+	
+	/**
+	 * Get description for headers to create form
+	 * 
+	 * @param sheet
+	 * @param newHeaders
+	 * @param headers
+	 * @param types
+	 * @param headerIndicies
+	 * @param startRow
+	 * @return
+	 */
+	public static Map<String, Object> getHeaderComments(Sheet sheet, Map<String, String> newHeaders, String[] headers,
+			SemossDataType[] types, int[] headerIndicies, int startRow) {
+		Map<String, Object> validationMap = new HashMap<>();
+		for (int i = 0; i < headers.length; i++) {
+			String header = headers[i];
+			if (header != null) {
+				SemossDataType type = types[i];
+				Map<String, Object> headerMeta = new HashMap<>();
+				if (type == SemossDataType.STRING) {
+					headerMeta.put("type", SemossDataType.STRING.toString());
+					int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH;
+					headerMeta.put("validationType", validationTypeToString(validationType));
+				}
+				if (Utility.isNumericType(type.toString())) {
+					headerMeta.put("type", SemossDataType.DOUBLE.toString());
+					int validationType = DataValidationConstraint.ValidationType.DECIMAL;
+					headerMeta.put("validationType", validationTypeToString(validationType));
+				}
+				headerMeta.put("range", "");
+				headerMeta.put("emptyCells", true);
+				// add comment
+				Row row = sheet.getRow(startRow - 1);
+				Cell c = row.getCell(headerIndicies[i] - 1);
+				// add header comment as description
+				Comment cellComment = c.getCellComment();
+				if (cellComment != null) {
+					RichTextString commentStr = cellComment.getString();
+					String comment = commentStr.getString();
+					// comment may have author
+					String author = cellComment.getAuthor();
+					if (author != null) {
+						comment = comment.replace(author + ":\n", "");
+					}
+					headerMeta.put("description", comment);
+				}
+				validationMap.put(header, headerMeta);
 			}
 		}
 		return validationMap;
@@ -572,5 +626,7 @@ public class ExcelDataValidationHelper {
 		System.out.println(gson.toJson(form));
 
 	}
+
+
 
 }
