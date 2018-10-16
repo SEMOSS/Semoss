@@ -71,7 +71,7 @@ import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsExternalUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsFlatExcelUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdf.RdfCsvUploadReactor;
-//import prerna.sablecc2.reactor.cluster.CleanupAppsReactor;
+import prerna.sablecc2.reactor.cluster.CleanUpAppsReactor;
 import prerna.sablecc2.reactor.cluster.OpenAppReactor;
 import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
@@ -784,7 +784,7 @@ public class ReactorFactory {
 		// Cluster
 		reactorHash.put("OpenApp", OpenAppReactor.class);
 		reactorHash.put("UpdateApp", UpdateAppReactor.class);
-//		reactorHash.put("CleanupApps", CleanupAppsReactor.class);
+		reactorHash.put("CleanUpApps", CleanUpAppsReactor.class);
 		
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
