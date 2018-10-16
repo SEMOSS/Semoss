@@ -28,7 +28,7 @@ public enum EnginePermission {
 	 * @param permission
 	 * @return
 	 */
-	public static boolean canModify(int permission) {
+	public static boolean isEditor(int permission) {
 		if(permission == 1 || permission == 2) {
 			return true;
 		}
