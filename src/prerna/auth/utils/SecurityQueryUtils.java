@@ -95,14 +95,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "ENGINE.ENGINEID as \"app_id\", "
 				+ "ENGINE.ENGINENAME as \"app_name\", "
 				+ "ENGINE.GLOBAL as \"app_global\", "
-				+ "ENGINEPERMISSION.VISIBILITY as \"app_visibility\", "
+				+ "COALESCE(ENGINEPERMISSION.VISIBILITY, TRUE) as \"app_visibility\", "
 				+ "COALESCE(PERMISSION.NAME, 'READ_ONLY') as \"app_permission\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
 				+ "LEFT JOIN PERMISSION ON PERMISSION.ID=ENGINEPERMISSION.PERMISSION "
 				+ "WHERE ENGINEPERMISSION.USERID IN " + userFilters + " "
-				+ "OR (ENGINE.GLOBAL=TRUE AND USERID IS NULL) "
+				+ "OR ENGINE.GLOBAL=TRUE "
 				+ "ORDER BY ENGINE.ENGINENAME";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
@@ -119,9 +119,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
-				+ "WHERE (ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) "
-				+ "OR (ENGINE.GLOBAL=TRUE AND USERID IS NULL) "
-				+ "ORDER BY ENGINE.ENGINENAME";
+				+ "WHERE "
+				+ "( ENGINE.GLOBAL=TRUE "
+				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
+				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + ") "
+				+ "ORDER BY ENGINE.ENGINENAME";	
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -623,8 +625,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USER.ID=USERINSIGHTPERMISSION.USERID "
 				+ "WHERE "
 				// engine is visible to me
-				+ "( (ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) "
-				+ "OR (ENGINE.GLOBAL=TRUE AND ENGINEPERMISSION.USERID IS NULL) " 
+				+ "( ENGINE.GLOBAL=TRUE "
+				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
+				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + " "
 				// have access to insight
 				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
 						// if i own this, i dont care what permissions you want to give me + i want to see this engine
