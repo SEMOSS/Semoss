@@ -784,18 +784,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Check if any of the users is an admin
-	 * 
-	 * @param usersId	String representing the id of the user to check
-	 */
-	public static Boolean isUserAdmin(List<String> usersId) {
-		String query = "SELECT COUNT(ID) FROM USER WHERE ID " + createFilter(usersId) + " AND ADMIN = TRUE;";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		List<String[]> ret = flushRsToListOfStrArray(wrapper);
-		return Integer.parseInt(ret.get(0)[0]) > 0;
-	}
-	
-	/**
 	 * Check if a user can be added or not to a group based on its database
 	 * permission on another groups and the database permissions from the group
 	 * it's going ot be added.
