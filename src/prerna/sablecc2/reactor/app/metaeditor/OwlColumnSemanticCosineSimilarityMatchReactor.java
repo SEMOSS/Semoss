@@ -26,7 +26,7 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 	/**
 	 * Example script to run:
 	 
-	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlCosineDistance.R");
+	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlColumnCosineDistance.R");
 	 allTables_aQC7ep4 <- c('city','city','city','city','city','countrylanguage','countrylanguage','countrylanguage','countrylanguage','country','country','country','country','country','country','country','country','country','country','country','country','country','country','country');
 	 allColumns_aHGRoJ8 <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
 	 matches_awiHmTT<- getDocumentCostineSimilarityMatrix(allTables_aQC7ep4,allColumns_aHGRoJ8);
@@ -81,7 +81,7 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 		StringBuilder script = new StringBuilder();
 		
 		// first source the file where we have the main method for running
-		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlCosineDistance.r"; 
+		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlColumnCosineDistance.r"; 
 		rScriptPath = rScriptPath.replace("\\", "/");
 		script.append("source(\"" + rScriptPath + "\");");
 		
