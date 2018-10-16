@@ -244,6 +244,10 @@ public class AZClient {
 //		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
 //		AZClient.getInstance().pushApp(appId);
 //		AZClient.getInstance().pullApp(appId);
+//		List<String> containers = AZClient.getInstance().listAllBlobContainers();
+//		for(String container : containers) {
+//			System.out.println(container);
+//		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
@@ -317,11 +321,11 @@ public class AZClient {
 		String smssContainer = appId + SMSS_POSTFIX;
 		String smssConfig = createRcloneConfig(smssContainer);
 		try {
-			List<String> results = runRcloneProcess(smssConfig, "rclone", "ls", smssConfig + ":");
+			List<String> results = runRcloneProcess(smssConfig, "rclone", "lsf", smssConfig + ":");
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
-					smss = result.substring(result.lastIndexOf(' ') + 1);
+					smss = result;
 					break;
 				}
 			}
@@ -393,8 +397,6 @@ public class AZClient {
 		String rcloneConfig = Utility.getRandomString(10);
 		try {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-			
-			
 			System.out.println("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId);
 			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
@@ -405,7 +407,38 @@ public class AZClient {
 			deleteRcloneConfig(rcloneConfig);
 		}
 	}
-			
+	
+	//////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////// Cleanup//////////////////////////////////////////	
+	public List<String> listAllBlobContainers() throws IOException, InterruptedException {
+		String rcloneConfig = Utility.getRandomString(10);
+		List<String> allContainers = new ArrayList<>();
+		try {
+			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+			List<String> results = runRcloneProcess(rcloneConfig, "rclone", "lsf", rcloneConfig + ":");
+			for (String result : results) {
+				allContainers.add(result);
+			}
+		} finally {
+			deleteRcloneConfig(rcloneConfig);
+		}
+		return allContainers;
+	}
+	
+	public void deleteContainer(String containerId) throws IOException, InterruptedException {
+		String rcloneConfig = Utility.getRandomString(10);
+		try {
+			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+			System.out.println("Deleting container=" + containerId);
+			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + containerId);
+			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + containerId);
+			System.out.println("Done deleting container=" + containerId);
+		} finally {
+			deleteRcloneConfig(rcloneConfig);
+		}
+	}
+	
+	
 	//////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////// Static Util Methods ////////////////////////////////////
 	
