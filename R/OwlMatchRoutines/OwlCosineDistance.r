@@ -65,9 +65,14 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   
   similarity_frame <- as.data.table(as.data.frame(cbind(col1, col2, cosine_distance)));
   similarity_frame[,3] <- as.numeric(as.character(similarity_frame$cosine_distance));
+  names(similarity_frame) <- c('sourceCol', 'targetCol', 'distance');
+  
+  # if we couldn't get a description
+  # the matching will be NaN
+  # so we will drop those rows
+  similarity_frame <- similarity_frame[!is.na(distance)]; 
   
   # merge back the table column names
-  names(similarity_frame) <- c('sourceCol', 'targetCol', 'distance');
   # create the table and column frame
   tableToCol <- data.table(allTables, allColumns);
   names(tableToCol) <- c('table', 'column');
