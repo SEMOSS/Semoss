@@ -48,7 +48,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		ITableDataFrame frame = getFrame();
 
 		// we may have the alias
-		appId = getAppId(appId);
+		appId = getAppId(appId, true);
 
 		OWLER owler = getOWLER(appId);
 		// set all the existing values into the OWLER

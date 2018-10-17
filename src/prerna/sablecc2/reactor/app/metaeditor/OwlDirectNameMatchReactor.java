@@ -34,7 +34,7 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = getAppId(appId);
+		appId = getAppId(appId, false);
 		
 		IEngine app = Utility.getEngine(appId);
 		
