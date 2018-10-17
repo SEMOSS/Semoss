@@ -7,8 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cluster.util.AZClient;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -23,6 +27,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -32,6 +37,8 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class OpenInsightReactor extends AbstractInsightReactor {
 	
+	private static final String CLASS_NAME = OpenInsightReactor.class.getName();
+	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public OpenInsightReactor() {
@@ -40,6 +47,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
+		
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
 		String appId = getApp();
@@ -69,8 +78,33 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("Cannot find app = " + appId);
 			}
 		}
-		List<Insight> in = engine.getInsight(rdbmsId + "");
-		Insight newInsight = in.get(0);
+		Insight newInsight = null;
+		try {
+			List<Insight> in = engine.getInsight(rdbmsId + "");
+			newInsight = in.get(0);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			if (ClusterUtil.IS_CLUSTER) {
+				try {
+					logger.info("Pulling app from cloud storage, appid=" + appId);
+					AZClient.getInstance().updateApp(appId);
+				} catch (IOException | InterruptedException e1) {
+					NounMetadata noun = new NounMetadata("Failed to sync this new insight from cloud storage", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+					SemossPixelException err = new SemossPixelException(noun);
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
+			}
+			try {
+				List<Insight> in = engine.getInsight(rdbmsId + "");
+				newInsight = in.get(0);
+			} catch (ArrayIndexOutOfBoundsException e2) {
+				NounMetadata noun = new NounMetadata("Insight does not exist.", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 		
 		// OLD INSIGHT
@@ -121,7 +155,10 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if(hasCache) {
 			runner = getCachedInsightData(cachedInsight);
 		} else {
+			logger.info("Running insight");
 			runner = runNewInsight(newInsight, additionalPixels);
+			logger.info("Done running insight");
+			logger.info("Painting results");
 //			now I want to cache the insight
 			if(!isParam && !isDashoard) {
 				try {
