@@ -100,6 +100,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 			
 			// add the relationship
 			owler.addRelation(startT, startC, endT, endC, rel);
+			counter++;
 		}
 		logger.info("Done adding relationships");
 		logger.info("Total relationships added = " + counter);
