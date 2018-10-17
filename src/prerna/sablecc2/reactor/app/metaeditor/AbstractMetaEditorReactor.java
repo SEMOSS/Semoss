@@ -11,6 +11,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -18,6 +20,8 @@ import prerna.util.OWLER;
 import prerna.util.Utility;
 
 public abstract class AbstractMetaEditorReactor extends AbstractReactor {
+
+	protected static final String TABLES_FILTER = ReactorKeysEnum.TABLES.getKey();
 
 	protected String getAppId(String appId, boolean edit) {
 		String testId = appId;
@@ -42,7 +46,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		}
 		return testId;
 	}
-	
+
 	protected RDFFileSesameEngine loadOwlEngineFile(String appId) {
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
@@ -53,13 +57,13 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		rfse.openFile(owlFile, null, null);
 		return rfse;
 	}
-	
+
 	protected OWLER getOWLER(String appId) {
 		IEngine app = Utility.getEngine(appId);
 		OWLER owler = new OWLER(app, app.getOWL());
 		return owler;
 	}
-	
+
 	/**
 	 * Get values to fill in the OWLER as we query for correct uris based
 	 * on the type of operation we are performing
@@ -70,10 +74,10 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		Hashtable<String, String> conceptHash = new Hashtable<String, String>();
 		Hashtable<String, String> propHash = new Hashtable<String, String>();
 		Hashtable<String, String> relationHash = new Hashtable<String, String>();
-		
+
 		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || 
 				engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
-		
+
 		Vector<String> concepts = engine.getConcepts(false);
 		for(String c : concepts) {
 			String tableName = Utility.getInstanceName(c);
@@ -83,7 +87,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			}
 			// add to concept hash
 			conceptHash.put(cKey, c);
-			
+
 			// add all the props as well
 			List<String> props = engine.getProperties4Concept(c, false);
 			for(String p : props) {
@@ -93,11 +97,11 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 				} else {
 					propName = Utility.getInstanceName(p);
 				}
-				
+
 				propHash.put(tableName + "%" + propName, p);
 			}
 		}
-		
+
 		Vector<String[]> rels = engine.getRelationships(false);
 		for(String[] r : rels) {
 			String startT = null;
@@ -105,35 +109,100 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			String endT = null;
 			String endC = null;
 			String pred = null;
-			
+
 			startT = Utility.getInstanceName(r[0]);
 			endT = Utility.getInstanceName(r[1]);
 			pred = Utility.getInstanceName(r[2]);
-			
+
 			if(isRdbms) {
 				startC = Utility.getClassName(r[0]);
 				endC = Utility.getClassName(r[1]);
 			}
-			
+
 			relationHash.put(startT + startC + endT + endC + pred, r[2]);
 		}
-		
+
 		owler.setConceptHash(conceptHash);
 		owler.setPropHash(propHash);
 		owler.setRelationHash(relationHash);
 	}
-	
+
 	/**
-     * Get the base folder
-     * @return
-     */
-     protected String getBaseFolder() {
-          String baseFolder = null;
-          try {
-              baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-          } catch (Exception ignored) {
-              // logger.info("No BaseFolder detected... most likely running as test...");
-          }
-          return baseFolder;
-     }
+	 * Get the base folder
+	 * @return
+	 */
+	protected String getBaseFolder() {
+		String baseFolder = null;
+		try {
+			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		} catch (Exception ignored) {
+			// logger.info("No BaseFolder detected... most likely running as test...");
+		}
+		return baseFolder;
+	}
+
+	/**
+	 * Get a list of tables to run certain routines
+	 * @return
+	 */
+	protected List<String> getTableFilters() {
+		List<String> filters = new Vector<String>();
+		GenRowStruct grs = this.store.getNoun(TABLES_FILTER);
+		if(grs !=  null && !grs.isEmpty()) {
+			for(int i = 0; i < grs.size(); i++) {
+				filters.add(grs.get(i).toString());
+			}
+		}
+
+		if(filters.size() == 1) {
+			throw new IllegalArgumentException("Must define at least 2 tables");
+		}
+
+		return filters;
+	}
+
+	/**
+	 * Get an array of lists
+	 * The first list contains the tables
+	 * The second list contains the column
+	 * But the first list table will repeat for each column
+	 * so that they match based on index
+	 */
+	protected List<String>[] getTablesAndColumnsList(IEngine app, List<String> tableFilters) {
+		// store 2 lists
+		// of all table names
+		// and column names
+		// matched by index
+		List<String> tableNamesList = new Vector<String>();
+		List<String> columnNamesList = new Vector<String>();
+
+		Vector<String> concepts = app.getConcepts(false);
+		for(String cUri : concepts) {
+			String tableName = Utility.getInstanceName(cUri);
+			String tablePrimCol = Utility.getClassName(cUri);
+
+			// if this is empty
+			// no filters have been defined
+			if(!tableFilters.isEmpty()) {
+				// now if the table isn't included
+				// ignore it
+				if(!tableFilters.contains(tableName)) {
+					continue;
+				}
+			}
+
+			tableNamesList.add(tableName);
+			columnNamesList.add(tablePrimCol);
+
+			// grab all the properties
+			List<String> properties = app.getProperties4Concept(cUri, false);
+			for(String pUri : properties) {
+				tableNamesList.add(tableName);
+				columnNamesList.add(Utility.getClassName(pUri));
+			}
+		}
+
+		return new List[]{tableNamesList, columnNamesList};
+	}
+
 }
