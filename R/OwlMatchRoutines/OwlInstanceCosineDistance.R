@@ -13,6 +13,29 @@ splitCamelCase<-function(a){
   return(a);
 }
 
+getGoogleSearchUrl <- function(searchTerm, domain = '.com', quotes=TRUE) {
+  searchTerm <- gsub(' ', '%20', searchTerm);
+  if(quotes) search.term <- paste('%22', searchTerm, '%22', sep='');
+  searchURL <- paste('http://www.google', domain, '/search?q=',searchTerm, sep='');
+  return(searchURL)
+}
+
+searchGoogle <- function(searchTerm) {
+  library(XML);
+  library(RCurl);
+  library(stringr);
+  
+  EXCLUDE<-"Advanced searchSearch Help Send feedback"
+  EXCLUDE1<-"In order to show you the most relevant results"
+  searchURL<-getGoogleSearchUrl(searchTerm=searchTerm)
+  doc.html<-htmlTreeParse(searchURL,useInternal = TRUE)
+  doc.text<-unlist(xpathApply(doc.html, '//p', xmlValue))
+  doc.text<-str_trim(gsub('\\n', ' ', doc.text),"both")
+  doc.text<-doc.text[!(doc.text==EXCLUDE)]
+  doc.text<-doc.text[!(substr(doc.text,1,nchar(EXCLUDE1))==EXCLUDE1)]
+  return(doc.text)
+}
+
 generateDescriptionFrame<-function(allColumns, sampleInstances){
   library(WikidataR);
   
@@ -28,10 +51,18 @@ generateDescriptionFrame<-function(allColumns, sampleInstances){
       for(j in 1:numInstances) {
         # grab for this instance the values
         # print(paste(i, " ::: ", j, " ::: ", splitCamelCase(instances[j]) ));
-        values <- find_item(splitCamelCase(instances[j]));
-        datavalues <- lapply(values, function(x) { cbind(x$label, x$description) } );
-        # push into the description array for this instance
-        instanceDescription[span(instanceDescription)+1] <- paste(lapply(datavalues, function(x) { paste(x, collapse= ' ') }), collapse=' ');
+        cleanInstance = splitCamelCase(instances[i]);
+        values <- find_item(cleanInstance);
+        if(length(values) == 0) {
+          # wiki returned nothing, try google
+          googleResults <- searchGoogle(cleanInstance);
+          # push into the description array for this instance
+          instanceDescription[span(instanceDescription)+1] <- paste(googleResults, collapse=' ');
+        } else {
+          datavalues <- lapply(values, function(x) { cbind(x$label, x$description) } );
+          # push into the description array for this instance
+          instanceDescription[span(instanceDescription)+1] <- paste(lapply(datavalues, function(x) { paste(x, collapse= ' ') }), collapse=' ');
+        }
       }
       # collapse all of the descriptions
       columnDescriptions[span(columnDescriptions)+1] <- paste(instanceDescription, collapse=' ');
@@ -40,7 +71,7 @@ generateDescriptionFrame<-function(allColumns, sampleInstances){
   
   colToDescriptionFrame <- data.table(allColumns, columnDescriptions);
   names(colToDescriptionFrame) <- c('column', 'description');
-  rm(numColumns, allColumns, instanceDescription, columnDescriptions, values, datavalues);
+  rm(numColumns, allColumns, instanceDescription, columnDescriptions, values);
   return(colToDescriptionFrame);
 }
 
