@@ -13,15 +13,45 @@ splitCamelCase<-function(a){
   return(a);
 }
 
+getGoogleSearchUrl <- function(searchTerm, domain = '.com', quotes=TRUE) {
+  searchTerm <- gsub(' ', '%20', searchTerm);
+  if(quotes) search.term <- paste('%22', searchTerm, '%22', sep='');
+  searchURL <- paste('http://www.google', domain, '/search?q=',searchTerm, sep='');
+  return(searchURL)
+}
+
+searchGoogle <- function(searchTerm) {
+  library(XML);
+  library(RCurl);
+  library(stringr);
+  
+  EXCLUDE<-"Advanced searchSearch Help Send feedback"
+  EXCLUDE1<-"In order to show you the most relevant results"
+  searchURL<-getGoogleSearchUrl(searchTerm=searchTerm)
+  doc.html<-htmlTreeParse(searchURL,useInternal = TRUE)
+  doc.text<-unlist(xpathApply(doc.html, '//p', xmlValue))
+  doc.text<-str_trim(gsub('\\n', ' ', doc.text),"both")
+  doc.text<-doc.text[!(doc.text==EXCLUDE)]
+  doc.text<-doc.text[!(substr(doc.text,1,nchar(EXCLUDE1))==EXCLUDE1)]
+  return(doc.text)
+}
+
 generateDescriptionFrame<-function(uniqueValues){
   library(WikidataR);
   
   uniqueDescriptions <- array();
   numUnique = length(uniqueValues);
   for(i in 1:numUnique) {
-    values <- find_item(splitCamelCase(uniqueValues[i]));
-    data <- lapply(values, function(x) { cbind(x$label, x$description) } );
-    uniqueDescriptions[span(uniqueDescriptions)+1] <- paste(lapply(data, function(x) { paste(x, collapse= ' ') }), collapse=' ');
+    cleanValue = splitCamelCase(uniqueValues[i]);
+    values <- find_item(cleanValue);
+    if(length(values) == 0) {
+      # wiki returned nothing, try google
+      googleResults <- searchGoogle(cleanValue);
+      uniqueDescriptions[span(uniqueDescriptions)+1] <- paste(googleResults, collapse=' ');
+    } else {
+      wikiResults <- lapply(values, function(x) { cbind(x$label, x$description) } );
+      uniqueDescriptions[span(uniqueDescriptions)+1] <- paste(lapply(wikiResults, function(x) { paste(x, collapse= ' ') }), collapse=' ');
+    }
   }
   
   colToDescriptionFrame <- data.table(uniqueValues, uniqueDescriptions);
@@ -83,8 +113,8 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   # ignore same table joins
   similarity_frame <- similarity_frame[targetTable != sourceTable];
   
-  rm(allTables, allColumns, uniqueColumnNames, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
-     dimensions, cosine_distance, col1, col2, tableToCol);
+  #rm(allTables, allColumns, uniqueColumnNames, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
+  #  dimensions, cosine_distance, col1, col2, tableToCol);
   
   return(similarity_frame);
 }
