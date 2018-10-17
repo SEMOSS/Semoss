@@ -36,7 +36,7 @@ LOCAL_DEPLOYMENT false
 # DO NOT UPDATE OR MODIFY
 
 T_ON true
-T_ENDPOINT https://play.semoss.org/track
+T_ENDPOINT https://play.semoss.org/track/
 
 BROWSER_TYPE	Mozilla15
 URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
