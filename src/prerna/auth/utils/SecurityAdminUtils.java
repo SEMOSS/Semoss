@@ -139,6 +139,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Set if engine should be public or not
+	 * @param engineId
+	 * @param isPublic
+	 */
+	public boolean setDbGlobal(String engineId, boolean isPublic) {
+		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + engineId + "';";
+		securityDb.execUpdateAndRetrieveStatement(query, true);
+		securityDb.commit();
+		return true;
+	}
+	
+	/**
 	 * Get all databases options
 	 * @param usersId
 	 * @param isAdmin
@@ -169,5 +181,5 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		securityDb.commit();
 		return true;
 	}
-	
+
 }

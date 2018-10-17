@@ -64,10 +64,11 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
-		String query = "SELECT ENGINE.ENGINEID "
+		String userFilters = getUserFilters(user);
+		String query = "SELECT * "
 				+ "FROM ENGINE "
 				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2)";
+				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2) AND ENGINEPERMISSION.USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			if(wrapper.hasNext()) {
