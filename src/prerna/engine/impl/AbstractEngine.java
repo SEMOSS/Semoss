@@ -67,7 +67,6 @@ import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
@@ -1001,52 +1000,74 @@ public abstract class AbstractEngine implements IEngine {
 	 */
 	public Map<String, Object[]> getMetamodel() {
 		// create this from the query struct
-		SelectQueryStruct qs = getDatabaseQueryStruct();
-
 		Map<String, MetamodelVertex> tableToVert = new TreeMap<String, MetamodelVertex>();
-		Map<String, Map<String, String>> edgesHash = new TreeMap<String, Map<String, String>>();
 		
-		List<IQuerySelector> vertices = qs.getSelectors();
-		for(IQuerySelector selector : vertices) {
-			// database query struct always returns columns
-			QueryColumnSelector cSelector = (QueryColumnSelector) selector;
-			String concept = cSelector.getTable();
-			String prop = cSelector.getColumn();
+		String getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { "
+				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ "OPTIONAL {"
+					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
+					+ "{?concept <" + OWL.DATATYPEPROPERTY.toString() + "> ?property } "
+				+ "}" // END OPTIONAL
+				+ "}"; // END WHERE
+
+		// execute the query and loop through and add the nodes and props
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getSelectorsInformation);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow hrow = wrapper.next();
+			Object[] raw = hrow.getRawValues();
+			if(raw[0].toString().equals("http://semoss.org/ontologies/Concept")) {
+				continue;
+			}
 			
+			String concept = Utility.getInstanceName(raw[0].toString());
+			Object property = raw[1];
+
 			if(!tableToVert.containsKey(concept)) {
 				MetamodelVertex vert = new MetamodelVertex(concept);
 				tableToVert.put(concept, vert);
+				vert.addKey(Utility.getClassName(raw[0].toString()));
 			}
 			
-			if(!prop.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				tableToVert.get(concept).addProperty(prop);
+			if(property != null && !property.toString().isEmpty()) {
+				tableToVert.get(concept).addProperty(Utility.getClassName(property.toString()));
 			}
 		}
 		
-		
-		// now go through all the relations
-		// remember, the map is the {fromConcept -> { joinType -> [toConcept1, toConcept2] } }
-		// need to iterate through to get fromConcept -> toConcept and make a unique edge for each
-		// remember the edge names are not every actually used
-		Map<String, Map<String, List>> relations = qs.getRelations();
-		for(String fromConcept : relations.keySet()) {
-			// need to iterate through the join types to get to the toConcpets
-			Map<String, List> joinsMap = relations.get(fromConcept);
-			for(String joinType : joinsMap.keySet()) {
-				List<Object> toConcepts = joinsMap.get(joinType);
-				
-				for(Object toConcept : toConcepts) {
-					Map<String, String> edgeMap = new TreeMap<String, String>();
-					edgeMap.put("source", fromConcept);
-					edgeMap.put("target", toConcept + "");
-					edgesHash.put(fromConcept + "-" + toConcept, edgeMap);
-				}
+		List<Map<String, String>> relationships = new Vector<Map<String, String>>();
+
+		// query to get all the relationships 
+		String getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?rel ?toConceptualConcept WHERE { "
+				+ "{?fromConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+				+ "{?toConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
+				+ "{?rel <" + RDFS.SUBPROPERTYOF.toString() + "> <http://semoss.org/ontologies/Relation>} "
+				+ "{?fromConcept ?rel ?toConcept} "
+				+ "{?fromConcept <http://semoss.org/ontologies/Relation/Conceptual> ?fromConceptualConcept }"
+				+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }"
+				+ "}"; // END WHERE
+
+		wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getRelationshipsInformation);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow hrow = wrapper.next();
+			Object[] row = hrow.getValues();
+			
+			if(hrow.getRawValues()[1].toString().equals("http://semoss.org/ontologies/Relation")) {
+				continue;
 			}
+			
+			String fromConcept = row[0].toString();
+			String rel = row[1].toString();
+			String toConcept = row[2].toString();
+			
+			Map<String, String> edgeMap = new TreeMap<String, String>();
+			edgeMap.put("source", fromConcept);
+			edgeMap.put("target", toConcept + "");
+			edgeMap.put("rel", rel);
+			relationships.add(edgeMap);
 		}
 		
 		Map<String, Object[]> retObj = new Hashtable<String, Object[]>();
 		retObj.put("nodes", tableToVert.values().toArray());
-		retObj.put("edges", edgesHash.values().toArray());
+		retObj.put("edges", relationships.toArray());
 		return retObj;
 	}
 	

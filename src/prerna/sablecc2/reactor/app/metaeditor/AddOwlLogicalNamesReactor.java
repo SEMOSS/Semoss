@@ -22,7 +22,7 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		String appId = getAppId();
 		// we may have an alias
-		appId = getAppId(appId);
+		appId = getAppId(appId, true);
 		
 		String concept = getConcept();
 		String prop = getProperty();
