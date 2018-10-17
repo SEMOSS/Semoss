@@ -91,19 +91,27 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getAllUserDatabaseSettings(User user) {
 		String userFilters = getUserFilters(user);
-		String query = "SELECT DISTINCT "
-				+ "ENGINE.ENGINEID as \"app_id\", "
-				+ "ENGINE.ENGINENAME as \"app_name\", "
-				+ "ENGINE.GLOBAL as \"app_global\", "
-				+ "COALESCE(ENGINEPERMISSION.VISIBILITY, TRUE) as \"app_visibility\", "
-				+ "COALESCE(PERMISSION.NAME, 'READ_ONLY') as \"app_permission\" "
-				+ "FROM ENGINE "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
-				+ "LEFT JOIN PERMISSION ON PERMISSION.ID=ENGINEPERMISSION.PERMISSION "
-				+ "WHERE ENGINEPERMISSION.USERID IN " + userFilters + " "
-				+ "OR ENGINE.GLOBAL=TRUE "
-				+ "ORDER BY ENGINE.ENGINENAME";
+		String query = "SELECT "
+				+ "SUBQUERY.ENGINEID as \"app_id\", "
+				+ "SUBQUERY.ENGINENAME as \"app_name\", "
+				+ "SUBQUERY.GLOBAL as \"app_global\", "
+				+ "SUBQUERY.VISIBILITY as \"app_visibility\", "
+				+ "SUBQUERY.PERMISSION as \"app_permission\" "
+				+ "FROM ("
+					+ "SELECT DISTINCT "
+					+ "ENGINE.ENGINEID as ENGINEID, "
+					+ "ENGINE.ENGINENAME as ENGINENAME, "
+					+ "ENGINE.GLOBAL as GLOBAL, "
+					+ "COALESCE(ENGINEPERMISSION.VISIBILITY, TRUE) as VISIBILITY, "
+					+ "COALESCE(PERMISSION.NAME, 'READ_ONLY') as PERMISSION, "
+					+ "ENGINEPERMISSION.USERID AS USERID "
+					+ "FROM ENGINE "
+					+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+					+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
+					+ "LEFT JOIN PERMISSION ON PERMISSION.ID=ENGINEPERMISSION.PERMISSION "
+					+ "WHERE ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE"
+					+ ") AS SUBQUERY "
+				+ "WHERE SUBQUERY.USERID IN " + userFilters + " OR SUBQUERY.USERID IS NULL;";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
