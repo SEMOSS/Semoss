@@ -278,8 +278,14 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 				this.headerIndices = new int[this.headers.length];
 				for (int i = 0; i < this.headers.length; i++) {
 					this.headerIndices[i] = i + startCol;
-					if (this.newHeaders.containsKey(this.headers[i])) {
-						this.headers[i] = this.newHeaders.get(this.headers[i]);
+					String header = this.headers[i];
+					// new headers alias:oldHeader
+					// here the headers are the old headers so we need to look
+					// at the value of the map :/
+					for (String key : this.newHeaders.keySet()) {
+						if (this.newHeaders.get(key).equals(header)) {
+							this.headers[i] = key;
+						}
 					}
 				}
 			}
