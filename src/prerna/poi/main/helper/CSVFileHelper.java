@@ -452,8 +452,8 @@ public class CSVFileHelper {
 	
 	public void modifyCleanedHeaders(Map<String, String> thisFileHeaderChanges) {
 		// iterate through all sets of oldHeader -> newHeader
-		for(String oldHeader : thisFileHeaderChanges.keySet()) {
-			String desiredNewHeaderValue = thisFileHeaderChanges.get(oldHeader);
+		for(String desiredNewHeaderValue : thisFileHeaderChanges.keySet()) {
+			String oldHeader = thisFileHeaderChanges.get(desiredNewHeaderValue);
 			
 			// since the user may not want all the headers, we only check if new headers are valid
 			// based on the headers they want
