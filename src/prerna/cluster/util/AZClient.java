@@ -276,7 +276,7 @@ public class AZClient {
 					if (file.isDirectory()) {
 						System.out.println("(directory)");
 						engine.closeDB();
-						runRcloneProcess(rcloneConfig, "rclone", "copy", file.getPath(), rcloneConfig + ":");
+						runRcloneProcess(rcloneConfig, "rclone", "sync", file.getPath(), rcloneConfig + ":");
 						DIHelper.getInstance().removeLocalProperty(appId);
 						Utility.getEngine(appId, false);
 						opened = true;
@@ -287,7 +287,7 @@ public class AZClient {
 						temp.mkdir();
 						copy = new File(temp.getPath() + FILE_SEPARATOR + file.getName());
 						Files.copy(file, copy);
-						runRcloneProcess(rcloneConfig, "rclone", "copy", temp.getPath(), rcloneConfig + ":");
+						runRcloneProcess(rcloneConfig, "rclone", "sync", temp.getPath(), rcloneConfig + ":");
 					}
 					System.out.println("Done pushing from source=" + file.getName() + " to remote=" + remote);
 				} finally {
@@ -344,14 +344,14 @@ public class AZClient {
 			String appConfig = createRcloneConfig(appId);
 			try {
 				if (newEngine) {
-					runRcloneProcess(appConfig, "rclone", "copy", appConfig + ":", appFolder.getPath());
+					runRcloneProcess(appConfig, "rclone", "sync", appConfig + ":", appFolder.getPath());
 				} else {
 					
 					// Otherwise, need to remove any locks then reopen
 					IEngine engine = Utility.getEngine(appId, false);
 					try {
 						engine.closeDB();
-						runRcloneProcess(appConfig, "rclone", "copy", appConfig + ":", appFolder.getPath());
+						runRcloneProcess(appConfig, "rclone", "sync", appConfig + ":", appFolder.getPath());
 					} finally {
 						DIHelper.getInstance().removeLocalProperty(appId);
 						Utility.getEngine(appId, false);
@@ -365,6 +365,8 @@ public class AZClient {
 	
 			// Now pull the smss
 			System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
+			
+			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 			runRcloneProcess(smssConfig, "rclone", "copy", smssConfig + ":", dbFolder);
 			System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
 			
