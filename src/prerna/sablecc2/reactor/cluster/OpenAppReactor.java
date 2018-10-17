@@ -46,13 +46,18 @@ public class OpenAppReactor extends AbstractReactor {
 		if(baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any app data");
 		}
-				
-		IEngine engine = Utility.getEngine(appId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		returnMap.put("app_name", engine.getEngineName());
-		returnMap.put("app_id", engine.getEngineId());
-		returnMap.put("app_type", engine.getEngineType().toString());
+		if(appId.equals("NEWSEMOSSAPP")) {
+			returnMap.put("app_name", "NEWSEMOSSAPP");
+			returnMap.put("app_id", appId);
+			returnMap.put("app_type", IEngine.ENGINE_TYPE.APP.toString());	
+		} else {
+			IEngine engine = Utility.getEngine(appId);
+			returnMap.put("app_name", engine.getEngineName());
+			returnMap.put("app_id", engine.getEngineId());
+			returnMap.put("app_type", engine.getEngineType().toString());	
+		}
 		
 		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_APP);
 	}
