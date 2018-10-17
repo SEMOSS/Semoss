@@ -7,6 +7,8 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -48,10 +50,22 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		// get inputs - engine
-		String engineName = this.keyValue.get(this.keysToGet[0]);
-		engineName = MasterDatabaseUtility.testEngineIdIfAlias(engineName);
+		String engineId = this.keyValue.get(this.keysToGet[0]);
+		// we may have the alias
+		if(AbstractSecurityUtils.securityEnabled()) {
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(engineId)) {
+				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
+			}
+		} else {
+			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+			if(!MasterDatabaseUtility.getAllEngineIds().contains(engineId)) {
+				throw new IllegalArgumentException("Database " + engineId + " does not exist");
+			}
+		}
+		
 		boolean descriptions = getDescriptionsBool();
-		IEngine engine = Utility.getEngine(engineName);
+		IEngine engine = Utility.getEngine(engineId);
 
 		// validate engine exists
 		if (engine == null) {

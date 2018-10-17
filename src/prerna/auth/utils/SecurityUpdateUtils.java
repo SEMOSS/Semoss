@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.EnginePermission;
+import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -834,6 +835,24 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
+	 * Set if the database is public to all users on this instance
+	 * @param user
+	 * @param engineId
+	 * @param isPublic
+	 * @return
+	 */
+	public static boolean setDbGlobal(User user, String engineId, boolean isPublic) {
+		if(!SecurityQueryUtils.userIsOwner(user, engineId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
+		}
+		
+		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + engineId + "';";
+		securityDb.execUpdateAndRetrieveStatement(query, true);
+		securityDb.commit();
+		return true;
+	}
+	
+	/**
 	 * Change the user visibility (show/hide) for a database. Without removing its permissions.
 	 * @param userId
 	 * @param engineId
@@ -897,37 +916,4 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
 	}
-	
-	/**
-	 * Change the the public visibility of a database
-	 * @param userId
-	 * @param engineId
-	 * @param visibility
-	 */
-	public static void setDbPublic(String userId, String engineId, String isP, boolean isAdmin){
-		
-		Boolean isPublic = Boolean.parseBoolean(isP);
-		String query = "UPDATE ENGINE SET GLOBAL = '?1' WHERE ENGINEID = '?2'";
-		
-		if(isAdmin && !SecurityQueryUtils.userIsAdmin(userId)){
-			throw new IllegalArgumentException("The user doesn't have the permission to access this resource.");
-		}
-		
-		if(!isAdmin && !SecurityQueryUtils.isUserDatabaseOwner(userId, engineId)){
-			throw new IllegalArgumentException("The user isn't owner of the database.");
-		}
-
-		query = query.replace("?1", isPublic.toString());
-		query = query.replace("?2", engineId);
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
-		
-		if(isPublic){
-			query = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '?1' AND PERMISSION IS NULL";
-			query = query.replace("?1", engineId);
-			securityDb.execUpdateAndRetrieveStatement(query, true);
-			securityDb.commit();
-		}
-	}
-	
 }
