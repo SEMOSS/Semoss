@@ -35,8 +35,8 @@ LOCAL_DEPLOYMENT false
 # BELOW ARE LEGACY PARAMS
 # DO NOT UPDATE OR MODIFY
 
-T_ON false
-T_ENDPOINT http://cohort-user-info.eastus2.cloudapp.azure.com:8080/
+T_ON true
+T_ENDPOINT https://play.semoss.org/track
 
 BROWSER_TYPE	Mozilla15
 URI_BASE	https://localhost:443/Monolith_Dev/api/engine/s-
