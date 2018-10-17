@@ -12,6 +12,7 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
@@ -50,20 +51,22 @@ public class ImageCaptureReactor extends AbstractReactor {
 		logger.info("Operation can take up to 10 seconds to complete");
 		
 		organizeKeys();
-		String engineName = this.keyValue.get(this.keysToGet[0]);
+		String appId = this.keyValue.get(this.keysToGet[0]);
 		String feUrl = this.keyValue.get(this.keysToGet[1]);
 		String param = this.keyValue.get(this.keysToGet[2]);
 		String sessionId = this.planner.getVariable(JobReactor.SESSION_KEY).getValue().toString();
 		
-		IEngine coreEngine = Utility.getEngine(engineName);
+		IEngine coreEngine = Utility.getEngine(appId);
 		// loop through the insights
 		IEngine insightsEng = coreEngine.getInsightDatabase();
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsEng, "select distinct id from question_id");
 		while(wrapper.hasNext()) {
 			String id = wrapper.next().getValues()[0] + "";
-			runImageCapture(feUrl, engineName, id, param, sessionId);
+			runImageCapture(feUrl, appId, id, param, sessionId);
 		}
 
+		ClusterUtil.reactorPushApp(appId);
+		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
