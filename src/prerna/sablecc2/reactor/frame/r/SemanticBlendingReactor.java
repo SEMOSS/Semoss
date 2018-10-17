@@ -124,7 +124,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
 		// determine the path and source the script
 		String baseRScriptPath = getBaseFolder() + "\\" + Constants.R_BASE_FOLDER + "\\" + "AnalyticsRoutineScripts";
-		String rScriptPath = (baseRScriptPath + "\\" + "master_concept.r").replace("\\", "/");
+		String rScriptPath = (baseRScriptPath + "\\" + "master_concept.R").replace("\\", "/");
 		String sourceScript = "source(\"" + rScriptPath + "\");";
 		rsb.append(sourceScript);
 		// run the function

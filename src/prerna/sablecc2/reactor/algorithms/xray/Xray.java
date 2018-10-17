@@ -627,10 +627,10 @@ public class Xray {
 			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite", "textreuse"};
 
 			// get script to encode instances
-			String minHashFilePath = this.baseFolder + "\\R\\AnalyticsRoutineScripts\\encode_instances.r";
+			String minHashFilePath = this.baseFolder + "\\R\\AnalyticsRoutineScripts\\encode_instances.R";
 			minHashFilePath = minHashFilePath.replace("\\", "/");
 			// script used to get semantic data
-			String predictColumnFilePath = this.baseFolder + "\\R\\AnalyticsRoutineScripts\\master_concept.r";
+			String predictColumnFilePath = this.baseFolder + "\\R\\AnalyticsRoutineScripts\\master_concept.R";
 			predictColumnFilePath = predictColumnFilePath.replace("\\", "/");
 			// load r library and scripts
 			StringBuilder rsb = new StringBuilder();
@@ -705,7 +705,7 @@ public class Xray {
 			String[] encodePackages = new String[] {"WikidataR", "WikipediR", "httr", "curl", "jsonlite", "textreuse"};
 
 			String minHashFilePath = this.baseFolder + "\\" + Constants.R_BASE_FOLDER + "\\"
-					+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.r";
+					+ Constants.R_ANALYTICS_SCRIPTS_FOLDER + "\\" + "encode_instances.R";
 			minHashFilePath = minHashFilePath.replace("\\", "/");
 
 			StringBuilder rsb = new StringBuilder();
