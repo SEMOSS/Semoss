@@ -49,7 +49,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = getAppId(appId);
+		appId = getAppId(appId, false);
 
 		// make sure R is good to go
 		Logger logger = getLogger(CLASS_NAME);
