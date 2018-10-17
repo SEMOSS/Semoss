@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -35,7 +34,7 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 	 */
 	
 	public OwlColumnSemanticCosineSimilarityMatchReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER};
 	}
 	
 	@Override
@@ -44,7 +43,8 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		appId = getAppId(appId, false);
-
+		List<String> filters = getTableFilters();
+		
 		// make sure R is good to go
 		Logger logger = getLogger(CLASS_NAME);
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
@@ -55,28 +55,13 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 		
 		IEngine app = Utility.getEngine(appId);
 		
-		// store 2 lists
+		// get 2 lists
 		// of all table names
 		// and column names
 		// matched by index
-		List<String> tableNamesList = new Vector<String>();
-		List<String> columnNamesList = new Vector<String>();
-		
-		Vector<String> concepts = app.getConcepts(false);
-		for(String cUri : concepts) {
-			String tableName = Utility.getInstanceName(cUri);
-			String tablePrimCol = Utility.getClassName(cUri);
-			
-			tableNamesList.add(tableName);
-			columnNamesList.add(tablePrimCol);
-			
-			// grab all the properties
-			List<String> properties = app.getProperties4Concept(cUri, false);
-			for(String pUri : properties) {
-				tableNamesList.add(tableName);
-				columnNamesList.add(Utility.getClassName(pUri));
-			}
-		}
+		List<String>[] lists = getTablesAndColumnsList(app, filters);
+		List<String> tableNamesList = lists[0];
+		List<String> columnNamesList = lists[1];
 		
 		StringBuilder script = new StringBuilder();
 		

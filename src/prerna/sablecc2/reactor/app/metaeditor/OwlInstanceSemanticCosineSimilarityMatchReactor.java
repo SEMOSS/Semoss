@@ -41,7 +41,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 	 */
 	
 	public OwlInstanceSemanticCosineSimilarityMatchReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER};
 	}
 	
 	@Override
@@ -50,6 +50,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		appId = getAppId(appId, false);
+		List<String> filters = getTableFilters();
 
 		// make sure R is good to go
 		Logger logger = getLogger(CLASS_NAME);
@@ -73,6 +74,18 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 		Vector<String> concepts = app.getConcepts(false);
 		for(String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
+			
+			// if this is empty
+			// no filters have been defined
+			if(!filters.isEmpty()) {
+				// filters have been defined
+				// now if the table isn't included
+				// ignore it
+				if(!filters.contains(tableName)) {
+					continue;
+				}
+			}
+			
 			String tablePrimCol = Utility.getClassName(cUri);
 			
 			// we will only store string values!!!

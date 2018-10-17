@@ -26,7 +26,7 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 	 */
 	
 	public OwlDirectNameMatchReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER};
 	}
 	
 	@Override
@@ -35,13 +35,27 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
 		appId = getAppId(appId, false);
-		
+		List<String> filters = getTableFilters();
+
 		IEngine app = Utility.getEngine(appId);
 		
 		Map<String, List<String>> tableToCol = new TreeMap<String, List<String>>();
 		// grab all the concepts
 		Vector<String> concepts = app.getConcepts(false);
 		for(String cUri : concepts) {
+			String tableName = Utility.getInstanceName(cUri);
+
+			// if this is empty
+			// no filters have been defined
+			if(!filters.isEmpty()) {
+				// filters have been defined
+				// now if the table isn't included
+				// ignore it
+				if(!filters.contains(tableName)) {
+					continue;
+				}
+			}
+
 			List<String> columnNames = new Vector<String>();
 
 			// grab all the properties
@@ -50,11 +64,11 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 				// load all upper case to ignore case
 				columnNames.add(Utility.getClassName(pUri));
 			}
-			
+
 			// add the prim column as well
 			columnNames.add(Utility.getClassName(cUri));
-			
-			tableToCol.put(Utility.getInstanceName(cUri), columnNames);
+
+			tableToCol.put(tableName, columnNames);
 		}
 		
 		Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>();
