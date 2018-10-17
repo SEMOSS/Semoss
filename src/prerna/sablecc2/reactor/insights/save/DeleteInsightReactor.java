@@ -1,8 +1,12 @@
 package prerna.sablecc2.reactor.insights.save;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.GenRowStruct;
@@ -25,6 +29,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
 		
 		int size = grs.size();
+		Set<String> appIds = new HashSet<>();
 		for (int i = 0; i < size; i++) {
 			// id is passed in from solr id where it is defined as engine_id
 			// so I need to split it
@@ -49,7 +54,10 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 
 			SecurityUpdateUtils.deleteInsight(appId, insightId);
+			appIds.add(appId);
 		}
+		
+		ClusterUtil.reactorPushApp(appIds);
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);
 	}

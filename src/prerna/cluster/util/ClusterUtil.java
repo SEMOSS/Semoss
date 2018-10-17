@@ -1,6 +1,7 @@
 package prerna.cluster.util;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -19,6 +20,14 @@ public class ClusterUtil {
 	public static final boolean LOAD_ENGINES_LOCALLY = System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)
 			? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY)) : true;
 	
+	public static void reactorPushApp(Collection<String> appIds) {
+		if (ClusterUtil.IS_CLUSTER) {
+			for (String appId : appIds) {
+				reactorPushApp(appId);
+			}
+		}
+	}
+			
 	public static void reactorPushApp(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
