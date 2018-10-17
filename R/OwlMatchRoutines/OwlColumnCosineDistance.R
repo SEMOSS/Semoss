@@ -47,10 +47,10 @@ generateDescriptionFrame<-function(uniqueValues){
     if(length(values) == 0) {
       # wiki returned nothing, try google
       googleResults <- searchGoogle(cleanValue);
-      uniqueDescriptions[span(uniqueDescriptions)+1] <- paste(googleResults, collapse=' ');
+      uniqueDescriptions[span(uniqueDescriptions)+1] <- paste(googleResults, collapse='; ');
     } else {
       wikiResults <- lapply(values, function(x) { cbind(x$label, x$description) } );
-      uniqueDescriptions[span(uniqueDescriptions)+1] <- paste(lapply(wikiResults, function(x) { paste(x, collapse= ' ') }), collapse=' ');
+      uniqueDescriptions[span(uniqueDescriptions)+1] <- paste(lapply(wikiResults, function(x) { paste(x, collapse= ' ') }), collapse='; ');
     }
   }
   
@@ -84,7 +84,8 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   vectorizer <- vocab_vectorizer(vocab);
   dtm <- create_dtm(tokens, vectorizer);
   myMatrix <- as.textmatrix(t(as.matrix(dtm)));
-  cosineSimMatrix <- cosine(myMatrix);
+  myLSAspace = lsa(myMatrix, dims=dimcalc_share(.8));
+  cosineSimMatrix <- cosine(t(myLSAspace$dk));
   
   # need to go through and merge the cosine distance
   # in addition to the column / tables
@@ -113,8 +114,15 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   # ignore same table joins
   similarity_frame <- similarity_frame[targetTable != sourceTable];
   
-  #rm(allTables, allColumns, uniqueColumnNames, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
-  #  dimensions, cosine_distance, col1, col2, tableToCol);
+  # add in descriptions
+  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x='sourceCol', by.y='column', allow.cartesian=TRUE);
+  colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "sourceColumnDescription";
+  # add in descriptions
+  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x='targetCol', by.y='column', allow.cartesian=TRUE);
+  colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "targetColumnDescription";
+  
+  rm(allTables, allColumns, uniqueColumnNames, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
+    dimensions, cosine_distance, col1, col2, tableToCol);
   
   return(similarity_frame);
 }

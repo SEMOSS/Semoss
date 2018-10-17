@@ -57,11 +57,11 @@ generateDescriptionFrame<-function(allColumns, sampleInstances){
           # wiki returned nothing, try google
           googleResults <- searchGoogle(cleanInstance);
           # push into the description array for this instance
-          instanceDescription[span(instanceDescription)+1] <- paste(googleResults, collapse=' ');
+          instanceDescription[span(instanceDescription)+1] <- paste(googleResults, collapse='; ');
         } else {
           datavalues <- lapply(values, function(x) { cbind(x$label, x$description) } );
           # push into the description array for this instance
-          instanceDescription[span(instanceDescription)+1] <- paste(lapply(datavalues, function(x) { paste(x, collapse= ' ') }), collapse=' ');
+          instanceDescription[span(instanceDescription)+1] <- paste(lapply(datavalues, function(x) { paste(x, collapse= '; ') }), collapse='; ');
         }
       }
       # collapse all of the descriptions
@@ -98,7 +98,8 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns, sampleInstan
   vectorizer <- vocab_vectorizer(vocab);
   dtm <- create_dtm(tokens, vectorizer);
   myMatrix <- as.textmatrix(t(as.matrix(dtm)));
-  cosineSimMatrix <- cosine(myMatrix);
+  myLSAspace = lsa(myMatrix, dims=dimcalc_share(.8));
+  cosineSimMatrix <- cosine(t(myLSAspace$dk));
   
   # need to go through and merge the cosine distance
   # in addition to the column / tables
@@ -127,7 +128,14 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns, sampleInstan
   # ignore same table joins
   similarity_frame <- similarity_frame[targetTable != sourceTable];
   
-  rm(allTables, allColumns, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
+  # add in descriptions
+  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x='sourceCol', by.y='column', allow.cartesian=TRUE);
+  colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "sourceColumnDescription";
+  # add in descriptions
+  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x='targetCol', by.y='column', allow.cartesian=TRUE);
+  colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "targetColumnDescription";
+  
+  rm(allTables, allColumns, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix, myLSAspace,
      dimensions, cosine_distance, col1, col2, tableToCol);
   
   return(similarity_frame);
