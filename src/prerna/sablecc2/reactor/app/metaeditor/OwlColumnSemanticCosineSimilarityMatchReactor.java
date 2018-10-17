@@ -26,9 +26,9 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 	 * Example script to run:
 	 
 	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlColumnCosineDistance.R");
-	 allTables_aQC7ep4 <- c('city','city','city','city','city','countrylanguage','countrylanguage','countrylanguage','countrylanguage','country','country','country','country','country','country','country','country','country','country','country','country','country','country','country');
-	 allColumns_aHGRoJ8 <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
-	 matches_awiHmTT<- getDocumentCostineSimilarityMatrix(allTables_aQC7ep4,allColumns_aHGRoJ8);
+	 allTables <- c('city','city','city','city','city','countrylanguage','countrylanguage','countrylanguage','countrylanguage','country','country','country','country','country','country','country','country','country','country','country','country','country','country','country');
+	 allColumns <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
+	 matches_awiHmTT<- getDocumentCostineSimilarityMatrix(allTables,allColumns);
 	 
 	 * 
 	 */
@@ -90,8 +90,8 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 		logger.info("Finished running scripts!");
 
 		// recreate a new frame and set the frame name
-		String[] colNames = new String[]{"sourceCol", "targetCol", "distance", "sourceTable", "targetTable"};
-		String[] colTypes = new String[]{"character", "character", "numeric", "character", "character"};
+		String[] colNames = rJavaTranslator.getColumns(matchDataFrame);
+		String[] colTypes = rJavaTranslator.getColumnTypes(matchDataFrame);
 
 		VarStore vars = this.insight.getVarStore();
 		RDataTable frame = null;
