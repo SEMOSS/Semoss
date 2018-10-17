@@ -165,7 +165,12 @@ public class ExcelDataValidationHelper {
 				// get the header for the range
 				String[] split = address.split(":");
 				CellReference cellReference = new CellReference(split[0]);
-				Row row = sheet.getRow(cellReference.getRow() - 1);
+				int cellRow = cellReference.getRow();
+				// this is the case if we are only uploading headers 
+				if(cellRow == 0) {
+					cellRow = 1;
+				}
+				Row row = sheet.getRow(cellRow - 1);
 				Cell c = row.getCell(cellReference.getCol());
 				// add header comment as description
 				Comment cellComment = c.getCellComment();
