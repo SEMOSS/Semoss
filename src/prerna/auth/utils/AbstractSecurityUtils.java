@@ -2,8 +2,10 @@ package prerna.auth.utils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -450,7 +452,7 @@ public abstract class AbstractSecurityUtils {
 		return b.toString();
 	}
 	
-	static String createFilter(List<String> filterValues) {
+	static String createFilter(Collection<String> filterValues) {
 		if(filterValues.isEmpty()) {
 			return " IN () ";
 		}
@@ -459,9 +461,10 @@ public abstract class AbstractSecurityUtils {
 		if(filterValues.size() > 0) {
 			hasData = true;
 			b.append(" IN (");
-			b.append("'").append(filterValues.get(0)).append("'");
-			for(int i = 1; i < filterValues.size(); i++) {
-				b.append(", '").append(filterValues.get(i)).append("'");
+			Iterator<String> iterator = filterValues.iterator();
+			b.append("'").append(iterator.next()).append("'");
+			while(iterator.hasNext()) {
+				b.append(", '").append(iterator.next()).append("'");
 			}
 		}
 		if(hasData) {
