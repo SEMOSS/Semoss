@@ -14,6 +14,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.EnginePermission;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
@@ -91,29 +92,66 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getAllUserDatabaseSettings(User user) {
 		String userFilters = getUserFilters(user);
-		String query = "SELECT "
-				+ "SUBQUERY.ENGINEID as \"app_id\", "
-				+ "SUBQUERY.ENGINENAME as \"app_name\", "
-				+ "SUBQUERY.GLOBAL as \"app_global\", "
-				+ "SUBQUERY.VISIBILITY as \"app_visibility\", "
-				+ "SUBQUERY.PERMISSION as \"app_permission\" "
-				+ "FROM ("
-					+ "SELECT DISTINCT "
-					+ "ENGINE.ENGINEID as ENGINEID, "
-					+ "ENGINE.ENGINENAME as ENGINENAME, "
-					+ "ENGINE.GLOBAL as GLOBAL, "
-					+ "COALESCE(ENGINEPERMISSION.VISIBILITY, TRUE) as VISIBILITY, "
-					+ "COALESCE(PERMISSION.NAME, 'READ_ONLY') as PERMISSION, "
-					+ "ENGINEPERMISSION.USERID AS USERID "
-					+ "FROM ENGINE "
-					+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-					+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
-					+ "LEFT JOIN PERMISSION ON PERMISSION.ID=ENGINEPERMISSION.PERMISSION "
-					+ "WHERE ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE"
-					+ ") AS SUBQUERY "
-				+ "WHERE SUBQUERY.USERID IN " + userFilters + " OR SUBQUERY.USERID IS NULL;";
+		
+		// get user specific databases
+		String query = "SELECT DISTINCT "
+				+ "ENGINE.ENGINEID as \"app_id\", "
+				+ "ENGINE.ENGINENAME as \"app_name\", "
+				+ "ENGINE.GLOBAL as \"app_global\", "
+				+ "COALESCE(ENGINEPERMISSION.VISIBILITY, TRUE) as \"app_visibility\", "
+				+ "COALESCE(PERMISSION.NAME, 'READ_ONLY') as \"app_permission\" "
+				+ "FROM ENGINE "
+				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+				+ "LEFT JOIN PERMISSION ON PERMISSION.ID=ENGINEPERMISSION.PERMISSION "
+				+ "WHERE ENGINEPERMISSION.USERID IN " + userFilters;
+		
+		Set<String> engineIdsIncluded = new HashSet<String>();
+		
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		return flushRsToMap(wrapper);
+		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow headerRow = wrapper.next();
+			String[] headers = headerRow.getHeaders();
+			Object[] values = headerRow.getValues();
+			
+			// store the engine ids
+			// we will exclude these later
+			// engine id is the first one to be returned
+			engineIdsIncluded.add(values[0].toString());
+			
+			Map<String, Object> map = new HashMap<String, Object>();
+			for(int i = 0; i < headers.length; i++) {
+				map.put(headers[i], values[i]);
+			}
+			result.add(map);
+		}
+		
+		// now need to add the global ones
+		// that DO NOT sit in the engine permission
+		// (this is because we do not update that table when a user modifies the global)
+		query = "SELECT DISTINCT "
+				+ "ENGINE.ENGINEID as \"app_id\", "
+				+ "ENGINE.ENGINENAME as \"app_name\" "
+				+ "FROM ENGINE WHERE ENGINE.GLOBAL=TRUE AND ENGINE.ENGINEID NOT " + createFilter(engineIdsIncluded);
+		
+		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow headerRow = wrapper.next();
+			String[] headers = headerRow.getHeaders();
+			Object[] values = headerRow.getValues();
+			
+			Map<String, Object> map = new HashMap<String, Object>();
+			for(int i = 0; i < headers.length; i++) {
+				map.put(headers[i], values[i]);
+			}
+			// add the others which we know
+			map.put("app_global", true);
+			map.put("app_permission", "READ_ONLY");
+			map.put("app_visibility", true);
+			result.add(map);
+		}
+		
+		return result;
 	}
 
 	/**
