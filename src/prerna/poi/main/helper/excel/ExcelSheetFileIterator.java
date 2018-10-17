@@ -67,36 +67,6 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		// need to figure out the selectors
 		setSelectors(qs.getSelectors());
 		
-		// if the user has specified headers in the dataTypeMap
-		if (this.dataTypeMap != null && !this.dataTypeMap.isEmpty()) {
-			// grab the headers defined in the dataTypeMap
-			this.headers = dataTypeMap.keySet().toArray(new String[dataTypeMap.size()]);
-			// get the header indicies
-			String[] headersInRange = this.sProcessor.getCleanedRangeHeaders(this.range);
-			this.headerIndices = this.findHeaderIndicies(headersInRange, this.headers);
-			
-			// get additional datatypes
-			this.types = new SemossDataType[this.headers.length];
-			this.additionalTypes = new String[this.headers.length];
-			for (int index = 0; index < this.headers.length; index++) {
-				String header = this.headers[index];
-				this.types[index] = SemossDataType.convertStringToDataType(dataTypeMap.get(header));
-				if (this.additionalTypesMap != null) {
-					this.additionalTypes[index] = additionalTypesMap.get(this.headers[index]);
-				}
-				// update new header name
-				if (this.newHeaders != null && this.newHeaders.containsKey(header)) {
-					this.headers[index] = this.newHeaders.get(header);
-				}
-			}
-
-		}
-		else {
-			setUnknownTypes();
-			qs.setColumnTypes(this.dataTypeMap);
-			qs.setAdditionalTypes(this.additionalTypesMap);
-		}
-		
 		this.numHeaders = this.headerIndices.length;
 		// grab the first row in preparation for iterating
 		getNextRow();
@@ -264,63 +234,91 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	
 	/**
 	 * Determine the selectors for the sheet
+	 * 
 	 * @param qsSelectors
 	 */
 	private void setSelectors(List<IQuerySelector> qsSelectors) {
-		if(qsSelectors.isEmpty()) {
-			 // if no selectors, return everything
-			this.headers = this.sProcessor.getCleanedRangeHeaders(this.range);
-			this.headerIndices = new int[this.headers.length];
-			for(int i = 0; i < this.headers.length; i++) {
-				this.headerIndices[i] = i + startCol;
-				if(this.newHeaders.containsKey(this.headers[i])) {
-					this.headers[i] = this.newHeaders.get(this.headers[i]);
-				}
-			}
-			return;
-		}
-		int numSelectors = qsSelectors.size();
+		// get headers from qs
+		if (!qsSelectors.isEmpty()) {
 
-		String[] selectors = new String[numSelectors];
-		for(int i = 0; i < numSelectors; i++) {
-			QueryColumnSelector newSelector = (QueryColumnSelector) qsSelectors.get(i);
-			if(newSelector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
-				throw new IllegalArgumentException("Cannot perform math on a excel import");
-			}
-			selectors[i] = newSelector.getAlias();
-		}
-		
-		String[] allHeaders = this.sProcessor.getCleanedRangeHeaders(this.range);
-		if(allHeaders.length != selectors.length) {
-			// order the selectors
-			// all headers will be ordered
-			String[] orderedSelectors = new String[selectors.length];
-			int counter = 0;
-			for(String header : allHeaders) {
-				if(ArrayUtilityMethods.arrayContainsValue(selectors, header)) {
-					orderedSelectors[counter] = header;
-					counter++;
+			int numSelectors = qsSelectors.size();
+
+			String[] selectors = new String[numSelectors];
+			for (int i = 0; i < numSelectors; i++) {
+				QueryColumnSelector newSelector = (QueryColumnSelector) qsSelectors.get(i);
+				if (newSelector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
+					throw new IllegalArgumentException("Cannot perform math on a excel import");
 				}
+				selectors[i] = newSelector.getAlias();
 			}
-			
-			this.headers = orderedSelectors;
-			this.headerIndices = findHeaderIndicies(allHeaders, orderedSelectors);
-			for(int i = 0; i < this.headers.length; i++) {
-				if(this.newHeaders.containsKey(this.headers[i])) {
-						this.headers[i] = this.newHeaders.get(this.headers[i]);
+
+			String[] allHeaders = this.sProcessor.getCleanedRangeHeaders(this.range);
+			if (allHeaders.length != selectors.length) {
+				// order the selectors
+				// all headers will be ordered
+				String[] orderedAliasSelectors = new String[selectors.length];
+				String[] orderedCSVSelectors = new String[selectors.length];
+
+				int counter = 0;
+				for (String alias : selectors) {
+					String oldHeader = alias;
+					if (this.newHeaders.containsKey(alias)) {
+						oldHeader = newHeaders.get(alias);
+					}
+					if (ArrayUtilityMethods.arrayContainsValue(allHeaders, oldHeader)) {
+						orderedAliasSelectors[counter] = alias;
+						orderedCSVSelectors[counter] = oldHeader;
+						counter++;
 					}
 				}
+				this.headers = orderedAliasSelectors;
+				this.headerIndices = findHeaderIndicies(allHeaders, orderedCSVSelectors);
 			} else {
 				this.headers = allHeaders;
 				this.headerIndices = new int[this.headers.length];
-			for(int i = 0; i < this.headers.length; i++) {
+				for (int i = 0; i < this.headers.length; i++) {
 					this.headerIndices[i] = i + startCol;
-				if(this.newHeaders.containsKey(this.headers[i])) {
+					if (this.newHeaders.containsKey(this.headers[i])) {
 						this.headers[i] = this.newHeaders.get(this.headers[i]);
 					}
 				}
 			}
 		}
+		if (dataTypeMap == null || dataTypeMap.isEmpty()) {
+			setUnknownTypes();
+		}
+
+		// get headers from dataType map
+		if (this.dataTypeMap != null && !this.dataTypeMap.isEmpty() && qsSelectors.isEmpty()) {
+			// grab the headers defined in the dataTypeMap
+			this.headers = dataTypeMap.keySet().toArray(new String[dataTypeMap.size()]);
+			// get the header indicies
+			String[] headersInRange = this.sProcessor.getCleanedRangeHeaders(this.range);
+			// get additional datatypes
+			String[] tempHeaders = new String[this.headers.length];
+			for (int index = 0; index < this.headers.length; index++) {
+				String header = this.headers[index];
+				// change new headers to old to find the indicies
+				if (this.newHeaders != null && this.newHeaders.containsKey(header)) {
+					tempHeaders[index] = this.newHeaders.get(header);
+				} else {
+					tempHeaders[index] = this.headers[index];
+				}
+			}
+			this.headerIndices = this.findHeaderIndicies(headersInRange, tempHeaders);
+		}
+
+		// now that we have defined the headers need to set types
+		this.types = new SemossDataType[this.headers.length];
+		this.additionalTypes = new String[this.headers.length];
+		for (int i = 0; i < this.headers.length; i++) {
+			this.types[i] = SemossDataType.convertStringToDataType(this.dataTypeMap.get(this.headers[i]));
+			this.additionalTypes[i] = this.additionalTypesMap.get(this.headers[i]);
+		}
+
+		qs.setColumnTypes(this.dataTypeMap);
+		qs.setAdditionalTypes(this.additionalTypesMap);
+	}
 	
 	/**
 	 * Sets the data types 
@@ -330,14 +328,6 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(this.headers, prediction);
 		this.dataTypeMap = predictionMaps[0];
 		this.additionalTypesMap = predictionMaps[1];
-		
-		// need to redo types to be only those in the selectors
-		this.types = new SemossDataType[this.headers.length];
-		this.additionalTypes = new String[this.headers.length];
-		for(int i = 0; i < this.headers.length; i++) {
-			this.types[i] = SemossDataType.convertStringToDataType(this.dataTypeMap.get(this.headers[i]));
-			this.additionalTypes[i] = this.additionalTypesMap.get(this.headers[i]);
-		}
 	}
 	
 	/**
