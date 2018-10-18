@@ -496,9 +496,9 @@ public abstract class AbstractSecurityUtils {
 			List<AuthProvider> logins = user.getLogins();
 			if(!logins.isEmpty()) {
 				int numLogins = logins.size();
-				b.append("'").append(user.getAccessToken(logins.get(0)).getId()).append("'");
+				b.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(user.getAccessToken(logins.get(0)).getId())).append("'");
 				for(int i = 1; i < numLogins; i++) {
-					b.append(", '").append(user.getAccessToken(logins.get(i)).getId()).append("'");
+					b.append(", '").append(RdbmsQueryBuilder.escapeForSQLStatement(user.getAccessToken(logins.get(i)).getId())).append("'");
 				}
 			}
 		}

@@ -14,6 +14,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.EnginePermission;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -793,7 +794,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return true if user is found otherwise false.
 	 */
 	public static boolean checkUserExist(String id) {
-		String query = "SELECT * FROM USER WHERE ID='" + id + "'";
+		String query = "SELECT * FROM USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			return wrapper.hasNext();
@@ -809,7 +810,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return true if user is found otherwise false.
 	 */
 	public static boolean checkUserExist(String username, String email){
-		String query = "SELECT * FROM USER WHERE USERNAME='" + username + "' OR EMAIL='" + email + "'";
+		String query = "SELECT * FROM USER WHERE USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(username) + 
+				"' OR EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(email) + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			return wrapper.hasNext();
@@ -823,7 +825,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId	String representing the id of the user to check
 	 */
 	public static Boolean isUserType(String userId, AuthProvider type) {
-		String query = "SELECT NAME FROM USER WHERE ID='" + userId + "' AND TYPE = '"+ type + "';";
+		String query = "SELECT NAME FROM USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "' AND TYPE = '"+ type + "';";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		List<String[]> ret = flushRsToListOfStrArray(wrapper);
 		if(!ret.isEmpty()) {
