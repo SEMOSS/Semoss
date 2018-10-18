@@ -143,7 +143,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		prop.put("TEMP", "TRUE");
 		// schema comes from existing db (connect to external db(schema))
 		prop.put("SCHEMA", schema);
-		((AbstractEngine) engine).setProperties(prop);
+		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
