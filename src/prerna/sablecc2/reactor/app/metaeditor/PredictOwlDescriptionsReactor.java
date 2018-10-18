@@ -43,6 +43,14 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		// make sure R is good to go
+		Logger logger = getLogger(CLASS_NAME);
+		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
+		rJavaTranslator.startR(); 
+		// check if packages are installed
+		String[] packages = { "WikidataR", "XML", "RCurl", "stringr"};
+		rJavaTranslator.checkPackages(packages);
+		
 		String appId = getAppId();
 		// we may have an alias
 		appId = getAppId(appId, true);
@@ -72,7 +80,6 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 		}
 		
 		StringBuilder script = new StringBuilder();
-		
 		// first source the file where we have the main method for running
 		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlPredictDescriptions.R"; 
 		rScriptPath = rScriptPath.replace("\\", "/");
@@ -83,10 +90,6 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 		script.append(instanceVectorVar).append(" <- ").append(RSyntaxHelper.createStringRColVec(values)).append(";");
 		script.append(descriptionsFrameVar).append(" <- predictDescriptions(").append(instanceVectorVar).append(");");
 
-		Logger logger = getLogger(CLASS_NAME);
-		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
-		rJavaTranslator.startR();
-		
 		// execute!
 		logger.info("Running script to auto generate descriptions...");
 		logger.info("Running script to build term document frequency for description similarity...");
