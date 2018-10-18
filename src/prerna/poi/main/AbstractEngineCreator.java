@@ -93,7 +93,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
 		prop.put(Constants.RDBMS_TYPE, queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
-		((AbstractEngine) engine).setProperties(prop);
+		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
 		
 		// create the insight database
@@ -174,7 +174,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
-		((AbstractEngine) engine).setProperties(prop);
+		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
 		
 		// create the insight database
@@ -202,7 +202,7 @@ public class AbstractEngineCreator {
 		prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator") + "insights_database");
 		prop.put("TEMP", "TRUE");
 		prop.put("SCHEMA", schema);//schema comes from existing db (connect to external db(schema))
-		((AbstractEngine) engine).setProperties(prop);
+		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
 
 		// create the insight database
