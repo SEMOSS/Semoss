@@ -1,7 +1,9 @@
 package prerna.poi.main.helper.excel;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -313,6 +315,20 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 			}
 			this.headerIndices = this.findHeaderIndicies(headersInRange, tempHeaders);
 		}
+		
+		// order headers
+		List<Integer> headerIndiciesList  = Arrays.stream( headerIndices ).boxed().collect( Collectors.toList() );
+
+		String[] sortedHeaders = new String[this.headers.length];
+		int[] sortedIndicies = 	Arrays.copyOf(this.headerIndices, this.headerIndices.length);
+		Arrays.sort(sortedIndicies);
+		for(int i = 0; i < sortedIndicies.length; i++) {
+			int index = sortedIndicies[i];
+			int headerIndex = headerIndiciesList.indexOf(index);
+			sortedHeaders[i] = this.headers[headerIndex];
+		}
+		this.headers = sortedHeaders;
+		this.headerIndices = sortedIndicies;
 
 		// now that we have defined the headers need to set types
 		this.types = new SemossDataType[this.headers.length];
