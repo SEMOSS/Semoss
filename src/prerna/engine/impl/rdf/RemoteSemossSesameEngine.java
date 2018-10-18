@@ -129,7 +129,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 				// need to move this from null to a fully open DB
 				Properties dbProp = writePropFile();
 				this.insightRDBMS = new RDBMSNativeEngine();
-				this.insightRDBMS.setProperties(dbProp);;
+				this.insightRDBMS.setProp(dbProp);;
 				this.insightRDBMS.openDB(null);
 				
 				for (String insightBuilderQuery : insightBuilderQueries)

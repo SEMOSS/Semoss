@@ -41,7 +41,7 @@ public class AppEngine extends AbstractEngine {
 		String connURL = connectionURLStart + baseFolder + "/" + insightDatabaseLoc + connectionURLEnd;
 		prop.put(Constants.CONNECTION_URL, connURL);
 		prop.put(Constants.USERNAME, insightUsername);
-		this.insightRDBMS.setProperties(prop);
+		this.insightRDBMS.setProp(prop);
 		this.insightRDBMS.openDB(null);
 	}
 	

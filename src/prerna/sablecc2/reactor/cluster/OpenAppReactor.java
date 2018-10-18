@@ -1,11 +1,11 @@
 package prerna.sablecc2.reactor.cluster;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -33,7 +33,8 @@ public class OpenAppReactor extends AbstractReactor {
 			Map<String, Object> returnMap = new HashMap<String, Object>();
 			returnMap.put("app_name", "NEWSEMOSSAPP");
 			returnMap.put("app_id", appId);
-			returnMap.put("app_type", IEngine.ENGINE_TYPE.APP.toString());	
+			returnMap.put("app_type", IEngine.ENGINE_TYPE.APP.toString());
+			returnMap.put("app_cost", "");	
 			return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_APP);
 		}
 		
@@ -53,8 +54,10 @@ public class OpenAppReactor extends AbstractReactor {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("app_name", engine.getEngineName());
 		returnMap.put("app_id", engine.getEngineId());
-		returnMap.put("app_type", engine.getEngineType().toString());	
-		
+		String[] typeAndCost = SecurityUpdateUtils.getAppTypeAndCost(engine.getProp());
+		returnMap.put("app_type", typeAndCost[0]);	
+		returnMap.put("app_cost", typeAndCost[1]);	
+
 		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_APP);
 	}
 
