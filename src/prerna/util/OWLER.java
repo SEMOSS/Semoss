@@ -34,7 +34,6 @@ public class OWLER {
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
 	public static final String DEFAULT_PROP_CLASS = "Relation/Contains";
 	public static final String CONCEPTUAL_RELATION_NAME = "Conceptual";
-	public static final String LOGICAL_RELATION_NAME = "Logical";
 	
 	// hashtable of concepts
 	private Hashtable<String, String> conceptHash = new Hashtable<String, String>();
@@ -654,7 +653,7 @@ public class OWLER {
 	
 	/////////////////// END ADDING PROPERTIES TO CONCEPTS INTO THE OWL /////////////////////////////////
 
-	/////////////////// ADD LOGICAL NAMES INTO THE OWL /////////////////////////////////
+	/////////////////// ADD LOGICAL NAMES AND DESCRIPTIONS INTO THE OWL /////////////////////////////////
 
 	/**
 	 * This assumes the table/column already exists
@@ -662,28 +661,88 @@ public class OWLER {
 	 * @param column
 	 * @param logicalNames
 	 */
-	public void addLogicalNames(String table, String column, String...logicalNames) {
-		String toConceptURI = addConcept(table, column, null);
-		
-		String baseRelation = BASE_URI + DEFAULT_RELATION_CLASS;
-		String logicalRelation = baseRelation + "/" + LOGICAL_RELATION_NAME;
+	public void addConceptLogicalNames(String table, String column, String...logicalNames) {
+		String conceptUri = addConcept(table, column, null);
 		
 		if(logicalNames != null) {
 			for(String lName : logicalNames) {
-				this.engine.addToBaseEngine(new Object[]{toConceptURI, logicalRelation, lName, false});
+				this.engine.addToBaseEngine(new Object[]{conceptUri, OWL.sameAs.toString(), lName, false});
 			}
 		}
 	}
 	
-	public void deleteLogicalName(String table, String column, String... logicalNames) {
-		String toConceptURI = addConcept(table, column, null);
-		
-		String baseRelation = BASE_URI + DEFAULT_RELATION_CLASS;
-		String logicalRelation = baseRelation + "/" + LOGICAL_RELATION_NAME;
+	public void deleteConceptLogicalNames(String table, String column, String... logicalNames) {
+		String conceptUri = addConcept(table, column, null);
 		
 		if(logicalNames != null) {
 			for(String lName : logicalNames) {
-				this.engine.removeFromBaseEngine(new Object[]{toConceptURI, logicalRelation, lName, false});
+				this.engine.removeFromBaseEngine(new Object[]{conceptUri, OWL.sameAs.toString(), lName, false});
+			}
+		}
+	}
+	
+	public void addPropLogicalNames(String table, String column, String...logicalNames) {
+		String propUri = addProp(table, column, null);
+		
+		if(logicalNames != null) {
+			for(String lName : logicalNames) {
+				this.engine.addToBaseEngine(new Object[]{propUri, OWL.sameAs.toString(), lName, false});
+			}
+		}
+	}
+	
+	public void deletePropLogicalNames(String table, String column, String... logicalNames) {
+		String propUri = addProp(table, column, null);
+		
+		if(logicalNames != null) {
+			for(String lName : logicalNames) {
+				this.engine.removeFromBaseEngine(new Object[]{propUri, OWL.sameAs.toString(), lName, false});
+			}
+		}
+	}
+	
+	/**
+	 * This assumes the table/column already exists
+	 * @param table
+	 * @param column
+	 * @param logicalNames
+	 */
+	public void addConceptDescription(String table, String column, String...description) {
+		String conceptUri = addConcept(table, column, null);
+		
+		if(description != null) {
+			for(String desc : description) {
+				this.engine.addToBaseEngine(new Object[]{conceptUri, RDFS.COMMENT.toString(), desc, false});
+			}
+		}
+	}
+	
+	public void deleteConceptDescription(String table, String column, String... description) {
+		String conceptUri = addConcept(table, column, null);
+		
+		if(description != null) {
+			for(String desc : description) {
+				this.engine.removeFromBaseEngine(new Object[]{conceptUri, RDFS.COMMENT.toString(), desc, false});
+			}
+		}
+	}
+	
+	public void addPropDescription(String table, String column, String...description) {
+		String propUri = addProp(table, column, null);
+		
+		if(description != null) {
+			for(String desc : description) {
+				this.engine.addToBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), desc, false});
+			}
+		}
+	}
+	
+	public void deletePropDescription(String table, String column, String... description) {
+		String propUri = addProp(table, column, null);
+		
+		if(description != null) {
+			for(String desc : description) {
+				this.engine.removeFromBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), desc, false});
 			}
 		}
 	}
@@ -717,6 +776,52 @@ public class OWLER {
 	
 	/////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL /////////////////////////////////
 
+	public static String constructConceptPhysicalUri(String table, String column, IEngine.ENGINE_TYPE eType) {
+		return constructConceptPhysicalUri(BASE_URI, table, column, eType);
+	}
+	
+	public static String constructConceptPhysicalUri(String baseUri, String table, String column, IEngine.ENGINE_TYPE eType) {
+		String baseNodeURI = baseUri + DEFAULT_NODE_CLASS;
+		String subject = baseNodeURI + "/";
+		
+		// if it is an RDBMS engine, we need to account when the table name and column name are not the same
+		if(eType.equals(IEngine.ENGINE_TYPE.RDBMS)) {
+			// if the column is null or empty, assume table name and col name are the same
+			if(column == null || column.isEmpty()) {
+				subject += table + "/" + table;
+			} else {
+				// they might be the same, might be diff, don't matter
+				// create it appropriately
+				subject += column + "/" + table;
+			}
+		} else {
+			// here, it must be RDF
+			// just add the table name since that is supposed to hold the concept name
+			subject += table;
+		}
+		return subject;
+	}
+	
+	public static String constructPropertyPhysicalUri(String table, String column, IEngine.ENGINE_TYPE eType) {
+		return constructPropertyPhysicalUri(BASE_URI, table, column, eType);
+	}
+	
+	public static String constructPropertyPhysicalUri(String baseUri, String table, String column, IEngine.ENGINE_TYPE eType) {
+		String basePropURI = SEMOSS_URI + DEFAULT_PROP_CLASS;
+		String subject = basePropURI + "/";
+		
+		// if it is an RDBMS engine
+		// create the uri appropriately 
+		if(eType.equals(IEngine.ENGINE_TYPE.RDBMS)) {
+			// add the column and then the table
+			subject += column + "/" + table;
+		} else {
+			// here, it must be RDF
+			// just add the column name
+			subject += column;
+		}
+		return subject;
+	}
 	
 	///////////////// GETTERS ///////////////////////
 	

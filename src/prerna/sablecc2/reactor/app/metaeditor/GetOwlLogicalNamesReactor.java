@@ -1,8 +1,7 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
-import java.io.IOException;
+import java.util.Set;
 
-import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -12,10 +11,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
+public class GetOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
-	public AddOwlLogicalNamesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
+	public GetOwlLogicalNamesReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey()};
 	}
 	
 	@Override
@@ -26,33 +25,18 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		
 		String concept = getConcept();
 		String prop = getProperty();
-		String[] logicalNames = getLogicalNames();
 		
-		OWLER owler = getOWLER(appId);
-		// set all the existing values into the OWLER
-		// so that its state is updated
 		IEngine engine = Utility.getEngine(appId);
-		setOwlerValues(engine, owler);
+		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
-			owler.addConceptLogicalNames(concept, prop, logicalNames);
+			physicalUri = OWLER.constructConceptPhysicalUri(concept, prop, engine.getEngineType());
 		} else {
-			owler.addPropLogicalNames(concept, prop, logicalNames);
-		}
-		owler.commit();
-		
-		try {
-			owler.export();
-		} catch (IOException e) {
-			e.printStackTrace();
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names : " + Arrays.toString(logicalNames), 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
+			physicalUri = OWLER.constructPropertyPhysicalUri(concept, prop, engine.getEngineType());
 		}
 		
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names : " + Arrays.toString(logicalNames), 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		Set<String> logicalNames = engine.getLogicalNames(physicalUri);
+		
+		NounMetadata noun = new NounMetadata(logicalNames, PixelDataType.CONST_STRING, PixelOperationType.ENTITY_LOGICAL_NAMES);
 		return noun;
 	}
 
@@ -95,20 +79,5 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		}
 
 		return "";
-	}
-
-	private String[] getLogicalNames() {
-		String[] logicalNames = null;
-		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
-		if (grs != null && !grs.isEmpty()) {
-			logicalNames = new String[grs.size()];
-			for (int i = 0; i < grs.size(); i++) {
-				String name = (String) grs.get(i);
-				if (name != null && !name.isEmpty()) {
-					logicalNames[i] = name;
-				}
-			}
-		}
-		return logicalNames;
 	}
 }

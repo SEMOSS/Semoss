@@ -2,6 +2,7 @@ package prerna.engine.impl;
 
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,8 @@ import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
+
+import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IExplorable;
@@ -600,10 +603,25 @@ public class MetaHelper implements IExplorable {
 	public Set<String> getLogicalNames(String physicalURI) {
 		String query = "SELECT DISTINCT ?logical WHERE { "
 				+ "BIND(<" + physicalURI + "> AS ?uri) "
-				+ "{?uri <http://semoss.org/ontologies/Relation/Logical> ?logical } "
+				+ "{?uri <" + OWL.sameAs.toString() + "> ?logical } "
 				+ "}";
 
 		Set<String> logicals = new TreeSet<String>();
+		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
+		while(manager.hasNext()) {
+			logicals.add(manager.next().getValues()[0].toString());
+		}
+		return logicals;
+	}
+	
+	@Override
+	public Set<String> getDescriptions(String physicalURI) {
+		String query = "SELECT DISTINCT ?description WHERE { "
+				+ "BIND(<" + physicalURI + "> AS ?uri) "
+				+ "{?uri <" + RDFS.COMMENT.toString() + "> ?description } "
+				+ "}";
+
+		Set<String> logicals = new HashSet<String>();
 		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
 		while(manager.hasNext()) {
 			logicals.add(manager.next().getValues()[0].toString());

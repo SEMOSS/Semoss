@@ -44,14 +44,19 @@ import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.AddBulkOwlRelationshipsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.AddOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.AddOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.AddOwlRelationshipReactor;
+import prerna.sablecc2.reactor.app.metaeditor.GetOwlDescriptionsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.GetOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlColumnSemanticCosineSimilarityMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlDirectNameMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlIndirectNameMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlInstanceSemanticCosineSimilarityMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlMetamodelReactor;
 import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
+import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlDescriptionReactor;
+import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlRelationshipReactor;
 import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
@@ -595,7 +600,14 @@ public class ReactorFactory {
 		reactorHash.put("AddOwlRelationship", AddOwlRelationshipReactor.class);
 		reactorHash.put("AddBulkOwlRelationships", AddBulkOwlRelationshipsReactor.class);
 		reactorHash.put("RemoveOwlRelationship", RemoveOwlRelationshipReactor.class);
+		// logical names + descriptions
 		reactorHash.put("AddOwlLogicalNames", AddOwlLogicalNamesReactor.class);
+		reactorHash.put("RemoveOwlLogicalNames", RemoveOwlLogicalNamesReactor.class);
+		reactorHash.put("GetOwlLogicalNames", GetOwlLogicalNamesReactor.class);
+		reactorHash.put("AddOwlDescription", AddOwlDescriptionReactor.class);
+		reactorHash.put("RemoveOwlDescription", RemoveOwlDescriptionReactor.class);
+		reactorHash.put("GetOwlDescriptions", GetOwlDescriptionsReactor.class);
+		// routines to predict owl information
 		reactorHash.put("FindDirectOwlRelationships", OwlDirectNameMatchReactor.class);
 		reactorHash.put("FindIndirectOwlRelationships", OwlIndirectNameMatchReactor.class);
 		reactorHash.put("FindSemanticColumnOwlRelationships", OwlColumnSemanticCosineSimilarityMatchReactor.class);
