@@ -37,7 +37,7 @@ public class GetLogicalNamesReactor extends AbstractReactor {
 		
 		String concept = getConcept();
 		List<String> logicalNames = MasterDatabaseUtility.getLogicalNames(engineId, concept);
-		return new NounMetadata(logicalNames, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGICAL_NAMES);
+		return new NounMetadata(logicalNames, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENTITY_LOGICAL_NAMES);
 	}
 	
 	///////////////////////////////////////////////////////////
