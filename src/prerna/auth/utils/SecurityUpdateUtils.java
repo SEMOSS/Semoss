@@ -274,14 +274,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	
 	public static void addEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
 		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL) "
-				+ "VALUES ('" + engineName + "', '" + engineId + "', '" + engineType + "', '" + engineCost + "', " + global + ")";
+				+ "VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(engineName) + "', '" + engineId + "', '" + engineType + "', '" + engineCost + "', " + global + ")";
 		securityDb.insertData(query);
 		securityDb.commit();
 	}
 	
 	public static void updateEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
 		String query = "UPDATE ENGINE SET "
-				+ "ENGINENAME='" + engineName 
+				+ "ENGINENAME='" + RdbmsQueryBuilder.escapeForSQLStatement(engineName) 
 				+ "', TYPE='" + engineType 
 				+ "', COST='" + engineCost 
 				+ "', GLOBAL=" + global
@@ -291,7 +291,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addEngineOwner(String engineId, String userId) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES ('" + userId + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "', TRUE);";
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "', TRUE);";
 		securityDb.insertData(query);
 	}
 	
@@ -621,7 +621,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException{
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getId());
 		if(!isNewUser) {			
-			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN) VALUES ('" + newUser.getId() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE');";
+			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN) VALUES ('" + 
+					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
+					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
+					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
+					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
+					newUser.getProvider() + "', 'FALSE');";
 			securityDb.insertData(query);
 			securityDb.commit();
 			return true;
@@ -629,18 +634,18 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			String query = "SELECT NAME FROM USER WHERE "
 					+ "NAME='" + ADMIN_ADDED_USER + "' AND "
 					// this matching the ID field to the email because admin added user only sets the id field
-					+ "(ID='" + newUser.getId() + "' OR ID='" + newUser.getEmail() + "')";
+					+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
 			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 			try {
 				if(wrapper.hasNext()) {
 					// this user was added by the user
 					// and we need to update
 					String updateQuery = "UPDATE USER SET "
-							+ "NAME='"+ newUser.getName() + "', "
-							+ "USERNAME='" + newUser.getUsername() + "', "
-							+ "EMAIL='" + newUser.getEmail() + "', "
+							+ "NAME='"+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', "
+							+ "USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', "
+							+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', "
 							+ "TYPE='" + newUser.getProvider() + "' "
-							+ "WHERE ID='" + newUser.getId() + "';";
+							+ "WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "';";
 					securityDb.insertData(updateQuery);
 					securityDb.commit();	
 				}
@@ -662,7 +667,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static boolean registerUser(String id, boolean admin) throws IllegalArgumentException{
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
 		if(!isNewUser) {			
-			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + id + "', '" + ADMIN_ADDED_USER + "', " + admin + ");";
+			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', '" + ADMIN_ADDED_USER + "', " + admin + ");";
 			securityDb.insertData(query);
 			securityDb.commit();
 			return true;
