@@ -19,6 +19,10 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -332,7 +336,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				packageError += packages[index] + "\n";
 			}
 			String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + packageError;
-			throw new IllegalArgumentException(errorMessage);
+			throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 	}
 

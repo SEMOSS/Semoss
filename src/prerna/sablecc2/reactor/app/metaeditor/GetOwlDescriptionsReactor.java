@@ -8,7 +8,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.OWLER;
 import prerna.util.Utility;
 
 public class GetOwlDescriptionsReactor extends AbstractMetaEditorReactor {
@@ -29,9 +28,9 @@ public class GetOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
-			physicalUri = OWLER.constructConceptPhysicalUri(concept, prop, engine.getEngineType());
+			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + concept);
 		} else {
-			physicalUri = OWLER.constructPropertyPhysicalUri(concept, prop, engine.getEngineType());
+			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + prop + "/" + concept);
 		}
 		
 		Set<String> descriptions = engine.getDescriptions(physicalUri);
