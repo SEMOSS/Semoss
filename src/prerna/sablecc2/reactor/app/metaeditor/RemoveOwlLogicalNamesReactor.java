@@ -33,8 +33,11 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		// so that its state is updated
 		IEngine engine = Utility.getEngine(appId);
 		setOwlerValues(engine, owler);
-		
-		owler.addLogicalNames(concept, prop, logicalNames);
+		if(prop == null || prop.isEmpty()) {
+			owler.deleteConceptLogicalNames(concept, prop, logicalNames);
+		} else {
+			owler.deletePropLogicalNames(concept, prop, logicalNames);
+		}
 		owler.commit();
 		
 		try {

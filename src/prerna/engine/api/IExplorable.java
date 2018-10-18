@@ -182,4 +182,6 @@ public interface IExplorable {
 
 	Set<String> getLogicalNames(String physicalURI);
 
+	Set<String> getDescriptions(String physicalURI);
+
 }
