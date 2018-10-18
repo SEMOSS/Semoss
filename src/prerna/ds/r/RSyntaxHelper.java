@@ -121,15 +121,15 @@ public class RSyntaxHelper {
 	
 	/**
 	 * Convert a list to a r column vector of strings
-	 * @param tableNamesList
+	 * @param values
 	 * @return
 	 */
-	public static Object createStringRColVec(List<String> tableNamesList) {
+	public static String createStringRColVec(List<String> values) {
 		StringBuilder str = new StringBuilder("c(");
 		int i = 0;
-		int size = tableNamesList.size();
+		int size = values.size();
 		for(; i < size; i++) {
-			str.append("\"").append(tableNamesList.get(i)).append("\"");
+			str.append("\"").append(values.get(i)).append("\"");
 			// if not the last entry, append a "," to separate entries
 			if( (i+1) != size) {
 				str.append(",");

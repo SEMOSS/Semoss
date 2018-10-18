@@ -11,9 +11,6 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -98,7 +95,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 				columnNamesList.add(tablePrimCol);
 				
 				List<String> colValues = new Vector<String>();
-				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getBaseQs(tableName, 5));
+				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getSingleColumnNonEmptyQs(tableName, 5));
 				try {
 					while(wrapper.hasNext()) {
 						colValues.add(wrapper.next().getValues()[0].toString());
@@ -120,7 +117,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 					columnNamesList.add(colName);
 				
 					List<String> colValues = new Vector<String>();
-					IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getBaseQs(tableName + "__" + colName, 5));
+					IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getSingleColumnNonEmptyQs(tableName + "__" + colName, 5));
 					try {
 						while(wrapper.hasNext()) {
 							colValues.add(wrapper.next().getValues()[0].toString());
@@ -193,26 +190,4 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 		// return the frame
 		return retNoun;
 	}
-	
-	private SelectQueryStruct getBaseQs(String qsName, int limit) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(qsName));
-		qs.setLimit(limit);
-		
-		{
-			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(qsName), PixelDataType.COLUMN);
-			NounMetadata rComparison = new NounMetadata(null, PixelDataType.NULL_VALUE);
-			SimpleQueryFilter f = new SimpleQueryFilter(lComparison, "!=", rComparison );
-			qs.addExplicitFilter(f);
-		}
-		{
-			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(qsName), PixelDataType.COLUMN);
-			NounMetadata rComparison = new NounMetadata("", PixelDataType.CONST_STRING);
-			SimpleQueryFilter f = new SimpleQueryFilter(lComparison, "!=", rComparison );
-			qs.addExplicitFilter(f);
-		}
-		
-		return qs;
-	}
-	
 }
