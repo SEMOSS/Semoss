@@ -11,8 +11,13 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -203,6 +208,27 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		}
 
 		return new List[]{tableNamesList, columnNamesList};
+	}
+	
+	protected SelectQueryStruct getSingleColumnNonEmptyQs(String qsName, int limit) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(qsName));
+		qs.setLimit(limit);
+		
+		{
+			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(qsName), PixelDataType.COLUMN);
+			NounMetadata rComparison = new NounMetadata(null, PixelDataType.NULL_VALUE);
+			SimpleQueryFilter f = new SimpleQueryFilter(lComparison, "!=", rComparison );
+			qs.addExplicitFilter(f);
+		}
+		{
+			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(qsName), PixelDataType.COLUMN);
+			NounMetadata rComparison = new NounMetadata("", PixelDataType.CONST_STRING);
+			SimpleQueryFilter f = new SimpleQueryFilter(lComparison, "!=", rComparison );
+			qs.addExplicitFilter(f);
+		}
+		
+		return qs;
 	}
 
 }
