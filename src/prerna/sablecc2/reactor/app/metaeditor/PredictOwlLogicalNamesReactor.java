@@ -22,9 +22,9 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
+public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
-	private static final String CLASS_NAME = PredictOwlDescriptionsReactor.class.getName();
+	private static final String CLASS_NAME = PredictOwlLogicalNamesReactor.class.getName();
 	
 	/**
 	 * 
@@ -37,7 +37,7 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 	 * 
 	 */
 	
-	public PredictOwlDescriptionsReactor() {
+	public PredictOwlLogicalNamesReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey()};
 	}
 	
@@ -91,7 +91,7 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 		script.append(descriptionsFrameVar).append(" <- predictDescriptions(").append(instanceVectorVar).append(");");
 
 		// execute!
-		logger.info("Running script to auto generate descriptions...");
+		logger.info("Running script to auto generate logical names...");
 		rJavaTranslator.runR(script.toString());
 		logger.info("Finished running scripts!");
 
@@ -99,7 +99,6 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 
 		OWLER owler = getOWLER(appId);
 		for(String desc : descriptionValues) {
-			desc = desc.replace("***NEW LINE***", "\n");
 			if(prop == null || prop.isEmpty()) {
 				owler.addConceptDescription(concept, prop, desc);
 			} else {

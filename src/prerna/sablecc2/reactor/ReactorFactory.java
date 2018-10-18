@@ -55,6 +55,7 @@ import prerna.sablecc2.reactor.app.metaeditor.OwlIndirectNameMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlInstanceSemanticCosineSimilarityMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlMetamodelReactor;
 import prerna.sablecc2.reactor.app.metaeditor.PredictOwlDescriptionsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.PredictOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
 import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlLogicalNamesReactor;
@@ -605,7 +606,8 @@ public class ReactorFactory {
 		reactorHash.put("AddOwlLogicalNames", AddOwlLogicalNamesReactor.class);
 		reactorHash.put("RemoveOwlLogicalNames", RemoveOwlLogicalNamesReactor.class);
 		reactorHash.put("GetOwlLogicalNames", GetOwlLogicalNamesReactor.class);
-		
+		reactorHash.put("PredictOwlLogicalNames", PredictOwlLogicalNamesReactor.class);
+
 		reactorHash.put("AddOwlDescription", AddOwlDescriptionReactor.class);
 		reactorHash.put("RemoveOwlDescription", RemoveOwlDescriptionReactor.class);
 		reactorHash.put("GetOwlDescriptions", GetOwlDescriptionsReactor.class);
