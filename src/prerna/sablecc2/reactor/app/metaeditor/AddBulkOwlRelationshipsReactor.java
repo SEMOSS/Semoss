@@ -69,7 +69,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		// add a filter
 		NounMetadata lComparison = new NounMetadata(new QueryColumnSelector("distance"), PixelDataType.COLUMN);
 		NounMetadata rComparison = new NounMetadata(distance, PixelDataType.CONST_DECIMAL);
-		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, "<=" , rComparison);
+		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, ">=" , rComparison);
 		qs.addExplicitFilter(filter);
 		
 		int counter = 0;
