@@ -50,7 +50,7 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		rJavaTranslator.startR(); 
 		// check if packages are installed
-		String[] packages = { "text2vec", "data.table", "lsa", "WikidataR" };
+		String[] packages = { "text2vec", "data.table", "lsa", "WikidataR", "XML", "RCurl", "stringr"};
 		rJavaTranslator.checkPackages(packages);
 		
 		IEngine app = Utility.getEngine(appId);
