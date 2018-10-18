@@ -161,6 +161,12 @@ public interface IEngine extends IExplorable {
 	 */
 	public void setProp(Properties prop);
 
+	/**
+	 * Return the prop file
+	 * @return
+	 */
+	public Properties getProp();
+	
 }
 
 

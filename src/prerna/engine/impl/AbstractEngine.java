@@ -174,7 +174,7 @@ public abstract class AbstractEngine implements IEngine {
 					lOGGER.info("Insight rdbms database url is " + connURL);
 					prop.put(Constants.CONNECTION_URL, connURL);
 					prop.put(Constants.USERNAME, insightUsername);
-					this.insightRDBMS.setProperties(prop);
+					this.insightRDBMS.setProp(prop);
 					this.insightRDBMS.setEngineId(engineId + "_InsightsRDBMS");
 					this.insightRDBMS.openDB(null);
 					
@@ -434,10 +434,6 @@ public abstract class AbstractEngine implements IEngine {
 		this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineId);
 	}
 
-	public void setProperties(Properties prop) {
-		this.prop = prop;
-	}
-	
 	/**
 	 * Checks for an OWL and adds it to the engine. Sets the base data hash from
 	 * the engine properties, commits the database, and creates the base
@@ -1072,8 +1068,14 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	// load the prop file
+	@Override
 	public void setProp(Properties prop) {
 		this.prop = prop;
+	}
+	
+	@Override
+	public Properties getProp() {
+		return this.prop;
 	}
 	
 	

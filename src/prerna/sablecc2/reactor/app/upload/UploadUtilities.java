@@ -801,7 +801,7 @@ public class UploadUtilities {
 		prop.put(Constants.RDBMS_TYPE, SQLQueryUtil.DB_TYPE.H2_DB.toString());
 		prop.put("TEMP", "TRUE");
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
-		insightEngine.setProperties(prop);
+		insightEngine.setProp(prop);
 		// opening will work since we directly injected the prop map
 		// this way i do not need to write it to disk and then recreate it later
 		insightEngine.openDB(null);
