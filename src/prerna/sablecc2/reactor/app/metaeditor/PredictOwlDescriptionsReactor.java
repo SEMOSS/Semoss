@@ -116,7 +116,7 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 			return noun;
 		}
 		
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(descriptionValues, PixelDataType.CONST_STRING);
 		noun.addAdditionalReturn(new NounMetadata("Predicted and stored descriptions for review",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
