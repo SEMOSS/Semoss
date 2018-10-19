@@ -223,7 +223,7 @@ exec_tfidf<-function(r){
 }
 
 
-dataitem_recom_mgr<-function(users,fileroot,topN=25){
+dataitem_recom_mgr<-function(users,fileroot,items,topN=25){
 # Description
 # Produce data items recommendations for a given user
 # Arguments
@@ -233,31 +233,68 @@ dataitem_recom_mgr<-function(users,fileroot,topN=25){
 	# read user data item ratings matrix
 	r<-read_datamatrix(fileroot)
 	
+	# provide user recommendations
 	userList<-get_user_recom(fileroot,users,r)
-	user_recom<-userList[[2]]
-	item_recom<-get_item_recom(fileroot,users,r)
-
-	# mixed
-	out<-user_recom
-	out<-rbind(out,item_recom)
-	out<-out[,-4]
-	colnames(out)[2]<-"score"
-	# weighted
-	x<-merge(item_recom,user_recom,by.x="item",by.y="item")
-	x$score<-0.5*(x$freq.x+x$freq.y)
-	x<-x[,c("item","score")]
-	x$cat<-"weighted"
-	out<-rbind(out,x)
-	out<-out[order(-out$score,out$item,out$cat),]
-	out<-out[!duplicated(out$item),]
-	out<-head(out,topN)
-	
 	myList<-list()
 	myList[[1]]<-userList[[1]]
+	user_recom<-userList[[2]]
+	if(nrow(user_recom) > 0){
+		# if user recommendations present then construct hybrid recommendations
+		item_recom<-get_item_recom(fileroot,users,r)
+		# mixed
+		out<-user_recom
+		out<-rbind(out,item_recom)
+		out<-out[,-4]
+		colnames(out)[2]<-"score"
+		# weighted
+		x<-merge(item_recom,user_recom,by.x="item",by.y="item")
+		x$score<-0.5*(x$freq.x+x$freq.y)
+		x<-x[,c("item","score")]
+		x$cat<-"weighted"
+		out<-rbind(out,x)
+		out<-out[order(-out$score,out$item,out$cat),]
+		out<-out[!duplicated(out$item),]
+		out<-head(out,topN)
+	}else{
+		# if user recommendations are empty user local data to provide recommendations
+		out<-get_item_item_recom(fileroot,items)
+		out<-out[order(-out$freq,out$item),]
+		out<-head(out,topN)
+	}
 	myList[[2]]<-out
 	gc()
 	return(myList)
 }
+
+get_item_item_recom<-function(fileroot,items){
+	# construct item similarity matrix
+	sim<-readRDS(paste0(fileroot,"-itemsim.rds"))
+	# get the current user databases
+	items_ind<-rownames(sim)
+	# find similar databases and remove NA
+	simitems_rec<-sim[items_ind,]
+	simitems_rec[is.na(simitems_rec)]<-0
+	if(length(items_ind)>1){
+		items_score<-colSums(simitems_rec)
+	}else{
+		items_score<-simitems_rec
+	}
+	items_score<-items_score[items_score>0]
+	size<-length(items_score)
+	if(size>0){
+		out<-as.data.frame(names(items_score))
+		out$freq<-items_score
+		colnames(out)[1]<-"item"
+		out<-out[out$freq>0,]
+		out<-out[order(-out$freq),]
+		out$cat<-"item"
+		out$size<-size
+	}else{
+		out <- data.frame(item=character(),freq=numeric(),cat=character(),size=integer(),stringsAsFactors=FALSE)
+	}
+	return(out)
+}
+
 
 get_item_recom<-function(fileroot,users,r){
 # Description
@@ -517,12 +554,20 @@ drilldown_communities<-function(comList,ind){
 	return(myList)
 }
 
-locate_data_district<-function(fileroot,users=vector()){
+locate_data_district_byuser<-function(fileroot,users=vector()){
 	if(length(users) > 0){
 		neighbors<-unlist(locate_data_communities(fileroot,users)[[4]])
 		neighbors<-neighbors[neighbors !="null"]
 		out<-locate_data_communities(fileroot,neighbors)
 		saveRDS(unlist(out[[3]]),paste0(fileroot,"-datadistrict.rds"))
+		gc()
+	}
+}
+
+locate_data_district<-function(fileroot,users=vector()){
+	if(length(users) > 0){
+		neighbors<-unlist(locate_data_communities(fileroot,users)[[3]])
+		saveRDS(neighbors,paste0(fileroot,"-datadistrict.rds"))
 		gc()
 	}
 }
@@ -544,6 +589,7 @@ locate_data_communities<-function(fileroot,users=vector(),items=vector()){
 	com<-communities(fg)
 	if(length(items)>0){
 		item_membership<-unique(membership(fg)[items])
+		item_membership<-item_membership[!is.na(item_membership)]
 		com<-com[item_membership]
 	}
 	# Identify community membership
