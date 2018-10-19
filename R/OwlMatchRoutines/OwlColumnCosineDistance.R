@@ -117,9 +117,14 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   # add in descriptions
   similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x='sourceCol', by.y='column', allow.cartesian=TRUE);
   colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "sourceColumnDescription";
+  # ignore where description is empty
+  similarity_frame <- similarity_frame[similarity_frame$sourceColumnDescription != ""];
+  
   # add in descriptions
   similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x='targetCol', by.y='column', allow.cartesian=TRUE);
   colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "targetColumnDescription";
+  # ignore where description is empty
+  similarity_frame <- similarity_frame[similarity_frame$targetColumnDescription != ""];
   
   rm(allTables, allColumns, uniqueColumnNames, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
     dimensions, cosine_distance, col1, col2, tableToCol);
