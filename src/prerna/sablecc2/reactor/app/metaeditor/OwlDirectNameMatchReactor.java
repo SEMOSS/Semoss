@@ -185,8 +185,9 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, 
 				PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(new NounMetadata("There are no direct matches", PixelDataType.CONST_STRING, PixelOperationType.WARNING));
-		
+		if(emptyMessage) {
+			retNoun.addAdditionalReturn(new NounMetadata("There are no direct matches", PixelDataType.CONST_STRING, PixelOperationType.WARNING));
+		}
 		// store in insight
 		if(this.insight.getDataMaker() == null) {
 			this.insight.setDataMaker(frame);
