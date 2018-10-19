@@ -161,7 +161,7 @@ public class RdbmsConnectionHelper {
 		} else if (driverType.equalsIgnoreCase(POSTGRES)) {
 			connectionUrl = "jdbc:postgresql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		} else if (driverType.equalsIgnoreCase(SAP_HANA)) {
-			connectionUrl = "jdbc:sap://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl = "jdbc:sap://HOST:PORT/?currentSchema=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		} else if (driverType.equalsIgnoreCase(SQLSERVER)) {
 			connectionUrl = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		} else if (driverType.equalsIgnoreCase(TERADATA)) {
