@@ -36,7 +36,7 @@ searchGoogle <- function(searchTerm) {
   return(doc.text)
 }
 
-generateDescriptionFrame<-function(allColumns, sampleInstances){
+generateDescriptionFrame<-function(allTables, allColumns, sampleInstances){
   library(WikidataR);
   
   columnDescriptions <- array();
@@ -69,8 +69,8 @@ generateDescriptionFrame<-function(allColumns, sampleInstances){
     }
   }
   
-  colToDescriptionFrame <- data.table(allColumns, columnDescriptions);
-  names(colToDescriptionFrame) <- c('column', 'description');
+  colToDescriptionFrame <- data.table(allTables, allColumns, columnDescriptions);
+  names(colToDescriptionFrame) <- c('table', 'column', 'description');
   rm(numColumns, allColumns, instanceDescription, columnDescriptions, values);
   return(colToDescriptionFrame);
 }
@@ -80,7 +80,7 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns, sampleInstan
   library(data.table);
   library(lsa);
   
-  colToDescriptionFrame <- generateDescriptionFrame(allColumns, sampleInstancesList);
+  colToDescriptionFrame <- generateDescriptionFrame(allTables, allColumns, sampleInstancesList);
   
   MINWORDLENGTH<-2;
   WORDSTOEXCLUDE<-c('a',"the","this","these","their","that","those","then","and","an","as","over","with","within","without","when","why","how","in",
@@ -129,13 +129,13 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns, sampleInstan
   similarity_frame <- similarity_frame[targetTable != sourceTable];
   
   # add in descriptions
-  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x='sourceCol', by.y='column', allow.cartesian=TRUE);
+  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x=c('sourceTable','sourceCol'), by.y=c('table','column'), allow.cartesian=TRUE);
   colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "sourceColumnDescription";
   # ignore where description is empty
   similarity_frame <- similarity_frame[similarity_frame$sourceColumnDescription != ""];
   
   # add in descriptions
-  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x='targetCol', by.y='column', allow.cartesian=TRUE);
+  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x=c('targetTable','targetCol'), by.y=c('table','column'), allow.cartesian=TRUE);
   colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "targetColumnDescription";
   # ignore where description is empty
   similarity_frame <- similarity_frame[similarity_frame$targetColumnDescription != ""];
