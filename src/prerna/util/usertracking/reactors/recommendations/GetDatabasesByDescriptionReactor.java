@@ -40,6 +40,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		// Test with:
+		// GetDatabasesByDescription(description=["movie director money"], access=[FALSE], lowLimit=["-1"], margin=["2"]);
 		// GetDatabasesByDescription(description=["movie director money"], access=[FALSE]);
 		// GetDatabasesByDescription(description=["movie director money"]);
 		Logger logger = getLogger(CLASS_NAME);
@@ -86,10 +87,11 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 			sb.append("source(\"db_recom.r\");").append("source(\"topic_modelling.r\");");
 			sb.append("source(\"SemanticSimilarity/lsi_dataitem.r\");");
 			String output = "output" + Utility.getRandomString(8);
-			sb.append(output + " <- find_db(\"dataitem\",\"" + description + "\"," + lowLimit + "," + margin + ");");
+			sb.append(output + " <- find_db(\"dataitem\",\"" + description + "\"," + margin + "," + lowLimit + ");");
 			sb.append("na.omit(" + output + ");");
 			sb.append("setwd(" + workDir + ");");
-			this.rJavaTranslator.runR(sb.toString().replace("\\", "/"));
+			String script = sb.toString().replace("\\", "/");
+			this.rJavaTranslator.runR(script);
 
 			// receive result data frame back as a List
 			String[] headerOrdering = new String[] { "dbid", "dbname", "similarity" };
@@ -113,7 +115,7 @@ public class GetDatabasesByDescriptionReactor extends AbstractRFrameReactor {
 					dbName = Utility.getEngine(id).getEngineName();
 					type = Utility.getEngine(id).getEngineType() + "";
 					lmDate = SecurityQueryUtils.getLastExecutedInsightInApp(id);
-					insights = SecurityQueryUtils.getUserInsightsForEngine(this.insight.getUser(), id);
+					//insights = SecurityQueryUtils.getUserInsightsForEngine(this.insight.getUser(), id);
 				}
 				// add all data to a list of maps
 				HashMap<String, Object> dbDetails = new HashMap<String, Object>();

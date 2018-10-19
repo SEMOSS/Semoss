@@ -14,6 +14,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -69,24 +70,43 @@ public class DatabaseRecommendationReactor extends AbstractRFrameReactor {
 			// package it up as a map to add to a list of outputs for the FE.
 			boolean accessFlag = getAccessBool();
 			userName = user.getAccessToken(user.getLogins().get(0)).getId();
-			StringBuilder rsb = new StringBuilder();
-			rsb.append(RSyntaxHelper.loadPackages(packages));
-			rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");
-			rsb.append("fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ");
-
+			StringBuilder esb = new StringBuilder();
+			esb.append(RSyntaxHelper.loadPackages(packages));
+			esb.append("source(\"" + baseFolder + "\\R\\Recommendations\\db_recom.r\"); ");
+			esb.append("fileroot<-\"" + baseFolder + "\\R\\Recommendations\\dataitem\" ; ");
+			String varR = esb.toString().replace("\\", "/");
+			
 			// run communities script
 			String communityOutput = Utility.getRandomString(8);
-			rsb.append(communityOutput + "<- locate_data_communities(fileroot,\"" + userName + "\");");
+			List<String> myEngines = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+			String items = "";
+			for (int row = 0; row < myEngines.size(); row++) {
+				String dbid = myEngines.get(row);
+				String dbname = SecurityQueryUtils.getEngineAliasForId(dbid);
+				String oneItem = dbid + "$" + dbname + "$";
+				if(row < myEngines.size() - 1) {
+					items += "\"" + oneItem + "\", ";
+				}else {
+					items += "\"" + oneItem + "\"";
+				}
+			}
+			
+			StringBuilder rsb = new StringBuilder();
+			rsb.append(communityOutput + "<- locate_data_communities(fileroot,items=c(" + items + "));");
 			rsb.append(communityOutput + "<- jsonlite::toJSON(" + communityOutput + "[3]);");
+			
 			// Step 2:
 			// Run another R script to generate user specific recommendations,
 			// add additional data and package as a map to be added to the list
 			// for the FE.
 			String userSpecificOutput = Utility.getRandomString(8);
-			rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName + "\",fileroot);");
+			//rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName + "\",fileroot);");
+			rsb.append(userSpecificOutput + "<- dataitem_recom_mgr(\"" + userName + "\",fileroot,items=c(" + items + "));");
 			rsb.append(userSpecificOutput + "<- jsonlite::toJSON(as.data.table(" + userSpecificOutput
 					+ "[2])[,1:2], byrow = TRUE, colNames = TRUE);");
-			this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));
+			
+			String funcR = rsb.toString();
+			this.rJavaTranslator.runR(varR + funcR);
 			List<String> enginesWithAccess = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			ArrayList<Object> communitiesList = new ArrayList<Object>();
 			String communityJson = this.rJavaTranslator.getString(communityOutput);

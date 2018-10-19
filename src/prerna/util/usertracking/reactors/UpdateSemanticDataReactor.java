@@ -1,9 +1,11 @@
 package prerna.util.usertracking.reactors;
 
 import java.io.File;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -33,7 +35,7 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.checkPackages(packages);
 			String extension = "?databases=";
 			// read datadistrict file
-			String[] relevantEngines = new String[100];
+			String[] relevantEngines = new String[10000]; //arbitrary size.. but should not have more than 10,000 relevant databases
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 			File f = new File(baseFolder + "\\R\\Recommendations\\dataitem-datadistrict.rds");
 
@@ -55,6 +57,11 @@ public class UpdateSemanticDataReactor extends AbstractRFrameReactor {
 			for (String row : relevantEngines) {
 				String[] parsed = row.split("\\$");
 				extension += parsed[0] + ";";
+			}
+			
+			List<String> enginesWithAccess = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+			for (String row : enginesWithAccess) {
+				extension+= row + ";";
 			}
 
 			String FILE_URL = DIHelper.getInstance().getProperty("T_ENDPOINT") + "exportTable/semantic" + extension;
