@@ -38,13 +38,12 @@ searchGoogle <- function(searchTerm) {
 
 
 predictDescriptions <- function(uniqueValues) {
-  library(data.table);
   library(WikidataR);
   
   uniqueDescriptions <- array();
   numUnique <- length(uniqueValues);
   for(i in 1:numUnique) {
-    cleanValue = splitCamelCase(uniqueValues[i]);
+    cleanValue <- splitCamelCase(uniqueValues[i]);
     values <- find_item(cleanValue);
     if(length(values) == 0) {
       # wiki returned nothing, try google
