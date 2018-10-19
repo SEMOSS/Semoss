@@ -8,6 +8,7 @@ import java.util.TreeMap;
 import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
@@ -106,78 +107,85 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 		meta.setDerivedToProperty(frame.getTableName() + "__distance", true);
 		frame.setMetaData(meta);
 
-		frame.addRowsViaIterator(new Iterator<IHeadersDataRow>() {
-			
-			String[] tables = tableToCol.keySet().toArray(new String[]{});
-			int size = tables.length;
-			
-			int sourceTableIndex = 0;
-			int targetTableIndex = 1;
-			List<IHeadersDataRow> rows = new Vector<IHeadersDataRow>();
-			
-			@Override
-			public IHeadersDataRow next() {
-				return rows.remove(0);
-			}
-			
-			@Override
-			public boolean hasNext() {
-				// if we have values stored up
-				// return true
-				if(!rows.isEmpty()) {
-					return true;
+		boolean emptyMessage = false;
+		try {
+			frame.addRowsViaIterator(new Iterator<IHeadersDataRow>() {
+				
+				String[] tables = tableToCol.keySet().toArray(new String[]{});
+				int size = tables.length;
+				
+				int sourceTableIndex = 0;
+				int targetTableIndex = 1;
+				List<IHeadersDataRow> rows = new Vector<IHeadersDataRow>();
+				
+				@Override
+				public IHeadersDataRow next() {
+					return rows.remove(0);
 				}
 				
-				// we have nothing stored up
-				// try comparing the next set of tables
-				for(; sourceTableIndex < size; sourceTableIndex++) {
-					
-					String sourceTable = tables[sourceTableIndex];
-					List<String> sourceColumnsToTest = tableToCol.get(sourceTable);
-					
-					for(; targetTableIndex < size; targetTableIndex++) {
-						
-						String targetTable = tables[targetTableIndex];
-						List<String> targetColumnsToTest = tableToCol.get(targetTable);
-
-						for(int cIndex = 0; cIndex < sourceColumnsToTest.size(); cIndex++) {
-							String testColumn = sourceColumnsToTest.get(cIndex);
-							if(containsIgnoreCase(targetColumnsToTest, testColumn)) {
-								// we have a match!!!
-								// always send a distance measure of 1
-								String[] headers = new String[]{"targetTable", "targetCol", "sourceTable", "sourceCol", "distance"};
-								Object[] value = new Object[]{sourceTable, testColumn, targetTable, testColumn, 1.0};
-								rows.add(new HeadersDataRow(headers, value));
-							}
-						}
-					}
-					
-					// i will start to return if we have values in rows
+				@Override
+				public boolean hasNext() {
+					// if we have values stored up
+					// return true
 					if(!rows.isEmpty()) {
 						return true;
-					} else {
-						// we got to the last target table
-						// need to reset the target index
-						targetTableIndex = sourceTableIndex+2;
 					}
-				}
-
-				return false;
-			}
-
-			private boolean containsIgnoreCase(List<String> targetColumnsToTest, String testColumn) {
-				for(String s : targetColumnsToTest) {
-					if(s.equalsIgnoreCase(testColumn)) {
-						return true;
+					
+					// we have nothing stored up
+					// try comparing the next set of tables
+					for(; sourceTableIndex < size; sourceTableIndex++) {
+						
+						String sourceTable = tables[sourceTableIndex];
+						List<String> sourceColumnsToTest = tableToCol.get(sourceTable);
+						
+						for(; targetTableIndex < size; targetTableIndex++) {
+							
+							String targetTable = tables[targetTableIndex];
+							List<String> targetColumnsToTest = tableToCol.get(targetTable);
+	
+							for(int cIndex = 0; cIndex < sourceColumnsToTest.size(); cIndex++) {
+								String testColumn = sourceColumnsToTest.get(cIndex);
+								if(containsIgnoreCase(targetColumnsToTest, testColumn)) {
+									// we have a match!!!
+									// always send a distance measure of 1
+									String[] headers = new String[]{"targetTable", "targetCol", "sourceTable", "sourceCol", "distance"};
+									Object[] value = new Object[]{sourceTable, testColumn, targetTable, testColumn, 1.0};
+									rows.add(new HeadersDataRow(headers, value));
+								}
+							}
+						}
+						
+						// i will start to return if we have values in rows
+						if(!rows.isEmpty()) {
+							return true;
+						} else {
+							// we got to the last target table
+							// need to reset the target index
+							targetTableIndex = sourceTableIndex+2;
+						}
 					}
+	
+					return false;
 				}
-				return false;
-			}
-			
-		}, typesMap);
+	
+				private boolean containsIgnoreCase(List<String> targetColumnsToTest, String testColumn) {
+					for(String s : targetColumnsToTest) {
+						if(s.equalsIgnoreCase(testColumn)) {
+							return true;
+						}
+					}
+					return false;
+				}
+				
+			}, typesMap);
+		} catch(EmptyIteratorException e) {
+			emptyMessage = true;
+			// ignore, but need to add message
+		}
 		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, 
 				PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		retNoun.addAdditionalReturn(new NounMetadata("There are no direct matches", PixelDataType.CONST_STRING, PixelOperationType.WARNING));
 		
 		// store in insight
 		if(this.insight.getDataMaker() == null) {
