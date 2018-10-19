@@ -145,7 +145,7 @@ public class OwlDictionaryReactor extends AbstractMetaEditorReactor {
 						return 1;
 					}
 					
-					// gotta go to the column
+					// okay, lets try the column now
 					String o1Colum = (String) o1.get("column");
 					String o2Colum = (String) o2.get("column");
 
