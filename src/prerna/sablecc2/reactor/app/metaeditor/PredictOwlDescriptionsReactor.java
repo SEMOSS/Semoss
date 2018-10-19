@@ -1,7 +1,9 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -97,6 +99,20 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 
 		String[] descriptionValues = rJavaTranslator.getStringArray(descriptionsFrameVar);
 
+		// try to get rid of the duplications
+		Set<String> uniqueDescriptions = new HashSet<String>();
+		for(String s : descriptionValues) {
+			String[] newSplit = s.split("\\*\\*\\*NEW LINE\\*\\*\\*");
+			for(String split : newSplit) {
+				uniqueDescriptions.add(split);
+			}
+		}
+		
+		StringBuilder masterDescription = new StringBuilder();
+		for(String uniqueVal : uniqueDescriptions) {
+			masterDescription.append(uniqueVal).append(". ");
+		}
+		
 //		OWLER owler = getOWLER(appId);
 //		for(String desc : descriptionValues) {
 //			desc = desc.replace("***NEW LINE***", "\n");
@@ -118,7 +134,7 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 //			return noun;
 //		}
 		
-		NounMetadata noun = new NounMetadata(descriptionValues, PixelDataType.CONST_STRING);
+		NounMetadata noun = new NounMetadata(new String[]{masterDescription.toString()}, PixelDataType.CONST_STRING);
 //		noun.addAdditionalReturn(new NounMetadata("Predicted and stored descriptions for review",
 		noun.addAdditionalReturn(new NounMetadata("Predicted descriptions for review",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
