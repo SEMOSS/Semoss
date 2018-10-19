@@ -30,9 +30,9 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	 * 
 	 * Example script
 	 
-	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlPredictDescriptions.R");
+	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlPredictLogicalNames.R");
 	 instanceValues_aIPO75a <- c("Classic Cars","Motorcycles","Planes","Ships","Trains");
-	 descriptionsFrame_a9L7hr1 <- predictDescriptions(instanceValues_aIPO75a);
+	 descriptionsFrame_a9L7hr1 <- predictLogicalNames(instanceValues_aIPO75a);
 	 
 	 * 
 	 */
@@ -81,28 +81,28 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		
 		StringBuilder script = new StringBuilder();
 		// first source the file where we have the main method for running
-		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlPredictDescriptions.R"; 
+		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlPredictLogicalNames.R"; 
 		rScriptPath = rScriptPath.replace("\\", "/");
 		script.append("source(\"" + rScriptPath + "\");");
 		
-		String descriptionsFrameVar = "descriptionsFrame_" + Utility.getRandomString(6);
+		String logicalNamesVar = "logicalFrame_" + Utility.getRandomString(6);
 		String instanceVectorVar = "instanceValues_" + Utility.getRandomString(6);
 		script.append(instanceVectorVar).append(" <- ").append(RSyntaxHelper.createStringRColVec(values)).append(";");
-		script.append(descriptionsFrameVar).append(" <- predictDescriptions(").append(instanceVectorVar).append(");");
+		script.append(logicalNamesVar).append(" <- predictLogicalNames(").append(instanceVectorVar).append(");");
 
 		// execute!
 		logger.info("Running script to auto generate logical names...");
 		rJavaTranslator.runR(script.toString());
 		logger.info("Finished running scripts!");
 
-		String[] descriptionValues = rJavaTranslator.getStringArray(descriptionsFrameVar);
+		String[] logicalNames = rJavaTranslator.getStringArray(logicalNamesVar);
 
 		OWLER owler = getOWLER(appId);
-		for(String desc : descriptionValues) {
+		for(String logical : logicalNames) {
 			if(prop == null || prop.isEmpty()) {
-				owler.addConceptDescription(concept, prop, desc);
+				owler.addConceptDescription(concept, prop, logical);
 			} else {
-				owler.addPropDescription(concept, prop, desc);
+				owler.addPropDescription(concept, prop, logical);
 			}
 		}
 		owler.commit();
@@ -112,13 +112,13 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add descriptions", 
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		
-		NounMetadata noun = new NounMetadata(descriptionValues, PixelDataType.CONST_STRING);
-		noun.addAdditionalReturn(new NounMetadata("Predicted and stored descriptions for review",
+		NounMetadata noun = new NounMetadata(logicalNames, PixelDataType.CONST_STRING);
+		noun.addAdditionalReturn(new NounMetadata("Predicted and stored logical names for review",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}

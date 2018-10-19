@@ -51,7 +51,7 @@ generateDescriptionFrame<-function(allColumns, sampleInstances){
       for(j in 1:numInstances) {
         # grab for this instance the values
         # print(paste(i, " ::: ", j, " ::: ", splitCamelCase(instances[j]) ));
-        cleanInstance = splitCamelCase(instances[i]);
+        cleanInstance <- splitCamelCase(instances[i]);
         values <- find_item(cleanInstance);
         if(length(values) == 0) {
           # wiki returned nothing, try google
