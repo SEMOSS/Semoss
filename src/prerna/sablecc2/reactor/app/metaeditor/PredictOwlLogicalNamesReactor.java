@@ -97,28 +97,29 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
 		String[] logicalNames = rJavaTranslator.getStringArray(logicalNamesVar);
 
-		OWLER owler = getOWLER(appId);
-		for(String logical : logicalNames) {
-			if(prop == null || prop.isEmpty()) {
-				owler.addConceptDescription(concept, prop, logical);
-			} else {
-				owler.addPropDescription(concept, prop, logical);
-			}
-		}
-		owler.commit();
-		
-		try {
-			owler.export();
-		} catch (IOException e) {
-			e.printStackTrace();
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
-		}
+//		OWLER owler = getOWLER(appId);
+//		for(String logical : logicalNames) {
+//			if(prop == null || prop.isEmpty()) {
+//				owler.addConceptDescription(concept, prop, logical);
+//			} else {
+//				owler.addPropDescription(concept, prop, logical);
+//			}
+//		}
+//		owler.commit();
+//		
+//		try {
+//			owler.export();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+//			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", 
+//					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+//			return noun;
+//		}
 		
 		NounMetadata noun = new NounMetadata(logicalNames, PixelDataType.CONST_STRING);
-		noun.addAdditionalReturn(new NounMetadata("Predicted and stored logical names for review",
+//		noun.addAdditionalReturn(new NounMetadata("Predicted and stored logical names for review",
+		noun.addAdditionalReturn(new NounMetadata("Predicted and logical names for review",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}

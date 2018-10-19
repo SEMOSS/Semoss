@@ -97,29 +97,30 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 
 		String[] descriptionValues = rJavaTranslator.getStringArray(descriptionsFrameVar);
 
-		OWLER owler = getOWLER(appId);
-		for(String desc : descriptionValues) {
-			desc = desc.replace("***NEW LINE***", "\n");
-			if(prop == null || prop.isEmpty()) {
-				owler.addConceptDescription(concept, prop, desc);
-			} else {
-				owler.addPropDescription(concept, prop, desc);
-			}
-		}
-		owler.commit();
-		
-		try {
-			owler.export();
-		} catch (IOException e) {
-			e.printStackTrace();
-			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add descriptions", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			return noun;
-		}
+//		OWLER owler = getOWLER(appId);
+//		for(String desc : descriptionValues) {
+//			desc = desc.replace("***NEW LINE***", "\n");
+//			if(prop == null || prop.isEmpty()) {
+//				owler.addConceptDescription(concept, prop, desc);
+//			} else {
+//				owler.addPropDescription(concept, prop, desc);
+//			}
+//		}
+//		owler.commit();
+//		
+//		try {
+//			owler.export();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+//			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add descriptions", 
+//					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+//			return noun;
+//		}
 		
 		NounMetadata noun = new NounMetadata(descriptionValues, PixelDataType.CONST_STRING);
-		noun.addAdditionalReturn(new NounMetadata("Predicted and stored descriptions for review",
+//		noun.addAdditionalReturn(new NounMetadata("Predicted and stored descriptions for review",
+		noun.addAdditionalReturn(new NounMetadata("Predicted descriptions for review",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}
