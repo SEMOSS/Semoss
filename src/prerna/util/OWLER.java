@@ -712,6 +712,7 @@ public class OWLER {
 		
 		if(description != null) {
 			for(String desc : description) {
+				desc = desc.replaceAll("[^\\p{ASCII}]", "");
 				this.engine.addToBaseEngine(new Object[]{conceptUri, RDFS.COMMENT.toString(), desc, false});
 			}
 		}
@@ -732,6 +733,7 @@ public class OWLER {
 		
 		if(description != null) {
 			for(String desc : description) {
+				desc = desc.replaceAll("[^\\p{ASCII}]", "");
 				this.engine.addToBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), desc, false});
 			}
 		}

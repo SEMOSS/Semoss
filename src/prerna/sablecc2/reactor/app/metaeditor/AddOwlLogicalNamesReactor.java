@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.app.metaeditor;
 
 import java.io.IOException;
 
-import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,7 +33,8 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		setOwlerValues(engine, owler);
 		if(prop == null || prop.isEmpty()) {
-			owler.addConceptLogicalNames(concept, prop, logicalNames);
+			String physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + concept);
+			owler.addConceptLogicalNames(concept, Utility.getClassName(physicalUri), logicalNames);
 		} else {
 			owler.addPropLogicalNames(concept, prop, logicalNames);
 		}
@@ -45,13 +45,15 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names : " + Arrays.toString(logicalNames), 
+//			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names : " + Arrays.toString(logicalNames), 
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names : " + Arrays.toString(logicalNames), 
+//		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names : " + Arrays.toString(logicalNames), 
+		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names", 
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}

@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.app.metaeditor;
 
 import java.io.IOException;
 
-import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,9 +33,10 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		setOwlerValues(engine, owler);
 		if(prop == null || prop.isEmpty()) {
-			owler.addConceptDescription(concept, prop, descriptions);
+			String physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + concept);
+			owler.addConceptDescription(concept, Utility.getClassName(physicalUri), descriptions);
 		} else {
-			owler.addPropDescription(concept, prop, descriptions);
+			owler.addConceptDescription(concept, prop, descriptions);
 		}
 		owler.commit();
 		
@@ -45,13 +45,15 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add descriptions : " + Arrays.toString(descriptions), 
+//			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add descriptions : " + Arrays.toString(descriptions),
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add description", 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions : " + Arrays.toString(descriptions), 
+//		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions : " + Arrays.toString(descriptions), 
+		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}
