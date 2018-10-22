@@ -25,8 +25,8 @@
       </includes>
     </fileSet>
     <fileSet>
-      <directory>export</directory>
-      <outputDirectory>export</outputDirectory>
+      <directory>export/ZIPs</directory>
+      <outputDirectory>export/ZIPs</outputDirectory>
 	  <excludes>
 	    <exclude>*/**</exclude>
       </excludes>
