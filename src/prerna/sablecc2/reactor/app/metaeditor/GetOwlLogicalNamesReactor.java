@@ -30,7 +30,7 @@ public class GetOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		if(prop == null || prop.isEmpty()) {
 			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + concept);
 		} else {
-			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + prop + "/" + concept);
+			physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/" + prop + "/" + concept);
 		}
 		
 		Set<String> logicalNames = engine.getLogicalNames(physicalUri);
