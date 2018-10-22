@@ -44,11 +44,6 @@ public class RDFEngineCreationHelper {
 				recipeArray[4] = viewPixel.toString();
 				String id = admin.addInsight(insightName, layout, recipeArray);
 				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
-				
-				insightName = "Select Distinct " + conceptualName;
-				layout = "Grid";
-				id = admin.addInsight(insightName, layout, recipeArray);
-				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -99,11 +94,6 @@ public class RDFEngineCreationHelper {
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
 				String id = admin.addInsight(insightName, layout, recipeArray);
-				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
-				
-				insightName = "Select Distinct " + conceptualName;
-				layout = "Grid";
-				id = admin.addInsight(insightName, layout, recipeArray);
 				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
 			}
 		} catch(RuntimeException e) {
