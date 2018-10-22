@@ -26,8 +26,8 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 	 * Example script to run:
 	 
 	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlColumnNamesFuzzyMatch.R");
-	 allTables_aQC7ep4 <- c('city','city','city','city','city','countrylanguage','countrylanguage','countrylanguage','countrylanguage','country','country','country','country','country','country','country','country','country','country','country','country','country','country','country');
-	 allColumns_aHGRoJ8 <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
+	 allTables <- c('city','city','city','city','city','countrylanguage','countrylanguage','countrylanguage','countrylanguage','country','country','country','country','country','country','country','country','country','country','country','country','country','country','country');
+	 allColumns <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
 	 matches_awiHmTT<- getColumnFuzzyMatches(allTables_aQC7ep4,allColumns_aHGRoJ8);
 	 
 	 * 
