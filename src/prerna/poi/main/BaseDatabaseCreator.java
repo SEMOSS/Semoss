@@ -77,9 +77,15 @@ public class BaseDatabaseCreator {
 
 		String cleanSub = Utility.cleanString(sub, false);
 		String cleanPred = Utility.cleanString(pred, false);
-		String cleanObj = Utility.cleanString(obj, false);
 
-		baseEng.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{cleanSub, cleanPred, cleanObj, concept});
+		Object objValue = triple[2];
+		// if it is a URI
+		// gotta clean up the value
+		if(concept) {
+			objValue = Utility.cleanString(objValue.toString(), false);
+		}
+		
+		baseEng.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{cleanSub, cleanPred, objValue, concept});
 	}
 	
 	// set this as separate pieces as well
