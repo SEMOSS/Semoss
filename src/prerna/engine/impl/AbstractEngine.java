@@ -69,6 +69,7 @@ import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
@@ -164,60 +165,66 @@ public abstract class AbstractEngine implements IEngine {
 				}
 				
 				if(insightDatabaseLoc != null) {
-					lOGGER.info("Loading insight rdbms database...");
-					this.insightRDBMS = new RDBMSNativeEngine();
-					Properties prop = new Properties();
-					prop.put(Constants.DRIVER, insightDriver);
-					prop.put(Constants.RDBMS_TYPE, insightRDBMSType);
-					String connURL = connectionURLStart + insightDatabaseLoc.replace(".mv.db", "") + connectionURLEnd;
-					lOGGER.info("Insight rdbms database location is " + insightDatabaseLoc);
-					lOGGER.info("Insight rdbms database url is " + connURL);
-					prop.put(Constants.CONNECTION_URL, connURL);
-					prop.put(Constants.USERNAME, insightUsername);
-					this.insightRDBMS.setProp(prop);
-					this.insightRDBMS.setEngineId(engineId + "_InsightsRDBMS");
-					this.insightRDBMS.openDB(null);
-					
-					boolean tableExists = false;
-					ResultSet rs = null;
-					try {
-						rs = this.insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
-						if (rs.next()) {
-							  tableExists = true;
-						}
-					} catch (SQLException e) {
-						e.printStackTrace();
-					} finally {
+					if(!new File(insightDatabaseLoc).exists()) {
+						// make a new database
+						this.insightRDBMS = (RDBMSNativeEngine) UploadUtilities.generateInsightsDatabase(this.engineId, this.engineName);
+						UploadUtilities.addExploreInstanceInsight(this.engineId, this.insightRDBMS);
+					} else {
+						lOGGER.info("Loading insight rdbms database...");
+						this.insightRDBMS = new RDBMSNativeEngine();
+						Properties prop = new Properties();
+						prop.put(Constants.DRIVER, insightDriver);
+						prop.put(Constants.RDBMS_TYPE, insightRDBMSType);
+						String connURL = connectionURLStart + insightDatabaseLoc.replace(".mv.db", "") + connectionURLEnd;
+						lOGGER.info("Insight rdbms database location is " + insightDatabaseLoc);
+						lOGGER.info("Insight rdbms database url is " + connURL);
+						prop.put(Constants.CONNECTION_URL, connURL);
+						prop.put(Constants.USERNAME, insightUsername);
+						this.insightRDBMS.setProp(prop);
+						this.insightRDBMS.setEngineId(engineId + "_InsightsRDBMS");
+						this.insightRDBMS.openDB(null);
+						
+						boolean tableExists = false;
+						ResultSet rs = null;
 						try {
-							if(rs != null) {
-								rs.close();
+							rs = this.insightRDBMS.getConnectionMetadata().getTables(null, null, "QUESTION_ID", null);
+							if (rs.next()) {
+								  tableExists = true;
 							}
-						} catch(SQLException e) {
+						} catch (SQLException e) {
 							e.printStackTrace();
+						} finally {
+							try {
+								if(rs != null) {
+									rs.close();
+								}
+							} catch(SQLException e) {
+								e.printStackTrace();
+							}
 						}
-					}
-					
-					if(tableExists) {
-						String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
-						IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(this.insightRDBMS, q);
-						while(wrap.hasNext()) {
-							String val = wrap.next().getValues()[0] + "";
-							if(!val.equals("VARCHAR")) {
-								String update = "ALTER TABLE QUESTION_ID ALTER COLUMN ID VARCHAR(50);";
+						
+						if(tableExists) {
+							String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
+							IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(this.insightRDBMS, q);
+							while(wrap.hasNext()) {
+								String val = wrap.next().getValues()[0] + "";
+								if(!val.equals("VARCHAR")) {
+									String update = "ALTER TABLE QUESTION_ID ALTER COLUMN ID VARCHAR(50);";
+									this.insightRDBMS.insertData(update);
+									this.insightRDBMS.commit();
+								}
+							}
+							wrap.cleanUp();
+							
+							q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='HIDDEN_INSIGHT'";
+							wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, q);
+							if(!wrap.hasNext()) {
+								String update = "ALTER TABLE QUESTION_ID ADD HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE;";
 								this.insightRDBMS.insertData(update);
 								this.insightRDBMS.commit();
 							}
+							wrap.cleanUp();
 						}
-						wrap.cleanUp();
-						
-						q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='HIDDEN_INSIGHT'";
-						wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, q);
-						if(!wrap.hasNext()) {
-							String update = "ALTER TABLE QUESTION_ID ADD HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE;";
-							this.insightRDBMS.insertData(update);
-							this.insightRDBMS.commit();
-						}
-						wrap.cleanUp();
 					}
 				}
 				
