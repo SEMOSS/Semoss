@@ -210,16 +210,18 @@ public abstract class AbstractQueryStruct {
 		return this.relations;
 	}
 	
+	public void setRelationSet(Set<String[]> relationSet) {
+		this.relationsSet = relationSet;
+	}
+	
 	public void addRelationToSet(String fromConcept, String toConcept, String joinType) {
 		String[] eachSet = new String[]{fromConcept, joinType, toConcept};
 		relationsSet.add(eachSet);
 	}
 	
-	
 	public Set<String[]> getRelationsSet(){
 		return this.relationsSet;
 	}
-	
 	
 	//////////////////////////////////////////// OTHERS /////////////////////////////////////////////////////
 
@@ -287,6 +289,7 @@ public abstract class AbstractQueryStruct {
 		mergeImplicitFilters(incomingQS.implicitFilters);
 		mergeHavingFilters(incomingQS.havingFilters);
 		mergeRelations(incomingQS.relations);
+		mergeRelations(incomingQS.relationsSet);
 		if(incomingQS.getEngineId() != null) {
 			setEngineId(incomingQS.getEngineId());
 		}
@@ -333,6 +336,10 @@ public abstract class AbstractQueryStruct {
 	private void mergeHavingFilters(GenRowFilters incomingFilters) {
 		//merge the filters
 		this.havingFilters.merge(incomingFilters);		
+	}
+	
+	public void mergeRelations(Set<String[]> relationSet) {
+		this.relationsSet.addAll(relationSet);
 	}
 	
 	/**

@@ -191,6 +191,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		// we need to merge everything with the current qs
 		qs.mergeRelations(this.qs.getRelations());
+		qs.mergeRelations(this.qs.getRelationsSet());
 		qs.mergeGroupBy(this.qs.getGroupBy());
 		qs.mergeOrderBy(this.qs.getOrderBy());
 		
