@@ -100,7 +100,7 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
   similarity_frame <- similarity_frame[sourceCol != targetCol];
   
   # make sure column is numeric
-  similarity_frame[,3] <- as.numeric(as.character(similarity_frame$distance));
+  similarity_frame$distance <- as.numeric(as.character(similarity_frame$distance));
   # if we couldn't get a description
   # the matching will be NaN
   # so we will drop those rows

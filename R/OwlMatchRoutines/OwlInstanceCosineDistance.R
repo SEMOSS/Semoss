@@ -107,29 +107,22 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns, sampleInstan
   cosine_distance <- round(as.vector(cosineSimMatrix), 4);
   col1 <- rep(allColumns, each=dimensions[2]);
   col2 <- rep(allColumns, dimensions[1]);
+  col3 <- rep(allTables, each=dimensions[2]);
+  col4 <- rep(allTables, dimensions[1]);
   
-  similarity_frame <- as.data.table(as.data.frame(cbind(col1, col2, cosine_distance)));
-  names(similarity_frame) <- c('sourceCol', 'targetCol', 'distance');
+  similarity_frame <- as.data.table(as.data.frame(cbind(col1, col3, col2, col4, cosine_distance)));
+  names(similarity_frame) <- c('sourceCol', 'sourceTable', 'targetCol', 'targetTable', 'distance');
   # remove exact column name matches
   similarity_frame <- similarity_frame[sourceCol != targetCol];
+  # ignore same table joins
+  similarity_frame <- similarity_frame[targetTable != sourceTable];
   
   # make sure column is numeric
-  similarity_frame[,3] <- as.numeric(as.character(similarity_frame$distance));
+  similarity_frame$distance <- as.numeric(as.character(similarity_frame$distance));
   # if we couldn't get a description
   # the matching will be NaN
   # so we will drop those rows
   similarity_frame <- similarity_frame[!is.na(distance)];
-  
-  # merge back the table column names
-  # create the table and column frame
-  tableToCol <- data.table(allTables, allColumns);
-  names(tableToCol) <- c('table', 'column');
-  similarity_frame <- merge(similarity_frame,tableToCol, by.x='sourceCol', by.y='column', allow.cartesian=TRUE);
-  colnames(similarity_frame)[which(names(similarity_frame) == "table")] <- "sourceTable";
-  similarity_frame <- merge(similarity_frame,tableToCol, by.x='targetCol', by.y='column', allow.cartesian=TRUE);
-  colnames(similarity_frame)[which(names(similarity_frame) == "table")] <- "targetTable";
-  # ignore same table joins
-  similarity_frame <- similarity_frame[targetTable != sourceTable];
   
   # add in descriptions
   similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x=c('sourceTable','sourceCol'), by.y=c('table','column'), allow.cartesian=TRUE);
@@ -144,7 +137,7 @@ getDocumentCostineSimilarityMatrix<-function(allTables, allColumns, sampleInstan
   similarity_frame <- similarity_frame[similarity_frame$targetColumnDescription != ""];
   
   rm(allTables, allColumns, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix, myLSAspace,
-     dimensions, cosine_distance, col1, col2, tableToCol);
+     dimensions, cosine_distance, col1, col2, col3, col4);
   
   return(similarity_frame);
 }
