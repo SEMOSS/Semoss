@@ -36,7 +36,7 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 			String physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + concept);
 			owler.addConceptDescription(concept, Utility.getClassName(physicalUri), descriptions);
 		} else {
-			owler.addConceptDescription(concept, prop, descriptions);
+			owler.addPropDescription(concept, prop, descriptions);
 		}
 		owler.commit();
 		
