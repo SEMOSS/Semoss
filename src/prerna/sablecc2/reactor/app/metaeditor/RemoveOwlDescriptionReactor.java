@@ -34,7 +34,8 @@ public class RemoveOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		setOwlerValues(engine, owler);
 		if(prop == null || prop.isEmpty()) {
-			owler.deleteConceptDescription(concept, prop, descriptions);
+			String physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + concept);
+			owler.deleteConceptDescription(concept, Utility.getClassName(physicalUri), descriptions);
 		} else {
 			owler.deletePropDescription(concept, prop, descriptions);
 		}
