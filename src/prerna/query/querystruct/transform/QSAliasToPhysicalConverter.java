@@ -2,8 +2,10 @@ package prerna.query.querystruct.transform;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
@@ -70,6 +72,7 @@ public class QSAliasToPhysicalConverter {
 			Map<String, Map<String, List>> convertedJoins = convertJoins(joins, meta);
 			convertedQs.setRelations(convertedJoins);
 		}
+		convertedQs.setRelationSet(convertJoins(qs.getRelationsSet(), meta));
 		
 		return convertedQs;
 	}
@@ -107,7 +110,8 @@ public class QSAliasToPhysicalConverter {
 			Map<String, Map<String, List>> convertedJoins = convertJoins(joins, meta);
 			convertedQs.setRelations(convertedJoins);
 		}
-		
+		convertedQs.setRelationSet(convertJoins(qs.getRelationsSet(), meta));
+
 		// now go through the group by
 		List<QueryColumnSelector> origGroups = qs.getGroupBy();
 		if(origGroups != null && !origGroups.isEmpty()) {
@@ -135,6 +139,24 @@ public class QSAliasToPhysicalConverter {
 		return convertedQs;
 	}
 
+	private static Set<String[]> convertJoins(Set<String[]> relationsSet, OwlTemporalEngineMeta meta) {
+		Set<String[]> convertedJoins = new HashSet<String[]>();
+		for(String[] rel : relationsSet) {
+			String newStart = meta.getUniqueNameFromAlias(rel[0]);
+			if(newStart == null) {
+				newStart = rel[0];
+			}
+			String comp = rel[1];
+			String newEnd = meta.getUniqueNameFromAlias(rel[2]);
+			if(newEnd == null) {
+				newEnd = rel[2];
+			}
+			
+			convertedJoins.add(new String[]{newStart, comp, newEnd});
+		}
+		return convertedJoins;
+	}
+	
 	public static Map<String, Map<String, List>> convertJoins(Map<String, Map<String, List>> joins, OwlTemporalEngineMeta meta) {
 		Map<String, Map<String, List>> convertedJoins = new HashMap<String, Map<String, List>>();
 		for(String startCol : joins.keySet()) {
