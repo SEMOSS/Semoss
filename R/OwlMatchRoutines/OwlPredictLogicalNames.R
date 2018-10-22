@@ -88,7 +88,15 @@ predictLogicalNames <- function(uniqueValues) {
     }
   }
   
-  rm(numUnique, uniqueValues, cleanValue, wikiItems, p31, p106, p279, p361, p373);
+  if(length(logicalNames) == 0) {
+    return(logicalNames);
+  }
+  
+  logicalNameFreqTable <- sort(table(logicalNames));
+  maxToGrab <- if (length(logicalNameFreqTable) < 10) 0 else (length(logicalNameFreqTable)-10);
+  topLogicalNames <- names(logicalNameFreqTable[length(logicalNameFreqTable):maxToGrab]);
+  
+  rm(numUnique, uniqueValues, cleanValue, wikiItems, p31, p106, p279, p361, p373, logicalNames, logicalNameFreqTable);
   gc();
-  return(logicalNames);
+  return(topLogicalNames);
 }
