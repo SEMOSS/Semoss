@@ -93,12 +93,14 @@ public class AbstractEngineCreator {
 		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
 		prop.put(Constants.RDBMS_TYPE, queryUtil.getDatabaseType().toString());
 		prop.put("TEMP", "TRUE");
-		((AbstractEngine) engine).setProp(prop);
+		engine.setProp(prop);
 		engine.openDB(null);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-		engine.setInsightDatabase(insightDatabase);
+		if(engine.getInsightDatabase() == null) {
+			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
+			engine.setInsightDatabase(insightDatabase);
+		}
 	}
 
 	private void createNewRdfEngine(String appName, String appID) {
@@ -117,8 +119,10 @@ public class AbstractEngineCreator {
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{sub, typeOf, obj, true});
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-		engine.setInsightDatabase(insightDatabase);
+		if(engine.getInsightDatabase() == null) {
+			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
+			engine.setInsightDatabase(insightDatabase);
+		}
 	}
 	
 	private void createNewTinkerEngine(String appName, String appID) {
@@ -128,8 +132,10 @@ public class AbstractEngineCreator {
 		engine.openDB(dbPropFile);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-		engine.setInsightDatabase(insightDatabase);
+		if(engine.getInsightDatabase() == null) {
+			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
+			engine.setInsightDatabase(insightDatabase);
+		}
 	}
 	
 	private void createNewREngine(String appName, String appID) {
@@ -139,8 +145,10 @@ public class AbstractEngineCreator {
 		engine.openDB(dbPropFile);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-		engine.setInsightDatabase(insightDatabase);
+		if(engine.getInsightDatabase() == null) {
+			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
+			engine.setInsightDatabase(insightDatabase);
+		}
 	}
 	
 	//added for connect to external RDBMS workflow
@@ -178,8 +186,10 @@ public class AbstractEngineCreator {
 		engine.openDB(null);
 		
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-		engine.setInsightDatabase(insightDatabase);
+		if(engine.getInsightDatabase() == null) {
+			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
+			engine.setInsightDatabase(insightDatabase);
+		}
 	}
 
 	//added for connect to external Impala workflow
@@ -206,8 +216,10 @@ public class AbstractEngineCreator {
 		engine.openDB(null);
 
 		// create the insight database
-		IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-		engine.setInsightDatabase(insightDatabase);
+		if(engine.getInsightDatabase() == null) {
+			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
+			engine.setInsightDatabase(insightDatabase);
+		}
 	}
 
 	protected void openEngineWithConnection(String engineId) {
@@ -319,7 +331,6 @@ public class AbstractEngineCreator {
 	}
 	
 	protected IEngine createNewInsightsDatabase(String appName, String appId) {
-		//TODO: need to push in ids for database loading
 		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(appId, appName);
 		UploadUtilities.addExploreInstanceInsight(appId, insightEngine);
 		return insightEngine;
