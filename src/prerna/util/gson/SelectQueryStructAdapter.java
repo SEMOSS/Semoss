@@ -3,6 +3,7 @@ package prerna.util.gson;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import com.google.common.reflect.TypeToken;
@@ -51,6 +52,10 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				String str = in.nextString();
 				Map<String, Map<String, List>> relations = SIMPLE_GSON.fromJson(str, new TypeToken<Map<String, Map<String, List>>>() {}.getType());
 				qs.setRelations(relations);
+			} else if(name.equals("relationSet")) {
+				String str = in.nextString();
+				Set<String[]> relations = SIMPLE_GSON.fromJson(str, new TypeToken<Set<String[]>>() {}.getType());
+				qs.setRelationSet(relations);
 			}
 			// group bys
 			else if(name.equals("groups")) {
@@ -145,6 +150,7 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		out.name("limit").value(value.getLimit());
 		out.name("offset").value(value.getOffset());
 		out.name("relations").value(SIMPLE_GSON.toJson(value.getRelations()));
+		out.name("relationSet").value(SIMPLE_GSON.toJson(value.getRelationsSet()));
 
 		// now the fun stuff
 
