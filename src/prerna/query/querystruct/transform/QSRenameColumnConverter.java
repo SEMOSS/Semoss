@@ -1,9 +1,9 @@
 package prerna.query.querystruct.transform;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -54,11 +54,7 @@ public class QSRenameColumnConverter {
 		convertedQs.setHavingFilters(convertGenRowFilters(qs.getHavingFilters(), transformationMap, keepOrigAlias));
 
 		// now go through the joins
-		Map<String, Map<String, List>> joins = qs.getRelations();
-		if(joins != null && !joins.isEmpty()) {
-			Map<String, Map<String, List>> convertedJoins = convertJoins(joins, transformationMap);
-			convertedQs.setRelations(convertedJoins);
-		}
+		convertedQs.setRelations(convertJoins(qs.getRelations(), transformationMap));
 		
 		// now go through the group by
 		List<QueryColumnSelector> origGroups = qs.getGroupBy();
@@ -87,40 +83,21 @@ public class QSRenameColumnConverter {
 		return convertedQs;
 	}
 
-	public static Map<String, Map<String, List>> convertJoins(Map<String, Map<String, List>> joins, Map<String, String> transformationMap) {
-		Map<String, Map<String, List>> convertedJoins = new HashMap<String, Map<String, List>>();
-		for(String startCol : joins.keySet()) {
-			// grab the comp map before doing conversions
-			Map<String, List> compMap = joins.get(startCol);
-			
-			// try to see if we can get a new start col
-			String newStartCol = transformationMap.get(startCol);
-			if(newStartCol == null) {
-				newStartCol = startCol;
+	private static Set<String[]> convertJoins(Set<String[]> relationsSet, Map<String, String> transformationMap) {
+		Set<String[]> convertedJoins = new HashSet<String[]>();
+		for(String[] rel : relationsSet) {
+			String newStart = transformationMap.get(rel[0]);
+			if(newStart == null) {
+				newStart = rel[0];
+			}
+			String comp = rel[1];
+			String newEnd = transformationMap.get(rel[2]);
+			if(newEnd == null) {
+				newEnd = rel[2];
 			}
 			
-			Map<String, List> convertedCompHash = new HashMap<String, List>();
-			for(String comparator : compMap.keySet()) {
-				List<String> endColList = compMap.get(comparator);
-				List<String> convertedEndColList = new ArrayList<String>();
-				
-				for(String endCol : endColList) {
-					// try to see if we can get a new end col
-					String newEndCol = transformationMap.get(endCol);
-					if(newEndCol == null) {
-						newEndCol = endCol;
-					}
-					convertedEndColList.add(newEndCol);
-				}
-				
-				// add to comp hash
-				convertedCompHash.put(comparator, convertedEndColList);
-			}
-			
-			// add to final map
-			convertedJoins.put(newStartCol, convertedCompHash);
+			convertedJoins.add(new String[]{newStart, comp, newEnd});
 		}
-		
 		return convertedJoins;
 	}
 

@@ -67,12 +67,7 @@ public class QSAliasToPhysicalConverter {
 		convertedQs.setHavingFilters(convertHavingGenRowFilters(qs.getHavingFilters(), meta, aliases));
 
 		// now go through the joins
-		Map<String, Map<String, List>> joins = qs.getRelations();
-		if(joins != null && !joins.isEmpty()) {
-			Map<String, Map<String, List>> convertedJoins = convertJoins(joins, meta);
-			convertedQs.setRelations(convertedJoins);
-		}
-		convertedQs.setRelationSet(convertJoins(qs.getRelationsSet(), meta));
+		convertedQs.setRelations(convertJoins(qs.getRelations(), meta));
 		
 		return convertedQs;
 	}
@@ -105,12 +100,7 @@ public class QSAliasToPhysicalConverter {
 		convertedQs.setHavingFilters(convertHavingGenRowFilters(qs.getHavingFilters(), meta, aliases));
 
 		// now go through the joins
-		Map<String, Map<String, List>> joins = qs.getRelations();
-		if(joins != null && !joins.isEmpty()) {
-			Map<String, Map<String, List>> convertedJoins = convertJoins(joins, meta);
-			convertedQs.setRelations(convertedJoins);
-		}
-		convertedQs.setRelationSet(convertJoins(qs.getRelationsSet(), meta));
+		convertedQs.setRelations(convertJoins(qs.getRelations(), meta));
 
 		// now go through the group by
 		List<QueryColumnSelector> origGroups = qs.getGroupBy();
@@ -157,43 +147,6 @@ public class QSAliasToPhysicalConverter {
 		return convertedJoins;
 	}
 	
-	public static Map<String, Map<String, List>> convertJoins(Map<String, Map<String, List>> joins, OwlTemporalEngineMeta meta) {
-		Map<String, Map<String, List>> convertedJoins = new HashMap<String, Map<String, List>>();
-		for(String startCol : joins.keySet()) {
-			// grab the comp map before doing conversions
-			Map<String, List> compMap = joins.get(startCol);
-			
-			// try to see if we can get a new start col
-			String newStartCol = meta.getUniqueNameFromAlias(startCol);
-			if(newStartCol == null) {
-				newStartCol = startCol;
-			}
-			
-			Map<String, List> convertedCompHash = new HashMap<String, List>();
-			for(String comparator : compMap.keySet()) {
-				List<String> endColList = compMap.get(comparator);
-				List<String> convertedEndColList = new ArrayList<String>();
-				
-				for(String endCol : endColList) {
-					// try to see if we can get a new end col
-					String newEndCol = meta.getUniqueNameFromAlias(endCol);
-					if(newEndCol == null) {
-						newEndCol = endCol;
-					}
-					convertedEndColList.add(newEndCol);
-				}
-				
-				// add to comp hash
-				convertedCompHash.put(comparator, convertedEndColList);
-			}
-			
-			// add to final map
-			convertedJoins.put(newStartCol, convertedCompHash);
-		}
-		
-		return convertedJoins;
-	}
-
 	/**
 	 * Modify the selectors
 	 * @param selector
