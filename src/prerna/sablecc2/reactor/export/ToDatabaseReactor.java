@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
@@ -11,6 +12,8 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
@@ -72,8 +75,14 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			if (overWrite) {
 				String delete = "DROP TABLE IF EXISTS " + targetTable + ";";
 				String create = RdbmsQueryBuilder.makeCreate(targetTable, headers, createDataTypes);
-				targetEngine.insertData(delete);
-				targetEngine.insertData(create);
+				try {
+					targetEngine.insertData(delete);
+					targetEngine.insertData(create);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(new NounMetadata("Error occured trying to delete and create the new table", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					
+				}
 			}
 
 			// keep a batch size so we dont get heapspace

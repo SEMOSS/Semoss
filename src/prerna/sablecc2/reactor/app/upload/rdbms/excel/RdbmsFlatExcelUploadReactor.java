@@ -21,7 +21,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.PushAppRunner;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
@@ -527,12 +526,18 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
 
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
-		String[] sqlTypes = createNewTable(engine, tableName, uniqueRowId, headers, types);
+		String[] sqlTypes = null;
+		try {
+			sqlTypes = createNewTable(engine, tableName, uniqueRowId, headers, types);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
 		logger.info("Done create table");
 		try {
 			bulkInsertSheet(engine, helper, sheetName, tableName, headers, types, additionalTypes, clean, logger);
 			addIndex(engine, tableName, uniqueRowId);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// ugh... gotta clean up and delete everything... TODO:
 			e.printStackTrace();
 		}
@@ -778,7 +783,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws SQLException {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";

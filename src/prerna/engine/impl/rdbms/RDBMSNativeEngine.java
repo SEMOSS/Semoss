@@ -285,7 +285,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	@Override
 	// need to clean up the exception it will never be thrown
-	public void insertData(String query) 
+	public void insertData(String query) throws SQLException 
 	{
 		Connection conn = null;
 		Statement stmt = null;
@@ -298,10 +298,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			} else {
 				stmt.executeUpdate(query);
 			}
-		} catch(Exception ex) {
-			ex.printStackTrace();
 		} finally {
-			closeConnections(conn,null,stmt);
+			closeConnections(conn, null, stmt);
 		}
 	}
 
@@ -561,16 +559,17 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	}
 	
 	@Override
-	public void removeData(String query) {
+	public void removeData(String query) throws SQLException {
+		Connection conn = null;
+		Statement stmt = null;
 		try {
-			Connection conn = getConnection();
-			Statement stmt = conn.createStatement();
+			conn = getConnection();
+			stmt = conn.createStatement();
 			stmt.execute(query);
 			// return to pool
-		} catch (Exception e) {
-			LOGGER.error("Error occured in getResults method of RDBMSNativeEngine", e);
+		} finally {
+			closeConnections(conn, null, stmt);
 		}
-		return;
 	}
 
 	@Override

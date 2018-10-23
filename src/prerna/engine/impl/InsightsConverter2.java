@@ -107,7 +107,11 @@ public class InsightsConverter2 {
 			// need to alter the table
 			String alterQuery = RdbmsQueryBuilder.makeAlter("QUESTION_ID", new String[]{"QUESTION_PKQL"}, new String[]{"ARRAY"});
 			LOGGER.info("ALTERING TABLE: " + alterQuery);
-			insightsEngine.insertData(alterQuery);
+			try {
+				insightsEngine.insertData(alterQuery);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			LOGGER.info("DONE ALTER TABLE");
 		}
 	}
@@ -209,7 +213,11 @@ public class InsightsConverter2 {
 					}
 				}
 				updateQ.append(") WHERE ID=").append(id);
-				this.insightsEngine.insertData(updateQ.toString());
+				try {
+					this.insightsEngine.insertData(updateQ.toString());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 
 			}
 			
@@ -239,7 +247,11 @@ public class InsightsConverter2 {
 						LOGGER.info("ID = " + id + " IS NOT VALID PKQL INSIGHT");
 						// TODO: for right now, update the field to be null since i'm updating the logic
 						String updateQ = "UPDATE QUESTION_ID SET QUESTION_PKQL=null WHERE ID=" + id;
-						this.insightsEngine.insertData(updateQ);
+						try {
+							this.insightsEngine.insertData(updateQ);
+						} catch (Exception e1) {
+							e1.printStackTrace();
+						}
 						return;
 					}
 					
@@ -391,7 +403,11 @@ public class InsightsConverter2 {
 					}
 				}
 				updateQ.append(") WHERE ID=").append(id);
-				this.insightsEngine.insertData(updateQ.toString());
+				try {
+					this.insightsEngine.insertData(updateQ.toString());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 			
 			// guess you cannot be converted
@@ -399,7 +415,11 @@ public class InsightsConverter2 {
 				LOGGER.info("ID = " + id + " IS NOT VALID PKQL INSIGHT");
 				// TODO: for right now, update the field to be null since i'm updating the logic
 				String updateQ = "UPDATE QUESTION_ID SET QUESTION_PKQL=null WHERE ID=" + id;
-				this.insightsEngine.insertData(updateQ);
+				try {
+					this.insightsEngine.insertData(updateQ);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 				return;
 			}
 		} else {
@@ -407,7 +427,11 @@ public class InsightsConverter2 {
 			LOGGER.info("ID = " + id + " IS NOT VALID PKQL INSIGHT");
 			// TODO: for right now, update the field to be null since i'm updating the logic
 			String updateQ = "UPDATE QUESTION_ID SET QUESTION_PKQL=null WHERE ID=" + id;
-			this.insightsEngine.insertData(updateQ);
+			try {
+				this.insightsEngine.insertData(updateQ);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			return;
 		}
 	}

@@ -1,5 +1,7 @@
 package prerna.test;
 
+import java.sql.SQLException;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -33,7 +35,11 @@ public final class TestUtilityMethods {
 		coreEngine.setEngineId("security");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("security", coreEngine);
-		AbstractSecurityUtils.loadSecurityDatabase();
+		try {
+			AbstractSecurityUtils.loadSecurityDatabase();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void loadAll(String propFile) {

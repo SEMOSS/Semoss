@@ -221,12 +221,18 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
 
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
-		String[] sqlTypes = createNewTable(engine, tableName, uniqueRowId, headers, types);
+		String[] sqlTypes;
+		try {
+			sqlTypes = createNewTable(engine, tableName, uniqueRowId, headers, types);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
 		logger.info("Done create table");
 		try {
 			bulkInsertFile(engine, helper, tableName, headers, types, additionalTypes, clean, logger);
 			addIndex(engine, tableName, uniqueRowId);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// ugh... gotta clean up and delete everything... TODO:
 			e.printStackTrace();
 		}
@@ -323,12 +329,18 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			String uniqueRowId = tableToInsertInto + "_UNIQUE_ROW_ID";
 
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
-			String[] sqlTypes = createNewTable(engine, tableToInsertInto, uniqueRowId, headers, types);
+			String[] sqlTypes = null;
+			try {
+				sqlTypes = createNewTable(engine, tableToInsertInto, uniqueRowId, headers, types);
+			} catch (Exception e1) {
+				e1.printStackTrace();
+				throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
 			logger.info("Done create table");
 			try {
 				bulkInsertFile(engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
 				addIndex(engine, tableToInsertInto, uniqueRowId);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				// ugh... gotta clean up and delete everything... TODO:
 				e.printStackTrace();
 			}
