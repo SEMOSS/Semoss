@@ -241,6 +241,12 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 						ExcelQueryStruct qs = new ExcelQueryStruct();
 						qs.setSheetName(sheetName);
 						qs.setSheetRange(range);
+						if (newHeaders.containsKey(sheetName)) {
+							Map<String, Map<String, String>> aNewHeadersMap = newHeaders.get(sheetName);
+							if (aNewHeadersMap.containsKey(range)) {
+								qs.setNewHeaderNames(aNewHeadersMap.get(range));
+							}
+						}
 						// sheetIterator will calculate all the types if
 						// necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
