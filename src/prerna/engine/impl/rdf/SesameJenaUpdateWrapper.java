@@ -31,10 +31,10 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.query.GraphQueryResult;
 
-import prerna.engine.api.IEngine;
-
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
+
+import prerna.engine.api.IEngine;
 
 /**
  * Insert and delete queries.  This will set the graph query result for the sesame.
@@ -87,8 +87,12 @@ public class SesameJenaUpdateWrapper {
 	public boolean execute()
 	{
 		boolean success = true;
-
-		engine.insertData(query);
+		try {
+			engine.insertData(query);
+		} catch (Exception e) {
+			success = false;
+			e.printStackTrace();
+		}
 
 		return success;
 	}

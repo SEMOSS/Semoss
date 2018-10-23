@@ -69,8 +69,12 @@ public class InsightAdministrator {
 		insertQuery.append(");");
 		
 		// now run the query and commit
-		this.insightEngine.insertData(insertQuery.toString());
-		this.insightEngine.commit();
+		try {
+			this.insightEngine.insertData(insertQuery.toString());
+			this.insightEngine.commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		// return the new rdbms id
 		return insightId;
@@ -105,8 +109,12 @@ public class InsightAdministrator {
 		updateQuery.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
 		
 		// now run the query and commit
-		this.insightEngine.insertData(updateQuery.toString());
-		this.insightEngine.commit();
+		try {
+			this.insightEngine.insertData(updateQuery.toString());
+			this.insightEngine.commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void updateInsightName(String existingRdbmsId, String insightName) {
@@ -118,7 +126,11 @@ public class InsightAdministrator {
 				.append("' WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
 	
 		// now run the query and commit
-		this.insightEngine.insertData(updateQuery.toString());
+		try {
+			this.insightEngine.insertData(updateQuery.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		this.insightEngine.commit();
 	}
 	
@@ -130,7 +142,11 @@ public class InsightAdministrator {
 		String idsString = createString(insightIDs);
 		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
 		LOGGER.info("Running drop query :::: " + deleteQuery);
-		insightEngine.removeData(deleteQuery);
+		try {
+			insightEngine.removeData(deleteQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**

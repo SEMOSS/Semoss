@@ -106,7 +106,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// i need to delete any current insights for the app
 		// before i start to insert new insights
 		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
-		securityDb.removeData(deleteQuery);
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 		// make a prepared statement
 		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(
@@ -227,7 +231,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	public static void deleteInsightsForRecreation(String appId) {
 		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
-		securityDb.removeData(deleteQuery);
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -240,13 +248,29 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			return;
 		}
 		String deleteQuery = "DELETE FROM ENGINE WHERE ENGINEID='" + appId + "'";
-		securityDb.removeData(deleteQuery);
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
-		securityDb.removeData(deleteQuery);
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID='" + appId + "'";
-		securityDb.removeData(deleteQuery);
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + appId + "'";
-		securityDb.removeData(deleteQuery);
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 
 //		//TODO: add the other tables...
 		boolean securityEnabled = Boolean.parseBoolean(DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED).toString());
@@ -275,8 +299,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static void addEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
 		String query = "INSERT INTO ENGINE (ENGINENAME, ENGINEID, TYPE, COST, GLOBAL) "
 				+ "VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(engineName) + "', '" + engineId + "', '" + engineType + "', '" + engineCost + "', " + global + ")";
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void updateEngine(String engineId, String engineName, String engineType, String engineCost, boolean global) {
@@ -286,13 +314,22 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				+ "', COST='" + engineCost 
 				+ "', GLOBAL=" + global
 				+ " WHERE ENGINEID='" + engineId + "'";
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void addEngineOwner(String engineId, String userId) {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "', TRUE);";
-		securityDb.insertData(query);
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -301,9 +338,18 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	public static void setEngineCompletelyGlobal(String engineId) {
 		String update1 = "UPDATE ENGINE SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
-		securityDb.insertData(update1);
+		try {
+			securityDb.insertData(update1);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		String update2 = "UPDATE INSIGHT SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
-		securityDb.insertData(update2);
+		try {
+			securityDb.insertData(update2);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -330,8 +376,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String nowString = java.sql.Timestamp.valueOf(now).toString();
 		String insightQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT) "
 				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + RdbmsQueryBuilder.escapeForSQLStatement(insightName) + "', " + global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "')";
-		securityDb.insertData(insightQuery);
-		securityDb.commit();
+		try {
+			securityDb.insertData(insightQuery);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -355,8 +405,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 //		} else {
 			String insightQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) "
 					+ "VALUES ('" + userId + "', '" + engineId + "', '" + insightId + "', " + 1 + ");";
-			securityDb.insertData(insightQuery);
-			securityDb.commit();
+			try {
+				securityDb.insertData(insightQuery);
+				securityDb.commit();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 //		}
 	}
 	
@@ -376,8 +430,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String nowString = java.sql.Timestamp.valueOf(now).toString();
 		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', GLOBAL=" + global + ", LASTMODIFIEDON='" + nowString 
 				+ "', LAYOUT='" + layout + "'  WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -395,8 +453,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String nowString = java.sql.Timestamp.valueOf(now).toString();
 		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', LASTMODIFIEDON='" + nowString + "' "
 				+ "WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -406,10 +468,19 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	public static void deleteInsight(String engineId, String insightId) {
 		String query = "DELETE FROM INSIGHT WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
-		securityDb.insertData(query);
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
 		query = "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -420,10 +491,19 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static void deleteInsight(String engineId, String... insightId) {
 		String insightFilter = createFilter(insightId);
 		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilter + " AND ENGINEID='" + engineId + "'";
-		securityDb.insertData(query);
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND ENGINEID='" + engineId + "'";
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////
@@ -445,7 +525,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		metaType = metaType.toLowerCase();
 		// first delete existing values
 		String deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + engineId + "' AND KEY='" + metaType + "'";
-		securityDb.removeData(deleteQuery);
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		// second set new values
 		try {
 			PreparedStatement ps = securityDb.bulkInsertPreparedStatement(new Object[]{"ENGINEMETA", "ENGINEID", "KEY", "VALUE"});
@@ -477,7 +561,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static void updateExecutionCount(String engineId, String insightId) {
 		String updateQuery = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 "
 				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "'";
-		securityDb.insertData(updateQuery);
+		try {
+			securityDb.insertData(updateQuery);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	
@@ -524,10 +613,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		for(String user : users) {
 			query = "INSERT INTO GROUPMEMBERS(GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, " + id + ", '" + user + "');";
-			securityDb.insertData(query);
+			try {
+				securityDb.insertData(query);
+				securityDb.commit();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
-		
-		securityDb.commit();
 		
 		//ADD VISIBILITY
 		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY) "
@@ -536,9 +628,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				+ "WHERE GROUPMEMBERS.GROUPID = ?1 AND GROUPMEMBERS.USERID ?2 ";
 		query = query.replace("?1", id + "");
 		query = query.replace("?2", createFilter(users));
-		securityDb.insertData(query);
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
-		securityDb.commit();
 		return true;
 	}
 	
@@ -574,8 +670,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			query = "INSERT INTO GROUPMEMBERS (GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "'), '" + userIdToAdd + "');";
 		}
 		
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 		//ADD VISIBILITY
 		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY) "
@@ -585,8 +685,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		query = query.replace("?1", groupId);
 		query = query.replace("?2", userIdToAdd);
 		
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 		return true;
 	}
@@ -627,8 +731,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
 					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
 					newUser.getProvider() + "', 'FALSE');";
-			securityDb.insertData(query);
-			securityDb.commit();
+			try {
+				securityDb.insertData(query);
+				securityDb.commit();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 			return true;
 		} else {
 			String query = "SELECT NAME FROM USER WHERE "
@@ -646,8 +754,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', "
 							+ "TYPE='" + newUser.getProvider() + "' "
 							+ "WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "';";
-					securityDb.insertData(updateQuery);
-					securityDb.commit();	
+					try {
+						securityDb.insertData(updateQuery);
+						securityDb.commit();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
 			}finally {
 				wrapper.cleanUp();
@@ -668,8 +780,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
 		if(!isNewUser) {			
 			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', '" + ADMIN_ADDED_USER + "', " + admin + ");";
-			securityDb.insertData(query);
-			securityDb.commit();
+			try {
+				securityDb.insertData(query);
+				securityDb.commit();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return false;
+			}
 			return true;
 		} else {
 			return false;
@@ -736,7 +853,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		query = query.replace("?1", engineId);
 		query = query.replace("?2", userId);
 		
-		System.out.println("Executing security query: " + query);
 		if(securityDb.execUpdateAndRetrieveStatement(query, true) != null){
 			securityDb.commit();
 		} else {
@@ -754,14 +870,16 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return true
 	 */
 	public static Boolean setPermissionsForGroup(String groupId, String engineId, EnginePermission permission) {
-		
 		String query = "INSERT INTO GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID, ENGINE, GROUPID, PERMISSION) VALUES (NULL,'?1', '?2', '?3')";
 		query = query.replace("?1", engineId);
 		query = query.replace("?2", groupId);
 		query = query.replace("?3", permission.getId() + "");
-		System.out.println("Executing security query: " + query);
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 		//ADD VISIBILITY
 		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY)  "
@@ -770,9 +888,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				+ "WHERE GROUPENGINEPERMISSION.GROUPID = '?1' AND GROUPENGINEPERMISSION.ENGINE = '?2'";
 		query = query.replace("?1", groupId);
 		query = query.replace("?2", engineId);
-		System.out.println("Executing security query: " + query);
-		securityDb.insertData(query);
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 		return true;
 	}
@@ -782,10 +903,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		query = query.replace("?1", engineId);
 		query = query.replace("?2", userToAdd);
 		query = query.replace("?3", permission.getId() + "");
-		System.out.println("Executing security query: " + query);
-		securityDb.insertData(query);
-		
-		securityDb.commit();
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		
 		return true;
 	}

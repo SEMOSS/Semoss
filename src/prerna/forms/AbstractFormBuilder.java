@@ -127,7 +127,11 @@ public abstract class AbstractFormBuilder {
 			createAuditTable.append(")");
 			String query = createAuditTable.toString();
 			LOGGER.info("SQL SCRIPT >>> " + query);
-			this.formEng.insertData(query);
+			try {
+				this.formEng.insertData(query);
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
 			owler.commit();
 			try {
 				owler.export();
@@ -163,7 +167,11 @@ public abstract class AbstractFormBuilder {
 			if(colsToAdd.size() > 0) {
 				String alterQuery = RdbmsQueryBuilder.makeAlter(auditLogTableName, colsToAdd.toArray(new String[] {}), colsToAddTypes.toArray(new String[] {}));
 				LOGGER.info("ALTERING TABLE: " + alterQuery);
-				this.formEng.insertData(alterQuery);
+				try {
+					this.formEng.insertData(alterQuery);
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
 				LOGGER.info("DONE ALTER TABLE");
 				
 				owler.commit();
@@ -239,7 +247,11 @@ public abstract class AbstractFormBuilder {
 						.append(cleanUser).append(valuesBreak).append(action).append(valuesBreak).append(startNode).append(valuesBreak)
 						.append(relName).append(valuesBreak).append(endNode).append(valuesBreak).append(propName).append(valuesBreak)
 						.append(propValue).append(valuesBreak).append(timeStamp).append("')");
-		this.formEng.insertData(insertLogStatement.toString());
+		try {
+			this.formEng.insertData(insertLogStatement.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void setUser(String user) {

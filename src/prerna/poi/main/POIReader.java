@@ -974,7 +974,11 @@ public class POIReader extends AbstractFileReader {
 					if(cols.size() == 2) {
 						String insert = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + 
 								") VALUES ( '" + cells[setter] + "' , '" + cells[inserter] + "')";
-						engine.insertData(insert);
+						try {
+							engine.insertData(insert);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					} else {
 						// need to generate query to pull all existing information
 						// then append the new relationship
@@ -1015,13 +1019,21 @@ public class POIReader extends AbstractFileReader {
 						selectingValues.append(" FROM ").append(tableToSet).append(",");
 
 						String insert = "INSERT INTO " + tableToSet + "(" + colsToSelect + " ) " + selectingValues.toString() + existingValues;
-						engine.insertData(insert);
+						try {
+							engine.insertData(insert);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 					}
 				} else {
 					// this is a nice and simple insert
 					String updateString = "Update " + tableToSet + "  SET ";
 					String values = tableToInsert +  "_FK" + " = '" + cells[inserter] + "' WHERE " + tableToSet + " = '" + cells[setter] + "'";
-					engine.insertData(updateString + values);
+					try {
+						engine.insertData(updateString + values);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 			}
 			relsAdded.add(tableToInsert +  "_FK");
@@ -1035,7 +1047,11 @@ public class POIReader extends AbstractFileReader {
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
 		String dropIndex = queryUtil.getDialectDropIndex(indexName, cleanTableKey);//"DROP INDEX " + indexName;
 		if(tempIndexAddedList.size() == 0 ){
-			engine.insertData(createIndex);
+			try {
+				engine.insertData(createIndex);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			tempIndexAddedList.add(indexOnTable);
 			tempIndexDropList.add(dropIndex);
 			indexUniqueId++;
@@ -1049,7 +1065,11 @@ public class POIReader extends AbstractFileReader {
 
 			}
 			if(!indexAlreadyExists){
-				engine.insertData(createIndex);
+				try {
+					engine.insertData(createIndex);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 				tempIndexDropList.add(dropIndex);
 				tempIndexAddedList.add(indexOnTable);
 				indexUniqueId++;

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
+import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
@@ -105,7 +106,11 @@ public class ClusterEngine extends AbstractEngine {
 		for (String insightBuilderQuery : insightBuilderQueries)
 		{
 			logger.info("running query " +  insightBuilderQuery);
-			this.insightRDBMS.insertData(insightBuilderQuery);
+			try {
+				this.insightRDBMS.insertData(insightBuilderQuery);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 		
 //		con = engine.getInsightDB();

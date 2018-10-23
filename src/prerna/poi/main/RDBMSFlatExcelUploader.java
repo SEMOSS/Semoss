@@ -531,7 +531,11 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		}
 		queryBuilder.append(")");
 		LOGGER.info("CREATE TABLE QUERY : " + queryBuilder.toString());
-		this.engine.insertData(queryBuilder.toString());
+		try {
+			this.engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		newTables.put(TABLE_NAME, UNIQUE_ROW_ID);
 	}
@@ -649,7 +653,11 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 	protected void addColumnIndex(String tableName, String colName) {
 		String indexName = colName + "_INDEX" ;
 		String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
-		engine.insertData(indexSql);
+		try {
+			engine.insertData(indexSql);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
