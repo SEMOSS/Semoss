@@ -206,38 +206,53 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	 */
 	public Map<String, Set<String>> generateEdgeMap() {
 		Map<String, Set<String>> edgeMap = new Hashtable<String, Set<String>>();
-		Map<String, Map<String, List>> rels = qs.getRelations();
 		// add the relationships into the edge map
-		if (!rels.isEmpty()) {
-			Set<String> relKeys = rels.keySet();
-			// looping through the start node of the relationship
-			for (String startNode : relKeys) {
-				Map<String, List> comps = rels.get(startNode);
-				// TODO: currently going to not care about the type of join
-				// assume everything is an inner join for simplicity
-				Set<String> compKeys = comps.keySet();
-				for (String comp : compKeys) {
-					// this is the end node of the relationship
-					List<String> endNodes = comps.get(comp);
-
-					Set<String> joinSet = new HashSet<String>();
-					for (String node : endNodes) {
-						// we may be using joins and not outputting the values
-						// so we will add a fake alias so we dont need to check if alias exists 
-						// when we traverse the map
-						joinSet.add(node);
-					}
-
-					if (edgeMap.containsKey(startNode)) {
-						Set<String> currSet = edgeMap.get(startNode);
-						currSet.addAll(joinSet);
-					} else {
-						// need to get rid of "__"
-						edgeMap.put(startNode, joinSet);
-					}
-				}
+		Set<String[]> relations = qs.getRelations();
+		for(String[] rel : relations) {
+			String startNode = rel[0];
+			String endNode = rel[2];
+			
+			Set<String> joinSet = null;
+			if(edgeMap.containsKey(startNode)) {
+				joinSet = edgeMap.get(startNode);
+			} else {
+				joinSet = new HashSet<String>();
+				edgeMap.put(startNode, joinSet);
 			}
+			joinSet.add(endNode);
 		}
+//		Map<String, Map<String, List>> rels = qs.getRelations();
+//		// add the relationships into the edge map
+//		if (!rels.isEmpty()) {
+//			Set<String> relKeys = rels.keySet();
+//			// looping through the start node of the relationship
+//			for (String startNode : relKeys) {
+//				Map<String, List> comps = rels.get(startNode);
+//				// TODO: currently going to not care about the type of join
+//				// assume everything is an inner join for simplicity
+//				Set<String> compKeys = comps.keySet();
+//				for (String comp : compKeys) {
+//					// this is the end node of the relationship
+//					List<String> endNodes = comps.get(comp);
+//
+//					Set<String> joinSet = new HashSet<String>();
+//					for (String node : endNodes) {
+//						// we may be using joins and not outputting the values
+//						// so we will add a fake alias so we dont need to check if alias exists 
+//						// when we traverse the map
+//						joinSet.add(node);
+//					}
+//
+//					if (edgeMap.containsKey(startNode)) {
+//						Set<String> currSet = edgeMap.get(startNode);
+//						currSet.addAll(joinSet);
+//					} else {
+//						// need to get rid of "__"
+//						edgeMap.put(startNode, joinSet);
+//					}
+//				}
+//			}
+//		}
 		//		else {
 		//			// this occurs when there are no relationships defined...
 		//			// example is when you are only going for one column of data
