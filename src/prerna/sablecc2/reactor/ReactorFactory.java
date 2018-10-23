@@ -889,7 +889,6 @@ public class ReactorFactory {
 		rFrameHash.put("ChangeColumnType", prerna.sablecc2.reactor.frame.r.ChangeColumnTypeReactor.class);
 		rFrameHash.put("CountIf", prerna.sablecc2.reactor.frame.r.CountIfReactor.class);
 		rFrameHash.put("Collapse", prerna.sablecc2.reactor.frame.r.CollapseReactor.class);
-		rFrameHash.put("CollisionResolver", prerna.sablecc2.reactor.frame.r.CollisionResolverReactor.class);
 		rFrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.r.DropColumnReactor.class);
 		rFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.r.DropRowsReactor.class);
 		rFrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.r.DuplicateColumnReactor.class);
