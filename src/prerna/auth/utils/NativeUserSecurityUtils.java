@@ -1,5 +1,6 @@
 package prerna.auth.utils;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,8 +32,13 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('" + newUser.getEmail() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE', "
 					+ "'" + hashedPassword + "', '" + salt + "');";
 			
-			securityDb.insertData(query);
-			securityDb.commit();
+			try {
+				securityDb.insertData(query);
+				securityDb.commit();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return false;
+			}
 			return true;
 		} else {
 			return false;

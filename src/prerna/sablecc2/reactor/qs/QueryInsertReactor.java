@@ -22,6 +22,7 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
@@ -129,7 +130,14 @@ public class QueryInsertReactor extends AbstractReactor {
 			String query = initial + valuesSb.toString();
 			System.out.println("SQL QUERY...." + query);
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
-				engine.insertData(query);
+				try {
+					engine.insertData(query);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(
+							new NounMetadata("An error occured trying to insert new records in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+
+				}
 				AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
 				audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 			} else {
@@ -137,6 +145,8 @@ public class QueryInsertReactor extends AbstractReactor {
 					((H2Frame) frame).getBuilder().runQuery(query);
 				} catch (Exception e) {
 					e.printStackTrace();
+					throw new SemossPixelException(
+							new NounMetadata("An error occured trying to insert new records in the frame", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 			}
 		}

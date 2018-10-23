@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -73,7 +74,11 @@ public class AppNameRecipeModifier {
 					updateQuery.append(InsightAdministrator.getArraySqlSyntax(newPixels));
 					updateQuery.append(" WHERE ID='").append(rdbmsId).append("'");
 
-					rne.insertData(updateQuery.toString());
+					try {
+						rne.insertData(updateQuery.toString());
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
