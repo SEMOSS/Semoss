@@ -740,7 +740,11 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 			sqlQuery += ";";
 		}
 		// scriptFile.println(sql);
-		engine.insertData(sqlQuery);
+		try {
+			engine.insertData(sqlQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	private Object getProperlyFormatedForQuery(String colName, Object value, String type) {

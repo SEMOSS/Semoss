@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -615,7 +616,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 				}
 
 				values = values + ")";
-				engine.insertData(inserter + values);
+				try {
+					engine.insertData(inserter + values);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -725,7 +730,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 					if(cols.size() == 2) {
 						String insert = "INSERT INTO " + tableToSet + "(" + tableToSet + " ," +  tableToInsert + "_FK" + 
 								") VALUES ( '" + cells[setter] + "' , '" + cells[inserter] + "')";
-						engine.insertData(insert);
+						try {
+							engine.insertData(insert);
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
 					} else {
 						// need to generate query to pull all existing information
 						// then append the new relationship
@@ -766,13 +775,21 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 						selectingValues.append(" FROM ").append(tableToSet).append(",");
 
 						String insert = "INSERT INTO " + tableToSet + "(" + colsToSelect + " ) " + selectingValues.toString() + existingValues;
-						engine.insertData(insert);
+						try {
+							engine.insertData(insert);
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
 					}
 				} else {
 					// this is a nice and simple insert
 					String updateString = "Update " + tableToSet + "  SET ";
 					String values = tableToInsert +  "_FK" + " = '" + cells[inserter] + "' WHERE " + tableToSet + " = '" + cells[setter] + "'";
-					engine.insertData(updateString + values);
+					try {
+						engine.insertData(updateString + values);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 			relsAdded.add(tableToInsert +  "_FK");
@@ -888,7 +905,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 		// "DROP INDEX " + indexName;
 		String dropIndex = queryUtil.getDialectDropIndex(indexName, cleanTableKey);
 		if (tempIndexAddedList.size() == 0) {
-			engine.insertData(createIndex);
+			try {
+				engine.insertData(createIndex);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 			tempIndexAddedList.add(indexOnTable);
 			tempIndexDropList.add(dropIndex);
 			indexUniqueId++;
@@ -903,7 +924,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 
 			}
 			if (!indexAlreadyExists) {
-				engine.insertData(createIndex);
+				try {
+					engine.insertData(createIndex);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 				tempIndexDropList.add(dropIndex);
 				tempIndexAddedList.add(indexOnTable);
 				indexUniqueId++;

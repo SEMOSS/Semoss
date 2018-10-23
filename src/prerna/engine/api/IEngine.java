@@ -87,14 +87,15 @@ public interface IEngine extends IExplorable {
 	 * Runs the passed string query against the engine as an insert query. Query must be in the structure that the specific engine implementation
 	 * requires
 	 * @param query the insert query to be run against the engine
+	 * @throws  
 	 */
-	public void insertData(String query);
+	public void insertData(String query) throws Exception;
 	
 	/**
 	 * Runs a delete query on the database
 	 * @param query delete query
 	 */
-	public void removeData(String query);
+	public void removeData(String query) throws Exception;
 	
 	/**
 	 * Commit the database. Commits the active transaction.  This operation ends the active transaction. Saves the db to a file

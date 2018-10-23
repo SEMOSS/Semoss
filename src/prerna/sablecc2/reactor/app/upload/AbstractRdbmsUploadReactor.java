@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.app.upload;
 
+import java.io.IOException;
+
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
@@ -53,8 +55,9 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * @param tableName
 	 * @param headers
 	 * @param types
+	 * @throws IOException 
 	 */
-	protected String[] createNewTable(IEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types) {
+	protected String[] createNewTable(IEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types) throws Exception {
 		// we need to add the identity column
 		int size = types.length;
 		String[] sqlTypes = new String[size + 1];
@@ -88,8 +91,9 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * @param engine
 	 * @param tableName
 	 * @param columnName
+	 * @throws IOException 
 	 */
-	protected void addIndex(IEngine engine, String tableName, String columnName) {
+	protected void addIndex(IEngine engine, String tableName, String columnName) throws Exception {
 		String indexName = columnName.toUpperCase() + "_INDEX";
 		String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + columnName.toUpperCase() + ")";
 		engine.insertData(indexSql);

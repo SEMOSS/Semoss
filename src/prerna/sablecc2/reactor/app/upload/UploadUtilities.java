@@ -822,7 +822,11 @@ public class UploadUtilities {
 				+ "HIDDEN_INSIGHT BOOLEAN, "
 				+ "QUESTION_PKQL ARRAY)";
 
-		insightEngine.insertData(questionTableCreate);
+		try {
+			insightEngine.insertData(questionTableCreate);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 
 		// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
 		String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
@@ -838,13 +842,21 @@ public class UploadUtilities {
 				+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
 				+ "QUESTION_ID_FK INT)";
 
-		insightEngine.insertData(parameterTableCreate);
+		try {
+			insightEngine.insertData(parameterTableCreate);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 
 		String feTableCreate = "CREATE TABLE UI ("
 				+ "QUESTION_ID_FK INT, "
 				+ "UI_DATA CLOB)";
 
-		insightEngine.insertData(feTableCreate);
+		try {
+			insightEngine.insertData(feTableCreate);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 
 		return insightEngine;
 	}
