@@ -119,7 +119,7 @@ public class NoOuterJoinSqlInterpreter extends AbstractQueryInterpreter {
 		
 		//if there are no outer joins requested, then call the SQL interpreter instead
 		
-		boolean outerJoinsRequested = qs.getRelationsSet().stream().anyMatch(s -> s[1].equalsIgnoreCase("outer.join"));
+		boolean outerJoinsRequested = qs.getRelations().stream().anyMatch(s -> s[1].equalsIgnoreCase("outer.join"));
 		if(!outerJoinsRequested) {
 			SqlInterpreter interp = new SqlInterpreter(this.engine);
 			interp.setQueryStruct(this.qs);
@@ -393,7 +393,7 @@ public class NoOuterJoinSqlInterpreter extends AbstractQueryInterpreter {
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
-		Set<String[]> relationsSet = qs.getRelationsSet();
+		Set<String[]> relationsSet = qs.getRelations();
 		for (String[] eachRelation : relationsSet){
 			String startConceptProperty = eachRelation[0];
 			String comparator = eachRelation[1];

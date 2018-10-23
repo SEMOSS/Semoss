@@ -396,7 +396,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
-		for(String[] relationsData : qs.getRelationsSet()) {
+		for(String[] relationsData : qs.getRelations()) {
 			addJoin(relationsData[0], relationsData[1], relationsData[2]);
 		}
 	}
@@ -931,7 +931,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
 				// either instantiate the string builder or add a comma for multi sort
 				thisOrderBy.append("\"").append(tableConceptualName).append("\"");
-			} 
+			}
 			// we need to make sure the sort is a valid one!
 			// if it is not already processed, there is no way to sort it...
 			else if(this.retTableToCols.containsKey(tableConceptualName)){

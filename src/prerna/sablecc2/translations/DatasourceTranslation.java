@@ -110,19 +110,27 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 						uniqueCols.addAll(f.getAllQueryStructColumns());
 					}
 					// add all joins
-					Map<String, Map<String, List>> relations = inputQs.getRelations();
-					for(String up : relations.keySet()) {
-						// store the up node
+					Set<String[]> rels = inputQs.getRelations();
+					for(String[] rel : rels) {
+						String up = rel[0];
+						String down = rel[2];
 						uniqueCols.add(up);
-						Map<String, List> inner = relations.get(up);
-						for(String jType : inner.keySet()) {
-							List<String> downList = inner.get(jType);
-							for(String down : downList) {
-								// store the down node
-								uniqueCols.add(down);
-							}
-						}
+						uniqueCols.add(down);
 					}
+//					Map<String, Map<String, List>> relations = inputQs.getRelations();
+//					for(String up : relations.keySet()) {
+//						// store the up node
+//						uniqueCols.add(up);
+//						Map<String, List> inner = relations.get(up);
+//						for(String jType : inner.keySet()) {
+//							List<String> downList = inner.get(jType);
+//							for(String down : downList) {
+//								// store the down node
+//								uniqueCols.add(down);
+//							}
+//						}
+//					}
+					
 					// we have the list of columns that we would want to find equiv.
 					// for that are used in the import
 					// wrap in list to hold structure

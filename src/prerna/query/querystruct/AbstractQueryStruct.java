@@ -1,9 +1,6 @@
 package prerna.query.querystruct;
 
-import java.util.Hashtable;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -56,14 +53,8 @@ public abstract class AbstractQueryStruct {
 	protected GenRowFilters havingFilters = new GenRowFilters();
 	
 	// For joins
-	//Hashtable <String, Hashtable<String, Vector>> orfilters = new Hashtable<String, Hashtable<String, Vector>>();
-	// relations are of the form
-	// item = <relation vector>
-	// concept = type of join toCol
-	// Movie	 InnerJoin Studio, Genre
-	//			 OuterJoin Nominated
-	protected Map<String, Map<String, List>> relations = new Hashtable<String, Map<String, List>>();
-	protected Set<String[]> relationsSet = new LinkedHashSet<String[]>();
+	// we keep a set of start, comparator, end
+	protected Set<String[]> relationsSet = new RelationSet();
 	
 	protected boolean overrideImplicit = false;
 
@@ -176,50 +167,16 @@ public abstract class AbstractQueryStruct {
 	
 	//////////////////////////////////////////// JOINING ////////////////////////////////////////////////////
 
-	public void setRelations(Map<String, Map<String, List>> relations) {
-		this.relations = relations;
-	}
-	
-	public void addRelation(String fromConcept, String toConcept, String joinType) {
-		// I need pick the keys from the table based on relationship and then add that to the relation
-		// need to figure out type of 
-		// find if this property is there
-		// ok if the logical name stops being unique this will have some weird results
-		
-		
-		Map <String, List> compHash = new Hashtable<String, List>();
-		if(relations.containsKey(fromConcept))
-			compHash = relations.get(fromConcept);
-		
-		List curData = new Vector();
-		// next piece is to see if we have the comparator
-		if(compHash.containsKey(joinType)) {
-			curData = compHash.get(joinType);
-		}
-		
-		curData.add(toConcept);
-		
-		// put it back
-		compHash.put(joinType, curData);	
-		
-		// put it back
-		relations.put(fromConcept, compHash);
-	}
-	
-	public Map<String, Map<String, List>> getRelations(){
-		return this.relations;
-	}
-	
-	public void setRelationSet(Set<String[]> relationSet) {
+	public void setRelations(Set<String[]> relationSet) {
 		this.relationsSet = relationSet;
 	}
 	
-	public void addRelationToSet(String fromConcept, String toConcept, String joinType) {
+	public void addRelation(String fromConcept, String toConcept, String joinType) {
 		String[] eachSet = new String[]{fromConcept, joinType, toConcept};
 		relationsSet.add(eachSet);
 	}
 	
-	public Set<String[]> getRelationsSet(){
+	public Set<String[]> getRelations(){
 		return this.relationsSet;
 	}
 	
@@ -288,7 +245,6 @@ public abstract class AbstractQueryStruct {
 		mergeExplicitFilters(incomingQS.explicitFilters);
 		mergeImplicitFilters(incomingQS.implicitFilters);
 		mergeHavingFilters(incomingQS.havingFilters);
-		mergeRelations(incomingQS.relations);
 		mergeRelations(incomingQS.relationsSet);
 		if(incomingQS.getEngineId() != null) {
 			setEngineId(incomingQS.getEngineId());
@@ -340,57 +296,5 @@ public abstract class AbstractQueryStruct {
 	
 	public void mergeRelations(Set<String[]> relationSet) {
 		this.relationsSet.addAll(relationSet);
-	}
-	
-	/**
-	 * 
-	 * @param incomingRelations
-	 * merges incomingRelations with this relations
-	 */
-	public void mergeRelations(Map<String, Map<String, List>> incomingRelations) {
-		
-		//for each concept in the new relations
-		for(String conceptName : incomingRelations.keySet()) {
-			
-			//Grab the relationships for that concept
-			Map<String, List> incomingHash = incomingRelations.get(conceptName);
-			
-			//if we already have relationships for the same concept we need to merge
-			if(this.relations.containsKey(conceptName)) {
-				
-				//grab this relations for concept
-				Map<String, List> thisHash = this.relations.get(conceptName);
-				
-				//relationKey is inner.join, outer.join, etc.
-				//so we want to merge relationships that have the same relationKey
-				for(String relationKey : incomingHash.keySet()) {
-					List v;
-					if(thisHash.containsKey(relationKey)) {
-						v = thisHash.get(relationKey);
-					} else {
-						v = new Vector();
-					}
-					
-					//merge the this vector with new data and add to thisHash
-					List mergeList = incomingHash.get(relationKey);
-					for(Object newRel : mergeList) {
-						if(!v.contains(newRel)) {
-							v.add(newRel);
-						}
-					}
-					thisHash.put(relationKey, v);
-				}
-			} else {
-				
-				//we don't have the relationship described in the incoming relations so just copy them to this relations
-				Map<String, List> newHash = new Hashtable<>();
-				for(String relationKey : incomingHash.keySet()) {
-					List v = new Vector();
-					v.addAll(incomingHash.get(relationKey));
-					newHash.put(relationKey, v);
-				}
-				this.relations.put(conceptName, newHash);
-			}
-		}
 	}
 }
