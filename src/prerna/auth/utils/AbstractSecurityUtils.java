@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.File;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,7 +40,7 @@ public abstract class AbstractSecurityUtils {
 		
 	}
 	
-	public static void loadSecurityDatabase() {
+	public static void loadSecurityDatabase() throws SQLException {
 		securityDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
 		initialize();
 		
@@ -127,7 +128,7 @@ public abstract class AbstractSecurityUtils {
 		return false;
 	}
 	
-	public static void initialize() {
+	public static void initialize() throws SQLException {
 		String[] colNames = null;
 		String[] types = null;
 		Object[] defaultValues = null;

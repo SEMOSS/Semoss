@@ -1117,7 +1117,11 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			sql+= ";";
 		}
 //		scriptFile.println(sql);
-		engine.insertData(sql);	
+		try {
+			engine.insertData(sql);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}	
 	}
 	
 	/**

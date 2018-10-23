@@ -18,6 +18,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -38,7 +39,6 @@ public class ExecQueryReactor extends AbstractReactor {
 		IEngine engine = null;
 		ITableDataFrame frame = null;
 		AbstractQueryStruct qs = null;
-		boolean success = false;
 
 		if(qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
@@ -81,8 +81,13 @@ public class ExecQueryReactor extends AbstractReactor {
 		
 		System.out.println("SQL QUERY...." + query);
 		if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
-			engine.insertData(query);
-			success = true;
+			try {
+				engine.insertData(query);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(
+						new NounMetadata("An error occured trying to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
 			AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
 			if(update) {
 				audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
@@ -92,14 +97,15 @@ public class ExecQueryReactor extends AbstractReactor {
 		} else {
 			try {
 				((H2Frame) frame).getBuilder().runQuery(query);
-				success = true;
 			} catch (Exception e) {
-				success = false;
 				e.printStackTrace();
+				throw new SemossPixelException(
+						new NounMetadata("An error occured trying to update the frame", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+
 			}
 		}
 		
-		return new NounMetadata(success, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
 	
 	private NounMetadata getQueryStruct() {

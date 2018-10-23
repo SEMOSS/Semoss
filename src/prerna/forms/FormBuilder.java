@@ -1,8 +1,6 @@
 package prerna.forms;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -17,8 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.commons.io.IOUtils;
-import org.h2.jdbc.JdbcClob;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
@@ -52,107 +48,6 @@ public final class FormBuilder {
 
 	}
 
-	public static List<Map<String, String>> getStagingData(IEngine formBuilderEng, String formTableName) {
-		String sqlQuery = "SELECT ID, USER_ID, DATE_ADDED, DATA FROM " + formTableName;
-
-		List<Map<String, String>> results = new ArrayList<Map<String, String>>();
-
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(formBuilderEng, sqlQuery);
-		String[] names = wrapper.getVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			Map<String, String> row = new HashMap<String, String>();
-			row.put("id",  ss.getVar(names[0]) + "");
-			row.put("userId", ss.getVar(names[1]) + "");
-			row.put("dateAdded", ss.getVar(names[2]) + "");
-			JdbcClob obj = (JdbcClob) ss.getRawVar(names[3]);
-
-			InputStream insightDefinition = null;
-			try {
-				insightDefinition = obj.getAsciiStream();
-				row.put("data", IOUtils.toString(insightDefinition));
-			} catch (SQLException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			results.add(row);
-		}
-
-		return results;
-	}
-
-	public static void deleteFromStaggingArea(IEngine formBuilderEng, String formName, String[] formIds) {
-		formName = RDBMSEngineCreationHelper.cleanTableName(formName);
-		formName = RDBMSEngineCreationHelper.escapeForSQLStatement(formName);
-		String idsString = createIdString(formIds);
-		String deleteQuery = "DELETE FROM " + formName + " WHERE ID IN " + idsString;
-		formBuilderEng.removeData(deleteQuery);
-		formBuilderEng.commit();
-	}
-
-	private static String createIdString(String... ids){
-		String idsString = "(";
-		for(String id : ids){
-			idsString = idsString + "'" + id + "', ";
-		}
-		idsString = idsString.substring(0, idsString.length() - 2) + ")";
-
-		return idsString;
-	}
-
-	/**
-	 * 
-	 * @param formData the stringified JSON of the form data to save
-	 * @param jsonLoc the file name and path
-	 * @return
-	 * @throws IOException
-	 * 
-	 * 
-	 */
-	public static void saveForm(IEngine formBuilderEng, String formName, String formLocation) throws IOException {
-		// clean table name
-		formName = RDBMSEngineCreationHelper.escapeForSQLStatement(formName);
-		String formStorage = RDBMSEngineCreationHelper.cleanTableName(formName);
-		formStorage = RDBMSEngineCreationHelper.escapeForSQLStatement(formStorage);
-		formLocation = RDBMSEngineCreationHelper.escapeForSQLStatement(formLocation);
-		// make sure table name doesn't exist
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(formBuilderEng, "select count(*) from information_schema.tables where table_name = '" + formStorage + "'");
-		if(wrapper.hasNext() ){
-			Object[] data = wrapper.next().getValues();
-			if( (int) data[0] != 0) {
-				throw new IOException("Form name already exists. Please modify the form name.");
-			}
-		}
-
-		//add form location into formbuilder db
-		String insertMetadata = "INSERT INTO FORM_METADATA (FORM_NAME, FORM_TABLE, FORM_LOCATION) VALUES('" + formName + "', '" + formStorage + "', '" + formLocation + "')";
-		formBuilderEng.insertData(insertMetadata);
-		//create new table to store values for form name
-		String createFormTable = "CREATE TABLE " + formStorage + " (ID INT, USER_ID VARCHAR(225), DATE_ADDED TIMESTAMP, DATA CLOB)";
-		formBuilderEng.insertData(createFormTable);
-		formBuilderEng.commit();
-	}
-
-	public static void saveFormData(IEngine formBuilderEng, String formTableName, String userId, String formData) {
-		Calendar cal = Calendar.getInstance();
-		String currTime = DATE_DF.format(cal.getTime());
-
-		String getLastIdQuery = "SELECT DISTINCT ID FROM " + formTableName + " ORDER BY ID DESC";
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(formBuilderEng, getLastIdQuery);
-		String retName = wrapper.getVariables()[0];
-		Integer lastIdNum = 0;
-		if(wrapper.hasNext()){ // need to call hasNext before you call next()
-			lastIdNum = (int) wrapper.next().getVar(retName);
-		}
-		lastIdNum++;
-
-		String insertSql = "INSERT INTO " + formTableName + " (ID, USER_ID, DATE_ADDED, DATA) VALUES("
-				+ "'" + lastIdNum + "', '" + RDBMSEngineCreationHelper.escapeForSQLStatement(userId) + "', '" + currTime + "', '" + RDBMSEngineCreationHelper.escapeForSQLStatement(formData) + "')";
-		formBuilderEng.insertData(insertSql);
-		formBuilderEng.commit();
-	}
-
 	/**
 	 * 
 	 * @param form
@@ -174,7 +69,11 @@ public final class FormBuilder {
 		}
 		if(!auditTableExists) {
 			String createAuditTable = "CREATE TABLE " + auditLogTableName + " (ID IDENTITY, USER VARCHAR(255), ACTION VARCHAR(100), START_NODE VARCHAR(255), REL_NAME VARCHAR(255), END_NODE VARCHAR(255), PROP_NAME VARCHAR(255), PROP_VALUE CLOB, TIME TIMESTAMP)";
-			formEng.insertData(createAuditTable);
+			try {
+				formEng.insertData(createAuditTable);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		
 		String semossBaseURI = "http://semoss.org/ontologies";
@@ -885,7 +784,11 @@ public final class FormBuilder {
 				String updateQuery = createUpdateStatement(tableName, tableColumn, tableValue, propNames, propValues, types);
 				//TODO: need to enable modifying the actual instance name as opposed to only its properties.. this would set the updateQuery to never return back an empty string
 				if(!updateQuery.isEmpty()) {
-					engine.insertData(updateQuery);
+					try {
+						engine.insertData(updateQuery);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 					if(!tablesToRemoveDuplicates.contains(tableName)) {
 						tablesToRemoveDuplicates.add(tableName);
 						colsForTablesToRemoveDuplicates.add(tableColumn);
@@ -893,7 +796,11 @@ public final class FormBuilder {
 				}
 			} else {
 				String insertQuery = createInsertStatement(tableName, tableColumn, tableValue, propNames, propValues, types);
-				engine.insertData(insertQuery);
+				try {
+					engine.insertData(insertQuery);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 
@@ -1021,7 +928,11 @@ public final class FormBuilder {
 		StringBuilder queryBuilder = new StringBuilder();
 		// override all current values that exist for the relationship to the foreign key
 		queryBuilder.append("DELETE FROM ").append(table).append(" WHERE ").append(foreignKeyCol).append("='").append(foreignKeyVal).append("'");
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		// insert the new relationship
 		addRDBMSRelationship(engine, table, conceptCol, conceptVal, foreignKeyCol, foreignKeyVal, tableColTypesHash);
@@ -1037,26 +948,46 @@ public final class FormBuilder {
 		// create a new temp table for the specific instance
 		queryBuilder.append("CREATE TABLE ").append(table).append(TEMP_EXTENSION).append(" AS (SELECT DISTINCT * FROM ")
 					.append(table).append(" WHERE ").append(conceptCol).append("='").append(conceptVal).append("')");
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		// set all the values in the foreign key column to the new value we are adding
 		queryBuilder.append("UPDATE ").append(table).append(TEMP_EXTENSION).append(" SET " ).append(foreignKeyCol).append("='").append(foreignKeyVal)
 					.append("' WHERE ").append(conceptCol).append("='").append(conceptVal).append("';");
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		// remove the duplicated
 		removeDuplicates(engine, table + TEMP_EXTENSION, conceptCol);
 		// delete all the current values for the instance from the table 
 		queryBuilder.append("DELETE FROM ").append(table).append(" WHERE ").append(foreignKeyCol).append("='").append(foreignKeyVal).append("'");
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		// add all the values from the temp table into the table we care about
 		queryBuilder.append("INSERT INTO ").append(table).append(" SELECT * FROM ").append(table).append(TEMP_EXTENSION);
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		// drop the temp table
 		queryBuilder.append("DROP TABLE ").append(table).append(TEMP_EXTENSION);
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private static void addRDBMSRelationship(IEngine engine, String table, String conceptCol, String conceptVal, 
@@ -1069,7 +1000,11 @@ public final class FormBuilder {
 			StringBuilder queryBuilder = new StringBuilder();
 			queryBuilder.append("INSERT INTO ").append(table.toUpperCase()).append(" (" ).append(conceptCol).append(", ").append(foreignKeyCol)
 					.append(") VALUES ('").append(conceptVal).append("', '").append(foreignKeyCol).append("')");
-			engine.insertData(queryBuilder.toString());
+			try {
+				engine.insertData(queryBuilder.toString());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -1097,27 +1032,47 @@ public final class FormBuilder {
 		// create a new temp table that is the unique set of all columns for the specific instance excluding other foreign key values
 		queryBuilder.append("CREATE TABLE ").append(table).append(TEMP_EXTENSION).append(" AS (SELECT DISTINCT ").append(cols.toString())
 					.append(" FROM ").append(table).append(" WHERE ").append(conceptCol).append("='").append(conceptVal).append("')");
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		// alter the table to add a column for the new foreign key value we are adding
 		queryBuilder.append("ALTER TABLE ").append(table).append(TEMP_EXTENSION).append(" ADD ").append(foreignKeyCol).append(" ").append(foreignKeyType);
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		// set all the values in the foreign key column to the new value we are adding
 		queryBuilder.append("UPDATE ").append(table).append(TEMP_EXTENSION).append(" SET " ).append(foreignKeyCol).append("='").append(foreignKeyVal)
 					.append("' WHERE ").append(conceptCol).append("='").append(conceptVal).append("';");
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		//TODO: is it possible to have duplicates at this point????
 		// remove the duplicated
 		removeDuplicates(engine, table + TEMP_EXTENSION, conceptCol);
 		// add all the values from the temp table into the table we care about
 		queryBuilder.append("INSERT INTO ").append(table).append("(").append(cols).append(", ").append(foreignKeyCol).append(")").append(" SELECT * FROM ").append(table).append(TEMP_EXTENSION);
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		// drop the temp table
 		queryBuilder.append("DROP TABLE ").append(table).append(TEMP_EXTENSION);
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private static void removeDuplicates(IEngine engine, List<String> tablesToRemoveDuplicates, List<String> colsForTablesToRemoveDuplicates) {
@@ -1136,13 +1091,25 @@ public final class FormBuilder {
 		queryBuilder.append("CREATE TABLE ").append(tableName).append(TEMP_EXTENSION).append(" AS (SELECT DISTINCT * FROM ")
 					.append(tableName).append(" WHERE ").append(colName).append(" IS NOT NULL AND TRIM(").append(colName)
 					.append(") <> '' )");
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		queryBuilder.append("DROP TABLE ").append(tableName);
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 		queryBuilder.append("ALTER TABLE ").append(tableName).append(TEMP_EXTENSION).append(" RENAME TO ").append(tableName);
-		engine.insertData(queryBuilder.toString());
+		try {
+			engine.insertData(queryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		queryBuilder.setLength(0);
 	}
 
@@ -1291,7 +1258,11 @@ public final class FormBuilder {
 						.append(user).append(valuesBreak).append(action).append(valuesBreak).append(startNode).append(valuesBreak)
 						.append(relName).append(valuesBreak).append(endNode).append(valuesBreak).append(propName).append(valuesBreak)
 						.append(propValue).append(valuesBreak).append(timeStamp).append("')");
-		formEng.insertData(insertLogStatement.toString());
+		try {
+			formEng.insertData(insertLogStatement.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static Map<String, Object> getAuditDataForEngine(String engineName) {

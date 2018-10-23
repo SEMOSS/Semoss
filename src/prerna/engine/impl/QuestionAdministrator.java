@@ -137,8 +137,11 @@ public class QuestionAdministrator {
 		} else {
 			insertQueryBuilder.append("'')");
 		}
-//		insertQueryBuilder.append("'").append(multiInsightQuery).append("')");
-		insightEngine.insertData(insertQueryBuilder.toString());
+		try {
+			insightEngine.insertData(insertQueryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		LOGGER.info("Done adding main part of question... now parameters");
 		//now add in parameters
@@ -253,7 +256,11 @@ public class QuestionAdministrator {
 //		}
 		
 		//finally update the actual question
-		insightEngine.insertData(query);
+		try {
+			insightEngine.insertData(query);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		//TODO: need to figure out a better way than to just delete the parameters and readd
 		deleteParameter(insightID);
@@ -300,21 +307,33 @@ public class QuestionAdministrator {
 		String idsString = createString(insightIDs);
 		String questionQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
 		LOGGER.info("running remove query :::: " + questionQuery);
-		insightEngine.removeData(questionQuery);
+		try {
+			insightEngine.removeData(questionQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void deleteParameter(String... insightIDs) {
 		String idsString = createString(insightIDs);
 		String parameterQuery = "DELETE FROM PARAMETER_ID WHERE QUESTION_ID_FK IN " + idsString ;
 		LOGGER.info("running remove query :::: " + parameterQuery);
-		insightEngine.removeData(parameterQuery);
+		try {
+			insightEngine.removeData(parameterQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void deleteUiOptions(String... insightIDs) {
 		String idsString = createString(insightIDs);
 		String parameterQuery = "DELETE FROM UI WHERE QUESTION_ID_FK IN " + idsString ;
 		LOGGER.info("running remove query :::: " + parameterQuery);
-		insightEngine.removeData(parameterQuery);
+		try {
+			insightEngine.removeData(parameterQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 //	private String removeTrailingZeros(String s) {
@@ -327,7 +346,11 @@ public class QuestionAdministrator {
 			insertQueryBuilder.append("INSERT INTO UI (QUESTION_ID_FK, UI_DATA) VALUES(");
 			insertQueryBuilder.append(questionID).append(", '");
 			insertQueryBuilder.append(escapeForSQLStatement(uiOptions)).append("')");
-			insightEngine.insertData(insertQueryBuilder.toString());
+			try {
+				insightEngine.insertData(insertQueryBuilder.toString());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -401,7 +424,11 @@ public class QuestionAdministrator {
 				paramInsertQueryBuilder.append("'").append(isMultiSelect).append("', ");
 				paramInsertQueryBuilder.append("'").append(paramCompFilterId).append("', ");
 				paramInsertQueryBuilder.append("'").append(insightID).append("')");
-				insightEngine.insertData(paramInsertQueryBuilder.toString());
+				try {
+					insightEngine.insertData(paramInsertQueryBuilder.toString());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		LOGGER.info("Done adding parameters");
@@ -651,7 +678,11 @@ public class QuestionAdministrator {
 		updateQueryBuilder.append(" WHERE ID='");
 		updateQueryBuilder.append(insightId);
 		updateQueryBuilder.append("'");
-		insightEngine.insertData(updateQueryBuilder.toString());
+		try {
+			insightEngine.insertData(updateQueryBuilder.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private String createString(String... ids){

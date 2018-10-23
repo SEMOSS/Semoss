@@ -12,7 +12,6 @@ import com.google.gson.internal.StringMap;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.UserPermissionsMasterDB;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -298,8 +297,8 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 			// Get the row-level permissions filters, match them up, and insert/remove as necessary
 			IDataMaker datamaker = (IDataMaker) myStore.get("G");
 			String userId = datamaker.getUserId();
-			UserPermissionsMasterDB permissions = new UserPermissionsMasterDB();
-			rowLevelFilters = permissions.getRowLevelSeedsForUserAndEngine(userId, this.engineName);
+//			UserPermissionsMasterDB permissions = new UserPermissionsMasterDB();
+//			rowLevelFilters = permissions.getRowLevelSeedsForUserAndEngine(userId, this.engineName);
 			Set<String> addedConcepts = new HashSet<String>();
 			
 			for(String s : selectors) {

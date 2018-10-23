@@ -210,7 +210,11 @@ public abstract class AbstractEngine implements IEngine {
 								String val = wrap.next().getValues()[0] + "";
 								if(!val.equals("VARCHAR")) {
 									String update = "ALTER TABLE QUESTION_ID ALTER COLUMN ID VARCHAR(50);";
-									this.insightRDBMS.insertData(update);
+									try {
+										this.insightRDBMS.insertData(update);
+									} catch (SQLException e) {
+										e.printStackTrace();
+									}
 									this.insightRDBMS.commit();
 								}
 							}
@@ -220,7 +224,11 @@ public abstract class AbstractEngine implements IEngine {
 							wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, q);
 							if(!wrap.hasNext()) {
 								String update = "ALTER TABLE QUESTION_ID ADD HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE;";
-								this.insightRDBMS.insertData(update);
+								try {
+									this.insightRDBMS.insertData(update);
+								} catch (SQLException e) {
+									e.printStackTrace();
+								}
 								this.insightRDBMS.commit();
 							}
 							wrap.cleanUp();
