@@ -531,21 +531,28 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	 * Adds the joins for the query
 	 */
 	public void addJoins() {
-		Map<String, Map<String, List>> relationsData = qs.getRelations();
-		// loop through all the relationships
-		// realize we can be joining on properties within a table
-		for(String startConceptProperty : relationsData.keySet() ) {
-			// the key for this object is the specific type of join to be used
-			// between this instance and all the other ones
-			Map<String, List> joinMap = relationsData.get(startConceptProperty);
-			for(String comparator : joinMap.keySet()) {
-				List<String> joinColumns = joinMap.get(comparator);
-				for(String endConceptProperty : joinColumns) {
-					// go through and perform the actual join
-					addJoin(startConceptProperty, comparator, endConceptProperty);
-				}
-			}
+		Set<String[]> relations = qs.getRelations();
+		for(String[] rel : relations) {
+			String start = rel[0];
+			String comparator = rel[1];
+			String end = rel[2];
+			addJoin(start, comparator, end);
 		}
+//		Map<String, Map<String, List>> relationsData = qs.getRelations();
+//		// loop through all the relationships
+//		// realize we can be joining on properties within a table
+//		for(String startConceptProperty : relationsData.keySet() ) {
+//			// the key for this object is the specific type of join to be used
+//			// between this instance and all the other ones
+//			Map<String, List> joinMap = relationsData.get(startConceptProperty);
+//			for(String comparator : joinMap.keySet()) {
+//				List<String> joinColumns = joinMap.get(comparator);
+//				for(String endConceptProperty : joinColumns) {
+//					// go through and perform the actual join
+//					addJoin(startConceptProperty, comparator, endConceptProperty);
+//				}
+//			}
+//		}
 	}
 
 	/**

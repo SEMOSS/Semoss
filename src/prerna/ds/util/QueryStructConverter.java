@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.ds.QueryStruct;
+import prerna.query.querystruct.RelationSet;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -74,10 +75,19 @@ public class QueryStructConverter {
 			}
 		}
 		
-		// now add the relationships
-		// this hasn't changed at all....
-		// just set it
-		retQs.setRelations(qs.getRelations());
+		// add relations
+		Set<String[]> rels = new RelationSet();
+		Map<String, Map<String, List>> curRels = qs.getRelations();
+		for(String up : curRels.keySet()) {
+			Map<String, List> innerMap = curRels.get(up);
+			for(String jType : innerMap.keySet()) {
+				List downs = innerMap.get(jType);
+				for(Object d : downs) {
+					rels.add(new String[]{up, jType, d.toString()});
+				}
+			}
+		}
+		retQs.mergeRelations(rels);
 
 		// add group bys
 		Map<String, Set<String>> groupBys = qs.getGroupBy();
