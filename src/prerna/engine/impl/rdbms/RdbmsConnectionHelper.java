@@ -53,6 +53,9 @@ public class RdbmsConnectionHelper {
 	public static final String TERADATA = "TERADATA";
 	public static final String TERADATA_DRIVER = "com.teradata.jdbc.TeraDriver";
 
+	public static final String TIBCO = "TIBCO";
+	public static final String TIBCO_DRIVER = "cs.jdbc.driver.CompositeDriver";
+	
 	private RdbmsConnectionHelper() {
 		
 	}
@@ -100,6 +103,8 @@ public class RdbmsConnectionHelper {
 				Class.forName(TERADATA_DRIVER);
 			} else if (driverType.equalsIgnoreCase(REDSHIFT)) {
 				Class.forName(REDSHIFT_DRIVER);
+			} else if (driverType.equalsIgnoreCase(TIBCO)) {
+				Class.forName(TIBCO_DRIVER);
 			} 
 			else {
 				Class.forName(driver);
@@ -140,35 +145,54 @@ public class RdbmsConnectionHelper {
 		driverType = driverType.toUpperCase();
 		if (driverType.equalsIgnoreCase(ASTER)) {
 			connectionUrl = "jdbc:ncluster://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(CASSANDRA)) {
+		}
+		else if (driverType.equalsIgnoreCase(CASSANDRA)) {
 			connectionUrl = "jdbc:cassandra://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(DB2)) {
+		}
+		else if (driverType.equalsIgnoreCase(DB2)) {
 			connectionUrl = "jdbc:db2://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(DERBY)) {
+		}
+		else if (driverType.equalsIgnoreCase(DERBY)) {
 			connectionUrl = "jdbc:derby://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(H2)) {
+		}
+		else if (driverType.equalsIgnoreCase(H2)) {
 			connectionUrl = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(IMPALA)) {
+		}
+		else if (driverType.equalsIgnoreCase(IMPALA)) {
 			connectionUrl = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(MARIADB)) {
+		}
+		else if (driverType.equalsIgnoreCase(MARIADB)) {
 			connectionUrl = "jdbc:mariadb://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(MYSQL)) {
+		}
+		else if (driverType.equalsIgnoreCase(MYSQL)) {
 			connectionUrl = "jdbc:mysql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(ORACLE)) {
+		}
+		else if (driverType.equalsIgnoreCase(ORACLE)) {
 			connectionUrl = "jdbc:oracle:thin:@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
-		} else if (driverType.equalsIgnoreCase(PHOENIX)) {
+		}
+		else if (driverType.equalsIgnoreCase(PHOENIX)) {
 			connectionUrl = "jdbc:phoenix:HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(POSTGRES)) {
+		}
+		else if (driverType.equalsIgnoreCase(POSTGRES)) {
 			connectionUrl = "jdbc:postgresql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(SAP_HANA)) {
+		}
+		else if (driverType.equalsIgnoreCase(SAP_HANA)) {
 			connectionUrl = "jdbc:sap://HOST:PORT/?currentSchema=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(SQLSERVER)) {
+		}
+		else if (driverType.equalsIgnoreCase(SQLSERVER)) {
 			connectionUrl = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(TERADATA)) {
+		}
+		else if (driverType.equalsIgnoreCase(TERADATA)) {
 			connectionUrl = "jdbc:teradata://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else if (driverType.equalsIgnoreCase(REDSHIFT)) {
+		}
+		else if (driverType.equalsIgnoreCase(REDSHIFT)) {
 			connectionUrl = "jdbc:redshift://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} else {
+		} 
+		else if (driverType.equalsIgnoreCase(TIBCO)) {
+			connectionUrl = "jdbc:compositesw:dbapi@HOST:PORT?SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
+		
+		else {
 			throw new SQLException("Invalid driver");
 		}
 		
@@ -228,6 +252,8 @@ public class RdbmsConnectionHelper {
 			return TERADATA_DRIVER;
 		} else if (driverType.equalsIgnoreCase(REDSHIFT)) {
 			return REDSHIFT_DRIVER;
+		} else if (driverType.equalsIgnoreCase(TIBCO)) {
+			return TIBCO_DRIVER;
 		} else {
 			// assume the input is good
 			return driver;
