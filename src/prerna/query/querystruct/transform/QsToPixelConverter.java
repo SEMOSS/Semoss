@@ -1,8 +1,7 @@
 package prerna.query.querystruct.transform;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -144,28 +143,22 @@ public class QsToPixelConverter {
 	 * @param joins
 	 * @return
 	 */
-	public static String convertJoins(Map<String, Map<String, List>> joins) {
+	public static String convertJoins(Set<String[]> joins) {
 		StringBuilder b = new StringBuilder();
 		boolean first = true;
 		// iterate through and construct the joins
-		for(String startCol : joins.keySet()) {
-			Map<String, List> compMap = joins.get(startCol);
-			
-			Map<String, List> convertedCompHash = new HashMap<String, List>();
-			for(String comparator : compMap.keySet()) {
-				List<String> endColList = compMap.get(comparator);
-				
-				for(String endCol : endColList) {
-					if(!first) {
-						b.append(", ");
-					}
-					b.append("(").append(startCol).append(", ").append(comparator)
-						.append(", ").append(endCol).append(")");
-					first = false;
-				}
+		for(String[] j : joins) {
+			if(!first) {
+				b.append(", ");
 			}
+			String startCol = j[0];
+			String comparator = j[1];
+			String endCol = j[2];
+			
+			b.append("(").append(startCol).append(", ").append(comparator)
+				.append(", ").append(endCol).append(")");
+			first = false;
 		}
-		
 		return b.toString();
 	}
 

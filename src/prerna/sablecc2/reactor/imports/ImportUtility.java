@@ -520,25 +520,33 @@ public class ImportUtility {
 		
 		List<String> addedRels = new Vector<String>();
 		// now add the relationships
-		Map<String, Map<String, List>> relationships = qs.getRelations();
-		for(String upVertex : relationships.keySet()) {
-			Map<String, List> joinTypeMap = relationships.get(upVertex);
-			for(String joinType : joinTypeMap.keySet()) {
-				List<String> downstreamVertices = joinTypeMap.get(joinType);
-				for(String downVertex : downstreamVertices) {
-					String up = upVertex;
-					if(aliasMap.containsKey(upVertex)) {
-						up = aliasMap.get(upVertex);
-					}
-					String down = downVertex;
-					if(aliasMap.containsKey(downVertex)) {
-						down = aliasMap.get(downVertex);
-					}
-					metaData.addRelationship(up, down, joinType);
-					addedRels.add(up + down);
-				}
-			}
+		Set<String[]> relations = qs.getRelations();
+		for(String[] rel : relations) {
+			String up = rel[0];
+			String joinType = rel[1];
+			String down = rel[2];
+			metaData.addRelationship(up, down, joinType);
+			addedRels.add(up + down);
 		}
+//		Map<String, Map<String, List>> relationships = qs.getRelations();
+//		for(String upVertex : relationships.keySet()) {
+//			Map<String, List> joinTypeMap = relationships.get(upVertex);
+//			for(String joinType : joinTypeMap.keySet()) {
+//				List<String> downstreamVertices = joinTypeMap.get(joinType);
+//				for(String downVertex : downstreamVertices) {
+//					String up = upVertex;
+//					if(aliasMap.containsKey(upVertex)) {
+//						up = aliasMap.get(upVertex);
+//					}
+//					String down = downVertex;
+//					if(aliasMap.containsKey(downVertex)) {
+//						down = aliasMap.get(downVertex);
+//					}
+//					metaData.addRelationship(up, down, joinType);
+//					addedRels.add(up + down);
+//				}
+//			}
+//		}
 		
 		// also need to account for concept -> properties
 		// we already have this in the edge hash
@@ -694,27 +702,44 @@ public class ImportUtility {
 		}
 		
 		// add all relationships
-		Map<String, Map<String, List>> relationships = qs.getRelations();
-		for(String upVertex : relationships.keySet()) {
+		Set<String[]> relations = qs.getRelations();
+		for(String[] rel : relations) {
+			String upVertex = rel[0];
+			String downVertex = rel[2];
+			
 			String upVertexAlias = aliasMapping.get(upVertex);
-			// store the list of downstream nodes for this "upVertex"
+			String downVertexAlias = aliasMapping.get(downVertex);
+
 			Set<String> downConnections = null;
 			if(edgeHash.containsKey(upVertexAlias)) {
 				downConnections = edgeHash.get(upVertexAlias);
 			} else {
 				downConnections = new HashSet<String>();
-				// add into the edgeHash
 				edgeHash.put(upVertexAlias, downConnections);
 			}
-			Map<String, List> joinTypeMap = relationships.get(upVertex);
-			for(String joinType : joinTypeMap.keySet()) {
-				List<String> downstreamVertices = joinTypeMap.get(joinType);
-				for(String downVertex : downstreamVertices) {
-					String downVertexAlias = aliasMapping.get(downVertex);
-					downConnections.add(downVertexAlias);
-				}
-			}
+			downConnections.add(downVertexAlias);
 		}
+//		Map<String, Map<String, List>> relationships = qs.getRelations();
+//		for(String upVertex : relationships.keySet()) {
+//			String upVertexAlias = aliasMapping.get(upVertex);
+//			// store the list of downstream nodes for this "upVertex"
+//			Set<String> downConnections = null;
+//			if(edgeHash.containsKey(upVertexAlias)) {
+//				downConnections = edgeHash.get(upVertexAlias);
+//			} else {
+//				downConnections = new HashSet<String>();
+//				// add into the edgeHash
+//				edgeHash.put(upVertexAlias, downConnections);
+//			}
+//			Map<String, List> joinTypeMap = relationships.get(upVertex);
+//			for(String joinType : joinTypeMap.keySet()) {
+//				List<String> downstreamVertices = joinTypeMap.get(joinType);
+//				for(String downVertex : downstreamVertices) {
+//					String downVertexAlias = aliasMapping.get(downVertex);
+//					downConnections.add(downVertexAlias);
+//				}
+//			}
+//		}
 		
 		// all properties are related to their parent
 		
@@ -806,26 +831,44 @@ public class ImportUtility {
 		}
 		
 		// now add the relationships
-		Map<String, Map<String, List>> relationships = qs.getRelations();
-		for(String upVertex : relationships.keySet()) {
-			Map<String, List> joinTypeMap = relationships.get(upVertex);
-			for(String joinType : joinTypeMap.keySet()) {
-				List<String> downstreamVertices = joinTypeMap.get(joinType);
-				for(String downVertex : downstreamVertices) {
-					if(!addedQsNames.contains(upVertex)) {
-						metaData.addVertex(upVertex);
-						metaData.setPrimKeyToVertex(upVertex, true);
-						addedQsNames.add(upVertex);
-					}
-					if(!addedQsNames.contains(downVertex)) {
-						metaData.addVertex(downVertex);
-						metaData.setPrimKeyToVertex(downVertex, true);
-						addedQsNames.add(downVertex);
-					}
-					metaData.addRelationship(upVertex, downVertex, joinType);
-				}
+		Set<String[]> relations = qs.getRelations();
+		for(String[] rel : relations) {
+			String upVertex = rel[0];
+			String joinType = rel[1];
+			String downVertex = rel[2];
+			
+			if(!addedQsNames.contains(upVertex)) {
+				metaData.addVertex(upVertex);
+				metaData.setPrimKeyToVertex(upVertex, true);
+				addedQsNames.add(upVertex);
 			}
+			if(!addedQsNames.contains(downVertex)) {
+				metaData.addVertex(downVertex);
+				metaData.setPrimKeyToVertex(downVertex, true);
+				addedQsNames.add(downVertex);
+			}
+			metaData.addRelationship(upVertex, downVertex, joinType);
 		}
+		
+//		Map<String, Map<String, List>> relationships = qs.getRelations();
+//		for(String upVertex : relationships.keySet()) {
+//			Map<String, List> joinTypeMap = relationships.get(upVertex);
+//			for(String joinType : joinTypeMap.keySet()) {
+//				List<String> downstreamVertices = joinTypeMap.get(joinType);
+//				for(String downVertex : downstreamVertices) {
+//					if(!addedQsNames.contains(upVertex)) {
+//						metaData.addVertex(upVertex);
+//						metaData.setPrimKeyToVertex(upVertex, true);
+//						addedQsNames.add(upVertex);
+//					}
+//					if(!addedQsNames.contains(downVertex)) {
+//						metaData.addVertex(downVertex);
+//						metaData.setPrimKeyToVertex(downVertex, true);
+//						addedQsNames.add(downVertex);
+//					}
+//				}
+//			}
+//		}
 	}
 	
 	public static void parseHeadersAndTypeIntoMeta(ITableDataFrame dataframe, String[] headers, String[] types, String frameTableName) {

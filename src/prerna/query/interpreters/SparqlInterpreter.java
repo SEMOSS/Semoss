@@ -294,20 +294,13 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		return this.addedSelectors.get(propVarName);
 	}
 	
-	private void addJoins(Map<String, Map<String, List>> relations) {
+	private void addJoins(Set<String[]> relations) {
 		this.relationshipWhereClause = new StringBuilder();
-		// from node points to..
-		for(String fromNode : relations.keySet()) {
-			// ... a map of the type of join (inner, left, right, etc.) which points to...
-			Map <String, List> relTypeHash = relations.get(fromNode);
-			for(String joinType : relTypeHash.keySet()) {
-				// a list of the downstream nodes it has with this type of join
-				List<String> toNodes = relTypeHash.get(joinType);
-				int numToNodes = toNodes.size();
-				for(int index = 0; index < numToNodes; index++) {
-					addJoin(fromNode, joinType, toNodes.get(index));
-				}
-			}
+		for(String[] rel : relations) {
+			String fromNode = rel[0];
+			String joinType = rel[1];
+			String toNode = rel[2];
+			addJoin(fromNode, joinType, toNode);
 		}
 	}
 
