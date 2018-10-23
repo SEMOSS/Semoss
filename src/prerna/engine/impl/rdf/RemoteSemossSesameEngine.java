@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringBufferInputStream;
+import java.sql.SQLException;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
@@ -191,6 +192,8 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 		} catch (RepositoryException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
 			e.printStackTrace();
 		}		
 	}

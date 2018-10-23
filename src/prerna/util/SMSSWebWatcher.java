@@ -30,6 +30,7 @@ package prerna.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
 
@@ -220,7 +221,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		int securityIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, securityDBName);
 		loadExistingDB(fileNames[securityIndex]);
 		// initialize the security database
-		AbstractSecurityUtils.loadSecurityDatabase();
+		try {
+			AbstractSecurityUtils.loadSecurityDatabase();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**

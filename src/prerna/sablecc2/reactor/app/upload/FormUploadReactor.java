@@ -296,7 +296,11 @@ public class FormUploadReactor extends AbstractReactor {
 			columns[i] = sheetName;
 			types[i] = "IDENTITY";
 			String create = RdbmsQueryBuilder.makeOptionalCreate(sheetName, columns, types);
-			engine.insertData(create);
+			try {
+				engine.insertData(create);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}		
 	}
 
