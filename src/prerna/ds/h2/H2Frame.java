@@ -28,6 +28,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.RelationSet;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
@@ -559,8 +560,18 @@ public class H2Frame extends AbstractTableDataFrame {
 					qs2.addSelector(key, prop);
 				}
 			}
-			// add relations
-			qs2.mergeRelations(qs.getRelations());
+			Set<String[]> rels = new RelationSet();
+			Map<String, Map<String, List>> curRels = qs.getRelations();
+			for(String up : curRels.keySet()) {
+				Map<String, List> innerMap = curRels.get(up);
+				for(String jType : innerMap.keySet()) {
+					List downs = innerMap.get(jType);
+					for(Object d : downs) {
+						rels.add(new String[]{up, jType, d.toString()});
+					}
+				}
+			}
+			qs2.mergeRelations(rels);
 			qs2.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 		}
 
