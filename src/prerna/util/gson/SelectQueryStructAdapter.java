@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -50,8 +51,12 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 			} 
 			else if(name.equals("relations")) {
 				String str = in.nextString();
-				Set<String[]> relations = SIMPLE_GSON.fromJson(str, new TypeToken<Set<String[]>>() {}.getType());
-				qs.setRelations(relations);
+				try {
+					Set<String[]> relations = SIMPLE_GSON.fromJson(str, new TypeToken<Set<String[]>>() {}.getType());
+					qs.setRelations(relations);
+				} catch (JsonParseException ioe) {
+
+				}
 			}
 			// group bys
 			else if(name.equals("groups")) {
