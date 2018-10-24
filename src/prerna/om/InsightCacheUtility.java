@@ -206,8 +206,6 @@ public class InsightCacheUtility {
 			return gson.fromJson(jsonString, Map.class);
 		} catch(Exception e) {
 			LOGGER.info("Error retrieving cache for " + rdbmsId);
-			LOGGER.info("Error retrieving cache for " + rdbmsId);
-			LOGGER.info("Error retrieving cache for " + rdbmsId);
 			e.printStackTrace();
 		} finally {
 			if(zis != null) {
@@ -249,6 +247,39 @@ public class InsightCacheUtility {
 		for(File f : cacheFiles) {
 			ICache.deleteFile(f);
 		}
+	}
+	
+	public static void unzipFile(ZipFile zip, String name, String path) {
+		byte[] buffer = new byte[1024];
+		File newFile = new File(path);
+		FileOutputStream fos = null;
+		ZipEntry zipE = new ZipEntry(name);
+		InputStream zis = null;
+		try {
+			zis = zip.getInputStream(zipE);
+			fos = new FileOutputStream(newFile);
+			int len;
+            while ((len = zis.read(buffer)) > 0) {
+                fos.write(buffer, 0, len);
+            }
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(fos != null) {
+				try {
+					fos.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(zis != null) {
+				try {
+					zis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		} 		
 	}
 	
 	/**
