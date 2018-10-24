@@ -531,7 +531,6 @@ public class RFrameBuilder {
 	}
 	
 	protected void open(String frameFileName){
-		//TODO hasn't been tested via Java; only tested POC in R
 		frameFileName = frameFileName.replaceAll("-", "_");
 		this.evalR("load(\"" + frameFileName.replace("\\", "/") + "\")");
 	}
