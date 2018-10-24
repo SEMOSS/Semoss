@@ -13,6 +13,8 @@ import java.util.Vector;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.io.FilenameUtils;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -303,9 +305,17 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			while(in.hasNext()) {
 				String k = in.nextName();
 				if(k.equals("file")) {
-					cf.setFrameCacheLocation(deparameterizePath(in.nextString(), baseFolder, engineName, engineId));
+					String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
+					if(!(new File(path).exists())) {
+						InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
+					}
+					cf.setFrameCacheLocation(path);
 				} else if(k.equals("meta")) {
-					cf.setFrameMetaCacheLocation(deparameterizePath(in.nextString(), baseFolder, engineName, engineId));
+					String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
+					if(!(new File(path).exists())) {
+						InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
+					}
+					cf.setFrameMetaCacheLocation(path);
 				} else if(k.equals("type")) {
 					cf.setFrameType(in.nextString());
 				} else if(k.equals("name")) {
@@ -316,7 +326,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 					if(peek == JsonToken.NULL) {
 						in.nextNull();
 					} else {
-						cf.setFrameStateCacheLocation(deparameterizePath(in.nextString(), baseFolder, engineName, engineId));
+						String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
+						if(!(new File(path).exists())) {
+							InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
+						}
+						cf.setFrameStateCacheLocation(path);
 					}
 				} else if(k.equals("keys")) {
 					in.beginArray();
