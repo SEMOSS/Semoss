@@ -58,7 +58,7 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(
 				new NounMetadata("You've successfully completed running similarity heat and generated a new frame", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 	

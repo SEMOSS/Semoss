@@ -25,7 +25,8 @@ public class SetCurrentFrameReactor extends AbstractReactor {
 		// set the new main dm for the insight
 		this.insight.setDataMaker(dm);
 		NounMetadata noun = new NounMetadata(dm, PixelDataType.FRAME, PixelOperationType.FRAME);
-		noun.addAdditionalReturn(new NounMetadata("New frame has been set.", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+		noun.addAdditionalReturn(new NounMetadata("New frame has been set", 
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 	

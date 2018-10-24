@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 
@@ -19,7 +18,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.util.OWLER;
 import prerna.util.Utility;
 
 public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
@@ -120,7 +118,7 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		NounMetadata noun = new NounMetadata(logicalNames, PixelDataType.CONST_STRING);
 //		noun.addAdditionalReturn(new NounMetadata("Predicted and stored logical names for review",
 		noun.addAdditionalReturn(new NounMetadata("Predicted and logical names for review",
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 
