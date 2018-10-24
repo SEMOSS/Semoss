@@ -26,7 +26,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
@@ -129,8 +128,9 @@ public class InsightCacheUtility {
 	 * Main method to read in a full insight
 	 * @param insightDir
 	 * @return
+ 	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(File insightCacheZip) {
+	public static Insight readInsightCache(File insightCacheZip) throws IOException {
 		ZipFile zip = null;
 		ZipEntry entry = null;
 		InputStream is = null;
@@ -153,26 +153,21 @@ public class InsightCacheUtility {
 	        JsonReader jReader = new JsonReader(reader);
 			Insight insight = iAdapter.read(jReader);
 			return insight;
-		} catch (JsonSyntaxException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
 		} finally {
 			closeStream(br);
 			closeStream(isr);
 			closeStream(is);
 			closeStream(zip);
 		}
-		
-		return null;
 	}
 	
 	/**
 	 * Main method to read in a full insight
 	 * @param insightPath
 	 * @return
+	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(String insightPath) {
+	public static Insight readInsightCache(String insightPath) throws IOException {
 		File insightFile = new File(insightPath);
 		return readInsightCache(insightFile);
 	}

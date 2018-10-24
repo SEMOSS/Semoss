@@ -941,7 +941,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	}
 	
 	@Override
-	public CachePropFileFrameObject save(String folderDir) {
+	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		String randFrameName = "Tinker" + Utility.getRandomString(6);
 		cf.setFrameName(randFrameName);
@@ -957,6 +957,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			yes.writeGraph(frameFileName);
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw new IOException("Error occured attempting to cache graph frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
 
