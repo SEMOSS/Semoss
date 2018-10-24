@@ -54,14 +54,14 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 			// this means we have a cache
 			// but there was an error with it
 			InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
-			additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. Deleted the cache and recreated", 
+			additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.", 
 					PixelDataType.CONST_STRING, PixelOperationType.WARNING);
 		} else if(hasCache) {
 			try {
 				runner = getCachedInsightData(cachedInsight);
 			} catch (IOException e) {
 				InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
-				additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. Deleted the cache and recreated", 
+				additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.", 
 						PixelDataType.CONST_STRING, PixelOperationType.WARNING);
 				e.printStackTrace();
 			}
