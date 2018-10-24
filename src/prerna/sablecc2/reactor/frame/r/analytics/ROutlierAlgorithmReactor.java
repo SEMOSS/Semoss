@@ -91,7 +91,7 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		// now return this object
 		NounMetadata noun = new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(
-				new NounMetadata("You've successfully completed running outlier algorithm and added new column " + newColName + " to the dataframe", 
+				new NounMetadata("Outlier ran succesfully! See new \"" + newColName + "\" column in the grid.", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}
