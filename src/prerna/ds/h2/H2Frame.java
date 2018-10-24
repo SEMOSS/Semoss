@@ -1,6 +1,7 @@
 package prerna.ds.h2;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -238,7 +239,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir) {
+	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		
 		String frameName = this.getTableName();
@@ -263,7 +264,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	 *            The userId who is creating this instance of the frame
 	 * @return
 	 */
-	public void open(CachePropFileFrameObject cf) {		
+	public void open(CachePropFileFrameObject cf) throws IOException {		
 		//set the frame name to that of the cached frame name
 		this.builder.tableName = cf.getFrameName();
 		// load the frame

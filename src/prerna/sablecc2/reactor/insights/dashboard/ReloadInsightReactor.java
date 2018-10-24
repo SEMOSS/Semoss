@@ -26,13 +26,19 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		boolean hasCache = false;
 		Insight cachedInsight = null;
 		if(!isParam && !isDashoard) {
-			cachedInsight = getCachedInsight(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
-			if(cachedInsight != null) {
+			try {
+				cachedInsight = getCachedInsight(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
+				if(cachedInsight != null) {
+					hasCache = true;
+					cachedInsight.setInsightId(this.insight.getInsightId());
+					cachedInsight.setInsightName(this.insight.getInsightName());
+					this.insight = cachedInsight;
+				}
+			} catch (IOException e) {
 				hasCache = true;
-				cachedInsight.setInsightId(this.insight.getInsightId());
-				cachedInsight.setInsightName(this.insight.getInsightName());
-				this.insight = cachedInsight;
+				e.printStackTrace();
 			}
+			
 		}
 		
 		// add the insight to the insight store
@@ -43,9 +49,25 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		
 		// get the insight output
 		PixelRunner runner = null;
-		if(hasCache) {
-			runner = getCachedInsightData(cachedInsight);
-		} else {
+		NounMetadata additionalMeta = null;
+		if(hasCache && cachedInsight == null) {
+			// this means we have a cache
+			// but there was an error with it
+			InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
+			additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. Deleted the cache and recreated", 
+					PixelDataType.CONST_STRING, PixelOperationType.WARNING);
+		} else if(hasCache) {
+			try {
+				runner = getCachedInsightData(cachedInsight);
+			} catch (IOException e) {
+				InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
+				additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. Deleted the cache and recreated", 
+						PixelDataType.CONST_STRING, PixelOperationType.WARNING);
+				e.printStackTrace();
+			}
+		} 
+		
+		if(runner == null) {
 			runner = runNewInsight(this.insight, getAdditionalPixels());
 //			now I want to cache the insight
 			if(!isParam && !isDashoard) {
@@ -60,7 +82,10 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
-		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
+		NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.OPEN_SAVED_INSIGHT);
+		if(additionalMeta != null) {
+			noun.addAdditionalReturn(additionalMeta);
+		}
+		return noun;
 	}
-
 }

@@ -1,5 +1,6 @@
 package prerna.algorithm.api;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -127,15 +128,17 @@ public interface ITableDataFrame extends IDataMaker {
 	/**
 	 * Serialize the dataframe
 	 * @param folderDir
+	 * @throws IOException 
 	 */
-	CachePropFileFrameObject save(String folderDir);
+	CachePropFileFrameObject save(String folderDir) throws IOException;
 	
 	/**
 	 * Deserialize the dataframe
 	 * @param cf
 	 * @return
+	 * @throws IOException 
 	 */
-	void open(CachePropFileFrameObject cf);
+	void open(CachePropFileFrameObject cf) throws IOException;
 
 	/**
 	 * Get the number of rows for the frame

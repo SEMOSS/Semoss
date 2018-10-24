@@ -1,5 +1,6 @@
 package prerna.ds.r;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -236,7 +237,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir) {
+	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
 		String frameName = this.getTableName();

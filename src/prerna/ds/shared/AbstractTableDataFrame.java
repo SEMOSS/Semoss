@@ -468,7 +468,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 * Caching methods
 	 */	
 	
-	protected void saveMeta(CachePropFileFrameObject cf, String folderDir, String fileName) {
+	protected void saveMeta(CachePropFileFrameObject cf, String folderDir, String fileName) throws IOException {
 		// save frame metadata
 		String metaFileName = folderDir + DIR_SEPARATOR + "METADATA__" + fileName + ".owl";
 		this.metaData.save(metaFileName);
@@ -485,7 +485,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 				adapter.write(jWriter, this.grf);
 				FileUtils.writeStringToFile(new File(frameStateFileName), writer.toString());
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException("Error occured trying to save filter state on frame");
 			}
 			cf.setFrameStateCacheLocation(frameStateFileName);
 		}
