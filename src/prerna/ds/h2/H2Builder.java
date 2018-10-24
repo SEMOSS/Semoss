@@ -1485,7 +1485,7 @@ public class H2Builder {
 	}
 
 	// save the main table
-	protected void save(String fileName, String frameName) {
+	protected void save(String fileName, String frameName) throws IOException {
 		String saveScript = "SCRIPT TO '" + fileName + "' COMPRESSION GZIP TABLE " + frameName;
 		try {
 			runQuery(saveScript);
@@ -1493,7 +1493,7 @@ public class H2Builder {
 				throw new IllegalArgumentException("Attempting to save an empty H2 frame");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new IOException("Error occured attempting to cache SQL Frame");
 		}
 	}
 
@@ -1501,7 +1501,7 @@ public class H2Builder {
 	 * 
 	 * @param filePath
 	 */
-	protected void open(String filePath) {
+	protected void open(String filePath) throws IOException {
 		// drop the aggregate if it exists since the opening of the script will
 		// fail otherwise
 		Statement stmt = null;
@@ -1530,10 +1530,7 @@ public class H2Builder {
 			RunScript.execute(this.conn, r);
 		} catch (SQLException e) {
 			e.printStackTrace();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+			throw new IOException("Error occured opening cached SQL Frame");
 		} finally {
 			try {
 				if(fis != null) {

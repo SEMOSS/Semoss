@@ -220,7 +220,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir) {
+	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		
 		String randFrameName = "Native" + Utility.getRandomString(6);
@@ -236,6 +236,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			FileUtils.writeStringToFile(new File(frameFileName), writer.toString());
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw new IOException("Error occured attempting to save native frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
 		
