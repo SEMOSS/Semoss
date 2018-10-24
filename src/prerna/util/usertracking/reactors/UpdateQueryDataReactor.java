@@ -85,7 +85,7 @@ public class UpdateQueryDataReactor extends AbstractRFrameReactor {
 					logger.info(message);
 					rsb.append("refresh_data_mgr(\"" + fileroot + "\");");
 				}
-				rsb.append("viz_history(\" " + fileroot + "\");");
+				rsb.append("viz_history(\"" + fileroot + "\");");
 				// set the work directory back to normal
 				rsb.append("setwd(" + rwd + ");");
 				// garbage collection

@@ -53,10 +53,9 @@ viz_recom_mgr<-function(fileroot,df1,chartToExclude=NULL,top=5){
 	# original reference and user removed
 	
 	# read history
-	filename<-paste0(fileroot,"-user-history.csv")
+	filename<-paste0(fileroot,"-user-history.rds")
 	if(file.exists(filename)){
-		df<-readRDS()
-		
+		df<-readRDS(filename)
 		colnames(df)[7]<-"reference"
 		df<-within(df, rm("uniquevalues","user"))
 		
