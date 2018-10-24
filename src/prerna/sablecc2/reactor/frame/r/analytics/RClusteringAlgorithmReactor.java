@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.frame.r.analytics;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -24,7 +23,7 @@ import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
+public class RClusteringAlgorithmReactor extends AbstractRFrameReactor {
 
 	/**
 	 * with specific cluster #
@@ -57,7 +56,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 	private static final String ALGORITHM = "algorithm";
 	private static final String UNIQUE_INSTANCE_PER_ROW= "uniqInstPerRow";
 	
-	public RClusteringAlgorithmRReactor() {
+	public RClusteringAlgorithmReactor() {
 		this.keysToGet = new String[]{ALGORITHM, MULTI_BOOLEAN, ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey(), 
 				ReactorKeysEnum.CLUSTER_KEY.getKey(), MIN_NUM_CLUSTERS, MAX_NUM_CLUSTERS, UNIQUE_INSTANCE_PER_ROW};
 	}
@@ -211,8 +210,8 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 				",getDtClusterTable,getNewColumnName,scaleUniqueData);gc();");
 		
 		// get new cluster column of data
-		Collection<String> origDfCols = new ArrayList<String>(Arrays.asList(frame.getColumnHeaders()));
-		Collection<String> updatedDfCols = new ArrayList<String>(Arrays.asList(updatedDfColumns));
+		List<String> origDfCols = new ArrayList<String>(Arrays.asList(frame.getColumnHeaders()));
+		List<String> updatedDfCols = new ArrayList<String>(Arrays.asList(updatedDfColumns));
 		updatedDfCols.removeAll(origDfCols);
 		
 		// drop the temporary column of row index from metadata
@@ -250,7 +249,7 @@ public class RClusteringAlgorithmRReactor extends AbstractRFrameReactor {
 		// now return this object
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(
-				new NounMetadata(algName + " ran succesfully! See new \"" + instanceColumn + " Cluster\" column in the grid.", 
+				new NounMetadata(algName + " ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid.", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}

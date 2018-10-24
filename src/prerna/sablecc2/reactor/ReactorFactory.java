@@ -137,7 +137,7 @@ import prerna.sablecc2.reactor.frame.r.GetSemanticDescription;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RAprioriReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RClassificationAlgorithmReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RClusteringAlgorithmRReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RClusteringAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RLOFAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RMatrixRegressionReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RNumericalCorrelationReactor;
@@ -924,7 +924,7 @@ public class ReactorFactory {
 		
 		// algorithms
 		rFrameHash.put("RunNumericalCorrelation", RNumericalCorrelationReactor.class);
-		rFrameHash.put("RunClustering", RClusteringAlgorithmRReactor.class);
+		rFrameHash.put("RunClustering", RClusteringAlgorithmReactor.class);
 		rFrameHash.put("RunClassification", RClassificationAlgorithmReactor.class);
 		rFrameHash.put("RunRandomForest", RRandomForestAlgorithmReactor.class);
 		rFrameHash.put("GetRFResults", RRandomForestResultsReactor.class);
