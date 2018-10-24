@@ -339,8 +339,6 @@ import prerna.solr.reactor.SetAppTagsReactor;
 //import prerna.solr.reactor.SetInsightTagsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.ga.reactors.DatabaseRecommendationReactor;
-import prerna.util.ga.reactors.VisualizationRecommendationReactor;
 import prerna.util.git.reactors.AddAppCollaborator;
 import prerna.util.git.reactors.CopyAppRepo;
 import prerna.util.git.reactors.DeleteAppRepo;
@@ -363,7 +361,9 @@ import prerna.util.usertracking.reactors.AppMetaExtractor;
 import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
 import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
 import prerna.util.usertracking.reactors.WidgetTrackingReactor;
+import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
+import prerna.util.usertracking.reactors.recommendations.VisualizationRecommendationReactor;
 
 public class ReactorFactory {
 

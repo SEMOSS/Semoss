@@ -1,4 +1,4 @@
-package prerna.util.ga.reactors;
+package prerna.util.usertracking.reactors.recommendations;
 
 import java.io.File;
 import java.util.ArrayList;
