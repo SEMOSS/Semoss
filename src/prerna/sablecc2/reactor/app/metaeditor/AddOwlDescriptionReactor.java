@@ -54,7 +54,7 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 //		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions : " + Arrays.toString(descriptions), 
 		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions",
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 

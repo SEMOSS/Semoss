@@ -170,9 +170,8 @@ public class RClassificationAlgorithmReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(vizData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.VIZ_OUTPUT);
 		noun.addAdditionalReturn(
 				new NounMetadata("Classification ran successfully!", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
-		return noun;
-		
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		return noun;		
 	}
 	
 	private Map<String, Map> processTreeString(String[] ctreeArray) {

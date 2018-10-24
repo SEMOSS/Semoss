@@ -53,7 +53,7 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully removed logical names : " + Arrays.toString(logicalNames), 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 

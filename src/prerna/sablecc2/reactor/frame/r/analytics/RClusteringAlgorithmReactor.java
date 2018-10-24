@@ -250,7 +250,7 @@ public class RClusteringAlgorithmReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(
 				new NounMetadata(algName + " ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid.", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 	
