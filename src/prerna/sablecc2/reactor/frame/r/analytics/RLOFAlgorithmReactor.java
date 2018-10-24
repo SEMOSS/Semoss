@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.frame.r.analytics;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -207,7 +206,7 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(
 				new NounMetadata("LOF ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid.", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 

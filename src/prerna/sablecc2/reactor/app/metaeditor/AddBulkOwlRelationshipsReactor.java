@@ -121,7 +121,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully adding relationships", 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 

@@ -61,8 +61,7 @@ public class SyncAppWithLocalMasterReactor extends AbstractReactor {
 		logger.info("Synchronization complete");
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully synchronized " + MasterDatabaseUtility.getEngineAliasForId(appId) + "'s metadata", 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
-
 }

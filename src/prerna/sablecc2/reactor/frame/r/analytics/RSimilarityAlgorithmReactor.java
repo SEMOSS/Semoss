@@ -13,7 +13,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.r.analytics.RSimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
@@ -90,7 +89,7 @@ public class RSimilarityAlgorithmReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(
 				new NounMetadata("Similarity ran succesfully! See new \"" + newColName + "\" column in the grid.",
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 	

@@ -39,10 +39,8 @@ public class ReloadAppOwlReactor extends AbstractMetaEditorReactor {
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully reloaded app owl", 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
-	
-	
 	
 }
