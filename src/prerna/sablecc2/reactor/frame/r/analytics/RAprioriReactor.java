@@ -191,7 +191,7 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		noun.addAdditionalReturn(
 				new NounMetadata("Associated Learning ran successfully!", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
+						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 
