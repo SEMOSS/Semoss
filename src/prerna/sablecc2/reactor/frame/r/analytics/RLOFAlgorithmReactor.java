@@ -168,8 +168,8 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instCol_R + "," + attrList_R + "," + uniqInstPerRow_R + 
 				"," + k_R + ",scaleUniqueData,runLOF,getLOP,getNewColumnNam);gc();");
 
-		Collection<String> origDfCols = new ArrayList<String>(Arrays.asList(frame.getColumnHeaders()));
-		Collection<String> updatedDfCols = new ArrayList<String>(Arrays.asList(updatedDfColumns));
+		List<String> origDfCols = new ArrayList<String>(Arrays.asList(frame.getColumnHeaders()));
+		List<String> updatedDfCols = new ArrayList<String>(Arrays.asList(updatedDfColumns));
 		updatedDfCols.removeAll(origDfCols);
 		
 		// drop the temporary column of row index from metadata
@@ -206,7 +206,7 @@ public class RLOFAlgorithmReactor extends AbstractRFrameReactor {
 		// now return this object
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(
-				new NounMetadata("LOF ran succesfully! See new \"" + instanceColumn + " LOF " + kStr + "\" column in the grid.", 
+				new NounMetadata("LOF ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid.", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS_MESSAGE));
 		return noun;
 	}
