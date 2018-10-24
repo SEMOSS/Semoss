@@ -415,4 +415,7 @@ public class AuditDatabase {
 		}
 		this.server.shutdown();
 	}
+	public Connection getConnection() {
+		return this.conn;
+	}
 }
