@@ -1,5 +1,6 @@
 package prerna.util.ga.reactors;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -45,6 +47,15 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		User user = this.insight.getUser();
 		if (user == null) {
 			String message = "Please login to enable recommendation features.";
+			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException exception = new SemossPixelException(noun);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		File desc = new File(baseFolder + "\\R\\Recommendations\\dataitem-user-history.rds");
+		if (!desc.exists()) {
+			String message = "Necessary files missing to generate search results. Please run UpdateQueryData().";
 			NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException exception = new SemossPixelException(noun);
 			exception.setContinueThreadOfExecution(false);
@@ -90,6 +101,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 					continue;
 				}
 				String db = engineQs[0];
+				String dbname = SecurityQueryUtils.getEngineAliasForId(db);
 				String conceptProp = engineQs[1];
 				String table = conceptProp;
 				String column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
@@ -123,7 +135,7 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 					uniqueValues = Long.parseLong(row[1].toString());
 				}
 
-				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$")
+				builder.append(inputFrame).append("[").append(rowCount).append(", ] <- c( \"").append(db).append("$").append(dbname).append("$")
 						.append(table).append("$").append(column).append("\"").append(", \"").append(dataType)
 						.append("\" , ").append(uniqueValues).append(");");
 
@@ -134,7 +146,6 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		}
 
 		// add the execute predict viz and convert to json piece to script
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 		String outputJson = "json_" + Utility.getRandomString(8);
 		String recommend = "rec_" + Utility.getRandomString(8);
 		String historicalDf = "df_" + Utility.getRandomString(8);
@@ -142,11 +153,14 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		if (maxRecommendations == null) {
 			maxRecommendations = "5";
 		}
-
-		builder.append("source(\"" + baseFolder + "\\R\\Recommendations\\viz_recom.r\") ; ");
-		builder.append(recommend + "<-viz_recom_mgr(\"dataitem\"," + inputFrame + ", \"Grid\", 5); ");
+		builder.append("origDir <- getwd();");
+		builder.append("setwd(\"" + baseFolder + "\\R\\Recommendations\");"); 
+		builder.append("source(\"viz_recom.r\") ; "); 
+		builder.append(recommend + "<-viz_recom_mgr(\"dataitem\", " + inputFrame + ", \"Grid\", 5); "); 
 		builder.append("library(jsonlite);");
 		builder.append(outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);");
+		builder.append("setwd(origDir);");
+		String script = builder.toString().replace("\\", "/");
 		this.rJavaTranslator.runR(builder.toString().replace("\\", "/"));
 
 		// receive json string from R
@@ -172,13 +186,14 @@ public class VisualizationRecommendationReactor extends AbstractRFrameReactor {
 		for (int i = 0; i < myList.size(); i++) {
 			// get all values from R json
 			Map map = new HashMap<String, String>();
+			String dbid = myList.get(i).get("dbid");
 			String dbName = myList.get(i).get("dbname");
 			String tblName = myList.get(i).get("tblname");
 			String colName = myList.get(i).get("colname");
 			String component = myList.get(i).get("component");
 			String chart = myList.get(i).get("chart");
 			String weight = myList.get(i).get("weight");
-			String columnAlias = aliasHash.get(colName + "_" + tblName + "_" + dbName);
+			String columnAlias = aliasHash.get(colName + "_" + tblName + "_" + dbid);
 
 			// make sure column is in current frame then add to recommendation map
 			if (columnAlias != null) {
