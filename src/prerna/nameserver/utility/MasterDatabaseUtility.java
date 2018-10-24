@@ -34,7 +34,7 @@ public class MasterDatabaseUtility {
 
 	// -----------------------------------------   RDBMS CALLS ---------------------------------------
 	
-	public static void initLocalMaster() {
+	public static void initLocalMaster() throws SQLException {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		String [] colNames = null;
@@ -86,13 +86,11 @@ public class MasterDatabaseUtility {
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("xrayconfigs", colNames, types));
 	}
 	
-	private static void executeSql(Connection conn, String sql) {
+	private static void executeSql(Connection conn, String sql) throws SQLException {
 		Statement stmt = null;
 		try {
 			stmt = conn.createStatement();
 			stmt.execute(sql);
-		} catch (SQLException e) {
-			e.printStackTrace();
 		} finally {
 			try {
 				stmt.close();

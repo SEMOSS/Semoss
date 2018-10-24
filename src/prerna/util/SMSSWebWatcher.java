@@ -208,7 +208,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
 		loadExistingDB(fileNames[localMasterIndex]);
 		// initialize the local master
-		MasterDatabaseUtility.initLocalMaster();
+		try {
+			MasterDatabaseUtility.initLocalMaster();
+		} catch (SQLException e) {
+			// we couldn't initialize the db
+			// remove it from DIHelper
+			DIHelper.getInstance().removeLocalProperty(Constants.LOCAL_MASTER_DB_NAME);
+			e.printStackTrace();
+		}
 					
 		/*
 		 * AFTER WE LOAD THE LOCAL MASTER - UPDATE LEGACY DATABASES
@@ -224,6 +231,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		try {
 			AbstractSecurityUtils.loadSecurityDatabase();
 		} catch (SQLException e) {
+			// we couldn't initialize the db
+			// remove it from DIHelper
+			DIHelper.getInstance().removeLocalProperty(Constants.SECURITY_DB);
 			e.printStackTrace();
 		}
 	}
