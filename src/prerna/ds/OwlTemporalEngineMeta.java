@@ -17,7 +17,6 @@ import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepository;
 import org.openrdf.rio.RDFFormat;
-import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
@@ -1784,19 +1783,15 @@ public class OwlTemporalEngineMeta {
 	 * Save the owl to a specific location
 	 * @param fileName
 	 */
-	public void save(String fileName) {
+	public void save(String fileName) throws IOException {
 		RepositoryConnection rc = this.myEng.getRepositoryConnection();
 		FileWriter fw = null;
 		try {
 			fw = new FileWriter(fileName);
 			RDFXMLWriter writer = new RDFXMLWriter(fw);
 			rc.export(writer);
-		} catch (RepositoryException e) {
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch(Exception e) {
+			throw new IOException("Error occured attempting to save frame metadata");
 		} finally {
 			if(fw != null) {
 				try {

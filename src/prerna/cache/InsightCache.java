@@ -2,6 +2,7 @@ package prerna.cache;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -181,7 +182,11 @@ public abstract class InsightCache implements ICache {
 			// if the insight isn't already cached
 			if(!(new File(dmFilePath).exists())) {
 				// use the data makers save function passing in the file path
-				((ITableDataFrame)dm).save(dmFilePath);
+				try {
+					((ITableDataFrame)dm).save(dmFilePath);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
