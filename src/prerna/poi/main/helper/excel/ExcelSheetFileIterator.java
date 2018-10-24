@@ -240,6 +240,14 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	 * @param qsSelectors
 	 */
 	private void setSelectors(List<IQuerySelector> qsSelectors) {
+		/*
+		 * Here is the order
+		 * We first try to use the specific headers defined in the QS
+		 * Otherwise, we use the ones from the data type map
+		 * If neither, we use all
+		 * 
+		 */
+		
 		// get headers from qs
 		if (!qsSelectors.isEmpty()) {
 
@@ -291,22 +299,16 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 					}
 				}
 			}
-		}
-		if (dataTypeMap == null || dataTypeMap.isEmpty()) {
-			setUnknownTypes();
-		}
-
-		// get headers from dataType map
-		if (this.dataTypeMap != null && !this.dataTypeMap.isEmpty() && qsSelectors.isEmpty()) {
+		} else if (this.dataTypeMap != null && !this.dataTypeMap.isEmpty() && qsSelectors.isEmpty()) {
 			// grab the headers defined in the dataTypeMap
 			this.headers = dataTypeMap.keySet().toArray(new String[dataTypeMap.size()]);
-			// get the header indicies
+			// get the header indices
 			String[] headersInRange = this.sProcessor.getCleanedRangeHeaders(this.range);
 			// get additional datatypes
 			String[] tempHeaders = new String[this.headers.length];
 			for (int index = 0; index < this.headers.length; index++) {
 				String header = this.headers[index];
-				// change new headers to old to find the indicies
+				// change new headers to old to find the indices
 				if (this.newHeaders != null && this.newHeaders.containsKey(header)) {
 					tempHeaders[index] = this.newHeaders.get(header);
 				} else {
@@ -314,6 +316,27 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 				}
 			}
 			this.headerIndices = this.findHeaderIndicies(headersInRange, tempHeaders);
+		}
+		
+		if (dataTypeMap == null || dataTypeMap.isEmpty()) {
+			if(this.headers == null) {
+				// define the headers using everything
+				this.headers = this.sProcessor.getCleanedRangeHeaders(this.range);
+				this.headerIndices = new int[this.headers.length];
+				for (int i = 0; i < this.headers.length; i++) {
+					this.headerIndices[i] = i + startCol;
+					String header = this.headers[i];
+					// new headers alias:oldHeader
+					// here the headers are the old headers so we need to look
+					// at the value of the map :/
+					for (String key : this.newHeaders.keySet()) {
+						if (this.newHeaders.get(key).equals(header)) {
+							this.headers[i] = key;
+						}
+					}
+				}
+			}
+			setUnknownTypes();
 		}
 		
 		// order headers
@@ -353,7 +376,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	}
 	
 	/**
-	 * Get the indicies for the headers within the excel block
+	 * Get the indices for the headers within the excel block
 	 * @param sheetHeaders
 	 * @param headers
 	 * @return
