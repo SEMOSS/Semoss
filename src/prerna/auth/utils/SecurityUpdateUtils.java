@@ -20,6 +20,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -94,14 +95,19 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 		}
 		
-		File dbfile = SmssUtilities.getInsightsRdbmsFile(prop);
-		String dbLocation = dbfile.getAbsolutePath();
-		String jdbcURL = "jdbc:h2:" + dbLocation.replace(".mv.db", "") + ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-		String userName = "sa";
-		String password = "";
 		RDBMSNativeEngine rne = new RDBMSNativeEngine();
-		rne.setEngineId(appId + "_InsightsRDBMS");
-		rne.makeConnection(jdbcURL, userName, password);
+		File dbfile = SmssUtilities.getInsightsRdbmsFile(prop);
+		if(!dbfile.exists()) {
+			rne = (RDBMSNativeEngine) UploadUtilities.generateInsightsDatabase(appId, appName);
+			UploadUtilities.addExploreInstanceInsight(appId, rne);
+		} else {
+			rne = new RDBMSNativeEngine();
+			String jdbcURL = "jdbc:h2:" + dbfile.getAbsolutePath().replace(".mv.db", "") + ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			String userName = "sa";
+			String password = "";
+			rne.setEngineId(appId + "_InsightsRDBMS");
+			rne.makeConnection(jdbcURL, userName, password);
+		}
 		
 		// i need to delete any current insights for the app
 		// before i start to insert new insights
