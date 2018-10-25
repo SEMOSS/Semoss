@@ -271,7 +271,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * Get all the users for a database
 	 */
 	
-	public static List<Map<String, Object>> getAllDatabaseUsers(String engineId) {
+	public static List<Map<String, Object>> getAllDatabaseOwnersAndEditors(String engineId) {
 		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		String query = "SELECT DISTINCT "
 				+ "USER.NAME AS \"name\", "
@@ -279,7 +279,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "FROM USER "
 				+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
 				+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
-				+ "WHERE ENGINEPERMISSION.ENGINEID='" + engineId + "'";
+				+ "WHERE PERMISSION.ID IN (1,2) AND ENGINEPERMISSION.ENGINEID='" + engineId + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
