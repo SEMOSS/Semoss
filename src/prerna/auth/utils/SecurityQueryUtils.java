@@ -272,16 +272,33 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	
 	public static List<Map<String, Object>> getAllDatabaseOwnersAndEditors(String engineId) {
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
-		String query = "SELECT DISTINCT "
-				+ "USER.NAME AS \"name\", "
-				+ "PERMISSION.NAME as \"permission\" "
-				+ "FROM USER "
-				+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
-				+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
-				+ "WHERE PERMISSION.ID IN (1,2) AND ENGINEPERMISSION.ENGINEID='" + engineId + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		return flushRsToMap(wrapper);
+		List<Map<String, Object>> users = null;
+		if(getGlobalEngineIds().contains(engineId)) {
+			String query = "SELECT DISTINCT "
+					+ "USER.NAME AS \"name\", "
+					+ "PERMISSION.NAME as \"permission\" "
+					+ "FROM USER "
+					+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
+					+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
+					+ "WHERE PERMISSION.ID IN (1,2) AND ENGINEPERMISSION.ENGINEID='" + engineId + "'";
+			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			users = flushRsToMap(wrapper);
+			
+			Map<String, Object> globalMap = new HashMap<String, Object>();
+			globalMap.put("name", "PUBLIC DATABASE");
+			globalMap.put("permission", "READ_ONLY");
+		} else {
+			String query = "SELECT DISTINCT "
+					+ "USER.NAME AS \"name\", "
+					+ "PERMISSION.NAME as \"permission\" "
+					+ "FROM USER "
+					+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
+					+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
+					+ "WHERE ENGINEPERMISSION.ENGINEID='" + engineId + "'";
+			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			users = flushRsToMap(wrapper);
+		}
+		return users;
 	}
 	
 	//////////////////////////////////////////////////////////////////////
