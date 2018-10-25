@@ -287,6 +287,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			Map<String, Object> globalMap = new HashMap<String, Object>();
 			globalMap.put("name", "PUBLIC DATABASE");
 			globalMap.put("permission", "READ_ONLY");
+			users.add(globalMap);
 		} else {
 			String query = "SELECT DISTINCT "
 					+ "USER.NAME AS \"name\", "
