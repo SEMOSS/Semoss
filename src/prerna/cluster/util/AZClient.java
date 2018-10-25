@@ -385,7 +385,7 @@ public class AZClient {
 	// TODO >>>timb: pixel to update app so that neel can add refresh button or something
 	// TODO >>>timb: still need to test this method
 	public void updateApp(String appId) throws IOException, InterruptedException {
-		if (Utility.getEngine(appId, false) == null) {
+		if (Utility.getEngine(appId, true) == null) {
 			throw new IllegalArgumentException("App needs to be defined in order to update...");
 		}
 		pullApp(appId, false);
