@@ -27,9 +27,6 @@
     <fileSet>
       <directory>export/ZIPs</directory>
       <outputDirectory>export/ZIPs</outputDirectory>
-	  <excludes>
-	    <exclude>/**</exclude>
-      </excludes>
     </fileSet>
 	<fileSet>
       <directory>images</directory>
@@ -38,9 +35,6 @@
     <fileSet>
       <directory>InsightCache/CSV_Insights</directory>
       <outputDirectory>InsightCache/CSV_Insights</outputDirectory>
-	  <excludes>
-	    <exclude>/**</exclude>
-      </excludes>
     </fileSet>
     <fileSet>
       <directory>NLPartifacts</directory>
@@ -65,9 +59,6 @@
     <fileSet>
       <directory>upload</directory>
       <outputDirectory>upload</outputDirectory>
-	  <excludes>
-	    <exclude>/**</exclude>
-      </excludes>
     </fileSet>
 	<fileSet>
       <directory>WordNet-3.1</directory>
