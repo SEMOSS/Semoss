@@ -199,7 +199,7 @@ public class OWLER {
 
 			// 2) now lets add the dataType of the concept
 			// determine the dataType
-			if(dataType == null || !dataType.isEmpty()) {
+			if(dataType == null || dataType.isEmpty()) {
 				// otherwise default to string
 				dataType = "STRING";
 			}
