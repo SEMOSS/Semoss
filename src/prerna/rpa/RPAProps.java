@@ -127,29 +127,43 @@ public class RPAProps {
 	
 	public String getProperty(String propertyName, String defaultValue) {
 		String propertyValue = props.getProperty(propertyName, defaultValue);
-		Matcher encryptedMatcher = Pattern.compile(ENCRYPTED_REGEX).matcher(propertyValue);
-		if (encryptedMatcher.matches()) {
-			String encryptedString = encryptedMatcher.group(1);
-			String salt = encryptedString.substring(0, 10);
-			encryptedString = encryptedString.substring(10);
-			try {
-				propertyValue = Cryptographer.decrypt(encryptedString, salt, rpaPassword);
-			} catch(EncryptionException e) {
-				LOGGER.error("Failed to decrypt the encrypted property " + propertyName + ". Please check to make sure the password in " + PASSWORD_FILE_NAME + " is correct.");
-				throw e;
-			}
+		try {
+			propertyValue = decrypt(propertyValue);
+		} catch(EncryptionException e) {
+			LOGGER.error("Failed to decrypt the encrypted property " + propertyName + ". Please check to make sure the password in " + PASSWORD_FILE_NAME + " is correct.");
+			throw e;
 		}
 		return propertyValue;
 	}
-
+	
 	public void setProperty(String propertyName, String propertyValue) {
 		props.put(propertyName, propertyValue);
 	}
 	
 	public void setEncrpytedProperty(String propertyName, String propertyValue) {
+		props.put(propertyName, encrypt(propertyValue));		
+	}
+	
+	public String encrypt(String value) {
 		String salt = Cryptographer.getSalt();
-		String encryptedPropertyValue = Cryptographer.encrypt(propertyValue, salt, rpaPassword);
-		props.put(propertyName, "<encrypted>" + salt + encryptedPropertyValue + "</encrypted>");		
+		String encryptedValue = Cryptographer.encrypt(value, salt, rpaPassword);
+		return "<encrypted>" + salt + encryptedValue + "</encrypted>";
+	}
+	
+	public String decrypt(String encryptedValue) {
+		Matcher encryptedMatcher = Pattern.compile(ENCRYPTED_REGEX).matcher(encryptedValue);
+		if (encryptedMatcher.matches()) {
+			
+			// If it matches the pattern, then decrypt
+			String encryptedString = encryptedMatcher.group(1);
+			String salt = encryptedString.substring(0, 10);
+			encryptedString = encryptedString.substring(10);
+			return Cryptographer.decrypt(encryptedString, salt, rpaPassword);
+		} else {
+			
+			// Else return the original value
+			return encryptedValue;
+		}
 	}
 
 	public void removeProperty(String propertyName) {

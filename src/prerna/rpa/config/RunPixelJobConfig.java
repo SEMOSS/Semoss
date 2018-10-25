@@ -13,6 +13,7 @@ public class RunPixelJobConfig  extends JobConfig {
 	@Override
 	public void populateJobDataMap() throws ParseConfigException {
 		putString(RunPixelJob.IN_PIXEL_KEY);
+		putString(JobConfigKeys.USER_ACCESS);
 	}
 
 }

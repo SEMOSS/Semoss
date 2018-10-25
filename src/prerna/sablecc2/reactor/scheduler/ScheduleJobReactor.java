@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.scheduler;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
@@ -17,10 +19,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.rpa.RPAProps;
 import prerna.rpa.config.ConfigUtil;
 import prerna.rpa.config.ConfigurableJob;
+import prerna.rpa.config.IllegalConfigException;
 import prerna.rpa.config.JobConfigKeys;
+import prerna.rpa.config.JobConfigParser;
+import prerna.rpa.config.ParseConfigException;
 import prerna.rpa.quartz.SchedulerUtil;
 import prerna.rpa.quartz.jobs.insight.RunPixelJob;
 import prerna.sablecc2.om.GenRowStruct;
@@ -67,9 +75,28 @@ public class ScheduleJobReactor extends AbstractReactor {
 		if(recipe == null || recipe.length() <= 0) {
 			throw new IllegalArgumentException("Must provide a recipe");
 		}
+		
+		try {
+			recipe = URLDecoder.decode(recipe,"UTF-8");
+		} catch (UnsupportedEncodingException e1) {
+			throw new IllegalArgumentException("Must be able to decode recipe");
+		}
+		
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 		String parameters = this.keyValue.get(this.keysToGet[6]);
+		
+		User user = this.insight.getUser();
+		List<AuthProvider> authProviders = user.getLogins();
+		StringBuilder providerInfo = new StringBuilder(); 
+		for (int i = 0; i < authProviders.size(); i++) {
+			AuthProvider authProvider = authProviders.get(i); 
+			AccessToken token = user.getAccessToken(authProvider);
+			providerInfo.append(authProvider.name()).append(":").append(token.getId());
+			if (i != authProviders.size() - 1) {
+				providerInfo.append(",");
+			}
+		}
 		
 		// Define the json; this is used to persist the job to disk
 		// (Quartz is entirely in-memory)
@@ -82,7 +109,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jsonObject.addProperty(JobConfigKeys.TRIGGER_ON_LOAD, triggerOnLoad);
 		jsonObject.addProperty(JobConfigKeys.PARAMETERS, parameters);
 		jsonObject.addProperty(JobConfigKeys.ACTIVE, true);
-
+		jsonObject.addProperty(JobConfigKeys.USER_ACCESS, RPAProps.getInstance().encrypt(providerInfo.toString()));
+		
 		// Json file to persist job data
 		String jsonFileName = jobGroup + "__" + jobName + ".json";
 		String filePath = RPAProps.getInstance().getProperty(RPAProps.JSON_DIRECTORY_KEY) + jsonFileName;
@@ -109,6 +137,13 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 		
 		// Schedule the job
+		try {
+			JobConfigParser.parse(jsonFile.getName(), false);
+		} catch (ParseConfigException | IllegalConfigException | SchedulerException e) {
+			throw new RuntimeException("Failed to schedule the job", e);
+		}
+		
+		// Trigger the job if needed
 		JobKey jobKey = JobKey.jobKey(jobName, jobGroup);
 		if (triggerNow) {
 			try {
