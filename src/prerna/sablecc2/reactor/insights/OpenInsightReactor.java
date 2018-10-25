@@ -9,6 +9,8 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.JsonSyntaxException;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.AZClient;
@@ -142,7 +144,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					// need to transfer again
 					InsightUtility.transferDefaultVars(this.insight, newInsight);
 				}
-			} catch (IOException e) {
+			} catch (IOException | JsonSyntaxException e) {
 				hasCache = true;
 				e.printStackTrace();
 			}
@@ -166,7 +168,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		} else if(hasCache) {
 			try {
 				runner = getCachedInsightData(cachedInsight);
-			} catch (IOException e) {
+			} catch (IOException | JsonSyntaxException e) {
 				InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId);
 				additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.", 
 						PixelDataType.CONST_STRING, PixelOperationType.WARNING);
@@ -247,7 +249,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param insightId
 	 * @return
 	 */
-	protected Insight getCachedInsight(String engineId, String engineName, String insightId) throws IOException {
+	protected Insight getCachedInsight(String engineId, String engineName, String insightId) throws IOException, JsonSyntaxException {
 		Insight insight = null;
 		
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -268,7 +270,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param cachedInsight
 	 * @return
 	 */
-	protected PixelRunner getCachedInsightData(Insight insight) throws IOException {
+	protected PixelRunner getCachedInsightData(Insight insight) throws IOException, JsonSyntaxException {
 		// I will create a temp insight
 		// so that I can mock the output as if this was run properly
 		Insight tempInsight = new Insight(insight.getEngineId(), insight.getEngineName(), insight.getRdbmsId());

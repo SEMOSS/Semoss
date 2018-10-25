@@ -26,6 +26,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
@@ -130,7 +131,7 @@ public class InsightCacheUtility {
 	 * @return
  	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(File insightCacheZip) throws IOException {
+	public static Insight readInsightCache(File insightCacheZip) throws IOException, JsonSyntaxException {
 		ZipFile zip = null;
 		ZipEntry entry = null;
 		InputStream is = null;
@@ -167,7 +168,7 @@ public class InsightCacheUtility {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(String insightPath) throws IOException {
+	public static Insight readInsightCache(String insightPath) throws IOException, JsonSyntaxException {
 		File insightFile = new File(insightPath);
 		return readInsightCache(insightFile);
 	}
@@ -177,7 +178,7 @@ public class InsightCacheUtility {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static Map<String, Object> getCachedInsightViewData(Insight insight) throws IOException {
+	public static Map<String, Object> getCachedInsightViewData(Insight insight) throws IOException, JsonSyntaxException {
 		String rdbmsId = insight.getRdbmsId();
 		String engineId = insight.getEngineId();
 		String engineName = insight.getEngineName();
