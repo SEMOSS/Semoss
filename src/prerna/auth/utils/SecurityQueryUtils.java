@@ -17,6 +17,7 @@ import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class SecurityQueryUtils extends AbstractSecurityUtils {
@@ -261,6 +262,26 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushToSetString(wrapper, false);
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Get all the users for a database
+	 */
+	
+	public static List<Map<String, Object>> getAllDatabaseUsers(String engineId) {
+		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+		String query = "SELECT DISTINCT "
+				+ "USER.NAME AS \"name\", "
+				+ "PERMISSION.NAME as \"permission\" "
+				+ "FROM USER "
+				+ "INNER JOIN ENGINEPERMISSION ON USER.ID=ENGINEPERMISSION.USERID "
+				+ "INNER JOIN PERMISSION ON ENGINEPERMISSION.PERMISSION=PERMISSION.ID "
+				+ "WHERE ENGINEPERMISSION.ENGINEID='" + engineId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
 	}
 	
 	//////////////////////////////////////////////////////////////////////

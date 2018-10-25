@@ -12,9 +12,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class AppInfoReactor extends AbstractReactor {
+public class AppUsersReactors extends AbstractReactor {
 	
-	public AppInfoReactor() {
+	public AppUsersReactors() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey()};
 	}
 
@@ -35,28 +35,12 @@ public class AppInfoReactor extends AbstractReactor {
 				// you dont have access
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
-			// user has access!
-			baseInfo = SecurityQueryUtils.getUserDatabaseList(this.insight.getUser(), appId);
 		} else {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-			// just grab the info
-			baseInfo = SecurityQueryUtils.getAllDatabaseList(appId);
 		}
 		
-		if(baseInfo.isEmpty()) {
-			throw new IllegalArgumentException("Could not find any app data");
-		}
-		
-		// we filtered to a single app
-		Map<String, Object> appInfo = baseInfo.get(0);
-		Map<String, List<String>> additionalMeta = SecurityQueryUtils.getAggregateEngineMetadata(appId);
-
-		// combine into return object
-		if(additionalMeta.containsKey("description")) {
-			appInfo.put("app_description", additionalMeta.get("description").get(0));
-		}
-		appInfo.put("app_tags", additionalMeta.get("tags"));
-		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
+		baseInfo = SecurityQueryUtils.getAllDatabaseUsers(appId);
+		return new NounMetadata(baseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_USERS);
 	}
 
 }
