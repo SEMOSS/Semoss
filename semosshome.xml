@@ -28,7 +28,7 @@
       <directory>export/ZIPs</directory>
       <outputDirectory>export/ZIPs</outputDirectory>
 	  <excludes>
-	    <exclude>*/**</exclude>
+	    <exclude>/**</exclude>
       </excludes>
     </fileSet>
 	<fileSet>
@@ -39,7 +39,7 @@
       <directory>InsightCache/CSV_Insights</directory>
       <outputDirectory>InsightCache/CSV_Insights</outputDirectory>
 	  <excludes>
-	    <exclude>*/**</exclude>
+	    <exclude>/**</exclude>
       </excludes>
     </fileSet>
     <fileSet>
@@ -66,7 +66,7 @@
       <directory>upload</directory>
       <outputDirectory>upload</outputDirectory>
 	  <excludes>
-	    <exclude>*/**</exclude>
+	    <exclude>/**</exclude>
       </excludes>
     </fileSet>
 	<fileSet>
