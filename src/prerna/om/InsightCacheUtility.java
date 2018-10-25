@@ -140,6 +140,9 @@ public class InsightCacheUtility {
 		try {
 			zip = new ZipFile(insightCacheZip);
 			entry = zip.getEntry(MAIN_INSIGHT_JSON);
+			if(entry == null) {
+				throw new IOException("Invalid zip format for cached insight");
+			}
 			is = zip.getInputStream(entry);
 			isr = new InputStreamReader(is);
 			br = new BufferedReader(isr);
@@ -250,7 +253,7 @@ public class InsightCacheUtility {
 		}
 	}
 	
-	public static void unzipFile(ZipFile zip, String name, String path) {
+	public static void unzipFile(ZipFile zip, String name, String path) throws FileNotFoundException {
 		byte[] buffer = new byte[1024];
 		File newFile = new File(path);
 		FileOutputStream fos = null;
