@@ -332,6 +332,7 @@ import prerna.sablecc2.reactor.workflow.InsightDatasourcesReactor;
 import prerna.sablecc2.reactor.workflow.ModifyInsightDatasourceReactor;
 import prerna.solr.reactor.AppInfoReactor;
 import prerna.solr.reactor.AppInsightsReactor;
+import prerna.solr.reactor.AppUsersReactors;
 import prerna.solr.reactor.MyAppsReactor;
 import prerna.solr.reactor.SetAppDescriptionReactor;
 import prerna.solr.reactor.SetAppTagsReactor;
@@ -786,6 +787,7 @@ public class ReactorFactory {
 		// App Metadata
 		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("AppInfo", AppInfoReactor.class);
+		reactorHash.put("AppUsers", AppUsersReactors.class);
 		// TODO: to be removed once FE changes to only use GetInsights
 		reactorHash.put("GetAppInsights", AppInsightsReactor.class);
 		reactorHash.put("GetInsights", AppInsightsReactor.class);
