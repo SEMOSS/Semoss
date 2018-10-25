@@ -5,12 +5,14 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
@@ -34,8 +36,15 @@ public class SetPanelViewReactor extends AbstractInsightPanelReactor {
 		// get the view and options
 		String view = getPanelView();
 		String viewOptions = getPanelViewOptions();
-		Map<String, String> viewOptionsMap = GSON.fromJson(viewOptions, Map.class);
-		
+		Map<String, String> viewOptionsMap = new HashMap<String, String>();;
+		if(viewOptions != null && viewOptions.isEmpty()) {
+			try {
+				viewOptionsMap = GSON.fromJson(viewOptions, Map.class);
+			} catch(JsonSyntaxException e) {
+				throw new SemossPixelException(new NounMetadata("Panel view is not in a valid JSON format after decoding", 
+						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+		}
 		// set the new view
 		insightPanel.setPanelView(view);
 		insightPanel.appendPanelViewOptions(view, viewOptionsMap);
