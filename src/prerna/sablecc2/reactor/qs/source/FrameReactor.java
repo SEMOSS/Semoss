@@ -28,7 +28,10 @@ public class FrameReactor extends AbstractQueryStructReactor {
 	private ITableDataFrame getFrameInput() {
 		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
-			return (ITableDataFrame) frameGrs.get(0);
+			NounMetadata noun = frameGrs.getNoun(0);
+			if(noun.getNounType() == PixelDataType.FRAME) {
+				return (ITableDataFrame) noun.getValue();
+			}
 		}
 
 		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
