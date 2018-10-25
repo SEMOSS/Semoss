@@ -43,6 +43,14 @@ public class JobConfigParser {
 		boolean triggerOnLoad = jobConfig.getTriggerOnLoad();
 		boolean status = jobConfig.getStatus();
 
+		// If the job already exists, then return
+		JobKey key = new JobKey(jobName, jobGroup);
+		Scheduler scheduler = SchedulerUtil.getScheduler();
+		if (scheduler.checkExists(key)) {
+			LOGGER.info("The job " + jobName + " already exists.");
+			return key;
+		}
+		
 		// Get the job's data map
 		JobDataMap jobDataMap;
 		try {
@@ -58,7 +66,6 @@ public class JobConfigParser {
 			JobDetail job = newJob(jobClass).withIdentity(jobName, jobGroup).usingJobData(jobDataMap).build();
 			Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobName + "Trigger", jobName + "TriggerGroup")
 					.withSchedule(CronScheduleBuilder.cronSchedule(jobCronExpression)).build();
-			Scheduler scheduler = SchedulerUtil.getScheduler();
 			if (unitTest) {
 				scheduler.addJob(job, true, true);
 				scheduler.triggerJob(job.getKey());
