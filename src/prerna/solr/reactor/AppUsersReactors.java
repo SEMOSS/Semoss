@@ -39,7 +39,7 @@ public class AppUsersReactors extends AbstractReactor {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
 		}
 		
-		baseInfo = SecurityQueryUtils.getAllDatabaseUsers(appId);
+		baseInfo = SecurityQueryUtils.getAllDatabaseOwnersAndEditors(appId);
 		return new NounMetadata(baseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_USERS);
 	}
 
