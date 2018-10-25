@@ -47,6 +47,7 @@ public enum PixelOperationType {
 	
 	// META DATA INFORMATION
 	APP_INFO,
+	APP_USERS,
 	APP_INSIGHTS,
 	
 	// forms calls that change the db
