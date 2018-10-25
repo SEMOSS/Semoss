@@ -2155,6 +2155,7 @@ public class Utility {
 	public static boolean isIntegerType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
 		if(dataType.startsWith("BIT")
+				|| dataType.startsWith("IDENTITY")
 				|| dataType.startsWith("LONG")
 				|| dataType.startsWith("INT")
 				|| dataType.startsWith("INTEGER")
