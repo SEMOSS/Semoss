@@ -1,14 +1,9 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-
 import prerna.ds.r.RDataTable;
+import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -30,151 +25,27 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// initialize rJavaTranslator - we will need this for method to get the
-		// data type
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		String table = frame.getTableName();
-		StringBuilder script = new StringBuilder(table).append(" <- ").append(table).append("[!( ");
 
 		// the first noun will be a query struct - the filter
 		SelectQueryStruct qs = getQueryStruct();
 		// get the filters from the query struct
 		// and iterate through each filtered column
 		GenRowFilters grf = qs.getExplicitFilters();
-		Set<String> filteredColumns = grf.getAllFilteredColumns();
-		for (String filColumn : filteredColumns) {
-			List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(filColumn);
-			for (SimpleQueryFilter queryFilter : filterList) {
-				// col to values the left comparison will be the column
-				NounMetadata leftComp = queryFilter.getLComparison();
-				String column = ((IQuerySelector) leftComp.getValue()).getQueryStructName();
-				// separate the column name from the frame name
-				if (column.contains("__")) {
-					String[] split = column.split("__");
-					table = split[0];
-					column = split[1];
-				}
-				String nounComparator = queryFilter.getComparator();
-				// Validate column exists
-				String[] existCols = getColNames(table);
-				if (Arrays.asList(existCols).contains(column) != true) {
-					throw new IllegalArgumentException("Column doesn't exist.");
-				}
-				// clean nounComparator for rScript
-				if (nounComparator.trim().equals("=")) {
-					nounComparator = "==";
-				} else if (nounComparator.equals("<>")) {
-					nounComparator = "!=";
-				} else if (nounComparator.equals("?like")) {
-					nounComparator = "like";
-				}
-				// the right comparison will be the comparison value
-				NounMetadata rightComp = queryFilter.getRComparison();
-				Object value = rightComp.getValue();
-				String frameExpression = table + "$" + column;
-				String dataType = getColumnType(table, column);
 
-				// take into account different possibilities for the comparison
-				// value
-				// if an object
-				if (value instanceof Object[]) {
-					Object[] arr = (Object[]) value;
-					Object val = arr[0];
-					if (dataType.equalsIgnoreCase("string") || dataType.equalsIgnoreCase("character")) {
-						if (val == null || val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
-							script.append("is.na(").append(frameExpression).append(") ");
-						} else {
-							if (nounComparator.equals("like")) {
-								script.append("like(").append(frameExpression).append(",").append("\"").append(val).append("\")");
-							} else {
-								script.append(frameExpression).append(nounComparator).append("\"").append(val).append("\"");
-							}
-						}
-					} else {
-						// value is instance of object but the data type is not
-						// a string - we dont need quotes
-						script.append(nounComparator).append(val);
-					}
-					for (int i = 1; i < arr.length; i++) {
-						val = arr[i];
-						if (dataType.equalsIgnoreCase("string") || dataType.equalsIgnoreCase("character")) {
-							if (val.toString().equalsIgnoreCase("NULL") || val.toString().equalsIgnoreCase("NA")) {
-								script.append(" | is.na(").append(frameExpression).append(") ");
-							} else {
-								if (nounComparator.equals("like")) {
-									script.append(" | ").append("like(").append(frameExpression).append(",")
-											.append("\"").append(val).append("\")");
-								} else {
-									script.append(" | ").append(frameExpression).append(nounComparator)
-											.append("\"").append(val).append("\"");
-								}
-							}
-						} else {
-							script.append(" | ").append(frameExpression).append(nounComparator).append(val);
-						}
-					}
-				} else if (value instanceof Double[]) {
-					Double[] arr = (Double[]) value;
-					Double val = arr[0];
-					script.append(frameExpression).append(nounComparator).append(val);
-					for (int i = 1; i < arr.length; i++) {
-						val = arr[i];
-						script.append(" | ").append(frameExpression).append(nounComparator).append(val);
-					}
-				} else if (value instanceof Integer[]) {
-					Integer[] arr = (Integer[]) value;
-					Integer val = arr[0];
-					script.append(frameExpression).append(nounComparator).append(val);
-					for (int i = 1; i < arr.length; i++) {
-						val = arr[i];
-						script.append(" | ").append(frameExpression).append(nounComparator).append(val);
-					}
-				} else if (value instanceof double[]) {
-					double[] arr = (double[]) value;
-					double val = arr[0];
-					script.append(frameExpression).append(nounComparator).append(val);
-					for (int i = 1; i < arr.length; i++) {
-						val = arr[i];
-						script.append(" | ").append(frameExpression).append(nounComparator).append(val);
-					}
-				} else if (value instanceof int[]) {
-					int[] arr = (int[]) value;
-					int val = arr[0];
-					script.append(frameExpression).append(nounComparator).append(val);
-					for (int i = 1; i < arr.length; i++) {
-						val = arr[i];
-						script.append(" | ").append(frameExpression).append(nounComparator).append(val);
-					}
-				} else {
-					if (value == null || value.toString().equalsIgnoreCase("NULL") || value.toString().equalsIgnoreCase("NA")) {
-						script.append("is.na(").append(frameExpression).append(") ");
-					} else {
-						if (dataType.equalsIgnoreCase("character") || dataType.equalsIgnoreCase("string")) {
-							if (nounComparator.equals("like")) {
-								script.append("like(").append(frameExpression).append(",").append("\"").append(value)
-								.append("\")");
-							} else {
-								script.append(frameExpression).append(nounComparator).append("\"").append(value).append("\"");
-							}
-						} else {
-							// if empty, and its not a character, it should be a null check
-							if (dataType.equalsIgnoreCase("numeric") || dataType.equalsIgnoreCase("integer")) {
-								script.append("is.na(").append(frameExpression).append(") ");
-							} else {
-								script.append(frameExpression).append(nounComparator).append(value);
-							}
-						}
-					}
-				}
-			}
-		}
-		script.append("),]");
+		// use RInterpreter to create filter syntax
+		StringBuilder rFilterBuilder = new StringBuilder();
+		RInterpreter ri = new RInterpreter();
+		ri.setColDataTypes(frame.getMetaData().getHeaderToTypeMap());
+		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true);
+
 		// execute the r script
-		// script is of the form - FRAME <- FRAME[!( FRAME$Director ==
-		// "value"),]
-		frame.executeRScript(script.toString());
+		// FRAME <- FRAME[!( FRAME$Director == "value"),]
+		String newScript = table + "<- " + table + "[!(" + rFilterBuilder.toString() + "),]";
+		frame.executeRScript(newScript);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "DropRows",

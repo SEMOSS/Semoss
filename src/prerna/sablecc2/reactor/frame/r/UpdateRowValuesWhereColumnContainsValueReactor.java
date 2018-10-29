@@ -38,9 +38,6 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		// get frame name
 		String table = frame.getTableName();
 
-		// create a string builder to keep track of the scripts to execute
-		StringBuilder sb = new StringBuilder();
-
 		// get inputs
 		String updateCol = getUpdateColumn();
 		// separate the column name from the frame name
@@ -69,7 +66,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		SelectQueryStruct qs = getQueryStruct();
 		// get all of the filters from this querystruct
 		GenRowFilters grf = qs.getExplicitFilters();
-	
+
 		// use RInterpreter to create filter syntax
 		StringBuilder rFilterBuilder = new StringBuilder();
 		RInterpreter ri = new RInterpreter();
@@ -78,7 +75,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 
 		// execute the r scripts
 		if (rFilterBuilder.length() > 0) {
-			String script = table + "$" + updateCol + "[" +rFilterBuilder.toString()+ "] <- " + value + ";";
+			String script = table + "$" + updateCol + "[" + rFilterBuilder.toString() + "] <- " + value + ";";
 			this.rJavaTranslator.runR(script);
 		}
 		
