@@ -32,8 +32,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
-import prerna.sablecc2.reactor.app.upload.rdbms.external.RdbmsExternalUploadReactor;
-import prerna.sablecc2.reactor.qs.source.ExternalJdbcSchemaReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
