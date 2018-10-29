@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs.source;
+package prerna.sablecc2.reactor.app.upload.rdbms.external;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -18,12 +18,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcTablesAndViewsReactor;
 
-public class ExternalJDBCDatabaseReactor extends AbstractReactor {
+public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 	
-	private static final String CLASS_NAME = ExternalJDBCDatabaseReactor.class.getName();
+	private static final String CLASS_NAME = ExternalJdbcTablesAndViewsReactor.class.getName();
 	
-	public ExternalJDBCDatabaseReactor() {
+	public ExternalJdbcTablesAndViewsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(), 
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), 
 				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey(),
@@ -50,9 +51,9 @@ public class ExternalJDBCDatabaseReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to establish connection given the connection details", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		// tablename
-		List<Map<String, Object>> databaseTables = new ArrayList<Map<String, Object>>();
-	    List<Map<String, String>> databaseJoins = new ArrayList<Map<String, String>>();
+		// keep a list of tables and views
+		List<String> tables = new ArrayList<String>();
+		List<String> views = new ArrayList<String>();
 
 		DatabaseMetaData meta;
 		try {
@@ -68,18 +69,8 @@ public class ExternalJDBCDatabaseReactor extends AbstractReactor {
 		try {
 			tablesRs = meta.getTables(schema, null, null, new String[] { "TABLE", "VIEW" });
 		} catch (SQLException e) {
-			throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		
-		final String TABLE_KEY = "table";
-		final String COLUMNS_KEY = "columns";
-		final String TYPES_KEY = "type";
-		final String PRIM_KEY = "isPrimKey";
-		
-		final String TO_TABLE_KEY = "toTable";
-		final String TO_COL_KEY = "toCol";
-		final String FROM_TABLE_KEY = "fromTable";
-		final String FROM_COL_KEY = "fromCol";
 		
 		try {
 			while (tablesRs.next()) {
@@ -87,7 +78,8 @@ public class ExternalJDBCDatabaseReactor extends AbstractReactor {
 				// this will be table or view
 				String tableType = tablesRs.getString("table_type").toUpperCase();
 				if(tableType.equals("TABLE")) {
-					logger.info("Processing table = " + table);
+					logger.info("Found table = " + table);
+					tables.add(table);
 				} else {
 					// there may be views built from sys or information schema
 					// we want to ignore these
@@ -97,38 +89,8 @@ public class ExternalJDBCDatabaseReactor extends AbstractReactor {
 							continue;
 						}
 					}
-					logger.info("Processing view = " + table);
-				}
-				// grab the table
-				// we want to get the following information
-				// table name
-				// column name
-				// column type
-				// is primary key
-				Map<String, Object> tableDetails = new HashMap<String, Object>(); 
-				tableDetails.put(TABLE_KEY, table);
-				
-				databaseTables.add(tableDetails);
-				ResultSet keys = null;
-
-				if(tableType.equals("TABLE")) {
-					try {
-						logger.info("....Processing table foreign keys");
-						keys = meta.getExportedKeys(null, null, table);
-						while (keys.next()) {
-							Map<String, String> joinInfo = new HashMap<String, String>();
-							joinInfo.put(FROM_TABLE_KEY, table);
-							joinInfo.put(FROM_COL_KEY, keys.getString("PKCOLUMN_NAME"));
-							joinInfo.put(TO_TABLE_KEY, keys.getString("FKTABLE_NAME"));
-							joinInfo.put(TO_COL_KEY, keys.getString("FKCOLUMN_NAME"));
-	
-							databaseJoins.add(joinInfo);
-						}
-					} catch (SQLException e) {
-						e.printStackTrace();
-					} finally {
-						closeRs(keys);
-					}
+					logger.info("Found view = " + table);
+					views.add(table);
 				}
 			}
 		} catch (SQLException e) {
@@ -145,9 +107,9 @@ public class ExternalJDBCDatabaseReactor extends AbstractReactor {
 		}
 		logger.info("Done parsing database metadata");
 		
-		HashMap<String, Object> ret = new HashMap<String, Object>();
-		ret.put("tables", databaseTables);
-		ret.put("relationships", databaseJoins);
+		Map<String, List<String>> ret = new HashMap<String, List<String>>();
+		ret.put("tables", tables);
+		ret.put("views", views);
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 	
