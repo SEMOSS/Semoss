@@ -77,6 +77,7 @@ import prerna.sablecc2.reactor.app.upload.gremlin.TinkerCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsFlatExcelUploadReactor;
+import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcSchemaReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcTablesAndViewsReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.RdbmsExternalUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdf.RdfCsvUploadReactor;
@@ -266,8 +267,6 @@ import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.DropBoxFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.DropBoxListFilesReactor;
-import prerna.sablecc2.reactor.qs.source.ExternalJDBCTableReactor;
-import prerna.sablecc2.reactor.qs.source.ExternalJdbcSchemaReactor;
 import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
@@ -459,8 +458,9 @@ public class ReactorFactory {
 		// Excel Data validation
 		reactorHash.put("GetExcelForm", ExcelDataValidationReactor.class);
 		
-
 		// Database Uploading
+		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
+		reactorHash.put("ExternalJdbcTablesAndViews", ExternalJdbcTablesAndViewsReactor.class);
 		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
 		reactorHash.put("FormUpload", FormUploadReactor.class);
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
@@ -529,10 +529,6 @@ public class ReactorFactory {
 		reactorHash.put("FileRead", FileSourceReactor.class);
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
-		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
-		reactorHash.put("ExternalJdbcTablesAndViews", ExternalJdbcTablesAndViewsReactor.class);
-		reactorHash.put("ExternalJDBCTable", ExternalJDBCTableReactor.class);
-		
 		reactorHash.put("URLSource", URLSourceReactor.class);
 		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
 		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
