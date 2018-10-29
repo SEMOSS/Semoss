@@ -728,54 +728,78 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * @param userName	String representing the name of the user to add
 	 */
-	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException{
-		boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getId());
-		if(!isNewUser) {			
-			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN) VALUES ('" + 
-					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
-					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
-					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
-					RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
-					newUser.getProvider() + "', 'FALSE');";
-			try {
-				securityDb.insertData(query);
+	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException {
+		// see if the user was added by an admin
+		// this means it could be on the ID or the EMAIL
+		// but name is the admin_added_user constant
+		String query = "SELECT ID FROM USER WHERE "
+				+ "NAME='" + ADMIN_ADDED_USER + "' AND "
+				// this matching the ID field to the email because admin added user only sets the id field
+				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if(wrapper.hasNext()) {
+				// this was the old id that was added when the admin 
+				String oldId = RdbmsQueryBuilder.escapeForSQLStatement(wrapper.next().getValues()[0].toString());
+				
+				String newId = RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId());
+				// this user was added by the user
+				// and we need to update
+				String updateQuery = "UPDATE USER SET "
+						+ "ID="+ newId + "', "
+						+ "NAME='"+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', "
+						+ "USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', "
+						+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', "
+						+ "TYPE='" + newUser.getProvider() + "' "
+						+ "WHERE ID='" + oldId + "';";
+				try {
+					securityDb.insertData(updateQuery);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
+				// need to update any other permissions that were set for this user
+				updateQuery = "UPDATE ENGINEPERMISSION SET USERID='" +  newId +"' WHERE USERID='" + oldId + "'";
+				try {
+					securityDb.insertData(updateQuery);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
+				// need to update all the places the user id is used
+				updateQuery = "UPDATE USERINSIGHTPERMISSION SET USERID='" +  newId +"' WHERE USERID='" + oldId + "'";
+				try {
+					securityDb.insertData(updateQuery);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
 				securityDb.commit();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-			return true;
-		} else {
-			String query = "SELECT NAME FROM USER WHERE "
-					+ "NAME='" + ADMIN_ADDED_USER + "' AND "
-					// this matching the ID field to the email because admin added user only sets the id field
-					+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-			try {
-				if(wrapper.hasNext()) {
-					// this user was added by the user
-					// and we need to update
-					String updateQuery = "UPDATE USER SET "
-							+ "NAME='"+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', "
-							+ "USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', "
-							+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', "
-							+ "TYPE='" + newUser.getProvider() + "' "
-							+ "WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "';";
+			} else {
+				// not added by admin
+				// lets see if he exists or not
+				boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getId());
+				if(!isNewUser) {		
+					query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN) VALUES ('" + 
+							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
+							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
+							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
+							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
+							newUser.getProvider() + "', 'FALSE');";
 					try {
-						securityDb.insertData(updateQuery);
+						securityDb.insertData(query);
 						securityDb.commit();
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}
+					return true;
 				}
-			}finally {
-				wrapper.cleanUp();
 			}
-			String name = flushToString(wrapper);
-			if(ADMIN_ADDED_USER.equals(name)) {
-				
-			}
-			return false;
+		} finally {
+			wrapper.cleanUp();
 		}
+		
+		return false;
 	}
 	
 	/**
