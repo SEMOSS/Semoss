@@ -629,7 +629,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 		
-		if(addNullCheck) {
+		if(addNullCheck && !objects.isEmpty()) {
 			// close due to wrapping
 			filterBuilder.append(")");
 		}
