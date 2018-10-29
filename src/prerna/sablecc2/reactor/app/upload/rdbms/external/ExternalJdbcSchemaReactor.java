@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.qs.source;
+package prerna.sablecc2.reactor.app.upload.rdbms.external;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -8,10 +8,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -19,16 +21,19 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
-public class ExternalJDBCTableReactor extends AbstractReactor {
+public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	
-	private static final String CLASS_NAME = ExternalJDBCTableReactor.class.getName();
+	private static final String CLASS_NAME = ExternalJdbcSchemaReactor.class.getName();
 	
-	public ExternalJDBCTableReactor() {
+	public static final String TABLES_KEY = "tables";
+	public static final String RELATIONS_KEY = "relationships";
+	
+	public ExternalJdbcSchemaReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(), 
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), 
 				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey(),
-				ReactorKeysEnum.TABLE.getKey(),
-				ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey()};
+				ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
+				ReactorKeysEnum.FILTERS.getKey()};
 	}
 
 	@Override
@@ -36,27 +41,23 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		
 		organizeKeys();
-		String driver = this.keyValue.get(this.keysToGet[0]);
-		String host = this.keyValue.get(this.keysToGet[1]);
-		String port = this.keyValue.get(this.keysToGet[2]);
-		String username = this.keyValue.get(this.keysToGet[3]);
-		String password = this.keyValue.get(this.keysToGet[4]);
-		String schema = this.keyValue.get(this.keysToGet[5]);
-		String table = this.keyValue.get(this.keysToGet[6]);
-
-		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
-
+		String driver = getStringInput(0);
+		String host = getStringInput(1);
+		String port = getStringInput(2);
+		String username = getStringInput(3);
+		String password = getStringInput(4);
+		String schema = getStringInput(5);
+		String additionalProperties = getStringInput(6);
+	
+		List<String> tableAndViewFilters = getFilters();
+		boolean hasFilters = !tableAndViewFilters.isEmpty();
+		
 		Connection con;
 		try {
 			con = RdbmsConnectionHelper.buildConnection(driver, host, port, username, password, schema, additionalProperties);
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to establish connection given the connection details", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		
-		// get list of tables
-		// get list of views
-		List<String> tables = new ArrayList<String>();
-		
 		
 		// tablename
 		List<Map<String, Object>> databaseTables = new ArrayList<Map<String, Object>>();
@@ -69,15 +70,16 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		if(schema.equalsIgnoreCase("")) {
-			schema = null;
+		ResultSet tablesRs;
+		try {
+			if(driver.equals(RdbmsConnectionHelper.H2_DRIVER)) {
+				tablesRs = meta.getTables(null, null, null, new String[] { "TABLE", "VIEW" });
+			} else {
+				tablesRs = meta.getTables(schema, null, null, new String[] { "TABLE", "VIEW" });
+			}
+		} catch (SQLException e) {
+			throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		
-//		try {
-//			tablesRs = meta.getTables(schema, null, null, new String[] { "TABLE", "VIEW" });
-//		} catch (SQLException e) {
-//			throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-//		}
 		
 		final String TABLE_KEY = "table";
 		final String COLUMNS_KEY = "columns";
@@ -89,27 +91,31 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 		final String FROM_TABLE_KEY = "fromTable";
 		final String FROM_COL_KEY = "fromCol";
 		
-		ResultSet tableMeta = null;
 		try {
-		
-			tableMeta = meta.getTables(schema, null, table, new String[] { "TABLE", "VIEW" });
-			while (tableMeta.next()) {
+			while (tablesRs.next()) {
+				String tableOrView = tablesRs.getString("table_name");
 				
-				//String table = tablesRs.getString("table_name");
+				// add filter check
+				if(hasFilters && !tableAndViewFilters.contains(tableOrView)) {
+					// we will ignore this table and view!
+					continue;
+				}
+				
 				// this will be table or view
-				String tableType = tableMeta.getString("table_type").toUpperCase();
-				if(tableType.equals("TABLE")) {
-					logger.info("Processing table = " + table);
+				String tableType = tablesRs.getString("table_type").toUpperCase();
+				boolean isTable = tableType.equalsIgnoreCase("TABLE");
+				if(isTable) {
+					logger.info("Processing table = " + tableOrView);
 				} else {
 					// there may be views built from sys or information schema
 					// we want to ignore these
-					String schem = tableMeta.getString("table_schem");
+					String schem = tablesRs.getString("table_schem");
 					if(schem != null) {
 						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("SYS")) {
 							continue;
 						}
 					}
-					logger.info("Processing view = " + table);
+					logger.info("Processing view = " + tableOrView);
 				}
 				// grab the table
 				// we want to get the following information
@@ -117,14 +123,13 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 				// column name
 				// column type
 				// is primary key
-				
 				Map<String, Object> tableDetails = new HashMap<String, Object>(); 
-				tableDetails.put(TABLE_KEY, table);
+				tableDetails.put(TABLE_KEY, tableOrView);
 				
 				List<String> primaryKeys = new ArrayList<String>();
 				ResultSet keys = null;
 				try {
-					keys = meta.getPrimaryKeys(null, null, table);
+					keys = meta.getPrimaryKeys(null, null, tableOrView);
 					while(keys.next()) {
 						primaryKeys.add(keys.getString("column_name"));
 					}
@@ -139,8 +144,8 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 				List<Boolean> isPrimKeys = new ArrayList<Boolean>();
 
 				try {
-					logger.info("....Processing table columns");
-					keys = meta.getColumns(null, null, table, null);
+					logger.info("....Processing columns");
+					keys = meta.getColumns(null, null, tableOrView, null);
 					while (keys.next()) {
 						String cName = keys.getString("column_name");
 						columnNames.add(cName);
@@ -167,17 +172,24 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 				// we are now done with the table info
 				// let us go to the joins
 				// only do this for tables, not for views
-				if(tableType.equals("TABLE")) {
+				if(isTable) {
 					try {
 						logger.info("....Processing table foreign keys");
-						keys = meta.getExportedKeys(null, null, table);
+						keys = meta.getExportedKeys(null, null, tableOrView);
 						while (keys.next()) {
+							String otherTableName = keys.getString("FKTABLE_NAME");
+							
+							// add filter check
+							if(hasFilters && !tableAndViewFilters.contains(otherTableName)) {
+								// we will ignore this table and view!
+								continue;
+							}
+							
 							Map<String, String> joinInfo = new HashMap<String, String>();
-							joinInfo.put(FROM_TABLE_KEY, table);
+							joinInfo.put(FROM_TABLE_KEY, tableOrView);
 							joinInfo.put(FROM_COL_KEY, keys.getString("PKCOLUMN_NAME"));
-							joinInfo.put(TO_TABLE_KEY, keys.getString("FKTABLE_NAME"));
+							joinInfo.put(TO_TABLE_KEY, otherTableName);
 							joinInfo.put(TO_COL_KEY, keys.getString("FKCOLUMN_NAME"));
-	
 							databaseJoins.add(joinInfo);
 						}
 					} catch (SQLException e) {
@@ -186,12 +198,11 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 						closeRs(keys);
 					}
 				}
-				}
-			
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			closeRs(tableMeta);
+			closeRs(tablesRs);
 			if(con != null) {
 				try {
 					con.close();
@@ -203,11 +214,11 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 		logger.info("Done parsing database metadata");
 		
 		HashMap<String, Object> ret = new HashMap<String, Object>();
-		ret.put("table", databaseTables);
-		ret.put("relationships", databaseJoins);
+		ret.put(TABLES_KEY, databaseTables);
+		ret.put(RELATIONS_KEY, databaseJoins);
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
-	
+
 	/**
 	 * Close the result set
 	 * @param rs
@@ -222,4 +233,51 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 		}
 	}
 
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Simple method to get string input
+	 * @param index
+	 * @return
+	 */
+	public String getStringInput(int index) {
+		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[index]);
+		if(valueGrs != null) {
+			return valueGrs.get(0).toString();
+		}
+		
+		if(this.curRow.size() > index) {
+			return this.curRow.get(index).toString();
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Get a list of table / view column filters
+	 * @return
+	 */
+	private List<String> getFilters() {
+		List<String> filterValues = new Vector<String>();
+		
+		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[7]);
+		if(valueGrs != null && !valueGrs.isEmpty()) {
+			int length = valueGrs.size();
+			for(int i = 0; i < length; i++) {
+				filterValues.add(valueGrs.get(i).toString());
+			}
+			return filterValues;
+		}
+		
+		for(int i = 7; i < this.curRow.size(); i++) {
+			filterValues.add(this.curRow.get(i).toString());
+		}
+		
+		return filterValues;
+	}
 }
