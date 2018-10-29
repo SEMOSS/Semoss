@@ -1,14 +1,9 @@
 package prerna.sablecc2.reactor.frame.r;
 
-import java.util.List;
-import java.util.Set;
-import java.util.Vector;
-
 import prerna.ds.r.RDataTable;
+import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -74,81 +69,17 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		SelectQueryStruct qs = getQueryStruct();
 		// get all of the filters from this querystruct
 		GenRowFilters grf = qs.getExplicitFilters();
-		Set<String> filteredColumns = grf.getAllFilteredColumns();
-		// create a string builder to keep track of our r scripts so that we
-		// only have to execute them once
-
-		for (String filColumn : filteredColumns) {
-			List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(filColumn);
-			for (SimpleQueryFilter queryFilter : filterList) {
-				// col to values
-				// the column name will be the left comparison value
-				NounMetadata leftComp = queryFilter.getLComparison();
-				String columnComp = ((QueryColumnSelector) leftComp.getValue()).getQueryStructName();
-				// split if contains the table name in the column name
-				if (columnComp.contains("__")) {
-					columnComp = columnComp.split("__")[1];
-				}
-				// get the comparator from the queryFilter
-				String nounComparator = queryFilter.getComparator();
-				// clean nounComparator for rScript
-				if (nounComparator.trim().equals("=")) {
-					nounComparator = "==";
-				} else if (nounComparator.equals("<>")) {
-					nounComparator = "!=";
-				}
-				
-				////////////////////////////////////////////////////////////////////
-				////////////////////////////////////////////////////////////////////
-				/////////////////////QUERY FILTER RIGHT COMPARISON/////////////////
-				///////////////////////////////////////////////////////////////////
-			
-				// the right comparison will be the comparison value
-				NounMetadata rightComp = queryFilter.getRComparison();
-
-				// account for quotes in the script where needed
-				String comparisonColType = getColumnType(table, columnComp);
-
-				// now deal with the values that are being updated; there can be
-				// more than one (e.g., Genre == "Albert", "Alex", "Amy")
-				// this will give us the right side object - which may be a vector
-				Object rightCompValue = rightComp.getValue();
-
-				if (rightCompValue instanceof Vector) {
-					Vector rightVector = (Vector) rightCompValue;
-					// iterate through to get each value on the right side of the filter
-					for (int i = 0; i < rightVector.size(); i++) {
-						String valueComp = rightVector.get(i) + "";
-						// account for quotes needed for the r script
-						if (comparisonColType.contains("character") || comparisonColType.contains("string") || comparisonColType.contains("factor")) {
-							valueComp = "\"" + valueComp + "\"";
-						}
-						// we will make multiple scripts - once each time we
-						// loop through; and we will append all of these to the
-						// string builder to be executed at once
-						String script = table + "$" + updateCol + "[" + table + "$" + columnComp + nounComparator + valueComp + "] <- " + value + ";";
-						sb.append(script);
-					}
-
-				} else {
-					String valueComp = rightComp.getValue() + "";
-					if (comparisonColType.contains("character") || comparisonColType.contains("string") || comparisonColType.contains("factor")) {
-						valueComp = "\"" + valueComp + "\"";
-					}
-					// define the r script to be executed
-					// script is of the form:
-					// FRAME$Nominated[FRAME$Nominated=="Y"] <- "N"
-					String script = table + "$" + updateCol + "[" + table + "$" + columnComp + nounComparator
-							+ valueComp + "] <- " + value + ";";
-					// append the single script to the string builder
-					sb.append(script);
-				}
-			}
-		}
+	
+		// use RInterpreter to create filter syntax
+		StringBuilder rFilterBuilder = new StringBuilder();
+		RInterpreter ri = new RInterpreter();
+		ri.setColDataTypes(frame.getMetaData().getHeaderToTypeMap());
+		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true);
 
 		// execute the r scripts
-		if (sb.length() > 0) {
-			this.rJavaTranslator.runR(sb.toString());
+		if (rFilterBuilder.length() > 0) {
+			String script = table + "$" + updateCol + "[" +rFilterBuilder.toString()+ "] <- " + value + ";";
+			this.rJavaTranslator.runR(script);
 		}
 		
 		// NEW TRACKING
