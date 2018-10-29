@@ -53,6 +53,11 @@ public class ExternalJDBCTableReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to establish connection given the connection details", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
+		// get list of tables
+		// get list of views
+		List<String> tables = new ArrayList<String>();
+		
+		
 		// tablename
 		List<Map<String, Object>> databaseTables = new ArrayList<Map<String, Object>>();
 		List<Map<String, String>> databaseJoins = new ArrayList<Map<String, String>>();
