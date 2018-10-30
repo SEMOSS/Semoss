@@ -746,7 +746,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// this user was added by the user
 				// and we need to update
 				String updateQuery = "UPDATE USER SET "
-						+ "ID="+ newId + "', "
+						+ "ID='"+ newId + "', "
 						+ "NAME='"+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', "
 						+ "USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', "
 						+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', "
