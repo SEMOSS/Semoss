@@ -263,6 +263,7 @@ import prerna.sablecc2.reactor.qs.selectors.UniqueCountReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueGroupConcatReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueSumReactor;
 import prerna.sablecc2.reactor.qs.source.APIReactor;
+import prerna.sablecc2.reactor.qs.source.AuditDatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.DropBoxFileRetrieverReactor;
@@ -525,6 +526,7 @@ public class ReactorFactory {
 		// Data Source Reactors
 		// specifies that our pksl operations after this point are dealing with the specified database
 		reactorHash.put("Database", DatabaseReactor.class);
+		reactorHash.put("AuditDatabase", AuditDatabaseReactor.class);
 		reactorHash.put("API", APIReactor.class);
 		reactorHash.put("FileRead", FileSourceReactor.class);
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
@@ -794,6 +796,7 @@ public class ReactorFactory {
 		// Insight Metadata
 //		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
 //		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
+
 
 		// Insight Comments
 		reactorHash.put("AddInsightComment", AddInsightCommentReactor.class);
