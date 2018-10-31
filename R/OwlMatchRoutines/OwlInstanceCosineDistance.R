@@ -15,19 +15,27 @@ splitCamelCase<-function(a){
 
 getGoogleSearchUrl <- function(searchTerm, domain = '.com', quotes=TRUE) {
   searchTerm <- gsub(' ', '%20', searchTerm);
-  if(quotes) search.term <- paste('%22', searchTerm, '%22', sep='');
-  searchURL <- paste('http://www.google', domain, '/search?q=',searchTerm, sep='');
+  if(quotes) {
+    searchTerm <- paste('%22', searchTerm, '%22', sep='');
+  }
+  searchURL <- paste('http://www.google', domain, '/search?q=', searchTerm, sep='');
   return(searchURL)
 }
 
-searchGoogle <- function(searchTerm) {
+searchGoogle <- function(term) {
   library(XML);
+  library(httr);
   library(RCurl);
   library(stringr);
   
   EXCLUDE<-"Advanced searchSearch Help Send feedback"
   EXCLUDE1<-"In order to show you the most relevant results"
-  searchURL<-getGoogleSearchUrl(searchTerm=searchTerm)
+  searchURL<-getGoogleSearchUrl(searchTerm=term);
+  response<- GET(searchURL);
+  if (response$status_code!=200){ # HTTP request failed!!
+    # do some stuff...
+    return("");
+  }
   doc.html<-htmlTreeParse(searchURL,useInternal = TRUE)
   doc.text<-unlist(xpathApply(doc.html, '//p', xmlValue))
   doc.text<-str_trim(gsub('\\n', ' ', doc.text),"both")
@@ -43,6 +51,10 @@ generateDescriptionFrame<-function(allTables, allColumns, sampleInstances){
   numColumns = length(sampleInstances);
   for(i in 1:numColumns) {
     instances <- sampleInstances[[i]];
+    if(is.null(instances)) {
+      columnDescriptions[span(columnDescriptions)+1] <- "";
+      next;
+    }
     numInstances <- length(instances);
     if(numInstances == 0) {
       columnDescriptions[span(columnDescriptions)+1] <- "";
@@ -51,7 +63,7 @@ generateDescriptionFrame<-function(allTables, allColumns, sampleInstances){
       for(j in 1:numInstances) {
         # grab for this instance the values
         # print(paste(i, " ::: ", j, " ::: ", splitCamelCase(instances[j]) ));
-        cleanInstance <- splitCamelCase(instances[i]);
+        cleanInstance <- splitCamelCase(instances[j]);
         values <- find_item(cleanInstance);
         if(length(values) == 0) {
           # wiki returned nothing, try google
@@ -65,7 +77,7 @@ generateDescriptionFrame<-function(allTables, allColumns, sampleInstances){
         }
       }
       # collapse all of the descriptions
-      columnDescriptions[span(columnDescriptions)+1] <- paste(instanceDescription, collapse=' ');
+      columnDescriptions[span(columnDescriptions)+1] <- paste(unique(instanceDescription), collapse=' ');
     }
   }
   
