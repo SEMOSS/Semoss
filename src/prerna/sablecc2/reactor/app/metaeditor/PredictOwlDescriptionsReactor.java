@@ -100,7 +100,10 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 		// try to get rid of the duplications
 		Set<String> uniqueDescriptions = new HashSet<String>();
 		for(String s : descriptionValues) {
-			String[] newSplit = s.split("\\*\\*\\*NEW LINE\\*\\*\\*");
+			if(s.trim().isEmpty()) {
+				continue;
+			}
+			String[] newSplit = s.trim().split("\\*\\*\\*NEW LINE\\*\\*\\*");
 			for(String split : newSplit) {
 				uniqueDescriptions.add(split);
 			}
@@ -132,7 +135,12 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 //			return noun;
 //		}
 		
-		NounMetadata noun = new NounMetadata(new String[]{masterDescription.toString()}, PixelDataType.CONST_STRING);
+		String description = masterDescription.toString();
+		if(description.isEmpty()) {
+			throw new SemossPixelException(new NounMetadata("Unable to generate a description for the input column", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
+		
+		NounMetadata noun = new NounMetadata(new String[]{description}, PixelDataType.CONST_STRING);
 //		noun.addAdditionalReturn(new NounMetadata("Predicted and stored descriptions for review",
 		noun.addAdditionalReturn(new NounMetadata("Predicted descriptions for review",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
