@@ -285,8 +285,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	@Override
 	// need to clean up the exception it will never be thrown
-	public void insertData(String query) throws SQLException 
-	{
+	public void insertData(String query) throws SQLException {
 		Connection conn = null;
 		Statement stmt = null;
 		try {
