@@ -51,8 +51,6 @@ import prerna.sablecc2.reactor.app.metaeditor.GetOwlDescriptionsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlDictionaryReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlMetamodelReactor;
-import prerna.sablecc2.reactor.app.metaeditor.PredictOwlDescriptionsReactor;
-import prerna.sablecc2.reactor.app.metaeditor.PredictOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
 import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlLogicalNamesReactor;
@@ -61,6 +59,8 @@ import prerna.sablecc2.reactor.app.metaeditor.routines.OwlColumnSemanticCosineSi
 import prerna.sablecc2.reactor.app.metaeditor.routines.OwlDirectNameMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.OwlIndirectNameMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.OwlInstanceSemanticCosineSimilarityMatchReactor;
+import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlDescriptionsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
