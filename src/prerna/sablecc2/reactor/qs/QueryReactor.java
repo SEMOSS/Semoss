@@ -21,6 +21,7 @@ public class QueryReactor extends AbstractQueryStructReactor {
 		if(this.qs instanceof SelectQueryStruct) {
 			SelectQueryStruct sQs = ((SelectQueryStruct) qs);
 			if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+				hardQs.setEngine(qs.getEngine());
 				hardQs.setEngineId(qs.getEngineId());
 				hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 			} else {
