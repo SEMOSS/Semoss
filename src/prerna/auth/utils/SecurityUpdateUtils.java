@@ -1038,11 +1038,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			} else {
 				// need to insert
 				StringBuilder inserts = new StringBuilder();
-
+				// we will set the permission to read only
 				for(AuthProvider loginType : user.getLogins()) {
 					String userId = user.getAccessToken(loginType).getId();
-					inserts.append("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY) VALUES ('")
-						.append(userId).append("', '").append(engineId).append("', ").append(visibility).append(");");
+					inserts.append("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION) VALUES ('")
+						.append(userId).append("', '").append(engineId).append("', ").append(visibility).append(", 3);");
 				}
 
 				securityDb.insertData(inserts.toString());
