@@ -13,6 +13,7 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.EnginePermission;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -1012,52 +1013,43 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	
 	/**
 	 * Change the user visibility (show/hide) for a database. Without removing its permissions.
-	 * @param userId
+	 * @param user
 	 * @param engineId
 	 * @param visibility
+	 * @throws SQLException 
 	 */
-	public static void setDbVisibility(String userId, String engineId, String visibility){
-		String query = "SELECT ENGINEID FROM ENGINEPERMISSION WHERE USERID = '?1' AND ENGINEID = '?2'";
-		query = query.replace("?1", userId);
-		query = query.replace("?2", engineId);
-		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		if(sjsw.hasNext()){
-			query = "UPDATE ENGINEPERMISSION SET VISIBILITY = '?3' WHERE USERID = '?1' AND ENGINEID = '?2'";
-			query = query.replace("?1", userId);
-			query = query.replace("?2", engineId);
-			query = query.replace("?3", visibility);
-			securityDb.execUpdateAndRetrieveStatement(query, true);
-			securityDb.commit();
-			return;
+	public static void setDbVisibility(User user, String engineId, boolean visibility) throws SQLException {
+		if(!SecurityQueryUtils.getUserEngineIds(user).contains(engineId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to modify his visibility of this app.");
 		}
-		
-		// TODO: WHAT IS THIS CODE FOR???
-		// TODO: WHAT IS THIS CODE FOR???
-		// TODO: WHAT IS THIS CODE FOR???
-		// TODO: WHAT IS THIS CODE FOR???
-		// TODO: WHAT IS THIS CODE FOR???
-		
-//		query = "SELECT GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID, TEMP.AID "
-//				+ "FROM GROUPENGINEPERMISSION JOIN (SELECT GROUPMEMBERSID AS AID, GROUPID FROM GROUPMEMBERS WHERE USERID = '?2') TEMP ON (GROUPENGINEPERMISSION.GROUPID = TEMP.GROUPID) "
-//				+ "WHERE ENGINE = '?1'";
-//		query = query.replace("?1", engineId);
-//		query = query.replace("?2", userId);
-//		
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-//		List<Object[]> rows = flushRsToMatrix(wrapper);
-//		
-//		for(Object[] row : rows){
-//			query = "UPDATE ENGINEGROUPMEMBERVISIBILITY SET VISIBILITY = '"+ visibility + 
-//					"' WHERE GROUPENGINEPERMISSIONID = '"+ row[0].toString() +"' AND GROUPMEMBERSID = '" + row[1].toString() +"'";
-//			securityDb.execUpdateAndRetrieveStatement(query, true);
-//			securityDb.commit();
-//			return;
-//		}
-		
-		// if we do not update
-		// we need to insert
-		String insertQuery = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY) VALUES ('" + userId + "', '" + engineId + "', " + visibility + ")";
-		securityDb.execUpdateAndRetrieveStatement(insertQuery, true);
+		String userFilters = getUserFilters(user);
+		String query = "SELECT ENGINEID FROM ENGINEPERMISSION WHERE "
+				+ "ENGINEID = '" + engineId + "' "
+				+ "AND USERID IN " + userFilters;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if(wrapper.hasNext()){
+				query = "UPDATE ENGINEPERMISSION SET VISIBILITY = '" + visibility + "' WHERE "
+						+ "ENGINEID = '" + engineId + "' "
+						+ "AND USERID IN " + userFilters;
+				
+				securityDb.insertData(query);
+				
+			} else {
+				// need to insert
+				StringBuilder inserts = new StringBuilder();
+
+				for(AuthProvider loginType : user.getLogins()) {
+					String userId = user.getAccessToken(loginType).getId();
+					inserts.append("INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY) VALUES ('")
+						.append(userId).append("', '").append(engineId).append("', ").append(visibility).append(");");
+				}
+
+				securityDb.insertData(inserts.toString());
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
 		securityDb.commit();
 	}
 	
