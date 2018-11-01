@@ -60,8 +60,7 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		if (engine != null) {
 			List<String> conceptList = getConceptList();
 			// get concept properties from local master
-			Map<String, HashMap> dbMap = MasterDatabaseUtility.getConceptProperties(conceptList, engineId);
-			HashMap<String, ArrayList<String>> conceptMap = dbMap.get(engine.getEngineName());
+			Map<String, List<String>> conceptMap = MasterDatabaseUtility.getConceptProperties(conceptList, engineId);
 			for (String concept : conceptList) {
 				// first add concept profile data
 				String primKey = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER;
