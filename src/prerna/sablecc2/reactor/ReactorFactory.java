@@ -256,6 +256,7 @@ import prerna.sablecc2.reactor.qs.selectors.PathSelectorReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorPathReactor;
+import prerna.sablecc2.reactor.qs.selectors.SelectTableReactor;
 import prerna.sablecc2.reactor.qs.selectors.StandardDeviationReactor;
 import prerna.sablecc2.reactor.qs.selectors.SumReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueAverageReactor;
@@ -484,6 +485,7 @@ public class ReactorFactory {
 		// builds the select portion of the QS
 		reactorHash.put("With", WithReactor.class);
 		reactorHash.put("Select", QuerySelectReactor.class);
+		reactorHash.put("SelectTable", SelectTableReactor.class);
 		reactorHash.put("PSelect", QuerySelectorPathReactor.class);
 		reactorHash.put("PCol", PathSelectorReactor.class);
 		reactorHash.put("Average", AverageReactor.class);
