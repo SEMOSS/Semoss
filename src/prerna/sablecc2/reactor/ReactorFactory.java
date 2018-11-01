@@ -132,6 +132,7 @@ import prerna.sablecc2.reactor.frame.filter.RemoveFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.ReplaceFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
+import prerna.sablecc2.reactor.frame.py.PyInterpreter;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
@@ -845,6 +846,9 @@ public class ReactorFactory {
 		
 		// General Code Execution
 		reactorHash.put("CodeExec", CodeExecReactor.class);
+		
+		// Python
+		reactorHash.put("Py", PyInterpreter.class);
 		
 		// Pixel Recipe Parsing / Manipulation
 		reactorHash.put("GetInsightDatasources", InsightDatasourcesReactor.class);
