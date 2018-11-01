@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.QueryStruct;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -19,15 +18,20 @@ public class SelectTableReactor extends AbstractQueryStructReactor {
 		this.keysToGet = new String[]{ReactorKeysEnum.TABLE.getKey()};
 	}
 	
+	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		organizeKeys();
+		// must have used Database reactor before hand
+		// so we know this must be the id
 		String appId = qs.getEngineId();
 		String table  = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
-		List<String> tables = new ArrayList();
+		
+		// add the table in the list
+		List<String> tables = new ArrayList<String>();
 		tables.add(table);
-		// TODO need to clean this method to use id
+		
 		Map<String, HashMap> props = MasterDatabaseUtility.getConceptProperties(tables, appId);
-		List<String> properties = (List<String>) props.get(MasterDatabaseUtility.getEngineAliasForId(appId)).get(table);
+		List<String> properties = (List<String>) props.get(appId).get(table);
 		if (properties != null && !properties.isEmpty()) {
 			for (String column : properties) {
 				QueryColumnSelector qsSelector = new QueryColumnSelector();
@@ -36,14 +40,13 @@ public class SelectTableReactor extends AbstractQueryStructReactor {
 				qsSelector.setAlias(column);
 				qs.addSelector(qsSelector);
 			}
+			
 			// add prim key
-			System.out.println("TEST");
 			QueryColumnSelector qsSelector = new QueryColumnSelector();
 			qsSelector.setTable(table);
 			qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			qsSelector.setAlias(table);
 			qs.addSelector(qsSelector);
-
 		}
 		
 		return qs;

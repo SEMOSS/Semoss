@@ -31,6 +31,7 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.OrderByElement;
@@ -117,6 +118,8 @@ public class OpaqueSqlParser {
 	 */
 	public void fillSelects(SelectQueryStruct qs, List<SelectItem> selects) {
 		for(int selectIndex = 0;selectIndex < selects.size();selectIndex++) {
+			IQuerySelector thisSelect = null;
+			
 			SelectItem si = selects.get(selectIndex);
 			if(si instanceof SelectExpressionItem) {
 				SelectExpressionItem sei = (SelectExpressionItem) si;
@@ -124,12 +127,18 @@ public class OpaqueSqlParser {
 				Expression expr = sei.getExpression();
 				// get eth selector
 				// method does this recursively to determine operations
-				IQuerySelector thisSelect = null;
+				
 				if(seiAlias != null) {
 					thisSelect = determineSelector(expr, seiAlias.getName());
 				} else {
 					thisSelect = determineSelector(expr, null);
 				}
+				qs.addSelector(thisSelect);
+			} else if(si instanceof AllColumns) {
+				thisSelect = new QueryOpaqueSelector(si.toString());
+			}
+			
+			if(thisSelect != null) {
 				qs.addSelector(thisSelect);
 			}
 		}
