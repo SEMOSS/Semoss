@@ -30,8 +30,8 @@ public class SelectTableReactor extends AbstractQueryStructReactor {
 		List<String> tables = new ArrayList<String>();
 		tables.add(table);
 		
-		Map<String, HashMap> props = MasterDatabaseUtility.getConceptProperties(tables, appId);
-		List<String> properties = (List<String>) props.get(appId).get(table);
+		Map<String, List<String>> props = MasterDatabaseUtility.getConceptProperties(tables, appId);
+		List<String> properties =  props.get(table);
 		if (properties != null && !properties.isEmpty()) {
 			for (String column : properties) {
 				QueryColumnSelector qsSelector = new QueryColumnSelector();
