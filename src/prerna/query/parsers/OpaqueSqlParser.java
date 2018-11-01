@@ -93,7 +93,7 @@ public class OpaqueSqlParser {
 		// now that we have the joins
 		// we also have the table aliases we need
 		// so we can add the selectors
-		fillSelects(qs, items);
+		fillSelects(qs, items, fromTableName);
 
 		// fill the filters
 		fillFilters(qs, null, sb.getWhere());
@@ -116,7 +116,7 @@ public class OpaqueSqlParser {
 	 * @param qs
 	 * @param selects
 	 */
-	public void fillSelects(SelectQueryStruct qs, List<SelectItem> selects) {
+	public void fillSelects(SelectQueryStruct qs, List<SelectItem> selects, String originalFromTable) {
 		for(int selectIndex = 0;selectIndex < selects.size();selectIndex++) {
 			IQuerySelector thisSelect = null;
 			
@@ -136,6 +136,7 @@ public class OpaqueSqlParser {
 				qs.addSelector(thisSelect);
 			} else if(si instanceof AllColumns) {
 				thisSelect = new QueryOpaqueSelector(si.toString());
+				((QueryOpaqueSelector) thisSelect).setTable(originalFromTable);
 			}
 			
 			if(thisSelect != null) {
@@ -263,7 +264,10 @@ public class OpaqueSqlParser {
 			Table rightTable = (Table)thisJoin.getRightItem();
 			// add the alias
 			String rightTableName = rightTable.getName();
-			String rightTableAlias = rightTable.getAlias().getName();
+			String rightTableAlias = rightTableName;
+			if(rightTable.getAlias() != null) {
+				rightTableAlias = rightTable.getAlias().getName();
+			}
 
 			// if somebody -- need to see if sql grammar can accomodate for stupidity where alias and table are same kind of
 			//tableAlias.put(rightTableName, rightTableAlias);
