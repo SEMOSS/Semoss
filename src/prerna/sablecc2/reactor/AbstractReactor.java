@@ -24,9 +24,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.py.PyExecutorThread;
 import prerna.sablecc2.reactor.job.JobReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -500,4 +499,10 @@ public abstract class AbstractReactor implements IReactor {
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
+
+	public PyExecutorThread getJep()
+	{
+		return insight.getPy();
+	}
+	
 }
