@@ -57,6 +57,7 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.reactor.frame.py.PyExecutorThread;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
@@ -101,6 +102,8 @@ public class Insight {
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
 	private transient AbstractRJavaTranslator rJavaTranslator;
+	
+	private transient PyExecutorThread jepThread = null;
 	
 	/* 
 	 * TODO: find a better way of doing this
@@ -712,5 +715,16 @@ public class Insight {
 			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(dm, PixelDataType.FRAME, PixelOperationType.FRAME));
 		}
 		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
+	}
+
+	public void setPy(PyExecutorThread jepThread) {
+		// TODO Auto-generated method stub
+		this.jepThread = jepThread;
+		
+	}
+	
+	public PyExecutorThread getPy()
+	{
+		return this.jepThread;
 	}
 }
