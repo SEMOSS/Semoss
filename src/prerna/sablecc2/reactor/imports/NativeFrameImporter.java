@@ -1,6 +1,10 @@
 package prerna.sablecc2.reactor.imports;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -8,10 +12,14 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.parsers.OpaqueSqlParser;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
@@ -46,6 +54,9 @@ public class NativeFrameImporter implements IImporter {
 				// override the reference
 				this.qs = newQs;
 				this.qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+				
+				// we need to figure out the columns if there is a *
+				cleanUpSelectors(this.qs.getEngineId(), this.qs.getSelectors(), this.qs.getRelations());
 			} catch (Exception e) {
 				// we were not successful in parsing :/
 				e.printStackTrace();
@@ -115,5 +126,98 @@ public class NativeFrameImporter implements IImporter {
 		rImporter = new RImporter(rFrame, this.qs, mergeFrameIt);
 		rImporter.mergeData(joins);
 		return rFrame;
+	}
+	
+	/**
+	 * This method is here to clean up and properly add the columns when there is a * in the query
+	 * @param engineId
+	 * @param selectors
+	 * @param rels
+	 */
+	private void cleanUpSelectors(String engineId, List<IQuerySelector> selectors, Set<String[]> rels) {
+		String origTable = null;
+		boolean queryAll = false;
+		int foundIndex = -1;
+		
+		for(int i = 0; i < selectors.size(); i++) {
+			IQuerySelector s = selectors.get(i);
+			if(s instanceof QueryOpaqueSelector) {
+				if(((QueryOpaqueSelector)s).getQuerySelectorSyntax().equals("*")) {
+					foundIndex = i;
+					origTable = ((QueryOpaqueSelector)s).getTable();
+					queryAll = true;
+					break;
+				}
+			}
+		}
+		
+		if(queryAll) {
+			// query all pulls from every table
+			// including the joisn
+			List<String> tables = new Vector<String>();
+			tables.add(origTable);
+			
+			for(String[] r : rels) {
+				String from = r[0];
+				if(from.contains("__")) {
+					from = from.split("__")[0];
+				}
+				if(!tables.contains(from)) {
+					tables.add(from);
+				}
+				
+				String to = r[2];
+				if(to.contains("__")) {
+					to = to.split("__")[0];
+				}
+				if(!tables.contains(to)) {
+					tables.add(to);
+				}
+			}
+
+			boolean multiTable = tables.size() == 1;
+			
+			Set<String> addedTables = new HashSet<String>();
+			Map<String, List<String>> tableToProps = MasterDatabaseUtility.getConceptProperties(tables, engineId);
+			for(String table : tableToProps.keySet()) {
+				addedTables.add(table);
+				List<String> properties = tableToProps.get(table);
+				for (String column : properties) {
+					QueryColumnSelector qsSelector = new QueryColumnSelector();
+					qsSelector.setTable(table + "");
+					qsSelector.setColumn(column);
+					if(multiTable) {
+						qsSelector.setAlias(table + "_" + column);
+					} else {
+						qsSelector.setAlias(column);
+					}
+					qs.addSelector(qsSelector);
+				}
+				
+				// add key column
+				QueryColumnSelector qsSelector = new QueryColumnSelector();
+				qsSelector.setTable(table + "");
+				qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+				qsSelector.setAlias(table + "");
+				qs.addSelector(qsSelector);
+			}
+			
+			// if something has no props
+			// it wont show up
+			// but should add it 
+			for(String table : tables) {
+				if(!addedTables.contains(table)) {
+					// add key column
+					QueryColumnSelector qsSelector = new QueryColumnSelector();
+					qsSelector.setTable(table + "");
+					qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+					qsSelector.setAlias(table + "");
+					qs.addSelector(qsSelector);
+				}
+			}
+			
+			// now we need to remove the index that we had found
+			qs.getSelectors().remove(foundIndex);
+		}
 	}
 }
