@@ -43,7 +43,7 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		init();
-		String[] packages = new String[] {"data.table", "HDoutliers"};
+		String[] packages = new String[] {"data.table", "HDoutliers", "FactoMineR"};
 		this.rJavaTranslator.checkPackages(packages);
 		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
