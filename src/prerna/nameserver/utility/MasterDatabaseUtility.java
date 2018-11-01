@@ -718,12 +718,12 @@ public class MasterDatabaseUtility {
 	}
 	
 	/**
-	 * Get the properties for a given concept across all the databases
+	 * Get the properties for a given concept for a specific database
 	 * @param conceptName
-	 * @param engineId		optional filter for the properties
+	 * @param engineId
 	 * @return
 	 */
-	public static Map<String, HashMap> getConceptProperties(List<String> conceptLogicalNames, String engineFilter) {
+	public static Map<String, List<String>>  getConceptProperties(List<String> conceptLogicalNames, String engineFilter) {
 		// get the bindings based on the input list
 		String conceptString = makeListToString(conceptLogicalNames);
 		String engineString = " and e.id= '" + engineFilter +"' ";
@@ -737,9 +737,7 @@ public class MasterDatabaseUtility {
 				+ engineString
 				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
 	
-		Map<String, HashMap> returnHash = new HashMap<String, HashMap>();;
-		Map<String, Map<String, ArrayList<String>>> queryData = new HashMap<String, Map<String, ArrayList<String>>>();
-
+		Map<String, List<String>> queryData = new HashMap<>();
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
@@ -750,36 +748,26 @@ public class MasterDatabaseUtility {
 			rs = stmt.executeQuery(propQuery);
 			// keeps the id to the concept name
 			Hashtable <String, String> parentHash = new Hashtable<String, String>();
-
 			while(rs.next()) {
-				String engineName = rs.getString(1);
 				String propName = rs.getString(2);
 				String parentId = rs.getString(4);
 				String propId = rs.getString(5);
-
 				if(parentId.equalsIgnoreCase(propId)) {
 					parentHash.put(parentId, propName);
 				}
 				
 				String parentName = parentHash.get(parentId);
 				if(!propName.equalsIgnoreCase(parentName)) {
-					Map<String, ArrayList<String>> engineMap = null;
-					if(queryData.containsKey(engineName)) {
-						engineMap = queryData.get(engineName);
-					} else {
-						engineMap = new HashMap<String, ArrayList<String>>();
-						// add to query data map
-						queryData.put(engineName, engineMap);
-					}
-					ArrayList<String> propList = null;
-					if(engineMap.containsKey(parentName)) {
-						propList = engineMap.get(parentName);
+
+					List<String> propList = null;
+					if(queryData.containsKey(parentName)) {
+						propList = queryData.get(parentName);
 					} else {
 						propList = new ArrayList<>();
 					}
 					propList.add(propName);
 					// add to the engine map
-					engineMap.put(parentName, propList);
+					queryData.put(parentName, propList);
 				}
 			}
 		} catch (SQLException e) {
@@ -787,12 +775,7 @@ public class MasterDatabaseUtility {
 		} finally {
 			closeStreams(stmt, rs);
 		}
-		
-		for(String engineName : queryData.keySet()) {
-			returnHash.put(engineName, (HashMap) queryData.get(engineName));
-		}
-
-		return returnHash;
+		return queryData;
 	}
 	
 	/**
