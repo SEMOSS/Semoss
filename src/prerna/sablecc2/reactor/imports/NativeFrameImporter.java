@@ -175,7 +175,7 @@ public class NativeFrameImporter implements IImporter {
 				}
 			}
 
-			boolean multiTable = tables.size() == 1;
+			boolean multiTable = tables.size() > 1;
 			
 			Set<String> addedTables = new HashSet<String>();
 			Map<String, List<String>> tableToProps = MasterDatabaseUtility.getConceptProperties(tables, engineId);
