@@ -199,12 +199,42 @@ public class UpdateToEmail {
 			}
 			
 			formsTapCore.commit();
-			
-			System.out.println("Done with updates");
 		}
 		
+		System.out.println("Lastly, update the security database");
+		IEngine securityDb = (IEngine) DIHelper.getInstance().getLocalProp("security");
+
+		for(String id : mappingToEmail.keySet()) {
+			System.out.println("SECURITY DATABASE : Updating " + id + " to " + mappingToEmail.get(id));
+
+			String cleanId = RdbmsQueryBuilder.escapeForSQLStatement(id);
+			String cleanEmail = RdbmsQueryBuilder.escapeForSQLStatement(mappingToEmail.get(id));
+			
+			String updateQuery = "UPDATE USER SET ID='" +  cleanEmail +"', EMAIL='" + cleanEmail + "' WHERE ID='" + cleanId + "'";
+			try {
+				securityDb.insertData(updateQuery);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			// need to update all the places the user id is used
+			updateQuery = "UPDATE ENGINEPERMISSION SET USERID='" +  cleanEmail +"' WHERE USERID='" + cleanId + "'";
+			try {
+				securityDb.insertData(updateQuery);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			// need to update all the places the user id is used
+			updateQuery = "UPDATE USERINSIGHTPERMISSION SET USERID='" +  cleanEmail +"' WHERE USERID='" + cleanId + "'";
+			try {
+				securityDb.insertData(updateQuery);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		
-		
+		System.out.println("Done with updates");
 	}
 
 }
