@@ -47,7 +47,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected Hashtable<String, String> aliases = new Hashtable<String, String>();
 	
 	// keep track of processed tables used to ensure we don't re-add tables into the from string
-	protected Hashtable<String, String> tableProcessed = new Hashtable<String, String>();
+	protected Hashtable<String, String> tablesProcessed = new Hashtable<String, String>();
 	
 	// we will keep track of the conceptual names to physical names so we don't re-query the owl multiple times
 	protected transient Hashtable<String, String> conceptualConceptToPhysicalMap = new Hashtable<String, String>();
@@ -377,8 +377,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected void addFrom(String conceptualTableName, String alias) {
 		// need to determine if we can have multiple froms or not
 		// we don't want to add the from table multiple times as this is invalid in sql
-		if(!tableProcessed.containsKey(conceptualTableName)) {
-			tableProcessed.put(conceptualTableName, "true");
+		if(!tablesProcessed.containsKey(conceptualTableName)) {
+			tablesProcessed.put(conceptualTableName, "true");
 			
 			// we want to use the physical table name
 			String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
@@ -930,7 +930,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// might want to order by a derived column being returned
 			if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
 				// either instantiate the string builder or add a comma for multi sort
-				thisOrderBy.append("\"").append(tableConceptualName).append("\"");
+				thisOrderBy.append(tableConceptualName);
 			}
 			// we need to make sure the sort is a valid one!
 			// if it is not already processed, there is no way to sort it...
