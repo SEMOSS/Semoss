@@ -26,7 +26,7 @@ import prerna.ds.QueryStruct;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.interpreters.sql.SqlInterpreter;
+import prerna.query.interpreters.sql.H2SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.RelationSet;
@@ -210,7 +210,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		logger.info("Generating SQL query...");
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
-		SqlInterpreter interp = new SqlInterpreter(this);
+		H2SqlInterpreter interp = new H2SqlInterpreter(this);
 		interp.setQueryStruct(qs);
 		interp.setLogger(this.logger);
 		String iteratorQuery = interp.composeQuery();
