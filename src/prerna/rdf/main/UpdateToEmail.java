@@ -86,51 +86,93 @@ public class UpdateToEmail {
 		System.out.println("Start by updating the form builder engine");
 
 		// load the form builder engine
-		IEngine formEngine = new RDBMSNativeEngine();
-		formEngine.setEngineId("form_builder_engine");
-		formEngine.openDB(form_builder_engine_smss);
-		DIHelper.getInstance().setLocalProperty("form_builder_engine", formEngine);
-		
-		for(String id : mappingToEmail.keySet()) {
-			System.out.println("FROM BUILDER ENGINE : Updating " + id + " to " + mappingToEmail.get(id));
-
-			String cleanId = RdbmsQueryBuilder.escapeForSQLStatement(id);
-			String cleanEmail = RdbmsQueryBuilder.escapeForSQLStatement(mappingToEmail.get(id));
-			
-			String update = "UPDATE FORMS_USER_ACCESS SET USER_ID='" + cleanEmail + "' "
-					+ "WHERE USER_ID='" + cleanId + "';";
-			try {
-				formEngine.insertData(update);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		
-		System.out.println("Doing some manual clean up to remove 3 users (1 admin and 2 mistyped ids)");
 		{
-			String query = "DELETE FROM FORMS_USER_ACCESS WHERE USER_ID='15382338232';";
-			try {
-				formEngine.removeData(query);
-			} catch (Exception e) {
-				e.printStackTrace();
+			
+			IEngine formEngine = new RDBMSNativeEngine();
+			formEngine.setEngineId("form_builder_engine");
+			formEngine.openDB(form_builder_engine_smss);
+			DIHelper.getInstance().setLocalProperty("form_builder_engine", formEngine);
+			
+			// update the other tables
+			String[] tables = new String[]{
+					"EED10B32BC384718AB73C0C78480C174_FORM_LOG",
+					"F4C4DEF02CED4F4D9C668EAB81B759B5_FORM_LOG",
+					"FORMS_TAP_CORE_DATA_FORM_LOG",
+					"FORMS_TAP_SITE_DATA_FORM_LOG",
+					"FORMS_TAP_TEST_SITES_FORM_LOG",
+					"_132DB94B43714763BFF9EDF7E5ED021B_FORM_LOG"
+				};
+			
+			for(String table : tables) {
+				// create index on user
+				String index = "CREATE INDEX USERINDEX_" + table + " ON " + table + "(USER)";
+				try {
+					formEngine.insertData(index);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
-			query = "DELETE FROM FORMS_USER_ACCESS WHERE USER_ID='15157649836';";
-			try {
-				formEngine.removeData(query);
-			} catch (Exception e) {
-				e.printStackTrace();
+			
+			for(String id : mappingToEmail.keySet()) {
+				System.out.println("FROM BUILDER ENGINE : Updating " + id + " to " + mappingToEmail.get(id));
+	
+				String cleanId = RdbmsQueryBuilder.escapeForSQLStatement(id);
+				String cleanEmail = RdbmsQueryBuilder.escapeForSQLStatement(mappingToEmail.get(id));
+				
+				String update = "UPDATE FORMS_USER_ACCESS SET USER_ID='" + cleanEmail + "' "
+						+ "WHERE USER_ID='" + cleanId + "';";
+				try {
+					formEngine.insertData(update);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
+				for(String table : tables) {
+					update = "UPDATE " + table + " SET USER='" + cleanEmail + "' WHERE USER='" + cleanId + "';";
+					try {
+						formEngine.insertData(update);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
 			}
-			query = "DELETE FROM FORMS_USER_ACCESS WHERE USER_ID='1402072691';";
-			try {
-				formEngine.removeData(query);
-			} catch (Exception e) {
-				e.printStackTrace();
+			
+			for(String table : tables) {
+				// create index on user
+				String index = "DROP INDEX USERINDEX_" + table;
+				try {
+					formEngine.insertData(index);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
+			
+			System.out.println("Doing some manual clean up to remove 3 users (1 admin and 2 mistyped ids)");
+			{
+				String query = "DELETE FROM FORMS_USER_ACCESS WHERE USER_ID='15382338232';";
+				try {
+					formEngine.removeData(query);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				query = "DELETE FROM FORMS_USER_ACCESS WHERE USER_ID='15157649836';";
+				try {
+					formEngine.removeData(query);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				query = "DELETE FROM FORMS_USER_ACCESS WHERE USER_ID='1402072691';";
+				try {
+					formEngine.removeData(query);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			System.out.println("Done manual clean up");
+			System.out.println("Done updating form builder engine");
+		
 		}
-		System.out.println("Done manual clean up");
-		System.out.println("Done updating form builder engine");
-		
-		
+
 		System.out.println("Need to also update the forms tap core database");
 		IEngine formsTapCore = new BigDataEngine();
 		formsTapCore.setEngineId(forms_tap_core_id);

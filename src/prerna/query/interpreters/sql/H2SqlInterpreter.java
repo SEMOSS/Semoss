@@ -33,7 +33,6 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
 		List<StringBuilder> validOrderBys = new Vector<StringBuilder>();
 		
-		
 		if(this.outerJoinsRequested) {
 			for(QueryColumnOrderBySelector orderBySelector : orderBy) {
 				String colAlias = orderBySelector.getAlias();
