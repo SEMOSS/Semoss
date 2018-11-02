@@ -350,7 +350,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	 * @param isTrueColumn
 	 * @return
 	 */
-	protected String processColumnSelector(QueryColumnSelector selector, boolean requestedSelector) {
+	protected String processColumnSelector(QueryColumnSelector selector, boolean notEmbeddedColumn) {
 		String table = selector.getTable();
 		String colName = selector.getColumn();
 		String tableAlias = selector.getTableAlias();
@@ -383,8 +383,12 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		this.retTableToSelectors.putIfAbsent(tableAlias, new LinkedHashSet<String>());
 		this.retTableToSelectors.get(tableAlias).add(tableCol + " AS " + "\"" + colAlias +"\"");
 		//if the selector is one that user-requested, then update selectorAliases 
-		if (requestedSelector) {
-			selectorAliases.add(selector.getAlias());
+		if (notEmbeddedColumn) {
+			this.selectorAliases.add(selector.getAlias());
+
+			// keep track of all the processed columns
+			this.retTableToCols.putIfAbsent(table, new Vector<String>());
+			this.retTableToCols.get(table).add(colName);
 		}
 		
 		// need to perform this check 
