@@ -141,6 +141,7 @@ import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RAprioriReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RClassificationAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RClusteringAlgorithmReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RDocumentCosineSimilarityReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RLOFAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RMatrixRegressionReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RNumericalCorrelationReactor;
@@ -945,6 +946,8 @@ public class ReactorFactory {
 		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.PredictSimilarColumnValuesReactor.class);
 		rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
 		rFrameHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
+		rFrameHash.put("RunDocCosSimilarity", RDocumentCosineSimilarityReactor.class);
+		
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
