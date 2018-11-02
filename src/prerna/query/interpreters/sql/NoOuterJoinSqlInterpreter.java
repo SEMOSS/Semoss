@@ -93,8 +93,6 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		addSelectors();
 		addFilters();
 		addHavingFilters();
-//		addGroupBy();
-//		addOrderBy();
 		
 		String derivedTableName = "";
 		String jQueryStr = "";
@@ -275,6 +273,10 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	////////////////////////////////////////// adding filters ////////////////////////////////////////////
 	
 	public void addHavingFilters() {
+		if(!this.outerJoinsRequested) {
+			super.addHavingFilters();
+			return;
+		}
 		List<IQueryFilter> filters = qs.getHavingFilters().getFilters();
 		for(IQueryFilter filter : filters) {
 			Set<String> filterColumnAliases = filter.getAllUsedColumns();
@@ -290,13 +292,16 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	}
 	
 	public void addFilters() {
+		if(!this.outerJoinsRequested) {
+			super.addFilters();
+			return;
+		}
 		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		for(IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter);
 			String filterKey = (!filter.getAllUsedTables().isEmpty()) ? String.join("__", filter.getAllUsedTables()) : "tempReference";
 			retTableToFilters.putIfAbsent(filterKey, new Vector<String>());
 			retTableToFilters.get(filterKey).add(filterSyntax.toString());
-			this.filterStatements.add(filterSyntax.toString());
 		}
 	}
 	
