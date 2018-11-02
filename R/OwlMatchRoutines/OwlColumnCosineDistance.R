@@ -68,7 +68,7 @@ generateDescriptionFrame<-function(uniqueValues){
   return(colToDescriptionFrame);
 }
 
-getDocumentCostineSimilarityMatrix<-function(allTables, allColumns) {
+getDocumentCosineSimilarity<-function(allTables, allColumns) {
   library(text2vec);
   library(data.table);
   library(lsa);
