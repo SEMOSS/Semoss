@@ -29,7 +29,7 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 	 source("C:/workspace/Semoss_Dev/R/OwlMatchRoutines/OwlColumnCosineDistance.R");
 	 allTables <- c('city','city','city','city','city','countrylanguage','countrylanguage','countrylanguage','countrylanguage','country','country','country','country','country','country','country','country','country','country','country','country','country','country','country');
 	 allColumns <- c('ID','Name','CountryCode','District','Population','CountryCode','Language','IsOfficial','Percentage','Code','Name','Continent','Region','SurfaceArea','IndepYear','Population','LifeExpectancy','GNP','GNPOld','LocalName','GovernmentForm','HeadOfState','Capital','Code2');
-	 matches_awiHmTT<- getDocumentCostineSimilarityMatrix(allTables,allColumns);
+	 matches_awiHmTT<- getDocumentCosineSimilarity(allTables,allColumns);
 	 
 	 * 
 	 */
@@ -82,7 +82,7 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 		
 		// now that we have defined the inputs, just need to run the "main" method of the script
 		String matchDataFrame = "matches_" + Utility.getRandomString(6);
-		script.append(matchDataFrame).append( "<- getDocumentCostineSimilarityMatrix(").append(allTablesVar).append(",").append(allColumnsVar).append(");");
+		script.append(matchDataFrame).append( "<- getDocumentCosineSimilarity(").append(allTablesVar).append(",").append(allColumnsVar).append(");");
 
 		// execute!
 		logger.info("Running script to auto generate descriptions...");

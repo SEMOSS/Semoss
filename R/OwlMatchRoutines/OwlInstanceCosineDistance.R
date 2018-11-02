@@ -87,7 +87,7 @@ generateDescriptionFrame<-function(allTables, allColumns, sampleInstances){
   return(colToDescriptionFrame);
 }
 
-getDocumentCostineSimilarityMatrix<-function(allTables, allColumns, sampleInstancesList) {
+getDocumentCosineSimilarity<-function(allTables, allColumns, sampleInstancesList) {
   library(text2vec);
   library(data.table);
   library(lsa);
