@@ -296,6 +296,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 			String filterKey = (!filter.getAllUsedTables().isEmpty()) ? String.join("__", filter.getAllUsedTables()) : "tempReference";
 			retTableToFilters.putIfAbsent(filterKey, new Vector<String>());
 			retTableToFilters.get(filterKey).add(filterSyntax.toString());
+			this.filterStatements.add(filterSyntax.toString());
 		}
 	}
 	
