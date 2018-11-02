@@ -53,8 +53,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.H2SqlInterpreter;
 import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
-import prerna.query.interpreters.sql.NoOuterJoinSqlInterpreter;
 import prerna.query.interpreters.sql.PostgresInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -765,7 +765,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public IQueryInterpreter getQueryInterpreter(){
 		if(dbType == null || dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
-			return new NoOuterJoinSqlInterpreter(this);
+			return new H2SqlInterpreter(this);
 		} else if(dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER) {
 			return new MicrosoftSqlServerInterpreter(this);
 		} else if(dbType == SQLQueryUtil.DB_TYPE.POSTGRES) {
