@@ -12,7 +12,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.PushAppRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -39,9 +38,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
 		String appId = getApp();
-		if(appId == null || appId.isEmpty()) {
-			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
-		}
 		
 		// security
 		if(AbstractSecurityUtils.securityEnabled()) {
