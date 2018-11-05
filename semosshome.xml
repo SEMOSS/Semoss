@@ -13,28 +13,34 @@
     <fileSet>
       <directory>db</directory>
       <outputDirectory>db</outputDirectory>
-	  <includes>
-	    <include>Default/</include>
+      <includes>
+        <include>Default/</include>
         <include>form_builder_engine/</include>
         <include>form_builder_engine.smss</include>
         <include>LocalMasterDatabase/</include>
         <include>LocalMasterDatabase.smss</include>
         <include>security/</include>
         <include>security.smss</include>
-		<include>foaf.xml</include>
+        <include>foaf.xml</include>
       </includes>
     </fileSet>
     <fileSet>
-      <directory>export/ZIPs</directory>
-      <outputDirectory>export/ZIPs</outputDirectory>
+      <directory>export</directory>
+      <outputDirectory>export</outputDirectory>
+      <includes>
+        <include>ZIPs/</include>
+      </includes>
     </fileSet>
-	<fileSet>
+    <fileSet>
       <directory>images</directory>
       <outputDirectory>images</outputDirectory>
     </fileSet>
     <fileSet>
-      <directory>InsightCache/CSV_Insights</directory>
-      <outputDirectory>InsightCache/CSV_Insights</outputDirectory>
+      <directory>InsightCache</directory>
+      <outputDirectory>InsightCache</outputDirectory>
+      <includes>
+        <include>CSV_Insights/</include>
+      </includes>
     </fileSet>
     <fileSet>
       <directory>NLPartifacts</directory>
@@ -44,15 +50,15 @@
       <directory>R</directory>
       <outputDirectory>R</outputDirectory>
     </fileSet>
-	<fileSet>
+    <fileSet>
       <directory>rdbms</directory>
       <outputDirectory>rdbms</outputDirectory>
     </fileSet>
-	<fileSet>
+    <fileSet>
       <directory>RDFGraphLib</directory>
       <outputDirectory>RDFGraphLib</outputDirectory>
     </fileSet>
-	<fileSet>
+    <fileSet>
       <directory>rpa</directory>
       <outputDirectory>rpa</outputDirectory>
     </fileSet>
@@ -60,7 +66,7 @@
       <directory>upload</directory>
       <outputDirectory>upload</outputDirectory>
     </fileSet>
-	<fileSet>
+    <fileSet>
       <directory>WordNet-3.1</directory>
       <outputDirectory>WordNet-3.1</outputDirectory>
     </fileSet>
