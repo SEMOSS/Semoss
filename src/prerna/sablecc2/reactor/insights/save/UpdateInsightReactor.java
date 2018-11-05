@@ -12,7 +12,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.cluster.util.PushAppRunner;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -43,14 +42,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 
 		String appId = getApp();
-		if(appId == null || appId.isEmpty()) {
-			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
-		}
 		// need to know what we are updating
 		String existingId = getRdbmsId();
-		if(existingId == null) {
-			throw new IllegalArgumentException("Need to define the rdbmsId for the insight we are updating");
-		}
 		
 		// security
 		if(AbstractSecurityUtils.securityEnabled()) {

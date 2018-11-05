@@ -25,13 +25,13 @@ public class GetSavedInsightRecipeReactor extends AbstractInsightReactor {
 		
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
-		String engineName = getApp();
+		String appId = getApp();
 		String rdbmsId = getRdbmsId();
 		
 		// get the engine so i can get the new insight
-		IEngine engine = Utility.getEngine(engineName);
+		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
-			throw new IllegalArgumentException("Cannot find engine = " + engineName);
+			throw new IllegalArgumentException("Cannot find app = " + appId);
 		}
 		List<Insight> in = engine.getInsight(rdbmsId);
 		Insight newInsight = in.get(0);
