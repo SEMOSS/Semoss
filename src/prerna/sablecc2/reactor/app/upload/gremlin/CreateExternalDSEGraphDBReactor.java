@@ -36,7 +36,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 	private static final String CLASS_NAME = CreateExternalDSEGraphDBReactor.class.getName();
 
 	public CreateExternalDSEGraphDBReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.HOST.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.HOST.getKey(),
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
 				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
 				ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
