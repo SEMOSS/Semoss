@@ -15,7 +15,10 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.SmssUtilities;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -33,22 +36,35 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String HIDDEN_KEY = "hidden";
 
 	protected String getApp() {
+		String appId = null;
 		// look at all the ways the insight panel could be passed
 		// look at store if it was passed in
 		GenRowStruct genericEngineGrs = this.store.getNoun(ReactorKeysEnum.APP.getKey());
 		if(genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
-			return (String) genericEngineGrs.get(0);
+			appId = (String) genericEngineGrs.get(0);
 		}
 		
-		// see if it is in the curRow
-		// if it was passed directly in as a variable
-		List<NounMetadata> stringNouns = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
-		if(stringNouns != null && !stringNouns.isEmpty()) {
-			return (String) stringNouns.get(0).getValue();
+		if(appId == null) {
+			// see if it is in the curRow
+			// if it was passed directly in as a variable
+			List<NounMetadata> stringNouns = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
+			if(stringNouns != null && !stringNouns.isEmpty()) {
+				return (String) stringNouns.get(0).getValue();
+			}
 		}
 		
-		// well, you are out of luck
-		return null;
+		if(appId == null) {
+			// well, you are out of luck
+			throw new IllegalArgumentException("Need to define the app where the insight currently exists");
+		}
+
+		if(AbstractSecurityUtils.securityEnabled()) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
+		} else {
+			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+		}
+		
+		return appId;
 	}
 	
 	/**
@@ -85,7 +101,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 		
 		// well, you are out of luck
-		return null;
+		throw new IllegalArgumentException("Need to define the app where the insight currently exists");
 	}
 	
 	protected boolean getHidden() {
@@ -224,13 +240,15 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	/**
 	 * Update the recipe to save the files in the insight location
 	 * @param recipeToSave
-	 * @param appName
+	 * @param appId
 	 * @param newInsightId
 	 * @return
 	 */
-	protected String[] saveFilesInInsight(String[] recipeToSave, String appName, String newInsightId) {
+	protected String[] saveFilesInInsight(String[] recipeToSave, String appId, String newInsightId) {
 		final String BASE = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+		
+		String appName = SecurityQueryUtils.getEngineAliasForId(appId);
 		
 		// store modifications to be made
 		List<Map<String, Object>> modificationList = new Vector<Map<String, Object>>();
@@ -251,7 +269,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				String filename = FilenameUtils.getName(fileLoc);
 				File origF = new File(fileLoc);
 				String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
-										appName + DIR_SEPARATOR + 
+										SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + 
 										"version" + DIR_SEPARATOR +
 										newInsightId + DIR_SEPARATOR + 
 										"data";
