@@ -319,7 +319,9 @@ public class Me {
 									"INSIGHT_CACHE_DIR",
 									"SOLR_BASE_URL",
 									"ADDITIONAL_REACTORS",
-									"SOCIAL"};
+									"SOCIAL",
+									"JobSchedulerWatcher_DIR",
+									"rpa.config.directory"};
 		String [] stringToReplaceWith = {homePath, 
 										 homePath + "/log4j.prop", 
 										 homePath + "/db", 
@@ -328,7 +330,9 @@ public class Me {
 										 homePath + "/InsightCache",
 										 "http://localhost:" + port + "/solr",
 										 homePath + "/reactors.json",
-										 homePath + "/social.properties"}; 
+										 homePath + "/social.properties",
+										 homePath + "/rpa/json",
+										 homePath + "/rpa"}; 
 		
 		replaceProp(rdfHome, stringToReplace, stringToReplaceWith);
 		
