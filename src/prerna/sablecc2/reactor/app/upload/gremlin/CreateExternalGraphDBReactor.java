@@ -37,7 +37,7 @@ public class CreateExternalGraphDBReactor extends AbstractReactor {
 	private static final String CLASS_NAME = CreateExternalGraphDBReactor.class.getName();
 
 	public CreateExternalGraphDBReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(), 
 				ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
 	}
