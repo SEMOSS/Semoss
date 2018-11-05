@@ -105,7 +105,7 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		logger.info("Done generating temp smss");
 
 		logger.info("Add app security defaults");
-		SecurityUpdateUtils.addApp(appId);
+		SecurityUpdateUtils.addApp(appId, !AbstractSecurityUtils.securityEnabled());
 		logger.info("Done adding security defaults");
 
 		AppEngine appEng = new AppEngine();
