@@ -179,7 +179,6 @@ install.packages("randomForest", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 #install.packages("dplyr", dependencies=TRUE)
 
-
 # LSA Column
 #install.packages("LSAfun", dependencies=TRUE)
 #install.packages("text2vec", dependencies=TRUE)
@@ -193,3 +192,22 @@ devtools::install_github("twitter/AnomalyDetection", dependencies=TRUE)
 
 # Business rules
 install.packages("arules", dependencies=TRUE)
+
+# Document Similarity
+#install.packages("R6", dependencies=TRUE)
+#install.packages("Matrix", dependencies=TRUE)
+#install.packages("formatR", dependencies=TRUE)
+#install.packages("Rcpp", dependencies=TRUE)
+#install.packages("codetools", dependencies=TRUE)
+#install.packages("grid", dependencies=TRUE)
+#install.packages("iterators", dependencies=TRUE)
+#install.packages("foreach", dependencies=TRUE)
+#install.packages("data.table", dependencies=TRUE)
+#install.packages("mlapi", dependencies=TRUE)
+#install.packages("digest", dependencies=TRUE)
+#install.packages("RcppParallel", dependencies=TRUE)
+#install.packages("lattice", dependencies=TRUE)
+#install.packages("futile.logger", dependencies=TRUE)
+#install.packages("futile.options", dependencies=TRUE)
+#install.packages("lambda.r", dependencies=TRUE)
+#install.packages("text2vec", dependencies=TRUE)
