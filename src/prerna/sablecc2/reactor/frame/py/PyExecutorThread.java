@@ -45,7 +45,14 @@ public class PyExecutorThread extends Thread {
 				    	}
 						daLock.notify();
 						
-					} catch (JepException e) {
+						// seems like when there is an exception..I need to restart the thread
+					} catch (Exception e) {
+						try {
+							daLock.notify();
+						} catch (Exception e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
