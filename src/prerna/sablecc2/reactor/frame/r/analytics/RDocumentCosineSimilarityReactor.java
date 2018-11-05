@@ -1,14 +1,23 @@
 package prerna.sablecc2.reactor.frame.r.analytics;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.rosuda.REngine.Rserve.RConnection;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.query.interpreters.RInterpreter;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
@@ -28,21 +37,47 @@ public class RDocumentCosineSimilarityReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		init();
+		String[] packages = new String[] { "lsa", "text2vec" };
+		this.rJavaTranslator.checkPackages(packages);
 		RDataTable rFrame = (RDataTable) this.getFrame();
+		OwlTemporalEngineMeta meta = rFrame.getMetaData();
 		String dataFrame = rFrame.getTableName();
 		String instanceCol = this.keyValue.get(ReactorKeysEnum.INSTANCE_KEY.getKey());
 		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 		boolean override = overrideFrame();
 
 		StringBuilder rsb = new StringBuilder();
+		// check if there are filters on the frame. if so then need to run
+		// algorithm on subsetted data
+		String tempFrame = "DocSim" + Utility.getRandomString(5);
+		if (!rFrame.getFrameFilters().isEmpty()) {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			List<String> selectedCols = new ArrayList<String>();
+			selectedCols.add(instanceCol);
+			selectedCols.add(description);
+			for (String s : selectedCols) {
+				qs.addSelector(new QueryColumnSelector(s));
+			}
+			qs.setImplicitFilters(rFrame.getFrameFilters());
+			qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, meta);
+			RInterpreter interp = new RInterpreter();
+			interp.setQueryStruct(qs);
+			interp.setDataTableName(dataFrame);
+			interp.setColDataTypes(meta.getHeaderToTypeMap());
+			String query = interp.composeQuery();
+			rsb.append(tempFrame + "<- {" + query + "};");
+		} else {
+			rsb.append(tempFrame + "<- " + dataFrame + ";");
+		}
+
 		// source the r script that will run the numerical correlation routine
 		String correlationScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\DocumentSimilarity.R";
 		correlationScriptFilePath = correlationScriptFilePath.replace("\\", "/");
 		rsb.append("source(\"" + correlationScriptFilePath + "\");");
 
 		// create temp frame with column and description
-		String tempFrame = "DocSim" + Utility.getRandomString(5);
-		rsb.append(tempFrame + " <-  data.frame(description=" + dataFrame + "$" + description + ", column=" + dataFrame + "$" + instanceCol + ");");
+		rsb.append(tempFrame + " <-  data.frame(description=" + tempFrame + "$" + description + ", column=" + tempFrame
+				+ "$" + instanceCol + ");");
 		// make columns as character
 		rsb.append(tempFrame + "$column<- as.character(" + tempFrame + "$column);");
 		rsb.append(tempFrame + "$description<- as.character(" + tempFrame + "$description);");
@@ -55,6 +90,16 @@ public class RDocumentCosineSimilarityReactor extends AbstractRFrameReactor {
 		rsb.append("rm(getDocumentCosineSimilarity, " + tempFrame + ");");
 		this.rJavaTranslator.runR(rsb.toString());
 
+		// check if similarity frame exists
+		String frameExists = "exists('" + similarityFrame + "')";
+		if (!this.rJavaTranslator.getBoolean(frameExists)) {
+			String errorMessage = "Unable to generate document similarity";
+			NounMetadata error = new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException spe = new SemossPixelException(error);
+			spe.setContinueThreadOfExecution(false);
+			throw spe;
+		}
+
 		// create new R DataTable from results
 		VarStore vars = this.insight.getVarStore();
 		RDataTable newTable = null;
@@ -64,11 +109,14 @@ public class RDocumentCosineSimilarityReactor extends AbstractRFrameReactor {
 		} else {
 			newTable = new RDataTable(similarityFrame);
 		}
-		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, this.rJavaTranslator.getColumns(similarityFrame), this.getColumnTypes(similarityFrame), similarityFrame);
-		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, this.rJavaTranslator.getColumns(similarityFrame),
+				this.getColumnTypes(similarityFrame), similarityFrame);
+		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME);
 		// replace existing frame
 		if (override) {
 			this.insight.setDataMaker(newTable);
+			noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+					PixelOperationType.FRAME_HEADERS_CHANGE);
 		}
 		// add the alias as a noun by default
 		else {
