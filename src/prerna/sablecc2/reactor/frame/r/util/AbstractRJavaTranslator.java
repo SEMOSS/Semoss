@@ -124,7 +124,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 * @return
 	 */
 	public boolean isEmpty(String frameName) {
-		String script = "(is.data.table(" + frameName + ") && nrow(" + frameName + ") == 0)";
+		String script = "(!exists(\"" + frameName + "\") || (is.data.table(" + frameName + ") && nrow(" + frameName + ") == 0))";
 		return this.getBoolean(script);
 	}
 	
