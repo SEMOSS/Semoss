@@ -41,6 +41,12 @@ public interface IEngineWrapper {
 	void setQuery(String query);
 	
 	/**
+	 * Get the set query
+	 * @return
+	 */
+	String getQuery();
+	
+	/**
 	 * Clean up the data source
 	 */
 	void cleanUp();
