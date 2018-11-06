@@ -203,7 +203,13 @@ public abstract class AbstractEngine implements IEngine {
 							}
 						}
 						
-						if(tableExists) {
+						
+						if(!tableExists) {
+							// well, you already created the file
+							// need to run the queries to make this
+							UploadUtilities.runInsightCreateTableQueries(this.insightRDBMS);
+						} else {
+							// okay, might need to do some updates
 							String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
 							IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(this.insightRDBMS, q);
 							while(wrap.hasNext()) {
@@ -220,21 +226,27 @@ public abstract class AbstractEngine implements IEngine {
 							}
 							wrap.cleanUp();
 							
-							q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='HIDDEN_INSIGHT'";
-							wrap = WrapperManager.getInstance().getRawWrapper(insightRDBMS, q);
-							if(!wrap.hasNext()) {
-								String update = "ALTER TABLE QUESTION_ID ADD HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE;";
-								try {
-									this.insightRDBMS.insertData(update);
-								} catch (SQLException e) {
-									e.printStackTrace();
-								}
-								this.insightRDBMS.commit();
+							// previous alter column ... might be time to delete this ? 11/8/2018 
+							String update = "ALTER TABLE QUESTION_ID ADD COLUMN IF NOT EXISTS HIDDEN_INSIGHT BOOLEAN DEFAULT FALSE";								
+							try {
+								this.insightRDBMS.insertData(update);
+							} catch (SQLException e) {
+								e.printStackTrace();
 							}
-							wrap.cleanUp();
+							this.insightRDBMS.commit();
+
+							// THIS IS FOR LEGACY !!!!
+							// TODO: EVENTUALLY WE WILL DELETE THIS
+							// TODO: EVENTUALLY WE WILL DELETE THIS
+							// TODO: EVENTUALLY WE WILL DELETE THIS
+							// TODO: EVENTUALLY WE WILL DELETE THIS
+							// TODO: EVENTUALLY WE WILL DELETE THIS
+							InsightsDatabaseUpdater3CacheableColumn.update(this.insightRDBMS);
 						}
 					}
 				}
+				
+				// yay! even more updates
 				
 				// TODO: this is new code to convert
 				// TODO: this is new code to convert

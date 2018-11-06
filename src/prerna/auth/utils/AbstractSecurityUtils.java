@@ -153,8 +153,8 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEPERMISSION", colNames, types, defaultValues));
 
 		// INSIGHT
-		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)" };
+		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)", "boolean" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
 
 		// USERINSIGHTPERMISSION
@@ -214,6 +214,14 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS (GROUPMEMBERSID) ON DELETE CASCADE;");
 			}
 		}
+		
+		// THIS IS FOR LEGACY !!!!
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		securityDb.insertData("ALTER TABLE INSIGHT ADD COLUMN IF NOT EXISTS CACHEABLE BOOLEAN DEFAULT TRUE");
 		
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
