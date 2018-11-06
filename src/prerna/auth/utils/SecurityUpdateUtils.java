@@ -18,6 +18,7 @@ import prerna.auth.EnginePermission;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.InsightsDatabaseUpdater3CacheableColumn;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -108,6 +109,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			String password = "";
 			rne.setEngineId(appId + "_InsightsRDBMS");
 			rne.makeConnection(jdbcURL, userName, password);
+			
+			// THIS IS FOR LEGACY !!!!
+			// TODO: EVENTUALLY WE WILL DELETE THIS
+			// TODO: EVENTUALLY WE WILL DELETE THIS
+			// TODO: EVENTUALLY WE WILL DELETE THIS
+			// TODO: EVENTUALLY WE WILL DELETE THIS
+			// TODO: EVENTUALLY WE WILL DELETE THIS
+			InsightsDatabaseUpdater3CacheableColumn.update(rne);
 		}
 		
 		// i need to delete any current insights for the app
@@ -121,14 +130,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		// make a prepared statement
 		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(
-				new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON","LASTMODIFIEDON","LAYOUT"});
+				new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON","LASTMODIFIEDON","LAYOUT", "CACHEABLE"});
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
 		int count = 0;
 		
 		LocalDateTime now = LocalDateTime.now();
 		
-		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
+		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
@@ -141,6 +150,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.setTimestamp(6, java.sql.Timestamp.valueOf(now));
 				ps.setTimestamp(7, java.sql.Timestamp.valueOf(now));
 				ps.setString(8, row[2].toString());
+				ps.setBoolean(9, (boolean) row[4]);
 				ps.addBatch();
 				
 				// batch commit based on size

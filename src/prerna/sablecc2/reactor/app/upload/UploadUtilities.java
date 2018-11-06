@@ -806,6 +806,15 @@ public class UploadUtilities {
 		// this way i do not need to write it to disk and then recreate it later
 		insightEngine.openDB(null);
 
+		runInsightCreateTableQueries(insightEngine);
+		return insightEngine;
+	}
+	
+	/**
+	 * Run the create table queries for the insights database
+	 * @param insightEngine
+	 */
+	public static void runInsightCreateTableQueries(RDBMSNativeEngine insightEngine) {
 		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255), QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225), QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP CLOB, QUESTION_PROPERTIES CLOB, QUESTION_OWL CLOB, QUESTION_IS_DB_QUERY BOOLEAN, DATA_TABLE_ALIGN VARCHAR(500), QUESTION_PKQL ARRAY)
 		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
 				+ "ID VARCHAR(50), "
@@ -815,11 +824,15 @@ public class UploadUtilities {
 				+ "QUESTION_ORDER INT, "
 				+ "QUESTION_DATA_MAKER VARCHAR(225), "
 				+ "QUESTION_MAKEUP CLOB, "
-				+ "QUESTION_PROPERTIES CLOB, "
-				+ "QUESTION_OWL CLOB, "
-				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
+				
+				// THESE COLUMNS ARE NOT USED ANYWHERE, EVEN IN LEGACY CODE!
+//				+ "QUESTION_PROPERTIES CLOB, "
+//				+ "QUESTION_OWL CLOB, "
+//				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
+
 				+ "DATA_TABLE_ALIGN VARCHAR(500), "
 				+ "HIDDEN_INSIGHT BOOLEAN, "
+				+ "CACHEABLE BOOLEAN, "
 				+ "QUESTION_PKQL ARRAY)";
 
 		try {
@@ -828,37 +841,48 @@ public class UploadUtilities {
 			e.printStackTrace();
 		}
 
-		// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
-		String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
-				+ "PARAMETER_ID VARCHAR(255), "
-				+ "PARAMETER_LABEL VARCHAR(255), "
-				+ "PARAMETER_TYPE VARCHAR(225), "
-				+ "PARAMETER_DEPENDENCY VARCHAR(225), "
-				+ "PARAMETER_QUERY VARCHAR(2000), "
-				+ "PARAMETER_OPTIONS VARCHAR(2000), "
-				+ "PARAMETER_IS_DB_QUERY BOOLEAN, "
-				+ "PARAMETER_MULTI_SELECT BOOLEAN, "
-				+ "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
-				+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
-				+ "QUESTION_ID_FK INT)";
+		{
 
-		try {
-			insightEngine.insertData(parameterTableCreate);
-		} catch (SQLException e) {
-			e.printStackTrace();
+			/*
+			 * NOTE : THESE TABLES ARE LEGACY!!!!
+			 */
+
+			// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
+			String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
+					+ "PARAMETER_ID VARCHAR(255), "
+					+ "PARAMETER_LABEL VARCHAR(255), "
+					+ "PARAMETER_TYPE VARCHAR(225), "
+					+ "PARAMETER_DEPENDENCY VARCHAR(225), "
+					+ "PARAMETER_QUERY VARCHAR(2000), "
+					+ "PARAMETER_OPTIONS VARCHAR(2000), "
+					+ "PARAMETER_IS_DB_QUERY BOOLEAN, "
+					+ "PARAMETER_MULTI_SELECT BOOLEAN, "
+					+ "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
+					+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
+					+ "QUESTION_ID_FK INT)";
+	
+			try {
+				insightEngine.insertData(parameterTableCreate);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+
+			String feTableCreate = "CREATE TABLE UI ("
+					+ "QUESTION_ID_FK INT, "
+					+ "UI_DATA CLOB)";
+	
+			try {
+				insightEngine.insertData(feTableCreate);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			
+			/*
+			 * DONE WITH LEGACY TABLES
+			 */
 		}
-
-		String feTableCreate = "CREATE TABLE UI ("
-				+ "QUESTION_ID_FK INT, "
-				+ "UI_DATA CLOB)";
-
-		try {
-			insightEngine.insertData(feTableCreate);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-		return insightEngine;
+		
+		insightEngine.commit();
 	}
 
 	/**
