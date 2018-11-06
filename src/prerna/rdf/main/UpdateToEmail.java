@@ -202,7 +202,13 @@ public class UpdateToEmail {
 				String id = systemToId.get(system);
 				
 				// need to clean up the id to be an integer
-				Double parsedDouble = Double.parseDouble(id);
+				Double parsedDouble = null;
+				try {
+					parsedDouble = Double.parseDouble(id);
+				} catch(Exception e) {
+					continue;
+				}
+				
 				Integer intValue = parsedDouble.intValue();
 				String cleanId = intValue.toString();
 				
@@ -276,6 +282,40 @@ public class UpdateToEmail {
 			}
 		}
 		
+		////////////////////////////////////////////////////////////
+		
+		{
+			// delete where user id is not a valid email
+			IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(securityDb, "select distinct userid from enginepermission");
+			while(manager.hasNext()) {
+				String userId = manager.next().getValues()[0].toString();
+				//  not an email
+				if(!userId.contains("@")) {
+					String delete = "DELETE FROM ENGINEPERMISSION WHERE USERID='" + userId + "'";
+					try {
+						securityDb.insertData(delete);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			
+			manager = WrapperManager.getInstance().getRawWrapper(securityDb, "select distinct id from user");
+			while(manager.hasNext()) {
+				String userId = manager.next().getValues()[0].toString();
+				//  not an email
+				if(!userId.contains("@")) {
+					String delete = "DELETE FROM USER WHERE ID='" + userId + "'";
+					try {
+						securityDb.insertData(delete);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		
+		securityDb.commit();
 		System.out.println("Done with updates");
 	}
 
