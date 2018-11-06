@@ -391,8 +391,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	public static void addInsight(String engineId, String insightId, String insightName, boolean global, String layout) {
 		LocalDateTime now = LocalDateTime.now();
 		String nowString = java.sql.Timestamp.valueOf(now).toString();
-		String insightQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT) "
-				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + RdbmsQueryBuilder.escapeForSQLStatement(insightName) + "', " + global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "')";
+		String insightQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE) "
+				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + RdbmsQueryBuilder.escapeForSQLStatement(insightName) + "', " 
+				+ global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "', true)";
 		try {
 			securityDb.insertData(insightQuery);
 			securityDb.commit();
