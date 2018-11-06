@@ -291,12 +291,9 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		RDataTable storeFrame = getStore();
 		boolean storeResults = (storeFrame != null);
 		if(storeResults) {
-			String frameName = storeFrame.getTableName();
 			IRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
 			rJavaTranslator.startR();
 
-			String randomVar = "storeDataFrame_" + Utility.getRandomString(6);
-			
 			StringBuilder tableCreationBuilder = new StringBuilder();
 			tableCreationBuilder.append("data.table(")
 				.append(RSyntaxHelper.createStringRColVec(startTList))
@@ -310,19 +307,67 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 				.append(getRColumnOfSameValue(action, startTList.size()))
 				.append(");");
 			
-			if(storeFrame.isEmpty()) {
-				// frame has not been set
-				// we will override it
-				rJavaTranslator.runR(frameName + "<-" + tableCreationBuilder.toString());
-				rJavaTranslator.runR("names(" + frameName + ")<-" + RSyntaxHelper.createStringRColVec(new String[]{"startT","startC","endT","endC","action"}));
-				ImportUtility.parserRTableColumnsAndTypesToFlatTable(storeFrame, 
-						new String[]{"startT", "startC", "endT", "endC", "action"},
-						new String[]{"STRING", "STRING", "STRING", "STRING", "STRING"}, frameName);
-			} else {
-				// note, string builder already ends with ";"
-				rJavaTranslator.runR(randomVar + "<-" + tableCreationBuilder.toString()
-						+ storeFrame.getTableName() + "<-funion(" + frameName + "," + randomVar + ");");
-			}
+			execQueryStore(storeFrame, rJavaTranslator, tableCreationBuilder);
+		}
+	}
+	
+	/**
+	 * Store user input results based on the input values
+	 * @param logger
+	 * @param startTList
+	 * @param startCList
+	 * @param endTList
+	 * @param endCList
+	 */
+	protected void storeUserInputs(Logger logger, List<String> startTList, List<String> startCList, List<String> endTList, List<String> endCList, List<String> actionList) {
+		RDataTable storeFrame = getStore();
+		boolean storeResults = (storeFrame != null);
+		if(storeResults) {
+			IRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
+			rJavaTranslator.startR();
+
+			StringBuilder tableCreationBuilder = new StringBuilder();
+			tableCreationBuilder.append("data.table(")
+				.append(RSyntaxHelper.createStringRColVec(startTList))
+				.append(",")
+				.append(RSyntaxHelper.createStringRColVec(startCList))
+				.append(",")
+				.append(RSyntaxHelper.createStringRColVec(endTList))
+				.append(",")
+				.append(RSyntaxHelper.createStringRColVec(endCList))
+				.append(",")
+				.append(RSyntaxHelper.createStringRColVec(actionList))
+				.append(");");
+			
+			execQueryStore(storeFrame, rJavaTranslator, tableCreationBuilder);
+		}
+	}
+	
+	/**
+	 * Store the user entered edits
+	 * @param storeFrame
+	 * @param rJavaTranslator
+	 * @param newValuesBuilder
+	 * @param randomVar
+	 */
+	private void execQueryStore(RDataTable storeFrame, IRJavaTranslator rJavaTranslator, StringBuilder newValuesBuilder) {
+		String frameName = storeFrame.getTableName();
+		if(storeFrame.isEmpty()) {
+			// frame has not been set
+			// we will override it
+			rJavaTranslator.runR(frameName + "<-" + newValuesBuilder.toString());
+			rJavaTranslator.runR("names(" + frameName + ")<-" + 
+					RSyntaxHelper.createStringRColVec(new String[]{"sourceTable","sourceCol","targetTable","targetCol","action"}));
+			ImportUtility.parserRTableColumnsAndTypesToFlatTable(storeFrame, 
+					new String[]{"sourceTable","sourceCol","targetTable","targetCol","action"},
+					new String[]{"STRING", "STRING", "STRING", "STRING", "STRING"}, frameName);
+		} else {
+			// note, string builder already ends with ";"
+			// do a union
+			// remove the random var
+			String randomVar = "storeDataFrame_" + Utility.getRandomString(6);
+			rJavaTranslator.runR(randomVar + "<-" + newValuesBuilder.toString()
+					+ storeFrame.getTableName() + "<-funion(" + frameName + "," + randomVar + ");rm(" + randomVar + ");");
 		}
 	}
 	
