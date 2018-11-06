@@ -88,7 +88,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		}
 		
 		// store user inputed values
-		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "remove");
+		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "removed");
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully adding relationships", 
