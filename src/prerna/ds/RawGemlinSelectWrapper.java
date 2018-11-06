@@ -261,6 +261,12 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 	}
 
 	@Override
+	public String getQuery() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
 	public void setEngine(IEngine engine) {
 		// TODO Auto-generated method stub
 		
