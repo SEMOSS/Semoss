@@ -5,8 +5,12 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -19,6 +23,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
+import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
@@ -27,6 +33,7 @@ import prerna.util.Utility;
 public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 
 	protected static final String TABLES_FILTER = ReactorKeysEnum.TABLES.getKey();
+	protected static final String STORE_VALUES_FRAME = "store";
 
 	protected String getAppId(String appId, boolean edit) {
 		String testId = appId;
@@ -210,6 +217,12 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		return new List[]{tableNamesList, columnNamesList};
 	}
 	
+	/**
+	 * Generate a query struct to query a single column ignoring empty values
+	 * @param qsName
+	 * @param limit
+	 * @return
+	 */
 	protected SelectQueryStruct getSingleColumnNonEmptyQs(String qsName, int limit) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(qsName));
@@ -230,5 +243,87 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		
 		return qs;
 	}
+	
+	/**
+	 * Get the frame we are using to store existing results
+	 * @return
+	 */
+	protected RDataTable getStore() {
+		GenRowStruct grs = this.store.getNoun(STORE_VALUES_FRAME);
+		if(grs != null && !grs.isEmpty()) {
+			NounMetadata noun = grs.getNoun(0);
+			if(noun.getNounType() == PixelDataType.FRAME) {
+				return (RDataTable) noun.getValue();
+			}
+		}
+		
+		return null;
+	}
 
+	/**
+	 * Generate an R vector for a constant value
+	 * @param value
+	 * @param size
+	 * @return
+	 */
+	protected String getRColumnOfSameValue(String value, int size) {
+		if(size <= 0) {
+			return "c()"; 
+		}
+		StringBuilder b = new StringBuilder("c(");
+		b.append("\"").append(value).append("\"");
+		for(int i = 1; i < size; i++) {
+			b.append(",\"").append(value).append("\"");
+		}
+		b.append(")");
+		return b.toString();
+	}
+	
+	/**
+	 * Store user input results based on the input values
+	 * @param logger
+	 * @param startTList
+	 * @param startCList
+	 * @param endTList
+	 * @param endCList
+	 */
+	protected void storeUserInputs(Logger logger, List<String> startTList, List<String> startCList, List<String> endTList, List<String> endCList, String action) {
+		RDataTable storeFrame = getStore();
+		boolean storeResults = (storeFrame != null);
+		if(storeResults) {
+			String frameName = storeFrame.getTableName();
+			IRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
+			rJavaTranslator.startR();
+
+			String randomVar = "storeDataFrame_" + Utility.getRandomString(6);
+			
+			StringBuilder tableCreationBuilder = new StringBuilder();
+			tableCreationBuilder.append("data.table(")
+				.append(RSyntaxHelper.createStringRColVec(startTList))
+				.append(",")
+				.append(RSyntaxHelper.createStringRColVec(startCList))
+				.append(",")
+				.append(RSyntaxHelper.createStringRColVec(endTList))
+				.append(",")
+				.append(RSyntaxHelper.createStringRColVec(endCList))
+				.append(",")
+				.append(getRColumnOfSameValue(action, startTList.size()))
+				.append(");");
+			
+			if(storeFrame.isEmpty()) {
+				// frame has not been set
+				// we will override it
+				rJavaTranslator.runR(frameName + "<-" + tableCreationBuilder.toString());
+				rJavaTranslator.runR("names(" + frameName + ")<-" + RSyntaxHelper.createStringRColVec(new String[]{"startT","startC","endT","endC","action"}));
+				ImportUtility.parserRTableColumnsAndTypesToFlatTable(storeFrame, 
+						new String[]{"startT", "startC", "endT", "endC", "action"},
+						new String[]{"STRING", "STRING", "STRING", "STRING", "STRING"}, frameName);
+			} else {
+				// note, string builder already ends with ";"
+				rJavaTranslator.runR(randomVar + "<-" + tableCreationBuilder.toString()
+						+ storeFrame.getTableName() + "<-funion(" + frameName + "," + randomVar + ");");
+			}
+		}
+	}
+	
 }
