@@ -61,6 +61,11 @@ public class JsonWrapper implements IRawSelectWrapper {
 	public void setQuery(String query) {
 		this.query = query;
 	}
+	
+	@Override
+	public String getQuery() {
+		return this.query;
+	}
 
 	@Override
 	public void setEngine(IEngine engine) {
