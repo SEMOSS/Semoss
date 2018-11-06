@@ -315,7 +315,7 @@ public class CompareDbSemanticSimiliarity extends AbstractRFrameReactor {
 			throw exception;
         }
 
-        RDataTable returnTable = createFrameFromVaraible(finalResultFrame);
+        RDataTable returnTable = createFrameFromVariable(finalResultFrame);
         this.insight.setDataMaker(returnTable);
         
 		// NEW TRACKING

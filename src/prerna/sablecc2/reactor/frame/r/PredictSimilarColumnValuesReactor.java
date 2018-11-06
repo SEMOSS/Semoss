@@ -55,7 +55,7 @@ public class PredictSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
 
 
-		RDataTable returnTable = createFrameFromVaraible(matchesTable);
+		RDataTable returnTable = createFrameFromVariable(matchesTable);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 
 		// get count of exact matches
