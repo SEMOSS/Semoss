@@ -97,7 +97,7 @@ public abstract class AbstractEngine implements IEngine {
 	private static final String GET_ALL_INSIGHTS_QUERY = "SELECT DISTINCT ID, QUESTION_ORDER FROM QUESTION_ID ORDER BY ID";
 	private static final String GET_ALL_PERSPECTIVES_QUERY = "SELECT DISTINCT QUESTION_PERSPECTIVE FROM QUESTION_ID ORDER BY QUESTION_PERSPECTIVE";
 	private static final String QUESTION_PARAM_KEY = "@QUESTION_VALUE@";
-	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
+	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, CACHEABLE, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 
 	/*
@@ -816,7 +816,8 @@ public abstract class AbstractEngine implements IEngine {
 				String layout = values[4] + "";
 				String dataTableAlign = values[6] + "";
 				String dataMakerName = values[7] + "";
-				Object[] pixel = (Object[]) values[8];
+				boolean cacheable = (boolean) values[8];
+				Object[] pixel = (Object[]) values[9];
 				
 				String perspective = values[3] + "";
 				String order = values[5] + "";
@@ -835,7 +836,7 @@ public abstract class AbstractEngine implements IEngine {
 					((OldInsight) in).setInsightParameters(LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRDBMS, rdbmsId));
 					in.setIsOldInsight(true);
 				} else {
-					in = new Insight(this.engineId, this.engineName, rdbmsId);
+					in = new Insight(this.engineId, this.engineName, rdbmsId, cacheable);
 					in.setInsightName(insightName);
 					List<String> pixelList = new Vector<String>();
 					for(int i = 0; i < pixel.length; i++) {
