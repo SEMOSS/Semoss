@@ -86,7 +86,8 @@ public class Insight {
 	protected String rdbmsId;
 	protected String engineId;
 	protected String engineName;
-
+	protected boolean cacheable = true;
+	
 	// list to store the pixels that make this insight
 	private List<String> pixelList;
 	
@@ -152,10 +153,15 @@ public class Insight {
 	 * @param rdbmsId
 	 */
 	public Insight(String engineId, String engineName, String rdbmsId) {
+		this(engineId, engineName, rdbmsId, true);
+	}
+	
+	public Insight(String engineId, String engineName, String rdbmsId, boolean cacheable) {
 		this();
 		this.engineId = engineId;
 		this.engineName = engineName;
 		this.rdbmsId = rdbmsId;
+		this.cacheable = cacheable;
 	}
 	
 	private void loadDefaultSettings() {
@@ -382,6 +388,14 @@ public class Insight {
 
 	public void setInsightName(String insightName) {
 		this.insightName = insightName;
+	}
+	
+	public boolean isCacheable() {
+		return this.cacheable;
+	}
+	
+	public void setCacheable(boolean cacheable) {
+		this.cacheable = cacheable;
 	}
 	
 	public VarStore getVarStore() {
