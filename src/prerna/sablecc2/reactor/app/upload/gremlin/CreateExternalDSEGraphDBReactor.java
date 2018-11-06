@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.app.upload.gremlin;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,7 +113,10 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		Map<String, Object> edges = (Map<String, Object>) metaMap.get("edges");
 		Set<String> concepts = nodes.keySet();
 		Map<String, String> conceptTypes = new HashMap<String, String>();
-		Set<String> edgeLabels = edges.keySet();
+		Set<String> edgeLabels = new HashSet<>();
+		if(edges != null) {
+			edgeLabels = edges.keySet();
+		}
 
 		Map<String, String> typeMap = new HashMap<String, String>();
 		Map<String, String> nameMap = new HashMap<String, String>();
@@ -196,7 +200,6 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		logger.info("5. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		insightDatabase.closeDB();
 		logger.info("5. Complete");
 
 		logger.info("6. Process app metadata to allow for traversing across apps	");
@@ -237,8 +240,9 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 				SecurityUpdateUtils.addEngineOwner(newAppId, user.getAccessToken(ap).getId());
 			}
 		}
-		
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+
+		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), newAppId);
+		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 }
