@@ -3,8 +3,6 @@ package prerna.sablecc2.reactor.frame.r.analytics;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.rosuda.REngine.Rserve.RConnection;
-
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
@@ -16,12 +14,9 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
-import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
-import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Utility;
 
 public class RDocumentCosineSimilarityReactor extends AbstractRFrameReactor {
@@ -81,8 +76,10 @@ public class RDocumentCosineSimilarityReactor extends AbstractRFrameReactor {
 		// make columns as character
 		rsb.append(tempFrame + "$column<- as.character(" + tempFrame + "$column);");
 		rsb.append(tempFrame + "$description<- as.character(" + tempFrame + "$description);");
-
 		String similarityFrame = "SimFrame" + Utility.getRandomString(5);
+		if(override) {
+			similarityFrame = dataFrame;
+		}
 		rsb.append(similarityFrame + "<- getDocumentCosineSimilarity(" + tempFrame + ");");
 		rsb.append(RSyntaxHelper.asDataTable(similarityFrame, similarityFrame));
 
@@ -101,29 +98,16 @@ public class RDocumentCosineSimilarityReactor extends AbstractRFrameReactor {
 		}
 
 		// create new R DataTable from results
-		VarStore vars = this.insight.getVarStore();
-		RDataTable newTable = null;
-		if (vars.get(IRJavaTranslator.R_CONN) != null && vars.get(IRJavaTranslator.R_PORT) != null) {
-			newTable = new RDataTable(similarityFrame, (RConnection) vars.get(IRJavaTranslator.R_CONN).getValue(),
-					(String) vars.get(IRJavaTranslator.R_PORT).getValue());
-		} else {
-			newTable = new RDataTable(similarityFrame);
-		}
-		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, this.rJavaTranslator.getColumns(similarityFrame),
-				this.getColumnTypes(similarityFrame), similarityFrame);
-		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME);
+		RDataTable returnTable = createFrameFromVariable(similarityFrame);
+		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 		// replace existing frame
 		if (override) {
-			this.insight.setDataMaker(newTable);
-			noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+			this.insight.setDataMaker(returnTable);
+			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 					PixelOperationType.FRAME_HEADERS_CHANGE);
 		}
-		// add the alias as a noun by default
-		else {
-			this.insight.getVarStore().put(similarityFrame, noun);
-		}
 
-		return noun;
+		return retNoun;
 	}
 
 	private boolean overrideFrame() {
