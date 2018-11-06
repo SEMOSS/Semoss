@@ -35,7 +35,7 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 	 */
 	
 	public OwlColumnSemanticCosineSimilarityMatchReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), TABLES_FILTER, STORE_VALUES_FRAME};
 	}
 	
 	@Override
@@ -90,6 +90,9 @@ public class OwlColumnSemanticCosineSimilarityMatchReactor extends AbstractMetaE
 		rJavaTranslator.runR(script.toString());
 		logger.info("Finished running scripts!");
 
+		// remove subset of stored values
+		removeStoredValues(matchDataFrame, new Object[]{"added","removed","auto_added"}, logger);
+		
 		// recreate a new frame and set the frame name
 		String[] colNames = rJavaTranslator.getColumns(matchDataFrame);
 		String[] colTypes = rJavaTranslator.getColumnTypes(matchDataFrame);
