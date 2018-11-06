@@ -371,4 +371,36 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		}
 	}
 	
+	/**
+	 * Removed previously stored values
+	 * @param resultsFrame
+	 * @param logger
+	 */
+	protected void removeStoredValues(String resultsFrame, Object[] storeTypesToRemove, Logger logger) {
+		RDataTable storeFrame = getStore();
+		boolean storeResults = (storeFrame != null);
+		if(storeResults) {
+			logger.info("Removing previously mastered data from the results...");
+			String storeFrameName = storeFrame.getTableName();
+			String filter = RSyntaxHelper.createStringRColVec(storeTypesToRemove);
+			
+			String subsetVar = "subset_" + Utility.getRandomString(6);
+			String indexVar = "indices_" + Utility.getRandomString(6);
+
+			IRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
+			rJavaTranslator.startR();
+
+			String script = subsetVar + "<-" + storeFrameName + "[" + storeFrameName + "$action %in% " + filter + "];"
+					+ indexVar + "<-("
+					+ "match(" + resultsFrame + "$sourceTable," + subsetVar + "$sourceTable) "
+					+ "& match(" + resultsFrame + "$sourceCol," + subsetVar + "$sourceCol) "
+					+ "& match(" + resultsFrame + "$targetTable," + subsetVar + "$targetTable) "
+					+ "& match(" + resultsFrame + "$targetCol," + subsetVar + "$targetCol));"
+					+ resultsFrame + "<-" + resultsFrame + "[" + indexVar + "];gc(" + subsetVar + "," + indexVar + ");";
+			rJavaTranslator.runR(script);
+			
+			logger.info("Finsihed removing previously mastered data from the results");
+		}
+	}
+	
 }
