@@ -1,0 +1,9 @@
+{
+  "-jobName": "dummy",
+  "-jobGroup": "4a4398f0-2b5e-49b6-869b-ff9a61f20ab4",
+  "-jobCronExpression": "0/10 * * 1/1 * ? *",
+  "-jobClass": "RunPixelJob",
+  "pixel": "## Dummy Job ##",
+  "-active": false,
+  "-userAccess": "NATIVE:dummytoken"
+}
