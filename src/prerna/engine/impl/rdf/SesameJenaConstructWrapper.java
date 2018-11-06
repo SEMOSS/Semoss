@@ -51,7 +51,7 @@ import prerna.util.Utility;
  * The wrapper helps takes care of selection of the type of engine you are using (Jena/Sesame).  This wrapper processes CONSTRUCT statements. 
  */
 @Deprecated
-public class SesameJenaConstructWrapper extends AbstractWrapper{
+public class SesameJenaConstructWrapper extends AbstractWrapper {
 	
 	public transient GraphQueryResult gqr = null;	
 	transient Model model = null;
