@@ -95,6 +95,11 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	}
 	
 	@Override
+	public String getQuery() {
+		return this.query;
+	}
+	
+	@Override
 	public void setEngine(IEngine engine) {
 		LOGGER.debug("Set the engine to " + engine.getEngineId());
 		this.engine = engine;
