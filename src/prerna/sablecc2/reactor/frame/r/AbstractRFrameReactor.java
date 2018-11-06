@@ -32,7 +32,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 	 * @param frameName
 	 */
 	protected void recreateMetadata(String frameName) {
-		RDataTable newTable = createFrameFromVaraible(frameName);
+		RDataTable newTable = createFrameFromVariable(frameName);
 		this.insight.setDataMaker(newTable);
 	}
 	
@@ -41,7 +41,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 	 * when we execute a script that modifies the data structure
 	 * @param frameName
 	 */
-	protected RDataTable createFrameFromVaraible(String frameName) {
+	protected RDataTable createFrameFromVariable(String frameName) {
 		// recreate a new frame and set the frame name
 		String[] colNames = getColumns(frameName);
 		String[] colTypes = getColumnTypes(frameName);
