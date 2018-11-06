@@ -141,7 +141,7 @@ public class RFrameBuilder {
 			// default behavior is to just write this to a csv file
 			// get the fread() notation for that csv file
 			// and read it back in
-			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";
+			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 			File newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\\t");
 			evalR(loadFileRScript);
