@@ -17,6 +17,8 @@ import prerna.util.Utility;
 
 public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 
+	private static final String CLASS_NAME = RemoveOwlRelationshipReactor.class.getName();
+
 	private boolean organized;
 	private Map<String, String> tableToPrim = new HashMap<String, String>();
 	
@@ -25,7 +27,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 	 */
 	
 	public RemoveOwlRelationshipReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), "startT", "endT", "startC", "endC"};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), "startT", "endT", "startC", "endC", STORE_VALUES_FRAME};
 	}
 	
 	@Override
@@ -84,6 +86,9 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
+		
+		// store user inputed values
+		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "remove");
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully adding relationships", 

@@ -30,7 +30,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 	 */
 	
 	public AddBulkOwlRelationshipsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FRAME.getKey(), PROP_MAX};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FRAME.getKey(), PROP_MAX, STORE_VALUES_FRAME};
 	}
 	
 	@Override
