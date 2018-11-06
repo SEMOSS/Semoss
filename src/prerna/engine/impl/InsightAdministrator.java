@@ -18,6 +18,7 @@ public class InsightAdministrator {
 	private static final String QUESTION_LAYOUT_COL = "QUESTION_LAYOUT";
 	private static final String QUESTION_PKQL_COL = "QUESTION_PKQL";
 	private static final String HIDDEN_INSIGHT_COL = "HIDDEN_INSIGHT";
+	private static final String CACHEABLE_COL = "CACHEABLE";
 
 	private IEngine insightEngine;
 	
@@ -60,9 +61,9 @@ public class InsightAdministrator {
 		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
 				.append(QUESTION_ID_COL).append(",").append(QUESTION_NAME_COL).append(",")
 				.append(QUESTION_LAYOUT_COL).append(",").append(HIDDEN_INSIGHT_COL).append(",")
-				.append(QUESTION_PKQL_COL).append(") VALUES ('")
+				.append(CACHEABLE_COL).append(",").append(QUESTION_PKQL_COL).append(") VALUES ('")
 				.append(insightId).append("', ").append("'").append(insightName).append("', ")
-				.append("'").append(layout).append("', ").append(hidden).append(", ");
+				.append("'").append(layout).append("', ").append(hidden).append(", true, ");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
 		insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
