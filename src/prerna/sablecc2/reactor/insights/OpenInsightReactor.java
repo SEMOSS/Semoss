@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.hadoop.hdfs.server.datanode.ShortCircuitRegistry.NewShmInfo;
 import org.apache.log4j.Logger;
 
 import com.google.gson.JsonSyntaxException;
@@ -127,6 +128,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		// yay... not legacy
+		boolean cacheable = newInsight.isCacheable();
 		boolean isParam = params != null || PixelUtility.hasParam(newInsight.getPixelRecipe());
 		boolean isDashoard = PixelUtility.isDashboard(newInsight.getPixelRecipe());
 		
@@ -134,7 +136,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// do we have a cached insight we can use
 		boolean hasCache = false;
 		Insight cachedInsight = null;
-		if(!isParam && !isDashoard) {
+		if(cacheable && !isParam && !isDashoard) {
 			try {
 				cachedInsight = getCachedInsight(newInsight.getEngineId(), newInsight.getEngineName(), newInsight.getRdbmsId());
 				if(cachedInsight != null) {
@@ -159,13 +161,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// get the insight output
 		PixelRunner runner = null;
 		NounMetadata additionalMeta = null;
-		if(hasCache && cachedInsight == null) {
+		if(cacheable && hasCache && cachedInsight == null) {
 			// this means we have a cache
 			// but there was an error with it
 			InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId);
 			additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.", 
 					PixelDataType.CONST_STRING, PixelOperationType.WARNING);
-		} else if(hasCache) {
+		} else if(cacheable && hasCache) {
 			try {
 				runner = getCachedInsightData(cachedInsight);
 			} catch (IOException | JsonSyntaxException e) {
@@ -182,7 +184,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			logger.info("Done running insight");
 			logger.info("Painting results");
 //			now I want to cache the insight
-			if(!isParam && !isDashoard) {
+			if(cacheable && !isParam && !isDashoard) {
 				try {
 					InsightCacheUtility.cacheInsight(newInsight);
 				} catch (IOException e) {
