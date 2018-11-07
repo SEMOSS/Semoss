@@ -13,6 +13,8 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 
 	private static int ifMethodCount = 0;
 
+	private boolean caseEvaluation = false;
+	
 	@Override
 	public NounMetadata execute()
 	{
@@ -20,9 +22,16 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		// we already push which result is the true/false case
 		// so all we need to do is grab the only thing in the curRow
 		// and push it up
-		NounMetadata trueNoun = this.curRow.getNoun(1);
+		NounMetadata noun = null;
+		if(this.curRow.size() == 1) {
+			// we dont have anything else in the cur row except
+			// the boolean condition
+			noun = new NounMetadata("no value", PixelDataType.CONST_STRING);
+		} else {
+			noun = this.curRow.getNoun(1);
+		}
 		// evaluate the true statement
-		return evaluateStatement(trueNoun);
+		return evaluateStatement(noun);
 	}
 	
 	public boolean getBooleanEvaluation() {
@@ -31,24 +40,23 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 		
 		// the input can be any reactor or a filter within the if statment
 		// grab it and evalute based on its type
-		boolean caseEvaluation = false;
 		
 		if(ifEvaluatorType == PixelDataType.BOOLEAN) {
-			caseEvaluation = (boolean) ifEvaluatorObject;
+			this.caseEvaluation = (boolean) ifEvaluatorObject;
 		} else if(ifEvaluatorType == PixelDataType.COLUMN) {
-			caseEvaluation = (boolean) this.planner.getVariableValue(ifEvaluatorObject.toString()).getValue();
+			this.caseEvaluation = (boolean) this.planner.getVariableValue(ifEvaluatorObject.toString()).getValue();
 		} else if(ifEvaluatorType == PixelDataType.FILTER) {
 			// we have a filter object
 			// use its evaluate method
 			Filter filter = (Filter) ifEvaluatorObject;
-			caseEvaluation = filter.evaluate(this.planner);
+			this.caseEvaluation = filter.evaluate(this.planner);
 		} else if(ifEvaluatorType == PixelDataType.LAMBDA) {
 			// we have a full reactor
 			// required that this returns a boolean
 			AbstractReactor ifEvaluatorReactor = null;
 			try {
 				ifEvaluatorReactor = (AbstractReactor) ifEvaluatorObject;
-				caseEvaluation = (boolean) ifEvaluatorReactor.execute().getValue();
+				this.caseEvaluation = (boolean) ifEvaluatorReactor.execute().getValue();
 			} catch(ClassCastException e) {
 				if(ifEvaluatorReactor != null) {
 					throw new IllegalArgumentException("If statement condition (" + ifEvaluatorReactor.getPixel()[1] + ") could not be evaluated");
@@ -57,7 +65,7 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 				}
 			}
 		}
-		return caseEvaluation;
+		return this.caseEvaluation;
 	}
 	
 	private NounMetadata evaluateStatement(NounMetadata trueNoun) {
