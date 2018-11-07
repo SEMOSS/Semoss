@@ -523,30 +523,17 @@ public class ImportUtility {
 		Set<String[]> relations = qs.getRelations();
 		for(String[] rel : relations) {
 			String up = rel[0];
+			if(aliasMap.containsKey(up)) {
+				up = aliasMap.get(up);
+			}
 			String joinType = rel[1];
 			String down = rel[2];
+			if(aliasMap.containsKey(down)) {
+				down = aliasMap.get(down);
+			}
 			metaData.addRelationship(up, down, joinType);
 			addedRels.add(up + down);
 		}
-//		Map<String, Map<String, List>> relationships = qs.getRelations();
-//		for(String upVertex : relationships.keySet()) {
-//			Map<String, List> joinTypeMap = relationships.get(upVertex);
-//			for(String joinType : joinTypeMap.keySet()) {
-//				List<String> downstreamVertices = joinTypeMap.get(joinType);
-//				for(String downVertex : downstreamVertices) {
-//					String up = upVertex;
-//					if(aliasMap.containsKey(upVertex)) {
-//						up = aliasMap.get(upVertex);
-//					}
-//					String down = downVertex;
-//					if(aliasMap.containsKey(downVertex)) {
-//						down = aliasMap.get(downVertex);
-//					}
-//					metaData.addRelationship(up, down, joinType);
-//					addedRels.add(up + down);
-//				}
-//			}
-//		}
 		
 		// also need to account for concept -> properties
 		// we already have this in the edge hash
