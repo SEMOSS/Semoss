@@ -23,6 +23,7 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 public class RDataTable extends AbstractTableDataFrame {
@@ -31,20 +32,16 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	private RFrameBuilder builder;
 
-	public RDataTable() {
-		this(null);
+	public RDataTable(AbstractRJavaTranslator rJavaTranslator) {
+		this.builder = new RFrameBuilder(rJavaTranslator);
 	}
 	
-	public RDataTable(String rTableVarName) {
+	public RDataTable(AbstractRJavaTranslator rJavaTranslator, String rTableVarName) {
 		if(rTableVarName != null && !rTableVarName.isEmpty()) {
-			this.builder = new RFrameBuilder(rTableVarName);
+			this.builder = new RFrameBuilder(rJavaTranslator, rTableVarName);
 		} else {
-			this.builder = new RFrameBuilder();
+			this.builder = new RFrameBuilder(rJavaTranslator);
 		}
-	}
-	
-	public RDataTable(String rTableVarName, RConnection retCon, String port) {
-		this.builder = new RFrameBuilder(rTableVarName, retCon, port);
 	}
 	
 	public RFrameBuilder getBuilder() {

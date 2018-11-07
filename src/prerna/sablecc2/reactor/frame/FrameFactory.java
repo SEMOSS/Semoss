@@ -1,22 +1,35 @@
 package prerna.sablecc2.reactor.frame;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.om.Insight;
 
 public class FrameFactory {
 
-	public static ITableDataFrame getFrame(String frameType, String alias) {
+	private static final String CLASS_NAME = FrameFactory.class.getName();
+	
+	public static ITableDataFrame getFrame(Insight insight, String frameType, String alias) {
+		Logger logger = null;
 		switch (frameType.toUpperCase()) {
 		case "GRID": { return new H2Frame(alias); }
 		
 		case "GRAPH": { return new TinkerFrame(); } 
 		
-		case "RFRAME": { return new RDataTable(alias); }
-		case "R": { return new RDataTable(alias); }
+		case "RFRAME": { 
+			logger = LogManager.getLogger(CLASS_NAME);
+			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
+		}
+		case "R": { 
+			logger = LogManager.getLogger(CLASS_NAME);
+			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
+		}
 		
 		case "PYFRAME": { return new PandasFrame(alias); }
 		case "PANDAS": { return new PandasFrame(alias); }
