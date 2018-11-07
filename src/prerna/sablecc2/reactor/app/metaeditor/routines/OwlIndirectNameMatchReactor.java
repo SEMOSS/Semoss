@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.app.metaeditor.routines;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
@@ -11,11 +10,9 @@ import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Utility;
 
@@ -96,15 +93,7 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 		String[] colNames = new String[]{"sourceCol", "targetCol", "distance", "sourceTable", "targetTable"};
 		String[] colTypes = new String[]{"character", "character", "numeric", "character", "character"};
 
-		VarStore vars = this.insight.getVarStore();
-		RDataTable frame = null;
-		if (vars.get(IRJavaTranslator.R_CONN) != null && vars.get(IRJavaTranslator.R_PORT) != null) {
-			frame = new RDataTable(matchDataFrame, 
-					(RConnection) vars.get(IRJavaTranslator.R_CONN).getValue(), 
-					(String) vars.get(IRJavaTranslator.R_PORT).getValue());
-		} else {
-			frame = new RDataTable(matchDataFrame);
-		}
+		RDataTable frame = new RDataTable(this.insight.getRJavaTranslator(logger), matchDataFrame);
 		ImportUtility.parserRTableColumnsAndTypesToFlatTable(frame, colNames, colTypes, matchDataFrame);
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);		
 	

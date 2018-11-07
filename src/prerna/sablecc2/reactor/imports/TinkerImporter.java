@@ -23,7 +23,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
-public class TinkerImporter implements IImporter {
+public class TinkerImporter extends AbstractImporter {
 
 	private TinkerFrame dataframe;
 	private SelectQueryStruct qs;
