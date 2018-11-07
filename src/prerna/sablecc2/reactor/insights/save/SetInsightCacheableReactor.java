@@ -3,8 +3,11 @@ package prerna.sablecc2.reactor.insights.save;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -17,12 +20,16 @@ import prerna.util.Utility;
 
 public class SetInsightCacheableReactor extends AbstractInsightReactor {
 
+	private static final String CLASS_NAME = SetInsightCacheableReactor.class.getName();
+
 	public SetInsightCacheableReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), CACHEABLE};
 	}
 	
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
+
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		String existingId = this.keyValue.get(this.keysToGet[1]);
@@ -41,9 +48,15 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 			}
 		}
 		
+		logger.info("1) Updating insight in rdbms");
 		IEngine engine = Utility.getEngine(appId);
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		admin.updateInsightCache(existingId, cache);
+		logger.info("1) Done");
+
+		logger.info("2) Updating insight in index");
+		SecurityUpdateUtils.updateInsightCache(appId, existingId, cache);
+		logger.info("2) Done");
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("app_insight_id", existingId);
