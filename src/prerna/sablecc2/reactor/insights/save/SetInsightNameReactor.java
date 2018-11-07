@@ -40,10 +40,16 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		// need to know what we are updating
 		String existingId = getRdbmsId();
 		
-		// security
+		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
 			if(!SecurityQueryUtils.userCanEditInsight(this.insight.getUser(), appId, existingId)) {
-				throw new IllegalArgumentException("User does not have permission to edit this insight");
+				throw new IllegalArgumentException("App does not exist or user does not have permission to edit this insight");
+			}
+		} else {
+			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+			if(!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
+				throw new IllegalArgumentException("App " + appId + " does not exist");
 			}
 		}
 		
