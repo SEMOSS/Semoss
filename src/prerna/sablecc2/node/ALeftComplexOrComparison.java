@@ -6,28 +6,28 @@ import java.util.*;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AAndComparison extends PAndComparison
+public final class ALeftComplexOrComparison extends POrComparison
 {
-    private PBaseSimpleComparison _left_;
-    private TAndComparator _andComparator_;
+    private PTerm _left_;
+    private TOrComparator _orComparator_;
     private PBaseSimpleComparison _right_;
-    private final LinkedList<PRepeatingAndComparison> _moreRight_ = new LinkedList<PRepeatingAndComparison>();
+    private final LinkedList<PRepeatingOrComparison> _moreRight_ = new LinkedList<PRepeatingOrComparison>();
 
-    public AAndComparison()
+    public ALeftComplexOrComparison()
     {
         // Constructor
     }
 
-    public AAndComparison(
-        @SuppressWarnings("hiding") PBaseSimpleComparison _left_,
-        @SuppressWarnings("hiding") TAndComparator _andComparator_,
+    public ALeftComplexOrComparison(
+        @SuppressWarnings("hiding") PTerm _left_,
+        @SuppressWarnings("hiding") TOrComparator _orComparator_,
         @SuppressWarnings("hiding") PBaseSimpleComparison _right_,
         @SuppressWarnings("hiding") List<?> _moreRight_)
     {
         // Constructor
         setLeft(_left_);
 
-        setAndComparator(_andComparator_);
+        setOrComparator(_orComparator_);
 
         setRight(_right_);
 
@@ -38,9 +38,9 @@ public final class AAndComparison extends PAndComparison
     @Override
     public Object clone()
     {
-        return new AAndComparison(
+        return new ALeftComplexOrComparison(
             cloneNode(this._left_),
-            cloneNode(this._andComparator_),
+            cloneNode(this._orComparator_),
             cloneNode(this._right_),
             cloneList(this._moreRight_));
     }
@@ -48,15 +48,15 @@ public final class AAndComparison extends PAndComparison
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAAndComparison(this);
+        ((Analysis) sw).caseALeftComplexOrComparison(this);
     }
 
-    public PBaseSimpleComparison getLeft()
+    public PTerm getLeft()
     {
         return this._left_;
     }
 
-    public void setLeft(PBaseSimpleComparison node)
+    public void setLeft(PTerm node)
     {
         if(this._left_ != null)
         {
@@ -76,16 +76,16 @@ public final class AAndComparison extends PAndComparison
         this._left_ = node;
     }
 
-    public TAndComparator getAndComparator()
+    public TOrComparator getOrComparator()
     {
-        return this._andComparator_;
+        return this._orComparator_;
     }
 
-    public void setAndComparator(TAndComparator node)
+    public void setOrComparator(TOrComparator node)
     {
-        if(this._andComparator_ != null)
+        if(this._orComparator_ != null)
         {
-            this._andComparator_.parent(null);
+            this._orComparator_.parent(null);
         }
 
         if(node != null)
@@ -98,7 +98,7 @@ public final class AAndComparison extends PAndComparison
             node.parent(this);
         }
 
-        this._andComparator_ = node;
+        this._orComparator_ = node;
     }
 
     public PBaseSimpleComparison getRight()
@@ -126,14 +126,14 @@ public final class AAndComparison extends PAndComparison
         this._right_ = node;
     }
 
-    public LinkedList<PRepeatingAndComparison> getMoreRight()
+    public LinkedList<PRepeatingOrComparison> getMoreRight()
     {
         return this._moreRight_;
     }
 
     public void setMoreRight(List<?> list)
     {
-        for(PRepeatingAndComparison e : this._moreRight_)
+        for(PRepeatingOrComparison e : this._moreRight_)
         {
             e.parent(null);
         }
@@ -141,7 +141,7 @@ public final class AAndComparison extends PAndComparison
 
         for(Object obj_e : list)
         {
-            PRepeatingAndComparison e = (PRepeatingAndComparison) obj_e;
+            PRepeatingOrComparison e = (PRepeatingOrComparison) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
@@ -157,7 +157,7 @@ public final class AAndComparison extends PAndComparison
     {
         return ""
             + toString(this._left_)
-            + toString(this._andComparator_)
+            + toString(this._orComparator_)
             + toString(this._right_)
             + toString(this._moreRight_);
     }
@@ -172,9 +172,9 @@ public final class AAndComparison extends PAndComparison
             return;
         }
 
-        if(this._andComparator_ == child)
+        if(this._orComparator_ == child)
         {
-            this._andComparator_ = null;
+            this._orComparator_ = null;
             return;
         }
 
@@ -198,13 +198,13 @@ public final class AAndComparison extends PAndComparison
         // Replace child
         if(this._left_ == oldChild)
         {
-            setLeft((PBaseSimpleComparison) newChild);
+            setLeft((PTerm) newChild);
             return;
         }
 
-        if(this._andComparator_ == oldChild)
+        if(this._orComparator_ == oldChild)
         {
-            setAndComparator((TAndComparator) newChild);
+            setOrComparator((TOrComparator) newChild);
             return;
         }
 
@@ -214,13 +214,13 @@ public final class AAndComparison extends PAndComparison
             return;
         }
 
-        for(ListIterator<PRepeatingAndComparison> i = this._moreRight_.listIterator(); i.hasNext();)
+        for(ListIterator<PRepeatingOrComparison> i = this._moreRight_.listIterator(); i.hasNext();)
         {
             if(i.next() == oldChild)
             {
                 if(newChild != null)
                 {
-                    i.set((PRepeatingAndComparison) newChild);
+                    i.set((PRepeatingOrComparison) newChild);
                     newChild.parent(this);
                     oldChild.parent(null);
                     return;

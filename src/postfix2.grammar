@@ -235,10 +235,18 @@ Productions
 		
  comparison_group = l_par comparison_expr r_par;
  
- and_comparison = [left]:base_simple_comparison and_comparator [right]:base_simple_comparison [more_right]:repeating_and_comparison*;
+ and_comparison = {simple_case} [left]:term and_comparator [right]:term [more_right]:repeating_and_comparison*
+	| {left_complex} [left]:term and_comparator [right]:base_simple_comparison [more_right]:repeating_and_comparison*
+	| {right_complex} [left]:base_simple_comparison and_comparator [right]:term [more_right]:repeating_and_comparison*
+	| {both_complex} [left]:base_simple_comparison and_comparator [right]:base_simple_comparison [more_right]:repeating_and_comparison*
+	;
  repeating_and_comparison = and_comparator base_simple_comparison;
 
- or_comparison = [left]:base_simple_comparison or_comparator [right]:base_simple_comparison [more_right]:repeating_or_comparison*;
+ or_comparison = {simple_case} [left]:term or_comparator [right]:term [more_right]:repeating_or_comparison*
+	| {left_complex} [left]:term or_comparator [right]:base_simple_comparison [more_right]:repeating_or_comparison*
+	| {right_complex} [left]:base_simple_comparison or_comparator [right]:term [more_right]:repeating_or_comparison*
+	| {both_complex} [left]:base_simple_comparison or_comparator [right]:base_simple_comparison [more_right]:repeating_or_comparison*
+	;
  repeating_or_comparison = or_comparator base_simple_comparison;
 
  base_simple_comparison = [left]:base_expr comparator [right]:base_expr;
