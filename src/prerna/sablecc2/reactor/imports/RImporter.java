@@ -17,7 +17,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
-public class RImporter implements IImporter {
+public class RImporter extends AbstractImporter {
 
 	private RDataTable dataframe;
 	private SelectQueryStruct qs;

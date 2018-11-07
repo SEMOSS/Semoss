@@ -43,28 +43,35 @@ import prerna.ds.r.RIterator;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.rdf.util.AbstractQueryParser;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RNativeEngine extends AbstractEngine {
 
-	private static final Logger logger = LogManager.getLogger(RNativeEngine.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(RNativeEngine.class.getName());
+	
 	private String fileDB = null;
 
 	String rvarName = null;
 	String fakeHeader = null;
-	RDataTable dt = new RDataTable();
+	
+	// we use a dummy insight that stores this information
+	AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(new Insight(), LOGGER);
+	RDataTable dt = new RDataTable(rJavaTranslator);
 
 	@Override
 	public void openDB(String propFile)
 	{
 		if(propFile == null && prop == null){
-			logger.fatal("Cannot load this R Engine. No Property file found");
+			LOGGER.fatal("Cannot load this R Engine. No Property file found");
 		} else {
 			// will mostly be sent the connection string and I will connect here
 			// I need to see if the connection pool has been initiated
@@ -89,7 +96,7 @@ public class RNativeEngine extends AbstractEngine {
 			// need to account for concept being itself
 			if(concepts.size() > 2)
 			{
-				logger.fatal("RDBMS Engine suggests to use file, but there are more than one concepts i.e. this is not a flat file");
+				LOGGER.fatal("RDBMS Engine suggests to use file, but there are more than one concepts i.e. this is not a flat file");
 				return;
 			}
 
@@ -144,7 +151,7 @@ public class RNativeEngine extends AbstractEngine {
 
 			//rvarName = Utility.cleanString(fileDB, true);
 			//				builder.createTableViaIterator(rvarName, fit, conceptMetaMap);
-			dt = new RDataTable(rvarName);
+			dt = new RDataTable(rJavaTranslator, rvarName);
 			dt.addRowsViaIterator(fit, rvarName, conceptMetaMap);
 			fakeHeader = Utility.getInstanceName(fakeHeader);
 			dt.generateRowIdWithName();//fakeHeader);
@@ -223,8 +230,7 @@ public class RNativeEngine extends AbstractEngine {
 	}
 
 	public void deleteDB() {
-		logger.debug("Deleting RDBMS Engine: " + this.engineName);
-		// Close the Insights RDBMS connection, the actual connection, and delete the folders
+		LOGGER.debug("Deleting RDBMS Engine: " + this.engineName);
 		try {
 			closeDB();
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);
