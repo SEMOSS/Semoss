@@ -23,8 +23,8 @@ public class DeleteInsightCacheReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
+			if(!SecurityQueryUtils.userCanEditInsight(this.insight.getUser(), appId, rdbmsId)) {
+				throw new IllegalArgumentException("App does not exist or user does not have permission to edit this insight");
 			}
 		} else {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
