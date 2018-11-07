@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
@@ -28,8 +30,10 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class NativeFrameImporter implements IImporter {
+public class NativeFrameImporter extends AbstractImporter {
 
+	private static final String CLASS_NAME = NativeFrameImporter.class.getName();
+	
 	private NativeFrame dataframe;
 	private SelectQueryStruct qs;
 	
@@ -108,7 +112,7 @@ public class NativeFrameImporter implements IImporter {
 			throw exception;
 		}
 		
-		RDataTable rFrame = new RDataTable(Utility.getRandomString(8));
+		RDataTable rFrame = new RDataTable(this.in.getRJavaTranslator(LogManager.getLogger(CLASS_NAME)), Utility.getRandomString(8));
 		RImporter rImporter = new RImporter(rFrame, nativeQs, nativeFrameIt);
 		rImporter.insertData();
 		

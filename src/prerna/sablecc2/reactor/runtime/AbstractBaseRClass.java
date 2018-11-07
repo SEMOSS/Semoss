@@ -19,7 +19,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.ICache;
@@ -101,12 +100,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String[] colNames = this.rJavaTranslator.getColumns(frameName);
 		String[] colTypes = this.rJavaTranslator.getColumnTypes(frameName);
 
-		RDataTable newTable = null;
-		if (retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
-			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
-		} else {
-			newTable = new RDataTable(frameName);
-		}
+		RDataTable newTable = new RDataTable(this.rJavaTranslator, frameName);
 		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
 		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 		this.insight.setDataMaker(newTable);
@@ -282,19 +276,8 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 		// if there is a current r serve session
 		// use that for the frame so we have all the other variables
-		RDataTable table = null;
-		if (retrieveVariable(R_CONN) != null && retrieveVariable(R_PORT) != null) {
-			table = new RDataTable(rVarName, (RConnection) retrieveVariable(R_CONN), (String) retrieveVariable(R_PORT));
-		} else {
-			// if we dont have a current r session
-			// but when we create the table it makes one
-			// store those variables so we end up using that
-			table = new RDataTable(rVarName);
-			if (table.getConnection() != null && table.getPort() != null) {
-				storeVariable(R_CONN, new NounMetadata(table.getConnection(), PixelDataType.R_CONNECTION));
-				storeVariable(R_PORT, new NounMetadata(table.getPort(), PixelDataType.CONST_STRING));
-			}
-		}
+		RDataTable table = new RDataTable(this.rJavaTranslator, rVarName);
+
 		// if currently no frame
 		// return empty one
 		if(dataframe == null) {

@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -19,10 +18,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
@@ -154,19 +151,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		} else {
 			// we are not running semantic blending; we are running the widget
 			// need to make a new r table to store this info so we can later query it
-			RDataTable resultsTable = null;
-			if (retrieveVariable(IRJavaTranslator.R_CONN) != null && retrieveVariable(IRJavaTranslator.R_PORT) != null) {
-				resultsTable = new RDataTable(df2, (RConnection) retrieveVariable(IRJavaTranslator.R_CONN), (String) retrieveVariable(IRJavaTranslator.R_PORT));
-			} else {
-				// if we dont have a current r session
-				// but when we create the table it makes one
-				// store those variables so we end up using that
-				resultsTable = new RDataTable(df2);
-				if (resultsTable.getConnection() != null && resultsTable.getPort() != null) {
-					storeVariable(IRJavaTranslator.R_CONN, new NounMetadata(resultsTable.getConnection(), PixelDataType.R_CONNECTION));
-					storeVariable(IRJavaTranslator.R_PORT, new NounMetadata(resultsTable.getPort(), PixelDataType.CONST_STRING));
-				}
-			}
+			RDataTable resultsTable = new RDataTable(this.insight.getRJavaTranslator(logger), df2);
 			// create the new frame meta
 			OwlTemporalEngineMeta metaData = resultsTable.getMetaData();
 			metaData.addVertex(df2);
