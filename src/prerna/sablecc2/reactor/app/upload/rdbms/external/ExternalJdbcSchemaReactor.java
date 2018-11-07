@@ -129,7 +129,11 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				List<String> primaryKeys = new ArrayList<String>();
 				ResultSet keys = null;
 				try {
-					keys = meta.getPrimaryKeys(null, null, tableOrView);
+					if(driver.equals(RdbmsConnectionHelper.H2_DRIVER)) {
+						keys = meta.getPrimaryKeys(null, null, tableOrView);
+					} else {
+						keys = meta.getPrimaryKeys(schema, null, tableOrView);
+					}
 					while(keys.next()) {
 						primaryKeys.add(keys.getString("column_name"));
 					}
@@ -143,13 +147,19 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				List<String> columnTypes = new ArrayList<String>();
 				List<Boolean> isPrimKeys = new ArrayList<Boolean>();
 
+				ResultSet columnsRs = null;
 				try {
 					logger.info("....Processing columns");
-					keys = meta.getColumns(null, null, tableOrView, null);
-					while (keys.next()) {
-						String cName = keys.getString("column_name");
+					if(driver.equals(RdbmsConnectionHelper.H2_DRIVER)) {
+						columnsRs = meta.getColumns(null, null, tableOrView, null);
+					} else {
+						columnsRs = meta.getColumns(schema, null, tableOrView, null);
+					}
+					
+					while (columnsRs.next()) {
+						String cName = columnsRs.getString("column_name");
 						columnNames.add(cName);
-						columnTypes.add(keys.getString("type_name"));
+						columnTypes.add(columnsRs.getString("type_name"));
 						if(primaryKeys.contains(cName)) {
 							isPrimKeys.add(true);
 						} else {
@@ -165,19 +175,24 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				} catch (SQLException e) {
 					e.printStackTrace();
 				} finally {
-					closeRs(keys);
+					closeRs(columnsRs);
 				}
 				databaseTables.add(tableDetails);
 
 				// we are now done with the table info
 				// let us go to the joins
 				// only do this for tables, not for views
+				ResultSet relRs = null;
 				if(isTable) {
 					try {
 						logger.info("....Processing table foreign keys");
-						keys = meta.getExportedKeys(null, null, tableOrView);
-						while (keys.next()) {
-							String otherTableName = keys.getString("FKTABLE_NAME");
+						if(driver.equals(RdbmsConnectionHelper.H2_DRIVER)) {
+							relRs = meta.getExportedKeys(null, null, tableOrView);
+						} else {
+							relRs = meta.getExportedKeys(schema, null, tableOrView);
+						}
+						while (relRs.next()) {
+							String otherTableName = relRs.getString("FKTABLE_NAME");
 							
 							// add filter check
 							if(hasFilters && !tableAndViewFilters.contains(otherTableName)) {
@@ -187,15 +202,15 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 							
 							Map<String, String> joinInfo = new HashMap<String, String>();
 							joinInfo.put(FROM_TABLE_KEY, tableOrView);
-							joinInfo.put(FROM_COL_KEY, keys.getString("PKCOLUMN_NAME"));
+							joinInfo.put(FROM_COL_KEY, relRs.getString("PKCOLUMN_NAME"));
 							joinInfo.put(TO_TABLE_KEY, otherTableName);
-							joinInfo.put(TO_COL_KEY, keys.getString("FKCOLUMN_NAME"));
+							joinInfo.put(TO_COL_KEY, relRs.getString("FKCOLUMN_NAME"));
 							databaseJoins.add(joinInfo);
 						}
 					} catch (SQLException e) {
 						e.printStackTrace();
 					} finally {
-						closeRs(keys);
+						closeRs(relRs);
 					}
 				}
 			}
