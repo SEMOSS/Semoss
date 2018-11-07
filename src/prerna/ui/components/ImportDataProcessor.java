@@ -43,6 +43,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
@@ -163,7 +164,7 @@ public class ImportDataProcessor {
 				}
 				DIHelper.getInstance().getCoreProp().setProperty(engineID + "_" + Constants.STORE, smssLocation);
 				Utility.synchronizeEngineMetadata(engineID); // replacing this for engine
-				SecurityUpdateUtils.addApp(engineID);
+				SecurityUpdateUtils.addApp(engineID, !AbstractSecurityUtils.securityEnabled());
 				
 				// only after all of this is good, should we add it to DIHelper
 				DIHelper.getInstance().setLocalProperty(engineID, engine);
