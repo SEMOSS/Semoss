@@ -38,8 +38,8 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
-				throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
+			if(!SecurityQueryUtils.userCanEditInsight(this.insight.getUser(), appId, existingId)) {
+				throw new IllegalArgumentException("App does not exist or user does not have permission to edit this insight");
 			}
 		} else {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
