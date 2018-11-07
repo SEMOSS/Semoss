@@ -2,8 +2,6 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Arrays;
 
-import org.rosuda.REngine.Rserve.RConnection;
-
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -58,12 +56,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		}
 		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
 		this.rJavaTranslator.executeEmptyR(script);
-		RDataTable newTable = null;
-		if (retrieveVariable(IRJavaTranslator.R_CONN) != null && retrieveVariable(IRJavaTranslator.R_PORT) != null) {
-			newTable = new RDataTable(frameName, (RConnection) retrieveVariable(IRJavaTranslator.R_CONN), (String) retrieveVariable(IRJavaTranslator.R_PORT));
-		} else {
-			newTable = new RDataTable(frameName);
-		}
+		RDataTable newTable = new RDataTable(this.insight.getRJavaTranslator(getLogger(this.getClass().getName())), frameName);
 		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
 		return newTable;
 	}

@@ -24,7 +24,7 @@ import prerna.sablecc2.om.Join;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
-public class H2Importer implements IImporter {
+public class H2Importer extends AbstractImporter {
 
 	private H2Frame dataframe;
 	private SelectQueryStruct qs;
