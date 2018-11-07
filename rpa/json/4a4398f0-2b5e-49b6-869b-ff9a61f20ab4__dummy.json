@@ -5,5 +5,6 @@
   "-jobClass": "RunPixelJob",
   "pixel": "## Dummy Job ##",
   "-active": false,
-  "-userAccess": "NATIVE:dummytoken"
+  "-userAccess": "NATIVE:dummytoken",
+  "hidden":true
 }
