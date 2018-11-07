@@ -169,8 +169,9 @@ import prerna.sablecc2.reactor.insights.dashboard.ReloadInsightReactor;
 import prerna.sablecc2.reactor.insights.save.DeleteInsightCacheReactor;
 import prerna.sablecc2.reactor.insights.save.DeleteInsightReactor;
 import prerna.sablecc2.reactor.insights.save.SaveInsightReactor;
+import prerna.sablecc2.reactor.insights.save.SetInsightCacheableReactor;
+import prerna.sablecc2.reactor.insights.save.SetInsightNameReactor;
 import prerna.sablecc2.reactor.insights.save.UpdateInsightImageReactor;
-import prerna.sablecc2.reactor.insights.save.UpdateInsightNameReactor;
 import prerna.sablecc2.reactor.insights.save.UpdateInsightReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
@@ -703,8 +704,9 @@ public class ReactorFactory {
 		// Save Reactors
 		reactorHash.put("SaveInsight", SaveInsightReactor.class);
 		reactorHash.put("UpdateInsight", UpdateInsightReactor.class);
-		reactorHash.put("UpdateInsightName", UpdateInsightNameReactor.class);
 		reactorHash.put("DeleteInsight", DeleteInsightReactor.class);
+		reactorHash.put("SetInsightName", SetInsightNameReactor.class);
+		reactorHash.put("SetInsightCacheable", SetInsightCacheableReactor.class);
 
 		// Dashboard Reactors
 		reactorHash.put("DashboardInsightConfig", DashboardInsightConfigReactor.class);

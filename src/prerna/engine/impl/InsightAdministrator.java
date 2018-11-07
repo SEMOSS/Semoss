@@ -135,6 +135,22 @@ public class InsightAdministrator {
 		this.insightEngine.commit();
 	}
 	
+
+	public void updateInsightCache(String existingRdbmsId, boolean parseBoolean) {
+		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
+		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
+				.append(CACHEABLE_COL).append(" = ").append(parseBoolean)
+				.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
+	
+		// now run the query and commit
+		try {
+			this.insightEngine.insertData(updateQuery.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		this.insightEngine.commit();
+	}
+	
 	/**
 	 * Drop specific insights from the insight
 	 * @param insightIDs

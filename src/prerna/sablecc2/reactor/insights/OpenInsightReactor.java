@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.apache.hadoop.hdfs.server.datanode.ShortCircuitRegistry.NewShmInfo;
 import org.apache.log4j.Logger;
 
 import com.google.gson.JsonSyntaxException;
@@ -45,7 +44,12 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public OpenInsightReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.ADDITIONAL_PIXELS.getKey()};
+		this.keysToGet = new String[]{
+				ReactorKeysEnum.APP.getKey(), 
+				ReactorKeysEnum.ID.getKey(), 
+				ReactorKeysEnum.PARAM_KEY.getKey(), 
+				ReactorKeysEnum.ADDITIONAL_PIXELS.getKey(),
+				CACHEABLE};
 	}
 
 	@Override
@@ -74,7 +78,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		Object params = getExecutionParams();
 		List<String> additionalPixels = getAdditionalPixels();
-
+		
 		// get the engine so i can get the new insight
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
@@ -128,9 +132,16 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 		
 		// yay... not legacy
-		boolean cacheable = newInsight.isCacheable();
-		boolean isParam = params != null || PixelUtility.hasParam(newInsight.getPixelRecipe());
-		boolean isDashoard = PixelUtility.isDashboard(newInsight.getPixelRecipe());
+		
+		Boolean cacheable = getUserDefinedCacheable();
+		if(cacheable == null) {
+			cacheable = this.insight.isCacheable();
+		}
+		// TODO: i am cheating here
+		// we do not cache dashboards or param insights currently
+		// so adding the cacheable check before hand
+		boolean isParam = cacheable && (params != null || PixelUtility.hasParam(newInsight.getPixelRecipe()));
+		boolean isDashoard = cacheable && PixelUtility.isDashboard(newInsight.getPixelRecipe());
 		
 		// if not param or dashboard, we can try to load a cache
 		// do we have a cached insight we can use
