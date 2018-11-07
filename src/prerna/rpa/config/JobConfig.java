@@ -127,7 +127,11 @@ public abstract class JobConfig {
 	}
 	
 	public boolean getTriggerOnLoad() throws ParseConfigException {
-		return 	jobDefinition.get(JobConfigKeys.TRIGGER_ON_LOAD).getAsBoolean();
+		boolean triggerOnLoad = false;
+		if (jobDefinition.get(JobConfigKeys.TRIGGER_ON_LOAD) != null) {
+			triggerOnLoad = jobDefinition.get(JobConfigKeys.TRIGGER_ON_LOAD).getAsBoolean();
+		}
+		return triggerOnLoad;
 
 	}
 
