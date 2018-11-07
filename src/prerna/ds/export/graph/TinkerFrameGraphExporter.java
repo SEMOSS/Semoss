@@ -134,6 +134,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 				
 				List<SimpleQueryFilter> colFilters = filterGrs.getAllSimpleQueryFiltersContainingColumn(v);
 				if(colFilters.isEmpty()) {
+					unionT.add(traversal);
 					continue;
 				}
 				for(SimpleQueryFilter filter : colFilters) {
