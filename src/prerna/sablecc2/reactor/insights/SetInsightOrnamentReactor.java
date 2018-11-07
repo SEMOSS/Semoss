@@ -11,7 +11,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class SetInsightOrnamentReactor extends AbstractReactor {
 
 	/**
-	 * Used to set insight level ornaments - e.g. client mode for the insight (no "booger" on side menu)
+	 * Used to set insight level ornaments - e.g. client mode for the insight (no "bogger" on side menu)
 	 */
 	
 	public SetInsightOrnamentReactor() {
