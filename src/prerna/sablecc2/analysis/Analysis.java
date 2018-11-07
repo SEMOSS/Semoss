@@ -94,9 +94,15 @@ public interface Analysis extends Switch
     void caseABasicAndComparisonTerm(ABasicAndComparisonTerm node);
     void caseABasicOrComparisonTerm(ABasicOrComparisonTerm node);
     void caseAComparisonGroup(AComparisonGroup node);
-    void caseAAndComparison(AAndComparison node);
+    void caseASimpleCaseAndComparison(ASimpleCaseAndComparison node);
+    void caseALeftComplexAndComparison(ALeftComplexAndComparison node);
+    void caseARightComplexAndComparison(ARightComplexAndComparison node);
+    void caseABothComplexAndComparison(ABothComplexAndComparison node);
     void caseARepeatingAndComparison(ARepeatingAndComparison node);
-    void caseAOrComparison(AOrComparison node);
+    void caseASimpleCaseOrComparison(ASimpleCaseOrComparison node);
+    void caseALeftComplexOrComparison(ALeftComplexOrComparison node);
+    void caseARightComplexOrComparison(ARightComplexOrComparison node);
+    void caseABothComplexOrComparison(ABothComplexOrComparison node);
     void caseARepeatingOrComparison(ARepeatingOrComparison node);
     void caseABaseSimpleComparison(ABaseSimpleComparison node);
     void caseAJavaOp(AJavaOp node);
