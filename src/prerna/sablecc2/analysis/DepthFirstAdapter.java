@@ -2084,20 +2084,20 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAComparisonGroup(node);
     }
 
-    public void inAAndComparison(AAndComparison node)
+    public void inASimpleCaseAndComparison(ASimpleCaseAndComparison node)
     {
         defaultIn(node);
     }
 
-    public void outAAndComparison(AAndComparison node)
+    public void outASimpleCaseAndComparison(ASimpleCaseAndComparison node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAAndComparison(AAndComparison node)
+    public void caseASimpleCaseAndComparison(ASimpleCaseAndComparison node)
     {
-        inAAndComparison(node);
+        inASimpleCaseAndComparison(node);
         if(node.getLeft() != null)
         {
             node.getLeft().apply(this);
@@ -2117,7 +2117,115 @@ public class DepthFirstAdapter extends AnalysisAdapter
                 e.apply(this);
             }
         }
-        outAAndComparison(node);
+        outASimpleCaseAndComparison(node);
+    }
+
+    public void inALeftComplexAndComparison(ALeftComplexAndComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outALeftComplexAndComparison(ALeftComplexAndComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseALeftComplexAndComparison(ALeftComplexAndComparison node)
+    {
+        inALeftComplexAndComparison(node);
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        if(node.getAndComparator() != null)
+        {
+            node.getAndComparator().apply(this);
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        {
+            List<PRepeatingAndComparison> copy = new ArrayList<PRepeatingAndComparison>(node.getMoreRight());
+            for(PRepeatingAndComparison e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outALeftComplexAndComparison(node);
+    }
+
+    public void inARightComplexAndComparison(ARightComplexAndComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARightComplexAndComparison(ARightComplexAndComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARightComplexAndComparison(ARightComplexAndComparison node)
+    {
+        inARightComplexAndComparison(node);
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        if(node.getAndComparator() != null)
+        {
+            node.getAndComparator().apply(this);
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        {
+            List<PRepeatingAndComparison> copy = new ArrayList<PRepeatingAndComparison>(node.getMoreRight());
+            for(PRepeatingAndComparison e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outARightComplexAndComparison(node);
+    }
+
+    public void inABothComplexAndComparison(ABothComplexAndComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABothComplexAndComparison(ABothComplexAndComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABothComplexAndComparison(ABothComplexAndComparison node)
+    {
+        inABothComplexAndComparison(node);
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        if(node.getAndComparator() != null)
+        {
+            node.getAndComparator().apply(this);
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        {
+            List<PRepeatingAndComparison> copy = new ArrayList<PRepeatingAndComparison>(node.getMoreRight());
+            for(PRepeatingAndComparison e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outABothComplexAndComparison(node);
     }
 
     public void inARepeatingAndComparison(ARepeatingAndComparison node)
@@ -2145,20 +2253,20 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outARepeatingAndComparison(node);
     }
 
-    public void inAOrComparison(AOrComparison node)
+    public void inASimpleCaseOrComparison(ASimpleCaseOrComparison node)
     {
         defaultIn(node);
     }
 
-    public void outAOrComparison(AOrComparison node)
+    public void outASimpleCaseOrComparison(ASimpleCaseOrComparison node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAOrComparison(AOrComparison node)
+    public void caseASimpleCaseOrComparison(ASimpleCaseOrComparison node)
     {
-        inAOrComparison(node);
+        inASimpleCaseOrComparison(node);
         if(node.getLeft() != null)
         {
             node.getLeft().apply(this);
@@ -2178,7 +2286,115 @@ public class DepthFirstAdapter extends AnalysisAdapter
                 e.apply(this);
             }
         }
-        outAOrComparison(node);
+        outASimpleCaseOrComparison(node);
+    }
+
+    public void inALeftComplexOrComparison(ALeftComplexOrComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outALeftComplexOrComparison(ALeftComplexOrComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseALeftComplexOrComparison(ALeftComplexOrComparison node)
+    {
+        inALeftComplexOrComparison(node);
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        if(node.getOrComparator() != null)
+        {
+            node.getOrComparator().apply(this);
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        {
+            List<PRepeatingOrComparison> copy = new ArrayList<PRepeatingOrComparison>(node.getMoreRight());
+            for(PRepeatingOrComparison e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outALeftComplexOrComparison(node);
+    }
+
+    public void inARightComplexOrComparison(ARightComplexOrComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outARightComplexOrComparison(ARightComplexOrComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseARightComplexOrComparison(ARightComplexOrComparison node)
+    {
+        inARightComplexOrComparison(node);
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        if(node.getOrComparator() != null)
+        {
+            node.getOrComparator().apply(this);
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        {
+            List<PRepeatingOrComparison> copy = new ArrayList<PRepeatingOrComparison>(node.getMoreRight());
+            for(PRepeatingOrComparison e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outARightComplexOrComparison(node);
+    }
+
+    public void inABothComplexOrComparison(ABothComplexOrComparison node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABothComplexOrComparison(ABothComplexOrComparison node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABothComplexOrComparison(ABothComplexOrComparison node)
+    {
+        inABothComplexOrComparison(node);
+        if(node.getLeft() != null)
+        {
+            node.getLeft().apply(this);
+        }
+        if(node.getOrComparator() != null)
+        {
+            node.getOrComparator().apply(this);
+        }
+        if(node.getRight() != null)
+        {
+            node.getRight().apply(this);
+        }
+        {
+            List<PRepeatingOrComparison> copy = new ArrayList<PRepeatingOrComparison>(node.getMoreRight());
+            for(PRepeatingOrComparison e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outABothComplexOrComparison(node);
     }
 
     public void inARepeatingOrComparison(ARepeatingOrComparison node)

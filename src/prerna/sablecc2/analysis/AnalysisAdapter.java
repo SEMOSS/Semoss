@@ -567,7 +567,25 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAAndComparison(AAndComparison node)
+    public void caseASimpleCaseAndComparison(ASimpleCaseAndComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseALeftComplexAndComparison(ALeftComplexAndComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARightComplexAndComparison(ARightComplexAndComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABothComplexAndComparison(ABothComplexAndComparison node)
     {
         defaultCase(node);
     }
@@ -579,7 +597,25 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAOrComparison(AOrComparison node)
+    public void caseASimpleCaseOrComparison(ASimpleCaseOrComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseALeftComplexOrComparison(ALeftComplexOrComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseARightComplexOrComparison(ARightComplexOrComparison node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABothComplexOrComparison(ABothComplexOrComparison node)
     {
         defaultCase(node);
     }
