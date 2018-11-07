@@ -455,21 +455,36 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
-	 * 
- 	 * @param engineId
+	 * Update the insight name
+	 * @param engineId
 	 * @param insightId
 	 * @param insightName
-	 * @param global
-	 * @param exCount
-	 * @param lastModified
-	 * @param layout
 	 */
 	public static void updateInsightName(String engineId, String insightId, String insightName) {
 		LocalDateTime now = LocalDateTime.now();
 		String nowString = java.sql.Timestamp.valueOf(now).toString();
 		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', LASTMODIFIEDON='" + nowString + "' "
+				+ "WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Update if an insight is cacheable
+	 * @param appId
+	 * @param existingId
+	 * @param cache
+	 */
+	public static void updateInsightCache(String engineId, String insightId, boolean cache) {
+		LocalDateTime now = LocalDateTime.now();
+		String nowString = java.sql.Timestamp.valueOf(now).toString();
+		String query = "UPDATE INSIGHT SET CACHEABLE=" + cache + ", LASTMODIFIEDON='" + nowString + "' "
 				+ "WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
 		try {
 			securityDb.insertData(query);
@@ -1077,4 +1092,5 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
 	}
+
 }
