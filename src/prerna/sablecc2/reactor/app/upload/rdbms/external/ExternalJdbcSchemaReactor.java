@@ -72,7 +72,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		
 		ResultSet tablesRs;
 		try {
-			if(driver.equals(RdbmsConnectionHelper.H2_DRIVER)) {
+			if(driver.equals(RdbmsConnectionHelper.H2_DRIVER) || driver.equals(RdbmsConnectionHelper.TERADATA_DRIVER)) {
 				tablesRs = meta.getTables(null, null, null, new String[] { "TABLE", "VIEW" });
 			} else {
 				tablesRs = meta.getTables(schema, null, null, new String[] { "TABLE", "VIEW" });
@@ -129,7 +129,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				List<String> primaryKeys = new ArrayList<String>();
 				ResultSet keys = null;
 				try {
-					if(driver.equals(RdbmsConnectionHelper.H2_DRIVER)) {
+					if(driver.equals(RdbmsConnectionHelper.H2_DRIVER) || driver.equals(RdbmsConnectionHelper.TERADATA_DRIVER)) {
 						keys = meta.getPrimaryKeys(null, null, tableOrView);
 					} else {
 						keys = meta.getPrimaryKeys(schema, null, tableOrView);
@@ -150,7 +150,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				ResultSet columnsRs = null;
 				try {
 					logger.info("....Processing columns");
-					if(driver.equals(RdbmsConnectionHelper.H2_DRIVER)) {
+					if(driver.equals(RdbmsConnectionHelper.H2_DRIVER) || driver.equals(RdbmsConnectionHelper.TERADATA_DRIVER)) {
 						columnsRs = meta.getColumns(null, null, tableOrView, null);
 					} else {
 						columnsRs = meta.getColumns(schema, null, tableOrView, null);
@@ -186,7 +186,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				if(isTable) {
 					try {
 						logger.info("....Processing table foreign keys");
-						if(driver.equals(RdbmsConnectionHelper.H2_DRIVER)) {
+						if(driver.equals(RdbmsConnectionHelper.H2_DRIVER) || driver.equals(RdbmsConnectionHelper.TERADATA_DRIVER)) {
 							relRs = meta.getExportedKeys(null, null, tableOrView);
 						} else {
 							relRs = meta.getExportedKeys(schema, null, tableOrView);
