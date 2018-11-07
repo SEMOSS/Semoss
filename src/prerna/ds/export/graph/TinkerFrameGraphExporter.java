@@ -129,9 +129,17 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 			hasFilter = true;
 			// we have filters to consider
 			List<String> vertexNames = this.meta.getFrameColumnNames();
+			// this is because we can have 2 meta that point
+			// to the same physical
+			Set<String> addedPhysical = new HashSet<String>();
 			for(String v : vertexNames) {
-				GraphTraversal traversal = __.has(TinkerFrame.TINKER_TYPE, getNodePhysicalType(v));
-				
+				String physicalNodeType = getNodePhysicalType(v);
+				if(addedPhysical.contains(physicalNodeType)) {
+					continue;
+				}
+				addedPhysical.add(physicalNodeType);
+
+				GraphTraversal traversal = __.has(TinkerFrame.TINKER_TYPE, physicalNodeType);
 				List<SimpleQueryFilter> colFilters = filterGrs.getAllSimpleQueryFiltersContainingColumn(v);
 				if(colFilters.isEmpty()) {
 					unionT.add(traversal);
