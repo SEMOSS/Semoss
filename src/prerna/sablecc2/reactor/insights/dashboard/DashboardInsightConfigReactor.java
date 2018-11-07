@@ -31,6 +31,8 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
+		boolean dashboardCacheable = this.insight.isCacheable();
+		
 		List<String> insightStrings = getInsights();
 		List<String> oldIds = getOldIds();
 		int numInsights = insightStrings.size();
@@ -47,8 +49,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			// keys below match those in solr
 			insightMap.put("app_id", insight.getEngineId());
 			insightMap.put("app_insight_id", insight.getRdbmsId());
-			insightMap.put("recipe", "ReloadInsight()");
-			
+			insightMap.put("recipe", "ReloadInsight(cache=[" + dashboardCacheable + "])");
 			// TODO: delete this once we update ids
 			insightMap.put("core_engine", insight.getEngineId());
 			insightMap.put("core_engine_id", insight.getRdbmsId());

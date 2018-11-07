@@ -34,6 +34,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	// used for saving a base insight
 	protected static final String IMAGE_NAME = "image.png";
 	protected static final String HIDDEN_KEY = "hidden";
+	protected static final String CACHEABLE = "cache";
 
 	protected String getApp() {
 		String appId = null;
@@ -113,6 +114,17 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		
 		// well, you are out of luck
 		return false;
+	}
+	
+	protected Boolean getUserDefinedCacheable() {
+		// see if it was passed directly in with the lower case key ornaments
+		GenRowStruct genericIdGrs = this.store.getNoun(CACHEABLE);
+		if(genericIdGrs != null && !genericIdGrs.isEmpty()) {
+			return (boolean) genericIdGrs.get(0);
+		}
+		
+		// well, you are out of luck
+		return null;
 	}
 	
 	protected String getUrl() {

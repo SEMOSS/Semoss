@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
@@ -23,11 +24,11 @@ import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 
-public class UpdateInsightNameReactor extends AbstractInsightReactor {
+public class SetInsightNameReactor extends AbstractInsightReactor {
 
-	private static final String CLASS_NAME = UpdateInsightNameReactor.class.getName();
+	private static final String CLASS_NAME = SetInsightNameReactor.class.getName();
 
-	public UpdateInsightNameReactor() {
+	public SetInsightNameReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.ID.getKey()};
 	}
 
@@ -75,6 +76,8 @@ public class UpdateInsightNameReactor extends AbstractInsightReactor {
 		updateRecipeFile(logger, engine.getEngineId(), engine.getEngineName(), existingId, insightName);
 		logger.info("3) Done");
 
+		ClusterUtil.reactorPushApp(appId);
+		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", existingId);
