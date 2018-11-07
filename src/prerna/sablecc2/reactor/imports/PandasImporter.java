@@ -10,7 +10,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.Join;
 
-public class PandasImporter implements IImporter {
+public class PandasImporter extends AbstractImporter {
 
 	private PandasFrame dataframe;
 	private SelectQueryStruct qs;

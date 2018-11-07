@@ -31,16 +31,17 @@ public abstract class AbstractReactor implements IReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(AbstractReactor.class.getName());
 
-	public Insight insight = null;
+	protected Insight insight = null;
 	public PixelPlanner planner = null;
-	
+	public Vector<IReactor> childReactor = new Vector<IReactor>();
+
 	protected String operationName = null;
 	protected String signature = null;
 	protected String originalSignature = null;
 
 	protected String curNoun = null;
 	protected IReactor parentReactor = null;
-	public Vector<IReactor> childReactor = new Vector<IReactor>();
+	
 	protected NounStore store = null;
 	protected IReactor.TYPE type = IReactor.TYPE.FLATMAP;
 	protected IReactor.STATUS status = null;

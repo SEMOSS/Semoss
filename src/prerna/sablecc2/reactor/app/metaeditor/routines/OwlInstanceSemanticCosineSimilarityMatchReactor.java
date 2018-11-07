@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
@@ -15,11 +14,9 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Utility;
 
@@ -173,15 +170,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 		String[] colNames = rJavaTranslator.getColumns(matchDataFrame);
 		String[] colTypes = rJavaTranslator.getColumnTypes(matchDataFrame);
 		
-		VarStore vars = this.insight.getVarStore();
-		RDataTable frame = null;
-		if (vars.get(IRJavaTranslator.R_CONN) != null && vars.get(IRJavaTranslator.R_PORT) != null) {
-			frame = new RDataTable(matchDataFrame, 
-					(RConnection) vars.get(IRJavaTranslator.R_CONN).getValue(), 
-					(String) vars.get(IRJavaTranslator.R_PORT).getValue());
-		} else {
-			frame = new RDataTable(matchDataFrame);
-		}
+		RDataTable frame = new RDataTable(this.insight.getRJavaTranslator(logger), matchDataFrame);
 		ImportUtility.parserRTableColumnsAndTypesToFlatTable(frame, colNames, colTypes, matchDataFrame);
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);		
 	

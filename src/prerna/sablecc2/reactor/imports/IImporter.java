@@ -4,6 +4,7 @@ import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.om.Insight;
 import prerna.sablecc2.om.Join;
 
 public interface IImporter {
@@ -22,5 +23,11 @@ public interface IImporter {
 	 * Merge new data with existing frame data
 	 */
 	ITableDataFrame mergeData(List<Join> joins);
+
+	/**
+	 * Set the insight for the importer
+	 * @param in
+	 */
+	void setInsight(Insight in);
 	
 }
