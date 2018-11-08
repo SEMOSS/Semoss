@@ -132,6 +132,7 @@ import prerna.sablecc2.reactor.frame.filter.RemoveFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.ReplaceFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
+import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.py.PyInterpreter;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
@@ -953,9 +954,9 @@ public class ReactorFactory {
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
+		tinkerFrameHash.put("RemoveIntermediaryNode", RemoveIntermediaryNodeReactor.class);
 		tinkerFrameHash.put("ChangeGraphLayout", GraphLayoutReactor.class);
 		tinkerFrameHash.put("ClusterGraph", ClusterGraphReactor.class);
-		
 	}
 	
 	private static void populatePandasFrameHash(Map<String, Class> pandasFrameHash) {
