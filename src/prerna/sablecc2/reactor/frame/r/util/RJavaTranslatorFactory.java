@@ -72,8 +72,15 @@ public class RJavaTranslatorFactory {
 		final String basePackage = "prerna.sablecc2.reactor.frame.r.util.";
 		String className = null;
 		if(useJri) {
+			
 			className = basePackage + "RJavaJriTranslator";
-		} else {
+			
+		} else if (System.getenv("REMOTE_RSERVE").equalsIgnoreCase("true")) {
+			
+			className = basePackage + "RJavaRemoteRserveTranslator";
+			
+		} else{
+ 
 			className = basePackage + "RJavaRserveTranslator";
 		}
 
