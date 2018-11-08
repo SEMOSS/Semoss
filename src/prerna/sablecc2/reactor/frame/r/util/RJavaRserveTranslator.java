@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +109,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Object executeR(String rScript) {
 		try {
+			System.out.println("executeR: " + rScript);
 			return retCon.eval(rScript);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -118,6 +120,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void executeEmptyR(String rScript) {
 		try {
+			System.out.println("executeR: " + rScript);
 			retCon.voidEval(rScript);
 		} catch (RserveException e) {
 			e.printStackTrace();
@@ -243,8 +246,14 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
 		try {
+			double[] breaks;
 			Map<String, Object> histJ = (Map<String, Object>) (retCon.eval(script).asNativeJavaObject());
-			double[] breaks = (double[]) histJ.get("breaks");
+			if (histJ.get("breaks") instanceof int[]){
+				int[] breaksInt = (int[]) histJ.get("breaks");
+				breaks = Arrays.stream(breaksInt).asDoubleStream().toArray();
+			} else { 
+			breaks = (double[]) histJ.get("breaks");
+			}
 			int[] counts = (int[]) histJ.get("counts");
 			
 			Map<String, Object> retMap = new HashMap<String, Object>();
