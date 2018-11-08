@@ -626,6 +626,56 @@ public class OwlTemporalEngineMeta {
 		return relationships;
 	}
 	
+	/**
+	 * Get all upstream relationships to the node
+	 * This means the input node is the target
+	 * @param node
+	 * @return
+	 */
+	public List<String[]> getUpstreamRelationships(String node) {
+		String query = "select ?fromNode ?toNode ?rel where {"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + node + "> as ?toNode)"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
+				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
+				+ "}";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		List<String[]> relationships = new Vector<String[]>();
+		while(it.hasNext()) {
+			Object[] row = it.next().getValues();
+			relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
+		}
+		return relationships;
+	}
+	
+	/**
+	 * Get all downstream relationships to the node
+	 * This means the input node is the source
+	 * @param node
+	 * @return
+	 */
+	public List<String[]> getDownstreamRelationships(String node) {
+		String query = "select ?fromNode ?toNode ?rel where {"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + node + "> as ?fromNode)"
+				+ "{?fromNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?toNode <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <" + SEMOSS_RELATION_PREFIX + ">}"
+				+ "{?fromNode ?rel ?toNode}"
+				+ "filter(?rel != <" + SEMOSS_RELATION_PREFIX + ">)"
+				+ "}";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		List<String[]> relationships = new Vector<String[]>();
+		while(it.hasNext()) {
+			Object[] row = it.next().getValues();
+			relationships.add(new String[]{row[0].toString(), row[1].toString(), row[2].toString().split(":")[2]});
+		}
+		return relationships;
+	}
+	
 	public Map<String, SemossDataType> getHeaderToTypeMap() {
 		String query = "select distinct ?header ?datatype where {"
 				+ "{"
