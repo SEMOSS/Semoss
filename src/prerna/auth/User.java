@@ -4,13 +4,21 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+import org.rosuda.REngine.Rserve.RConnection;
+
 import prerna.om.AbstractValueObject;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 
 public class User extends AbstractValueObject {
 	
 	// name of this user in the SEMOSS system if there is one
 	
 	// need to have an access token store
+	private transient AbstractRJavaTranslator rJavaTranslator;
+	private RConnection rConn; 
+	
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
 	List<AuthProvider> loggedInProfiles = new ArrayList<AuthProvider>();
 	
@@ -75,4 +83,19 @@ public class User extends AbstractValueObject {
 	public boolean isLoggedIn() {
 		return !this.loggedInProfiles.isEmpty();
 	}
+
+	public AbstractRJavaTranslator getrJavaTranslator() {
+		return rJavaTranslator;
+	}
+
+	public void setrJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
+		this.rJavaTranslator = rJavaTranslator;
+	}
+	public RConnection getRConn() {
+		return rConn;
+	}
+
+	public void setRConn(RConnection rCon) {
+		this.rConn = rCon;
+	}	
 }
