@@ -132,35 +132,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAMainCommentRoutine(node);
     }
 
-    public void inAMandatoryScriptchain(AMandatoryScriptchain node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAMandatoryScriptchain(AMandatoryScriptchain node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAMandatoryScriptchain(AMandatoryScriptchain node)
-    {
-        inAMandatoryScriptchain(node);
-        {
-            List<POtherscript> copy = new ArrayList<POtherscript>(node.getOtherscript());
-            Collections.reverse(copy);
-            for(POtherscript e : copy)
-            {
-                e.apply(this);
-            }
-        }
-        if(node.getMasterExpr() != null)
-        {
-            node.getMasterExpr().apply(this);
-        }
-        outAMandatoryScriptchain(node);
-    }
-
     public void inAScript(AScript node)
     {
         defaultIn(node);
@@ -286,6 +257,152 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAAssignment(node);
     }
 
+    public void inAMandatoryScriptchain(AMandatoryScriptchain node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMandatoryScriptchain(AMandatoryScriptchain node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMandatoryScriptchain(AMandatoryScriptchain node)
+    {
+        inAMandatoryScriptchain(node);
+        {
+            List<POtherscript> copy = new ArrayList<POtherscript>(node.getOtherscript());
+            Collections.reverse(copy);
+            for(POtherscript e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        if(node.getMasterExpr() != null)
+        {
+            node.getMasterExpr().apply(this);
+        }
+        outAMandatoryScriptchain(node);
+    }
+
+    public void inABaseSubExpr(ABaseSubExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABaseSubExpr(ABaseSubExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABaseSubExpr(ABaseSubExpr node)
+    {
+        inABaseSubExpr(node);
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        if(node.getMasterExpr() != null)
+        {
+            node.getMasterExpr().apply(this);
+        }
+        outABaseSubExpr(node);
+    }
+
+    public void inABaseSubScript(ABaseSubScript node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABaseSubScript(ABaseSubScript node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABaseSubScript(ABaseSubScript node)
+    {
+        inABaseSubScript(node);
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        if(node.getMandatoryScriptchain() != null)
+        {
+            node.getMandatoryScriptchain().apply(this);
+        }
+        outABaseSubScript(node);
+    }
+
+    public void inASimpleSubRoutineOptions(ASimpleSubRoutineOptions node)
+    {
+        defaultIn(node);
+    }
+
+    public void outASimpleSubRoutineOptions(ASimpleSubRoutineOptions node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseASimpleSubRoutineOptions(ASimpleSubRoutineOptions node)
+    {
+        inASimpleSubRoutineOptions(node);
+        if(node.getBaseSubExpr() != null)
+        {
+            node.getBaseSubExpr().apply(this);
+        }
+        outASimpleSubRoutineOptions(node);
+    }
+
+    public void inAChainSubRoutineOptions(AChainSubRoutineOptions node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAChainSubRoutineOptions(AChainSubRoutineOptions node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAChainSubRoutineOptions(AChainSubRoutineOptions node)
+    {
+        inAChainSubRoutineOptions(node);
+        if(node.getBaseSubScript() != null)
+        {
+            node.getBaseSubScript().apply(this);
+        }
+        outAChainSubRoutineOptions(node);
+    }
+
+    public void inASubRoutine(ASubRoutine node)
+    {
+        defaultIn(node);
+    }
+
+    public void outASubRoutine(ASubRoutine node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseASubRoutine(ASubRoutine node)
+    {
+        inASubRoutine(node);
+        {
+            List<PSubRoutineOptions> copy = new ArrayList<PSubRoutineOptions>(node.getSubRoutineOptions());
+            Collections.reverse(copy);
+            for(PSubRoutineOptions e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outASubRoutine(node);
+    }
+
     public void inANormalMasterExpr(ANormalMasterExpr node)
     {
         defaultIn(node);
@@ -347,6 +464,35 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getBaseExpr().apply(this);
         }
         outABaseExprExpr(node);
+    }
+
+    public void inAEmbeddedRoutineExpr(AEmbeddedRoutineExpr node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEmbeddedRoutineExpr(AEmbeddedRoutineExpr node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEmbeddedRoutineExpr(AEmbeddedRoutineExpr node)
+    {
+        inAEmbeddedRoutineExpr(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getSubRoutine() != null)
+        {
+            node.getSubRoutine().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outAEmbeddedRoutineExpr(node);
     }
 
     public void inAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node)

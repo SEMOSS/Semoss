@@ -19,6 +19,8 @@ import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ABaseSimpleComparison;
+import prerna.sablecc2.node.ABaseSubExpr;
+import prerna.sablecc2.node.ABaseSubScript;
 import prerna.sablecc2.node.ABasicAndComparisonTerm;
 import prerna.sablecc2.node.ABasicOrComparisonTerm;
 import prerna.sablecc2.node.ABooleanScalar;
@@ -59,6 +61,7 @@ import prerna.sablecc2.node.APower;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ASelectNoun;
+import prerna.sablecc2.node.ASubRoutine;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
@@ -72,6 +75,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
+import prerna.sablecc2.reactor.EmbeddedRoutineReactor;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
@@ -220,6 +224,65 @@ public class LazyTranslation extends DepthFirstAdapter {
 	
 	@Override
 	public void outAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
+		defaultOut(node);
+		deInitReactor();
+		// if no parent, that means this embedded script
+		// is the only thing
+		if(curReactor == null) {
+			postProcess(node.toString().trim());
+		}
+	}
+
+	@Override
+	public void inABaseSubExpr(ABaseSubExpr node) {
+		// this is no different that an embedded script
+		defaultIn(node);
+		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
+		embeddedScriptReactor.setPixel(node.getMasterExpr().toString().trim(), node.toString().trim());
+    	initReactor(embeddedScriptReactor);
+	}
+
+	@Override
+	public void outABaseSubExpr(ABaseSubExpr node) {
+		defaultOut(node);
+		deInitReactor();
+		// if no parent, that means this embedded script
+		// is the only thing
+		if(curReactor == null) {
+			postProcess(node.toString().trim());
+		}
+	}
+	
+	@Override
+	public void inABaseSubScript(ABaseSubScript node) {
+		// this is no different that an embedded script
+		defaultIn(node);
+		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
+		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim());
+    	initReactor(embeddedScriptReactor);
+	}
+	
+	@Override
+	public void outABaseSubScript(ABaseSubScript node) {
+		defaultOut(node);
+		deInitReactor();
+		// if no parent, that means this embedded script
+		// is the only thing
+		if(curReactor == null) {
+			postProcess(node.toString().trim());
+		}
+	}
+	
+	@Override
+	public void inASubRoutine(ASubRoutine node) {
+		defaultIn(node);
+		EmbeddedRoutineReactor embeddedScriptReactor = new EmbeddedRoutineReactor();
+		embeddedScriptReactor.setPixel(node.getSubRoutineOptions().toString().trim(), node.toString().trim());
+    	initReactor(embeddedScriptReactor);
+	}
+	
+	@Override
+	public void outASubRoutine(ASubRoutine node) {
 		defaultOut(node);
 		deInitReactor();
 		// if no parent, that means this embedded script
@@ -1178,6 +1241,15 @@ public class LazyTranslation extends DepthFirstAdapter {
         		PixelDataType lastNounName = lastNoun.getNounType();
         		GenRowStruct genRow = curReactor.getNounStore().makeNoun(lastNounName.toString());
         		genRow.add(lastNoun);
+    		}
+    	} else if(parentReactor instanceof EmbeddedRoutineReactor) {
+    		// need to push all the sub parts
+    		int numInputs = parentReactor.getCurRow().size();
+    		for(int i = 0; i < numInputs; i++) {
+    			NounMetadata noun = parentReactor.getCurRow().getNoun(i);
+        		PixelDataType nounType = noun.getNounType();
+        		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounType.toString());
+        		genRow.add(noun);
     		}
     	}
     }
