@@ -6,6 +6,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public abstract class AbstractFrameReactor extends AbstractReactor {
@@ -17,6 +18,14 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 			List<Object> frameInputs = this.curRow.getValuesOfType(PixelDataType.FRAME);
 			return (ITableDataFrame) frameInputs.get(0);
 		}
+		
+		grs = this.store.getNoun(ReactorKeysEnum.FRAME.getKey());
+		// see if a frame is passed in
+		if (grs != null && !grs.isEmpty()) {
+			List<Object> frameInputs = this.curRow.getValuesOfType(PixelDataType.FRAME);
+			return (ITableDataFrame) frameInputs.get(0);
+		}
+		
 		// else, grab the default frame from the insight
 		if (this.insight.getDataMaker() != null) {
 			return (ITableDataFrame) this.insight.getDataMaker();
