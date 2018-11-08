@@ -99,12 +99,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAMandatoryScriptchain(AMandatoryScriptchain node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAScript(AScript node)
     {
         defaultCase(node);
@@ -135,6 +129,42 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMandatoryScriptchain(AMandatoryScriptchain node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABaseSubExpr(ABaseSubExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseABaseSubScript(ABaseSubScript node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASimpleSubRoutineOptions(ASimpleSubRoutineOptions node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAChainSubRoutineOptions(AChainSubRoutineOptions node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseASubRoutine(ASubRoutine node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseANormalMasterExpr(ANormalMasterExpr node)
     {
         defaultCase(node);
@@ -148,6 +178,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseABaseExprExpr(ABaseExprExpr node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAEmbeddedRoutineExpr(AEmbeddedRoutineExpr node)
     {
         defaultCase(node);
     }
