@@ -93,11 +93,6 @@ Productions
 	| {main_comment} comment
 	;
  
- // i need a way to allow for an embedded_script
- // but i need it to not conflict with a formula
- // so this is basically just enforcing that there is a pipe
- mandatory_scriptchain = master_expr otherscript+;
- 
  script = scriptstart otherscript*;
  scriptstart = {expression} master_expr | {meta} meta;
  otherscript = custom master_expr;
@@ -105,6 +100,16 @@ Productions
  // an assignment if a word or number equal to
  // some kind of evaluation
  assignment = word_or_id equal script;
+
+ // i need a way to allow for an embedded_script
+ // but i need it to not conflict with a formula
+ // so this is basically just enforcing that there is a pipe
+ mandatory_scriptchain = master_expr otherscript+;
+ 
+ base_sub_expr = master_expr semicolon;
+ base_sub_script = mandatory_scriptchain semicolon;
+ sub_routine_options = {simple} base_sub_expr | {chain} base_sub_script; 
+ sub_routine = sub_routine_options+;
  
  ///////////////////////////////////////////////////////////////////////
  ///////////////////////// END HIGHEST LEVEL ///////////////////////////
@@ -119,17 +124,18 @@ Productions
  // and it includes comparisons
 
  master_expr = {normal} expr
-	| {comparison} comparison_expr;
+	| {comparison} comparison_expr
+	;
  
- expr =
-  {base_expr} base_expr
-  // note that the embedded_assignment can be set to an inner script!
-  // or we can have a full inner script just for fun as well!
-  | {embedded_scriptchain} l_par mandatory_scriptchain r_par 
-  | {embedded_assignment} l_par id equal script r_par
-  | {help} id help_token
-  | {comment} comment
-  ;
+ expr = {base_expr} base_expr
+	// note that the embedded_assignment can be set to an inner script!
+	// or we can have a full inner script just for fun as well!
+	| {embedded_routine} l_par sub_routine r_par 
+	| {embedded_scriptchain} l_par mandatory_scriptchain r_par 
+	| {embedded_assignment} l_par id equal script r_par
+	| {help} id help_token
+	| {comment} comment
+	;
  
  // expr component goes from a defined reactor all the way down to basic number/string
  // everything else is just some mathematical operation using expr_component

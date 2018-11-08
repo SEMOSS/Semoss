@@ -221,5 +221,13 @@ public class GenRowStruct {
 	public boolean isEmpty() {
 		return this.vector.isEmpty();
 	}
+	
+	/**
+	 * Retrieve the underlying vector
+	 * @return
+	 */
+	public List<NounMetadata> getVector() {
+		return this.vector;
+	}
 
 }
