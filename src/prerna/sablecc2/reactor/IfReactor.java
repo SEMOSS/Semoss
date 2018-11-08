@@ -75,9 +75,19 @@ public class IfReactor extends AbstractReactor implements JavaExecutable {
 			AbstractReactor trueReactor = (AbstractReactor) trueNoun.getValue();
 			trueReactor.evaluate = true;
 			return trueReactor.execute();
+		} else if(trueNoun.getNounType() == PixelDataType.VECTOR) {
+			List<NounMetadata> evalutedValues = new Vector<NounMetadata>();
+			// need to loop through all the portions
+			List<NounMetadata> values = (List<NounMetadata>) trueNoun.getValue();
+			for(int i = 0; i < values.size(); i++) {
+				evalutedValues.add(evaluateStatement(values.get(i)));
+			}
+			NounMetadata evalutedNoun = new NounMetadata(evalutedValues, PixelDataType.VECTOR, trueNoun.getOpType());
+			evalutedNoun.addAllAdditionalReturn(trueNoun.getAdditionalReturn());
+			return evalutedNoun;
 		} else {
 			// ughh...
-			// must be a constant value ?
+			// must be an evaluted value
 			// just return it
 			return trueNoun;
 		}

@@ -1,5 +1,6 @@
 package prerna.sablecc2.om.nounmeta;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
 
@@ -63,6 +64,10 @@ public class NounMetadata {
 	
 	public void addAdditionalReturn(NounMetadata noun) {
 		this.additionalReturns.add(noun);
+	}
+	
+	public void addAllAdditionalReturn(Collection<NounMetadata> nouns) {
+		this.additionalReturns.addAll(nouns);
 	}
 	
 	public List<NounMetadata> getAdditionalReturn() {
