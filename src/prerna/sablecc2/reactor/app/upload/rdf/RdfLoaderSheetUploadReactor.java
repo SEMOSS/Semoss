@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.Vector;
@@ -29,10 +30,13 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.RDFEngineCreationHelper;
+import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -46,8 +50,10 @@ import prerna.util.Utility;
 
 public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 	private static final String CLASS_NAME = RdfLoaderSheetUploadReactor.class.getName();
+
 	public RdfLoaderSheetUploadReactor() {
-		this.keysToGet = new String[] {UploadInputUtility.APP, UploadInputUtility.FILE_PATH,  UploadInputUtility.ADD_TO_EXISTING};
+		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
+				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.CUSTOM_BASE_URI };
 	}
 
 	@Override
@@ -74,7 +80,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		if (!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path specified");
 		}
-		String returnId = null;
+		String appId = null;
 		if (existing) {
 			
 			if(security) {
@@ -86,19 +92,22 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 				}
 			}
 			
-			returnId = addToExistingApp(appIdOrName, filePath);
+			appId = addToExistingApp(appIdOrName, filePath);
 		} else {
-			returnId = generateNewApp(user, appIdOrName, filePath);
+			appId = generateNewApp(user, appIdOrName, filePath);
 			
 			// even if no security, just add user as engine owner
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
+					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
 				}
 			}
 		}
-		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
+		
+		ClusterUtil.reactorPushApp(appId);
+		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), appId);
+		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	private String generateNewApp(User user, String newAppName, String filePath) {
@@ -582,14 +591,14 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 			int offset = 1;
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				if(nextRow.getCell(2) != null) {
+					// make it a string so i can easily parse it
 					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
 					Cell instanceObjectNodeCell = nextRow.getCell(2);
-					if (instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != Cell.CELL_TYPE_BLANK
-							&& !instanceObjectNodeCell.toString().isEmpty()) {
-						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
-					} else {
+					// if empty, ignore
+					if(ExcelParsing.isEmptyCell(instanceObjectNodeCell)) {
 						continue;
 					}
+					instanceObjectNode = nextRow.getCell(2).getStringCellValue();
 				}
 				startCol++;
 				offset++;
@@ -602,24 +611,16 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 					continue;
 				}
 				String propName = propNames.elementAt(colIndex - offset).toString();
-				String propValue = "";
-				if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == Cell.CELL_TYPE_BLANK
-						|| nextRow.getCell(colIndex).toString().isEmpty()) {
+				// ignore bad data
+				if(ExcelParsing.isEmptyCell(nextRow.getCell(colIndex))) {
 					continue;
 				}
-				if (nextRow.getCell(colIndex).getCellType() == Cell.CELL_TYPE_NUMERIC) {
-					if (DateUtil.isCellDateFormatted(nextRow.getCell(colIndex))) {
-						Date date = (Date) nextRow.getCell(colIndex).getDateCellValue();
-						propHash.put(propName, date);
-					} else {
-						Double dbl = new Double(nextRow.getCell(colIndex).getNumericCellValue());
-						propHash.put(propName, dbl);
-					}
-				} else {
-					nextRow.getCell(colIndex).setCellType(Cell.CELL_TYPE_STRING);
-					propValue = nextRow.getCell(colIndex).getStringCellValue();
-					propHash.put(propName, propValue);
+				
+				Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
+				if(propValue instanceof SemossDate) {
+					propValue = ((SemossDate) propValue).getDate();
 				}
+				propHash.put(propName, propValue);
 			}
 
 			if (sheetType.equalsIgnoreCase("Relation")) {
