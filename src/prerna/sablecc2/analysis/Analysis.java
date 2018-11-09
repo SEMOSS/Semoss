@@ -24,8 +24,10 @@ public interface Analysis extends Switch
     void caseAMandatoryScriptchain(AMandatoryScriptchain node);
     void caseABaseSubExpr(ABaseSubExpr node);
     void caseABaseSubScript(ABaseSubScript node);
+    void caseABaseAssignment(ABaseAssignment node);
     void caseASimpleSubRoutineOptions(ASimpleSubRoutineOptions node);
     void caseAChainSubRoutineOptions(AChainSubRoutineOptions node);
+    void caseAAssignmentSubRoutineOptions(AAssignmentSubRoutineOptions node);
     void caseASubRoutine(ASubRoutine node);
     void caseANormalMasterExpr(ANormalMasterExpr node);
     void caseAComparisonMasterExpr(AComparisonMasterExpr node);
@@ -123,6 +125,8 @@ public interface Analysis extends Switch
     void caseANestedMapValues(ANestedMapValues node);
     void caseAMapList(AMapList node);
     void caseAMapListExtend(AMapListExtend node);
+    void caseAWordMapKey(AWordMapKey node);
+    void caseAVarMapKey(AVarMapKey node);
     void caseAListMapExtendedInput(AListMapExtendedInput node);
     void caseAScalarMapExtendedInput(AScalarMapExtendedInput node);
     void caseANestedMapMapExtendedInput(ANestedMapMapExtendedInput node);
