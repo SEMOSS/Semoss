@@ -77,10 +77,12 @@ import prerna.sablecc2.reactor.app.upload.gremlin.TinkerCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsFlatExcelUploadReactor;
+import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsLoaderSheetUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcSchemaReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcTablesAndViewsReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.RdbmsExternalUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdf.RdfCsvUploadReactor;
+import prerna.sablecc2.reactor.app.upload.rdf.RdfLoaderSheetUploadReactor;
 import prerna.sablecc2.reactor.cluster.CleanUpAppsReactor;
 import prerna.sablecc2.reactor.cluster.OpenAppReactor;
 import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
@@ -474,7 +476,9 @@ public class ReactorFactory {
 		reactorHash.put("RdbmsUploadExcelData", RdbmsFlatExcelUploadReactor.class);
 		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
 		reactorHash.put("RdbmsCsvUpload", RdbmsCsvUploadReactor.class);
+		reactorHash.put("RdbmsLoaderSheetUpload", RdbmsLoaderSheetUploadReactor.class);
 		reactorHash.put("RdfCsvUpload", RdfCsvUploadReactor.class);
+		reactorHash.put("RdfLoaderSheetUpload", RdfLoaderSheetUploadReactor.class);
 		reactorHash.put("TinkerCsvUpload", TinkerCsvUploadReactor.class);
 
 		// external graph engine
