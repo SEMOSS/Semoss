@@ -297,10 +297,6 @@ public class RDBMSEngineCreationHelper {
 		//					colname2 -> coltype,
 		//				}
 		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
-		Set<String> tablesUpperCase = new HashSet<String>();
-		for(String table: tablesToRetrieve) {
-			tablesUpperCase.add(table.toUpperCase());
-		}
 
 		// get all the tables
 		ResultSet tables = null;
@@ -309,7 +305,7 @@ public class RDBMSEngineCreationHelper {
 			while(tables.next()) {
 				// get the table name
 				String table = tables.getString("table_name");
-				if(!tablesUpperCase.contains(table)) {
+				if(!tablesToRetrieve.contains(table)) {
 					continue;
 				}
 				// keep a map of the columns
@@ -320,7 +316,7 @@ public class RDBMSEngineCreationHelper {
 				try {
 					keys = meta.getColumns(null, null, table, null);
 					while(keys.next()) {
-						colDetails.put(keys.getString("column_name"), keys.getString("type_name").toUpperCase());
+						colDetails.put(keys.getString("column_name"), keys.getString("type_name"));
 					}
 				} catch(SQLException e) {
 					e.printStackTrace();
