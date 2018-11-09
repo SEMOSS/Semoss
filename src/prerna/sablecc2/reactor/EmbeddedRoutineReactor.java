@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor;
 
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class EmbeddedRoutineReactor extends AbstractReactor {
@@ -12,6 +13,6 @@ public class EmbeddedRoutineReactor extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		return new NounMetadata(this.curRow.getVector(), PixelDataType.VECTOR);
+		return new NounMetadata(this.curRow.getVector(), PixelDataType.VECTOR, PixelOperationType.SUB_SCRIPT);
 	}
 }

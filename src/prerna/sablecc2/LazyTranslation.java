@@ -44,7 +44,6 @@ import prerna.sablecc2.node.AJavaOp;
 import prerna.sablecc2.node.AList;
 import prerna.sablecc2.node.AMainCommentRoutine;
 import prerna.sablecc2.node.AMap;
-import prerna.sablecc2.node.AMapEntry;
 import prerna.sablecc2.node.AMapList;
 import prerna.sablecc2.node.AMapNegNum;
 import prerna.sablecc2.node.AMapVar;
@@ -62,7 +61,9 @@ import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ASubRoutine;
+import prerna.sablecc2.node.AVarMapKey;
 import prerna.sablecc2.node.AWholeDecimal;
+import prerna.sablecc2.node.AWordMapKey;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
 import prerna.sablecc2.node.PRoutine;
@@ -1325,8 +1326,8 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAMapEntry(AMapEntry node) {
-    	String mapKey = PixelUtility.removeSurroundingQuotes(node.getKey().getText());
+    public void inAWordMapKey(AWordMapKey node) {
+    	String mapKey = PixelUtility.removeSurroundingQuotes(node.getWord().getText());
     	this.curReactor.getCurRow().addLiteral(mapKey);
     }
     

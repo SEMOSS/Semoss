@@ -108,7 +108,8 @@ Productions
  
  base_sub_expr = master_expr semicolon;
  base_sub_script = mandatory_scriptchain semicolon;
- sub_routine_options = {simple} base_sub_expr | {chain} base_sub_script; 
+ base_assignment = assignment semicolon;
+ sub_routine_options = {simple} base_sub_expr | {chain} base_sub_script |  {assignment} base_assignment; 
  sub_routine = sub_routine_options+;
  
  ///////////////////////////////////////////////////////////////////////
@@ -285,7 +286,7 @@ Productions
  // where the value is a scalar, variable, vector of scalars/variables, or another nested map
  map = l_curl map_entry? other_map_entry* r_curl;
  
- map_entry = [key]:word colon [val]:values;
+ map_entry = [key]:map_key colon [val]:values;
  other_map_entry = [comma]:comma map_entry;
  
  // DO NOT USE THE BELOW FOR ANYTHING ASIDE FOR MAPS!
@@ -297,10 +298,12 @@ Productions
  map_list = l_brac map_extended_input? map_list_extend* r_brac;
  map_list_extend = comma map_extended_input;
  
+ map_key = {word} word | {var} map_var;
  map_extended_input = {list} map_list | {scalar} map_base_input | {nested_map} map;  
  map_base_input = {map_var} map_var | {normal_scalar} scalar | {map_neg_num} map_neg_num;
  map_var = [start]:l_curl [var]:id [end]:r_curl;
  map_neg_num = minus decimal;
+ 
  
  ///////////////////////////////////////////////////////////////////////
  /////////////////////////// END MAP ///////////////////////////////////
