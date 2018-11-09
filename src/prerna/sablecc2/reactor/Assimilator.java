@@ -150,6 +150,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 
 		try {
 			AssimilatorEvaluator newInstance = (AssimilatorEvaluator) newClass.newInstance();
+			newInstance.containsStringValue = this.containsStringValue;
 			return newInstance;
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
@@ -171,7 +172,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 		// now that the variables are defined
 		// we just want to add the expression as a return
 		if(this.containsStringValue) {
-			expressionBuilder.append("return new String(").append(this.signature).append("));}");
+			expressionBuilder.append("return new String(").append(this.signature).append(");}");
 		} else {
 			// multiply by 1.0 to make sure everything is a double...
 			// as a pksl data type
@@ -228,6 +229,17 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 				}
 			} else {
 				throw new IllegalArgumentException("Assimilator can currently only handle outputs of scalar variables");
+			}
+		}
+		
+		// need to how check if there are strings
+		int numValues = this.curRow.size();
+		for(int i = 0; i < numValues; i++) {
+			if( (this.curRow.getNoun(i).getNounType() != PixelDataType.CONST_INT)
+					&& (this.curRow.getNoun(i).getNounType() != PixelDataType.CONST_DECIMAL)
+					&& (this.curRow.getNoun(i).getNounType() != PixelDataType.COLUMN)) {
+				this.containsStringValue = true;
+				break;
 			}
 		}
 	}
