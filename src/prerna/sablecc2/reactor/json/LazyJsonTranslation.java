@@ -2,8 +2,6 @@ package prerna.sablecc2.reactor.json;
 
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -13,10 +11,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
@@ -27,7 +22,6 @@ import prerna.sablecc2.node.ABaseSimpleComparison;
 import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.ADivBaseExpr;
-import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.AEmbeddedAssignmentExpr;
 import prerna.sablecc2.node.AEmbeddedScriptchainExpr;
 import prerna.sablecc2.node.AExplicitRel;
@@ -63,10 +57,7 @@ import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.EmbeddedScriptReactor;
@@ -1020,7 +1011,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	// is a map
     	// if so this could be a full array
     	
-    	processNode = node.getKey().getText().trim();
+    	processNode = node.getKey().toString().trim();
     	processNode = PixelUtility.removeSurroundingQuotes(processNode);
     	
     	// the first JSON map
@@ -1057,7 +1048,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 
     public void outAMapEntry(AMapEntry node)
     {
-    	processNode = node.getKey().getText();
+    	processNode = node.getKey().toString().trim();
     	processNode = PixelUtility.removeSurroundingQuotes(processNode);
     	//System.out.println("Map Entry.. OUT" + processNode);
         defaultOut(node);
