@@ -333,6 +333,31 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outABaseSubScript(node);
     }
 
+    public void inABaseAssignment(ABaseAssignment node)
+    {
+        defaultIn(node);
+    }
+
+    public void outABaseAssignment(ABaseAssignment node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseABaseAssignment(ABaseAssignment node)
+    {
+        inABaseAssignment(node);
+        if(node.getAssignment() != null)
+        {
+            node.getAssignment().apply(this);
+        }
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        outABaseAssignment(node);
+    }
+
     public void inASimpleSubRoutineOptions(ASimpleSubRoutineOptions node)
     {
         defaultIn(node);
@@ -373,6 +398,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getBaseSubScript().apply(this);
         }
         outAChainSubRoutineOptions(node);
+    }
+
+    public void inAAssignmentSubRoutineOptions(AAssignmentSubRoutineOptions node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAAssignmentSubRoutineOptions(AAssignmentSubRoutineOptions node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAAssignmentSubRoutineOptions(AAssignmentSubRoutineOptions node)
+    {
+        inAAssignmentSubRoutineOptions(node);
+        if(node.getBaseAssignment() != null)
+        {
+            node.getBaseAssignment().apply(this);
+        }
+        outAAssignmentSubRoutineOptions(node);
     }
 
     public void inASubRoutine(ASubRoutine node)
@@ -2900,6 +2946,48 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getMapExtendedInput().apply(this);
         }
         outAMapListExtend(node);
+    }
+
+    public void inAWordMapKey(AWordMapKey node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAWordMapKey(AWordMapKey node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAWordMapKey(AWordMapKey node)
+    {
+        inAWordMapKey(node);
+        if(node.getWord() != null)
+        {
+            node.getWord().apply(this);
+        }
+        outAWordMapKey(node);
+    }
+
+    public void inAVarMapKey(AVarMapKey node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAVarMapKey(AVarMapKey node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAVarMapKey(AVarMapKey node)
+    {
+        inAVarMapKey(node);
+        if(node.getMapVar() != null)
+        {
+            node.getMapVar().apply(this);
+        }
+        outAVarMapKey(node);
     }
 
     public void inAListMapExtendedInput(AListMapExtendedInput node)

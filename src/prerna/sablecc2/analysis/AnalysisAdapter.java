@@ -147,6 +147,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseABaseAssignment(ABaseAssignment node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseASimpleSubRoutineOptions(ASimpleSubRoutineOptions node)
     {
         defaultCase(node);
@@ -154,6 +160,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAChainSubRoutineOptions(AChainSubRoutineOptions node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAAssignmentSubRoutineOptions(AAssignmentSubRoutineOptions node)
     {
         defaultCase(node);
     }
@@ -736,6 +748,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAMapListExtend(AMapListExtend node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAWordMapKey(AWordMapKey node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAVarMapKey(AVarMapKey node)
     {
         defaultCase(node);
     }
