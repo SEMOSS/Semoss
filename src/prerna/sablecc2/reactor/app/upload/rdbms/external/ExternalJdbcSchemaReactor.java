@@ -70,13 +70,27 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
+		String catalogFilter = null;
+		try {
+			catalogFilter = con.getCatalog();
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
+		String schemaFilter = null;
+		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
+		// THIS METHOD OT BE IMPLEMENTED ON THE
+		// DRIVERS
+		if(meta.getDriverMinorVersion() >= 7) {
+			try {
+				schemaFilter = con.getSchema();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		ResultSet tablesRs;
 		try {
-			if(driver.equals(RdbmsConnectionHelper.H2_DRIVER) || driver.equals(RdbmsConnectionHelper.TERADATA_DRIVER)) {
-				tablesRs = meta.getTables(null, null, null, new String[] { "TABLE", "VIEW" });
-			} else {
-				tablesRs = meta.getTables(schema, null, null, new String[] { "TABLE", "VIEW" });
-			}
+			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
@@ -129,11 +143,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				List<String> primaryKeys = new ArrayList<String>();
 				ResultSet keys = null;
 				try {
-					if(driver.equals(RdbmsConnectionHelper.H2_DRIVER) || driver.equals(RdbmsConnectionHelper.TERADATA_DRIVER)) {
-						keys = meta.getPrimaryKeys(null, null, tableOrView);
-					} else {
-						keys = meta.getPrimaryKeys(schema, null, tableOrView);
-					}
+					keys = meta.getPrimaryKeys(catalogFilter, schemaFilter, tableOrView);
 					while(keys.next()) {
 						primaryKeys.add(keys.getString("column_name"));
 					}
@@ -150,11 +160,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				ResultSet columnsRs = null;
 				try {
 					logger.info("....Processing columns");
-					if(driver.equals(RdbmsConnectionHelper.H2_DRIVER) || driver.equals(RdbmsConnectionHelper.TERADATA_DRIVER)) {
-						columnsRs = meta.getColumns(null, null, tableOrView, null);
-					} else {
-						columnsRs = meta.getColumns(schema, null, tableOrView, null);
-					}
+					columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 					
 					while (columnsRs.next()) {
 						String cName = columnsRs.getString("column_name");
@@ -186,11 +192,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				if(isTable) {
 					try {
 						logger.info("....Processing table foreign keys");
-						if(driver.equals(RdbmsConnectionHelper.H2_DRIVER) || driver.equals(RdbmsConnectionHelper.TERADATA_DRIVER)) {
-							relRs = meta.getExportedKeys(null, null, tableOrView);
-						} else {
-							relRs = meta.getExportedKeys(schema, null, tableOrView);
-						}
+						relRs = meta.getExportedKeys(catalogFilter, schemaFilter, tableOrView);
 						while (relRs.next()) {
 							String otherTableName = relRs.getString("FKTABLE_NAME");
 							

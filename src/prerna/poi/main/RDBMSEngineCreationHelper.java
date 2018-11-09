@@ -1,10 +1,10 @@
 package prerna.poi.main;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -219,7 +219,26 @@ public class RDBMSEngineCreationHelper {
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine) {
 		// get the metadata from the connection
 		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) rdbmsEngine;
+		Connection con = rdbms.makeConnection();
 		DatabaseMetaData meta = rdbms.getConnectionMetadata();
+		
+		String catalogFilter = null;
+		try {
+			catalogFilter = con.getCatalog();
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
+		String schemaFilter = null;
+		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
+		// THIS METHOD OT BE IMPLEMENTED ON THE
+		// DRIVERS
+		if(meta.getDriverMinorVersion() >= 7) {
+			try {
+				schemaFilter = con.getSchema();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		// table that will store 
 		// table_name -> {
@@ -231,7 +250,7 @@ public class RDBMSEngineCreationHelper {
 		// get all the tables
 		ResultSet tables = null;
 		try {
-			tables = meta.getTables(null, null, null, new String[]{"TABLE", "VIEW" });
+			tables = meta.getTables(catalogFilter, schemaFilter, null, new String[]{"TABLE", "VIEW" });
 			while(tables.next()) {
 				// this will be table or view
 				String tableType = tables.getString("table_type").toUpperCase();
@@ -254,7 +273,7 @@ public class RDBMSEngineCreationHelper {
 				
 				ResultSet keys = null;
 				try {
-					keys = meta.getColumns(null, null, table, null);
+					keys = meta.getColumns(catalogFilter, schemaFilter, table, null);
 					while(keys.next()) {
 						colDetails.put(keys.getString("column_name"), keys.getString("type_name").toUpperCase());
 					}
@@ -289,7 +308,26 @@ public class RDBMSEngineCreationHelper {
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine, Set<String> tablesToRetrieve) {
 		// get the metadata from the connection
 		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) rdbmsEngine;
+		Connection con = rdbms.makeConnection();
 		DatabaseMetaData meta = rdbms.getConnectionMetadata();
+		
+		String catalogFilter = null;
+		try {
+			catalogFilter = con.getCatalog();
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
+		String schemaFilter = null;
+		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
+		// THIS METHOD OT BE IMPLEMENTED ON THE
+		// DRIVERS
+		if(meta.getDriverMinorVersion() >= 7) {
+			try {
+				schemaFilter = con.getSchema();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		// table that will store 
 		// table_name -> {
@@ -301,7 +339,7 @@ public class RDBMSEngineCreationHelper {
 		// get all the tables
 		ResultSet tables = null;
 		try {
-			tables = meta.getTables(null, null, null, new String[]{"TABLE"});
+			tables = meta.getTables(catalogFilter, schemaFilter, null, new String[]{"TABLE", "VIEW"});
 			while(tables.next()) {
 				// get the table name
 				String table = tables.getString("table_name");
@@ -314,7 +352,7 @@ public class RDBMSEngineCreationHelper {
 				
 				ResultSet keys = null;
 				try {
-					keys = meta.getColumns(null, null, table, null);
+					keys = meta.getColumns(catalogFilter, schemaFilter, table, null);
 					while(keys.next()) {
 						colDetails.put(keys.getString("column_name"), keys.getString("type_name"));
 					}
