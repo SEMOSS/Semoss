@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -151,7 +153,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
 		// get the existing datatypes
 		// table names -> column name, column type
-		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+		Set<String> cleanTables = new HashSet<String>();
+		for(String t : nodesAndProps.keySet()) {
+			cleanTables.add(t.split("\\.")[0]);
+		}
+		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, cleanTables);
 		// parse the nodes and get the prim keys
 		// and write to OWL
 		Map<String, String> nodesAndPrimKeys = parseNodesAndProps(owler, nodesAndProps, existingRDBMSStructure);
