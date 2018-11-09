@@ -18,7 +18,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcTablesAndViewsReactor;
 
 public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 	
@@ -62,12 +61,27 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		if(schema.equalsIgnoreCase("")) {
-			schema = null;
+		String catalogFilter = null;
+		try {
+			catalogFilter = con.getCatalog();
+		} catch (SQLException e1) {
+			e1.printStackTrace();
 		}
+		String schemaFilter = null;
+		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
+		// THIS METHOD OT BE IMPLEMENTED ON THE
+		// DRIVERS
+		if(meta.getDriverMinorVersion() >= 7) {
+			try {
+				schemaFilter = con.getSchema();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		ResultSet tablesRs;
 		try {
-			tablesRs = meta.getTables(schema, null, null, new String[] { "TABLE", "VIEW" });
+			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
