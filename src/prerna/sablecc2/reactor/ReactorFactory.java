@@ -42,6 +42,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
+import prerna.sablecc2.reactor.app.DatabaseColumnUniqueReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.AddBulkOwlRelationshipsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.AddOwlDescriptionReactor;
@@ -449,6 +450,7 @@ public class ReactorFactory {
 		reactorHash.put("Help", HelpReactor.class);
 		reactorHash.put("help", HelpReactor.class);
 		reactorHash.put("DatabaseProfile", DatabaseProfileReactor.class);
+		reactorHash.put("DatabaseColumnUnique", DatabaseColumnUniqueReactor.class);
 		reactorHash.put("ExternalDatabaseProfile", ExternalDatabaseProfileReactor.class);
 		reactorHash.put("GetRequest", GetRequestReactor.class);
 		reactorHash.put("PostRequest", PostRequestReactor.class);
