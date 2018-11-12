@@ -116,7 +116,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			// TODO: EVENTUALLY WE WILL DELETE THIS
 			// TODO: EVENTUALLY WE WILL DELETE THIS
 			// TODO: EVENTUALLY WE WILL DELETE THIS
-			InsightsDatabaseUpdater3CacheableColumn.update(rne);
+			InsightsDatabaseUpdater3CacheableColumn.update(appId, rne);
 		}
 		
 		// i need to delete any current insights for the app
