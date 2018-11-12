@@ -18,6 +18,7 @@ import java.util.Vector;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
@@ -58,7 +59,7 @@ public final class FormBuilder {
 			throw new IOException("Engine cannot be found");
 		}
 		
-		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineId())).toUpperCase() + AUDIT_FORM_SUFFIX;
+		String auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engine.getEngineId())).toUpperCase() + AUDIT_FORM_SUFFIX;
 		IEngine formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		// create audit table if doesn't exist
 		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";
@@ -1140,7 +1141,7 @@ public final class FormBuilder {
 				String type = types.get(i);
 				if(type.contains("VARCHAR")) {
 					insertQuery.append("'");
-					insertQuery.append(RDBMSEngineCreationHelper.escapeForSQLStatement(propertyValue.toString()));
+					insertQuery.append(RdbmsQueryBuilder.escapeForSQLStatement(propertyValue.toString()));
 					insertQuery.append("'");
 				} else if(type.contains("INT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("LONG") || type.contains("BIGINT")
 						|| type.contains("TINYINT") || type.contains("SMALLINT")){
@@ -1197,7 +1198,7 @@ public final class FormBuilder {
 			insertQuery.append("=");
 			if(type.contains("VARCHAR")) {
 				insertQuery.append("'");
-				insertQuery.append(RDBMSEngineCreationHelper.escapeForSQLStatement(propertyValue.toString()));
+				insertQuery.append(RdbmsQueryBuilder.escapeForSQLStatement(propertyValue.toString()));
 				insertQuery.append("'");
 			} else if(type.contains("INT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("LONG") || type.contains("BIGINT")
 					|| type.contains("TINYINT") || type.contains("SMALLINT")){
@@ -1245,12 +1246,12 @@ public final class FormBuilder {
 		if(formEng == null || auditLogTableName == null || auditLogTableName.isEmpty()) {
 			return;
 		}
-		user = RDBMSEngineCreationHelper.escapeForSQLStatement(user);
-		startNode = RDBMSEngineCreationHelper.escapeForSQLStatement(startNode);
-		relName = RDBMSEngineCreationHelper.escapeForSQLStatement(relName);
-		endNode = RDBMSEngineCreationHelper.escapeForSQLStatement(endNode);
-		propName = RDBMSEngineCreationHelper.escapeForSQLStatement(propName);
-		propValue = RDBMSEngineCreationHelper.escapeForSQLStatement(propValue);
+		user = RdbmsQueryBuilder.escapeForSQLStatement(user);
+		startNode = RdbmsQueryBuilder.escapeForSQLStatement(startNode);
+		relName = RdbmsQueryBuilder.escapeForSQLStatement(relName);
+		endNode = RdbmsQueryBuilder.escapeForSQLStatement(endNode);
+		propName = RdbmsQueryBuilder.escapeForSQLStatement(propName);
+		propValue = RdbmsQueryBuilder.escapeForSQLStatement(propValue);
 
 		String valuesBreak = "', '";
 		StringBuilder insertLogStatement = new StringBuilder("INSERT INTO ");
@@ -1267,7 +1268,7 @@ public final class FormBuilder {
 
 	public static Map<String, Object> getAuditDataForEngine(String engineName) {
 		Map<String, Object> retMap = new Hashtable<String, Object>();
-		String auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engineName)).toUpperCase() + AUDIT_FORM_SUFFIX;
+		String auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(engineName)).toUpperCase() + AUDIT_FORM_SUFFIX;
 		IEngine formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		
 		String query = "SELECT * FROM " + auditLogTableName;

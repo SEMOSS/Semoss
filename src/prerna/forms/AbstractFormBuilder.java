@@ -44,7 +44,7 @@ public abstract class AbstractFormBuilder {
 	protected AbstractFormBuilder(IEngine engine) {
 		this.formEng = Utility.getEngine(FORM_BUILDER_ENGINE_NAME);
 		this.engine = engine;
-		this.auditLogTableName = RDBMSEngineCreationHelper.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineId())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
+		this.auditLogTableName = RdbmsQueryBuilder.escapeForSQLStatement(RDBMSEngineCreationHelper.cleanTableName(this.engine.getEngineId())).toUpperCase() + FormBuilder.AUDIT_FORM_SUFFIX;
 		generateEngineAuditLog(this.auditLogTableName);
 	}
 	
@@ -230,16 +230,16 @@ public abstract class AbstractFormBuilder {
 		String cleanUser = null;
 		// TODO: FE NEEDS TO PASS IN USER!
 		if(this.user != null) {
-			cleanUser = RDBMSEngineCreationHelper.escapeForSQLStatement(this.user);
+			cleanUser = RdbmsQueryBuilder.escapeForSQLStatement(this.user);
 		} else {
 			cleanUser = "User Information Not Submitted";
 		}
 		
-		startNode = RDBMSEngineCreationHelper.escapeForSQLStatement(startNode);
-		relName = RDBMSEngineCreationHelper.escapeForSQLStatement(relName);
-		endNode = RDBMSEngineCreationHelper.escapeForSQLStatement(endNode);
-		propName = RDBMSEngineCreationHelper.escapeForSQLStatement(propName);
-		propValue = RDBMSEngineCreationHelper.escapeForSQLStatement(propValue);
+		startNode = RdbmsQueryBuilder.escapeForSQLStatement(startNode);
+		relName = RdbmsQueryBuilder.escapeForSQLStatement(relName);
+		endNode = RdbmsQueryBuilder.escapeForSQLStatement(endNode);
+		propName = RdbmsQueryBuilder.escapeForSQLStatement(propName);
+		propValue = RdbmsQueryBuilder.escapeForSQLStatement(propValue);
 
 		String valuesBreak = "', '";
 		StringBuilder insertLogStatement = new StringBuilder("INSERT INTO ");
