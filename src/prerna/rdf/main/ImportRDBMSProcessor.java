@@ -45,6 +45,7 @@ import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.poi.main.AbstractEngineCreator;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.ImportOptions;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 public class ImportRDBMSProcessor extends AbstractEngineCreator {
@@ -53,7 +54,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 
 	public IEngine addNewRDBMS(ImportOptions options) throws IOException {
 		// information for connection details
-		SQLQueryUtil.DB_TYPE sqlType = options.getRDBMSDriverType();
+		RdbmsTypeEnum sqlType = options.getRDBMSDriverType();
 		String host = options.getHost();
 		String port = options.getPort();
 		String schema = options.getSchema();

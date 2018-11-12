@@ -33,24 +33,6 @@ import java.util.List;
 
 public abstract class SQLQueryUtil {
 
-	// PLEASE ONLY ADD THINGS IN ALL CAPS!!!!
-	public enum DB_TYPE {
-		ASTER,
-		CASSANDRA,
-		DB2,
-		DERBY,
-		H2_DB,
-		IMPALA,
-		REDSHIFT,
-		MARIA_DB,
-		MYSQL,
-		ORACLE, 
-		PHOENIX,
-		POSTGRES,
-		SAP_HANA,
-		SQL_SERVER, 
-		TERADATA}
-
 	private String defaultDbUserName = "";
 	private String defaultDbPassword = "";
 
@@ -68,16 +50,16 @@ public abstract class SQLQueryUtil {
 	
 
 	// Add SQLServer compatibility
-	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.H2_DB) {
+	public static SQLQueryUtil initialize(RdbmsTypeEnum dbtype) {
+		if(dbtype == RdbmsTypeEnum.H2_DB) {
 			return new H2QueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.MARIA_DB){
+		} else if(dbtype == RdbmsTypeEnum.MARIADB){
 			return new MariaDbQueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+		} else if(dbtype == RdbmsTypeEnum.SQLSERVER){
 			return new SQLServerQueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.MYSQL) {
+		} else if(dbtype == RdbmsTypeEnum.MYSQL) {
 			return new MySQLQueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
+		} else if(dbtype == RdbmsTypeEnum.ORACLE) {
 			return new OracleQueryUtil();
 		} else {
 			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil();
@@ -86,16 +68,16 @@ public abstract class SQLQueryUtil {
 		}
 	}
 	
-	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String hostname, String port, String schema, String username, String password) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.H2_DB) {
+	public static SQLQueryUtil initialize(RdbmsTypeEnum dbtype, String hostname, String port, String schema, String username, String password) {
+		if(dbtype == RdbmsTypeEnum.H2_DB) {
 			return new H2QueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+		} else if(dbtype == RdbmsTypeEnum.SQLSERVER){
 			return new SQLServerQueryUtil(hostname, port, schema, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.MYSQL) {
+		} else if(dbtype == RdbmsTypeEnum.MYSQL) {
 			return new MySQLQueryUtil(hostname, port, schema, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
+		} else if(dbtype == RdbmsTypeEnum.ORACLE) {
 			return new OracleQueryUtil(hostname, port, schema, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.IMPALA) {
+		} else if(dbtype == RdbmsTypeEnum.IMPALA) {
 			return new ImpalaQueryUtil(hostname, port, schema, username, password);
 		} else {
 			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil(dbtype, hostname, port, schema, username, password);
@@ -103,14 +85,14 @@ public abstract class SQLQueryUtil {
 		}
 	}
 	
-	public static SQLQueryUtil initialize(SQLQueryUtil.DB_TYPE dbtype, String connectionURL, String username, String password) {
-		if(dbtype == SQLQueryUtil.DB_TYPE.H2_DB) {
+	public static SQLQueryUtil initialize(RdbmsTypeEnum dbtype, String connectionURL, String username, String password) {
+		if(dbtype == RdbmsTypeEnum.H2_DB) {
 			return new H2QueryUtil();
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.SQL_SERVER){
+		} else if(dbtype == RdbmsTypeEnum.SQLSERVER){
 			return new SQLServerQueryUtil(connectionURL, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.MYSQL) {
+		} else if(dbtype == RdbmsTypeEnum.MYSQL) {
 			return new MySQLQueryUtil(connectionURL, username, password);
-		} else if(dbtype == SQLQueryUtil.DB_TYPE.ORACLE) {
+		} else if(dbtype == RdbmsTypeEnum.ORACLE) {
 			return new OracleQueryUtil(connectionURL, username, password);
 		} else {
 			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil();
@@ -119,7 +101,7 @@ public abstract class SQLQueryUtil {
 		}
 	}
 
-	public abstract SQLQueryUtil.DB_TYPE getDatabaseType();
+	public abstract RdbmsTypeEnum getDatabaseType();
 
 	public abstract String getConnectionURL(String baseFolder,String dbname);
 
@@ -193,7 +175,7 @@ public abstract class SQLQueryUtil {
 		String subQuery = "";
 		//For SQL Server CTAS doesn't work, using select * into newTable from oldTable
 		//Also LTRIM(RTRIM(tableName)) works instead of TRIM(tableName)
-		if(this.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.SQL_SERVER)){
+		if(this.getDatabaseType().equals(RdbmsTypeEnum.SQLSERVER)){
 			createTable ="SELECT DISTINCT " + fullColumnNameList 
 					+ " INTO " + tableName + "_TEMP " 
 					+ " FROM " + tableName + " WHERE " + tableName 

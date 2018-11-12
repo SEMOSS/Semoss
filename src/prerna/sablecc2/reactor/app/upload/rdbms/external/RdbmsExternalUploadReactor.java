@@ -23,7 +23,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -38,6 +37,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsExternalUploadReactor extends AbstractReactor {
 	private static final String CLASS_NAME = RdbmsExternalUploadReactor.class.getName();
@@ -124,12 +124,12 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		// Create default RDBMS engine or Impala
 		String engineClassName = RDBMSNativeEngine.class.getName();
 		IEngine engine = new RDBMSNativeEngine();
-		if (dbType.toUpperCase().equals(RdbmsConnectionHelper.IMPALA)) {
+		if (dbType.toUpperCase().equals(RdbmsTypeEnum.IMPALA.getLabel())) {
 			engineClassName = ImpalaEngine.class.getName();
 			engine = new ImpalaEngine();
 		}
 		try {
-			tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(newAppId, newAppName, owlFile, engineClassName,dbType, host, port, schema, username, password, additionalProperties);
+			tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(newAppId, newAppName, owlFile, engineClassName, dbType, host, port, schema, username, password, additionalProperties);
 			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		} catch (IOException | SQLException e) {
 			e.printStackTrace();

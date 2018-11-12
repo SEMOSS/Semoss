@@ -2,7 +2,6 @@ package prerna.util.sql;
 
 public class ImpalaQueryUtil extends SQLQueryUtil {
 	
-	public static final String DATABASE_DRIVER = "com.cloudera.impala.jdbc4.Driver";
 	private String connectionBase = "jdbc:impala://HOST:PORT/SCHEMA";
 
 	public ImpalaQueryUtil(){
@@ -28,8 +27,8 @@ public class ImpalaQueryUtil extends SQLQueryUtil {
 	}
 	
 	@Override
-	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.IMPALA;
+	public RdbmsTypeEnum getDatabaseType(){
+		return RdbmsTypeEnum.IMPALA;
 	}
 
 	@Override
@@ -45,7 +44,7 @@ public class ImpalaQueryUtil extends SQLQueryUtil {
 	
 	@Override
 	public String getDatabaseDriverClassName(){
-		return DATABASE_DRIVER;
+		return RdbmsTypeEnum.IMPALA.getDriver();
 	}
 
 	@Override
