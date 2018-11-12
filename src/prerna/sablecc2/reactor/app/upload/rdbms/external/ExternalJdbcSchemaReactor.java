@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.upload.rdbms.external;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -76,24 +77,9 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
-		String schemaFilter = null;
-		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
-		// THIS METHOD OT BE IMPLEMENTED ON THE
-		// DRIVERS
-		if(meta.getDriverMinorVersion() >= 7) {
-			try {
-				schemaFilter = con.getSchema();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		ResultSet tablesRs;
-		try {
-			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
-		} catch (SQLException e) {
-			throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		}
+		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con);
+
+		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(meta, catalogFilter, schemaFilter, tableAndViewFilters); 
 		
 		final String TABLE_KEY = "table";
 		final String COLUMNS_KEY = "columns";
@@ -106,24 +92,19 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		final String FROM_COL_KEY = "fromCol";
 		
 		try {
-			while (tablesRs.next()) {
-				String tableOrView = tablesRs.getString("table_name");
-				
-				// add filter check
-				if(hasFilters && !tableAndViewFilters.contains(tableOrView)) {
-					// we will ignore this table and view!
-					continue;
-				}
-				
-				// this will be table or view
-				String tableType = tablesRs.getString("table_type").toUpperCase();
+			while (tableViewIterator.hasNext()) {
+				String[] nextRow = tableViewIterator.next();
+				String tableOrView = nextRow[0];
+				String tableType = nextRow[1];
+				String schem = nextRow[2];
 				boolean isTable = tableType.equalsIgnoreCase("TABLE");
+
+				// this will be table or view
 				if(isTable) {
 					logger.info("Processing table = " + tableOrView);
 				} else {
 					// there may be views built from sys or information schema
 					// we want to ignore these
-					String schem = tablesRs.getString("table_schem");
 					if(schem != null) {
 						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("SYS")) {
 							continue;
@@ -216,10 +197,12 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 					}
 				}
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
 		} finally {
-			closeRs(tablesRs);
+			try {
+				tableViewIterator.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			if(con != null) {
 				try {
 					con.close();

@@ -1,5 +1,6 @@
 package prerna.poi.main;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -17,9 +18,11 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.reactor.app.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
@@ -217,92 +220,7 @@ public class RDBMSEngineCreationHelper {
 	}
 	
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine) {
-		// get the metadata from the connection
-		RDBMSNativeEngine rdbms = (RDBMSNativeEngine) rdbmsEngine;
-		Connection con = rdbms.makeConnection();
-		DatabaseMetaData meta = rdbms.getConnectionMetadata();
-		
-		String catalogFilter = null;
-		try {
-			catalogFilter = con.getCatalog();
-		} catch (SQLException e1) {
-			e1.printStackTrace();
-		}
-		String schemaFilter = null;
-		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
-		// THIS METHOD OT BE IMPLEMENTED ON THE
-		// DRIVERS
-		if(meta.getDriverMinorVersion() >= 7) {
-			try {
-				schemaFilter = con.getSchema();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		// table that will store 
-		// table_name -> {
-		// 					colname1 -> coltype,
-		//					colname2 -> coltype,
-		//				}
-		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
-		
-		// get all the tables
-		ResultSet tables = null;
-		try {
-			tables = meta.getTables(catalogFilter, schemaFilter, null, new String[]{"TABLE", "VIEW" });
-			while(tables.next()) {
-				// this will be table or view
-				String tableType = tables.getString("table_type").toUpperCase();
-				if(tableType.equals("VIEW")) {
-					// there may be views built from sys or information schema
-					// we want to ignore these
-					String schem = tables.getString("table_schem");
-					if(schem != null) {
-						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("SYS")) {
-							continue;
-						}
-					}
-				}
-				
-				// get the table name
-				String table = tables.getString("table_name");
-				// keep a map of the columns
-				Map<String, String> colDetails = new HashMap<String, String>();
-				// iterate through the columns
-				
-				ResultSet keys = null;
-				try {
-					keys = meta.getColumns(catalogFilter, schemaFilter, table, null);
-					while(keys.next()) {
-						colDetails.put(keys.getString("column_name"), keys.getString("type_name").toUpperCase());
-					}
-				} catch(SQLException e) {
-					e.printStackTrace();
-				} finally {
-					try {
-						if(keys != null) {
-							keys.close();
-						}
-					} catch (SQLException e1) {
-						e1.printStackTrace();
-					}
-				}
-				tableColumnMap.put(table, colDetails);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				if(tables != null) {
-					tables.close();
-				}
-			} catch (SQLException e1) {
-				e1.printStackTrace();
-			}
-		}
-
-		return tableColumnMap;
+		return getExistingRDBMSStructure(rdbmsEngine, null);
 	}
 	
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(IEngine rdbmsEngine, Set<String> tablesToRetrieve) {
@@ -317,17 +235,7 @@ public class RDBMSEngineCreationHelper {
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
-		String schemaFilter = null;
-		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
-		// THIS METHOD OT BE IMPLEMENTED ON THE
-		// DRIVERS
-		if(meta.getDriverMinorVersion() >= 7) {
-			try {
-				schemaFilter = con.getSchema();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con);
 		
 		// table that will store 
 		// table_name -> {
@@ -337,22 +245,20 @@ public class RDBMSEngineCreationHelper {
 		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
 
 		// get all the tables
-		ResultSet tables = null;
+		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(meta, catalogFilter, schemaFilter, tablesToRetrieve); 
+
 		try {
-			tables = meta.getTables(catalogFilter, schemaFilter, null, new String[]{"TABLE", "VIEW"});
-			while(tables.next()) {
-				// get the table name
-				String table = tables.getString("table_name");
-				if(!tablesToRetrieve.contains(table)) {
-					continue;
-				}
+			while (tableViewIterator.hasNext()) {
+				String[] nextRow = tableViewIterator.next();
+				String tableOrView = nextRow[0];
+
 				// keep a map of the columns
 				Map<String, String> colDetails = new HashMap<String, String>();
 				// iterate through the columns
 				
 				ResultSet keys = null;
 				try {
-					keys = meta.getColumns(catalogFilter, schemaFilter, table, null);
+					keys = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 					while(keys.next()) {
 						colDetails.put(keys.getString("column_name"), keys.getString("type_name"));
 					}
@@ -367,17 +273,13 @@ public class RDBMSEngineCreationHelper {
 						e1.printStackTrace();
 					}
 				}
-				tableColumnMap.put(table, colDetails);
+				tableColumnMap.put(tableOrView, colDetails);
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
 		} finally {
 			try {
-				if(tables != null) {
-					tables.close();
-				}
-			} catch (SQLException e1) {
-				e1.printStackTrace();
+				tableViewIterator.close();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 

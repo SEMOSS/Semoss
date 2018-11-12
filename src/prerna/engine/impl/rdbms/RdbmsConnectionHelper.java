@@ -1,6 +1,7 @@
 package prerna.engine.impl.rdbms;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -190,4 +191,27 @@ public class RdbmsConnectionHelper {
 		ds.setDefaultAutoCommit(false);
 		return ds;
 	}
+	
+	/**
+	 * Try to predict the current schema for a given database connection
+	 * @param meta
+	 * @param con
+	 * @return
+	 */
+	public static String getSchema(DatabaseMetaData meta, Connection con) {
+		String schema = null;
+		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
+		// THIS METHOD OT BE IMPLEMENTED ON THE
+		// DRIVERS
+		if(meta.getDriverMinorVersion() >= 7) {
+			try {
+				schema = con.getSchema();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return schema;
+	}
+	
 }
