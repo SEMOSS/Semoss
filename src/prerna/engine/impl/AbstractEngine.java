@@ -241,7 +241,7 @@ public abstract class AbstractEngine implements IEngine {
 							// TODO: EVENTUALLY WE WILL DELETE THIS
 							// TODO: EVENTUALLY WE WILL DELETE THIS
 							// TODO: EVENTUALLY WE WILL DELETE THIS
-							InsightsDatabaseUpdater3CacheableColumn.update(this.insightRDBMS);
+							InsightsDatabaseUpdater3CacheableColumn.update(this.engineId, this.insightRDBMS);
 						}
 					}
 				}
