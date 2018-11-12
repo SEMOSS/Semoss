@@ -51,7 +51,7 @@ import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.sql.RDBMSUtility;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class UploadUtilities {
 
@@ -231,7 +231,7 @@ public class UploadUtilities {
 			bufferedWriter = new BufferedWriter(writer);
 			
 			String engineClassName = "";
-			if(rdbmsType.equals(RdbmsConnectionHelper.IMPALA)) {
+			if(rdbmsType.equals(RdbmsTypeEnum.IMPALA.getLabel())) {
 				engineClassName = ImpalaEngine.class.getName();
 			} else {
 				engineClassName = RDBMSNativeEngine.class.getName();
@@ -797,8 +797,8 @@ public class UploadUtilities {
 		prop.put(Constants.CONNECTION_URL, connectionUrl);
 		prop.put(Constants.USERNAME, "sa");
 		prop.put(Constants.PASSWORD, "");
-		prop.put(Constants.DRIVER, RdbmsConnectionHelper.H2_DRIVER);
-		prop.put(Constants.RDBMS_TYPE, SQLQueryUtil.DB_TYPE.H2_DB.toString());
+		prop.put(Constants.DRIVER, RdbmsTypeEnum.H2_DB.getDriver());
+		prop.put(Constants.RDBMS_TYPE, RdbmsTypeEnum.H2_DB.getLabel());
 		prop.put("TEMP", "TRUE");
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setProp(prop);

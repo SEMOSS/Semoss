@@ -23,6 +23,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 @Deprecated
@@ -74,7 +75,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String owlPath = options.getOwlFileLocation();	
 		cleanString = options.getCleanString();
 		
-		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		
 		boolean error = false;
@@ -159,7 +160,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		autoLoad = options.isAutoLoad();
 		cleanString = options.getCleanString();
 		
-		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		
 		Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
@@ -953,7 +954,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String engineName = "abcd123";
 		String customBase = "http://semoss.org/ontologies";
-		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+		RdbmsTypeEnum dbType = RdbmsTypeEnum.H2_DB;
 
 		// write .temp to convert to .smss
 		PropFileWriter propWriter = new PropFileWriter();

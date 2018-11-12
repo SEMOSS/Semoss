@@ -5,7 +5,6 @@ import prerna.util.DIHelper;
 
 public class SQLServerQueryUtil extends SQLQueryUtil {	
 	
-	public static final String DATABASE_DRIVER = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 	private String connectionBase = "jdbc:sqlserver://localhost:"+DIHelper.getInstance().getProperty(Constants.SQL_Server_PORT); // 127.0.0.1 or localhost using SQL Server authentication, default port number is 1433 or use jdbc:sqlserver://127.0.0.1:1433;databaseName=TestDB;user=root;Password=root
 
 	public SQLServerQueryUtil(){
@@ -33,8 +32,8 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	}
 	
 	@Override
-	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.SQL_SERVER;
+	public RdbmsTypeEnum getDatabaseType(){
+		return RdbmsTypeEnum.SQLSERVER;
 	}
 
 	@Override
@@ -50,7 +49,7 @@ public class SQLServerQueryUtil extends SQLQueryUtil {
 	
 	@Override
 	public String getDatabaseDriverClassName(){
-		return DATABASE_DRIVER;
+		return RdbmsTypeEnum.SQLSERVER.getDriver();
 	}
 
 	@Override

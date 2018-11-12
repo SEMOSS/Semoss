@@ -2,7 +2,6 @@ package prerna.util.sql;
 
 public class MySQLQueryUtil extends SQLQueryUtil {
 	
-	public static final String DATABASE_DRIVER = "com.mysql.jdbc.Driver";
 	private String connectionBase = "jdbc:mysql://HOST:PORT/SCHEMA";
 
 	public MySQLQueryUtil(){
@@ -28,8 +27,8 @@ public class MySQLQueryUtil extends SQLQueryUtil {
 	}
 	
 	@Override
-	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.MYSQL;
+	public RdbmsTypeEnum getDatabaseType(){
+		return RdbmsTypeEnum.MYSQL;
 	}
 
 	@Override
@@ -45,7 +44,7 @@ public class MySQLQueryUtil extends SQLQueryUtil {
 	
 	@Override
 	public String getDatabaseDriverClassName(){
-		return DATABASE_DRIVER;
+		return RdbmsTypeEnum.MYSQL.getDriver();
 	}
 
 	@Override

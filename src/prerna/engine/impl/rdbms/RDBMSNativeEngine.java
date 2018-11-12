@@ -70,7 +70,7 @@ import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
 import prerna.util.sql.RDBMSUtility;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 
@@ -86,7 +86,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 	boolean engineConnected = false;
 	boolean datasourceConnected = false;
-	private SQLQueryUtil.DB_TYPE dbType;
+	private RdbmsTypeEnum dbType;
 	private BasicDataSource dataSource = null;
 	Connection engineConn = null;
 	private boolean useConnectionPooling = false;
@@ -149,11 +149,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 			this.useConnectionPooling = Boolean.valueOf(prop.getProperty(Constants.USE_CONNECTION_POOLING));
 
-			this.dbType = (dbTypeString != null) ? (SQLQueryUtil.DB_TYPE.valueOf(dbTypeString.toUpperCase())) : (SQLQueryUtil.DB_TYPE.H2_DB);
+			this.dbType = (dbTypeString != null) ? RdbmsTypeEnum.getEnumFromString(dbTypeString) : RdbmsTypeEnum.H2_DB;
 			if(this.dbType == null) {
-				this.dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+				this.dbType = RdbmsTypeEnum.H2_DB;
 			}
-			if(this.dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
+			if(this.dbType == RdbmsTypeEnum.H2_DB) {
 				this.connectionURL = RDBMSUtility.fillH2ConnectionURL(this.connectionURL, this.engineId, this.engineName);
 			}
 			
@@ -679,7 +679,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		super.deleteDB();
 	}
 
-	public SQLQueryUtil.DB_TYPE getDbType() {
+	public RdbmsTypeEnum getDbType() {
 		return this.dbType;
 	}
 
@@ -764,11 +764,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	
 	@Override
 	public IQueryInterpreter getQueryInterpreter(){
-		if(dbType == null || dbType == SQLQueryUtil.DB_TYPE.H2_DB) {
+		if(dbType == null || dbType == RdbmsTypeEnum.H2_DB) {
 			return new H2SqlInterpreter(this);
-		} else if(dbType == SQLQueryUtil.DB_TYPE.SQL_SERVER) {
+		} else if(dbType == RdbmsTypeEnum.SQLSERVER) {
 			return new MicrosoftSqlServerInterpreter(this);
-		} else if(dbType == SQLQueryUtil.DB_TYPE.POSTGRES) {
+		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
 			return new PostgresInterpreter(this);
 		}
 		// defualt ansi sql 
