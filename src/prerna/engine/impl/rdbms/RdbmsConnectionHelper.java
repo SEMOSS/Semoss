@@ -203,9 +203,33 @@ public class RdbmsConnectionHelper {
 		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
 		// THIS METHOD OT BE IMPLEMENTED ON THE
 		// DRIVERS
-		if(meta.getDriverMinorVersion() >= 7) {
-			try {
+		try {
+			if(meta.getJDBCMajorVersion() >= 7) {
 				schema = con.getSchema();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		if(schema != null) {
+			return schema;
+		}
+		
+		String driverName = null;
+		try {
+			driverName = meta.getDriverName().toLowerCase();
+		} catch (SQLException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
+		
+		// in oracle
+		// the datbase/schema/user are all considered the same thing
+		// so here, if we want to filter
+		// we use the user name
+		if(driverName.contains("oracle")) {
+			try {
+				schema = meta.getUserName();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
