@@ -160,9 +160,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "SELECT DISTINCT "
 				+ "ENGINE.ENGINEID as \"app_id\", "
 				+ "ENGINE.ENGINENAME as \"app_name\", "
+				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\", "
 				+ "ENGINE.GLOBAL as \"app_global\" "
 				+ "FROM ENGINE "
-				+ "ORDER BY ENGINE.ENGINENAME";
+				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}

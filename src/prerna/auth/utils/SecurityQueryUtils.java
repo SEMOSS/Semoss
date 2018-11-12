@@ -2,6 +2,8 @@ package prerna.auth.utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -152,6 +154,18 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			result.add(map);
 		}
 		
+		// now we need to loop through and order the results
+		Collections.sort(result, new Comparator<Map<String, Object>>() {
+
+			@Override
+			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+				String appName1 = o1.get("app_name").toString().toLowerCase();
+				String appName2 = o2.get("app_name").toString().toLowerCase();
+				return appName1.compareTo(appName2);
+			}
+		
+		});
+		
 		return result;
 	}
 
@@ -162,7 +176,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserDatabaseList(User user) {
 		String userFilters = getUserFilters(user);
-		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+		String query = "SELECT DISTINCT "
+				+ "ENGINE.ENGINEID as \"app_id\", "
+				+ "ENGINE.ENGINENAME as \"app_name\", "
+				+ "ENGINE.TYPE as \"app_type\", "
+				+ "ENGINE.COST as \"app_cost\","
+				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
@@ -170,7 +189,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "( ENGINE.GLOBAL=TRUE "
 				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
 				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + ") "
-				+ "ORDER BY ENGINE.ENGINENAME";	
+				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";	
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -181,10 +200,15 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList() {
-		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+		String query = "SELECT DISTINCT "
+				+ "ENGINE.ENGINEID as \"app_id\", "
+				+ "ENGINE.ENGINENAME as \"app_name\", "
+				+ "ENGINE.TYPE as \"app_type\", "
+				+ "ENGINE.COST as \"app_cost\", "
+				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "ORDER BY ENGINE.ENGINENAME";
+				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -197,13 +221,18 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getUserDatabaseList(User user, String... engineFilter) {
 		String userFilters = getUserFilters(user);
 		String filter = createFilter(engineFilter); 
-		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+		String query = "SELECT DISTINCT "
+				+ "ENGINE.ENGINEID as \"app_id\", "
+				+ "ENGINE.ENGINENAME as \"app_name\", "
+				+ "ENGINE.TYPE as \"app_type\", "
+				+ "ENGINE.COST as \"app_cost\", "
+				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "WHERE "
 				+ (!filter.isEmpty() ? ("ENGINE.ENGINEID " + filter + " AND ") : "")
 				+ "(ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
-				+ "ORDER BY ENGINE.ENGINENAME";
+				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -215,10 +244,15 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getAllDatabaseList(String... engineFilter) {
 		String filter = createFilter(engineFilter); 
-		String query = "SELECT DISTINCT ENGINE.ENGINEID as \"app_id\", ENGINE.ENGINENAME as \"app_name\", ENGINE.TYPE as \"app_type\", ENGINE.COST as \"app_cost\" "
+		String query = "SELECT DISTINCT "
+				+ "ENGINE.ENGINEID as \"app_id\", "
+				+ "ENGINE.ENGINENAME as \"app_name\", "
+				+ "ENGINE.TYPE as \"app_type\", "
+				+ "ENGINE.COST as \"app_cost\", "
+				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
 				+ "FROM ENGINE "
  				+ (!filter.isEmpty() ? ("WHERE ENGINE.ENGINEID " + filter + " ") : "")
-				+ "ORDER BY ENGINE.ENGINENAME";
+				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
@@ -498,7 +532,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "INSIGHT.CREATEDON as \"created_on\", "
 				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
 				+ "INSIGHT.CACHEABLE as \"cacheable\", "
-				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\", "
+				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
@@ -508,7 +543,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
 						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
-				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
@@ -526,13 +561,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "INSIGHT.CREATEDON as \"created_on\", "
 				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
 				+ "INSIGHT.CACHEABLE as \"cacheable\", "
-				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\", "
+				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
-				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
@@ -656,7 +692,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String userFilters = getUserFilters(user);
 
 		String query = "SELECT DISTINCT "
-				+ "INSIGHT.INSIGHTNAME as \"name\" "
+				+ "INSIGHT.INSIGHTNAME as \"name\", "
+				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
 				+ "FROM INSIGHT "
 				+ "LEFT JOIN ENGINEPERMISSION ON INSIGHT.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
@@ -664,7 +701,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "(USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
 						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
-				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
@@ -673,10 +710,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	public static List<String> predictInsightSearch(String searchTerm, String limit, String offset) {
-		String query = "SELECT DISTINCT INSIGHT.INSIGHTNAME as \"name\" "
+		String query = "SELECT DISTINCT "
+				+ "INSIGHT.INSIGHTNAME as \"name\", "
+				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
 				+ "FROM INSIGHT "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
-				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
@@ -711,7 +750,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "INSIGHT.CREATEDON as \"created_on\", "
 				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
 				+ "INSIGHT.CACHEABLE as \"cacheable\", "
-				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\", "
+				+ "LOWER(INSIGHT.INSIGHTNAME) AS \"low_name\" "
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
@@ -728,7 +768,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) )) "
 				// and match what i search
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i') " : "")
-				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
@@ -757,10 +797,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "INSIGHT.CREATEDON as \"created_on\", "
 				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
 				+ "INSIGHT.CACHEABLE as \"cacheable\", "
-				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\" "
+				+ "CONCAT(INSIGHT.ENGINEID, '_', INSIGHT.INSIGHTID) AS \"id\", "
+				+ "LOWER(INSIGHT.INSIGHTNAME) AS \"low_name\" "
 				+ "FROM INSIGHT INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
-				+ "ORDER BY INSIGHT.INSIGHTNAME "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
