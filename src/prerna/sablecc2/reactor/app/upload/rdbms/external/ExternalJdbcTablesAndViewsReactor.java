@@ -67,17 +67,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
-		String schemaFilter = null;
-		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
-		// THIS METHOD OT BE IMPLEMENTED ON THE
-		// DRIVERS
-		if(meta.getDriverMinorVersion() >= 7) {
-			try {
-				schemaFilter = con.getSchema();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con);
 		
 		ResultSet tablesRs;
 		try {
@@ -97,12 +87,6 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 				} else {
 					// there may be views built from sys or information schema
 					// we want to ignore these
-					String schem = tablesRs.getString("table_schem");
-					if(schem != null) {
-						if(schem.equalsIgnoreCase("INFORMATION_SCHEMA") || schem.equalsIgnoreCase("SYS")) {
-							continue;
-						}
-					}
 					logger.info("Found view = " + table);
 					views.add(table);
 				}
