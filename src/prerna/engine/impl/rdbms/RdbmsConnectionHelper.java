@@ -131,7 +131,7 @@ public class RdbmsConnectionHelper {
 		
 		// add additional properties that are considered optional
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
-			if(!additonalProperties.startsWith(";") || !additonalProperties.startsWith("&")) {
+			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
 				connectionUrl += ";" + additonalProperties;
 			} else {
 				connectionUrl += additonalProperties;
