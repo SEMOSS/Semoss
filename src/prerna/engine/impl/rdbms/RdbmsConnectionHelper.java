@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 
@@ -233,6 +235,21 @@ public class RdbmsConnectionHelper {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
+		} else if(driverName.contains("postgres")) {
+			try {
+				String url = meta.getURL();
+				if(url.contains("?currentSchema=")) {
+					Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
+					Matcher m = p.matcher(url);
+					if(m.find()) {
+						schema = m.group(0);
+						schema = schema.replace("currentSchema=", "");
+					}
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			
 		}
 		
 		return schema;
