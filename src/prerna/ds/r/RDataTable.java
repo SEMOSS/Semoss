@@ -17,6 +17,7 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.Insight;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -24,6 +25,7 @@ import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 public class RDataTable extends AbstractTableDataFrame {
@@ -32,6 +34,11 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	private RFrameBuilder builder;
 
+	public RDataTable() {
+		AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(new Insight(), this.logger);
+		this.builder = new RFrameBuilder(rJavaTranslator);
+	}
+	
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator) {
 		this.builder = new RFrameBuilder(rJavaTranslator);
 	}
