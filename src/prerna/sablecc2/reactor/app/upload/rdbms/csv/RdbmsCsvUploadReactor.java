@@ -27,6 +27,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -753,14 +754,14 @@ public class RdbmsCsvUploadReactor extends AbstractReactor {
 		}
 		type = type.toUpperCase();
 		if (type.contains("VARCHAR")) {
-			return "'" + RDBMSEngineCreationHelper.escapeForSQLStatement(Utility.cleanString(value.toString(), true))
+			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(Utility.cleanString(value.toString(), true))
 					+ "'";
 		} else if (Utility.isNumericType(type)) {
 			return value;
 		} else if (type.contains("DATE")) {
 			return "'" + value + "'";
 		}
-		return "'" + RDBMSEngineCreationHelper.escapeForSQLStatement(value.toString()) + "'";
+		return "'" + RdbmsQueryBuilder.escapeForSQLStatement(value.toString()) + "'";
 	}
 
 	private String createInsertStatement(String concept, String defaultInsertQuery, String[] values,
