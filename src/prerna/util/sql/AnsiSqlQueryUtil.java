@@ -6,7 +6,7 @@ import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 
 public class AnsiSqlQueryUtil extends SQLQueryUtil {
 
-	private DB_TYPE dbType = null;
+	private RdbmsTypeEnum dbType = null;
 	private String hostname;
 	private String port;
 	private String schema;
@@ -18,7 +18,7 @@ public class AnsiSqlQueryUtil extends SQLQueryUtil {
 		
 	}
 	
-	public AnsiSqlQueryUtil(DB_TYPE dbType, String hostname, String port, String schema, String username, String password) {
+	public AnsiSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		this.dbType = dbType;
 		this.hostname = hostname;
 		this.port = port;
@@ -32,12 +32,12 @@ public class AnsiSqlQueryUtil extends SQLQueryUtil {
 		}
 	}
 
-	public void setDbType(DB_TYPE dbType) {
+	public void setDbType(RdbmsTypeEnum dbType) {
 		this.dbType = dbType;
 	}
 	
 	@Override
-	public DB_TYPE getDatabaseType() {
+	public RdbmsTypeEnum getDatabaseType() {
 		return this.dbType;
 	}
 
@@ -56,7 +56,7 @@ public class AnsiSqlQueryUtil extends SQLQueryUtil {
 
 	@Override
 	public String getDatabaseDriverClassName() {
-		return RdbmsConnectionHelper.getDriver(this.dbType.name());
+		return dbType.getDriver();
 	}
 	
 	@Override

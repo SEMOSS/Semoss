@@ -1,7 +1,6 @@
 package prerna.query.interpreters.sql;
 
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -40,6 +39,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 public class ImpalaInterpreter extends AbstractQueryInterpreter {
@@ -80,7 +80,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 	// store the joins in the object for easy use
 	private SqlJoinStructList joinStructList = new SqlJoinStructList();
 
-	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
+	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(RdbmsTypeEnum.IMPALA);
 
 	public ImpalaInterpreter() {
 

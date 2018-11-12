@@ -31,6 +31,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSReader extends AbstractCSVFileReader {
@@ -92,7 +93,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
 		String propertyFiles = options.getPropertyFiles();
-		SQLQueryUtil.DB_TYPE dbType = options.getRDBMSDriverType();
+		RdbmsTypeEnum dbType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
 		String engineID = options.getEngineID();
 		
@@ -192,7 +193,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
-		SQLQueryUtil.DB_TYPE dbType = options.getRDBMSDriverType();
+		RdbmsTypeEnum dbType = options.getRDBMSDriverType();
 		String propertyFiles = options.getPropertyFiles();
 		boolean allowDuplicates = options.isAllowDuplicates();
 
@@ -1262,7 +1263,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String engineName = "Movie_RDMBS_OWL_NEW";
 		String customBase = "http://semoss.org/ontologies";
-		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+		RdbmsTypeEnum dbType = RdbmsTypeEnum.H2_DB;
 
 		// write .temp to convert to .smss
 		PropFileWriter propWriter = new PropFileWriter();

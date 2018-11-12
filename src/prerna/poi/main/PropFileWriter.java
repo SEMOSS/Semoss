@@ -44,6 +44,7 @@ import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.sql.RDBMSUtility;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 /**
@@ -67,7 +68,7 @@ public class PropFileWriter {
 	private String impalaEngine = "prerna.engine.impl.rdbms.ImpalaEngine";
 	private String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
 
-	private SQLQueryUtil.DB_TYPE dbDriverType = SQLQueryUtil.DB_TYPE.H2_DB;
+	private RdbmsTypeEnum dbDriverType = RdbmsTypeEnum.H2_DB;
 	SQLQueryUtil queryUtil;
 
 	// additional tinker props
@@ -212,7 +213,7 @@ public class PropFileWriter {
 				pw.write(Constants.USERNAME + "\t" + queryUtil.getDefaultDBUserName() + "\n");
 				pw.write(Constants.PASSWORD + "\t" + queryUtil.getDefaultDBPassword() + "\n");
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-				if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
+				if(queryUtil.getDatabaseType().equals(RdbmsTypeEnum.H2_DB)) {
 					if(fileName == null) {
 						pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");
 					} else {
@@ -290,7 +291,7 @@ public class PropFileWriter {
 		this.baseDirectory = baseDir;
 	}
 
-	public void setRDBMSType(SQLQueryUtil.DB_TYPE dbDriverType){
+	public void setRDBMSType(RdbmsTypeEnum dbDriverType){
 		this.dbDriverType = dbDriverType;
 	}
 
