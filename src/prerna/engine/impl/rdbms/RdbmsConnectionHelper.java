@@ -235,7 +235,7 @@ public class RdbmsConnectionHelper {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-		} else if(driverName.contains("postgres")) {
+		} else if(driverName.contains("postgres") || driverName.contains("sap")) {
 			try {
 				String url = meta.getURL();
 				if(url.contains("?currentSchema=")) {
