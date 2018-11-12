@@ -59,6 +59,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 /**
@@ -177,7 +178,7 @@ public class POIReader extends AbstractFileReader {
 		String fileNames = options.getFileLocations();
 		String customBase = options.getBaseUrl();
 		String owlFile = options.getOwlFileLocation();
-		SQLQueryUtil.DB_TYPE dbType = options.getRDBMSDriverType();
+		RdbmsTypeEnum dbType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
 		boolean error = false;
 		queryUtil = SQLQueryUtil.initialize(dbType);
@@ -1413,7 +1414,8 @@ public class POIReader extends AbstractFileReader {
 		String engineName = "test";options.setDbName(engineName);
 		String customBase = "http://semoss.org/ontologies";options.setBaseUrl(customBase);
 		String owlFile = DIHelper.getInstance().getProperty("BaseFolder") + "\\db\\" + engineName + "\\" + engineName + "_OWL.OWL";options.setOwlFileLocation(owlFile);
-		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;options.setRDBMSDriverType(dbType);
+		RdbmsTypeEnum dbType = RdbmsTypeEnum.H2_DB;
+		options.setRDBMSDriverType(dbType);
 		options.setAllowDuplicates(false);
 
 		//reader.importFileWithOutConnectionRDBMS(smssLocation, engineName, fileNames, customBase, owlFile, dbType, false);

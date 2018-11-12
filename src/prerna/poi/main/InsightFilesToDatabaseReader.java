@@ -24,7 +24,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class InsightFilesToDatabaseReader {
 
@@ -147,7 +147,7 @@ public class InsightFilesToDatabaseReader {
 			
 			// define the options for the uploader
 			ImportOptions options = new ImportOptions();
-			options.setRDBMSDriverType(SQLQueryUtil.DB_TYPE.H2_DB);
+			options.setRDBMSDriverType(RdbmsTypeEnum.H2_DB);
 			options.setAllowDuplicates(true);	
 			options.setDbName(engineName);
 			options.setFileLocation(fileLocation);
@@ -162,7 +162,7 @@ public class InsightFilesToDatabaseReader {
 				// first write the prop file for the new engine
 				PropFileWriter propWriter = new PropFileWriter();
 				propWriter.setBaseDir(baseDirectory);
-				propWriter.setRDBMSType(SQLQueryUtil.DB_TYPE.H2_DB);
+				propWriter.setRDBMSType(RdbmsTypeEnum.H2_DB);
 				propWriter.runWriter(engineName, "", ImportOptions.DB_TYPE.RDBMS);
 	
 				// need to go back and clean the prop writer
@@ -293,7 +293,7 @@ public class InsightFilesToDatabaseReader {
 			// first write the prop file for the new engine
 			PropFileWriter propWriter = new PropFileWriter();
 			propWriter.setBaseDir(baseDirectory);
-			propWriter.setRDBMSType(SQLQueryUtil.DB_TYPE.H2_DB);
+			propWriter.setRDBMSType(RdbmsTypeEnum.H2_DB);
 			propWriter.runWriter(engineName, "", ImportOptions.DB_TYPE.RDBMS);
 
 			if(fileLocation.isEmpty()) // check to see if they passed the file
@@ -318,7 +318,7 @@ public class InsightFilesToDatabaseReader {
 			options.setFileLocation(fileLocation);
 			options.setBaseUrl("");
 			options.setOwlFileLocation(owlPath);
-			options.setRDBMSDriverType(SQLQueryUtil.DB_TYPE.H2_DB);
+			options.setRDBMSDriverType(RdbmsTypeEnum.H2_DB);
 			options.setAllowDuplicates(true);			
 			options.setCleanString(true);
 			
