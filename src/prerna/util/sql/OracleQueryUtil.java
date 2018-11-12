@@ -1,7 +1,7 @@
 package prerna.util.sql;
 
 public class OracleQueryUtil extends SQLQueryUtil {
-	public static final String DATABASE_DRIVER = "oracle.jdbc.driver.OracleDriver";
+
 	private String connectionBase = "jdbc:oracle:thin:@HOST:PORT:SERVICE";
 
 	public OracleQueryUtil(){
@@ -27,8 +27,8 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	}
 	
 	@Override
-	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.ORACLE;
+	public RdbmsTypeEnum getDatabaseType(){
+		return RdbmsTypeEnum.ORACLE;
 	}
 	
 	@Override
@@ -44,7 +44,7 @@ public class OracleQueryUtil extends SQLQueryUtil {
 	
 	@Override
 	public String getDatabaseDriverClassName(){
-		return DATABASE_DRIVER;
+		return RdbmsTypeEnum.ORACLE.getDriver();
 	}
 
 	@Override

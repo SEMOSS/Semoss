@@ -39,6 +39,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 public class SqlInterpreter extends AbstractQueryInterpreter {
@@ -80,7 +81,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	// store the joins in the object for easy use
 	protected SqlJoinStructList joinStructList = new SqlJoinStructList();
 	
-	protected SQLQueryUtil queryUtil = SQLQueryUtil.initialize(SQLQueryUtil.DB_TYPE.H2_DB);
+	protected SQLQueryUtil queryUtil = SQLQueryUtil.initialize(RdbmsTypeEnum.H2_DB);
 	
 	public SqlInterpreter() {
 		

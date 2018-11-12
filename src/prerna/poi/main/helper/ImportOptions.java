@@ -5,7 +5,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ImportOptions {
 
@@ -193,12 +193,12 @@ public class ImportOptions {
 	 * Get the specific type of RDBMS engine
 	 * @return
 	 */
-	public SQLQueryUtil.DB_TYPE getRDBMSDriverType() {
-		return (SQLQueryUtil.DB_TYPE) thisMap.get(IMPORT_OPTIONS.DB_DRIVER_TYPE);
+	public RdbmsTypeEnum getRDBMSDriverType() {
+		return (RdbmsTypeEnum) thisMap.get(IMPORT_OPTIONS.DB_DRIVER_TYPE);
 	}
 	
 	
-	public void setRDBMSDriverType(SQLQueryUtil.DB_TYPE rdbmsDriverType) {
+	public void setRDBMSDriverType(RdbmsTypeEnum rdbmsDriverType) {
 		thisMap.put(IMPORT_OPTIONS.DB_DRIVER_TYPE, rdbmsDriverType);
 	}
 	

@@ -33,7 +33,6 @@ import prerna.util.DIHelper;
 //interchangable with mysql
 public class MariaDbQueryUtil extends SQLQueryUtil {
 	
-	public static final String DATABASE_DRIVER = "org.mariadb.jdbc.Driver";
 	private static String connectionBase = "jdbc:mysql://localhost:"+DIHelper.getInstance().getProperty(Constants.MARIADB_PORT);
 	private static String indexNameBind = "{indexName}";
 	private static String dbNameBind = "{dbName}";
@@ -48,8 +47,8 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 	}
 	
 	@Override
-	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.MARIA_DB;
+	public RdbmsTypeEnum getDatabaseType(){
+		return RdbmsTypeEnum.MARIADB;
 	}
 	@Override
 	public String getConnectionURL(String baseFolder,String dbname){
@@ -58,7 +57,7 @@ public class MariaDbQueryUtil extends SQLQueryUtil {
 
 	@Override
 	public String getDatabaseDriverClassName(){
-		return DATABASE_DRIVER;
+		return RdbmsTypeEnum.MARIADB.getDriver();
 	}
 	@Override
 	public String getDialectIndexInfo(String indexName, String dbName){

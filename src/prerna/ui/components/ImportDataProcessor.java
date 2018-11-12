@@ -66,6 +66,7 @@ import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 public class ImportDataProcessor {
@@ -716,7 +717,7 @@ public class ImportDataProcessor {
 		propWriter.setEngineID(options.getEngineID());
 		// need to make provision for dbType
 		if(dbType == ImportOptions.DB_TYPE.RDBMS) {
-			SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+			RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
 			if(options.getImportMethod().equals(ImportOptions.IMPORT_METHOD.CONNECT_TO_EXISTING_RDBMS)) { // TODO: check if this if check needs to be here
 				String host = options.getHost();
 				String port = options.getPort();
