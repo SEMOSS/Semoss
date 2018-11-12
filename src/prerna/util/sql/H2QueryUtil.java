@@ -29,8 +29,6 @@ package prerna.util.sql;
 
 public class H2QueryUtil extends SQLQueryUtil {
 	
-	public static final String DATABASE_DRIVER = "org.h2.Driver";
-	
 	public H2QueryUtil(){
 		super.setDialectAllIndexesInDB("SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' ORDER BY INDEX_NAME");
 		super.setDialectIndexInfo("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' AND INDEX_NAME = ");
@@ -39,8 +37,8 @@ public class H2QueryUtil extends SQLQueryUtil {
 	}
 	
 	@Override
-	public SQLQueryUtil.DB_TYPE getDatabaseType(){
-		return SQLQueryUtil.DB_TYPE.H2_DB;
+	public RdbmsTypeEnum getDatabaseType(){
+		return RdbmsTypeEnum.H2_DB;
 	}
 	
 	@Override
@@ -57,7 +55,7 @@ public class H2QueryUtil extends SQLQueryUtil {
 	
 	@Override
 	public String getDatabaseDriverClassName(){
-		return DATABASE_DRIVER;
+		return RdbmsTypeEnum.H2_DB.getDriver();
 	}
 	
 	@Override

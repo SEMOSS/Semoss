@@ -24,6 +24,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 @Deprecated
@@ -110,7 +111,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		cleanString = options.getCleanString();
 		String appID = options.getEngineID();
 		
-		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 
 		boolean error = false;
@@ -187,7 +188,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		boolean allowDuplicates = options.isAllowDuplicates();
 		cleanString = options.getCleanString();
 
-		SQLQueryUtil.DB_TYPE dbDriverType = options.getRDBMSDriverType();
+		RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
 		queryUtil = SQLQueryUtil.initialize(dbDriverType);
 		
 		boolean error = false;
@@ -826,7 +827,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String engineName = "abcd1234";
 		String customBase = "http://semoss.org/ontologies";
-		SQLQueryUtil.DB_TYPE dbType = SQLQueryUtil.DB_TYPE.H2_DB;
+		RdbmsTypeEnum dbType = RdbmsTypeEnum.H2_DB;
 
 		// write .temp to convert to .smss
 		PropFileWriter propWriter = new PropFileWriter();
