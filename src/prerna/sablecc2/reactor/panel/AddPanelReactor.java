@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.panel;
 
 import java.util.Random;
+import java.util.Set;
 
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
@@ -23,7 +24,12 @@ public class AddPanelReactor extends AbstractReactor {
 		String panelId = null;
 		organizeKeys();
 		if(this.keyValue.isEmpty()) {
+			// need to make sure the panel doesn't already exist
 			panelId = rand.nextInt(5000) + "";
+			Set<String> existingPanelIds = this.insight.getInsightPanels().keySet();
+			while(existingPanelIds.contains(panelId)) {
+				panelId = rand.nextInt(5000) + "";
+			}
 		} else {
 			panelId = this.keyValue.get(this.keysToGet[0]);
 		}
