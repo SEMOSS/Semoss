@@ -62,6 +62,7 @@ import prerna.sablecc2.reactor.app.metaeditor.routines.OwlIndirectNameMatchReact
 import prerna.sablecc2.reactor.app.metaeditor.routines.OwlInstanceSemanticCosineSimilarityMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlDescriptionsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlLogicalNamesReactor;
+import prerna.sablecc2.reactor.app.upload.CheckHeadersReactor;
 import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
@@ -462,6 +463,7 @@ public class ReactorFactory {
 		reactorHash.put("WidgetT", WidgetTrackingReactor.class);
 		
 		// Database uploading utils
+		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);
 		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
 		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
