@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.AccessToken;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -25,24 +26,86 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 */
 	public static Boolean addNativeUser(AccessToken newUser, String password) throws IllegalArgumentException{
 		validInformation(newUser, password);
-		boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
-		if(!isNewUser) {			
-			String salt = SecurityQueryUtils.generateSalt();
-			String hashedPassword = (SecurityQueryUtils.hash(password, salt));
-			String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('" + newUser.getEmail() + "', '"+ newUser.getName() + "', '" + newUser.getUsername() + "', '" + newUser.getEmail() + "', '" + newUser.getProvider() + "', 'FALSE', "
-					+ "'" + hashedPassword + "', '" + salt + "');";
-			
-			try {
-				securityDb.insertData(query);
+		
+		// is this an admin added user???
+		String query = "SELECT ID FROM USER WHERE "
+				+ "NAME='" + ADMIN_ADDED_USER + "' AND "
+				// this matching the ID field to the email because admin added user only sets the id field
+				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if(wrapper.hasNext()) {
+				// this was the old id that was added when the admin 
+				String oldId = RdbmsQueryBuilder.escapeForSQLStatement(wrapper.next().getValues()[0].toString());
+				
+				String newId = RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId());
+				// this user was added by the user
+				// and we need to update
+				
+				String salt = SecurityQueryUtils.generateSalt();
+				String hashedPassword = (SecurityQueryUtils.hash(password, salt));
+				
+				String updateQuery = "UPDATE USER SET "
+						+ "ID='"+ newId + "', "
+						+ "NAME='"+ RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', "
+						+ "USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', "
+						+ "EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', "
+						+ "TYPE='" + newUser.getProvider() + "',"
+						+ "PASSWORD='" + hashedPassword + "',"
+						+ "SALT='" + salt + "' "
+						+ "WHERE ID='" + oldId + "';";
+				try {
+					securityDb.insertData(updateQuery);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
+				// need to update any other permissions that were set for this user
+				updateQuery = "UPDATE ENGINEPERMISSION SET USERID='" +  newId +"' WHERE USERID='" + oldId + "'";
+				try {
+					securityDb.insertData(updateQuery);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
+				// need to update all the places the user id is used
+				updateQuery = "UPDATE USERINSIGHTPERMISSION SET USERID='" +  newId +"' WHERE USERID='" + oldId + "'";
+				try {
+					securityDb.insertData(updateQuery);
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				
 				securityDb.commit();
-			} catch (SQLException e) {
-				e.printStackTrace();
-				return false;
+				return true;
+			} else {
+				// not added by admin
+				// lets see if he exists or not
+				boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getUsername(), newUser.getEmail());
+				if(!isNewUser) {
+					String salt = SecurityQueryUtils.generateSalt();
+					String hashedPassword = (SecurityQueryUtils.hash(password, salt));
+					
+					query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('" + 
+							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
+							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
+							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
+							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
+							newUser.getProvider() + "', 'FALSE', '" + hashedPassword + "', '" + salt + "');";
+					try {
+						securityDb.insertData(query);
+						securityDb.commit();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+					return true;
+				}
 			}
-			return true;
-		} else {
-			return false;
+		} finally {
+			wrapper.cleanUp();
 		}
+		
+		return false;
 	}
 	
 	/**
