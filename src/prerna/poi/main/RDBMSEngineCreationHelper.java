@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
@@ -307,12 +308,8 @@ public class RDBMSEngineCreationHelper {
 		return s;
 	}
 	
-	public static String escapeForSQLStatement(String s) {
-		return s.replaceAll("'", "''");
-	}
-
 	public static boolean conceptExists(IEngine engine, String tableName, String colName, Object instanceValue) {
-		String query = "SELECT DISTINCT " + colName + " FROM " + tableName + " WHERE " + colName + "='" + RDBMSEngineCreationHelper.escapeForSQLStatement(instanceValue + "") + "'";
+		String query = "SELECT DISTINCT " + colName + " FROM " + tableName + " WHERE " + colName + "='" + RdbmsQueryBuilder.escapeForSQLStatement(instanceValue + "") + "'";
 		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
 		String[] names = wrapper.getVariables();
 		while(wrapper.hasNext()) {

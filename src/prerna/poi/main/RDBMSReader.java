@@ -22,6 +22,7 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.sail.SailException;
 
 import prerna.date.SemossDate;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -812,7 +813,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 
 		type = type.toUpperCase();
 		if(type.contains("VARCHAR")) {
-			return "'" + RDBMSEngineCreationHelper.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
+			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
 		} else if(type.contains("FLOAT") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("INT") || type.contains("LONG") || type.contains("BIGINT")
 				|| type.contains("TINYINT") || type.contains("SMALLINT")){
 			return value;
@@ -820,7 +821,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			return "'" + value + "'";
 		}
 
-		return "'" + RDBMSEngineCreationHelper.escapeForSQLStatement(value.toString()) + "'";
+		return "'" + RdbmsQueryBuilder.escapeForSQLStatement(value.toString()) + "'";
 	}
 
 	private Map<String, String> getDefaultInsertStatements() {
