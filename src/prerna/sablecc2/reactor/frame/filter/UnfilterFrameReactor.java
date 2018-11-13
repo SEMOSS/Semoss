@@ -8,35 +8,34 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 
-public class UnfilterFrameReactor extends AbstractReactor {
-	
+public class UnfilterFrameReactor extends AbstractFilterReactor {
+
 	public UnfilterFrameReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame frame = getFrame();
 		boolean foundFilter = false;
 		List<Object> colsToUnfilter = null;
-		if(this.curRow.size() > 0) {
+		if (this.curRow.size() > 0) {
 			colsToUnfilter = this.curRow.getValuesOfType(PixelDataType.COLUMN);
 		}
-		
-		if(colsToUnfilter == null || colsToUnfilter.isEmpty()) {
+
+		if (colsToUnfilter == null || colsToUnfilter.isEmpty()) {
 			foundFilter = frame.unfilter();
 		} else {
-			for(Object col : colsToUnfilter) {
+			for (Object col : colsToUnfilter) {
 				QueryColumnSelector cSelector = new QueryColumnSelector(col + "");
 				boolean isValidFilter = frame.unfilter(cSelector.getAlias());
-				if(isValidFilter) {
+				if (isValidFilter) {
 					foundFilter = true;
 				}
 			}
 		}
-		
+
 		NounMetadata noun = new NounMetadata(foundFilter, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
 		return noun;
 	}
