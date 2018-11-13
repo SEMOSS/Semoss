@@ -14,16 +14,16 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
-	
+
 	public ReplaceFrameFilterReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILTERS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILTERS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame frame = getFrame();
 		GenRowFilters filters = null;
-		
+
 		// get the existing filters
 		if (frame != null) {
 			filters = frame.getFrameFilters();
@@ -33,11 +33,11 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 
 		// get the filters to replace
 		List<IQueryFilter> replaceFilters = getReplaceFilters();
-		
+
 		// keep track of filters indices we are going to replace
 		List<Integer> indicesToRemove = new Vector<Integer>();
-		
-		//for each qf...
+
+		// for each qf...
 		for (IQueryFilter replaceFilter : replaceFilters) {
 			if(replaceFilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 				// compare the filter with existing filters to only delete the correct one, assuming it does exist
@@ -54,9 +54,9 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 				}
 			}
 		}
-		
+
 		// do we have things to remove?
-		if(!indicesToRemove.isEmpty()) {
+		if (!indicesToRemove.isEmpty()) {
 			Collections.sort(indicesToRemove);
 			// first we need to delete the highest index in order to not change the index of what we are deleting
 			for(int i = indicesToRemove.size(); i > 0 ; i--) {
@@ -64,7 +64,7 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 				filters.removeFilter(indicesToRemove.get(i - 1).intValue());
 			}
 		}
-		
+
 		// now we add the new filters
 		for (IQueryFilter replaceFilter : replaceFilters) {
 			filters.addFilters(replaceFilter);
@@ -81,10 +81,11 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 
 	/**
 	 * get the filters to be deleted
+	 * 
 	 * @return
 	 */
 	private List<IQueryFilter> getReplaceFilters() {
-		//retrieve filter input
+		// retrieve filter input
 		GenRowFilters grf = getFilters();
 		List<IQueryFilter> qfList = grf.getFilters();
 		return qfList;
