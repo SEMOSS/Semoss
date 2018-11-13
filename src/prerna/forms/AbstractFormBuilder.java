@@ -92,6 +92,44 @@ public abstract class AbstractFormBuilder {
 		this.engine.commit();
 	}
 	
+	/**
+	 * Utility method to generate a form user access table if it doesn't currently exist
+	 * @param formEng
+	 */
+	public static void generateFormPermissionTable(IEngine formEng) {
+		// create audit table if doesn't exist
+		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='FORMS_USER_ACCESS'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(formEng, checkTableQuery);
+		boolean permissionTableExists = false;
+		if(wrapper.hasNext()) {
+			permissionTableExists = true;
+			// call the next so we close the rs
+			wrapper.next();
+		}
+		wrapper.cleanUp();
+		if(!permissionTableExists) {
+			OWLER owler = new OWLER(formEng, formEng.getOWL());
+			owler.addConcept("FORMS_USER_ACCESS", "USER_ID", "VARCHAR(100)");
+			owler.addProp("FORMS_USER_ACCESS", "USER_ID", "INSTANCE_NAME", "VARCHAR(255)", null);
+			owler.addProp("FORMS_USER_ACCESS", "USER_ID", "IS_SYS_ADMIN", "BOOLEAN", null);
+
+			LOGGER.info("CREATING PERMISSION TABLE!!!");
+			String query = RdbmsQueryBuilder.makeCreate("FORMS_USER_ACCESS", new String[]{"USER_ID", "INSTANCE_NAME", "IS_SYS_ADMIN"}, new String[]{"VARCHAR(100)", "VARCHAR(255)", "BOOLEAN"});
+			LOGGER.info("SQL SCRIPT >>> " + query);
+			try {
+				formEng.insertData(query);
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
+			owler.commit();
+			try {
+				owler.export();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	protected void generateEngineAuditLog(String auditLogTableName) {
 		// create audit table if doesn't exist
 		String checkTableQuery = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='" + auditLogTableName + "'";
@@ -102,17 +140,18 @@ public abstract class AbstractFormBuilder {
 			// call the next so we close the rs
 			wrapper.next();
 		}
+		wrapper.cleanUp();
 		if(!auditTableExists) {
 			OWLER owler = new OWLER(this.formEng, this.formEng.getOWL());
 			owler.addConcept(auditLogTableName, "ID", "INT");
-			owler.addProp(auditLogTableName, "ID", "USER", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "ID", "ACTION", "VARCHAR(100)");
-			owler.addProp(auditLogTableName, "ID", "START_NODE", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "ID", "REL_NAME", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "ID", "END_NODE", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "ID", "PROP_NAME", "VARCHAR(255)");
-			owler.addProp(auditLogTableName, "ID", "PROP_VALUE", "CLOB");
-			owler.addProp(auditLogTableName, "ID", "TIME", "TIMESTAMP");
+			owler.addProp(auditLogTableName, "ID", "USER", "VARCHAR(255)", null);
+			owler.addProp(auditLogTableName, "ID", "ACTION", "VARCHAR(100)", null);
+			owler.addProp(auditLogTableName, "ID", "START_NODE", "VARCHAR(255)", null);
+			owler.addProp(auditLogTableName, "ID", "REL_NAME", "VARCHAR(255)", null);
+			owler.addProp(auditLogTableName, "ID", "END_NODE", "VARCHAR(255)", null);
+			owler.addProp(auditLogTableName, "ID", "PROP_NAME", "VARCHAR(255)", null);
+			owler.addProp(auditLogTableName, "ID", "PROP_VALUE", "CLOB", null);
+			owler.addProp(auditLogTableName, "ID", "TIME", "TIMESTAMP", null);
 
 			LOGGER.info("CREATING NEW AUDIT LOG!!!");
 			StringBuilder createAuditTable = new StringBuilder("CREATE TABLE ");
@@ -152,6 +191,7 @@ public abstract class AbstractFormBuilder {
 			while(wrapper.hasNext()) {
 				cols.add(wrapper.next().getValues()[0] + "");
 			}
+			wrapper.cleanUp();
 			// 2) find the cols that we need to add
 			List<String> colsToAdd = new Vector<String>();
 			List<String> colsToAddTypes = new Vector<String>();
