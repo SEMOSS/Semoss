@@ -13,14 +13,14 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DeleteFrameFilterReactor extends AbstractFilterReactor {
-	
+
 	public DeleteFrameFilterReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INDEX.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.INDEX.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame frame = getFrame();
 		GenRowFilters filters = null;
 
 		// get the existing filters
@@ -33,7 +33,7 @@ public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 		// first try to delete based on index
 		List<Integer> indexList = getOrderedIndexes();
 		// first we need to delete the highest index in order to not change the index of what we are deleting
-		for(int i = indexList.size(); i > 0 ; i--) {
+		for (int i = indexList.size(); i > 0; i--) {
 			// remove the filter at the index specified by the index list
 			filters.removeFilter(indexList.get(i - 1).intValue());
 		}
@@ -49,6 +49,7 @@ public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 
 	/**
 	 * return an ordered list of the filter indexes that we want to delete
+	 * 
 	 * @return
 	 */
 	private List<Integer> getOrderedIndexes() {
@@ -57,16 +58,16 @@ public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 		GenRowStruct formatGRS = this.store.getNoun(keysToGet[0]);
 		if (formatGRS != null && formatGRS.size() > 0) {
 			for (int i = 0; i < formatGRS.size(); i++) {
-				indexList.add(((Number)formatGRS.getNoun(i).getValue()).intValue());
+				indexList.add(((Number) formatGRS.getNoun(i).getValue()).intValue());
 			}
 		} else {
 			List<Object> numericInputs = this.curRow.getAllNumericColumns();
 			for (int i = 0; i < numericInputs.size(); i++) {
-				indexList.add(((Number)numericInputs.get(i)).intValue());
+				indexList.add(((Number) numericInputs.get(i)).intValue());
 			}
 		}
 		// sort so that we can later remove based on the highest first
-		if(indexList.isEmpty()) {
+		if (indexList.isEmpty()) {
 			throw new IllegalArgumentException("No indices are defined");
 		}
 		Collections.sort(indexList);
