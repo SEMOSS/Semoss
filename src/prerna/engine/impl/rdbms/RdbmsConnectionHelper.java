@@ -202,21 +202,6 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String getSchema(DatabaseMetaData meta, Connection con) {
 		String schema = null;
-		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
-		// THIS METHOD OT BE IMPLEMENTED ON THE
-		// DRIVERS
-		try {
-			if(meta.getJDBCMajorVersion() >= 7) {
-				schema = con.getSchema();
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-		if(schema != null) {
-			return schema;
-		}
-		
 		String driverName = null;
 		try {
 			driverName = meta.getDriverName().toLowerCase();
@@ -235,21 +220,48 @@ public class RdbmsConnectionHelper {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-		} else if(driverName.contains("postgres") || driverName.contains("sap")) {
-			try {
-				String url = meta.getURL();
-				if(url.contains("?currentSchema=")) {
-					Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
-					Matcher m = p.matcher(url);
-					if(m.find()) {
-						schema = m.group(0);
-						schema = schema.replace("currentSchema=", "");
-					}
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
+		}
+		
+		if(schema != null) {
+			return schema;
+		}
+		
+		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
+		// THIS METHOD OT BE IMPLEMENTED ON THE
+		// DRIVERS
+		try {
+			if(meta.getJDBCMajorVersion() >= 7) {
+				schema = con.getSchema();
 			}
-			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		String url = null;
+		try {
+			url = meta.getURL();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		if(url.contains("?currentSchema=")) {
+			Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
+			Matcher m = p.matcher(url);
+			if(m.find()) {
+				schema = m.group(0);
+				schema = schema.replace("currentSchema=", "");
+				return schema;
+			}
+		}
+		
+		if(url.contains("?schema=")) {
+			Pattern p = Pattern.compile("schema=[a-zA-Z0-9_]*");
+			Matcher m = p.matcher(url);
+			if(m.find()) {
+				schema = m.group(0);
+				schema = schema.replace("schema=", "");
+				return schema;
+			}
 		}
 		
 		return schema;
