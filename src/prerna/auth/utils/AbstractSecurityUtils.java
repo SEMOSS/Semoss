@@ -175,6 +175,44 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
+		// ACCESSREQUEST
+		colNames = new String[] { "id", "submittedby", "engine", "permission" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ACCESSREQUEST", colNames, types));
+		
+		// THIS IS FOR LEGACY !!!!
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: EVENTUALLY WE WILL DELETE THIS
+		
+		// ADD NEW COLUMN FOR CACHEABLE INSIGHTS
+		securityDb.insertData("ALTER TABLE INSIGHT ADD COLUMN IF NOT EXISTS CACHEABLE BOOLEAN DEFAULT TRUE");
+		
+		// DROP COLUMN SUBMITTEDTO IN TABLE ACCESSREQUEST
+		securityDb.removeData("ALTER TABLE ACCESSREQUEST DROP COLUMN IF EXISTS SUBMITTEDTO");
+		// CHANGE TYPES TO BE STRINGS WHERE APPROPRIATE
+		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ACCESSREQUEST' and COLUMN_NAME IN ('ID','ENGINE')");
+		while(wrapper.hasNext()) {
+			Object[] row = wrapper.next().getValues();
+			String column = row[0].toString();
+			String type = row[1].toString();
+			if(!type.equals("VARCHAR")) {
+				securityDb.insertData("ALTER TABLE ACCESSREQUEST ALTER COLUMN " + column + " VARCHAR(255);");
+			}
+		}
+		wrapper.cleanUp();
+		
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		
+		/*
+		 * Tables accounted for that we are not using yet...
+		 */
+		
 		// USER
 		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
@@ -200,7 +238,7 @@ public abstract class AbstractSecurityUtils {
 		colNames = new String[] {"groupenginepermissionid", "groupid", "permission", "engine"};
 		types = new String[] {"int identity", "integer", "integer", "varchar(255)"};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
-
+		
 		// FOREIGN KEYS FOR CASCASDE DELETE
 		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPENGINEPERMISSION'");
 		if(wrapper.hasNext()) {
@@ -215,28 +253,6 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		
-		// THIS IS FOR LEGACY !!!!
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		securityDb.insertData("ALTER TABLE INSIGHT ADD COLUMN IF NOT EXISTS CACHEABLE BOOLEAN DEFAULT TRUE");
-		
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		
-		/*
-		 * Tables accounted for that we are not using yet...
-		 */
-		
-		// ACCESSREQUEST
-		colNames = new String[] { "id", "submittedby", "submittedto", "engine", "permission" };
-		types = new String[] { "integer", "varchar(255)", "varchar(255)", "integer", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ACCESSREQUEST", colNames, types));
-
 //		// GROUPINSIGHTPERMISSION
 //		colNames = new String[] { "groupid", "engineid", "insightid" };
 //		types = new String[] { "integer", "integer", "varchar(255)" };
