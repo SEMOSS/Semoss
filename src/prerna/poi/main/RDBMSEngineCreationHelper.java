@@ -236,7 +236,7 @@ public class RDBMSEngineCreationHelper {
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con);
+		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, rdbms.getConnectionUrl());
 		
 		// table that will store 
 		// table_name -> {
