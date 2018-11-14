@@ -830,6 +830,39 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 	
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Get all current user requests
+	 * @param user
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserAccessRequests(User user) {
+		String filter = getUserFilters(user);
+		String query = "SELECT DISTINCT ID, ENGINE, PERMISSION FROM ACCESSREQUEST "
+				+ "WHERE SUBMITTEDBY IN " + filter;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
+	 * Get all user requests including specific user id
+	 * @param user
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserAccessRequestsByProvider(User user, String engineFilter) {
+		String filter = getUserFilters(user);
+		String query = "SELECT DISTINCT ID, SUBMITTEDBY, ENGINE, PERMISSION FROM ACCESSREQUEST "
+				+ "WHERE ENGINE='" + engineFilter + "' AND SUBMITTEDBY IN " + filter;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	
 	private static String escapeRegexCharacters(String s) {
 		s = s.trim();
 		s = s.replace("(", "\\(");
