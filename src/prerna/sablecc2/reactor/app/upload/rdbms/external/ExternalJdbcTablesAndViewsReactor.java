@@ -43,9 +43,11 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		String schema = this.keyValue.get(this.keysToGet[5]);
 		String additionalProperties = this.keyValue.get(this.keysToGet[6]);
 
-		Connection con;
+		String connectionUrl = null;;
+		Connection con = null;
 		try {
-			con = RdbmsConnectionHelper.buildConnection(driver, host, port, username, password, schema, additionalProperties);
+			connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);
+			con = RdbmsConnectionHelper.buildConnection(connectionUrl, username, password, driver);
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to establish connection given the connection details", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
@@ -67,7 +69,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		} catch (SQLException e1) {
 			e1.printStackTrace();
 		}
-		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con);
+		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl);
 		
 		ResultSet tablesRs;
 		try {
