@@ -16,9 +16,9 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import prerna.auth.AccessPermission;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.EnginePermission;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
@@ -344,7 +344,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 	
 	public static void addEngineOwner(String engineId, String userId) {
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', " + EnginePermission.OWNER.getId() + ", '" + engineId + "', TRUE);";
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY) VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "', " + AccessPermission.OWNER.getId() + ", '" + engineId + "', TRUE);";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
@@ -930,7 +930,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return true
 	 */
-	public static Boolean setPermissionsForGroup(String groupId, String engineId, EnginePermission permission) {
+	public static Boolean setPermissionsForGroup(String groupId, String engineId, AccessPermission permission) {
 		String query = "INSERT INTO GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID, ENGINE, GROUPID, PERMISSION) VALUES (NULL,'?1', '?2', '?3')";
 		query = query.replace("?1", engineId);
 		query = query.replace("?2", groupId);
@@ -959,7 +959,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		return true;
 	}
 	
-	public static Boolean setPermissionsForUser(String engineId, String userToAdd, EnginePermission permission) {
+	public static Boolean setPermissionsForUser(String engineId, String userToAdd, AccessPermission permission) {
 		String query = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION) VALUES ('?1', '?2', '?3')";
 		query = query.replace("?1", engineId);
 		query = query.replace("?2", userToAdd);
@@ -1002,7 +1002,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		for(Map<String, String> map : groupsToAdd) {
 			String perm = map.get("permission");
-			setPermissionsForGroup(map.get("id"), engineId, EnginePermission.getPermissionByValue(perm));
+			setPermissionsForGroup(map.get("id"), engineId, AccessPermission.getPermissionByValue(perm));
 		}
 		
 		List<Map<String, String>> usersToAdd = users.get("add");
@@ -1014,7 +1014,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		for(Map<String, String> map : usersToAdd) {
 			String perm = map.get("permission");
-			setPermissionsForUser(engineId, map.get("id"), EnginePermission.getPermissionByValue(perm));
+			setPermissionsForUser(engineId, map.get("id"), AccessPermission.getPermissionByValue(perm));
 		}
 		
 	}
