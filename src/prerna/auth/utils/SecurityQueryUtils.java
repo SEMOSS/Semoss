@@ -12,8 +12,8 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
-import prerna.auth.EnginePermission;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -379,7 +379,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				return false;
 			}
 			int permission = ((Number) val).intValue();
-			if(EnginePermission.isOwner(permission)) {
+			if(AccessPermission.isOwner(permission)) {
 				return true;
 			}
 		}
@@ -403,7 +403,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				return false;
 			}
 			int permission = ((Number) val).intValue();
-			if(EnginePermission.isEditor(permission)) {
+			if(AccessPermission.isEditor(permission)) {
 				return true;
 			}
 		}
@@ -437,7 +437,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				return false;
 			}
 			int permission = ((Number) val).intValue();
-			if(EnginePermission.isOwner(permission)) {
+			if(AccessPermission.isOwner(permission)) {
 				return true;
 			}
 		}
@@ -1183,7 +1183,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 			userInfo.put("id", user[0]);
 			userInfo.put("name", user[1]);
-			userInfo.put("permission", EnginePermission.getPermissionValueById(user[2]));	
+			userInfo.put("permission", AccessPermission.getPermissionValueById(user[2]));	
 
 			ret.get("users").add(userInfo);
 		}
@@ -1201,7 +1201,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 			userInfo.put("id", group[0]);
 			userInfo.put("name", group[1]);
-			userInfo.put("permission", EnginePermission.getPermissionValueById(group[2]));	
+			userInfo.put("permission", AccessPermission.getPermissionValueById(group[2]));	
 
 			ret.get("groups").add(userInfo);
 		}
