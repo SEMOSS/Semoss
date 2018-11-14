@@ -176,6 +176,22 @@ public class RdbmsConnectionHelper {
 	}
 	
 	/**
+	 * Try to construct the connection URL based on inputs
+	 * @param driver
+	 * @param host
+	 * @param port
+	 * @param userName
+	 * @param password
+	 * @param schema
+	 * @param additonalProperties
+	 * @return
+	 * @throws SQLException 
+	 */
+	public static Connection buildConnection(String connectionUrl, String userName, String password, String driver) throws SQLException {
+		return getConnection(connectionUrl, userName, password, driver);
+	}
+	
+	/**
 	 * 
 	 * @param driver
 	 * @param connectURI
@@ -200,7 +216,7 @@ public class RdbmsConnectionHelper {
 	 * @param con
 	 * @return
 	 */
-	public static String getSchema(DatabaseMetaData meta, Connection con) {
+	public static String getSchema(DatabaseMetaData meta, Connection con, String connectionUrl) {
 		String schema = null;
 		String driverName = null;
 		try {
@@ -244,6 +260,18 @@ public class RdbmsConnectionHelper {
 			e.printStackTrace();
 		}
 		
+		schema = predictSchemaFromUrl(url);
+		if(schema != null) {
+			return schema;
+		}
+		schema = predictSchemaFromUrl(connectionUrl);
+		
+		return schema;
+	}
+	
+	private static String predictSchemaFromUrl(String url) {
+		String schema = null;
+		
 		if(url.contains("?currentSchema=")) {
 			Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
 			Matcher m = p.matcher(url);
@@ -266,5 +294,4 @@ public class RdbmsConnectionHelper {
 		
 		return schema;
 	}
-	
 }
