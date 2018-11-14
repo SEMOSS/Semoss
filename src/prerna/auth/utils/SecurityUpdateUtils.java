@@ -6,9 +6,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -1077,6 +1081,84 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			wrapper.cleanUp();
 		}
 		securityDb.commit();
+	}
+	
+	/**
+	 * Set if the database is public to all users on this instance
+	 * @param user
+	 * @param engineId
+	 * @param isPublic
+	 * @return
+	 * @throws SQLException 
+	 */
+	public static boolean makeRequest(User user, String engineId, int requestedPermission) throws SQLException {
+		// make sure this person isn't requesting multiple times
+		if(!SecurityQueryUtils.getGlobalEngineIds().contains(engineId)) {
+			throw new IllegalArgumentException("Cannot request access to an app that is not public");
+		}
+		
+		StringBuilder builder = new StringBuilder();
+		String[] colNames = new String[]{"ID", "SUBMITTEDBY", "ENGINE", "PERMISSION"};
+		String[] types = new String[]{"VARCHAR(100)", "VARCHAR(255)", "VARCHAR(255)", "INT"};
+		
+		List<Map<String, Object>> existingRequests = SecurityQueryUtils.getUserAccessRequestsByProvider(user, engineId);
+		if(existingRequests.isEmpty()) {
+			// brand new requests
+			String requestId = UUID.randomUUID().toString();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider provider : logins) {
+				Object[] data = new Object[]{requestId, user.getAccessToken(provider).getId(), engineId, requestedPermission};
+				builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
+			}
+			
+			securityDb.insertData(builder.toString());
+		} else {
+			// are there new logins for this request that are needed, or not?
+			List<String> userIds = new Vector<String>();
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider provider : logins) {
+				userIds.add(user.getAccessToken(provider).getId());
+			}
+			
+			Set<String> uniqueRequestIds = new HashSet<String>();
+			List<String> curUserIds = new Vector<String>();
+			for(Map<String, Object> requestObj : existingRequests) {
+				uniqueRequestIds.add(requestObj.get("ID").toString());
+				curUserIds.add(requestObj.get("SUBMITTEDBY").toString());
+			}
+			
+			// do a minus
+			userIds.removeAll(curUserIds);
+			if(userIds.isEmpty()) {
+				// nothing to add
+				// return false that we have done nothing
+				return false;
+			} else {
+				if(uniqueRequestIds.size() == 1) {
+					String requestId = uniqueRequestIds.iterator().next();
+					for(String userId : userIds) {
+						Object[] data = new Object[]{requestId, userId, engineId, requestedPermission};				
+						builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
+					}
+					securityDb.insertData(builder.toString());
+				} else {
+					// we will update all the ids to be the same
+					String newRequestId = UUID.randomUUID().toString();
+					// first insert the new records
+					for(String userId : userIds) {
+						Object[] data = new Object[]{newRequestId, userId, engineId, requestedPermission};				
+						builder.append(RdbmsQueryBuilder.makeInsert("ACCESSREQUEST", colNames, types, data)).append(";");
+					}
+					securityDb.insertData(builder.toString());
+					
+					// now update the old ones since we have the same user
+					String updateQuery = "UPDATE ACCESSREQUEST SET ID='" + newRequestId + "' WHERE ID IN " + createFilter(uniqueRequestIds);
+					securityDb.insertData(updateQuery);
+				}
+			}
+		}
+		
+		return true;
 	}
 	
 	/**
