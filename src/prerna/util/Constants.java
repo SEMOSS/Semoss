@@ -465,6 +465,9 @@ public class Constants {
 	public static final String ANONYMOUS_USER_ID = "-1";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
 	
+	// Theming
+	public static final String THEMING_DB = "theming";
+	
 	//RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
