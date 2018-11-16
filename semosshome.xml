@@ -21,6 +21,8 @@
         <include>LocalMasterDatabase.smss</include>
         <include>security/</include>
         <include>security.smss</include>
+		<include>themes/</include>
+		<include>themes.smss</include>
         <include>foaf.xml</include>
       </includes>
     </fileSet>
