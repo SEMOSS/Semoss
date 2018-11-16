@@ -42,4 +42,11 @@ public abstract class AbstractThemeUtils {
 		themeDb.commit();
 	}
 	
+	/**
+	 * Determine if the theme db is present to be able to set custom themes
+	 * @return
+	 */
+	public static boolean isInitalized() {
+		return AbstractThemeUtils.initialized;
+	}
 }
