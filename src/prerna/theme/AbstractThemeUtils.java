@@ -9,6 +9,7 @@ import prerna.util.Utility;
 
 public abstract class AbstractThemeUtils {
 
+	static boolean initialized = false;
 	static RDBMSNativeEngine themeDb;
 
 	
@@ -19,9 +20,10 @@ public abstract class AbstractThemeUtils {
 		
 	}
 	
-	public static void loadSecurityDatabase() throws SQLException {
+	public static void loadThemingDatabase() throws SQLException {
 		themeDb = (RDBMSNativeEngine) Utility.getEngine(Constants.THEMING_DB);
 		initialize();
+		initialized = true;
 	}
 
 	private static void initialize() throws SQLException {
@@ -39,4 +41,5 @@ public abstract class AbstractThemeUtils {
 		// commit the changes
 		themeDb.commit();
 	}
+	
 }
