@@ -38,6 +38,17 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		return null;
 	}
 	
+	/**
+	 * Get the active theme
+	 * @return
+	 */
+	public static Object getActiveAdminTheme() {
+		String query = "SELECT theme_map FROM ADMIN_THEME WHERE is_active=TRUE;";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
+		return flushRsToObject(wrapper);
+	}
+	
+	
 	/*
 	 * all other methods should be on the instance
 	 * so that we cannot bypass security easily
@@ -137,20 +148,5 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			return false;
 		}
 		return true;
-	}
-	
-	static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
-		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
-		while(wrapper.hasNext()) {
-			IHeadersDataRow headerRow = wrapper.next();
-			String[] headers = headerRow.getHeaders();
-			Object[] values = headerRow.getValues();
-			Map<String, Object> map = new HashMap<String, Object>();
-			for(int i = 0; i < headers.length; i++) {
-				map.put(headers[i], values[i]);
-			}
-			result.add(map);
-		}
-		return result;
 	}
 }
