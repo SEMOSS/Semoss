@@ -83,7 +83,8 @@ public class SmssUpdater {
 					System.out.println("DONE!");
 				} else if(!engineName.equals(Constants.LOCAL_MASTER_DB_NAME) && 
 						!engineName.equals(Constants.SECURITY_DB) &&
-						!engineName.equals(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME)){
+						!engineName.equals(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME) && 
+						!engineName.equals(Constants.THEMING_DB)){
 					
 					// we will make a unique id
 					String newId = UUID.randomUUID().toString();
