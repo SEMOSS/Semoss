@@ -879,10 +879,12 @@ public class OWLER {
 	///////////////////// TESTING /////////////////////
 	public static void main(String [] args) {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		OWLER owler = new OWLER( "C:\\workspace\\Semoss_Dev\\city_county_match_OWL.OWL", IEngine.ENGINE_TYPE.RDBMS);
+		OWLER owler = new OWLER( "C:\\workspace\\Semoss_Dev\\themes_OWL.OWL", IEngine.ENGINE_TYPE.RDBMS);
 		
-		owler.addConcept("CITY_STATE ", "CITY_STATE", "VARCHAR(54)");
-		owler.addProp("CITY_STATE", "CITY_STATE", "COUNTY_STATE", "VARCHAR(61)", null);
+		owler.addConcept("ADMIN_THEME ", "id", "VARCHAR(255)");
+		owler.addProp("ADMIN_THEME ", "id", "theme_name", "VARCHAR(255)", null);
+		owler.addProp("ADMIN_THEME ", "id", "theme_map", "CLOB", null);
+		owler.addProp("ADMIN_THEME ", "id", "is_active", "BOOLEAN", null);
 
 		// load the owl into a rfse
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
