@@ -1,8 +1,14 @@
 package prerna.theme;
 
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -11,7 +17,6 @@ public abstract class AbstractThemeUtils {
 
 	static boolean initialized = false;
 	static RDBMSNativeEngine themeDb;
-
 	
 	/**
 	 * Only used for static references
@@ -48,5 +53,28 @@ public abstract class AbstractThemeUtils {
 	 */
 	public static boolean isInitalized() {
 		return AbstractThemeUtils.initialized;
+	}
+	
+	static List<Map<String, Object>> flushRsToMap(IRawSelectWrapper wrapper) {
+		List<Map<String, Object>> result = new Vector<Map<String, Object>>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow headerRow = wrapper.next();
+			String[] headers = headerRow.getHeaders();
+			Object[] values = headerRow.getValues();
+			Map<String, Object> map = new HashMap<String, Object>();
+			for(int i = 0; i < headers.length; i++) {
+				map.put(headers[i], values[i]);
+			}
+			result.add(map);
+		}
+		return result;
+	}
+	
+	static Object flushRsToObject(IRawSelectWrapper wrapper) {
+		Object obj = null;
+		if(wrapper.hasNext()) {
+			obj = wrapper.next().getValues()[0];
+		}
+		return obj;
 	}
 }
