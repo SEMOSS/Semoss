@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
+import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -44,12 +45,20 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.theme.AbstractThemeUtils;
 
 /**
  * This class opens a thread and watches a specific SMSS file.
  */
 public class SMSSWebWatcher extends AbstractFileWatcher {
 
+	private static List<String> ignoreSmssList = new Vector<String>();
+	static {
+		ignoreSmssList.add(Constants.LOCAL_MASTER_DB_NAME);
+		ignoreSmssList.add(Constants.SECURITY_DB);
+		ignoreSmssList.add(Constants.THEMING_DB);
+	}
+	
 	private static final Logger LOGGER = LogManager.getLogger(SMSSWebWatcher.class.getName());
 
 	/**
@@ -169,16 +178,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				//TODO: need to account for remote!!!!
 				//TODO: need to account for remote!!!!
 				//TODO: need to account for remote!!!!
-				if(!engineTypeString.equals("REMOTE")) {
-					boolean isLocal = engineId.equals(Constants.LOCAL_MASTER_DB_NAME);
-					boolean isSecurity = engineId.equals(Constants.SECURITY_DB);
-					if(!isLocal & !isSecurity) {
-						// sync up the engine metadata now
-						Utility.synchronizeEngineMetadata(engineId);
-						SecurityUpdateUtils.addApp(engineId);
-					}
+				if(!engineTypeString.equals("REMOTE") && !ignoreSmssList.contains(engineId)) {
+					// sync up the engine metadata now
+					Utility.synchronizeEngineMetadata(engineId);
+					SecurityUpdateUtils.addApp(engineId);
 				} else {
-					System.out.println("Ignoring remote engine ... " + prop.getProperty(Constants.ENGINE_ALIAS) + " >>> " + engineId );
+					System.out.println("Ignoring engine ... " + prop.getProperty(Constants.ENGINE_ALIAS) + " >>> " + engineId );
 				}
 			}
 		} catch(Exception e){
@@ -235,6 +240,21 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			// remove it from DIHelper
 			DIHelper.getInstance().removeLocalProperty(Constants.SECURITY_DB);
 			e.printStackTrace();
+		}
+		
+		String themingDbName = Constants.THEMING_DB + this.extension;
+		int themingDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, themingDbName);
+		if(themingDbNameIndex > -1) {
+			loadExistingDB(fileNames[themingDbNameIndex]);
+			// initialize the security database
+			try {
+				AbstractThemeUtils.loadThemingDatabase();
+			} catch (SQLException e) {
+				// we couldn't initialize the db
+				// remove it from DIHelper
+				DIHelper.getInstance().removeLocalProperty(Constants.THEMING_DB);
+				e.printStackTrace();
+			}
 		}
 	}
 

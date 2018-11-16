@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Vector;
 
 import prerna.auth.User;
@@ -78,7 +79,8 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @param isActive
 	 * @return
 	 */
-	public boolean createAdminTheme(String themeId, String themeName, String themeMap, boolean isActive) {
+	public String createAdminTheme(String themeName, String themeMap, boolean isActive) {
+		String themeId = UUID.randomUUID().toString();
 		themeName = RdbmsQueryBuilder.escapeForSQLStatement(themeName);
 		themeMap = RdbmsQueryBuilder.escapeForSQLStatement(themeMap);
 
@@ -91,9 +93,9 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			themeDb.commit();
 		} catch (SQLException e) {
 			e.printStackTrace();
-			return false;
+			return null;
 		}
-		return true;
+		return themeId;
 	}
 	
 	/**

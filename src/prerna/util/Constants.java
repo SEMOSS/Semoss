@@ -466,7 +466,7 @@ public class Constants {
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
 	
 	// Theming
-	public static final String THEMING_DB = "theming";
+	public static final String THEMING_DB = "themes";
 	
 	//RDBMS specific
 	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of inner joins
