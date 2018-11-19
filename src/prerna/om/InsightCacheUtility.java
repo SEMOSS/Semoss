@@ -131,7 +131,7 @@ public class InsightCacheUtility {
 	 * @return
  	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(File insightCacheZip) throws IOException, JsonSyntaxException {
+	public static Insight readInsightCache(File insightCacheZip) throws IOException, RuntimeException {
 		ZipFile zip = null;
 		ZipEntry entry = null;
 		InputStream is = null;

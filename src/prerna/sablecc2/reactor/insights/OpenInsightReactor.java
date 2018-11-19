@@ -157,7 +157,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					// need to transfer again
 					InsightUtility.transferDefaultVars(this.insight, newInsight);
 				}
-			} catch (IOException | JsonSyntaxException e) {
+			} catch (IOException | RuntimeException e) {
 				hasCache = true;
 				e.printStackTrace();
 			}
@@ -181,7 +181,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		} else if(cacheable && hasCache) {
 			try {
 				runner = getCachedInsightData(cachedInsight);
-			} catch (IOException | JsonSyntaxException e) {
+			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId);
 				additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.", 
 						PixelDataType.CONST_STRING, PixelOperationType.WARNING);
