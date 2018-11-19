@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.gson.JsonSyntaxException;
-
 import prerna.om.Insight;
 import prerna.om.InsightCacheUtility;
 import prerna.om.InsightStore;
@@ -44,7 +42,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 					cachedInsight.setInsightName(this.insight.getInsightName());
 					this.insight = cachedInsight;
 				}
-			} catch (IOException | JsonSyntaxException e) {
+			} catch (IOException | RuntimeException e) {
 				hasCache = true;
 				e.printStackTrace();
 			}
@@ -69,7 +67,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		} else if(cacheable && hasCache) {
 			try {
 				runner = getCachedInsightData(cachedInsight);
-			} catch (IOException | JsonSyntaxException e) {
+			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
 				additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.", 
 						PixelDataType.CONST_STRING, PixelOperationType.WARNING);
