@@ -10,7 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 
-public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticSelector> {
+public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticSelector> implements IQueryTypeAdapter {
 	
 	@Override
 	public QueryArithmeticSelector read(JsonReader in) throws IOException {
@@ -19,52 +19,55 @@ public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticS
 			return null;
 		}
 
-		// might start with the type of the query selector
-		if(in.peek() == JsonToken.STRING) {
-			in.nextString();
-		}
-		
+		// remove the beginning objects
+		in.beginObject();
+		in.nextName();
+		in.nextString();
+		in.nextName();
+		QueryArithmeticSelector value = readContent(in);
+		in.endObject();
+		return value;
+	}
+	
+	@Override
+	public QueryArithmeticSelector readContent(JsonReader in) throws IOException {
 		QueryArithmeticSelector value = new QueryArithmeticSelector();
-
 		in.beginObject();
 		while(in.hasNext()) {
-			if(in.peek() == JsonToken.NAME){
-				String key = in.nextName();
-				if(key.equals("alias")) {
-					value.setAlias(in.nextString());
-				} else if(key.equals("mathExpr")) {
-					value.setMathExpr(in.nextString());
-				} else if(key.equals("left")) {
-					in.beginArray();
-					while(in.hasNext()) {
-						if(in.peek() == JsonToken.STRING) {
-							// this is the type of the left selector
-							in.nextString();
-						} else if(in.peek() == JsonToken.BEGIN_OBJECT) {
-							IQuerySelectorAdapter leftAdapter = new IQuerySelectorAdapter();
-							IQuerySelector leftSelector = leftAdapter.read(in);
-							value.setLeftSelector(leftSelector);
-						}
+			String key = in.nextName();
+			if(key.equals("alias")) {
+				value.setAlias(in.nextString());
+			} else if(key.equals("mathExpr")) {
+				value.setMathExpr(in.nextString());
+			} else if(key.equals("left")) {
+				in.beginArray();
+				while(in.hasNext()) {
+					if(in.peek() == JsonToken.STRING) {
+						// this is the type of the left selector
+						in.nextString();
+					} else if(in.peek() == JsonToken.BEGIN_OBJECT) {
+						IQuerySelectorAdapter leftAdapter = new IQuerySelectorAdapter();
+						IQuerySelector leftSelector = leftAdapter.read(in);
+						value.setLeftSelector(leftSelector);
 					}
-					in.endArray();
-				} else if(key.equals("right")) {
-					in.beginArray();
-					while(in.hasNext()) {
-						if(in.peek() == JsonToken.STRING) {
-							// this is the type of the left selector
-							in.nextString();
-						} else if(in.peek() == JsonToken.BEGIN_OBJECT) {
-							IQuerySelectorAdapter rightAdapter = new IQuerySelectorAdapter();
-							IQuerySelector rightSelector = rightAdapter.read(in);
-							value.setRightSelector(rightSelector);
-						}
-					}
-					in.endArray();
 				}
+				in.endArray();
+			} else if(key.equals("right")) {
+				in.beginArray();
+				while(in.hasNext()) {
+					if(in.peek() == JsonToken.STRING) {
+						// this is the type of the left selector
+						in.nextString();
+					} else if(in.peek() == JsonToken.BEGIN_OBJECT) {
+						IQuerySelectorAdapter rightAdapter = new IQuerySelectorAdapter();
+						IQuerySelector rightSelector = rightAdapter.read(in);
+						value.setRightSelector(rightSelector);
+					}
+				}
+				in.endArray();
 			}
 		}
 		in.endObject();
-		
 		return value;
 	}
 
@@ -76,9 +79,11 @@ public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticS
 		}
 		
 		// always start with the type of the query selector
-		out.value(IQuerySelector.SELECTOR_TYPE.ARITHMETIC.toString());
-
+		out.beginObject();
+		out.name("type").value(IQuerySelector.SELECTOR_TYPE.ARITHMETIC.toString());
+		out.name("content");
 		
+		// content object
 		out.beginObject();
 		out.name("alias").value(value.getAlias());
 		out.name("mathExpr").value(value.getMathExpr());
@@ -96,6 +101,8 @@ public class QueryArithmeticSelectorAdapter extends TypeAdapter<QueryArithmeticS
 		TypeAdapter rightOutput = IQuerySelector.getAdapterForSelector(right.getSelectorType());
 		rightOutput.write(out, right);
 		out.endArray();
+		out.endObject();
+		
 		out.endObject();
 	}
 }

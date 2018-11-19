@@ -19,11 +19,20 @@ public class IQuerySelectorAdapter extends TypeAdapter<IQuerySelector> {
 		}
 		
 		// should start with the type
+		in.beginObject();
+		in.nextName();
 		String selectorTypeString = in.nextString();
-		IQuerySelector.SELECTOR_TYPE selectorType = IQuerySelector.convertStringToSelectorType(selectorTypeString);
 		
-		TypeAdapter reader = IQuerySelector.getAdapterForSelector(selectorType);
-		return (IQuerySelector) reader.read(in);
+		// get the correct adapter
+		IQuerySelector.SELECTOR_TYPE selectorType = IQuerySelector.convertStringToSelectorType(selectorTypeString);
+		IQueryTypeAdapter reader = (IQueryTypeAdapter) IQuerySelector.getAdapterForSelector(selectorType);
+
+		// now we should have the content object
+		in.nextName();
+		IQuerySelector selector = reader.readContent(in);
+		in.endObject();
+		
+		return selector;
 	}
 	
 	@Override

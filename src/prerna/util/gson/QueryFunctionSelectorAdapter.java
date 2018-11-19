@@ -12,7 +12,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
-public class QueryFunctionSelectorAdapter extends TypeAdapter<QueryFunctionSelector> {
+public class QueryFunctionSelectorAdapter extends TypeAdapter<QueryFunctionSelector> implements IQueryTypeAdapter {
 	
 	@Override
 	public QueryFunctionSelector read(JsonReader in) throws IOException {
@@ -26,39 +26,48 @@ public class QueryFunctionSelectorAdapter extends TypeAdapter<QueryFunctionSelec
 			in.nextString();
 		}
 
+		// remove the beginning objects
+		in.beginObject();
+		in.nextName();
+		in.nextString();
+		in.nextName();
+		QueryFunctionSelector value = readContent(in);
+		in.endObject();
+		return value;
+	}
+	
+	@Override
+	public QueryFunctionSelector readContent(JsonReader in) throws IOException {
 		QueryFunctionSelector value = new QueryFunctionSelector();
-
 		in.beginObject();
 		while(in.hasNext()) {
-			if(in.peek() == JsonToken.NAME){
-				String key = in.nextName();
-				if(key.equals("alias")) {
-					value.setAlias(in.nextString());
-				} else if(key.equals("distinct")) {
-					value.setDistinct(in.nextBoolean());
-				} else if(key.equals("colCast")) {
-					value.setColCast(in.nextString());
-				} else if(key.equals("function")) {
-					value.setFunction(in.nextString());
-				} else if(key.equals("innerSelectors")) {
-					List<IQuerySelector> innerList = new Vector<IQuerySelector>();
-					
-					in.beginArray();
-					while(in.hasNext()) {
-						IQuerySelectorAdapter innerAdapter = new IQuerySelectorAdapter();
-						IQuerySelector innerSelector = innerAdapter.read(in);
-						innerList.add(innerSelector);
-					}
-					in.endArray();
-					
-					value.setInnerSelector(innerList);
+			String key = in.nextName();
+			if(key.equals("alias")) {
+				value.setAlias(in.nextString());
+			} else if(key.equals("distinct")) {
+				value.setDistinct(in.nextBoolean());
+			} else if(key.equals("colCast")) {
+				value.setColCast(in.nextString());
+			} else if(key.equals("function")) {
+				value.setFunction(in.nextString());
+			} else if(key.equals("innerSelectors")) {
+				List<IQuerySelector> innerList = new Vector<IQuerySelector>();
+				
+				in.beginArray();
+				while(in.hasNext()) {
+					IQuerySelectorAdapter innerAdapter = new IQuerySelectorAdapter();
+					IQuerySelector innerSelector = innerAdapter.read(in);
+					innerList.add(innerSelector);
 				}
+				in.endArray();
+				
+				value.setInnerSelector(innerList);
 			}
 		}
 		in.endObject();
-		
 		return value;
 	}
+
 
 	@Override
 	public void write(JsonWriter out, QueryFunctionSelector value) throws IOException {
@@ -68,8 +77,11 @@ public class QueryFunctionSelectorAdapter extends TypeAdapter<QueryFunctionSelec
 		}
 		
 		// always start with the type of the query selector
-		out.value(IQuerySelector.SELECTOR_TYPE.FUNCTION.toString());
+		out.beginObject();
+		out.name("type").value(IQuerySelector.SELECTOR_TYPE.FUNCTION.toString());
+		out.name("content");
 
+		// content object
 		out.beginObject();
 		out.name("alias").value(value.getAlias());
 		out.name("function").value(value.getFunction());
@@ -84,6 +96,8 @@ public class QueryFunctionSelectorAdapter extends TypeAdapter<QueryFunctionSelec
 			leftOutput.write(out, inner);
 		}
 		out.endArray();
+		out.endObject();
+		
 		out.endObject();
 	}
 }

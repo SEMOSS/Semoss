@@ -10,7 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 
-public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelector> {
+public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelector> implements IQueryTypeAdapter {
 
 	@Override 
 	public QueryConstantSelector read(JsonReader in) throws IOException {
@@ -19,18 +19,25 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 			return null;
 		}
 		
-		// might start with the type of the query selector
-		if(in.peek() == JsonToken.STRING) {
-			in.nextString();
-		}
+		// remove the beginning objects
+		in.beginObject();
+		in.nextName();
+		in.nextString();
+		in.nextName();
 		
+		// now we read the actual context
+		QueryConstantSelector value = readContent(in);
+		in.endObject();
+		return value;
+	}
+
+	@Override
+	public QueryConstantSelector readContent(JsonReader in) throws IOException {
 		QueryConstantSelector value = new QueryConstantSelector();
 		in.beginObject();
 		while(in.hasNext()) {
 			String key = in.nextName();
-			if(key.equals("selectorType")) {
-				in.nextString();
-			} else if(key.equals("alias")) {
+			if(key.equals("alias")) {
 				value.setAlias(in.nextString());
 			} else if(key.equals("constant")) {
 				if(in.peek() == JsonToken.NUMBER) {
@@ -40,9 +47,10 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 				}
 			}
 		}
+		in.endObject();
 		return value;
 	}
-
+	
 	@Override 
 	public void write(JsonWriter out, QueryConstantSelector value) throws IOException {
 		if (value == null) {
@@ -51,8 +59,10 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 		}
 		
 		// always start with the type of the query selector
-		out.value(IQuerySelector.SELECTOR_TYPE.CONSTANT.toString());
-		
+		out.beginObject();
+		out.name("type").value(IQuerySelector.SELECTOR_TYPE.CONSTANT.toString());
+		out.name("content");
+		// content object
 		out.beginObject();
 		out.name("alias").value(value.getAlias());
 		Object val = value.getConstant();
@@ -61,6 +71,7 @@ public class QueryConstantSelectorAdapter extends TypeAdapter<QueryConstantSelec
 		} else {
 			out.name("constant").value(val.toString());
 		}
+		out.endObject();
 		out.endObject();
 	}
 }
