@@ -10,7 +10,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 
-public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector> {
+public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector> implements IQueryTypeAdapter {
 
 	@Override 
 	public QueryOpaqueSelector read(JsonReader in) throws IOException {
@@ -19,25 +19,35 @@ public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector>
 			return null;
 		}
 
-		QueryOpaqueSelector value = new QueryOpaqueSelector();
+		// remove the beginning objects
 		in.beginObject();
-		while(in.hasNext()) {
-			if(in.peek() == JsonToken.NAME) {
-				String key = in.nextName();
-				if(key.equals("table")) {
-					value.setTable(in.nextString());
-				} else if(key.equals("alias")) {
-					value.setAlias(in.nextString());
-				} else if(key.equals("querySyntax")) {
-					value.setQuerySelectorSyntax(in.nextString());
-				}
-			}
-		}
+		in.nextName();
+		in.nextString();
+		in.nextName();
+		
+		// now we read the actual context
+		QueryOpaqueSelector value = readContent(in);
 		in.endObject();
-
 		return value;
 	}
 
+	@Override
+	public QueryOpaqueSelector readContent(JsonReader in) throws IOException {
+		QueryOpaqueSelector value = new QueryOpaqueSelector();
+		in.beginObject();
+		while(in.hasNext()) {
+			String key = in.nextName();
+			if(key.equals("table")) {
+				value.setTable(in.nextString());
+			} else if(key.equals("alias")) {
+				value.setAlias(in.nextString());
+			} else if(key.equals("querySyntax")) {
+				value.setQuerySelectorSyntax(in.nextString());
+			}
+		}
+		in.endObject();
+		return value;
+	}
 
 	@Override 
 	public void write(JsonWriter out, QueryOpaqueSelector value) throws IOException {
@@ -46,12 +56,16 @@ public class QueryOpaqueSelectorAdapter extends TypeAdapter<QueryOpaqueSelector>
 			return;
 		}
 
-		out.value(IQuerySelector.SELECTOR_TYPE.OPAQUE.toString());
-
+		// always start with the type of the query selector
+		out.beginObject();
+		out.name("type").value(IQuerySelector.SELECTOR_TYPE.OPAQUE.toString());
+		out.name("content");
+		// content object
 		out.beginObject();
 		out.name("alias").value(value.getAlias());
 		out.name("table").value(value.getTable());
 		out.name("querySyntax").value(value.getQuerySelectorSyntax());
+		out.endObject();
 		out.endObject();
 	}
 }
