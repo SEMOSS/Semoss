@@ -462,9 +462,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			return true;
 		}
 		
-		if(insightIsGlobal(engineId, insightId)) {
-			return true;
-		}
+		//TODO: add this back when we have the UI to set insights to be not global
+//		if(insightIsGlobal(engineId, insightId)) {
+//			return true;
+//		}
 		
 		// else query the database
 		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
