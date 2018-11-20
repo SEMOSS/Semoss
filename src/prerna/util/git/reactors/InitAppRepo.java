@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -104,6 +105,8 @@ public class InitAppRepo extends GitBaseReactor {
 				username = accessToken2.getProfile();
 
 				GitCreator.makeRemoteFromApp(appId, appName, repository, username, "", syncDatabase, token);
+				
+				ClusterUtil.reactorPushApp(appId);
 			}
 			logger.info("Congratulations! You have successfully created your app " + repository);
 		} catch(Exception e) {
