@@ -27,6 +27,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.r.RSingleton;
 import prerna.poi.main.HeadersException;
@@ -343,6 +344,27 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		
 		// move over the filters
 		table.setFilter(dataframe.getFrameFilters());
+
+		Map<String, SemossDataType> types = table.getMetaData().getHeaderToTypeMap();
+		String frameName = table.getTableName();
+		// change r dataTypes such as dates, logicals, etc to be displayed as strings
+		StringBuilder dataTypeConversion = new StringBuilder();
+		for (String colName : types.keySet()) {
+			SemossDataType smssType = types.get(colName);
+			if (colName.contains("__")) {
+				String[] split = colName.split("__");
+				colName = split[1];
+			}
+			if (smssType == SemossDataType.INT || smssType == SemossDataType.DOUBLE) {
+				dataTypeConversion.append(RSyntaxHelper.alterColumnTypeToNumeric(frameName, colName) + ";");
+			}
+			if (smssType == SemossDataType.STRING || smssType == SemossDataType.DATE) {
+				dataTypeConversion.append(RSyntaxHelper.alterColumnTypeToCharacter(frameName, colName) + ";");
+			}
+		}
+		if (dataTypeConversion.toString().length() > 0) {
+			this.rJavaTranslator.runR(dataTypeConversion.toString());
+		}
 		
 		return table;
 	}
