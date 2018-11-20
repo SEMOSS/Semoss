@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -70,6 +71,20 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		rJavaTranslator.runR(RSyntaxHelper.cleanFrameHeaders(rFrameName, colNames));
 		colNames = rJavaTranslator.getColumns(rFrameName);
 		String[] colTypes = rJavaTranslator.getColumnTypes(rFrameName);
+		// change r dataTypes such as dates, logicals, etc to be displayed as strings
+		StringBuilder dataTypeConversion = new StringBuilder();
+		for (int i = 0; i < colTypes.length; i++) {
+			SemossDataType smssType = SemossDataType.convertStringToDataType(colTypes[i]);
+			if (smssType == SemossDataType.INT || smssType == SemossDataType.DOUBLE) {
+				dataTypeConversion.append(RSyntaxHelper.alterColumnTypeToNumeric(rFrameName, colNames[i]) + ";");
+			}
+			if (smssType == SemossDataType.STRING || smssType == SemossDataType.DATE) {
+				dataTypeConversion.append(RSyntaxHelper.alterColumnTypeToCharacter(rFrameName, colNames[i]) + ";");
+			}
+		}
+		if (dataTypeConversion.toString().length() > 0) {
+			this.rJavaTranslator.runR(dataTypeConversion.toString());
+		}
 
 		if (colNames == null || colTypes == null) {
 			throw new IllegalArgumentException("Please make sure the variable " + rFrameName + " exists and can be a valid data.table object");
@@ -100,15 +115,16 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	private String getVarName() {
 		// key based
 		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.VARIABLE.getKey());
-		if(overrideGrs != null && !overrideGrs.isEmpty()) {
-			return  (String) overrideGrs.get(0);
+		if (overrideGrs != null && !overrideGrs.isEmpty()) {
+			return (String) overrideGrs.get(0);
 		}
 		// first input
-		return this.curRow.get(0).toString();	}
+		return this.curRow.get(0).toString();
+	}
 	
 	private boolean overrideFrame() {
 		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.OVERRIDE.getKey());
-		if(overrideGrs != null && !overrideGrs.isEmpty()) {
+		if (overrideGrs != null && !overrideGrs.isEmpty()) {
 			return (boolean) overrideGrs.get(0);
 		}
 		// default is to override
