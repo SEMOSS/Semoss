@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.comments.AddInsightCommentReactor;
 import prerna.comments.DeleteInsightCommentReactor;
@@ -139,6 +137,7 @@ import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.py.PyInterpreter;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
+import prerna.sablecc2.reactor.frame.r.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GetSemanticDescription;
@@ -376,6 +375,8 @@ import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationR
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VisualizationRecommendationReactor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class ReactorFactory {
 
 	// This holds the reactors that are frame agnostic and can be used by pixel
@@ -567,6 +568,7 @@ public class ReactorFactory {
 		reactorHash.put("CreateFrame", CreateFrameReactor.class);
 		reactorHash.put("FrameType", FrameTypeReactor.class);
 		reactorHash.put("GenerateFrameFromRVariable", GenerateFrameFromRVariableReactor.class);
+		reactorHash.put("GenerateFrameFromPyVariable", GenerateFrameFromPyVariableReactor.class);
 		reactorHash.put("GenerateH2FrameFromRVariable", GenerateH2FrameFromRVariableReactor.class);
 		//reactorHash.put("SynchronizeToR", SynchronizeToRReactor.class);
 
