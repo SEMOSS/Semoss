@@ -151,7 +151,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(this.selectorCriteria.toString().length() > 0 && qs.getGroupBy().size() == 0)
 		{
 			StringBuilder newSelectorCriteria = new StringBuilder(".iloc[0:500][[");
-			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]]");
+			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]].drop_duplicates()");
 		}
 		else
 			this.selectorCriteria = new StringBuilder("");
