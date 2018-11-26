@@ -5,13 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Vector;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
@@ -45,7 +43,11 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	public static Object getActiveAdminTheme() {
 		String query = "SELECT theme_map FROM ADMIN_THEME WHERE is_active=TRUE;";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
-		return flushRsToObject(wrapper);
+		Object retVal = flushRsToObject(wrapper);
+		if(retVal == null) {
+			return new HashMap();
+		}
+		return retVal;
 	}
 	
 	
