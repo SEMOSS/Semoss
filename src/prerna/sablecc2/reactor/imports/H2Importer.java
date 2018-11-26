@@ -21,7 +21,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
-import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 public class H2Importer extends AbstractImporter {
@@ -378,37 +377,9 @@ public class H2Importer extends AbstractImporter {
 				}
 			}
 		}
-		ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, this.dataframe.getTableName(), this.it, joins);
-		this.dataframe.syncHeaders();
+
+		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
 		return this.dataframe;
-	}
-	
-	private String setIgnoreCaseMatch(String v, Set<String> set, Set<String> ignoreSet) {
-		for(String s : set) {
-			if(ignoreSet.contains(s)) {
-				continue;
-			}
-			if(s.equalsIgnoreCase(v)) {
-				return s;
-			}
-		}
-		return null;
-	}
-	
-	private Set<String> getRightJoinColumns(List<Join> joins) {
-		Set<String> rightTableJoinCols = new HashSet<String>();
-		int numJoins = joins.size();
-		for(int jIdx = 0; jIdx < numJoins; jIdx++) {
-			Join j = joins.get(jIdx);
-			String rightTableJoinCol = j.getQualifier();
-			if(rightTableJoinCol.contains("__")) {
-				rightTableJoinCol = rightTableJoinCol.split("__")[1];
-			}
-			
-			// keep track of join columns on the right table
-			rightTableJoinCols.add(rightTableJoinCol);
-		}
-		return rightTableJoinCols;
 	}
 	
 	/**
@@ -438,41 +409,6 @@ public class H2Importer extends AbstractImporter {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-	
-	/**
-	 * Determine if all the headers are taken into consideration within the iterator
-	 * This helps to determine if we need to perform an insert vs. an update query to fill the frame
-	 * @param headers1				The original set of headers in the frame
-	 * @param headers2				The new set of headers from the iterator
-	 * @param joins					Needs to take into consideration the joins since we can join on 
-	 * 								columns that do not have the same names
-	 * @return
-	 */
-	protected boolean allHeadersAccounted(String[] startHeaders, String[] newHeaders, List<Join> joins) {
-		int newHeadersSize = newHeaders.length;
-		for(int i = 0; i <  newHeadersSize; i++) {
-			// need each of the new headers to be included in the start headers
-			if(!ArrayUtilityMethods.arrayContainsValue(startHeaders, newHeaders[i])) {
-				// need to account for join 
-				for(Join join : joins) {
-					String startNode = join.getSelector();
-					if(startNode.contains("__")) {
-						startNode = startNode.split("__")[1];
-					}
-					String endNode = join.getQualifier();
-					if(newHeaders[i].equalsIgnoreCase(endNode)) {
-						continue;
-					} else {
-						return false;
-					}
-				}
-			}
-		}
-		// we were able to iterate through all the new headers
-		// and each one exists in the starting headers
-		// so all of them are taking into consideration
-		return true;
 	}
 	
 //	private void testGridData(String query) {
