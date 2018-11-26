@@ -447,6 +447,37 @@ public class ImportUtility {
 		}
 	}
 	
+
+	/**
+	 * When we are generating information programmatically without a standard data source
+	 * We can create a new meta using the column names, types, and the table name
+	 * 
+	 * Example use: Pivot/Unpivot in R which drastically modifies the table
+	 * 
+	 * @param dataframe
+	 * @param columns
+	 * @param types
+	 * @param frameTableName
+	 */
+	public static void parsePyTableColumnsAndTypesToFlatTable(ITableDataFrame dataframe, String[] columns, String[] types, String frameTableName) {
+		// define the frame table name as a primary key within the meta
+		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
+		metaData.addVertex(frameTableName);
+		metaData.setPrimKeyToVertex(frameTableName, true);
+		metaData.setQueryStructNameToVertex(frameTableName, "UNKNOWN_PY", frameTableName);
+		int numCols = columns.length;
+		for(int i = 0; i < numCols; i++) {
+			String columnName = columns[i];
+			String type = types[i];
+			
+			String uniqueHeader = frameTableName + "__" + columnName;
+			metaData.addProperty(frameTableName, uniqueHeader);
+			metaData.setAliasToProperty(uniqueHeader, columnName);
+			metaData.setDataTypeToProperty(uniqueHeader, type);
+			metaData.setQueryStructNameToProperty(uniqueHeader, "UNKNOWN_PY", uniqueHeader);
+		}
+	}
+
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
