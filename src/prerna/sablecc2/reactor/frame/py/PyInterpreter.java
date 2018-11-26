@@ -13,11 +13,12 @@ public class PyInterpreter extends AbstractReactor {
 		
 		String command = getCurRow().get(0) + "";
 		
+		
 		PyExecutorThread pyThread = getJep();
 		Thread myThread = Thread.currentThread();
 		
 		Object lock = pyThread.getMonitor();
-		pyThread.command = command;
+		pyThread.command = new String[]{command};
 		
 		Object output = "";
 		
@@ -31,7 +32,7 @@ public class PyInterpreter extends AbstractReactor {
 				e.printStackTrace();
 			}
 			// waking up now
-			output = pyThread.response;
+			output = pyThread.response.get(command);
 			
 			System.out.println("Output >>> " + output);
 		}

@@ -2174,6 +2174,9 @@ public class Utility {
 				//BIGINT TYPE
 				|| dataType.startsWith("BIGINT")
 				|| dataType.startsWith("INT8")
+				
+				// PANDAS
+				|| dataType.contains("DTYPE('INT64')")
 				) {
 			return true;
 		}
@@ -2203,6 +2206,10 @@ public class Utility {
 				//REAL TYPE
 				|| dataType.startsWith("REAL")
 				|| dataType.startsWith("FLOAT4")
+
+				// PANDAS
+				|| dataType.contains("DTYPE('FLOAT64')")
+				
 				) {
 			return true;
 		}
@@ -2232,6 +2239,10 @@ public class Utility {
 				
 				//R TYPE
 				|| dataType.startsWith("FACTOR")
+
+				// PANDAS
+				|| dataType.contains("DTYPE('O')")
+
 				) {
 			return true;
 		}
