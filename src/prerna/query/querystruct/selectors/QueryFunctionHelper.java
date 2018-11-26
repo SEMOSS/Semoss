@@ -96,6 +96,43 @@ public class QueryFunctionHelper {
 	}
 	
 	/**
+	 * Convert the function name to r data.table syntax
+	 * @param inputFunction
+	 * @return
+	 */
+	public static String convertFunctionToPandasSyntax(String inputFunction) {
+		String lowerfunction = inputFunction.toLowerCase();
+		if(lowerfunction.equals(MIN)) {
+			inputFunction = "min";
+		} else if(lowerfunction.equals(MAX)) {
+			inputFunction = "max";
+		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2)
+				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
+			inputFunction = "mean";
+		} else if(lowerfunction.equals(MEDIAN)) {
+			inputFunction = "median";
+		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
+			inputFunction = "sum";
+		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
+			inputFunction = "std";
+		} else if(lowerfunction.equals(COUNT)) {
+			inputFunction = "count";
+		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
+			inputFunction = "nunique";
+		} else if(lowerfunction.equals(CONCAT)) {
+			inputFunction = "sum";
+		} else if(lowerfunction.equals(GROUP_CONCAT)) {
+			inputFunction = "count";
+		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
+			inputFunction = "count";
+		}
+		
+		return inputFunction;
+	}
+	
+
+	
+	/**
 	 * Convert the function name to sparql syntax
 	 * @param inputFunction
 	 * @return
