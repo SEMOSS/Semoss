@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -60,9 +61,39 @@ public class RImporter extends AbstractImporter {
 
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
-		boolean updateMeta = false;
 		RFrameBuilder builder = this.dataframe.getBuilder();
 		String tableName = this.dataframe.getTableName();
+		
+		// need to ensure no names overlap
+		// otherwise we R will create a weird renaming for the column
+		Map<String, SemossDataType> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
+
+		// get the columns and types of the new columns we are about to add
+		Map<String, SemossDataType> rightTableTypes = ImportUtility.getTypesFromQs(this.qs, this.it);
+
+		// we will also figure out if there are columns that are repeated
+		// but are not join columns
+		// so we need to alias them
+		Set<String> leftTableHeaders = leftTableTypes.keySet();
+		Set<String> rightTableHeaders = rightTableTypes.keySet();
+		Set<String> rightTableJoinCols = getRightJoinColumns(joins);
+		
+		Map<String, String> rightTableAlias = new HashMap<String, String>();
+
+		// note, we are not going to modify the existing headers
+		// even though the query builder code allows for it
+		for(String leftTableHeader : leftTableHeaders) {
+			if(leftTableHeader.contains("__")) {
+				leftTableHeader = leftTableHeader.split("__")[1];
+			}
+			// instead of making the method return a boolean and then having to perform
+			// another ignore case match later on
+			// we return the match and do a null check
+			String dupRightTableHeader = setIgnoreCaseMatch(leftTableHeader, rightTableHeaders, rightTableJoinCols);
+			if(dupRightTableHeader != null) {
+				rightTableAlias.put(dupRightTableHeader, leftTableHeader + "_1");
+			}
+		}
 		
 //		System.out.println(Arrays.toString(builder.getColumnNames()));
 //		System.out.println(Arrays.toString(builder.getColumnTypes()));
@@ -73,14 +104,20 @@ public class RImporter extends AbstractImporter {
 		String tempTableName = Utility.getRandomString(6);
 		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs, it);
 		this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
-	
+		
+		// we may need to alias the headers in this new temp table
+		if(!rightTableAlias.isEmpty()) {
+			for(String oldColName : rightTableAlias.keySet()) {
+				this.dataframe.executeRScript(RSyntaxHelper.alterColumnName(tempTableName, oldColName, rightTableAlias.get(oldColName)));
+			}
+		}
+		
 		if(builder.isEmpty(tempTableName)) {
 			if(joins.get(0).getJoinType().equals("inner.join")) {
 				// clear the fake table
 				builder.evalR("rm(" + tempTableName + ");");
 				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
 			}
-			updateMeta = true;
 			// we are merging w/ no data
 			// just add an empty column with the column name
 			String alterTable = RSyntaxHelper.alterMissingColumns(tableName, newColumnsToTypeMap, joins, new HashMap<String, String>());
@@ -116,7 +153,6 @@ public class RImporter extends AbstractImporter {
 			}
 			
 			//execute r command
-			updateMeta = true;
 			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
 			this.dataframe.executeRScript(mergeString);
 			this.dataframe.syncHeaders();
@@ -128,10 +164,7 @@ public class RImporter extends AbstractImporter {
 			this.dataframe.executeRScript("rm("+tempTableName+")");
 		}
 		
-		if(updateMeta) {
-			ImportUtility.parseQueryStructToFlatTableWithJoin(this.dataframe, this.qs, tableName, this.it, joins);
-		}
-		
+		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
 		return this.dataframe;
 	}
 }
