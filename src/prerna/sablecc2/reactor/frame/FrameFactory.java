@@ -31,9 +31,18 @@ public class FrameFactory {
 			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
 		}
 		
-		case "PYFRAME": { return new PandasFrame(alias); }
-		case "PANDAS": { return new PandasFrame(alias); }
-		case "PY": { return new PandasFrame(alias); }
+		case "PYFRAME": {
+			PandasFrame frame = new PandasFrame(alias);
+			frame.setJep(insight.getPy());		
+		}
+		case "PANDAS": {
+			PandasFrame frame = new PandasFrame(alias);
+			frame.setJep(insight.getPy());		
+		}
+		case "PY": {
+			PandasFrame frame = new PandasFrame(alias);
+			frame.setJep(insight.getPy());		
+		}
 		
 		case "NATIVE": { return new NativeFrame(); }
 		
