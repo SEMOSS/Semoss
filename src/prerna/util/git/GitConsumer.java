@@ -39,7 +39,7 @@ public class GitConsumer {
 
 	}
 
-	public static void makeAppFromRemote(String yourName4App, String fullRemoteAppName, Logger logger) {
+	public static String makeAppFromRemote(String yourName4App, String fullRemoteAppName, Logger logger) {
 		String temporaryAppId = UUID.randomUUID().toString();
 		// need to get the database folder
 		try {
@@ -148,6 +148,7 @@ public class GitConsumer {
 			}
 		}*/
 		moveDataFilesToApp(baseFolder, actualAppId, yourName4App, logger);
+		return actualAppId;
 	}
 
 	public static void moveDataFilesToApp(String baseFolder, String appId, String yourName4App, Logger logger) {
