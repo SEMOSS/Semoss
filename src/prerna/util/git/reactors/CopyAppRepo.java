@@ -2,6 +2,7 @@ package prerna.util.git.reactors;
 
 import org.apache.log4j.Logger;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -43,7 +44,9 @@ public class CopyAppRepo extends AbstractReactor {
 		logger.info("Downloading app located at " + repository);
 		logger.info("App will be named locally as " + localAppName);
 
-		GitConsumer.makeAppFromRemote(localAppName, repository, logger);
+		String appId = GitConsumer.makeAppFromRemote(localAppName, repository, logger);
+		
+		ClusterUtil.reactorPushApp(appId);
 		logger.info("Congratulations! Downloading your new app has been completed");
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
