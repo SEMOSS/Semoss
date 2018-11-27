@@ -1,15 +1,15 @@
 package prerna.util.sql;
 
-public class ImpalaQueryUtil extends SQLQueryUtil {
-	
-	private String connectionBase = "jdbc:impala://HOST:PORT/SCHEMA";
+public class TibcoQueryUtil extends SQLQueryUtil {
 
-	public ImpalaQueryUtil(){
+	private String connectionBase = "jdbc:compositesw:dbapi@HOST:PORT?SCHEMA";
+
+	public TibcoQueryUtil(){
 		super.setDefaultDbUserName("root");
 		super.setDefaultDbPassword("password");
 	}
 	
-	public ImpalaQueryUtil(String hostname, String port, String schema, String username, String password) {
+	public TibcoQueryUtil(String hostname, String port, String schema, String username, String password) {
 		connectionBase = connectionBase.replace("HOST", hostname).replace("SCHEMA", schema);
 		if(port != null && !port.isEmpty()) {
 			connectionBase = connectionBase.replace(":PORT", ":" + port);
@@ -20,7 +20,7 @@ public class ImpalaQueryUtil extends SQLQueryUtil {
 		super.setDefaultDbPassword(password);
 	}
 	
-	public ImpalaQueryUtil(String connectionURL, String username, String password) {
+	public TibcoQueryUtil(String connectionURL, String username, String password) {
 		connectionBase = connectionURL;
 		super.setDefaultDbUserName(username);
 		super.setDefaultDbPassword(password);
@@ -28,22 +28,22 @@ public class ImpalaQueryUtil extends SQLQueryUtil {
 	
 	@Override
 	public RdbmsTypeEnum getDatabaseType(){
-		return RdbmsTypeEnum.IMPALA;
+		return RdbmsTypeEnum.TIBCO;
 	}
-
+	
 	@Override
 	public String getDialectAllIndexesInDB(String schema){
 		return super.getDialectAllIndexesInDB();
 	}
 	
 	@Override
-	public String getConnectionURL(String baseFolder, String dbname){
+	public String getConnectionURL(String baseFolder,String dbname){
 		return connectionBase;
 	}
 	
 	@Override
 	public String getDatabaseDriverClassName(){
-		return RdbmsTypeEnum.IMPALA.getDriver();
+		return RdbmsTypeEnum.TIBCO.getDriver();
 	}
 
 	@Override
@@ -52,4 +52,14 @@ public class ImpalaQueryUtil extends SQLQueryUtil {
 		return null;
 	}
 
+	@Override
+	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
+		if(offset > 0) {
+			query = query.append(" OFFSET " + offset + " ROWS ");
+		}
+		if(limit > 0) {
+			query = query.append(" FETCH NEXT " + limit + " ROWS ONLY ");
+		}
+		return query;
+	}
 }
