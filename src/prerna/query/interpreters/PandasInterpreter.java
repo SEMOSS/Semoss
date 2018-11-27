@@ -57,6 +57,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	ArrayList <SemossDataType> types= null;
 	
+	String start = "0";
+	String end = "500";
 	
 	// need to keep the ordinality of the selectors and match that with the aliases
 	ArrayList <String> groupColumns = null;
@@ -99,6 +101,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		orderHash = new HashMap<String, StringBuilder>();
 		orderBy = new StringBuilder("");
 		normalizer = new StringBuilder(".to_dict('split')");//['data']");
+		
+		
+		long limit = 500;
+		start = 0 + "";
+		end = limit + "";
+
+		if(qs.getOffset() > 0)
+			start = qs.getOffset() + "";
+		
+		if(qs.getLimit() != 0)
+			end = (Integer.parseInt(start) + qs.getLimit()) + "";
+		
 	
 		// add the filters, it doesn't matter where you add it.
 		// add the selectors - the act headers are no longer required since I look at the columns now to generate the remaining pieces
@@ -131,12 +145,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	public void closeAll()
 	{
+		
 		//t.agg({'Title': 'count'}).rename({'Title': 'count(Title)'}).reset_index().to_dict('split')['data']
 		if(this.aggCriteria.toString().length() > 0)
 		{
 			if(qs.getGroupBy().size() != 0)
 			{
-				this.aggCriteria = aggCriteria.append("}).reset_index()");
+				this.aggCriteria = aggCriteria.append("})").append(".iloc[" + start + ":" + end + "]").append(".reset_index()");
 				this.renCriteria = renCriteria.append("}).reset_index()");
 			}
 			if(headers.size() == 1) // it is just getting one single data
@@ -150,7 +165,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// if there is agroup by.. this whole thing should be ignored pretty much
 		if(this.selectorCriteria.toString().length() > 0 && qs.getGroupBy().size() == 0)
 		{
-			StringBuilder newSelectorCriteria = new StringBuilder(".iloc[0:500][[");
+			StringBuilder newSelectorCriteria = new StringBuilder(".iloc[" + start + ":" + end + "][[");
 			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]].drop_duplicates()");
 		}
 		else
