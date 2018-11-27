@@ -20,6 +20,8 @@ LOG4J	C:\\workspace\\Semoss_Dev\\log4j.prop
 ADDITIONAL_REACTORS C:\\workspace\\Semoss_Dev\\reactors.json
 SOCIAL	C:\\workspace\\Semoss_Dev\\social.properties
 
+USE_PYTHON false
+
 USE_R true
 R_CONNECTION_JRI	true
 R_MEM_LIMIT 4096

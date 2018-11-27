@@ -6,7 +6,6 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -37,13 +36,7 @@ public class CreateFrameReactor extends AbstractReactor {
 		}
 		ITableDataFrame newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
 		
-		// need to set the jep into the frame
-		// this is an abstraction leak, but we will address it later
-		if(frameType.equalsIgnoreCase("PANDAS") ||  frameType.equalsIgnoreCase("PYFRAME"))
-			((PandasFrame)newFrame).setJep(getJep());		
-		
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
-		
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
 		if(overrideFrame()) {

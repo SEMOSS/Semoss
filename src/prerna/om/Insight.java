@@ -423,6 +423,14 @@ public class Insight {
 		return this.rJavaTranslator;
 	}
 	
+	public void setPy(PyExecutorThread jepThread) {
+		this.jepThread = jepThread;
+	}
+	
+	public PyExecutorThread getPy() {
+		return this.jepThread;
+	}
+	
 	public TaskStore getTaskStore() {
 		return this.taskStore;
 	}
@@ -729,16 +737,5 @@ public class Insight {
 			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(dm, PixelDataType.FRAME, PixelOperationType.FRAME));
 		}
 		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
-	}
-
-	public void setPy(PyExecutorThread jepThread) {
-		// TODO Auto-generated method stub
-		this.jepThread = jepThread;
-		
-	}
-	
-	public PyExecutorThread getPy()
-	{
-		return this.jepThread;
 	}
 }
