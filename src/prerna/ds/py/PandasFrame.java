@@ -424,4 +424,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public String getTableName() {
+		return this.tableName;
+	}
 }
