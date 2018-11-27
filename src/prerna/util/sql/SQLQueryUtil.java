@@ -61,7 +61,12 @@ public abstract class SQLQueryUtil {
 			return new MySQLQueryUtil();
 		} else if(dbtype == RdbmsTypeEnum.ORACLE) {
 			return new OracleQueryUtil();
-		} else {
+		} else if(dbtype == RdbmsTypeEnum.IMPALA) {
+			return new ImpalaQueryUtil();
+		} else if(dbtype == RdbmsTypeEnum.TIBCO) {
+			return new TibcoQueryUtil();
+		}
+		else {
 			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil();
 			queryUtil.setDbType(dbtype);
 			return queryUtil;
@@ -79,7 +84,10 @@ public abstract class SQLQueryUtil {
 			return new OracleQueryUtil(hostname, port, schema, username, password);
 		} else if(dbtype == RdbmsTypeEnum.IMPALA) {
 			return new ImpalaQueryUtil(hostname, port, schema, username, password);
-		} else {
+		} else if(dbtype == RdbmsTypeEnum.TIBCO) {
+			return new TibcoQueryUtil(hostname, port, schema, username, password);
+		}
+		else {
 			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil(dbtype, hostname, port, schema, username, password);
 			return queryUtil;
 		}
