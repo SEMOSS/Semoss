@@ -508,6 +508,9 @@ public class Constants {
 	// is this server running locally
 	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
 	
+	// if python is installed
+	public static final String PYTHON = "PYTHON";
+	public static final String USE_PYTHON = "USE_PYTHON";
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
