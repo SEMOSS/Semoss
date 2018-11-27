@@ -118,7 +118,7 @@ public class RdbmsConnectionHelper {
 		}
 		else if (rdbmsType == RdbmsTypeEnum.REDSHIFT) {
 			connectionUrl = "jdbc:redshift://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		} 
+		}
 		else if (rdbmsType == RdbmsTypeEnum.TIBCO) {
 			connectionUrl = "jdbc:compositesw:dbapi@HOST:PORT?SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
