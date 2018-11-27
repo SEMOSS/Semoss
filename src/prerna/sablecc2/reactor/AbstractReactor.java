@@ -501,8 +501,7 @@ public abstract class AbstractReactor implements IReactor {
 		throw exception;
 	}
 
-	public PyExecutorThread getJep()
-	{
+	public PyExecutorThread getJep() {
 		return insight.getPy();
 	}
 	
