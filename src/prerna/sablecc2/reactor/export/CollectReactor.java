@@ -26,7 +26,8 @@ public class CollectReactor extends TaskBuilderReactor {
 	
 	public NounMetadata execute() {
 		this.task = getTask();
-		this.task.setNumCollect(getTotalToCollect());
+		this.limit = getTotalToCollect();
+		this.task.setNumCollect(this.limit);
 		buildTask();
 		
 		// tracking
