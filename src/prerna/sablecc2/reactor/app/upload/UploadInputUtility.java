@@ -15,6 +15,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -52,7 +53,13 @@ public class UploadInputUtility {
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new app name using key " + APP);
 		}
-		return grs.get(0).toString();
+		
+		NounMetadata noun = grs.getNoun(0);
+		if(noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
+			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
+			return uploadMap.get("app_id").toString();
+		}
+		return noun.getValue().toString();
 	}
 
 	public static String getFilePath(NounStore store) {
