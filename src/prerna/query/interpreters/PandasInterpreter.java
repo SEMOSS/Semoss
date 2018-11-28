@@ -194,17 +194,23 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		List <QueryColumnOrderBySelector> qcos = qs.getOrderBy();
 		boolean processed = false;
 		StringBuilder thisOrderBy = new StringBuilder("");
-		for(int orderIndex = 0;orderHash.size() >0 && orderIndex < qcos.size();orderIndex++)
+		for(int orderIndex = 0;orderIndex < qcos.size();orderIndex++)
 		{
 			thisOrderBy = new StringBuilder(".sort_values(");
 			String sort = null;
 			String alias = qcos.get(orderIndex).getAlias();
+			if(alias.length() == 0)
+				alias = qcos.get(orderIndex).getTable();
 			String sortDir = qcos.get(orderIndex).getSortDirString();
 			if(sortDir.equalsIgnoreCase("ASC"))
 				sort = "True";
 			else
 				sort = "False";
-			StringBuilder orderByClause = orderHash.get(alias);
+			
+			StringBuilder orderByClause = null;
+			
+			if(orderHash.containsKey(alias))
+				orderByClause = orderHash.get(alias);
 			
 			if(orderByClause != null)
 			{
@@ -243,8 +249,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				} else {
 					this.selectorCriteria.append(", ").append(newHeader);
 				}
+				StringBuilder builder = new StringBuilder("[" + newHeader + "]");
 				newHeader = newHeader.replace("'", "");
 				headers.add(selector.getAlias());
+				orderHash.put(selector.getAlias(), builder);
 				actHeaders.add(newHeader);
 				types.add(colDataTypes.get(newHeader));
 			}
