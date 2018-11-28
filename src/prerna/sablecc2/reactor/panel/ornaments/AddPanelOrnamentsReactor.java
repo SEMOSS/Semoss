@@ -23,6 +23,9 @@ public class AddPanelOrnamentsReactor extends AbstractInsightPanelReactor {
 		InsightPanel insightPanel = getInsightPanel();
 		// get the ornaments that come as a map
 		Map<String, Object> ornaments = getOrnamentsMapInput();
+		if(ornaments == null) {
+			throw new IllegalArgumentException("Need to define the ornament input");
+		}
 		// merge the map options
 		insightPanel.addOrnaments(ornaments);
 		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_ORNAMENT);
