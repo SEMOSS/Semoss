@@ -112,7 +112,12 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			String userName = "sa";
 			String password = "";
 			rne.setEngineId(appId + "_InsightsRDBMS");
-			rne.makeConnection(jdbcURL, userName, password);
+			boolean connected = rne.makeConnection(jdbcURL, userName, password);
+			if (!connected) {
+				
+				// If the connection failed, then try and pull the insight database from the engine itself
+				rne = (RDBMSNativeEngine) Utility.getEngine(appId).getInsightDatabase();
+			}
 			
 			// THIS IS FOR LEGACY !!!!
 			// TODO: EVENTUALLY WE WILL DELETE THIS
