@@ -36,6 +36,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	private StringBuilder aggCriteria = new StringBuilder("");
 	private StringBuilder renCriteria = new StringBuilder(".rename(columns={'mean':'Average', 'nunique':'UniqueCount', 'sum':'Sum', 'median':'Median', 'max':'Max', 'min':'Min', 'count':'Count'})");
 	private StringBuilder orderBy = new StringBuilder("");
+	private StringBuilder ascending = new StringBuilder("");
+	
 	private StringBuilder normalizer = new StringBuilder(".to_dict('split')['data']");
 	
 	private Map <String, StringBuilder>aggHash = null;
@@ -101,7 +103,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		orderHash = new HashMap<String, StringBuilder>();
 		orderBy = new StringBuilder("");
 		normalizer = new StringBuilder(".to_dict('split')");//['data']");
-		
+		ascending = new StringBuilder("");
 		
 		long limit = 500;
 		start = 0 + "";
@@ -183,10 +185,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			//	selectorCriteria.append(".drop_duplicates()");
 		
 		}
-		
-		
-			
-		
+		if(orderBy.length() != 0)
+			// combine it
+			orderBy.append("],").append(ascending).append("])");
 	}
 	
 	private void processOrderBy()
@@ -213,15 +214,32 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				orderByClause = orderHash.get(alias);
 			
 			if(orderByClause != null)
-			{
-				thisOrderBy.append(orderByClause).append(", ascending=").append(sort).append(")");
-				processed = true;
-				orderBy.append(thisOrderBy);
-			}
+				addOrder(orderByClause, sort);
 		}
 		
 		//if(!processed)
 		//	orderBy = new StringBuilder("");
+	}
+	
+	private void addOrder(StringBuilder curOrder, String asc)
+	{
+		if(orderBy.length() == 0)
+		{
+			orderBy = new StringBuilder(".sort_values([");
+			ascending = new StringBuilder("ascending=[");
+		}
+		else
+		{
+			orderBy.append(",");
+			ascending.append(",");
+		}
+		
+		// add the ascending
+		ascending.append(asc);
+		
+		// add the order by
+		orderBy.append(curOrder);
+		
 	}
 	
 	public void addFilters()
@@ -249,7 +267,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				} else {
 					this.selectorCriteria.append(", ").append(newHeader);
 				}
-				StringBuilder builder = new StringBuilder("[" + newHeader + "]");
+				StringBuilder builder = new StringBuilder(newHeader);
 				newHeader = newHeader.replace("'", "");
 				headers.add(selector.getAlias());
 				orderHash.put(selector.getAlias(), builder);
@@ -428,7 +446,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		aggBuilder.append("'" + pandasFunction +"'");
 		
 		
-		orderHash.put(selector.getAlias(), new StringBuilder("[('").append(columnName).append("','").append(pandasFunction).append("')]"));
+		orderHash.put(selector.getAlias(), new StringBuilder("('").append(columnName).append("','").append(pandasFunction).append("')"));
 		
 		headers.add(selector.getAlias());
 		aggHash.put(columnName, aggBuilder);
