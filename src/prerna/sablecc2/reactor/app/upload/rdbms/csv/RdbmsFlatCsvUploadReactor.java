@@ -69,7 +69,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 
 	public RdbmsFlatCsvUploadReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
-				UploadInputUtility.DELIMITER, DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS, ADDITIONAL_TYPES,
+				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS, UploadInputUtility.ADDITIONAL_DATA_TYPES,
 				UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS,
 				UploadInputUtility.ADD_TO_EXISTING };
 	}
@@ -611,7 +611,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 */
 
 	private Map<String, String> getDataTypeMap() {
-		GenRowStruct grs = this.store.getNoun(DATA_TYPE_MAP);
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.DATA_TYPE_MAP);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -619,7 +619,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	}
 
 	private Map<String, String> getAdditionalTypes() {
-		GenRowStruct grs = this.store.getNoun(ADDITIONAL_TYPES);
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.ADDITIONAL_DATA_TYPES);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
