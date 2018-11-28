@@ -17,6 +17,10 @@ public enum PixelDataType {
 	REMOVE_TASK ("REMOVE_TASK"),					// task to be removed
 	DROP_INSIGHT ("DROP_INSIGHT"),				// insight to be removed
 
+	// insight panel
+	PANEL ("PANEL"),
+	PANEL_CLONE_MAP ("PANEL_CLONE_MAP"),
+	
 	SQLE ("SQLE"), 									// sql expression
 	E ("E"), 										// some other expression
 	FILTER ("FILTER"), 								// filter object
@@ -40,7 +44,6 @@ public enum PixelDataType {
 	BOOLEAN ("BOOLEAN"),
 	ERROR ("ERROR"),
 	INVALID_SYNTAX("INVALID_SYNTAX"),
-	PANEL ("PANEL"),
 	R_CONNECTION("R_CONNECTION"),
 	R_ENGINE("R_ENGINE"),
 	CUSTOM_DATA_STRUCTURE ("CUSTOM_DATA_STRUCTURE"),
