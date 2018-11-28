@@ -2,8 +2,13 @@ package prerna.sablecc2.reactor.app.upload;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -13,14 +18,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class UploadInputUtility {
 	
 	public static final String APP = ReactorKeysEnum.APP.getKey();
 	public static final String FILE_PATH = ReactorKeysEnum.FILE_PATH.getKey();
-	public static final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
-	public static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
-	public static final String NEW_HEADERS = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
 	public static final String ADD_TO_EXISTING = ReactorKeysEnum.EXISTING.getKey();
 	public static final String CLEAN_STRING_VALUES = ReactorKeysEnum.CLEAN.getKey();
 	public static final String REMOVE_DUPLICATE_ROWS = ReactorKeysEnum.DEDUPLICATE.getKey();
@@ -31,6 +34,11 @@ public class UploadInputUtility {
 	public static final String CUSTOM_BASE_URI = "customBaseURI";
 	public static final String CREATE_INDEX = ReactorKeysEnum.CREATE_INDEX.getKey();
 	public static final String ROW_COUNT = ReactorKeysEnum.ROW_COUNT.getKey(); 
+	// these will have different formats if it is a 
+	// text-based file vs. if it is an excel file
+	public static final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
+	public static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
+	public static final String NEW_HEADERS = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
 
 	// defaults
 	public static final int START_ROW_INT = 2;
@@ -188,8 +196,62 @@ public class UploadInputUtility {
 	public static Map<String, Object> getMetamodelFromPropFile(NounStore store) {
 		GenRowStruct grs = store.getNoun(PROP_FILE);
 		if (!(grs == null || grs.isEmpty())) {
-			// TODO next try reading from prop file
 			String metamodelPath = grs.get(0).toString();
+			if (metamodelPath.toLowerCase().endsWith(".prop")) {
+				// need to convert old prop file to json
+				Properties oldMetamodel = Utility.loadProperties(metamodelPath);
+				HashMap<String, Object> newMetamodel = new HashMap<>();
+				// get node properties
+				String nodePropStr = (String) oldMetamodel.get("NODE_PROP");
+				HashMap<String, List<String>> nodePropMap = new HashMap<>();
+				if (nodePropStr.contains(";")) {
+					String[] nodeProps = nodePropStr.split(";");
+					for (String nodeStr : nodeProps) {
+						String[] propSplit = nodeStr.split("%");
+						String node = propSplit[0];
+						String prop = propSplit[1];
+						List<String> properties = new ArrayList<>();
+						if (nodePropMap.containsKey(node)) {
+							properties = nodePropMap.get(node);
+						}
+						properties.add(prop);
+						nodePropMap.put(node, properties);
+					}
+				}
+				newMetamodel.put(Constants.NODE_PROP, nodePropMap);
+				// get relations
+				String relationStr = (String) oldMetamodel.get("RELATION");
+				String[] relations = relationStr.split(";");
+				ArrayList<Map<String, String>> relationships = new ArrayList<>();
+				for (String relStr : relations) {
+					if (relStr.contains("@")) {
+						String[] rel = relStr.split("@");
+						HashMap<String, String> relMap = new HashMap<>();
+						String fromTable = rel[0];
+						String toTable = rel[2];
+						// check if tables are defined in node props if not add them with no properties
+						if(!nodePropMap.containsKey(fromTable)) {
+							nodePropMap.put(fromTable, new ArrayList<String>());
+						}
+						if(!nodePropMap.containsKey(toTable)) {
+							nodePropMap.put(toTable, new ArrayList<String>());
+						}
+						relMap.put(Constants.FROM_TABLE,fromTable);
+						relMap.put(Constants.REL_NAME, rel[1]);
+						relMap.put(Constants.TO_TABLE, toTable);
+						relationships.add(relMap);
+					}
+				}
+				newMetamodel.put(Constants.RELATION, relationships);
+				// add start row, end row
+				if(oldMetamodel.containsKey("START_ROW")) {
+					newMetamodel.put(Constants.START_ROW, oldMetamodel.getProperty("START_ROW"));
+				}
+				if(oldMetamodel.containsKey("END_ROW")) {
+					newMetamodel.put(Constants.END_ROW, oldMetamodel.getProperty("END_ROW"));
+				}
+				return newMetamodel;
+			}
 			try {
 				Map<String, Object> result = new ObjectMapper().readValue(new File(metamodelPath), Map.class);
 				return result;
