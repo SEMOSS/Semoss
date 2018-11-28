@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.panel;
 
 import java.util.List;
+import java.util.Map;
 
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.GenRowStruct;
@@ -15,9 +16,17 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 	protected static final String TRAVERSAL_KEY = ReactorKeysEnum.TRAVERSAL.getKey();
 
 	protected InsightPanel getInsightPanel() {
+		// passed in directly as panel
 		GenRowStruct genericReactorGrs = this.store.getNoun(ReactorKeysEnum.PANEL.getKey());
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
-			return (InsightPanel) genericReactorGrs.get(0);
+			NounMetadata noun = genericReactorGrs.getNoun(0);
+			PixelDataType nounType = noun.getNounType();
+			if(nounType == PixelDataType.PANEL) {
+				return (InsightPanel) noun.getValue();
+			} else if(nounType == PixelDataType.PANEL_CLONE_MAP) {
+				Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
+				return cloneMap.get("clone");
+			}
 		}
 		
 		// look at all the ways the insight panel could be passed
@@ -32,6 +41,23 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 		List<NounMetadata> panelNouns = this.curRow.getNounsOfType(PixelDataType.PANEL);
 		if(panelNouns != null && !panelNouns.isEmpty()) {
 			return (InsightPanel) panelNouns.get(0).getValue();
+		}
+		
+		// see if a clone map was passed
+		genericReactorGrs = this.store.getNoun(PixelDataType.PANEL_CLONE_MAP.toString());
+		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+			NounMetadata noun = genericReactorGrs.getNoun(0);
+			Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
+			return cloneMap.get("clone");
+		}
+		
+		// see if it is in the curRow
+		// if it was passed directly in as a variable
+		panelNouns = this.curRow.getNounsOfType(PixelDataType.PANEL_CLONE_MAP);
+		if(panelNouns != null && !panelNouns.isEmpty()) {
+			NounMetadata noun = genericReactorGrs.getNoun(0);
+			Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
+			return cloneMap.get("clone");
 		}
 		
 		// well, you are out of luck
