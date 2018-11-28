@@ -86,6 +86,13 @@ public abstract class AbstractThemeUtils {
 		Object obj = null;
 		if(wrapper.hasNext()) {
 			obj = wrapper.next().getValues()[0];
+			if(obj instanceof java.sql.Clob) {
+				try {
+					obj = IOUtils.toString(((java.sql.Clob) obj).getAsciiStream());
+				} catch (IOException | SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		return obj;
 	}
