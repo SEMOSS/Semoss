@@ -8,16 +8,12 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.OWLER;
 
 public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 
-	// these will have different formats if it is a 
-	// text-based file vs. if it is an excel file
-	protected final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
-	protected final String ADDITIONAL_TYPES = "additionalTypes";
+
 
 	///////////////////////////////////////////////////////
 
