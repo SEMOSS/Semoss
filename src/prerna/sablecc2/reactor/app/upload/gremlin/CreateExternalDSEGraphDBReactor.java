@@ -244,7 +244,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 
 		ClusterUtil.reactorPushApp(newAppId);
 		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), newAppId);
-		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 }
