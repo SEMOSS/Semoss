@@ -40,4 +40,17 @@ public class ClusterUtil {
 			}
 		}
 	}
+	
+	public static void reactorUpdateApp(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				AZClient.getInstance().updateApp(appId);
+			} catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to update app from cloud storage", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
 }
