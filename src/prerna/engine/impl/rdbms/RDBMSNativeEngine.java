@@ -246,7 +246,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		
 	}
 
-	public void makeConnection(String url, String userName, String password)
+	public boolean makeConnection(String url, String userName, String password)
 	{
 		try {
 			Class.forName("org.h2.Driver");
@@ -258,6 +258,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		return engineConnected;
 	}
 
 	private Connection getConnection(){
