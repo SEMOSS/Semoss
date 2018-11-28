@@ -1,10 +1,14 @@
 package prerna.theme;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.commons.io.IOUtils;
+import org.h2.jdbc.JdbcClob;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
@@ -63,7 +67,16 @@ public abstract class AbstractThemeUtils {
 			Object[] values = headerRow.getValues();
 			Map<String, Object> map = new HashMap<String, Object>();
 			for(int i = 0; i < headers.length; i++) {
-				map.put(headers[i], values[i]);
+				if(values[i] instanceof java.sql.Clob) {
+					try {
+						map.put(headers[i], IOUtils.toString(((java.sql.Clob) values[i]).getAsciiStream()));
+					} catch (IOException | SQLException e) {
+						e.printStackTrace();
+						throw new IllegalArgumentException("Error occured trying to read theme map");
+					}
+				} else {
+					map.put(headers[i], values[i]);
+				}
 			}
 			result.add(map);
 		}
