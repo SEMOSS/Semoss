@@ -29,8 +29,6 @@ import prerna.util.sql.SQLQueryUtil;
 public class NoOuterJoinSqlInterpreter extends SqlInterpreter {	
 	
 	protected Set<String> selectorOrderedList = new LinkedHashSet<String>();
-	// keep selector alias
-	protected List<String> selectorAliases = new Vector<String>();
 //	protected List<String> groupBySelectors = new Vector<String>();
 //	protected List<String> orderBySelectors = new Vector<String>();
 	// keep list of selectors for tables
