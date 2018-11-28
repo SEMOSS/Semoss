@@ -4,14 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
+import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,7 +20,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class UploadInputUtility {
-	
+
 	public static final String APP = ReactorKeysEnum.APP.getKey();
 	public static final String FILE_PATH = ReactorKeysEnum.FILE_PATH.getKey();
 	public static final String ADD_TO_EXISTING = ReactorKeysEnum.EXISTING.getKey();
@@ -33,8 +32,8 @@ public class UploadInputUtility {
 	public static final String PROP_FILE = "propFile";
 	public static final String CUSTOM_BASE_URI = "customBaseURI";
 	public static final String CREATE_INDEX = ReactorKeysEnum.CREATE_INDEX.getKey();
-	public static final String ROW_COUNT = ReactorKeysEnum.ROW_COUNT.getKey(); 
-	// these will have different formats if it is a 
+	public static final String ROW_COUNT = ReactorKeysEnum.ROW_COUNT.getKey();
+	// these will have different formats if it is a
 	// text-based file vs. if it is an excel file
 	public static final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
 	public static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
@@ -47,7 +46,6 @@ public class UploadInputUtility {
 
 	// only applies for "csv" uploading - doesn't need to be ","
 	public static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
-
 
 	public static String getAppName(NounStore store) {
 		GenRowStruct grs = store.getNoun(APP);
@@ -88,7 +86,7 @@ public class UploadInputUtility {
 		}
 		return (boolean) grs.get(0);
 	}
-	
+
 	public static String getCustomBaseURI(NounStore store) {
 		GenRowStruct grs = store.getNoun(CUSTOM_BASE_URI);
 		if (grs == null || grs.isEmpty()) {
@@ -97,12 +95,10 @@ public class UploadInputUtility {
 		return grs.get(0).toString();
 	}
 
-
-
 	//////////////////////////////////////////////////////////
 	// CSV methods
 	//////////////////////////////////////////////////////////
-	
+
 	public static String getDelimiter(NounStore store) {
 		GenRowStruct grs = store.getNoun(DELIMITER);
 		if (grs == null || grs.isEmpty()) {
@@ -110,7 +106,7 @@ public class UploadInputUtility {
 		}
 		return grs.get(0).toString();
 	}
-	
+
 	public static Map<String, String> getAdditionalCsvDataTypes(NounStore store) {
 		GenRowStruct grs = store.getNoun(ADDITIONAL_DATA_TYPES);
 		if (grs == null || grs.isEmpty()) {
@@ -134,7 +130,7 @@ public class UploadInputUtility {
 		}
 		return (Map<String, String>) grs.get(0);
 	}
-	
+
 	/**
 	 * Figure out the end row count from the csv file
 	 * 
@@ -198,61 +194,11 @@ public class UploadInputUtility {
 		if (!(grs == null || grs.isEmpty())) {
 			String metamodelPath = grs.get(0).toString();
 			if (metamodelPath.toLowerCase().endsWith(".prop")) {
-				// need to convert old prop file to json
-				Properties oldMetamodel = Utility.loadProperties(metamodelPath);
-				HashMap<String, Object> newMetamodel = new HashMap<>();
-				// get node properties
-				String nodePropStr = (String) oldMetamodel.get("NODE_PROP");
-				HashMap<String, List<String>> nodePropMap = new HashMap<>();
-				if (nodePropStr.contains(";")) {
-					String[] nodeProps = nodePropStr.split(";");
-					for (String nodeStr : nodeProps) {
-						String[] propSplit = nodeStr.split("%");
-						String node = propSplit[0];
-						String prop = propSplit[1];
-						List<String> properties = new ArrayList<>();
-						if (nodePropMap.containsKey(node)) {
-							properties = nodePropMap.get(node);
-						}
-						properties.add(prop);
-						nodePropMap.put(node, properties);
-					}
-				}
-				newMetamodel.put(Constants.NODE_PROP, nodePropMap);
-				// get relations
-				String relationStr = (String) oldMetamodel.get("RELATION");
-				String[] relations = relationStr.split(";");
-				ArrayList<Map<String, String>> relationships = new ArrayList<>();
-				for (String relStr : relations) {
-					if (relStr.contains("@")) {
-						String[] rel = relStr.split("@");
-						HashMap<String, String> relMap = new HashMap<>();
-						String fromTable = rel[0];
-						String toTable = rel[2];
-						// check if tables are defined in node props if not add them with no properties
-						if(!nodePropMap.containsKey(fromTable)) {
-							nodePropMap.put(fromTable, new ArrayList<String>());
-						}
-						if(!nodePropMap.containsKey(toTable)) {
-							nodePropMap.put(toTable, new ArrayList<String>());
-						}
-						relMap.put(Constants.FROM_TABLE,fromTable);
-						relMap.put(Constants.REL_NAME, rel[1]);
-						relMap.put(Constants.TO_TABLE, toTable);
-						relationships.add(relMap);
-					}
-				}
-				newMetamodel.put(Constants.RELATION, relationships);
-				// add start row, end row
-				if(oldMetamodel.containsKey("START_ROW")) {
-					newMetamodel.put(Constants.START_ROW, oldMetamodel.getProperty("START_ROW"));
-				}
-				if(oldMetamodel.containsKey("END_ROW")) {
-					newMetamodel.put(Constants.END_ROW, oldMetamodel.getProperty("END_ROW"));
-				}
-				return newMetamodel;
+				// using old prop file need to convert
+				return convertPropFile(metamodelPath, store);
 			}
 			try {
+				// using new json prop file
 				Map<String, Object> result = new ObjectMapper().readValue(new File(metamodelPath), Map.class);
 				return result;
 			} catch (IOException e) {
@@ -260,6 +206,81 @@ public class UploadInputUtility {
 			}
 		}
 		return null;
+	}
+
+	private static Map<String, Object> convertPropFile(String oldMetamodelPath, NounStore store) {
+		// need to convert old prop file to json
+		Properties oldMetamodel = Utility.loadProperties(oldMetamodelPath);
+		HashMap<String, Object> newMetamodel = new HashMap<>();
+		// get node properties
+		String nodePropStr = (String) oldMetamodel.get("NODE_PROP");
+		HashMap<String, List<String>> nodePropMap = new HashMap<>();
+		if (nodePropStr.contains(";")) {
+			String[] nodeProps = nodePropStr.split(";");
+			for (String nodeStr : nodeProps) {
+				String[] propSplit = nodeStr.split("%");
+				String node = propSplit[0];
+				String prop = propSplit[1];
+				List<String> properties = new ArrayList<>();
+				if (nodePropMap.containsKey(node)) {
+					properties = nodePropMap.get(node);
+				}
+				properties.add(prop);
+				nodePropMap.put(node, properties);
+			}
+		}
+		newMetamodel.put(Constants.NODE_PROP, nodePropMap);
+		// get relations
+		String relationStr = (String) oldMetamodel.get("RELATION");
+		String[] relations = relationStr.split(";");
+		ArrayList<Map<String, String>> relationships = new ArrayList<>();
+		for (String relStr : relations) {
+			if (relStr.contains("@")) {
+				String[] rel = relStr.split("@");
+				HashMap<String, String> relMap = new HashMap<>();
+				String fromTable = rel[0];
+				String toTable = rel[2];
+				// check if tables are defined in node props if not add them
+				// with no properties
+				if (!nodePropMap.containsKey(fromTable)) {
+					nodePropMap.put(fromTable, new ArrayList<String>());
+				}
+				if (!nodePropMap.containsKey(toTable)) {
+					nodePropMap.put(toTable, new ArrayList<String>());
+				}
+				relMap.put(Constants.FROM_TABLE, fromTable);
+				relMap.put(Constants.REL_NAME, rel[1]);
+				relMap.put(Constants.TO_TABLE, toTable);
+				relationships.add(relMap);
+			}
+		}
+		newMetamodel.put(Constants.RELATION, relationships);
+		// add start row, end row
+		if (oldMetamodel.containsKey("START_ROW")) {
+			newMetamodel.put(Constants.START_ROW, oldMetamodel.getProperty("START_ROW"));
+		}
+		if (oldMetamodel.containsKey("END_ROW")) {
+			newMetamodel.put(Constants.END_ROW, oldMetamodel.getProperty("END_ROW"));
+		}
+		// ugh getting datatypes is not fun need to look at header index
+		String csvFilePath = UploadInputUtility.getFilePath(store);
+		String delimiter = UploadInputUtility.getDelimiter(store);
+		char delim = delimiter.charAt(0);
+		CSVFileHelper helper = new CSVFileHelper();
+		helper.setDelimiter(delim);
+		helper.parse(csvFilePath);
+		String[] headers = helper.getHeaders();
+		Map<String, Object> dataTypes = new HashMap<>();
+		for (int i = 0; i < headers.length; i++) {
+			// headers are one off
+			String columnHeaderIndex = i+1+"";
+			//TODO hmmmm I need to get new header name and index
+			if (oldMetamodel.containsKey(columnHeaderIndex)) {
+				dataTypes.put(headers[i], oldMetamodel.get(columnHeaderIndex));
+			}
+		}
+		newMetamodel.put(Constants.DATA_TYPES, dataTypes);
+		return newMetamodel;
 	}
 
 	private static int getStartRow(NounStore store) {
@@ -277,6 +298,5 @@ public class UploadInputUtility {
 		}
 		return (int) grs.get(0);
 	}
-
 
 }
