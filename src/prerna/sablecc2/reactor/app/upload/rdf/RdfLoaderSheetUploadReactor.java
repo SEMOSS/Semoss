@@ -107,7 +107,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		
 		ClusterUtil.reactorPushApp(appId);
 		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), appId);
-		return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	private String generateNewApp(User user, String newAppName, String filePath) {
