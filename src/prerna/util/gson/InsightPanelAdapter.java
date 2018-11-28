@@ -31,6 +31,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		out.name("view").value(value.getPanelView());
 		out.name("viewOptions").value(value.getPanelActiveViewOptions());
 		out.name("viewOptionsMap").value(GSON.toJson(value.getPanelViewOptions()));
+		out.name("config").value(GSON.toJson(value.getConfig()));
 		out.name("ornaments").value(GSON.toJson(value.getOrnaments()));
 		out.name("events").value(GSON.toJson(value.getEvents()));
 		out.name("comments").value(GSON.toJson(value.getComments()));
@@ -70,6 +71,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		String view = null;
 		String viewOptions = null;
 		Map<String, Map<String, String>> viewOptionsMap = null;
+		Map<String, Object> config = null;
 		Map<String, Object> ornaments = null;
 		Map<String, Object> events = null;
 		GenRowFilters grf = null;
@@ -103,6 +105,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				viewOptions = value;
 			} else if(key.equals("viewOptionsMap")) {
 				viewOptionsMap =  GSON.fromJson(value, Map.class);
+			} else if(key.equals("config")) {
+				config =  GSON.fromJson(value, Map.class);
 			} else if(key.equals("ornaments")) {
 				ornaments = GSON.fromJson(value, Map.class);
 			} else if(key.equals("events")) {
@@ -145,6 +149,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		panel.setPanelView(view);
 		panel.setPanelActiveViewOptions(viewOptions);
 		panel.setPanelViewOptions(viewOptionsMap);
+		panel.addConfig(config);
 		panel.addOrnaments(ornaments);
 		panel.addEvents(events);
 		panel.addPanelFilters(grf);
