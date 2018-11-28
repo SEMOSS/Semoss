@@ -73,8 +73,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	private static final String CLASS_NAME = RdbmsFlatExcelUploadReactor.class.getName();
 
 	public RdbmsFlatExcelUploadReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH, DATA_TYPE_MAP,
-				UploadInputUtility.NEW_HEADERS, ADDITIONAL_TYPES, UploadInputUtility.CLEAN_STRING_VALUES,
+		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH, UploadInputUtility.DATA_TYPE_MAP,
+				UploadInputUtility.NEW_HEADERS, UploadInputUtility.ADDITIONAL_DATA_TYPES, UploadInputUtility.CLEAN_STRING_VALUES,
 				UploadInputUtility.REMOVE_DUPLICATE_ROWS, UploadInputUtility.ADD_TO_EXISTING };
 	}
 
@@ -755,7 +755,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	 */
 
 	private Map<String, Map<String, Map<String, String>>> getDataTypeMap() {
-		GenRowStruct grs = this.store.getNoun(DATA_TYPE_MAP);
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.DATA_TYPE_MAP);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
@@ -771,7 +771,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	}
 
 	private Map<String, Map<String, Map<String, String>>> getAdditionalTypes() {
-		GenRowStruct grs = this.store.getNoun(ADDITIONAL_TYPES);
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.ADDITIONAL_DATA_TYPES);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
