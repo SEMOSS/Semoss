@@ -123,14 +123,18 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		themeName = RdbmsQueryBuilder.escapeForSQLStatement(themeName);
 		themeMap = RdbmsQueryBuilder.escapeForSQLStatement(themeMap);
 
-		String updateQuery = "UPDATE ADMIN_THEME SET theme_name='" + themeName + "' AND theme_map='" + themeMap 
-				+ "' AND is_active=" + isActive + " WHERE id='" + themeId + "';";
+		String updateQuery = "UPDATE ADMIN_THEME SET theme_name='" + themeName + "', theme_map='" + themeMap 
+				+ "', is_active=" + isActive + " WHERE id='" + themeId + "';";
 		try {
 			themeDb.insertData(updateQuery);
 			themeDb.commit();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return false;
+		}
+		
+		if(isActive) {
+			setActiveTheme(themeId);
 		}
 		return true;
 	}
