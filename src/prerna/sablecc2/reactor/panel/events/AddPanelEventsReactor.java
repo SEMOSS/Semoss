@@ -24,9 +24,10 @@ public class AddPanelEventsReactor extends AbstractInsightPanelReactor {
 		InsightPanel insightPanel = getInsightPanel();
 		// get the events that come as a map
 		Map<String, Object> events = getEventsMapInput();
-		if (events != null) {
-			decodeQuery(events);
+		if(events == null) {
+			throw new IllegalArgumentException("Need to define the events input");
 		}
+		decodeQuery(events);
 		// merge the map options
 		insightPanel.addEvents(events);
 		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_EVENT);
