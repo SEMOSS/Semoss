@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
-import org.h2.jdbc.JdbcClob;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
