@@ -22,6 +22,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
 import prerna.util.Constants;
@@ -50,7 +51,7 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		// get inputs - engine
-		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = UploadInputUtility.getAppName(this.store);
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
