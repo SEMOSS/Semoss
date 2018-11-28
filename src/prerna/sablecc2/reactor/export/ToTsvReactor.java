@@ -9,11 +9,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class ToCsvReactor extends AbstractExportTxtReactor {
+public class ToTsvReactor extends AbstractExportTxtReactor {
 
-	private static final String CLASS_NAME = ToCsvReactor.class.getName();
+	private static final String CLASS_NAME = ToTsvReactor.class.getName();
 	
-	public ToCsvReactor() {
+	public ToTsvReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey()};
 	}
 	
@@ -21,11 +21,11 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 	public NounMetadata execute() {
 		this.logger = getLogger(CLASS_NAME);
 		this.task = getTask();
-		// set to comma separated
-		this.setDelimiter(",");
+		// set to tab separated
+		this.setDelimiter("\t");
 		// get a random file name
 		String randomKey = UUID.randomUUID().toString();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + randomKey + ".csv";
+		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + randomKey + ".tsv";
 		buildTask();
 		
 		// store it in the insight so the FE can download it
