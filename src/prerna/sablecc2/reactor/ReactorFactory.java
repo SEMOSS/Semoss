@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.comments.AddInsightCommentReactor;
 import prerna.comments.DeleteInsightCommentReactor;
@@ -200,6 +202,7 @@ import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.SyncAppWithLocalMasterReactor;
+import prerna.sablecc2.reactor.panel.AddPanelConfigReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
 import prerna.sablecc2.reactor.panel.AddPanelReactor;
 import prerna.sablecc2.reactor.panel.ClosePanelReactor;
@@ -374,8 +377,6 @@ import prerna.util.usertracking.reactors.WidgetTrackingReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VisualizationRecommendationReactor;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -684,6 +685,8 @@ public class ReactorFactory {
 		reactorHash.put("RemovePanelOrnaments", RemovePanelOrnamentsReactor.class);
 		reactorHash.put("ResetPanelOrnaments", ResetPanelOrnamentsReactor.class);
 		reactorHash.put("RetrievePanelOrnaments", RetrievePanelOrnamentsReactor.class);
+		// panel configuration
+		reactorHash.put("AddPanelConfig", AddPanelConfigReactor.class);
 		// panel events
 		reactorHash.put("AddPanelEvents", AddPanelEventsReactor.class);
 		reactorHash.put("RemovePanelEvents", RemovePanelEventsReactor.class);

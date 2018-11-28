@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.panel.comments;
+package prerna.sablecc2.reactor.panel;
 
 import java.util.List;
 import java.util.Map;
@@ -9,30 +9,38 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.panel.AbstractInsightPanelReactor;
 
-public class AddPanelCommentReactor extends AbstractInsightPanelReactor {
+public class AddPanelConfigReactor extends AbstractInsightPanelReactor {
 	
-	public AddPanelCommentReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey()};
+	// input keys for the map
+	private static final String LABEL = "label";
+	private static final String CONFIG = "config";
+
+	public AddPanelConfigReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.CONFIG.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
-		// get the ornaments that come as a map
-		Map<String, Object> comment = getCommentInputs();
-		if(comment == null) {
-			throw new IllegalArgumentException("Need to define the comments input");
+		// get the map
+		Map<String, Object> mapInput = getMapInput();
+		if(mapInput == null) {
+			throw new IllegalArgumentException("Need to define the config input");
 		}
+		// config also has a short hand to set the panel label
+		if(mapInput.containsKey(LABEL)) {
+			insightPanel.setPanelLabel(mapInput.get(LABEL).toString());
+		}
+		Map<String, Object> config = (Map<String, Object>) mapInput.get(CONFIG);
 		// merge the map options
-		insightPanel.addComment(comment);
-		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_COMMENT);
+		insightPanel.addConfig(config);
+		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_CONFIG);
 	}
 
-	private Map<String, Object> getCommentInputs() {
-		// see if it was passed directly in with the lower case key ornaments
+	private Map<String, Object> getMapInput() {
+		// see if it was passed directly in with the lower case key config
 		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			return (Map<String, Object>) genericReactorGrs.get(0);

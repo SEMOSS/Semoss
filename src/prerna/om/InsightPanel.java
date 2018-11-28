@@ -24,6 +24,8 @@ public class InsightPanel {
 	private String view;
 	// active view options
 	private String viewOptions;
+	// panel configuration - opacity, etc.
+	private Map<String, Object> config;
 	// view options on the current view
 	private transient Map<String, Map<String, String>> viewOptionsMap;
 	// state held for UI options on the panel
@@ -48,13 +50,32 @@ public class InsightPanel {
 	public InsightPanel(String panelId) {
 		this.panelId = panelId;
 		this.viewOptionsMap = new HashMap<String, Map<String, String>>();
-		this.grf = new GenRowFilters();
-		this.orderBys = new ArrayList<QueryColumnOrderBySelector>();
+		this.config = new HashMap<String, Object>();
 		this.ornaments = new HashMap<String, Object>();
 		this.events = new HashMap<String, Object>();
 		this.comments = new HashMap<String, Map<String, Object>>();
 		this.position = new HashMap<String, Object>();
+		
 		this.colorByValue = new HashMap<String, SelectQueryStruct>();
+		this.grf = new GenRowFilters();
+		this.orderBys = new ArrayList<QueryColumnOrderBySelector>();
+	}
+	
+	/**
+	 * Merge new panel configuration options into the existing panel config map
+	 * This will merge child maps together if possible 
+	 * @param config
+	 */
+	public void addConfig(Map<String, Object> newPanelConfig) {
+		recursivelyMergeMaps(this.config, newPanelConfig);
+	}
+	
+	/**
+	 * Get the panel config
+	 * @return
+	 */
+	public Map<String, Object> getConfig() {
+		return this.config;
 	}
 	
 	/**
@@ -207,24 +228,26 @@ public class InsightPanel {
 	}
 	
 	private void recursivelyMergeMaps(Map<String, Object> mainMap, Map<String, Object> newMap) {
-		for(String key : newMap.keySet()) {
-			if(mainMap.containsKey(key)) {
-				// we have an overlap
-				// lets see if the children are both maps
-				boolean newKeyIsMap = (newMap.get(key) instanceof Map);
-				boolean existingKeyIsMap = (mainMap.get(key) instanceof Map);
-				if(newKeyIsMap && existingKeyIsMap) {
-					// recursively go through and try to add
-					recursivelyMergeMaps( (Map) mainMap.get(key), (Map) newMap.get(key));
+		if(newMap != null) {
+			for(String key : newMap.keySet()) {
+				if(mainMap.containsKey(key)) {
+					// we have an overlap
+					// lets see if the children are both maps
+					boolean newKeyIsMap = (newMap.get(key) instanceof Map);
+					boolean existingKeyIsMap = (mainMap.get(key) instanceof Map);
+					if(newKeyIsMap && existingKeyIsMap) {
+						// recursively go through and try to add
+						recursivelyMergeMaps( (Map) mainMap.get(key), (Map) newMap.get(key));
+					} else {
+						// both are not maps
+						// just override
+						mainMap.putAll(newMap);
+					}
 				} else {
-					// both are not maps
-					// just override
+					// brand new key
+					// put all into the main map
 					mainMap.putAll(newMap);
 				}
-			} else {
-				// brand new key
-				// put all into the main map
-				mainMap.putAll(newMap);
 			}
 		}
 	}
@@ -414,10 +437,12 @@ public class InsightPanel {
 			this.panelLabel = existingPanel.panelLabel + " Clone";
 		}
 		this.viewOptions = existingPanel.viewOptions;
+		this.config.putAll(gson.fromJson(gson.toJson(existingPanel.config), Map.class));
 		this.viewOptionsMap.putAll(gson.fromJson(gson.toJson(existingPanel.viewOptionsMap), Map.class));
 		this.ornaments.putAll(gson.fromJson(gson.toJson(existingPanel.ornaments), Map.class));
 		this.comments.putAll(gson.fromJson(gson.toJson(existingPanel.comments), Map.class));
 		this.events.putAll(gson.fromJson(gson.toJson(existingPanel.events), Map.class));
 		this.grf = existingPanel.grf.copy();
 	}
+
 }
