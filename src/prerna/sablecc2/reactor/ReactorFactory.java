@@ -98,6 +98,8 @@ import prerna.sablecc2.reactor.export.OneDriveUploaderReactor;
 import prerna.sablecc2.reactor.export.ToCsvReactor;
 import prerna.sablecc2.reactor.export.ToDatabaseReactor;
 import prerna.sablecc2.reactor.export.ToLoaderSheetReactor;
+import prerna.sablecc2.reactor.export.ToTsvReactor;
+import prerna.sablecc2.reactor.export.ToTxtReactor;
 import prerna.sablecc2.reactor.expression.IfError;
 import prerna.sablecc2.reactor.expression.OpAbsolute;
 import prerna.sablecc2.reactor.expression.OpAsString;
@@ -587,6 +589,8 @@ public class ReactorFactory {
 		reactorHash.put("TaskOptions", TaskOptionsReactor.class); // set options
 		reactorHash.put("AutoTaskOptions", AutoTaskOptionsReactor.class);
 		reactorHash.put("ToCsv", ToCsvReactor.class); // take any task and output to a file
+		reactorHash.put("ToTsv", ToTsvReactor.class); // take any task and output to a file
+		reactorHash.put("ToTxt", ToTxtReactor.class); // take any task and output to a file
 		reactorHash.put("ToDatabase", ToDatabaseReactor.class);
 		reactorHash.put("ToLoaderSheet", ToLoaderSheetReactor.class);
 		
