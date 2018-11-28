@@ -35,7 +35,7 @@ public class PanelCloneReactor extends AbstractInsightPanelReactor {
 		cloneMap.put("original", existingPanel);
 		cloneMap.put("clone", newClonePanel);
 		// return the new panel
-		return new NounMetadata(cloneMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_CLONE);
+		return new NounMetadata(cloneMap, PixelDataType.PANEL_CLONE_MAP, PixelOperationType.PANEL_CLONE);
 	}
 	
 	private String getClonePanelId() {
