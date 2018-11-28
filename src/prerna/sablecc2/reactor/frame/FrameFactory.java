@@ -33,15 +33,18 @@ public class FrameFactory {
 		
 		case "PYFRAME": {
 			PandasFrame frame = new PandasFrame(alias);
-			frame.setJep(insight.getPy());		
+			frame.setJep(insight.getPy());
+			return frame;
 		}
 		case "PANDAS": {
 			PandasFrame frame = new PandasFrame(alias);
-			frame.setJep(insight.getPy());		
+			frame.setJep(insight.getPy());
+			return frame;
 		}
 		case "PY": {
 			PandasFrame frame = new PandasFrame(alias);
-			frame.setJep(insight.getPy());		
+			frame.setJep(insight.getPy());
+			return frame;
 		}
 		
 		case "NATIVE": { return new NativeFrame(); }
