@@ -89,17 +89,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			List<Insight> in = engine.getInsight(rdbmsId + "");
 			newInsight = in.get(0);
 		} catch (ArrayIndexOutOfBoundsException e) {
-			if (ClusterUtil.IS_CLUSTER) {
-				try {
-					logger.info("Pulling app from cloud storage, appid=" + appId);
-					AZClient.getInstance().updateApp(appId);
-				} catch (IOException | InterruptedException e1) {
-					NounMetadata noun = new NounMetadata("Failed to sync this new insight from cloud storage", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-					SemossPixelException err = new SemossPixelException(noun);
-					err.setContinueThreadOfExecution(false);
-					throw err;
-				}
-			}
+			logger.info("Pulling app from cloud storage, appid=" + appId);
+			ClusterUtil.reactorUpdateApp(appId);
 			try {
 				List<Insight> in = engine.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
