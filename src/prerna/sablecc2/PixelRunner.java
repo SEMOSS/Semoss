@@ -68,17 +68,7 @@ public class PixelRunner {
 					String location = matcher.group(0);
 					location = location.substring(1, location.length()-1);
 					int findIndex = Integer.parseInt(location.split(",")[1]);
-					
-					// trying to figure out the correct location of the error
-					// so, we send a META | Job automatically
-					// and we want to account for that
-					if(expression.startsWith("META | Job(")) {
-						int firstSemicolon = expression.indexOf(";");
-						String subExpression = expression.substring(firstSemicolon+1);
-						eMessage += ". Error in syntax around " + subExpression.substring(Math.max(findIndex - firstSemicolon - 10, 0), Math.min(findIndex - firstSemicolon + 10, subExpression.length())).trim();
-					} else {
-						eMessage += ". Error in syntax around " + expression.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, expression.length())).trim();
-					}
+					eMessage += ". Error in syntax around " + expression.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, expression.length())).trim();
 				}
 			}
 			addResult(expression, new NounMetadata(eMessage, PixelDataType.INVALID_SYNTAX, PixelOperationType.INVALID_SYNTAX), false);
