@@ -29,7 +29,7 @@ public class PredictDataTypesReactor extends AbstractReactor {
 		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("dataTypes", predictionMaps[0]);
-		retMap.put("additionalTypes", predictionMaps[1]);
+		retMap.put("additionalDataTypes", predictionMaps[1]);
 		if (rowCount) {
 			// get the row count
 			int count = 1;
