@@ -56,8 +56,6 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 				NounMetadata retNoun = ((IReactor) valueNoun.getValue()).execute();
 				return retNoun;
 			}
-		} else if(!varName.equals("$RESULT")) {
-			
 		}
 		// once we are done with the whole recursive
 		// part above, just return the noun
