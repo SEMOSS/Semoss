@@ -52,7 +52,7 @@ build_deploy:
     - svn --username ${SVN_USER} --password ${SVN_PASS} up ver.txt
     - cp -rf ../ver.txt ver.txt
     - svn --username ${SVN_USER} --password ${SVN_PASS} status -u
-    - svn --username ${SVN_USER} --password ${SVN_PASS} commit -m "UPDATE ::: changing the version"
+    - svn --username ${SVN_USER} --password ${SVN_PASS} commit -m "VERSION"
     - cd ..
     - rm -rf SemossVer
     # Rest of the build
@@ -86,7 +86,7 @@ build_release:
     - svn --username ${SVN_USER} --password ${SVN_PASS} up ver.txt
     - cp -rf ../ver.txt ver.txt
     - svn --username ${SVN_USER} --password ${SVN_PASS} status -u
-    - svn --username ${SVN_USER} --password ${SVN_PASS} commit -m "UPDATE ::: changing the version"
+    - svn --username ${SVN_USER} --password ${SVN_PASS} commit -m "VERSION"
     - cd ..
     - rm -rf SemossVer
     # Rest of the build
