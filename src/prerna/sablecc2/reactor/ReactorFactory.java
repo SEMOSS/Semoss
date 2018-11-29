@@ -97,6 +97,7 @@ import prerna.sablecc2.reactor.export.IterateReactor;
 import prerna.sablecc2.reactor.export.OneDriveUploaderReactor;
 import prerna.sablecc2.reactor.export.ToCsvReactor;
 import prerna.sablecc2.reactor.export.ToDatabaseReactor;
+import prerna.sablecc2.reactor.export.ToExcelReactor;
 import prerna.sablecc2.reactor.export.ToLoaderSheetReactor;
 import prerna.sablecc2.reactor.export.ToTsvReactor;
 import prerna.sablecc2.reactor.export.ToTxtReactor;
@@ -591,6 +592,7 @@ public class ReactorFactory {
 		reactorHash.put("ToCsv", ToCsvReactor.class); // take any task and output to a file
 		reactorHash.put("ToTsv", ToTsvReactor.class); // take any task and output to a file
 		reactorHash.put("ToTxt", ToTxtReactor.class); // take any task and output to a file
+		reactorHash.put("ToExcel", ToExcelReactor.class); // take any task and output to a file
 		reactorHash.put("ToDatabase", ToDatabaseReactor.class);
 		reactorHash.put("ToLoaderSheet", ToLoaderSheetReactor.class);
 		
