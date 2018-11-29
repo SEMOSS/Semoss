@@ -43,9 +43,19 @@ build_deploy:
     variables:
       - $RELEASE == "TRUE"
   script:
+    # Version information
     - echo datetime=`date +%Y-%m-%d_%H:%M:%S` > ver.txt
     - echo version=${VERSION}-SNAPSHOT >> ver.txt
     - cat ver.txt
+    - svn --username ${SVN_USER} --password ${SVN_PASS} checkout svn://107.170.10.188:8080/Semoss/dev SemossVer --depth empty
+    - cd SemossVer
+    - svn --username ${SVN_USER} --password ${SVN_PASS} up ver.txt
+    - cp -rf ../ver.txt ver.txt
+    - svn --username ${SVN_USER} --password ${SVN_PASS} status -u
+    - svn --username ${SVN_USER} --password ${SVN_PASS} commit -m "UPDATE ::: changing the version"
+    - cd ..
+    - rm -rf SemossVer
+    # Rest of the build
     - apt-get update
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
@@ -67,9 +77,19 @@ build_release:
     variables:
       - $RELEASE == "TRUE"
   script:
+    # Version information
     - echo datetime=`date +%Y-%m-%d_%H:%M:%S` > ver.txt
     - echo version=${VERSION} >> ver.txt
     - cat ver.txt
+    - svn --username ${SVN_USER} --password ${SVN_PASS} checkout svn://107.170.10.188:8080/Semoss/dev SemossVer --depth empty
+    - cd SemossVer
+    - svn --username ${SVN_USER} --password ${SVN_PASS} up ver.txt
+    - cp -rf ../ver.txt ver.txt
+    - svn --username ${SVN_USER} --password ${SVN_PASS} status -u
+    - svn --username ${SVN_USER} --password ${SVN_PASS} commit -m "UPDATE ::: changing the version"
+    - cd ..
+    - rm -rf SemossVer
+    # Rest of the build
     - apt-get update
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
