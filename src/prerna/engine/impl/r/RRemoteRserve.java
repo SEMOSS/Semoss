@@ -18,7 +18,7 @@ public class RRemoteRserve {
 	
 	public RConnection getConnection() {
 		
-		if(System.getenv("REMOTE_RSERVE").equalsIgnoreCase("true")){
+		if(Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))){
 			String server = System.getenv("REMOTE_RSERVE_IP");
 		if(server.contains(":")){
 			String[] hostInfo = server.split(":", 2);
