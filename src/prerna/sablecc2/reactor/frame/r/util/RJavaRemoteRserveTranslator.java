@@ -215,7 +215,7 @@ public class RJavaRemoteRserveTranslator  extends AbstractRJavaTranslator{
 	public String runRAndReturnOutput(String script) {
 		RConnection r = null;
 		Boolean remoteR = false;
-		if (System.getenv("REMOTE_RSERVE").equalsIgnoreCase("true")) {
+		if (Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))) {
 			r = getRcon();
 			remoteR = true;
 		}
