@@ -58,7 +58,6 @@ public interface Analysis extends Switch
     void caseARefRegTerm(ARefRegTerm node);
     void caseADotcolRegTerm(ADotcolRegTerm node);
     void caseAJavaOpRegTerm(AJavaOpRegTerm node);
-    void caseAROpRegTerm(AROpRegTerm node);
     void caseAListRegTerm(AListRegTerm node);
     void caseACsvRegTerm(ACsvRegTerm node);
     void caseANullRegTerm(ANullRegTerm node);
@@ -114,7 +113,6 @@ public interface Analysis extends Switch
     void caseARepeatingOrComparison(ARepeatingOrComparison node);
     void caseABaseSimpleComparison(ABaseSimpleComparison node);
     void caseAJavaOp(AJavaOp node);
-    void caseAROp(AROp node);
     void caseARcol(ARcol node);
     void caseADotcol(ADotcol node);
     void caseAMap(AMap node);
@@ -184,7 +182,6 @@ public interface Analysis extends Switch
     void caseTBlank(TBlank node);
     void caseTCodeAlpha(TCodeAlpha node);
     void caseTJava(TJava node);
-    void caseTR(TR node);
     void caseTIf(TIf node);
     void caseTAsOp(TAsOp node);
     void caseTCustom(TCustom node);
