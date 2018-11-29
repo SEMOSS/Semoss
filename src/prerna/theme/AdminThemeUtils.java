@@ -108,6 +108,10 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			e.printStackTrace();
 			return null;
 		}
+		
+		if(isActive) {
+			setActiveTheme(themeId);
+		}
 		return themeId;
 	}
 	
