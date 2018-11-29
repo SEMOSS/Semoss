@@ -23,7 +23,8 @@ build_dev:
     variables:
       - $RELEASE == "TRUE"
   script:
-    - ls
+    - echo date +%Y-%m-%d_%H:%M:%S
+    - echo ${VERSION}-SNAPSHOT
     - apt-get update
     - apt-get install -y openjfx
     - mvn $MAVEN_CLI_OPTS clean install -Dci.version=${VERSION}-SNAPSHOT
