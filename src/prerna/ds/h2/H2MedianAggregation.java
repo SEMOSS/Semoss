@@ -31,7 +31,7 @@ public class H2MedianAggregation implements org.h2.api.AggregateFunction {
 			// Odd size
 			if ((size%2) == 1 ) return this.values.get(pos);
 			// Even size
-			else return ( this.values.get(pos-1) + this.values.get(pos) ) / 2;
+			else return new Double( ( this.values.get(pos-1) + this.values.get(pos) ) / 2);
 		}
 		else {
 			return null;
