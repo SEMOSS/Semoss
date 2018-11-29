@@ -75,7 +75,7 @@ public class RJavaTranslatorFactory {
 			
 			className = basePackage + "RJavaJriTranslator";
 			
-		} else if (System.getenv("REMOTE_RSERVE").equalsIgnoreCase("true")) {
+		} else if (Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))) {
 			
 			className = basePackage + "RJavaRemoteRserveTranslator";
 			
