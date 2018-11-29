@@ -86,5 +86,8 @@
     <file>
       <source>social.properties</source>
     </file>
+	<file>
+      <source>ver.txt</source>
+    </file>
   </files>
 </assembly>
