@@ -85,6 +85,22 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	}
 	
 	/**
+	 * Set the active admin level theme to false so the UI resets to the base theme
+	 * @return
+	 */
+	public boolean setAllThemesInactive() {
+		String query = "UPDATE ADMIN_THEME SET IS_ACTIVE=FALSE WHERE IS_ACTIVE=TRUE;";
+		try {
+			themeDb.insertData(query);
+			themeDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	/**
 	 * Insert a new admin level theme
 	 * @param themeId
 	 * @param themeName
