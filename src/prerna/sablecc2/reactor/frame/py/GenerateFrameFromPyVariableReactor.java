@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.py;
 
 import java.util.ArrayList;
 
@@ -6,14 +6,13 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
-import prerna.ds.r.RDataTable;
+import prerna.ds.py.PyExecutorThread;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.sablecc2.reactor.frame.py.PyExecutorThread;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -49,7 +48,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractFrameReactor {
 		// create the pandas frame
 		// and set up teverything else
 		PandasFrame pf = new PandasFrame(varName);
-		pf.setJep(getJep());
+		pf.setJep(this.insight.getPy());
 		
 		ImportUtility.parsePyTableColumnsAndTypesToFlatTable(pf, colNames, colTypes, varName);
 		pf.setDataTypeMap(pf.getMetaData().getHeaderToTypeMap());
@@ -78,7 +77,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractFrameReactor {
 	{
 			// so I am nto sure we need to write it to a file etc. for now.. I will run it
 			
-			PyExecutorThread py = getJep();
+			PyExecutorThread py = this.insight.getPy();
 			py.command = script;
 			Object monitor = py.getMonitor();
 			Object response = null;
