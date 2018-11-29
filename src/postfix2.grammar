@@ -66,7 +66,6 @@ Tokens
  blank = (' ' | 13 | 10);
  code_alpha='<c>' encoded_values* '</c>';
  java = '<j>' encoded_values* '</j>';
- r = '<j> runR(' encoded_values* ')</j>';
  if = 'if';
  as_op = ('.as' | '.out');
  custom = '|';
@@ -168,7 +167,6 @@ Productions
 	| {ref} rcol
 	| {dotcol} dotcol 
 	| {java_op} java_op 
-	| {r_op} r_op
 	| {list} list
 	| {csv} gen_row
     | {null} null
@@ -268,7 +266,6 @@ Productions
   
  // for java and r operations
  java_op = java;
- r_op = r;
 
  // reference - this means the 4th column in the current frame
  rcol = frameprefix [column_name]:id; // f$Title
