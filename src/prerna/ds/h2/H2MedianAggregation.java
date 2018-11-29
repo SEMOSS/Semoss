@@ -16,7 +16,7 @@ public class H2MedianAggregation implements org.h2.api.AggregateFunction {
 
 	@Override
 	public void add(Object o) throws java.sql.SQLException {
-		this.values.add((Double)o);
+		this.values.add( ((Number)o).doubleValue() );
 	}
 
 	@Override
