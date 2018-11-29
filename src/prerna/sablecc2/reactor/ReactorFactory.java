@@ -88,6 +88,7 @@ import prerna.sablecc2.reactor.app.upload.rdf.RdfLoaderSheetUploadReactor;
 import prerna.sablecc2.reactor.cluster.CleanUpAppsReactor;
 import prerna.sablecc2.reactor.cluster.OpenAppReactor;
 import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
+import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.DropBoxUploaderReactor;
@@ -837,6 +838,7 @@ public class ReactorFactory {
 		reactorHash.put("OpenApp", OpenAppReactor.class);
 		reactorHash.put("UpdateApp", UpdateAppReactor.class);
 		reactorHash.put("CleanUpApps", CleanUpAppsReactor.class);
+		reactorHash.put("Version", VersionReactor.class);
 		
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
