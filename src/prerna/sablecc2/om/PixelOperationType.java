@@ -133,6 +133,7 @@ public enum PixelOperationType {
 	OPEN_APP,
 	UPDATE_APP,
 	CLEANUP_APPS,
+	VERSION,
 	
 	// RECIPE COMMENTS
 	RECIPE_COMMENT,
