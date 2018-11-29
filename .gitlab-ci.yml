@@ -23,7 +23,7 @@ build_dev:
     variables:
       - $RELEASE == "TRUE"
   script:
-    - echo date +%Y-%m-%d_%H:%M:%S
+    - date +%Y-%m-%d_%H:%M:%S
     - echo ${VERSION}-SNAPSHOT
     - apt-get update
     - apt-get install -y openjfx
