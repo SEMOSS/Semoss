@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -141,7 +142,6 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 	private AssimilatorEvaluator buildAssimilatorEvaluator(String stringMethod) {
 		// evaluate the assimilator as an object
 		ClassMaker maker = new ClassMaker();
-
 		// add a super so we have a base method to execute
 		maker.addSuper("prerna.sablecc2.reactor.AssimilatorEvaluator");
 		maker.addMethod(stringMethod);
@@ -174,8 +174,8 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 			expressionBuilder.append("return new String(").append(this.signature).append(");}");
 		} else {
 			// multiply by 1.0 to make sure everything is a double...
-			// as a pksl data type
-			expressionBuilder.append("return new Double(1.0 * ( ").append(this.signature).append("));}");
+			// as a pixel data type
+			expressionBuilder.append("return new java.math.BigDecimal(1.0 * ( ").append(this.signature).append("));}");
 		}
 		return expressionBuilder.toString();
 	}
@@ -234,9 +234,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 		// need to how check if there are strings
 		int numValues = this.curRow.size();
 		for(int i = 0; i < numValues; i++) {
-			if( (this.curRow.getNoun(i).getNounType() != PixelDataType.CONST_INT)
-					&& (this.curRow.getNoun(i).getNounType() != PixelDataType.CONST_DECIMAL)
-					&& (this.curRow.getNoun(i).getNounType() != PixelDataType.COLUMN)) {
+			if(this.curRow.getNoun(i).getNounType() == PixelDataType.CONST_STRING) {
 				this.containsStringValue = true;
 				break;
 			}

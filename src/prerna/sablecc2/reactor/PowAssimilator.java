@@ -57,7 +57,7 @@ public class PowAssimilator extends Assimilator {
 		appendVariables(expressionBuilder);
 		// now that the variables are defined
 		// we just want to add the expression as a return
-		expressionBuilder.append("return new Double(Math.pow( 1.0 * " + lSignature + ", 1.0 * " + rSignature + "));}");
+		expressionBuilder.append("return new java.math.BigDecimal(Math.pow( 1.0 * " + lSignature + ", 1.0 * " + rSignature + "));}");
 		maker.addMethod(expressionBuilder.toString());
 		// add a super so we have a base method to execute
 		maker.addSuper("prerna.sablecc2.reactor.AssimilatorEvaluator");
