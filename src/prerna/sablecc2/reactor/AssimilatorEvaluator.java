@@ -52,6 +52,10 @@ public abstract class AssimilatorEvaluator extends AbstractReactor {
 	 */
 	public abstract Object getExpressionValue();
 	
+	public void setVars(Map<String, Object> vars) {
+		this.vars = vars;
+	}
+	
 	public void setVar(String key, Object value) {
 		this.vars.put(key, value);
 	}
