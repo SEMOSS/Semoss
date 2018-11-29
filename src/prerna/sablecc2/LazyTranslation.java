@@ -561,7 +561,15 @@ public class LazyTranslation extends DepthFirstAdapter {
     				// if it is a join or an as 
 					curReactor.getCurRow().addColumn(idInput);
     			} else {
-    				curReactor.getCurRow().add(this.planner.getVariableValue(idInput));
+    				NounMetadata retNoun = this.planner.getVariableValue(idInput);
+    				curReactor.getCurRow().add(retNoun);
+    				PixelDataType retType = retNoun.getNounType();
+    				if(retType == PixelDataType.CONST_INT || retType == PixelDataType.CONST_DECIMAL) {
+    					// modify the parent such that the signature has the correct
+        		    	// value of the numerical without any extra spaces
+        		    	// plain string will always modify to a integer even if we return double value
+        		    	curReactor.modifySignature(node.toString().trim(), new BigDecimal( ((Number) retNoun.getValue() ).doubleValue() ).toPlainString());
+    				}
     			}
     		} else {
     			this.planner.addVariable("$RESULT", this.planner.getVariableValue(idInput));
