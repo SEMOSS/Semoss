@@ -155,7 +155,7 @@ public abstract class OpBasicMath extends OpReactor {
 	 * @return
 	 */
 	protected static double[] convertToDoubleArray(Object[] values, int startIndex, int lastIndex) {
-		double[] dblArray = new double[values.length-1];
+		double[] dblArray = new double[lastIndex-startIndex];
 		for(int i = startIndex; i < lastIndex; i++) {
 			dblArray[i] = ((Number)values[i]).doubleValue();
 		}

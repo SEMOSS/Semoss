@@ -8,6 +8,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.om.task.TaskUtility;
 
 public class QueryFilterComponentSimple extends QueryFilterReactor {
 
@@ -75,7 +76,7 @@ public class QueryFilterComponentSimple extends QueryFilterReactor {
 			for(int i = 0; i < nouns.size(); i++) {
 				NounMetadata subNoun = nouns.get(i);
 				if(subNoun.getNounType() == PixelDataType.TASK) {
-					values.addAll(flushJobData((ITask) subNoun.getValue()));
+					values.addAll(TaskUtility.flushJobData((ITask) subNoun.getValue()));
 				} else {
 					if(subNoun.getValue() instanceof List) {
 						values.addAll( (List) subNoun.getValue());
@@ -84,67 +85,17 @@ public class QueryFilterComponentSimple extends QueryFilterReactor {
 					}
 				}
 			}
-			noun = new NounMetadata(values, predictTypeFromObject(values));
+			noun = new NounMetadata(values, TaskUtility.predictTypeFromObject(values));
 		} else {
 			noun = nouns.get(0);
 			PixelDataType nounType = noun.getNounType();
 			if(nounType == PixelDataType.TASK) {
-				List<Object> values = flushJobData((ITask) noun.getValue());
-				noun = new NounMetadata(values, predictTypeFromObject(values));
+				List<Object> values = TaskUtility.flushJobData((ITask) noun.getValue());
+				noun = new NounMetadata(values, TaskUtility.predictTypeFromObject(values));
 			}
 		}
 		
 		return noun;
-	}
-	
-	/**
-	 * Flush the task data into an array
-	 * This assumes you have table data!!!
-	 * @param taskData
-	 * @return
-	 */
-	private List<Object> flushJobData(ITask taskData) {
-		List<Object> flushedOutCol = new ArrayList<Object>();
-		// iterate through the task to get the table data
-		List<Object[]> data = taskData.flushOutIteratorAsGrid();
-		int size = data.size();
-		// assumes we are only flushing out the first column
-		for(int i = 0; i < size; i++) {
-			flushedOutCol.add(data.get(i)[0]);
-		}
-		
-		return flushedOutCol;
-	}
-	
-	/**
-	 * We got to predict the type of the values when we have a bunch to merge
-	 * @param obj
-	 * @return
-	 */
-	private PixelDataType predictTypeFromObject(List<Object> obj) {
-		int size = obj.size();
-		if(size == 0) {
-			return PixelDataType.CONST_STRING;
-		}
-		
-		Object firstVal = null;
-		int counter = 0;
-		while(firstVal == null && counter < size) {
-			firstVal = obj.get(counter);
-			counter++;
-		}
-		
-		if(firstVal instanceof Double) {
-			return PixelDataType.CONST_DECIMAL;
-		} else if(firstVal instanceof Integer) {
-			return PixelDataType.CONST_INT;
-		} else if(firstVal instanceof String) {
-			return PixelDataType.CONST_STRING;
-		} else if(firstVal instanceof Boolean) {
-			return PixelDataType.BOOLEAN;
-		}
-		
-		return PixelDataType.CONST_STRING;
 	}
 	
 
