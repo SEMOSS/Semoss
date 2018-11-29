@@ -22,26 +22,35 @@ public class FrameFactory {
 		
 		case "GRAPH": { return new TinkerFrame(); } 
 		
-		case "RFRAME": { 
-			logger = LogManager.getLogger(CLASS_NAME);
-			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
-		}
 		case "R": { 
 			logger = LogManager.getLogger(CLASS_NAME);
 			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
 		}
+		case "RFRAME": { 
+			logger = LogManager.getLogger(CLASS_NAME);
+			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
+		}
+		case "DATATABLE": { 
+			logger = LogManager.getLogger(CLASS_NAME);
+			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
+		}
 		
+		case "PYTHON": {
+			PandasFrame frame = new PandasFrame(alias);
+			frame.setJep(insight.getPy());
+			return frame;
+		}
+		case "PY": {
+			PandasFrame frame = new PandasFrame(alias);
+			frame.setJep(insight.getPy());
+			return frame;
+		}
 		case "PYFRAME": {
 			PandasFrame frame = new PandasFrame(alias);
 			frame.setJep(insight.getPy());
 			return frame;
 		}
 		case "PANDAS": {
-			PandasFrame frame = new PandasFrame(alias);
-			frame.setJep(insight.getPy());
-			return frame;
-		}
-		case "PY": {
 			PandasFrame frame = new PandasFrame(alias);
 			frame.setJep(insight.getPy());
 			return frame;
