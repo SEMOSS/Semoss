@@ -25,6 +25,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.reactor.PixelPlanner;
 
 public class PixelRunner {
 
@@ -83,7 +84,9 @@ public class PixelRunner {
 			addResult(expression, new NounMetadata(eMessage, PixelDataType.INVALID_SYNTAX, PixelOperationType.INVALID_SYNTAX), false);
 		} finally {
 			// help clean up
-			translation.getPlanner().dropGraph();
+			PixelPlanner planner = translation.getPlanner();
+			planner.dropGraph();
+			planner.getVarStore().remove("$RESULT");
 		}
 	}
 	
