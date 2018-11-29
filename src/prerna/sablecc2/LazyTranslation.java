@@ -61,7 +61,6 @@ import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ASubRoutine;
-import prerna.sablecc2.node.AVarMapKey;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordMapKey;
 import prerna.sablecc2.node.AWordWordOrId;
@@ -428,7 +427,10 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	IReactor opReactor = new JavaReactor();
     	initReactor(opReactor);
-    	opReactor.getCurRow().addLiteral(node.getJava().getText().trim());
+    	String code = node.getJava().getText().trim();
+    	// accounting for the start <j> and end </j>
+    	code = code.substring(3, code.length()-4).trim();
+    	opReactor.getCurRow().addLiteral(code);
     }
     
     @Override

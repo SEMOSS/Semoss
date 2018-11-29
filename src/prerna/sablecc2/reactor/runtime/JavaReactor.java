@@ -35,8 +35,7 @@ public class JavaReactor extends AbstractReactor {
 
 		Logger logger = getLogger(CLASS_NAME);
 		this.store.toString();
-		String code = this.curRow.get(0).toString();
-		code = Utility.decodeURIComponent(code.substring(3, code.length()-4).trim());
+		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		try {
 			ClassPool pool = ClassPool.getDefault();
 			ClassClassPath ccp = new ClassClassPath(this.getClass());

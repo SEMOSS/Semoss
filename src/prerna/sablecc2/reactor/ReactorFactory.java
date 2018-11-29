@@ -141,12 +141,13 @@ import prerna.sablecc2.reactor.frame.filter.ReplaceFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
-import prerna.sablecc2.reactor.frame.py.PyInterpreter;
+import prerna.sablecc2.reactor.frame.py.GenerateFrameFromPyVariableReactor;
+import prerna.sablecc2.reactor.frame.py.PyReactor;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
-import prerna.sablecc2.reactor.frame.r.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GetSemanticDescription;
+import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RAprioriReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RClassificationAlgorithmReactor;
@@ -298,6 +299,7 @@ import prerna.sablecc2.reactor.qs.source.SharePointListFilesReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointSiteSelectorReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointWebDavPullReactor;
 import prerna.sablecc2.reactor.qs.source.URLSourceReactor;
+import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.sablecc2.reactor.runtime.codeexec.CodeExecReactor;
 import prerna.sablecc2.reactor.scheduler.ListAllJobsReactor;
 import prerna.sablecc2.reactor.scheduler.RescheduleExistingJobReactor;
@@ -874,9 +876,9 @@ public class ReactorFactory {
 		
 		// General Code Execution
 		reactorHash.put("CodeExec", CodeExecReactor.class);
-		
-		// Python
-		reactorHash.put("Py", PyInterpreter.class);
+		reactorHash.put("Py", PyReactor.class);
+		reactorHash.put("R", RReactor.class);
+		reactorHash.put("Java", JavaReactor.class);
 		
 		// Pixel Recipe Parsing / Manipulation
 		reactorHash.put("GetInsightDatasources", InsightDatasourcesReactor.class);
