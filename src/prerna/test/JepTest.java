@@ -10,7 +10,7 @@ import java.util.Map;
 
 import jep.Jep;
 import jep.JepException;
-import prerna.sablecc2.reactor.frame.py.PyExecutorThread;
+import prerna.ds.py.PyExecutorThread;
 
 
 public class JepTest implements Runnable {
