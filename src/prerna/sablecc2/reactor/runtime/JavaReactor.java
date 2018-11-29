@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.runtime;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -19,6 +17,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public class JavaReactor extends AbstractReactor {
 
@@ -37,12 +36,7 @@ public class JavaReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		this.store.toString();
 		String code = this.curRow.get(0).toString();
-		code = code.substring(3, code.length()-4).trim();
-		try {
-			code = URLDecoder.decode(code, "UTF-8").replaceAll("\\%20", "+");
-		} catch (UnsupportedEncodingException e1) {
-			e1.printStackTrace();
-		}
+		code = Utility.decodeURIComponent(code.substring(3, code.length()-4).trim());
 		try {
 			ClassPool pool = ClassPool.getDefault();
 			ClassClassPath ccp = new ClassClassPath(this.getClass());
