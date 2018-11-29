@@ -1146,27 +1146,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAJavaOpRegTerm(node);
     }
 
-    public void inAROpRegTerm(AROpRegTerm node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAROpRegTerm(AROpRegTerm node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAROpRegTerm(AROpRegTerm node)
-    {
-        inAROpRegTerm(node);
-        if(node.getROp() != null)
-        {
-            node.getROp().apply(this);
-        }
-        outAROpRegTerm(node);
-    }
-
     public void inAListRegTerm(AListRegTerm node)
     {
         defaultIn(node);
@@ -2661,27 +2640,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getJava().apply(this);
         }
         outAJavaOp(node);
-    }
-
-    public void inAROp(AROp node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAROp(AROp node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAROp(AROp node)
-    {
-        inAROp(node);
-        if(node.getR() != null)
-        {
-            node.getR().apply(this);
-        }
-        outAROp(node);
     }
 
     public void inARcol(ARcol node)

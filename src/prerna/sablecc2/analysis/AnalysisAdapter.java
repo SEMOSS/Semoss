@@ -351,12 +351,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAROpRegTerm(AROpRegTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAListRegTerm(AListRegTerm node)
     {
         defaultCase(node);
@@ -682,12 +676,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAJavaOp(AJavaOp node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAROp(AROp node)
     {
         defaultCase(node);
     }
@@ -1096,12 +1084,6 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseTJava(TJava node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseTR(TR node)
     {
         defaultCase(node);
     }
