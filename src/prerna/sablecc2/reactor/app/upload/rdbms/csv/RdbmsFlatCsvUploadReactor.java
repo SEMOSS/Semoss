@@ -105,8 +105,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		UploadUtilities.validateApp(user, newAppName);
 		logger.info("Done validating app");
 
-		logger.info("Starting app creation");
-
 		logger.info("1. Start generating app folder");
 		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info("1. Complete");
@@ -118,14 +116,14 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info("3. Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info("3. Complete");
 
 		logger.info("4. Create database store...");
 		this.engine = new RDBMSNativeEngine();
 		this.engine.setEngineId(newAppId);
 		this.engine.setEngineName(newAppName);
-		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
+		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
 		this.engine.setProp(props);
 		this.engine.openDB(null);
@@ -133,21 +131,21 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info("5. Start loading data..");
 		logger.info("Parsing file metadata...");
-		
+
 		String fileName = FilenameUtils.getBaseName(filePath);
-		if(fileName.contains("_____UNIQUE")) {
+		if (fileName.contains("_____UNIQUE")) {
 			// ... yeah, this is not intuitive at all,
 			// but I add a timestamp at the end to make sure every file is unique
 			// but i want to remove it so things are "pretty"
 			fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
 		}
-		
+
 		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
 
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// parse the information
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
@@ -163,7 +161,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
-		bulkInsertFile(this.engine, helper, tableName, headers, types, additionalTypes, clean);
+		bulkInsertFile(this.engine, this.helper, tableName, headers, types, additionalTypes, clean);
 		RdbmsUploadReactorUtility.addIndex(this.engine, tableName, uniqueRowId);
 		logger.info("5. Complete");
 
@@ -178,7 +176,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info("7. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, helper.orderHeadersToGet(headers));
+		UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, this.helper.orderHeadersToGet(headers));
 		UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId);
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
@@ -207,10 +205,10 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 	@Override
 	public void addToExistingApp(String appId, String filePath) throws Exception {
 		this.engine = Utility.getEngine(appId);
-		if(this.engine == null) {
+		if (this.engine == null) {
 			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
 		}
-		if(!(this.engine instanceof RDBMSNativeEngine)) {
+		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
 
@@ -224,7 +222,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
@@ -236,7 +234,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info("Determine if we can add into an existing table or make new table...");
 		String tableToInsertInto = determineExistingTableToInsert(existingRDBMSStructure, headers, types);
-		if(tableToInsertInto == null) {
+		if (tableToInsertInto == null) {
 			logger.info("Could not find existing table to insert into");
 			logger.info("Create table...");
 			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(FilenameUtils.getBaseName(filePath).replace(" ", "_")).toUpperCase();
@@ -251,7 +249,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 				throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Done create table");
-			bulkInsertFile(this.engine, helper, tableToInsertInto, headers, types, additionalTypes, clean);
+			bulkInsertFile(this.engine, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
 			RdbmsUploadReactorUtility.addIndex(this.engine, tableToInsertInto, uniqueRowId);
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
@@ -272,7 +270,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			stepCounter++;
 		} else {
 			logger.info("Found table " + tableToInsertInto + " that holds similar data! Will insert into this table");
-			bulkInsertFile(this.engine, helper, tableToInsertInto, headers, types, additionalTypes, clean);
+			bulkInsertFile(this.engine, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
 			logger.info(stepCounter + ". Complete");
 		}
 
@@ -283,8 +281,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 	
 	@Override
 	public void closeFileHelpers() {
-		if(this.helper != null) {
-			helper.clear();
+		if (this.helper != null) {
+			this.helper.clear();
 		}
 	}
 
@@ -337,89 +335,91 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		// we loop through every row of the csv
 		String[] nextRow = null;
 		try {
-			while( (nextRow = helper.getNextRow()) != null ) {
+			while ((nextRow = helper.getNextRow()) != null) {
 				// we need to loop through every value and cast appropriately
-				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
+				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
 					// nulls get added as null
 					// not interesting...
-					if(nextRow[colIndex] == null) {
-						ps.setObject(colIndex+1, null);
+					if (nextRow[colIndex] == null) {
+						ps.setObject(colIndex + 1, null);
 						continue;
 					}
 
 					// yay, actual data
 					SemossDataType type = types[colIndex];
 					// strings
-					if(type == SemossDataType.STRING || type == SemossDataType.FACTOR) {
-						if(clean) {
+					if (type == SemossDataType.STRING || type == SemossDataType.FACTOR) {
+						if (clean) {
 							String value = Utility.cleanString(nextRow[colIndex], false);
-							ps.setString(colIndex+1, value + "");
+							ps.setString(colIndex + 1, value + "");
 						} else {
-							ps.setString(colIndex+1, nextRow[colIndex] + "");
+							ps.setString(colIndex + 1, nextRow[colIndex] + "");
 						}
-					} 
+					}
 					// int
-					else if(type == SemossDataType.INT) {
+					else if (type == SemossDataType.INT) {
 						Integer value = null;
 						String val = nextRow[colIndex].trim();
 						try {
-							//added to remove $ and , in data and then try parsing as Double
+							// added to remove $ and , in data and then try
+							// parsing as Double
 							int mult = 1;
-							if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
+							if (val.startsWith("(") || val.startsWith("-"))
 								mult = -1;
 							val = val.replaceAll("[^0-9\\.E]", "");
 							value = mult * Integer.parseInt(val.trim());
-						} catch(NumberFormatException ex) {
-							//do nothing
+						} catch (NumberFormatException ex) {
+							// do nothing
 						}
 
-						if(value != null) {
-							ps.setInt(colIndex+1, value);
+						if (value != null) {
+							ps.setInt(colIndex + 1, value);
 						} else {
 							// set default as null
-							ps.setObject(colIndex+1, null);
+							ps.setObject(colIndex + 1, null);
 						}
 					}
 					// doubles
-					else if(type == SemossDataType.DOUBLE) {
+					else if (type == SemossDataType.DOUBLE) {
 						Double value = null;
 						String val = nextRow[colIndex].trim();
 						try {
-							//added to remove $ and , in data and then try parsing as Double
+							// added to remove $ and , in data and then try
+							// parsing as Double and negative number
 							int mult = 1;
-							if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
+							if (val.startsWith("(") || val.startsWith("-"))
 								mult = -1;
 							val = val.replaceAll("[^0-9\\.E]", "");
 							value = mult * Double.parseDouble(val.trim());
-						} catch(NumberFormatException ex) {
-							//do nothing
+						} catch (NumberFormatException ex) {
+							// do nothing
 						}
 
-						if(value != null) {
-							ps.setDouble(colIndex+1, value);
+						if (value != null) {
+							ps.setDouble(colIndex + 1, value);
 						} else {
 							// set default as null
-							ps.setObject(colIndex+1, null);
+							ps.setObject(colIndex + 1, null);
 						}
 					} 
 					// dates
-					else if(type == SemossDataType.DATE) {
+					else if (type == SemossDataType.DATE) {
 						// can I get a format?
 						Long dTime = SemossDate.getTimeForDate(nextRow[colIndex], additionalTypes[colIndex]);
-						if(dTime != null) {
-							ps.setDate(colIndex+1, new java.sql.Date(dTime));
+						if (dTime != null) {
+							ps.setDate(colIndex + 1, new java.sql.Date(dTime));
 						} else {
-							ps.setNull(colIndex+1, java.sql.Types.DATE);
+							ps.setNull(colIndex + 1, java.sql.Types.DATE);
 						}
 					}
 					// timestamps
-					else if(type == SemossDataType.TIMESTAMP) {
+					else if (type == SemossDataType.TIMESTAMP) {
 						// can I get a format?
 						Long dTime = SemossDate.getTimeForTimestamp(nextRow[colIndex], additionalTypes[colIndex]);
-						if(dTime != null) {
-							ps.setTimestamp(colIndex+1, new java.sql.Timestamp(dTime));
+						if (dTime != null) {
+							ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(dTime));
 						} else {
-							ps.setNull(colIndex+1, java.sql.Types.TIMESTAMP);
+							ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 						}
 					}
 				}
@@ -427,7 +427,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 				ps.addBatch();
 
 				// batch commit based on size
-				if(++count % batchSize == 0) {
+				if (++count % batchSize == 0) {
 					logger.info("Done inserting " + count + " number of rows");
 					ps.executeBatch();
 				}
@@ -438,32 +438,29 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			logger.info("Finished");
 			logger.info("Completed " + count + " number of rows");
 			ps.close();
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			e.printStackTrace();
 			String errorMessage = "";
-			if(nextRow == null) {
+			if (nextRow == null) {
 				errorMessage = "Error occured while performing insert on csv on row number = " + count;
-			} else { 
-				errorMessage = "Error occured while performing insert on csv data row:"
-						+ "\n" + Arrays.toString(nextRow);
+			} else {
+				errorMessage = "Error occured while performing insert on csv data row:" + "\n" + Arrays.toString(nextRow);
 			}
 			throw new IOException(errorMessage);
 		}
 	}
 
-
-
 	private String determineExistingTableToInsert(Map<String, Map<String, String>> existingRDBMSStructure, String[] headers, SemossDataType[] types) {
 		String existingTableNameToInsert = null;
 
 		// loop through every existing table
-		TABLE_LOOP : for(String existingTableName : existingRDBMSStructure.keySet()) {
+		TABLE_LOOP: for (String existingTableName : existingRDBMSStructure.keySet()) {
 			// get the map containing the column names to data types for the existing table name
 			Map<String, String> existingColTypeMap = existingRDBMSStructure.get(existingTableName);
 
 			// if the number of headers does not match
 			// we know it is not a good match
-			if(existingColTypeMap.keySet().size()-1 != headers.length) {
+			if (existingColTypeMap.keySet().size() - 1 != headers.length) {
 				// no way all columns are contained
 				// look at the next table
 				continue TABLE_LOOP;
@@ -471,12 +468,12 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 			// check that every header is contained in this table
 			// check that the data types from the csv file and the table match
-			for(int i = 0; i < headers.length; i++) {
+			for (int i = 0; i < headers.length; i++) {
 				// existing rdbms structure returns with everything upper case
 				String csvHeader = RDBMSEngineCreationHelper.cleanTableName(headers[i]).toUpperCase();
 				SemossDataType csvDataType = types[i];
 
-				if(!existingColTypeMap.containsKey(csvHeader)) {
+				if (!existingColTypeMap.containsKey(csvHeader)) {
 					// if the column name doesn't exist in the existing table
 					// look at the next table
 					continue TABLE_LOOP;
@@ -489,7 +486,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 				// now test the data types
 				// need to perform a non-exact match
 				// i.e. float and double are the same, etc.
-				if(csvDataType != existingColDataType) {
+				if (csvDataType != existingColDataType) {
 					// if the data types do not match
 					// look at the next table
 					continue TABLE_LOOP;
@@ -513,7 +510,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 	private Map<String, String> getDataTypeMap() {
 		GenRowStruct grs = this.store.getNoun(UploadInputUtility.DATA_TYPE_MAP);
-		if(grs == null || grs.isEmpty()) {
+		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
 		return (Map<String, String>) grs.get(0);
@@ -521,7 +518,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 	private Map<String, String> getAdditionalTypes() {
 		GenRowStruct grs = this.store.getNoun(UploadInputUtility.ADDITIONAL_DATA_TYPES);
-		if(grs == null || grs.isEmpty()) {
+		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
 		return (Map<String, String>) grs.get(0);
