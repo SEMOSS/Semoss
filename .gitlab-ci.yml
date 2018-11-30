@@ -37,7 +37,6 @@ build_deploy:
   stage: build
   only:
     refs:
-      - svn/dev
       - triggers
       - web
   except:
@@ -67,38 +66,13 @@ build_deploy:
   artifacts:
     paths:
       - target/semoss-${VERSION}-SNAPSHOT.jar
-
-# If deploying on any branch other than svn/dev, then don't push the version information
-build_deploy_branches:
-  stage: build
-  only:
-    refs:
-      - triggers
-      - web
-  except:
-    refs:
-      - svn/dev
-    variables:
-      - $RELEASE == "TRUE"
-  script:
-    - apt-get update
-    - apt-get install -y openjfx
-    - apt-get install -y gnupg2
-    - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
-    - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dci.version=${VERSION}-SNAPSHOT
-    # So that the cache takes up less space
-    - rm -rf .m2/repository/org/semoss
-  artifacts:
-    paths:
-      - target/semoss-${VERSION}-SNAPSHOT.jar
-
+      
 # Releases to maven central
 build_release:
   stage: build
   # Only release if explicitly triggered on web and the RELEASE variable is set to TRUE
   only:
     refs:
-      - svn/dev
       - web
     variables:
       - $RELEASE == "TRUE"
@@ -116,30 +90,6 @@ build_release:
     - cd ..
     - rm -rf SemossVer
     # Rest of the build
-    - apt-get update
-    - apt-get install -y openjfx
-    - apt-get install -y gnupg2
-    - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
-    - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dci.version=${VERSION}
-    # So that the cache takes up less space
-    - rm -rf .m2/repository/org/semoss
-  artifacts:
-    paths:
-      - target/semoss-${VERSION}.jar
-
-# If releasing on any branch other than svn/dev, then don't push the version information
-build_release_branches:
-  stage: build
-  # Only release if explicitly triggered on web and the RELEASE variable is set to TRUE
-  only:
-    refs:
-      - web
-    variables:
-      - $RELEASE == "TRUE"
-  except:
-    refs:
-      - svn/dev
-  script:
     - apt-get update
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
