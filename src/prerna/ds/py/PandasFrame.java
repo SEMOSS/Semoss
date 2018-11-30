@@ -304,7 +304,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		header.append("]");
 		
-		script.append(tableName + "= pd.read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', header = None)");
+		script.append(tableName + "= pd.read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', skiprows=[0], header = None)");
 		// execute the script
 		runScript(script.toString());
 		
