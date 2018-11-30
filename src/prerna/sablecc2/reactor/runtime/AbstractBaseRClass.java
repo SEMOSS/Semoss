@@ -26,6 +26,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
+import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IRawSelectWrapper;
@@ -310,7 +311,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			// also, dont forget to update the metadata
 			table.getMetaData().modifyVertexName(((RDataTable) dataframe).getTableName(), rVarName);
 
-		} else if(dataframe instanceof NativeFrame) {
+		} else if(dataframe instanceof NativeFrame || dataframe instanceof PandasFrame) {
 			IRawSelectWrapper it = dataframe.iterator();
 			if(!ImportSizeRetrictions.sizeWithinLimit(it.getNumRecords())) {
 				SemossPixelException exception = new SemossPixelException(
