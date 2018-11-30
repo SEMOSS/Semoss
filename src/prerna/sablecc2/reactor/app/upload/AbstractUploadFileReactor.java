@@ -55,7 +55,6 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		if(!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
 		}
-		String appId = null;
 		final boolean existing = UploadInputUtility.getExisting(this.store);
 		// check security
 		User user = null;
@@ -91,7 +90,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			
 			try {
 				this.appId = appIdOrName;
-				this.appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+				this.appName = MasterDatabaseUtility.getEngineAliasForId(this.appId);
 				addToExistingApp(appIdOrName, filePath);
 			} catch(Exception e) {
 				e.printStackTrace();
@@ -136,7 +135,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			if(user != null) {
 				List<AuthProvider> logins = user.getLogins();
 				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+					SecurityUpdateUtils.addEngineOwner(this.appId, user.getAccessToken(ap).getId());
 				}
 			}
 		}
@@ -146,9 +145,9 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		// we can do normal clean up of files
 		//TODO:
 		
-		ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushApp(this.appId);
 		
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
+		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),this.appId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
