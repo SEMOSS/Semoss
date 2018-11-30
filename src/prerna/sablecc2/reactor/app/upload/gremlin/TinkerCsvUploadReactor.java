@@ -38,6 +38,7 @@ import prerna.util.OWLER;
 import prerna.util.Utility;
 
 public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
+	
 	protected final String TINKER_DRIVER_TYPE = "tinkerDriver";
 	
 	public TinkerCsvUploadReactor() {
@@ -56,6 +57,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 				UploadInputUtility.ADDITIONAL_DATA_TYPES,
 				TINKER_DRIVER_TYPE };
 	}
+	
+	private CSVFileHelper helper;
 
 	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
@@ -102,9 +105,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
-		
 		logger.info(stepCounter + ". Start loading data..");
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
@@ -198,7 +200,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + "Parsing file metadata...");
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// get the user selected datatypes for each header
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
 		String[] headers = (String[]) headerTypesArr[0];
@@ -242,8 +244,12 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
+	}
+	
+	@Override
+	public void closeFileHelpers() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	/**

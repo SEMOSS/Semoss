@@ -65,6 +65,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 	 * 7) existing -> boolean if we should add to an existing app, defualt is false
 	 */
 
+	private ExcelWorkbookFileHelper helper;
+	
 	public RdbmsFlatExcelUploadReactor() {
 		this.keysToGet = new String[] { 
 				UploadInputUtility.APP, 
@@ -101,11 +103,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 		// start by validation
 		logger.info("Start validating app");
-		try {
-			UploadUtilities.validateApp(user, newAppName);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		UploadUtilities.validateApp(user, newAppName);
 		logger.info("Done validating app");
 
 		logger.info("Starting app creation");
@@ -136,7 +134,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info("5. Start loading data..");
 		logger.info("Load excel file...");
-		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		this.helper = new ExcelWorkbookFileHelper();
 		helper.parse(filePath);
 		logger.info("Done loading excel file");
 
@@ -294,7 +292,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Load excel file...");
-		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		this.helper = new ExcelWorkbookFileHelper();
 		helper.parse(filePath);
 		logger.info("Done loading excel file");
 
@@ -320,6 +318,26 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 	}
 
+	@Override
+	public void closeFileHelpers() {
+		if(this.helper != null) {
+			helper.clear();
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	
+	
+	/*
+	 * Processing actually happens here
+	 * 
+	 */
+	
 	/**
 	 * Process all the excel sheets using the data type map
 	 * @param engine
