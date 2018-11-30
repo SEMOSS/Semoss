@@ -48,11 +48,18 @@ public class PandasFrame extends AbstractTableDataFrame {
 	static{
 		pyS.put("object", SemossDataType.STRING);
 		pyS.put("int64", SemossDataType.INT);
-		pyS.put("dtype('float64')", SemossDataType.DOUBLE);
+		pyS.put("float64", SemossDataType.DOUBLE);
+		pyS.put("datetime64", SemossDataType.DATE);
 		
 		spy.put(SemossDataType.STRING, "object");
 		spy.put(SemossDataType.INT, "np.int64");
 		spy.put(SemossDataType.DOUBLE, "np.float64");
+		spy.put(SemossDataType.DATE, "np.datetime64");
+		spy.put(SemossDataType.TIMESTAMP, "np.datetime64");
+		
+		spy.put("float64", "np.float64");
+		spy.put("int64", "np.int64");
+		spy.put("datetime64", "np.datetime64");
 		
 		spy.put("dtype('O')", "string");
 		spy.put("dtype('int64')", "int64");
@@ -164,17 +171,43 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String colName = headers[colIndex];
 			String colType = types.get(colIndex);
 			
+			
+			if(colType == null)
+				colType = "STRING";
+
+			//System.out.println("Working with col type and name " + colType + " <<>> " + colName);
+			
 			SemossDataType pysColType = (SemossDataType)pyS.get(colType);
 			SemossDataType proposedType = dataTypeMap.get(colName);
 			
-			String pyproposedType = (String)spy.get(proposedType);
+			//System.out.println("Working with col type and name " + proposedType + " <<>>  " + colName);
 			
-			if(pysColType != proposedType)
+			String pyproposedType = colType;
+			if(proposedType != null)
+				pyproposedType = (String)spy.get(proposedType);
+			else
+				pyproposedType = (String)spy.get(colType);
+				
+			
+			if(proposedType != null && pysColType != proposedType)
 			{
 				// create and execute the type
-				String	typeChanger = tableName + "['" + colName + "'] = " + tableName + "['" + colName + "'].astype(" + pyproposedType + ")";
-				runScript(typeChanger);
+				if(proposedType != SemossDataType.DATE && proposedType != SemossDataType.TIMESTAMP)
+				{
+					String	typeChanger = tableName + "['" + colName + "'] = " + tableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
+					runScript(typeChanger);
+				}
+				else
+				{
+					String	typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
+					runScript(typeChanger);
+					
+				}
 				
+			}
+			else
+			{
+				//System.out.println("Types Matched.. !!!!!!!!!!");
 			}
 			stypes[colIndex] = pysColType;
 		}
@@ -252,10 +285,33 @@ public class PandasFrame extends AbstractTableDataFrame {
 		//script.append("\n");
 		String fileLocation = it.getFileLocation();
 		runScript("import pandas as pd");
-		script.append(PandasSyntaxHelper.getCsvFileRead("pd", fileLocation, tableName));
 		
+		// need to compose a string for names
+		StringBuilder header = new StringBuilder("");
+		
+		String [] headers = it.getHeaders();
+		
+		for(int headerIndex = 0;headerIndex < headers.length;headerIndex++)
+		{
+			if(header.length() == 0)
+				header.append("[");
+			else
+				header.append(",");
+			
+			header.append("'").append(headers[headerIndex]).append("'");
+			
+		}
+		
+		header.append("]");
+		
+		script.append(tableName + "= pd.read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', header = None)");
 		// execute the script
 		runScript(script.toString());
+		
+		script = new StringBuilder(tableName).append(".columns = ").append(header);
+		runScript(script.toString());
+		//script.append(PandasSyntaxHelper.getCsvFileRead("pd", fileLocation, tableName));
+		
 	}
 	
 	@Override
@@ -395,7 +451,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			try
 			{
 				monitor.notify();
-				monitor.wait();
+				monitor.wait(4000);
 			}catch (Exception ignored)
 			{
 				
