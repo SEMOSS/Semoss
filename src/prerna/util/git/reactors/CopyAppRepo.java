@@ -6,6 +6,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitConsumer;
@@ -44,10 +45,16 @@ public class CopyAppRepo extends AbstractReactor {
 		logger.info("Downloading app located at " + repository);
 		logger.info("App will be named locally as " + localAppName);
 
-		String appId = GitConsumer.makeAppFromRemote(localAppName, repository, logger);
-		
-		ClusterUtil.reactorPushApp(appId);
-		logger.info("Congratulations! Downloading your new app has been completed");
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
+		try {
+			String appId = GitConsumer.makeAppFromRemote(localAppName, repository, logger);
+			ClusterUtil.reactorPushApp(appId);
+			logger.info("Congratulations! Downloading your new app has been completed");
+			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
+		} catch(Exception e) {
+			NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.WARNING);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 	}
 }
