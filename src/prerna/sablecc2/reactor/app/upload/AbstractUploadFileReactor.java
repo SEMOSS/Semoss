@@ -104,6 +104,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 					throw err;
 				}
 			} finally {
+				closeFileHelpers();
 				// need to rollback
 				// TODO:
 			}
@@ -125,6 +126,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 					throw err;
 				}
 			} finally {
+				closeFileHelpers();
 				if(this.error) {
 					// need to delete everything...
 					cleanUpCreateNewError();
@@ -196,4 +198,5 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 
 	public abstract void addToExistingApp(final String appId, final String filePath) throws Exception;
 
+	public abstract void closeFileHelpers();
 }

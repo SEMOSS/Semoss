@@ -39,6 +39,7 @@ import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
 public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
+
 	// Need to create a unique id that includes the row number
 	private int rowCounter;
 	private Map<String, Map<String, String>> allConcepts = new LinkedHashMap<String, Map<String, String>>();
@@ -254,7 +255,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Start loading data..");
 		try {
-			openScriptFile(appId);
+//			openScriptFile(appId);
 			findIndexes(this.engine);
 			// if(i ==0 ) {
 			// scriptFile.println("-- ********* begin load process *********
@@ -273,9 +274,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// + fileName + " ********* ");
 			// LOGGER.info("-- ********* completed processing file " +
 			// fileName + " ********* ");
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
+		} 
+//		catch (IOException e) {
+//			e.printStackTrace();
+//		} 
+		finally {
 			if (helper != null) {
 				helper.clear();
 			}
@@ -1353,5 +1356,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		// } catch (FileNotFoundException e) {
 		// e.printStackTrace();
 		// }
+	}
+
+	@Override
+	public void closeFileHelpers() {
+		// TODO Auto-generated method stub
+		
 	}
 }
