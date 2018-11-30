@@ -32,6 +32,8 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 	
 	private static final String CLASS_NAME = RdfCsvUploadReactor.class.getName();
 
+	private CSVFileHelper helper;
+	
 	public RdfCsvUploadReactor() {
 		this.keysToGet = new String[] {
 				UploadInputUtility.APP, 
@@ -108,7 +110,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Start loading data..");
 		logger.setLevel(Level.WARN);
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
 		owler.addCustomBaseURI(UploadInputUtility.getCustomBaseURI(this.store));
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
@@ -190,7 +192,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 		
 		logger.info(stepCounter + "Parsing file metadata...");
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// get the user selected datatypes for each header
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
 		String[] headers = (String[]) headerTypesArr[0];
@@ -226,6 +228,13 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(appID, engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
+	}
+	
+	@Override
+	public void closeFileHelpers() {
+		if(this.helper != null) {
+			helper.clear();
+		}
 	}
 	
 	private void parseMetamodel(Map<String, Object> metamodel, List<String> nodePropList, List<String> relationList, List<String> relPropList) {
