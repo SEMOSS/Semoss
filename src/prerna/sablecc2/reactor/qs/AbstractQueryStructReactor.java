@@ -32,6 +32,11 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	// method to override in the specific qs classes
 	protected abstract AbstractQueryStruct createQueryStruct();
 
+	// store the number of previously defined selectors
+	// this is so we can have multiple as statements 
+	// for each portion of the select
+	protected int existingSelectors = 0;
+	
 	@Override
 	public Object Out() {
 		return this.parentReactor;
@@ -42,7 +47,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 		init();
 		//build the query struct
 		AbstractQueryStruct qs = createQueryStruct();
-		setAlias(qs.getSelectors(), selectorAlias);
+		setAlias(qs.getSelectors(), selectorAlias, existingSelectors);
 		//create the output and return
 		NounMetadata noun = new NounMetadata(qs, PixelDataType.QUERY_STRUCT);
 		return noun;
@@ -83,6 +88,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 	
 	//method to merge an outside query struct with this query struct
 	protected void mergeQueryStruct(AbstractQueryStruct queryStruct) {
+		this.existingSelectors = queryStruct.getSelectors().size();
 		if(this.qs == null) {
 			this.qs = queryStruct;
 		} else {
@@ -90,7 +96,7 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 		}
 	}
 	
-	protected static void setAlias(List<IQuerySelector> selectors, String[] selectorAlias) {
+	protected static void setAlias(List<IQuerySelector> selectors, String[] selectorAlias, int startingPoint) {
 		/*
 		 * Since multiple select reactors can each have an alias
 		 * we need to go back and add alias to the last selectors that were added
@@ -99,7 +105,6 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 		if(selectorAlias != null) {
 			int numSelectors = selectors.size();
 			int numAlias = selectorAlias.length;
-			int startingPoint = 0;
 			if(numAlias != numSelectors) {
 				// assume user is defining alias from left to right
 				// but got lazy half way through
