@@ -137,24 +137,24 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		if(!(Utility.getEngine(appId) instanceof BigDataEngine)) {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
-		BigDataEngine engine = (BigDataEngine) Utility.getEngine(appId);
+		this.engine = (BigDataEngine) Utility.getEngine(appId);
 		logger.info(stepCounter + ". Done..");
 		stepCounter++;
 		
 		logger.setLevel(Level.ERROR);
 		OWLER owler = new OWLER(engine, engine.getOWL());
-		importFile(engine, owler, filePath, engine.getNodeBaseUri());
-		RdfUploadReactorUtility.loadMetadataIntoEngine(engine, owler);
+		importFile(this.engine, owler, filePath, this.engine.getNodeBaseUri());
+		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
 		owler.commit();
 		owler.export();
 		// commit the created engine
-		engine.commit();
-		engine.infer();
+		this.engine.commit();
+		((BigDataEngine) this.engine).infer();
 		logger.info(stepCounter + ". Complete");
-		RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getConceptualNodes());
+		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
 		// commit the created engine
-		engine.commit();
-		engine.infer();		
+		this.engine.commit();
+		((BigDataEngine) this.engine).infer();
 	}
 	
 	/**
