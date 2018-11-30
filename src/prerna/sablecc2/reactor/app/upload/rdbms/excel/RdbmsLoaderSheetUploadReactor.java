@@ -136,6 +136,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		// TODO Auto-generated method stub
 	}
 	
+	@Override
+	public void closeFileHelpers() {
+		// TODO Auto-generated method stub
+		
+	}
 	
 	//////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////

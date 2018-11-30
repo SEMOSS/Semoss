@@ -157,6 +157,11 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		((BigDataEngine) this.engine).infer();
 	}
 	
+	@Override
+	public void closeFileHelpers() {
+	
+	}
+	
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
 	 * @param fileName 					String containing the absolute path to the excel workbook to load

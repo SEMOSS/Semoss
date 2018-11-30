@@ -11,7 +11,6 @@ import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
@@ -47,16 +46,18 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 	/*
 	 * There are quite a few things that we need
 	 * 1) app -> name of the app to create
-	 * 1) filePath -> string contianing the path of the file
+	 * 1) filePath -> string containing the path of the file
 	 * 2) delimiter -> delimiter for the file
 	 * 3) dataTypes -> map of the header to the type, this will contain the original headers we send to FE
-	 * 4) newHeaders -> map containign old header to new headers for the csv file
+	 * 4) newHeaders -> map containing old header to new headers for the csv file
 	 * 5) additionalTypes -> map containing header to an additional type specification
 	 * 						additional inputs would be {header : currency, header : date_format, ... }
 	 * 6) clean -> boolean if we should clean up the strings before insertion, default is true
 	 * TODO: 7) deduplicate -> boolean if we should remove duplicate rows in the relational database
 	 * 8) existing -> boolean if we should add to an existing app, defualt is false
 	 */
+	
+	private CSVFileHelper helper = null;
 
 	public RdbmsFlatCsvUploadReactor() {
 		this.keysToGet = new String[] { 
@@ -69,7 +70,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 				UploadInputUtility.ADDITIONAL_DATA_TYPES,
 				UploadInputUtility.CLEAN_STRING_VALUES, 
 				UploadInputUtility.REMOVE_DUPLICATE_ROWS,
-			};
+		};
 	}
 
 	/**
@@ -101,11 +102,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 		// start by validation
 		logger.info("Start validating app");
-		try {
-			UploadUtilities.validateApp(user, newAppName);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		UploadUtilities.validateApp(user, newAppName);
 		logger.info("Done validating app");
 
 		logger.info("Starting app creation");
@@ -136,14 +133,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info("5. Start loading data..");
 		logger.info("Parsing file metadata...");
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
-		String[] headers = (String[]) headerTypesArr[0];
-		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-		String[] additionalTypes = (String[]) headerTypesArr[2];
-		logger.info("Done parsing file metadata");
-
-		logger.info("Create table...");
+		
 		String fileName = FilenameUtils.getBaseName(filePath);
 		if(fileName.contains("_____UNIQUE")) {
 			// ... yeah, this is not intuitive at all,
@@ -151,20 +141,29 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			// but i want to remove it so things are "pretty"
 			fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
 		}
-		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 		
+		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
 
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		// parse the information
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+		String[] headers = (String[]) headerTypesArr[0];
+		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
+		String[] additionalTypes = (String[]) headerTypesArr[2];
+		logger.info("Done parsing file metadata");
+
+		logger.info("Create table...");
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
-		String[] sqlTypes;
+		String[] sqlTypes = null;
 		try {
 			sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.engine, tableName, uniqueRowId, headers, types);
-		} catch (Exception e1) {
-			e1.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
-		bulkInsertFile(this.engine, helper, tableName, headers, types, additionalTypes, clean, logger);
+		bulkInsertFile(this.engine, helper, tableName, headers, types, additionalTypes, clean);
 		RdbmsUploadReactorUtility.addIndex(this.engine, tableName, uniqueRowId);
 		logger.info("5. Complete");
 
@@ -224,7 +223,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Parsing file metadata...");
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
@@ -247,18 +246,13 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			String[] sqlTypes = null;
 			try {
 				sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.engine, tableToInsertInto, uniqueRowId, headers, types);
-			} catch (Exception e1) {
-				e1.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
 				throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Done create table");
-			try {
-				bulkInsertFile(this.engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
-				RdbmsUploadReactorUtility.addIndex(this.engine, tableToInsertInto, uniqueRowId);
-			} catch (Exception e) {
-				// ugh... gotta clean up and delete everything... TODO:
-				e.printStackTrace();
-			}
+			bulkInsertFile(this.engine, helper, tableToInsertInto, headers, types, additionalTypes, clean);
+			RdbmsUploadReactorUtility.addIndex(this.engine, tableToInsertInto, uniqueRowId);
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 
@@ -278,13 +272,20 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			stepCounter++;
 		} else {
 			logger.info("Found table " + tableToInsertInto + " that holds similar data! Will insert into this table");
-			bulkInsertFile(this.engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
+			bulkInsertFile(this.engine, helper, tableToInsertInto, headers, types, additionalTypes, clean);
 			logger.info(stepCounter + ". Complete");
 		}
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		UploadUtilities.updateMetadata(appId);
 		logger.info(stepCounter + ". Complete");
+	}
+	
+	@Override
+	public void closeFileHelpers() {
+		if(this.helper != null) {
+			helper.clear();
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////
@@ -293,7 +294,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
-
+	
+	
 	/*
 	 * Processing actually happens here
 	 * 
@@ -313,7 +315,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 	 */
 	private void bulkInsertFile(IEngine engine, CSVFileHelper helper, final String TABLE_NAME,
 			String[] headers, SemossDataType[] types, String[] additionalTypes, 
-			boolean clean, Logger logger) throws IOException {
+			boolean clean) throws IOException {
 
 		// now we need to loop through the csv data and cast to the appropriate type and insert
 		// let us be smart about this and use a PreparedStatement for bulk insert
@@ -567,5 +569,4 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		reactor.In();
 		reactor.execute();
 	}
-
 }
