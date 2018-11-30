@@ -11,11 +11,9 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -23,32 +21,22 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
-import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsLoaderSheetUploadReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.sql.SQLQueryUtil;
 
-public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
+public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	
-	private static final String CLASS_NAME = RdbmsLoaderSheetUploadReactor.class.getName();
 	protected Map<String, String> sqlHash = new Hashtable<String, String>();
 	private Hashtable <String, Hashtable <String, String>> concepts = new Hashtable <String, Hashtable <String, String>>();
 	private Hashtable <String, Vector <String>> relations = new Hashtable <String, Vector<String>>();
@@ -59,74 +47,17 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 	private List<String> tempIndexAddedList = new Vector<String>();
 	private List<String> tempIndexDropList = new Vector<String>();	
 	public RdbmsLoaderSheetUploadReactor() {
-		this.keysToGet = new String[] {UploadInputUtility.APP, UploadInputUtility.FILE_PATH};
+		this.keysToGet = new String[] {
+				UploadInputUtility.APP, 
+				UploadInputUtility.FILE_PATH};
 	}
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		
-		User user = null;
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
-			user = this.insight.getUser();
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-		
-		final String appIdOrName = UploadInputUtility.getAppName(this.store);
-		final boolean existing = UploadInputUtility.getExisting(this.store);
-		final String filePath = UploadInputUtility.getFilePath(this.store);
-		
-		final File file = new File(filePath);
-		if (!file.exists()) {
-			throw new IllegalArgumentException("Could not find the file path specified");
-		}
-		
-		String returnId = null;
-		if (existing) {
-			
-			if(security) {
-				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
-					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-					SemossPixelException err = new SemossPixelException(noun);
-					err.setContinueThreadOfExecution(false);
-					throw err;
-				}
-			}
-			
-			returnId = addToExistingApp(appIdOrName, filePath);
-		} else {
-			returnId = generateNewApp(user, appIdOrName, filePath);
-			
-			// even if no security, just add user as engine owner
-			if(user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(returnId, user.getAccessToken(ap).getId());
-				}
-			}
-		}
-		
-		return new NounMetadata(returnId, PixelDataType.CONST_STRING, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
 
-	private String generateNewApp(User user, String newAppName, String filePath) {
-		Logger logger = getLogger(CLASS_NAME);
-		String newAppId = UUID.randomUUID().toString();
-
+	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception{
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start validating app");
-		try {
-			UploadUtilities.validateApp(user, newAppName);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		UploadUtilities.validateApp(user, newAppName);
+
 		logger.info(stepCounter + ". Done validating app");
 		stepCounter++;
 
@@ -141,14 +72,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		File tempSmss = null;
-		try {
-			tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -168,11 +93,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
-		try {
-			importFileRDBMS(engine, owler, filePath);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
+		importFileRDBMS(engine, owler, filePath);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -181,12 +102,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 		 */
 		logger.info(stepCounter + ". Commit app metadata...");
 		owler.commit();
-		try {
-			owler.export();
-			engine.setOWL(owler.getOwlPath());
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
+		owler.export();
+		engine.setOWL(owler.getOwlPath());
 		// if(scriptFile != null) {
 		// scriptFile.println("-- ********* completed load process ********* ");
 		// scriptFile.close();
@@ -195,15 +112,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
-		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		try {
-			FileUtils.copyFile(tempSmss, smssFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		this.smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(tempSmss, this.smssFile);
 		tempSmss.delete();
-		engine.setPropFile(smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
+		engine.setPropFile(this.smssFile.getAbsolutePath());
+		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, this.smssFile);
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
@@ -213,20 +126,14 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(newAppId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
-		return newAppId;
 	}
 
-	private String addToExistingApp(String appIdOrName, String filePath) {
+	public void  addToExistingApp(final String appId, final String filePath) throws Exception {
 		// TODO Auto-generated method stub
-		return null;
 	}
 	
 	
