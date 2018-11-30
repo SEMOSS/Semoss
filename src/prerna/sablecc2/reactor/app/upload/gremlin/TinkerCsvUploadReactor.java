@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.google.gson.Gson;
@@ -72,7 +71,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppId, newAppName);
+		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -86,14 +85,14 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		// get metamodel
 		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
 		Map<String, String> dataTypesMap = null;
 		if (metamodelProps != null) {
 			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
 		}
-		
+
 		/*
 		 * Load data into tinker engine
 		 */
@@ -104,41 +103,41 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		this.engine.openDB(this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Start loading data..");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypes);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		// TODO additional types?
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
-		if(metamodelProps.get(Constants.DATA_TYPES) == null) {
+		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel
 			Map<String, String> dataTypes = new HashMap<>();
-			for(int i=0; i < headers.length; i++) {
+			for (int i = 0; i < headers.length; i++) {
 				String header = headers[i];
 				String type = types[i].toString();
 				dataTypes.put(header, type);
 			}
 			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
 		}
-		processRelationships(this.engine, owler, helper, logger, headers, types, metamodelProps);
+		processRelationships(this.engine, owler, this.helper, headers, types, metamodelProps);
 		this.engine.commit();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Commit app metadata...");
 		owler.commit();
 		owler.export();
 		this.engine.setOWL(owler.getOwlPath());
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
-		
+
 		Gson gson = new GsonBuilder().create();
-		String json = gson.toJson(((TinkerEngine)this.engine).getTypeMap());
+		String json = gson.toJson(((TinkerEngine) this.engine).getTypeMap());
 		String mapProp = "TYPE_MAP" + "\t" + json + "\n";
-		json = gson.toJson(((TinkerEngine)this.engine).getNameMap());
+		json = gson.toJson(((TinkerEngine) this.engine).getNameMap());
 		mapProp += "NAME_MAP" + "\t" + json + "\n";
 
 		// TODO add additional tinker properties to smss
@@ -168,7 +167,6 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
 	}
 	
 	//TODO
@@ -202,7 +200,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + "Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// get the user selected datatypes for each header
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypes);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
@@ -222,7 +220,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
 		}
-		processRelationships(this.engine, owler, helper, logger, headers, types, metamodelProps);
+		processRelationships(this.engine, owler, this.helper, headers, types, metamodelProps);
 		this.engine.commit();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -245,10 +243,10 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 	}
-	
+
 	@Override
 	public void closeFileHelpers() {
-		if(this.helper != null) {
+		if (this.helper != null) {
 			this.helper.clear();
 		}
 	}
@@ -265,7 +263,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	 * 
 	 * @throws IOException
 	 */
-	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper csvHelper, Logger logger, String[] headers, SemossDataType[] types, Map<String, Object> metamodel) {
+	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper csvHelper, String[] headers, SemossDataType[] types, Map<String, Object> metamodel) {
 		// get all the relation
 		// overwrite this value if user specified the max rows to load
 		List<String> relationList = new ArrayList<String>();
@@ -277,21 +275,21 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		// added -1 is because of index nature
 		// the earlier rows should already have been skipped
 		String[] values = null;
-		
+
 		int startRow = (int) metamodel.get(Constants.START_ROW);
 		// skip rows
-		//start count at 1 just row 1 is the header
+		// start count at 1 just row 1 is the header
 		int count = 1;
 		while (count < startRow - 1 && csvHelper.getNextRow() != null) {
 			count++;
 		}
 		Integer endRow = (Integer) metamodel.get(Constants.END_ROW);
-		if(endRow == null) {
+		if (endRow == null) {
 			endRow = UploadInputUtility.END_ROW_INT;
 		}
 		while ((values = csvHelper.getNextRow()) != null && count < (endRow)) {
 			count++;
-//			logger.info("Process line: " + count);
+			// logger.info("Process line: " + count);
 
 			// process all relationships in row
 			for (int relIndex = 0; relIndex < relationList.size(); relIndex++) {
@@ -305,31 +303,31 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 				String object = "";
 
 				// see if subject node URI exists in prop file
-//				if (rdfMap.containsKey(sub)) {
-//					String userSub = rdfMap.get(sub).toString();
-//					subject = userSub.substring(userSub.lastIndexOf("/") + 1);
-//				}
-//				// if no user specified URI, use generic URI
-//				else {
-					if (sub.contains("+")) {
-						subject = processAutoConcat(sub);
-					} else {
-						subject = sub;
-					}
-//				}
+				// if (rdfMap.containsKey(sub)) {
+				// String userSub = rdfMap.get(sub).toString();
+				// subject = userSub.substring(userSub.lastIndexOf("/") + 1);
+				// }
+				// // if no user specified URI, use generic URI
+				// else {
+				if (sub.contains("+")) {
+					subject = processAutoConcat(sub);
+				} else {
+					subject = sub;
+				}
+				// }
 				// see if object node URI exists in prop file
-//				if (rdfMap.containsKey(obj)) {
-//					String userObj = rdfMap.get(obj).toString();
-//					object = userObj.substring(userObj.lastIndexOf("/") + 1);
-//				}
-//				// if no user specified URI, use generic URI
-//				else {
-					if (obj.contains("+")) {
-						object = processAutoConcat(obj);
-					} else {
-						object = obj;
-					}
-//				}
+				// if (rdfMap.containsKey(obj)) {
+				// String userObj = rdfMap.get(obj).toString();
+				// object = userObj.substring(userObj.lastIndexOf("/") + 1);
+				// }
+				// // if no user specified URI, use generic URI
+				// else {
+				if (obj.contains("+")) {
+					object = processAutoConcat(obj);
+				} else {
+					object = obj;
+				}
+				// }
 
 				String subjectValue = createInstanceValue(sub, values, headers);
 				String objectValue = createInstanceValue(obj, values, headers);
@@ -351,21 +349,21 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 							// property
 							String prop = relPropSplit[i];
 							String property = "";
-//							// see if property node URI exists in prop file
-//							if (rdfMap.containsKey(prop)) {
-//								String userProp = rdfMap.get(prop).toString();
+							// // see if property node URI exists in prop file
+							// if (rdfMap.containsKey(prop)) {
+							// String userProp = rdfMap.get(prop).toString();
 //								property = userProp.substring(userProp.lastIndexOf("/") + 1);
 //
 //								// property = rdfMap.get(prop);
 //							}
-//							// if no user specified URI, use generic URI
-//							else {
-								if (prop.contains("+")) {
-									property = processAutoConcat(prop);
-								} else {
-									property = prop;
-								}
-//							}
+							// // if no user specified URI, use generic URI
+							// else {
+							if (prop.contains("+")) {
+								property = processAutoConcat(prop);
+							} else {
+								property = prop;
+							}
+							// }
 							propHash.put(property, createObject(prop, values, types, headers));
 						}
 					}
@@ -382,40 +380,41 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 				String sub = strSplit[0].trim();
 				String subject = "";
 				// see if subject node URI exists in prop file
-//				if (rdfMap.containsKey(sub)) {
-//					String userSub = rdfMap.get(sub).toString();
-//					subject = userSub.substring(userSub.lastIndexOf("/") + 1);
-//
-//					// subject = rdfMap.get(sub);
-//				}
-//				// if no user specified URI, use generic URI
-//				else {
-					if (sub.contains("+")) {
-						subject = processAutoConcat(sub);
-					} else {
-						subject = sub;
-					}
-//				}
+				// if (rdfMap.containsKey(sub)) {
+				// String userSub = rdfMap.get(sub).toString();
+				// subject = userSub.substring(userSub.lastIndexOf("/") + 1);
+				//
+				// // subject = rdfMap.get(sub);
+				// }
+				// // if no user specified URI, use generic URI
+				// else {
+				if (sub.contains("+")) {
+					subject = processAutoConcat(sub);
+				} else {
+					subject = sub;
+				}
+				// }
 				String subjectValue = createInstanceValue(sub, values, headers);
 				// loop through all properties on the node
 				for (int i = 1; i < strSplit.length; i++) {
 					String prop = strSplit[i].trim();
 					String property = "";
 					// see if property node URI exists in prop file
-//					if (rdfMap.containsKey(prop)) {
-//						String userProp = rdfMap.get(prop).toString();
-//						property = userProp.substring(userProp.lastIndexOf("/") + 1);
-//
-//						// property = rdfMap.get(prop);
-//					}
-//					// if no user specified URI, use generic URI
-//					else {
-						if (prop.contains("+")) {
-							property = processAutoConcat(prop);
-						} else {
-							property = prop;
-						}
-//					}
+					// if (rdfMap.containsKey(prop)) {
+					// String userProp = rdfMap.get(prop).toString();
+					// property = userProp.substring(userProp.lastIndexOf("/") +
+					// 1);
+					//
+					// // property = rdfMap.get(prop);
+					// }
+					// // if no user specified URI, use generic URI
+					// else {
+					if (prop.contains("+")) {
+						property = processAutoConcat(prop);
+					} else {
+						property = prop;
+					}
+					// }
 					Object propObj = createObject(prop, values, types, headers);
 					if (propObj == null || propObj.toString().isEmpty()) {
 						continue;
@@ -451,7 +450,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 		}
 	}
-	
+
 	/**
 	 * Gets the instance value for a given subject. The subject can be a
 	 * concatenation. Note that we do not care about the data type for this
@@ -499,8 +498,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return retString;
 	}
 
-	private void parseMetamodel(Map<String, Object> metamodel, OWLER owler, List<String> relationList,
-			List<String> nodePropList, List<String> relPropList) {
+	private void parseMetamodel(Map<String, Object> metamodel, OWLER owler, List<String> relationList, List<String> nodePropList, List<String> relPropList) {
 		Set<String> concepts = new HashSet<>();
 		Map dataTypeMap = (Map) metamodel.get(Constants.DATA_TYPES);
 		if (metamodel.get(Constants.RELATION) != null) {
@@ -557,12 +555,10 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		// upsert the subject vertex
 		Vertex startV = null;
 
-		startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
-				new Object[] { subjectNodeType, instanceSubjectName });
+		startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { subjectNodeType, instanceSubjectName });
 
 		// upsert the object vertex
-		Vertex endV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
-				new Object[] { objectNodeType, instanceObjectName });
+		Vertex endV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { objectNodeType, instanceObjectName });
 
 		// upsert the edge between them
 		engine.doAction(IEngine.ACTION_TYPE.EDGE_UPSERT, new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });

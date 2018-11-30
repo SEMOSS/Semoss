@@ -119,14 +119,14 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info("3. Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info("3. Complete");
 
 		logger.info("4. Create database store...");
 		this.engine = new RDBMSNativeEngine();
 		this.engine.setEngineId(newAppId);
 		this.engine.setEngineName(newAppName);
-		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
+		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
 		this.engine.setProp(props);
 		this.engine.openDB(null);
@@ -135,16 +135,16 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		logger.info("5. Start loading data..");
 		logger.info("Load excel file...");
 		this.helper = new ExcelWorkbookFileHelper();
-		helper.parse(filePath);
+		this.helper.parse(filePath);
 		logger.info("Done loading excel file");
 
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
-		processExcelSheets(this.engine, owler, helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, logger);
-		helper.clear();
+		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean);
+		this.helper.clear();
 		owler.export();
 		this.engine.setOWL(owlFile.getPath());
 		logger.info("5. Complete");
-		
+
 		logger.info("6. Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
@@ -156,7 +156,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
 			// need to calculate all the ranges
 			ExcelWorkbookFilePreProcessor wProcessor = new ExcelWorkbookFilePreProcessor();
-			wProcessor.parse(helper.getFilePath());
+			wProcessor.parse(this.helper.getFilePath());
 			wProcessor.determineTableRanges();
 			Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
 			for (String sheetName : sProcessor.keySet()) {
@@ -178,7 +178,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 						}
 						// sheetIterator will calculate all the types if
 						// necessary
-						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
+						ExcelSheetFileIterator sheetIterator = this.helper.getSheetIterator(qs);
 						Sheet sheet = sheetIterator.getSheet();
 						int[] headerIndicies = sheetIterator.getHeaderIndicies();
 						Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
@@ -226,7 +226,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 						}
 					}
 					Map<String, String> newRangeHeaders = qs.getNewHeaderNames();
-					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
+					ExcelSheetFileIterator sheetIterator = this.helper.getSheetIterator(qs);
 					Sheet sheet = sheetIterator.getSheet();
 					int[] headerIndicies = sheetIterator.getHeaderIndicies();
 					ExcelRange eRange = new ExcelRange(range);
@@ -252,16 +252,16 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 				}
 			}
 		}
-		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
+		this.engine.setInsightDatabase(insightDatabase);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info("6. Complete");
 
-		logger.info("7. Process app metadata to allow for traversing across apps	");
+		logger.info("7. Process app metadata to allow for traversing across apps");
 		UploadUtilities.updateMetadata(newAppId);
 		logger.info("7. Complete");
 
 		// and rename .temp to .smss
-		this.smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 		FileUtils.copyFile(this.tempSmss, this.smssFile);
 		this.tempSmss.delete();
 
@@ -273,10 +273,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 	@Override
 	public void addToExistingApp(String appId, String filePath) throws Exception {
 		this.engine = Utility.getEngine(appId);
-		if(this.engine == null) {
+		if (this.engine == null) {
 			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
 		}
-		if(!(this.engine instanceof RDBMSNativeEngine)) {
+		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
 
@@ -284,27 +284,26 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		Map<String, Map<String, Map<String, String>>> newHeaders = getNewHeaders();
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
 		final boolean clean = UploadInputUtility.getClean(this.store);
-		
-//		logger.info("Get existing database schema...");
-//		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
-//		logger.info("Done getting existing database schema");
-		
+
+		// logger.info("Get existing database schema...");
+		// Map<String, Map<String, String>> existingRDBMSStructure =
+		// RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+		// logger.info("Done getting existing database schema");
+
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Load excel file...");
 		this.helper = new ExcelWorkbookFileHelper();
-		helper.parse(filePath);
+		this.helper.parse(filePath);
 		logger.info("Done loading excel file");
 
 		/*
-		 * Since we want to determine if we should add to an existing table
-		 * or make new tables
-		 * We need to go to the sheet level and determine it
+		 * Since we want to determine if we should add to an existing table or
+		 * make new tables We need to go to the sheet level and determine it
 		 */
-		
+
 		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
-		processExcelSheets(this.engine, owler, helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, logger);
-		helper.clear();
+		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean);
 		owler.export();
 		this.engine.setOWL(this.engine.getOWL());
 		logger.info(stepCounter + ". Complete");
@@ -320,8 +319,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 	@Override
 	public void closeFileHelpers() {
-		if(this.helper != null) {
-			helper.clear();
+		if (this.helper != null) {
+			this.helper.clear();
 		}
 	}
 
@@ -347,6 +346,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 	 * @param additionalDataTypeMap
 	 * @param clean
 	 * @param logger
+	 * @throws Exception 
 	 */
 	private void processExcelSheets(
 			IEngine engine, 
@@ -355,65 +355,63 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
 			Map<String, Map<String, Map<String, String>>> additionalDataTypeMap,
 			Map<String, Map<String, Map<String, String>>> newHeaders,
-			boolean clean, 
-			Logger logger) 
-	{
+			boolean clean) throws Exception {
 		// user hasn't defined the data types
 		// that means i am going ot assume that i should 
 		// load everything
-		if(dataTypesMap == null || dataTypesMap.isEmpty()) {
+		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
 			// need to calculate all the ranges
 			ExcelWorkbookFilePreProcessor wProcessor = new ExcelWorkbookFilePreProcessor();
 			wProcessor.parse(helper.getFilePath());
 			wProcessor.determineTableRanges();
 			Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
 
-			for(String sheet : sProcessor.keySet()) {
+			for (String sheet : sProcessor.keySet()) {
 				ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheet);
 				List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
-				for(ExcelBlock eBlock : blocks) {
+				for (ExcelBlock eBlock : blocks) {
 					List<ExcelRange> ranges = eBlock.getRanges();
-					for(ExcelRange eRange : ranges) {
+					for (ExcelRange eRange : ranges) {
 						String range = eRange.getRangeSyntax();
-						
+
 						boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
-						
+
 						ExcelQueryStruct qs = new ExcelQueryStruct();
 						qs.setSheetName(sheet);
 						qs.setSheetRange(range);
-						// sheetIterator will calculate all the types if necessary
+						// sheetIterator will calculate the types if necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-						processSheet(engine, owler, sheetIterator, singleRange, clean, logger);
-						
+						processSheet(engine, owler, sheetIterator, singleRange, clean);
+
 					}
 				}
 			}
 		} else {
 			// only load the things that are defined
-			for(String sheet : dataTypesMap.keySet()) {
+			for (String sheet : dataTypesMap.keySet()) {
 				Map<String, Map<String, String>> rangeMaps = dataTypesMap.get(sheet);
 				boolean singleRange = (rangeMaps.keySet().size() == 1);
-				for(String range : rangeMaps.keySet()) {
-					
+				for (String range : rangeMaps.keySet()) {
+
 					ExcelQueryStruct qs = new ExcelQueryStruct();
 					qs.setSheetName(sheet);
 					qs.setSheetRange(range);
 					qs.setColumnTypes(rangeMaps.get(range));
-					if(additionalDataTypeMap.containsKey(sheet)) {
+					if (additionalDataTypeMap.containsKey(sheet)) {
 						Map<String, Map<String, String>> aRangeMap = additionalDataTypeMap.get(sheet);
-						if(aRangeMap.containsKey(range)) {
+						if (aRangeMap.containsKey(range)) {
 							qs.setAdditionalTypes(aRangeMap.get(range));
 						}
 					}
-					if(newHeaders.containsKey(sheet)) {
+					if (newHeaders.containsKey(sheet)) {
 						Map<String, Map<String, String>> aNewHeadersMap = newHeaders.get(sheet);
-						if(aNewHeadersMap.containsKey(range)) {
+						if (aNewHeadersMap.containsKey(range)) {
 							qs.setNewHeaderNames(aNewHeadersMap.get(range));
 						}
 					}
-					
+
 					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-					processSheet(engine, owler, sheetIterator, singleRange, clean, logger);
+					processSheet(engine, owler, sheetIterator, singleRange, clean);
 				}
 			}
 		}
@@ -429,14 +427,15 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 	 * @param additionalDataTypeMap
 	 * @param clean
 	 * @param logger
+	 * @throws Exception 
 	 */
-	private void processSheet(IEngine engine, OWLER owler, ExcelSheetFileIterator helper, boolean singleRange, boolean clean, Logger logger) {
+	private void processSheet(IEngine engine, OWLER owler, ExcelSheetFileIterator helper, boolean singleRange, boolean clean) throws Exception {
 		logger.info("Start parsing sheet metadata");
 		// even if types are not defined
 		// the qs will end up calculating everything for unknown types
 		ExcelQueryStruct qs = helper.getQs();
 		String sheetName = qs.getSheetName();
-		
+
 		Map<String, String> sheetDataTypesMap = qs.getColumnTypes();
 		Map<String, String> sheetAdditionalDataTypesMap = qs.getAdditionalTypes();
 
@@ -448,7 +447,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info("Create table...");
 		String tableName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
-		if(!singleRange) {
+		if (!singleRange) {
 			tableName += "_" + RDBMSEngineCreationHelper.cleanTableName(qs.getSheetRange()).toUpperCase();
 		}
 		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
@@ -462,13 +461,9 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
-		try {
-			bulkInsertSheet(engine, helper, sheetName, tableName, headers, types, additionalTypes, clean, logger);
-			RdbmsUploadReactorUtility.addIndex(engine, tableName, uniqueRowId);
-		} catch (Exception e) {
-			// ugh... gotta clean up and delete everything... TODO:
-			e.printStackTrace();
-		}
+
+		bulkInsertSheet(engine, helper, sheetName, tableName, headers, types, additionalTypes, clean, logger);
+		RdbmsUploadReactorUtility.addIndex(engine, tableName, uniqueRowId);
 
 		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 	}
@@ -481,10 +476,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		// get the bulk statement
 
 		// the prepared statement requires the table name and then the list of columns
-		Object[] getPreparedStatementArgs = new Object[headers.length+1];
+		Object[] getPreparedStatementArgs = new Object[headers.length + 1];
 		getPreparedStatementArgs[0] = TABLE_NAME;
-		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
-			getPreparedStatementArgs[headerIndex+1] = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
+		for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+			getPreparedStatementArgs[headerIndex + 1] = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
 		}
 		PreparedStatement ps = (PreparedStatement) engine.doAction(ACTION_TYPE.BULK_INSERT, getPreparedStatementArgs);
 
@@ -496,29 +491,29 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		// we loop through every row of the sheet
 		Object[] nextRow = null;
 		try {
-			while(helper.hasNext()) {
+			while (helper.hasNext()) {
 				nextRow = helper.next().getValues();
 				// we need to loop through every value and cast appropriately
-				for(int colIndex = 0; colIndex < nextRow.length; colIndex++) {
+				for (int colIndex = 0; colIndex < nextRow.length; colIndex++) {
 					Object value = nextRow[colIndex];
 					// nulls get added as null
 					// not interesting...
-					if(value == null) {
-						ps.setObject(colIndex+1, null);
+					if (value == null) {
+						ps.setObject(colIndex + 1, null);
 						continue;
 					}
 
 					// yay, actual data
 					SemossDataType type = types[colIndex];
 					// strings
-					if(type == SemossDataType.STRING) {
-						if(clean) {
+					if (type == SemossDataType.STRING) {
+						if (clean) {
 							value = Utility.cleanString(nextRow[colIndex].toString(), false);
-							ps.setString(colIndex+1, value + "");
+							ps.setString(colIndex + 1, value + "");
 						} else {
-							ps.setString(colIndex+1, value + "");
+							ps.setString(colIndex + 1, value + "");
 						}
-					} 
+					}
 					// int
 					else if(type == SemossDataType.INT) {
 						if(value instanceof Number) {
@@ -529,7 +524,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 							try {
 								//added to remove $ and , in data and then try parsing as Double
 								int mult = 1;
-								if(strValue.startsWith("(") || strValue.startsWith("-")) { // this is a negativenumber
+								if(strValue.startsWith("(") || strValue.startsWith("-")) {
 									mult = -1;
 								}
 								strValue = strValue.replaceAll("[^0-9\\.E]", "");
@@ -553,50 +548,51 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 							Double doubleValue = null;
 							String strValue = nextRow[colIndex].toString().trim();
 							try {
-								//added to remove $ and , in data and then try parsing as Double
+								// added to remove $ and , in data and then try
+								// parsing as Double
 								int mult = 1;
-								if(strValue.startsWith("(") || strValue.startsWith("-")) { // this is a negativenumber
+								if (strValue.startsWith("(") || strValue.startsWith("-")) { 
 									mult = -1;
 								}
 								strValue = strValue.replaceAll("[^0-9\\.E]", "");
 								doubleValue = mult * Double.parseDouble(strValue.trim());
-							} catch(NumberFormatException ex) {
-								//do nothing
+							} catch (NumberFormatException ex) {
+								// do nothing
 							}
-							if(doubleValue != null) {
-								ps.setDouble(colIndex+1, doubleValue);
+							if (doubleValue != null) {
+								ps.setDouble(colIndex + 1, doubleValue);
 							} else {
 								// set default as null
-								ps.setObject(colIndex+1, null);
+								ps.setObject(colIndex + 1, null);
 							}
 						}
-					} 
+					}
 					// dates
-					else if(type == SemossDataType.DATE) {
+					else if (type == SemossDataType.DATE) {
 						Long dTime = null;
-						if(value instanceof SemossDate) {
-							dTime = SemossDate.getTimeForDate( (SemossDate) value);
+						if (value instanceof SemossDate) {
+							dTime = SemossDate.getTimeForDate((SemossDate) value);
 						} else {
 							dTime = SemossDate.getTimeForDate(value.toString(), additionalTypes[colIndex]);
 						}
-						if(dTime != null) {
-							ps.setDate(colIndex+1, new java.sql.Date(dTime));
+						if (dTime != null) {
+							ps.setDate(colIndex + 1, new java.sql.Date(dTime));
 						} else {
-							ps.setNull(colIndex+1, java.sql.Types.DATE);
+							ps.setNull(colIndex + 1, java.sql.Types.DATE);
 						}
 					}
 					// timestamps
-					else if(type == SemossDataType.TIMESTAMP) {
+					else if (type == SemossDataType.TIMESTAMP) {
 						Long dTime = null;
-						if(value instanceof SemossDate) {
-							dTime = SemossDate.getTimeForTimestamp( (SemossDate) value);
+						if (value instanceof SemossDate) {
+							dTime = SemossDate.getTimeForTimestamp((SemossDate) value);
 						} else {
 							dTime = SemossDate.getTimeForTimestamp(value.toString(), additionalTypes[colIndex]);
 						}
-						if(dTime != null) {
-							ps.setTimestamp(colIndex+1, new java.sql.Timestamp(dTime));
+						if (dTime != null) {
+							ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(dTime));
 						} else {
-							ps.setNull(colIndex+1, java.sql.Types.TIMESTAMP);
+							ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 						}
 					}
 				}
@@ -604,7 +600,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 				ps.addBatch();
 
 				// batch commit based on size
-				if(++count % batchSize == 0) {
+				if (++count % batchSize == 0) {
 					logger.info("Done inserting " + count + " number of rows");
 					ps.executeBatch();
 				}
@@ -615,14 +611,14 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 			logger.info("Finished");
 			logger.info("Completed " + count + " number of rows");
 			ps.close();
-		} catch(SQLException e) {
+		} catch (SQLException e) {
 			e.printStackTrace();
 			String errorMessage = "";
-			if(nextRow == null) {
+			if (nextRow == null) {
 				errorMessage = "Error occured while performing insert on csv on row number = " + count;
-			} else { 
-				errorMessage = "Error occured while performing insert on csv data row:"
-						+ "\n" + Arrays.toString(nextRow);
+			} else {
+				errorMessage = "Error occured while performing insert on csv data row:" + "\n"
+						+ Arrays.toString(nextRow);
 			}
 			throw new IOException(errorMessage);
 		}
@@ -661,18 +657,18 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		SemossDataType[] types = new SemossDataType[numHeaders];
 		String[] additionalTypes = new String[numHeaders];
 
-		for(int i = 0; i < numHeaders; i++) {
+		for (int i = 0; i < numHeaders; i++) {
 			types[i] = SemossDataType.convertStringToDataType(dataTypesMap.get(headers[i]));
 		}
 
 		// get additional type information
-		if(additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
-			for(int i = 0 ; i < numHeaders; i++) {
+		if (additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
+			for (int i = 0; i < numHeaders; i++) {
 				additionalTypes[i] = additionalDataTypeMap.get(headers[i]);
 			}
 		}
 
-		return new Object[]{headers, types, additionalTypes};
+		return new Object[] { headers, types, additionalTypes };
 	}
 
 
@@ -684,7 +680,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 	private Map<String, Map<String, Map<String, String>>> getDataTypeMap() {
 		GenRowStruct grs = this.store.getNoun(UploadInputUtility.DATA_TYPE_MAP);
-		if(grs == null || grs.isEmpty()) {
+		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
 		return (Map<String, Map<String, Map<String, String>>>) grs.get(0);
@@ -692,7 +688,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 	private Map<String, Map<String, Map<String, String>>> getNewHeaders() {
 		GenRowStruct grs = this.store.getNoun(UploadInputUtility.NEW_HEADERS);
-		if(grs == null || grs.isEmpty()) {
+		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
 		return (Map<String, Map<String, Map<String, String>>>) grs.get(0);
@@ -700,7 +696,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 	private Map<String, Map<String, Map<String, String>>> getAdditionalTypes() {
 		GenRowStruct grs = this.store.getNoun(UploadInputUtility.ADDITIONAL_DATA_TYPES);
-		if(grs == null || grs.isEmpty()) {
+		if (grs == null || grs.isEmpty()) {
 			return null;
 		}
 		return (Map<String, Map<String, Map<String, String>>>) grs.get(0);

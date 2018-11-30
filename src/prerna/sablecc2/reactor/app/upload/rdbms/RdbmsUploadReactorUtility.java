@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.app.upload.rdbms;
 
 import java.io.IOException;
+import java.util.Map;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -11,6 +12,33 @@ public class RdbmsUploadReactorUtility {
 
 	private RdbmsUploadReactorUtility() {
 		
+	}
+	
+	/**
+	 * Fill in the sqlHash with the types
+	 */
+	public static void createSQLTypes(Map<String, String> sqlHash) {
+		sqlHash.put("DECIMAL", "FLOAT");
+		sqlHash.put("DOUBLE", "FLOAT");
+		sqlHash.put("STRING", "VARCHAR(2000)");
+		sqlHash.put("TEXT", "VARCHAR(2000)");
+		// TODO: the FE needs to differentiate between "dates with times" vs.
+		// "dates"
+		sqlHash.put("DATE", "DATE");
+		sqlHash.put("SIMPLEDATE", "DATE");
+		// currently only add in numbers as doubles
+		sqlHash.put("NUMBER", "FLOAT");
+		sqlHash.put("INTEGER", "FLOAT");
+		sqlHash.put("BOOLEAN", "BOOLEAN");
+
+		// TODO: standardized set of values
+		sqlHash.put(SemossDataType.BOOLEAN.toString(), "BOOLEAN");
+		sqlHash.put(SemossDataType.INT.toString(), "INT");
+		sqlHash.put(SemossDataType.DOUBLE.toString(), "FLOAT");
+		sqlHash.put(SemossDataType.STRING.toString(), "VARCHAR(2000)");
+		sqlHash.put(SemossDataType.DATE.toString(), "DATE");
+		sqlHash.put(SemossDataType.TIMESTAMP.toString(), "TIMESTAMP");
+
 	}
 	
 	/**

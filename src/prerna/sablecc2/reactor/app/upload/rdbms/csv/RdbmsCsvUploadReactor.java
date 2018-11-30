@@ -16,7 +16,6 @@ import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
@@ -32,6 +31,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
+import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
@@ -256,7 +256,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Start loading data..");
 		try {
-//			openScriptFile(appId);
+			// openScriptFile(appId);
 			findIndexes(this.engine);
 			// if(i ==0 ) {
 			// scriptFile.println("-- ********* begin load process *********
@@ -269,47 +269,47 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 			// processDisplayNames();
 
-			processData(false, this.engine, helper, sqlDataTypes, Arrays.asList(headers), metamodelProps);
+			processData(false, this.engine, this.helper, sqlDataTypes, Arrays.asList(headers), metamodelProps);
 
 			// scriptFile.println("-- ********* completed processing file "
 			// + fileName + " ********* ");
 			// LOGGER.info("-- ********* completed processing file " +
 			// fileName + " ********* ");
-		} 
-//		catch (IOException e) {
-//			e.printStackTrace();
-//		} 
+		}
+		// catch (IOException e) {
+		// e.printStackTrace();
+		// }
 		finally {
-			if (helper != null) {
-				helper.clear();
+			if (this.helper != null) {
+				this.helper.clear();
 			}
 			clearTables();
 		}
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		/*
 		 * Back to normal app flow
 		 */
-		
+
 		logger.warn(stepCounter + ". Committing app metadata....");
 		owler.commit();
 		owler.export();
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
-		
+
 		addOriginalIndices(this.engine);
 		cleanUpDBTables(this.engine, allowDuplicates);
-		
+
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		UploadUtilities.updateMetadata(appId);
-		logger.info(stepCounter+". Complete");
-		
+		logger.info(stepCounter + ". Complete");
+
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, owler, addedTables);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
@@ -334,7 +334,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	private String[] parseMetamodel(Map<String, Object> metamodel, OWLER owler, List<String> headers, SemossDataType[] types) {
-		createSQLTypes(this.sqlHash);
+		RdbmsUploadReactorUtility.createSQLTypes(this.sqlHash);
 		// create the data types list
 		String[] sqlDataTypes = new String[headers.size()];
 		for (int colIndex = 0; colIndex < headers.size(); colIndex++) {
@@ -486,9 +486,9 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					relList.add(toConcept);
 					relations.put(fromConcept, relList);
 
-					// the predicate string is different from the default
-					// defined
-					predicate = cleanToConceptTableName + "." + cleanToConceptTableName + "." + cleanFromConceptTableName + "." + cleanToConceptTableName + FK;
+					// the predicate string is different from the default defined
+					predicate = cleanToConceptTableName + "." + cleanToConceptTableName + "."
+							+ cleanFromConceptTableName + "." + cleanToConceptTableName + FK;
 
 					// add FK as property
 					// String dataType = null;
@@ -541,8 +541,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return sqlDataTypes;
 	}
 
-	private void processData(boolean noExistingData, IEngine engine, CSVFileHelper helper, String[] sqlDataTypes,
-			List<String> headers, Map<String, Object> metamodel) throws Exception {
+	private void processData(boolean noExistingData, IEngine engine, CSVFileHelper helper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
 		// get existing data is present
 		if (!noExistingData) {
 			existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
@@ -578,22 +577,20 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		String[] values = null;
 		// skip rows
 		int startRow = (int) metamodel.get(Constants.START_ROW);
-		//start count at 1 just row 1 is the header
+		// start count at 1 just row 1 is the header
 		int count = 1;
-		while( count<startRow-1 && csvHelper.getNextRow() != null)// && count<maxRows)
-		{
+		while (count < startRow - 1 && csvHelper.getNextRow() != null) {
 			count++;
 		}
 		Integer endRow = (Integer) metamodel.get(Constants.END_ROW);
-		if(endRow == null) {
+		if (endRow == null) {
 			endRow = UploadInputUtility.END_ROW_INT;
 		}
 		while ((values = csvHelper.getNextRow()) != null && count < endRow) {
 			// Increment the rowCounter by 1
 			rowCounter += 1;
 			if (rowCounter % 10000 == 0) {
-				logger.info(">>>>>Processing row " + rowCounter + ", elapsed time: "
-						+ (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
+				logger.info(">>>>>Processing row " + rowCounter + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
 				lastTimeCheck = System.currentTimeMillis();
 			}
 
@@ -659,8 +656,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 		type = type.toUpperCase();
 		if (type.contains("VARCHAR")) {
-			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(Utility.cleanString(value.toString(), true))
-					+ "'";
+			return "'" + RdbmsQueryBuilder.escapeForSQLStatement(Utility.cleanString(value.toString(), true)) + "'";
 		} else if (Utility.isNumericType(type)) {
 			return value;
 		} else if (type.contains("DATE")) {
@@ -1232,7 +1228,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	private void clearTables() {
-		// keep track of all the concepts that were modified during the loading process
+		// keep track of all the concepts that were modified during the loading
+		// process
 		allConcepts.putAll(concepts);
 		concepts.clear();
 		relations.clear();
@@ -1304,40 +1301,14 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			insertData(engine, dropCurrentIndexText);
 		}
 	}
-	
+
 	@Override
 	public void closeFileHelpers() {
-		if(this.helper != null) {
+		if (this.helper != null) {
 			this.helper.clear();
 		}
 	}
 
-	/**
-	 * Fill in the sqlHash with the types
-	 */
-	protected void createSQLTypes(Map<String, String> sqlHash) {
-		sqlHash.put("DECIMAL", "FLOAT");
-		sqlHash.put("DOUBLE", "FLOAT");
-		sqlHash.put("STRING", "VARCHAR(2000)");
-		sqlHash.put("TEXT", "VARCHAR(2000)");
-		// TODO: the FE needs to differentiate between "dates with times" vs.
-		// "dates"
-		sqlHash.put("DATE", "DATE");
-		sqlHash.put("SIMPLEDATE", "DATE");
-		// currently only add in numbers as doubles
-		sqlHash.put("NUMBER", "FLOAT");
-		sqlHash.put("INTEGER", "FLOAT");
-		sqlHash.put("BOOLEAN", "BOOLEAN");
-
-		// TODO: standardized set of values
-		sqlHash.put(SemossDataType.BOOLEAN.toString(), "BOOLEAN");
-		sqlHash.put(SemossDataType.INT.toString(), "INT");
-		sqlHash.put(SemossDataType.DOUBLE.toString(), "FLOAT");
-		sqlHash.put(SemossDataType.STRING.toString(), "VARCHAR(2000)");
-		sqlHash.put(SemossDataType.DATE.toString(), "DATE");
-		sqlHash.put(SemossDataType.TIMESTAMP.toString(), "TIMESTAMP");
-
-	}
 
 	/**
 	 * Open script file that contains all the sql statements run during the
