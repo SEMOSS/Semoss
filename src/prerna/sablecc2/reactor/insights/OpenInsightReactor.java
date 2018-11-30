@@ -313,7 +313,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// send the view data
 		Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
 		List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
-		runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
+		if(!pixelReturn.isEmpty()) {
+			runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
+		}
 		
 		// now we will set the actual panels
 		for(String panelId : panels.keySet()) {
