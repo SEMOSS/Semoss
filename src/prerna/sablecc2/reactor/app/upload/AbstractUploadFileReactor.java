@@ -48,33 +48,32 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.logger = getLogger(this.getClass().getName());
-		
+
 		organizeKeys();
 		String appIdOrName = UploadInputUtility.getAppName(this.store);
 		String filePath = UploadInputUtility.getFilePath(this.store);
-		if(!new File(filePath).exists()) {
+		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
 		}
 		final boolean existing = UploadInputUtility.getExisting(this.store);
 		// check security
 		User user = null;
 		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
+		if (security) {
 			user = this.insight.getUser();
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update an app", PixelDataType.CONST_STRING, 
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			if (user == null) {
+				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update an app", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
 		}
-		
-		if(existing) {
-			if(security) {
+
+		if (existing) {
+			if (security) {
 				// check if input is alias since we are adding ot existing
 				appIdOrName = SecurityQueryUtils.testUserEngineIdForAlias(user, appIdOrName);
-				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
+				if (!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
 					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to create or update an app", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 					SemossPixelException err = new SemossPixelException(noun);
 					err.setContinueThreadOfExecution(false);
@@ -83,22 +82,23 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			} else {
 				// check if input is alias since we are adding ot existing
 				appIdOrName = MasterDatabaseUtility.testEngineIdIfAlias(appIdOrName);
-				if(!MasterDatabaseUtility.getAllEngineIds().contains(appIdOrName)) {
+				if (!MasterDatabaseUtility.getAllEngineIds().contains(appIdOrName)) {
 					throw new IllegalArgumentException("Database " + appIdOrName + " does not exist");
 				}
 			}
-			
+
 			try {
 				this.appId = appIdOrName;
 				this.appName = MasterDatabaseUtility.getEngineAliasForId(this.appId);
 				addToExistingApp(appIdOrName, filePath);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 				this.error = true;
-				if(e instanceof SemossPixelException) {
+				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
 				} else {
-					NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+					NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING,
+							PixelOperationType.ERROR);
 					SemossPixelException err = new SemossPixelException(noun);
 					err.setContinueThreadOfExecution(false);
 					throw err;
@@ -114,10 +114,10 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				this.appId = UUID.randomUUID().toString();
 				this.appName = appIdOrName;
 				generateNewApp(user, this.appId, this.appName, filePath);
-			} catch(Exception e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 				this.error = true;
-				if(e instanceof SemossPixelException) {
+				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
 				} else {
 					NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -127,29 +127,29 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				}
 			} finally {
 				closeFileHelpers();
-				if(this.error) {
+				if (this.error) {
 					// need to delete everything...
 					cleanUpCreateNewError();
 				}
 			}
-			
+
 			// even if no security, just add user as engine owner
-			if(user != null) {
+			if (user != null) {
 				List<AuthProvider> logins = user.getLogins();
-				for(AuthProvider ap : logins) {
+				for (AuthProvider ap : logins) {
 					SecurityUpdateUtils.addEngineOwner(this.appId, user.getAccessToken(ap).getId());
 				}
 			}
 		}
-		
+
 		// if we got here
 		// no errors
 		// we can do normal clean up of files
-		//TODO:
-		
+		// TODO:
+
 		ClusterUtil.reactorPushApp(this.appId);
-		
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),this.appId);
+
+		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), this.appId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
@@ -160,23 +160,23 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 		// TODO:clean up DIHelper!
 		try {
 			// close the DB so we can delete it
-			if(this.engine != null)	{
+			if (this.engine != null) {
 				engine.closeDB();
 			}
 
 			// delete the .temp file
-			if(this.tempSmss != null && this.tempSmss.exists()) {
+			if (this.tempSmss != null && this.tempSmss.exists()) {
 				FileUtils.forceDelete(this.tempSmss);
 			}
 			// delete the .smss file
-			if(this.smssFile != null && this.smssFile.exists()) {
+			if (this.smssFile != null && this.smssFile.exists()) {
 				FileUtils.forceDelete(this.smssFile);
 			}
 			// delete the engine folder and all its contents
-			if(this.appFolder != null && this.appFolder.exists()) {
+			if (this.appFolder != null && this.appFolder.exists()) {
 				File[] files = this.appFolder.listFiles();
-				if(files != null) { //some JVMs return null for empty dirs
-					for(File f: files) {
+				if (files != null) { // some JVMs return null for empty dirs
+					for (File f : files) {
 						FileUtils.forceDelete(f);
 					}
 				}
@@ -186,7 +186,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 	}
-	
+
 	///////////////////////////////////////////////////////
 
 	/*
