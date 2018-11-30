@@ -57,10 +57,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	protected Map<String, String> objectValueMap = new HashMap<String, String>();
 	protected Map<String, String> objectTypeMap = new HashMap<String, String>();
 	protected SQLQueryUtil queryUtil;
-	//TODO
 	protected boolean createIndexes = true; 
 	// What to put in a prop file to grab the current row number
 	protected String rowKey;
+	
+	private CSVFileHelper helper;
 
 	public RdbmsCsvUploadReactor() {
 		this.keysToGet = new String[] {
@@ -129,7 +130,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Parsing file metadata...");
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), this.engine.getEngineType());
 		try {
 			// open the csv file
@@ -242,7 +243,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Parsing file metadata...");
 		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
-		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
@@ -1303,6 +1304,13 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			insertData(engine, dropCurrentIndexText);
 		}
 	}
+	
+	@Override
+	public void closeFileHelpers() {
+		if(this.helper != null) {
+			this.helper.clear();
+		}
+	}
 
 	/**
 	 * Fill in the sqlHash with the types
@@ -1358,9 +1366,4 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		// }
 	}
 
-	@Override
-	public void closeFileHelpers() {
-		// TODO Auto-generated method stub
-		
-	}
 }
