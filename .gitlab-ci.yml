@@ -15,8 +15,7 @@ cache:
   key: ${CI_BUILD_REF_NAME}
 
 version_info_deploy:
-  stage:
-    - version_info
+  stage: version_info
   only:
     refs:
       - triggers
@@ -31,8 +30,7 @@ version_info_deploy:
     - cat ver.txt
     
 version_info_release:
-  stage:
-    - version_info
+  stage: version_info
   only:
     refs:
       - web
@@ -44,8 +42,7 @@ version_info_release:
     - cat ver.txt
 
 version_commit:
-  stage:
-    - version_commit
+  stage: version_commit
   # Only commit version to SVN when building off svn/dev, which mirrors SVN
   only:
     refs:
