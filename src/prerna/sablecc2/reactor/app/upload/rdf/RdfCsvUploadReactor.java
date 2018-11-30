@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
@@ -15,22 +14,13 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
@@ -38,75 +28,28 @@ import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class RdfCsvUploadReactor extends AbstractRdfUpload {
+public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
+	
 	private static final String CLASS_NAME = RdfCsvUploadReactor.class.getName();
 
 	public RdfCsvUploadReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
-				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
-				UploadInputUtility.METAMODEL, UploadInputUtility.PROP_FILE, UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.START_ROW, UploadInputUtility.END_ROW, UploadInputUtility.ADDITIONAL_DATA_TYPES,
-				UploadInputUtility.CUSTOM_BASE_URI };
+		this.keysToGet = new String[] {
+				UploadInputUtility.APP, 
+				UploadInputUtility.FILE_PATH,
+				UploadInputUtility.ADD_TO_EXISTING,
+				UploadInputUtility.DELIMITER, 
+				UploadInputUtility.DATA_TYPE_MAP,
+				UploadInputUtility.NEW_HEADERS,
+				UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				UploadInputUtility.METAMODEL, 
+				UploadInputUtility.PROP_FILE,
+				UploadInputUtility.START_ROW, 
+				UploadInputUtility.END_ROW, 
+				UploadInputUtility.CUSTOM_BASE_URI
+			};
 	}
 
-	@Override
-	public NounMetadata execute() {
-		// check security
-		User user = null;
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
-			user = this.insight.getUser();
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-
-		final String appIdOrName = UploadInputUtility.getAppName(this.store);
-		final boolean existing = UploadInputUtility.getExisting(this.store);
-		final String filePath = UploadInputUtility.getFilePath(this.store);
-		final File file = new File(filePath);
-		
-		if (!file.exists()) {
-			throw new IllegalArgumentException("Could not find the file path specified");
-		}
-		String appId = null;
-		if (existing) {
-			
-			if(security) {
-				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
-					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-					SemossPixelException err = new SemossPixelException(noun);
-					err.setContinueThreadOfExecution(false);
-					throw err;
-				}
-			}
-			
-			appId = addToExistingApp(appIdOrName, filePath);
-		} else {
-			appId = generateNewApp(user, appIdOrName, filePath);
-			
-			// even if no security, just add user as engine owner
-			if(user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
-				}
-			}
-		}
-		
-		ClusterUtil.reactorPushApp(appId);
-		
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-
-	private String generateNewApp(User user, String newAppName, String filePath) {
-		Logger logger = getLogger(CLASS_NAME);
-		String newAppId = UUID.randomUUID().toString();
+	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
@@ -122,7 +65,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppId, newAppName);
+		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -132,15 +75,8 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for app...");
-		File tempSmss = null;
-		try {
-			tempSmss = UploadUtilities.createTemporaryRdfSmss(newAppId, newAppName, owlFile);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE,
-					tempSmss.getAbsolutePath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(newAppId, newAppName, owlFile);
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -171,7 +107,6 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		boolean error = false;
 		logger.setLevel(Level.WARN);
 		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
@@ -185,7 +120,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Commit app metadata...");
-		loadMetadataIntoEngine(engine, owler);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(engine, owler);
 		owler.commit();
 		try {
 			owler.export();
@@ -205,14 +140,10 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		 */
 
 		// and rename .temp to .smss
-		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		try {
-			FileUtils.copyFile(tempSmss, smssFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		tempSmss.delete();
-		engine.setPropFile(smssFile.getAbsolutePath());
+		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(this.tempSmss, this.smssFile);
+		this.tempSmss.delete();
+		engine.setPropFile(this.smssFile.getAbsolutePath());
 		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
 
 		logger.info(stepCounter + ". Start generating default app insights");
@@ -224,28 +155,19 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(newAppId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-		
-		return newAppId;
 	}
 
-	private String addToExistingApp(String appIdOrName, String filePath) {
+	public void addToExistingApp(String appIdOrName, String filePath) throws Exception {
 		// get existing app
-		Logger logger = getLogger(CLASS_NAME);
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get existing app..");
-		appIdOrName = MasterDatabaseUtility.testEngineIdIfAlias(appIdOrName);
 		if(!(Utility.getEngine(appIdOrName) instanceof BigDataEngine)) {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
@@ -255,7 +177,6 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 		
 		logger.info(stepCounter + "Get app upload input...");
-		boolean error = false;
 		logger.setLevel(Level.WARN);
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
@@ -278,7 +199,6 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
-		
 		logger.info(stepCounter + ". Start loading data..");
 		OWLER owler = new OWLER(engine, engine.getOWL());
 		processRelationships(engine, owler, helper, Arrays.asList(headers), types, metamodelProps);
@@ -286,14 +206,9 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.warn(stepCounter + "Committing app metadata....");
-		loadMetadataIntoEngine(engine, owler);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(engine, owler);
 		owler.commit();
-		try {
-			owler.export();
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			// throw new IOException("Unable to export OWL file...");
-		}
+		owler.export();
 		// commit the created engine
 		engine.commit();
 		engine.infer();
@@ -305,19 +220,12 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 		
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(appID);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(appID);
 		logger.info(stepCounter + ". Complete");
 		
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(appID, engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-		
-		return appID;
 	}
 	
 	private void parseMetamodel(Map<String, Object> metamodel, List<String> nodePropList, List<String> relationList, List<String> relPropList) {
@@ -365,10 +273,10 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 	 * Create all the triples associated with the relationships specified in the prop file
 	 * @throws IOException 
 	 */
-	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper helper, List<String> headers,
-			SemossDataType[] dataTypes, Map<String, Object> metamodel) {
-		//TODO user subjects
+	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper helper, List<String> headers, SemossDataType[] dataTypes, Map<String, Object> metamodel) {
+		// TODO user subjects
 		// parse metamodel
+		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);
 		Logger logger = getLogger(CLASS_NAME);
 		List<String> nodePropList = new ArrayList<String>();
 		List<String> relationList = new ArrayList<String>();
@@ -486,7 +394,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 						}
 					}
 				}
-				createRelationship(engine, owler, subject, object, subjectValue, objectValue, predicate, propHash);
+				RdfUploadReactorUtility.createRelationship(engine, owler, customBaseURI, subject, object, subjectValue, objectValue, predicate, propHash);
 			}
 
 			// look through all node properties
@@ -550,7 +458,7 @@ public class RdfCsvUploadReactor extends AbstractRdfUpload {
 					}
 					nodePropHash.put(property, propObj);
 				}
-				addNodeProperties(engine, owler, subject, subjectValue, nodePropHash);
+				RdfUploadReactorUtility.addNodeProperties(engine, owler, customBaseURI, subject, subjectValue, nodePropHash);
 			}
 		}
 		metamodel.put(Constants.END_ROW, count);

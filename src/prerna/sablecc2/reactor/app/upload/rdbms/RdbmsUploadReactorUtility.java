@@ -1,30 +1,18 @@
-package prerna.sablecc2.reactor.app.upload;
+package prerna.sablecc2.reactor.app.upload.rdbms;
 
 import java.io.IOException;
 
-import org.apache.log4j.Logger;
-
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.OWLER;
 
-public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
+public class RdbmsUploadReactorUtility {
 
-
-
-	///////////////////////////////////////////////////////
-
-	/*
-	 * Execution methods
-	 */
-
-	public abstract String generateNewApp(User user, String appName, String filePath, Logger logger);
-
-	public abstract String addToExistingApp(String appName, String filePath, Logger logger);
-
+	private RdbmsUploadReactorUtility() {
+		
+	}
+	
 	/**
 	 * Add the metadata into the OWL
 	 * @param owler
@@ -33,7 +21,7 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * @param headers
 	 * @param sqlTypes
 	 */
-	protected void generateTableMetadata(OWLER owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
+	public static void generateTableMetadata(OWLER owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
 		// add the main column
 		owler.addConcept(tableName, uniqueRowId, OWLER.BASE_URI, "LONG");
 		// add the props
@@ -53,7 +41,7 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * @param types
 	 * @throws IOException 
 	 */
-	protected String[] createNewTable(IEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types) throws Exception {
+	public static String[] createNewTable(IEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types) throws Exception {
 		// we need to add the identity column
 		int size = types.length;
 		String[] sqlTypes = new String[size + 1];
@@ -89,7 +77,7 @@ public abstract class AbstractRdbmsUploadReactor extends AbstractReactor {
 	 * @param columnName
 	 * @throws IOException 
 	 */
-	protected void addIndex(IEngine engine, String tableName, String columnName) throws Exception {
+	public static void addIndex(IEngine engine, String tableName, String columnName) throws Exception {
 		String indexName = columnName.toUpperCase() + "_INDEX";
 		String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + columnName.toUpperCase() + ")";
 		engine.insertData(indexSql);
