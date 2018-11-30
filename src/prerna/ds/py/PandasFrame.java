@@ -34,8 +34,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private String scripFolder;
 	private String tableName;
 	
-	static Hashtable pyS = new Hashtable();
-	static Hashtable spy = new Hashtable();
+	static Hashtable <String, SemossDataType> pyS = new Hashtable();
+	static Hashtable  spy = new Hashtable();
 	
 	// gets all the commands in one fell swoop
 	List <String> commands = new ArrayList<String>();
@@ -50,9 +50,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		pyS.put("dtype('int64')", SemossDataType.INT);
 		pyS.put("dtype('float64')", SemossDataType.DOUBLE);
 		
-		spy.put(SemossDataType.STRING, "dtype('O')");
-		spy.put(SemossDataType.INT, "dtype('int64')");
-		spy.put(SemossDataType.DOUBLE, "dtype('float64')");
+		spy.put(SemossDataType.STRING, "object");
+		spy.put(SemossDataType.INT, "np.int64");
+		spy.put(SemossDataType.DOUBLE, "np.float64");
 		
 		spy.put("dtype('O')", "string");
 		spy.put("dtype('int64')", "int64");
@@ -113,6 +113,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			
 			String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 			// generate the script
+			runScript(tableName + "=1");
 			StringBuilder script = new StringBuilder();
 			String fileLocation = newFile.getAbsolutePath();
 			script.append(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
@@ -127,10 +128,61 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		// need to get a pandas frame types and then see if this is the same as 
 		//alignColumns(tableName, dataTypeMap);
+		adjustDataTypes();
 		
 		//TODO: testing
 		//jep.eval(tableName);
 	}
+	
+	private void adjustDataTypes()
+	{
+		
+		// get the data types from python first
+		// check against current
+		// if they are different change it
+		
+		String colScript = PandasSyntaxHelper.getColumns(tableName);
+		String typeScript = PandasSyntaxHelper.getTypes(tableName);
+		
+		//run
+		
+		//Hashtable response = (Hashtable)runScript(colScript, typeScript);
+		
+		ArrayList headerList = (ArrayList)runScript(colScript);
+		String [] headers = new String[headerList.size()];
+		
+		headerList.toArray(headers);
+		SemossDataType [] stypes = new SemossDataType[headers.length];
+		
+		
+		ArrayList <String> types = (ArrayList)runScript(typeScript);
+
+		// should we jsut run script inline ?
+		
+		for(int colIndex = 0;colIndex < headers.length;colIndex++)
+		{
+			String colName = headers[colIndex];
+			String colType = types.get(colIndex);
+			
+			SemossDataType pysColType = (SemossDataType)pyS.get(colType);
+			SemossDataType proposedType = dataTypeMap.get(colName);
+			
+			String pyproposedType = (String)spy.get(proposedType);
+			
+			if(pysColType != proposedType)
+			{
+				// create and execute the type
+				String	typeChanger = tableName + "['" + colName + "'] = " + tableName + "['" + colName + "'].astype(" + pyproposedType + ")";
+				runScript(typeChanger);
+				
+			}
+			stypes[colIndex] = pysColType;
+		}
+		Object [] retObject = new Object[2];
+		retObject[1] = headers;
+	}
+	
+	
 	
 	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap)
 	{
@@ -196,10 +248,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 */
 	private void addRowsViaCsvIterator(CsvFileIterator it, String tableName) {
 		// generate the script
-		StringBuilder script = new StringBuilder(PANDAS_IMPORT_STRING);
-		script.append("\n");
+		StringBuilder script = new StringBuilder(); //new StringBuilder(PANDAS_IMPORT_STRING);
+		//script.append("\n");
 		String fileLocation = it.getFileLocation();
-		script.append(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
+		runScript("import pandas as pd");
+		script.append(PandasSyntaxHelper.getCsvFileRead("pd", fileLocation, tableName));
 		
 		// execute the script
 		runScript(script.toString());
