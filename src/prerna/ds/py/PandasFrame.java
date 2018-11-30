@@ -46,8 +46,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	Map<String, SemossDataType>  dataTypeMap = null;
 	
 	static{
-		pyS.put("dtype('O')", SemossDataType.STRING);
-		pyS.put("dtype('int64')", SemossDataType.INT);
+		pyS.put("object", SemossDataType.STRING);
+		pyS.put("int64", SemossDataType.INT);
 		pyS.put("dtype('float64')", SemossDataType.DOUBLE);
 		
 		spy.put(SemossDataType.STRING, "object");
