@@ -1,7 +1,12 @@
 package prerna.util.git.reactors;
 
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -48,6 +53,13 @@ public class CopyAppRepo extends AbstractReactor {
 		try {
 			String appId = GitConsumer.makeAppFromRemote(localAppName, repository, logger);
 			ClusterUtil.reactorPushApp(appId);
+			User user = this.insight.getUser();
+			if(user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for(AuthProvider ap : logins) {
+					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+				}
+			}
 			logger.info("Congratulations! Downloading your new app has been completed");
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 		} catch(Exception e) {
