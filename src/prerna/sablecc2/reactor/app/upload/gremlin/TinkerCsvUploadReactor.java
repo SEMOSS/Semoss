@@ -248,8 +248,9 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	
 	@Override
 	public void closeFileHelpers() {
-		// TODO Auto-generated method stub
-		
+		if(this.helper != null) {
+			this.helper.clear();
+		}
 	}
 	
 	/**
