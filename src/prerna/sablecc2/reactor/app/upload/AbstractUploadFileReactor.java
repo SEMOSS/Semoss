@@ -194,6 +194,6 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 
 	public abstract void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception;
 
-	public abstract void addToExistingApp(final String appName, final String filePath) throws Exception;
+	public abstract void addToExistingApp(final String appId, final String filePath) throws Exception;
 
 }
