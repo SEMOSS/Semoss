@@ -11,16 +11,18 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
-import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public abstract class AbstractRdfUpload extends AbstractReactor {
+public class RdfUploadReactorUtility {
+	
+	private RdfUploadReactorUtility() {
+		
+	}
 
-	protected void loadMetadataIntoEngine(IEngine engine, OWLER owler) {
+	public static void loadMetadataIntoEngine(IEngine engine, OWLER owler) {
 		Hashtable<String, String> hash = owler.getConceptHash();
 		String object = OWLER.SEMOSS_URI + OWLER.DEFAULT_NODE_CLASS;
 		for(String concept : hash.keySet()) {
@@ -47,8 +49,7 @@ public abstract class AbstractRdfUpload extends AbstractReactor {
 	 * @param relName							String containing the name of the relationship between the subject and object
 	 * @param propHash							Hashtable that contains all properties
 	 */
-	public void createRelationship(IEngine engine, OWLER owler, String subjectNodeType, String objectNodeType, String instanceSubjectName,
-			String instanceObjectName, String relName, Hashtable<String, Object> propHash) {
+	public static void createRelationship(IEngine engine, OWLER owler, String baseUri, String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) {
 		subjectNodeType = Utility.cleanString(subjectNodeType, true);
 		objectNodeType = Utility.cleanString(objectNodeType, true);
 
@@ -57,11 +58,11 @@ public abstract class AbstractRdfUpload extends AbstractReactor {
 
 		// get base URIs for subject node at instance and semoss level
 		String subjectSemossBaseURI = owler.addConcept(subjectNodeType);
-		String subjectInstanceBaseURI = getInstanceURI(subjectNodeType);
+		String subjectInstanceBaseURI = getInstanceURI(baseUri, subjectNodeType);
 
 		// get base URIs for object node at instance and semoss level
 		String objectSemossBaseURI = owler.addConcept(objectNodeType);
-		String objectInstanceBaseURI = getInstanceURI(objectNodeType);
+		String objectInstanceBaseURI = getInstanceURI(baseUri, objectNodeType);
 
 		// create the full URI for the subject instance
 		// add type and label triples to database
@@ -78,7 +79,7 @@ public abstract class AbstractRdfUpload extends AbstractReactor {
 		// generate URIs for the relationship
 		relName = Utility.cleanPredicateString(relName);
 		String relSemossBaseURI = owler.addRelation(subjectNodeType, objectNodeType, relName);
-		String relInstanceBaseURI = getRelBaseURI(relName);
+		String relInstanceBaseURI = getRelBaseURI(baseUri, relName);
 
 
 		// create instance value of relationship and add instance relationship,
@@ -92,24 +93,23 @@ public abstract class AbstractRdfUpload extends AbstractReactor {
 		addProperties(engine, owler, "", instanceRelURI, propHash);
 	}
 	
-	public void addNodeProperties(IEngine engine, OWLER owler, String nodeType, String instanceName, Hashtable<String, Object> propHash) {
+	public static void addNodeProperties(IEngine engine, OWLER owler, String baseUri, String nodeType, String instanceName, Hashtable<String, Object> propHash) {
 		//create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
 		nodeType = Utility.cleanString(nodeType, true); 
 		String semossBaseURI = owler.addConcept(nodeType);
-		String instanceBaseURI = getInstanceURI(nodeType);
+		String instanceBaseURI = getInstanceURI(baseUri, nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDF.TYPE, semossBaseURI, true});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, RDFS.LABEL, instanceName, false});
 		addProperties(engine, owler, nodeType, subjectNodeURI, propHash);
 	}
 	
-	public void addProperties(IEngine engine, OWLER owler, String subjectNodeType, String instanceURI, Hashtable<String, Object> propHash) {
+	public static void addProperties(IEngine engine, OWLER owler, String subjectNodeType, String instanceURI, Hashtable<String, Object> propHash) {
 		// add all properties
 		Enumeration<String> propKeys = propHash.keys();
 
 		String basePropURI  = getBasePropURI();
-
 		
 		// add property triple based on data type of property
 		while (propKeys.hasMoreElements()) {
@@ -172,7 +172,7 @@ public abstract class AbstractRdfUpload extends AbstractReactor {
 	 * @param basePropURI 		String containing the base URI of the property at SEMOSS level
 	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
 	 */
-	private void insertCurrentDate(IEngine engine, String propInstanceURI, String basePropURI, String subjectNodeURI) {
+	public static void insertCurrentDate(IEngine engine, String propInstanceURI, String basePropURI, String subjectNodeURI) {
 		Date dValue = new Date();
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 		String date = df.format(dValue);
@@ -186,15 +186,15 @@ public abstract class AbstractRdfUpload extends AbstractReactor {
 		}
 	}
 	
-	public String getInstanceURI(String nodeType) {
-		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);
-		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
+	public static String getInstanceURI(String baseUri, String nodeType) {
+		return baseUri + "/" + Constants.DEFAULT_NODE_CLASS +"/"+ nodeType;
 	}
-	private String getRelBaseURI(String relName) {
-		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);
-		return 	customBaseURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
+	
+	public static String getRelBaseURI(String baseUri, String relName) {
+		return 	baseUri + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + relName;
 	}
-	private String getBasePropURI() {
+	
+	public static String getBasePropURI() {
 		// TODO this does not use custom base input
 		String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		return semossURI + "/" + Constants.DEFAULT_RELATION_CLASS + "/" + "Contains";
@@ -206,7 +206,7 @@ public abstract class AbstractRdfUpload extends AbstractReactor {
 	 * @param basePropURI 		String containing the base URI of the property at SEMOSS level
 	 * @param subjectNodeURI 	String containing the URI of the subject at the instance level
 	 */
-	private void insertCurrentUser(IEngine engine, String propURI, String basePropURI, String subjectNodeURI) {
+	public static void insertCurrentUser(IEngine engine, String propURI, String basePropURI, String subjectNodeURI) {
 		String cleanValue = System.getProperty("user.name");
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
