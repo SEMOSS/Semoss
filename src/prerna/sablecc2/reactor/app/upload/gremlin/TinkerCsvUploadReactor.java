@@ -13,7 +13,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -23,24 +22,14 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.tinker.TinkerEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
@@ -48,82 +37,34 @@ import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class TinkerCsvUploadReactor extends AbstractReactor {
+public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	protected final String TINKER_DRIVER_TYPE = "tinkerDriver";
-
-	private static final String CLASS_NAME = TinkerCsvUploadReactor.class.getName();
-
+	
 	public TinkerCsvUploadReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH, UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
-				UploadInputUtility.METAMODEL, UploadInputUtility.PROP_FILE, UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.START_ROW, UploadInputUtility.END_ROW, UploadInputUtility.ADDITIONAL_DATA_TYPES,
+		this.keysToGet = new String[] { 
+				UploadInputUtility.APP, 
+				UploadInputUtility.FILE_PATH,
+				UploadInputUtility.ADD_TO_EXISTING,
+				UploadInputUtility.DELIMITER, 
+				UploadInputUtility.DATA_TYPE_MAP, 
+				UploadInputUtility.NEW_HEADERS,
+				UploadInputUtility.METAMODEL, 
+				UploadInputUtility.PROP_FILE, 
+				UploadInputUtility.ADD_TO_EXISTING,
+				UploadInputUtility.START_ROW, 
+				UploadInputUtility.END_ROW, 
+				UploadInputUtility.ADDITIONAL_DATA_TYPES,
 				TINKER_DRIVER_TYPE };
 	}
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String appIdOrName = UploadInputUtility.getAppName(this.store);
-		String filePath = UploadInputUtility.getFilePath(this.store);
-		String appId = null;
-		final boolean existing = UploadInputUtility.getExisting(this.store);
-		// check security
-		User user = null;
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
-			user = this.insight.getUser();
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-		
-		if(existing) {
-			if(security) {
-				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
-					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-					SemossPixelException err = new SemossPixelException(noun);
-					err.setContinueThreadOfExecution(false);
-					throw err;
-				}
-			}
-			appId = addToExistingApp(appIdOrName, filePath);
-		} else {
-			appId = generateNewApp(user, appIdOrName, filePath);
-			
-			// even if no security, just add user as engine owner
-			if(user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
-				}
-			}
-		}
-		
-		ClusterUtil.reactorPushApp(appId);
-		
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-
-	public String generateNewApp(User user, String newAppName, String filePath) {
-		Logger logger = getLogger(CLASS_NAME);
-		String newAppId = UUID.randomUUID().toString();
+	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
-		
+
 		int stepCounter = 1;
 		logger.info(stepCounter + ".Start validating app");
-		try {
-			UploadUtilities.validateApp(user, newAppName);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		UploadUtilities.validateApp(user, newAppName);
 		logger.info(stepCounter + ".Done validating app");
 		stepCounter++;
 
@@ -138,14 +79,8 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for app...");
-		File tempSmss = null;
-		try {
-			tempSmss = UploadUtilities.generateTemporaryTinkerSmss(newAppId, newAppName, owlFile, getTinkerDriverType());
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		this.tempSmss = UploadUtilities.generateTemporaryTinkerSmss(newAppId, newAppName, owlFile, getTinkerDriverType());
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
@@ -160,10 +95,10 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		 * Load data into tinker engine
 		 */
 		logger.info(stepCounter + ". Create  Tinker app...");
-		TinkerEngine app = new TinkerEngine();
-		app.setEngineId(newAppId);
-		app.setEngineName(newAppName);
-		app.openDB(tempSmss.getAbsolutePath());
+		this.engine = new TinkerEngine();
+		this.engine.setEngineId(newAppId);
+		this.engine.setEngineName(newAppName);
+		this.engine.openDB(this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
@@ -173,7 +108,7 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-		// TODO
+		// TODO additional types?
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
 		if(metamodelProps.get(Constants.DATA_TYPES) == null) {
@@ -186,68 +121,52 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 			}
 			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
 		}
-		processRelationships(app, owler, helper, logger, headers, types, metamodelProps);
-		app.commit();
+		processRelationships(this.engine, owler, helper, logger, headers, types, metamodelProps);
+		this.engine.commit();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
 		logger.info(stepCounter + ". Commit app metadata...");
 		owler.commit();
-		try {
-			owler.export();
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
-		app.setOWL(owler.getOwlPath());
+		owler.export();
+		this.engine.setOWL(owler.getOwlPath());
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 		
 		Gson gson = new GsonBuilder().create();
-		String json = gson.toJson(app.getTypeMap());
+		String json = gson.toJson(((TinkerEngine)this.engine).getTypeMap());
 		String mapProp = "TYPE_MAP" + "\t" + json + "\n";
-		json = gson.toJson(app.getNameMap());
+		json = gson.toJson(((TinkerEngine)this.engine).getNameMap());
 		mapProp += "NAME_MAP" + "\t" + json + "\n";
 
-		//TODO
-		try {
-			Files.write(Paths.get(tempSmss.getAbsolutePath()), mapProp.getBytes(), StandardOpenOption.APPEND);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		// TODO add additional tinker properties to smss
+		Files.write(Paths.get(this.tempSmss.getAbsolutePath()), mapProp.getBytes(), StandardOpenOption.APPEND);
 
 		// and rename .temp to .smss
-		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		try {
-			FileUtils.copyFile(tempSmss, smssFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		tempSmss.delete();
-		app.setPropFile(smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, app, smssFile);
+		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(this.tempSmss, this.smssFile);
+
+		this.tempSmss.delete();
+		this.engine.setPropFile(this.smssFile.getAbsolutePath());
+		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		app.setInsightDatabase(insightDatabase);
+		this.engine.setInsightDatabase(insightDatabase);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
-		try {
-			UploadUtilities.updateMetadata(newAppId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
-		return newAppId;
 	}
 	
 	//TODO
@@ -256,18 +175,16 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 	//TODO
 	//TODO
 	//TODO
-	public String addToExistingApp(String appId, String filePath) {
-		Logger logger = getLogger(CLASS_NAME);
+	public void addToExistingApp(String appId, String filePath) throws Exception {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get existing app..");
-		appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-		IEngine app = Utility.getEngine(appId);
-		if(!(app instanceof TinkerEngine)) {
+		this.engine = Utility.getEngine(appId);
+		if (!(this.engine instanceof TinkerEngine)) {
 			throw new IllegalArgumentException("Invalid app type");
 		}
-		logger.info(stepCounter+". Complete");
+		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + "Get app upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
@@ -279,7 +196,7 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		}
 		logger.info(stepCounter + "Done...");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + "Parsing file metadata...");
 		CSVFileHelper helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// get the user selected datatypes for each header
@@ -289,53 +206,44 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Start loading data..");
-		OWLER owler = new OWLER(app, app.getOWL());
-		
-		if(metamodelProps.get(Constants.DATA_TYPES) == null) {
+		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+
+		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel
 			Map<String, String> dataTypes = new HashMap<>();
-			for(int i=0; i < headers.length; i++) {
+			for (int i = 0; i < headers.length; i++) {
 				String header = headers[i];
 				String type = types[i].toString();
 				dataTypes.put(header, type);
 			}
 			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
 		}
-		processRelationships(app, owler, helper, logger, headers, types, metamodelProps);
-		app.commit();
+		processRelationships(this.engine, owler, helper, logger, headers, types, metamodelProps);
+		this.engine.commit();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.warn(stepCounter + "Committing app metadata....");
 		owler.commit();
-		try {
-			owler.export();
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-		
-		// TODO generate new app insights for tinker
-		// TODO update type map and node name map in smss
-		
-		logger.info(stepCounter+". Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(app.getEngineId());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		logger.info(stepCounter+". Complete");
-		stepCounter++;
-		
-		logger.info(stepCounter + ". Save csv metamodel prop file	");
-		UploadUtilities.createPropFile(appId, app.getEngineName(), filePath, metamodelProps);
+		owler.export();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		return appId;
+		// TODO generate new app insights for tinker
+		// TODO update type map and node name map in smss
+
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
+		UploadUtilities.updateMetadata(this.engine.getEngineId());
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+
+		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
+
 	}
 	
 	/**
@@ -641,12 +549,10 @@ public class TinkerCsvUploadReactor extends AbstractReactor {
 
 		// upsert the subject vertex
 		Vertex startV = null;
-		try {
-			startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
-					new Object[] { subjectNodeType, instanceSubjectName });
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+
+		startV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
+				new Object[] { subjectNodeType, instanceSubjectName });
+
 		// upsert the object vertex
 		Vertex endV = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
 				new Object[] { objectNodeType, instanceObjectName });

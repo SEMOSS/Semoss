@@ -164,14 +164,14 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 	}
 
-	public void addToExistingApp(String appIdOrName, String filePath) throws Exception {
+	public void addToExistingApp(String appId, String filePath) throws Exception {
 		// get existing app
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get existing app..");
-		if(!(Utility.getEngine(appIdOrName) instanceof BigDataEngine)) {
+		if(!(Utility.getEngine(appId) instanceof BigDataEngine)) {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
-		BigDataEngine engine = (BigDataEngine) Utility.getEngine(appIdOrName);
+		BigDataEngine engine = (BigDataEngine) Utility.getEngine(appId);
 		String appID = engine.getEngineId();
 		logger.info(stepCounter + ". Done..");
 		stepCounter++;
