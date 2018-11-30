@@ -7,15 +7,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
@@ -25,22 +21,13 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.sail.SailException;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.poi.main.helper.excel.ExcelParsing;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
@@ -48,72 +35,18 @@ import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
-	private static final String CLASS_NAME = RdfLoaderSheetUploadReactor.class.getName();
-
+public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
+	
 	public RdfLoaderSheetUploadReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
-				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.CUSTOM_BASE_URI };
+		this.keysToGet = new String[] { 
+				UploadInputUtility.APP, 
+				UploadInputUtility.FILE_PATH,
+				UploadInputUtility.ADD_TO_EXISTING, 
+				UploadInputUtility.CUSTOM_BASE_URI
+			};
 	}
 
-	@Override
-	public NounMetadata execute() {
-		// check security
-		User user = null;
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
-			user = this.insight.getUser();
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-		
-		organizeKeys();
-		final String appIdOrName = UploadInputUtility.getAppName(this.store);
-		final boolean existing = UploadInputUtility.getExisting(this.store);
-		final String filePath = UploadInputUtility.getFilePath(this.store);
-		final File file = new File(filePath);
-		if (!file.exists()) {
-			throw new IllegalArgumentException("Could not find the file path specified");
-		}
-		String appId = null;
-		if (existing) {
-			
-			if(security) {
-				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
-					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-					SemossPixelException err = new SemossPixelException(noun);
-					err.setContinueThreadOfExecution(false);
-					throw err;
-				}
-			}
-			
-			appId = addToExistingApp(appIdOrName, filePath);
-		} else {
-			appId = generateNewApp(user, appIdOrName, filePath);
-			
-			// even if no security, just add user as engine owner
-			if(user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
-				}
-			}
-		}
-		
-		ClusterUtil.reactorPushApp(appId);
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), appId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-
-	private String generateNewApp(User user, String newAppName, String filePath) {
-		Logger logger = getLogger(CLASS_NAME);
-		String newAppId = UUID.randomUUID().toString();
-
+	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start validating app");
 		try {
@@ -125,7 +58,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppId, newAppName);
+		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -135,15 +68,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for app...");
-		File tempSmss = null;
-		try {
-			tempSmss = UploadUtilities.createTemporaryRdfSmss(newAppId, newAppName, owlFile);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE,
-					tempSmss.getAbsolutePath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(newAppId, newAppName, owlFile);
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -163,49 +89,34 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		boolean error = false;
 		/*
 		 * Load Data
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
+		String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
-		owler.addCustomBaseURI(UploadInputUtility.getCustomBaseURI(this.store));
-		try {
-			importFile(engine, owler, filePath);
-			loadMetadataIntoEngine(engine, owler);
-			owler.commit();
-			try {
-				owler.export();
-			} catch (IOException ex) {
-				error = true;
-				ex.printStackTrace();
-			}
-			// commit the created engine
-			engine.setOWL(owler.getOwlPath());
-			engine.commit();
-			engine.infer();
-			logger.info(stepCounter + ". Complete...");
-			RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getConceptualNodes());
-		} catch (FileNotFoundException e) {
-			error = true;
-		} catch (IOException e) {
-			error = true;
-		}
+		owler.addCustomBaseURI(baseUri);
+		importFile(engine, owler, filePath, baseUri);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(engine, owler);
+		owler.commit();
+		owler.export();
+		// commit the created engine
+		engine.setOWL(owler.getOwlPath());
+		engine.commit();
+		engine.infer();
+		logger.info(stepCounter + ". Complete...");
+		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getConceptualNodes());
 
 		/*
 		 * Back to normal upload app stuff
 		 */
 
 		// and rename .temp to .smss
-		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		try {
-			FileUtils.copyFile(tempSmss, smssFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		tempSmss.delete();
-		engine.setPropFile(smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
+		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(this.tempSmss, this.smssFile);
+		this.tempSmss.delete();
+		engine.setPropFile(this.smssFile.getAbsolutePath());
+		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, this.smssFile);
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
@@ -216,45 +127,26 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(newAppId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-		return engine.getEngineId();
 	}
 
-	private String addToExistingApp(String appIdOrName, String filePath) {
-		Logger logger = getLogger(CLASS_NAME);
+	public void addToExistingApp(String appId, String filePath) throws Exception {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get existing app..");
-		appIdOrName = MasterDatabaseUtility.testEngineIdIfAlias(appIdOrName);
-		if(!(Utility.getEngine(appIdOrName) instanceof BigDataEngine)) {
+		if(!(Utility.getEngine(appId) instanceof BigDataEngine)) {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
-		BigDataEngine engine = (BigDataEngine) Utility.getEngine(appIdOrName);
-		String appID = engine.getEngineId();
+		BigDataEngine engine = (BigDataEngine) Utility.getEngine(appId);
 		logger.info(stepCounter + ". Done..");
 		stepCounter++;
 		
 		logger.setLevel(Level.ERROR);
 		OWLER owler = new OWLER(engine, engine.getOWL());
-		try {
-			importFile(engine, owler, filePath);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		loadMetadataIntoEngine(engine, owler);
+		importFile(engine, owler, filePath, engine.getNodeBaseUri());
+		RdfUploadReactorUtility.loadMetadataIntoEngine(engine, owler);
 		owler.commit();
-		try {
-			owler.export();
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			// throw new IOException("Unable to export OWL file...");
-		}
+		owler.export();
 		// commit the created engine
 		engine.commit();
 		engine.infer();
@@ -263,8 +155,6 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		// commit the created engine
 		engine.commit();
 		engine.infer();		
-		return engine.getEngineId();
-
 	}
 	
 	/**
@@ -273,9 +163,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void importFile(IEngine engine, OWLER owler, String fileName) throws FileNotFoundException, IOException {
-		Logger logger = getLogger(CLASS_NAME);
-
+	public void importFile(IEngine engine, OWLER owler, String fileName, String baseUri) throws FileNotFoundException, IOException {
 		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
@@ -306,13 +194,13 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 						// determine the type of load
 						String loadTypeName = sheetTypeCell.getStringCellValue();
 						if (!sheetToLoad.isEmpty() && !loadTypeName.isEmpty()) {
-							logger.debug("Cell Content is " + sheetToLoad);
+							this.logger.debug("Cell Content is " + sheetToLoad);
 							// this is a relationship
 							if (loadTypeName.contains("Matrix")) {
-								loadMatrixSheet(engine, owler, sheetToLoad, workbook);
+								loadMatrixSheet(engine, owler, sheetToLoad, workbook, baseUri);
 								engine.commit();
 							} else {
-								loadSheet(engine, owler, sheetToLoad, workbook);
+								loadSheet(engine, owler, sheetToLoad, workbook, baseUri);
 								engine.commit();
 							}
 						}
@@ -394,121 +282,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 	}
 	
 	/**
-	 * Load excel sheet in matrix format
-	 * 
-	 * @param sheetToLoad
-	 *            String containing the name of the excel sheet to load
-	 * @param workbook
-	 *            XSSFWorkbook containing the name of the excel workbook
-	 * @throws EngineException
-	 */
-	public void loadMatrixSheet(IEngine engine, OWLER owler, String sheetToLoad, Workbook workbook) {
-		Logger logger = getLogger(CLASS_NAME);
-		Sheet lSheet = workbook.getSheet(sheetToLoad);
-		int lastRow = lSheet.getLastRowNum();
-		logger.info("Number of Rows: " + lastRow);
-
-		// Get the first row to get column names
-		Row row = lSheet.getRow(0);
-		// initialize variables
-		String objectNodeType = "";
-		String relName = "";
-		boolean propExists = false;
-
-		String sheetType = row.getCell(0).getStringCellValue();
-		// Get the string that contains the subject node type, object node type, and properties
-		String nodeMap = row.getCell(1).getStringCellValue();
-
-		// check to see if properties exist
-		String propertyName = "";
-		StringTokenizer tokenProperties = new StringTokenizer(nodeMap, "@");
-		String triple = tokenProperties.nextToken();
-		if (tokenProperties.hasMoreTokens()) {
-			propertyName = tokenProperties.nextToken();
-			propExists = true;
-		}
-
-		StringTokenizer tokenTriple = new StringTokenizer(triple, "_");
-		String subjectNodeType = tokenTriple.nextToken();
-		if (sheetType.equalsIgnoreCase("Relation")) {
-			relName = tokenTriple.nextToken();
-			objectNodeType = tokenTriple.nextToken();
-		}
-
-		// determine object instance names for the relationship
-		ArrayList<String> objectInstanceArray = new ArrayList<String>();
-		int lastColumn = 0;
-		for (int colIndex = 2; colIndex < row.getLastCellNum(); colIndex++) {
-			objectInstanceArray.add(row.getCell(colIndex).getStringCellValue());
-			lastColumn = colIndex;
-		}
-		// fix number of columns due to data shift in excel sheet
-		lastColumn--;
-		logger.info("Number of Columns: " + lastColumn);
-
-		try {
-			// process all rows (contains subject instances) in the matrix
-			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
-				// boolean to determine if a mapping exists
-				boolean mapExists = false;
-				Row nextRow = lSheet.getRow(rowIndex);
-				// get the name subject instance
-				String instanceSubjectName = nextRow.getCell(1).getStringCellValue();
-				// see what relationships are mapped between subject instances and object instances
-				for (int colIndex = 2; colIndex <= lastColumn; colIndex++) {
-					String instanceObjectName = objectInstanceArray.get(colIndex - 2);
-					Hashtable<String, Object> propHash = new Hashtable<String, Object>();
-					// store value in cell between instance subject and object in current iteration of loop
-					Cell matrixContent = nextRow.getCell(colIndex);
-					// if any value in cell, there should be a mapping
-					if (matrixContent != null) {
-						if (propExists) {
-							if (matrixContent.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-								if (DateUtil.isCellDateFormatted(matrixContent)) {
-									propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
-									mapExists = true;
-								} else {
-									propHash.put(propertyName, new Double(matrixContent.getNumericCellValue()));
-									mapExists = true;
-								}
-							} else {
-								// if not numeric, assume it is a string and check to make sure it is not empty
-								if (!matrixContent.getStringCellValue().isEmpty()) {
-									propHash.put(propertyName, matrixContent.getStringCellValue());
-									mapExists = true;
-								}
-							}
-						} else {
-							mapExists = true;
-						}
-					}
-
-					if (sheetType.equalsIgnoreCase("Relation") && mapExists) {
-						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
-						createRelationship(engine, owler, subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
-					} else {
-						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
-						addNodeProperties(engine, owler, subjectNodeType, instanceSubjectName, propHash);
-					}
-				}
-				logger.info(instanceSubjectName);
-			}
-		} finally {
-			logger.info("Done processing: " + sheetToLoad);
-		}
-	}
-	
-	/**
 	 * Load specific sheet in workbook
-	 * 
-	 * @param sheetToLoad
-	 *            String containing the name of the sheet to load
-	 * @param workbook
-	 *            XSSFWorkbook containing the sheet to load
+	 * @param sheetToLoad			String containing the name of the sheet to load
+	 * @param workbook				XSSFWorkbook containing the sheet to load
 	 * @throws IOException
 	 */
-	public void loadSheet(IEngine engine, OWLER owler, String sheetToLoad, Workbook workbook) throws IOException {
-		Logger logger = getLogger(CLASS_NAME);
+	public void loadSheet(IEngine engine, OWLER owler, String sheetToLoad, Workbook workbook, String baseUri) throws IOException {
 		Sheet lSheet = workbook.getSheet(sheetToLoad);
 		if (lSheet == null) {
 			throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
@@ -626,9 +405,9 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				// adjust indexing since first row in java starts at 0
 				logger.info("Processing Relationship Sheet: " + sheetToLoad + ", Row: " + (rowIndex + 1));
-				createRelationship(engine, owler, subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
+				RdfUploadReactorUtility.createRelationship(engine, owler, baseUri, subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
 			} else {
-				addNodeProperties(engine, owler, subjectNode, instanceSubjectNode, propHash);
+				RdfUploadReactorUtility.addNodeProperties(engine, owler, baseUri, subjectNode, instanceSubjectNode, propHash);
 			}
 			if (rowIndex == (lastRow - 1)) {
 				logger.info("Done processing: " + sheetToLoad);
@@ -636,6 +415,106 @@ public class RdfLoaderSheetUploadReactor extends AbstractRdfUpload {
 		}
 	}
 	
+	/**
+	 * Load excel sheet in matrix format
+	 * @param sheetToLoad				String containing the name of the excel sheet to load
+	 * @param workbook					XSSFWorkbook containing the name of the excel workbook
+	 * @throws EngineException
+	 */
+	public void loadMatrixSheet(IEngine engine, OWLER owler, String sheetToLoad, Workbook workbook, String baseUri) {
+		Sheet lSheet = workbook.getSheet(sheetToLoad);
+		int lastRow = lSheet.getLastRowNum();
+		logger.info("Number of Rows: " + lastRow);
+
+		// Get the first row to get column names
+		Row row = lSheet.getRow(0);
+		// initialize variables
+		String objectNodeType = "";
+		String relName = "";
+		boolean propExists = false;
+
+		String sheetType = row.getCell(0).getStringCellValue();
+		// Get the string that contains the subject node type, object node type, and properties
+		String nodeMap = row.getCell(1).getStringCellValue();
+
+		// check to see if properties exist
+		String propertyName = "";
+		StringTokenizer tokenProperties = new StringTokenizer(nodeMap, "@");
+		String triple = tokenProperties.nextToken();
+		if (tokenProperties.hasMoreTokens()) {
+			propertyName = tokenProperties.nextToken();
+			propExists = true;
+		}
+
+		StringTokenizer tokenTriple = new StringTokenizer(triple, "_");
+		String subjectNodeType = tokenTriple.nextToken();
+		if (sheetType.equalsIgnoreCase("Relation")) {
+			relName = tokenTriple.nextToken();
+			objectNodeType = tokenTriple.nextToken();
+		}
+
+		// determine object instance names for the relationship
+		ArrayList<String> objectInstanceArray = new ArrayList<String>();
+		int lastColumn = 0;
+		for (int colIndex = 2; colIndex < row.getLastCellNum(); colIndex++) {
+			objectInstanceArray.add(row.getCell(colIndex).getStringCellValue());
+			lastColumn = colIndex;
+		}
+		// fix number of columns due to data shift in excel sheet
+		lastColumn--;
+		logger.info("Number of Columns: " + lastColumn);
+
+		try {
+			// process all rows (contains subject instances) in the matrix
+			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
+				// boolean to determine if a mapping exists
+				boolean mapExists = false;
+				Row nextRow = lSheet.getRow(rowIndex);
+				// get the name subject instance
+				String instanceSubjectName = nextRow.getCell(1).getStringCellValue();
+				// see what relationships are mapped between subject instances and object instances
+				for (int colIndex = 2; colIndex <= lastColumn; colIndex++) {
+					String instanceObjectName = objectInstanceArray.get(colIndex - 2);
+					Hashtable<String, Object> propHash = new Hashtable<String, Object>();
+					// store value in cell between instance subject and object in current iteration of loop
+					Cell matrixContent = nextRow.getCell(colIndex);
+					// if any value in cell, there should be a mapping
+					if (matrixContent != null) {
+						if (propExists) {
+							if (matrixContent.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+								if (DateUtil.isCellDateFormatted(matrixContent)) {
+									propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
+									mapExists = true;
+								} else {
+									propHash.put(propertyName, new Double(matrixContent.getNumericCellValue()));
+									mapExists = true;
+								}
+							} else {
+								// if not numeric, assume it is a string and check to make sure it is not empty
+								if (!matrixContent.getStringCellValue().isEmpty()) {
+									propHash.put(propertyName, matrixContent.getStringCellValue());
+									mapExists = true;
+								}
+							}
+						} else {
+							mapExists = true;
+						}
+					}
+
+					if (sheetType.equalsIgnoreCase("Relation") && mapExists) {
+						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
+						RdfUploadReactorUtility.createRelationship(engine, owler, baseUri, subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
+					} else {
+						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
+						RdfUploadReactorUtility.addNodeProperties(engine, owler, baseUri, subjectNodeType, instanceSubjectName, propHash);
+					}
+				}
+				logger.info(instanceSubjectName);
+			}
+		} finally {
+			logger.info("Done processing: " + sheetToLoad);
+		}
+	}
 	
 
 }
