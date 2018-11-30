@@ -5,11 +5,9 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -17,18 +15,12 @@ import org.apache.log4j.Logger;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -40,16 +32,17 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
-import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
+import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
+import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
+public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 	/*
 	 * There are quite a few things that we need
@@ -65,69 +58,18 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 * 8) existing -> boolean if we should add to an existing app, defualt is false
 	 */
 
-	private static final String CLASS_NAME = RdbmsFlatCsvUploadReactor.class.getName();
-
 	public RdbmsFlatCsvUploadReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH,
-				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS, UploadInputUtility.ADDITIONAL_DATA_TYPES,
-				UploadInputUtility.CLEAN_STRING_VALUES, UploadInputUtility.REMOVE_DUPLICATE_ROWS,
-				UploadInputUtility.ADD_TO_EXISTING };
-	}
-
-	@Override
-	public NounMetadata execute() {
-		Logger logger = getLogger(CLASS_NAME);
-
-		User user = null;
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
-			user = this.insight.getUser();
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-		
-		final String appIdOrName = UploadInputUtility.getAppName(this.store);
-		final boolean existing = UploadInputUtility.getExisting(this.store);
-		final String filePath = UploadInputUtility.getFilePath(this.store);
-		final File file = new File(filePath);
-		if(!file.exists()) {
-			throw new IllegalArgumentException("Could not find the file path specified");
-		}
-
-		String appId = null;
-		if(existing) {
-			
-			if(security) {
-				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
-					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-					SemossPixelException err = new SemossPixelException(noun);
-					err.setContinueThreadOfExecution(false);
-					throw err;
-				}
-			}
-			
-			appId = addToExistingApp(appIdOrName, filePath, logger);
-		} else {
-			appId = generateNewApp(user, appIdOrName, filePath, logger);
-			
-			// even if no security, just add user as engine owner
-			if(user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
-				}
-			}
-		}
-		
-		ClusterUtil.reactorPushApp(appId);
-		
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		this.keysToGet = new String[] { 
+				UploadInputUtility.APP, 
+				UploadInputUtility.FILE_PATH, 
+				UploadInputUtility.ADD_TO_EXISTING,
+				UploadInputUtility.DELIMITER, 
+				UploadInputUtility.DATA_TYPE_MAP, 
+				UploadInputUtility.NEW_HEADERS, 
+				UploadInputUtility.ADDITIONAL_DATA_TYPES,
+				UploadInputUtility.CLEAN_STRING_VALUES, 
+				UploadInputUtility.REMOVE_DUPLICATE_ROWS,
+			};
 	}
 
 	/**
@@ -136,7 +78,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 	 * @param filePath
 	 */
 	@Override
-	public String generateNewApp(User user, final String newAppName, final String filePath, Logger logger) {
+	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -149,7 +91,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		 * 8) add to localmaster and solr
 		 */
 
-		String newAppId = UUID.randomUUID().toString();
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> dataTypesMap = getDataTypeMap();
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
@@ -170,7 +111,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Starting app creation");
 
 		logger.info("1. Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppId, newAppName);
+		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info("1. Complete");
 
 		logger.info("Generate new app database");
@@ -179,24 +120,18 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("2. Complete");
 
 		logger.info("3. Create properties file for database...");
-		File tempSmss = null;
-		try {
-			tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		logger.info("3. Complete");
 
 		logger.info("4. Create database store...");
-		IEngine engine = new RDBMSNativeEngine();
-		engine.setEngineId(newAppId);
-		engine.setEngineName(newAppName);
+		this.engine = new RDBMSNativeEngine();
+		this.engine.setEngineId(newAppId);
+		this.engine.setEngineName(newAppName);
 		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
-		engine.setProp(props);
-		engine.openDB(null);
+		this.engine.setProp(props);
+		this.engine.openDB(null);
 		logger.info("4. Complete");
 
 		logger.info("5. Start loading data..");
@@ -223,32 +158,22 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes;
 		try {
-			sqlTypes = createNewTable(engine, tableName, uniqueRowId, headers, types);
+			sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.engine, tableName, uniqueRowId, headers, types);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
-		try {
-			bulkInsertFile(engine, helper, tableName, headers, types, additionalTypes, clean, logger);
-			addIndex(engine, tableName, uniqueRowId);
-		} catch (Exception e) {
-			// ugh... gotta clean up and delete everything... TODO:
-			e.printStackTrace();
-		}
+		bulkInsertFile(this.engine, helper, tableName, headers, types, additionalTypes, clean, logger);
+		RdbmsUploadReactorUtility.addIndex(this.engine, tableName, uniqueRowId);
 		logger.info("5. Complete");
 
 		logger.info("6. Start generating engine metadata...");
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
-		generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
+		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 		owler.commit();
-		try {
-			owler.export();
-			engine.setOWL(owlFile.getPath());
-		} catch (IOException e) {
-			// ugh... gotta clean up and delete everything... TODO:
-			e.printStackTrace();
-		}
+		owler.export();
+		this.engine.setOWL(owlFile.getPath());
 		logger.info("6. Complete");
 
 		logger.info("7. Start generating default app insights");
@@ -256,47 +181,37 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, helper.orderHeadersToGet(headers));
 		UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId);
-		engine.setInsightDatabase(insightDatabase);
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
+		this.engine.setInsightDatabase(insightDatabase);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info("7. Complete");
 
 		logger.info("8. Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(newAppId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(newAppId);
 		logger.info("8. Complete");
 
 		// and rename .temp to .smss
-		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		try {
-			FileUtils.copyFile(tempSmss, smssFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		tempSmss.delete();
+		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(this.tempSmss, this.smssFile);
+		this.tempSmss.delete();
 
 		// update DIHelper & engine smss file location
-		engine.setPropFile(smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
-		
-		return newAppId;
+		this.engine.setPropFile(this.smssFile.getAbsolutePath());
+		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
 	}
 
 	/**
 	 * Add the data into an existing rdbms engine
 	 * @param appId
 	 * @param filePath
+	 * @throws Exception 
 	 */
 	@Override
-	public String addToExistingApp(String appId, String filePath, Logger logger) {
-		appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
+	public void addToExistingApp(String appId, String filePath) throws Exception {
+		this.engine = Utility.getEngine(appId);
+		if(this.engine == null) {
 			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
 		}
-		if(!(engine instanceof RDBMSNativeEngine)) {
+		if(!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
 
@@ -317,7 +232,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Done parsing file metadata");
 
 		logger.info("Get existing database schema...");
-		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.engine);
 		logger.info("Done getting existing database schema");
 
 		logger.info("Determine if we can add into an existing table or make new table...");
@@ -331,15 +246,15 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 			String[] sqlTypes = null;
 			try {
-				sqlTypes = createNewTable(engine, tableToInsertInto, uniqueRowId, headers, types);
+				sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.engine, tableToInsertInto, uniqueRowId, headers, types);
 			} catch (Exception e1) {
 				e1.printStackTrace();
 				throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 			logger.info("Done create table");
 			try {
-				bulkInsertFile(engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
-				addIndex(engine, tableToInsertInto, uniqueRowId);
+				bulkInsertFile(this.engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
+				RdbmsUploadReactorUtility.addIndex(this.engine, tableToInsertInto, uniqueRowId);
 			} catch (Exception e) {
 				// ugh... gotta clean up and delete everything... TODO:
 				e.printStackTrace();
@@ -348,44 +263,28 @@ public class RdbmsFlatCsvUploadReactor extends AbstractRdbmsUploadReactor {
 			stepCounter++;
 
 			logger.info(stepCounter + ". Start generating engine metadata...");
-			OWLER owler = new OWLER(engine, engine.getOWL());
-			generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes, additionalTypes);
+			OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+			RdbmsUploadReactorUtility.generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes, additionalTypes);
 			owler.commit();
-			try {
-				owler.export();
-				engine.setOWL(engine.getOWL());
-			} catch (IOException e) {
-				// ugh... gotta clean up and delete everything... TODO:
-				e.printStackTrace();
-			}
+			owler.export();
+			this.engine.setOWL(this.engine.getOWL());
 			logger.info(stepCounter + ". Complete");
 
 			logger.info(stepCounter + ". Start generating default app insights");
 			Set<String> newTableSet = new HashSet<String>();
 			newTableSet.add(tableToInsertInto);
-			RDBMSEngineCreationHelper.insertNewTablesAsInsights(engine, owler, newTableSet);
+			RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, owler, newTableSet);
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 		} else {
 			logger.info("Found table " + tableToInsertInto + " that holds similar data! Will insert into this table");
-			try {
-				bulkInsertFile(engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
-			} catch (IOException e) {
-				// ugh... gotta clean up and delete everything... TODO:
-				e.printStackTrace();
-			}
+			bulkInsertFile(this.engine, helper, tableToInsertInto, headers, types, additionalTypes, clean, logger);
 			logger.info(stepCounter + ". Complete");
 		}
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(appId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(appId);
 		logger.info(stepCounter + ". Complete");
-		
-		return appId;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////

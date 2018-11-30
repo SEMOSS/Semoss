@@ -8,26 +8,20 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Sheet;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.H2EmbeddedServerEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.excel.ExcelBlock;
@@ -46,16 +40,17 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.PixelPlanner;
-import prerna.sablecc2.reactor.app.upload.AbstractRdbmsUploadReactor;
+import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
+import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
+public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 	/*
 	 * There are quite a few things that we need
@@ -70,72 +65,21 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 	 * 7) existing -> boolean if we should add to an existing app, defualt is false
 	 */
 
-	private static final String CLASS_NAME = RdbmsFlatExcelUploadReactor.class.getName();
-
 	public RdbmsFlatExcelUploadReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH, UploadInputUtility.DATA_TYPE_MAP,
-				UploadInputUtility.NEW_HEADERS, UploadInputUtility.ADDITIONAL_DATA_TYPES, UploadInputUtility.CLEAN_STRING_VALUES,
-				UploadInputUtility.REMOVE_DUPLICATE_ROWS, UploadInputUtility.ADD_TO_EXISTING };
+		this.keysToGet = new String[] { 
+				UploadInputUtility.APP, 
+				UploadInputUtility.FILE_PATH, 
+				UploadInputUtility.ADD_TO_EXISTING,
+				UploadInputUtility.DATA_TYPE_MAP,
+				UploadInputUtility.NEW_HEADERS, 
+				UploadInputUtility.ADDITIONAL_DATA_TYPES, 
+				UploadInputUtility.CLEAN_STRING_VALUES,
+				UploadInputUtility.REMOVE_DUPLICATE_ROWS
+			};
 	}
 
 	@Override
-	public NounMetadata execute() {
-		Logger logger = getLogger(CLASS_NAME);
-
-		User user = null;
-		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
-			user = this.insight.getUser();
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
-						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
-			}
-		}
-		
-		final String appIdOrName = UploadInputUtility.getAppName(this.store);
-		final boolean existing = UploadInputUtility.getExisting(this.store);
-		final String filePath = UploadInputUtility.getFilePath(this.store);
-		final File file = new File(filePath);
-		if(!file.exists()) {
-			throw new IllegalArgumentException("Could not find the file path specified");
-		}
-
-		String appId = null;
-		if(existing) {
-			
-			if(security) {
-				if(!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
-					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-					SemossPixelException err = new SemossPixelException(noun);
-					err.setContinueThreadOfExecution(false);
-					throw err;
-				}
-			}
-			
-			appId = addToExistingApp(appIdOrName, filePath, logger);
-		} else {
-			appId = generateNewApp(user, appIdOrName, filePath, logger);
-			
-			// even if no security, just add user as engine owner
-			if(user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for(AuthProvider ap : logins) {
-					SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
-				}
-			}
-		}
-
-		ClusterUtil.reactorPushApp(appId);
-		
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-
-	@Override
-	public String generateNewApp(User user, String newAppName, String filePath, Logger logger) {
+	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -148,7 +92,6 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		 * 8) add to localmaster and solr
 		 */
 
-		String newAppId = UUID.randomUUID().toString();
 		Map<String, Map<String, Map<String, String>>> dataTypesMap = getDataTypeMap();
 		Map<String, Map<String, Map<String, String>>> newHeaders = getNewHeaders();
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
@@ -168,7 +111,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Starting app creation");
 
 		logger.info("1. Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppId, newAppName);
+		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
 		logger.info("1. Complete");
 
 		logger.info("Generate new app database");
@@ -177,24 +120,18 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("2. Complete");
 
 		logger.info("3. Create properties file for database...");
-		File tempSmss = null;
-		try {
-			tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		logger.info("3. Complete");
 
 		logger.info("4. Create database store...");
-		IEngine engine = new RDBMSNativeEngine();
-		engine.setEngineId(newAppId);
-		engine.setEngineName(newAppName);
+		this.engine = new RDBMSNativeEngine();
+		this.engine.setEngineId(newAppId);
+		this.engine.setEngineName(newAppName);
 		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
-		engine.setProp(props);
-		engine.openDB(null);
+		this.engine.setProp(props);
+		this.engine.openDB(null);
 		logger.info("4. Complete");
 
 		logger.info("5. Start loading data..");
@@ -204,15 +141,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Done loading excel file");
 
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
-		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, logger);
+		processExcelSheets(this.engine, owler, helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, logger);
 		helper.clear();
-		try {
-			owler.export();
-			engine.setOWL(owlFile.getPath());
-		} catch (IOException e) {
-			// ugh... gotta clean up and delete everything... TODO:
-			e.printStackTrace();
-		}
+		owler.export();
+		this.engine.setOWL(owlFile.getPath());
 		logger.info("5. Complete");
 		
 		logger.info("6. Start generating default app insights");
@@ -327,36 +259,26 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("6. Complete");
 
 		logger.info("7. Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(newAppId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(newAppId);
 		logger.info("7. Complete");
 
 		// and rename .temp to .smss
-		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		try {
-			FileUtils.copyFile(tempSmss, smssFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		tempSmss.delete();
+		this.smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(this.tempSmss, this.smssFile);
+		this.tempSmss.delete();
 
 		// update DIHelper & engine smss file location
-		engine.setPropFile(smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
-		return newAppId;
+		this.engine.setPropFile(this.smssFile.getAbsolutePath());
+		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
 	}
 
 	@Override
-	public String addToExistingApp(String appId, String filePath, Logger logger) {
-		appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
-		IEngine engine = Utility.getEngine(appId);
-		if(engine == null) {
+	public void addToExistingApp(String appId, String filePath) throws Exception {
+		this.engine = Utility.getEngine(appId);
+		if(this.engine == null) {
 			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
 		}
-		if(!(engine instanceof RDBMSNativeEngine)) {
+		if(!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
 
@@ -365,9 +287,9 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		
-		logger.info("Get existing database schema...");
-		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
-		logger.info("Done getting existing database schema");
+//		logger.info("Get existing database schema...");
+//		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine);
+//		logger.info("Done getting existing database schema");
 		
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start loading data..");
@@ -382,32 +304,20 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		 * We need to go to the sheet level and determine it
 		 */
 		
-		OWLER owler = new OWLER(engine, engine.getOWL());
-		processExcelSheets(engine, owler, helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, logger);
+		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+		processExcelSheets(this.engine, owler, helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, logger);
 		helper.clear();
-		
-		try {
-			owler.export();
-			engine.setOWL(engine.getOWL());
-		} catch (IOException e) {
-			// ugh... gotta clean up and delete everything... TODO:
-			e.printStackTrace();
-		}
+		owler.export();
+		this.engine.setOWL(this.engine.getOWL());
 		logger.info(stepCounter + ". Complete");
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
+		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info(stepCounter + ". Complete");
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(appId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(appId);
 		logger.info(stepCounter + ". Complete");
-		
-		return appId;
 	}
 
 	/**
@@ -528,7 +438,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes = null;
 		try {
-			sqlTypes = createNewTable(engine, tableName, uniqueRowId, headers, types);
+			sqlTypes = RdbmsUploadReactorUtility.createNewTable(engine, tableName, uniqueRowId, headers, types);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -536,13 +446,13 @@ public class RdbmsFlatExcelUploadReactor extends AbstractRdbmsUploadReactor {
 		logger.info("Done create table");
 		try {
 			bulkInsertSheet(engine, helper, sheetName, tableName, headers, types, additionalTypes, clean, logger);
-			addIndex(engine, tableName, uniqueRowId);
+			RdbmsUploadReactorUtility.addIndex(engine, tableName, uniqueRowId);
 		} catch (Exception e) {
 			// ugh... gotta clean up and delete everything... TODO:
 			e.printStackTrace();
 		}
 
-		generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
+		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 	}
 
 	private void bulkInsertSheet(IEngine engine, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,

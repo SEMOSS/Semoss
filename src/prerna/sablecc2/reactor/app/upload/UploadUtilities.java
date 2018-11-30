@@ -945,8 +945,7 @@ public class UploadUtilities {
 	 * @param propMap
 	 * @param headers
 	 */
-	public static void addInsertFormInsight(IEngine insightDatabase, String appId, String sheetName,
-			Map<String, SemossDataType> propMap, String[] headers) {
+	public static void addInsertFormInsight(IEngine insightDatabase, String appId, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		Map<String, Map<String, SemossDataType>> metamodel = new HashMap<>();
 		metamodel.put(sheetName, propMap);
@@ -969,8 +968,7 @@ public class UploadUtilities {
 	 * @param sheetName
 	 * @param dataValidationMap
 	 */
-	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName,
-			Map<String, Object> widgetJson) {
+	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName, Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = getInsightFormName(sheetName);
 		String layout = "default-handle";
@@ -1036,8 +1034,7 @@ public class UploadUtilities {
 	 * @param headers
 	 * @return
 	 */
-	public static Map<String, Object> createInsertForm(String appId,
-			Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
+	public static Map<String, Object> createInsertForm(String appId, Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
 		Map<String, Object> formMap = new HashMap<>();
 		Map<String, SemossDataType> propMap = new HashMap<>();
 		// assuming this is a flat table so there is only one concept
