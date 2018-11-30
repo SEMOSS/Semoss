@@ -49,11 +49,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Start validating app");
-		try {
-			UploadUtilities.validateApp(user, newAppName);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e.getMessage());
-		}
+		UploadUtilities.validateApp(user, newAppName);
 		logger.info(stepCounter + ". Done validating app");
 		stepCounter++;
 
@@ -74,18 +70,18 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create database store...");
-		BigDataEngine engine = new BigDataEngine();
-		engine.setEngineId(newAppId);
-		engine.setEngineName(newAppName);
-		engine.openDB(tempSmss.getAbsolutePath());
+		this.engine = new BigDataEngine();
+		this.engine.setEngineId(newAppId);
+		this.engine.setEngineName(newAppName);
+		this.engine.openDB(this.tempSmss.getAbsolutePath());
 		String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
 		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -94,18 +90,18 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
 		String baseUri = UploadInputUtility.getCustomBaseURI(this.store);
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
+		OWLER owler = new OWLER(owlFile.getAbsolutePath(), this.engine.getEngineType());
 		owler.addCustomBaseURI(baseUri);
-		importFile(engine, owler, filePath, baseUri);
-		RdfUploadReactorUtility.loadMetadataIntoEngine(engine, owler);
+		importFile(this.engine, owler, filePath, baseUri);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
 		owler.commit();
 		owler.export();
 		// commit the created engine
-		engine.setOWL(owler.getOwlPath());
-		engine.commit();
-		engine.infer();
+		this.engine.setOWL(owler.getOwlPath());
+		this.engine.commit();
+		((BigDataEngine) this.engine).infer();
 		logger.info(stepCounter + ". Complete...");
-		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getConceptualNodes());
+		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
 
 		/*
 		 * Back to normal upload app stuff
@@ -115,14 +111,14 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 		FileUtils.copyFile(this.tempSmss, this.smssFile);
 		this.tempSmss.delete();
-		engine.setPropFile(this.smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, this.smssFile);
+		this.engine.setPropFile(this.smssFile.getAbsolutePath());
+		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		engine.setInsightDatabase(insightDatabase);
-		RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getConceptualNodes());
+		this.engine.setInsightDatabase(insightDatabase);
+		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -134,15 +130,15 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	public void addToExistingApp(String appId, String filePath) throws Exception {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get existing app..");
-		if(!(Utility.getEngine(appId) instanceof BigDataEngine)) {
+		if (!(Utility.getEngine(appId) instanceof BigDataEngine)) {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
 		this.engine = (BigDataEngine) Utility.getEngine(appId);
 		logger.info(stepCounter + ". Done..");
 		stepCounter++;
-		
+
 		logger.setLevel(Level.ERROR);
-		OWLER owler = new OWLER(engine, engine.getOWL());
+		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
 		importFile(this.engine, owler, filePath, this.engine.getNodeBaseUri());
 		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
 		owler.commit();
@@ -156,10 +152,10 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		this.engine.commit();
 		((BigDataEngine) this.engine).infer();
 	}
-	
+
 	@Override
 	public void closeFileHelpers() {
-	
+
 	}
 	
 	/**
@@ -214,27 +210,27 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new FileNotFoundException(e.getMessage());
 			} else {
 				throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
 				throw new IOException("Could not read Excel file located at " + fileName);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			if(e.getMessage()!= null && !e.getMessage().isEmpty()) {
+			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new IOException(e.getMessage());
 			} else {
 				throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 			}
 		} finally {
-			if(poiReader != null) {
+			if (poiReader != null) {
 				try {
 					poiReader.close();
 				} catch (IOException e) {
@@ -285,7 +281,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		engine.commit();
 		owler.commit();
 	}
-	
+
 	/**
 	 * Load specific sheet in workbook
 	 * @param sheetToLoad			String containing the name of the sheet to load
@@ -320,7 +316,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 
 		// determine property names for the relationship or node
-		// colIndex starts at currentColumn+1 since if relationship, the object node name is in the second column
+		// colIndex starts at currentColumn+1 since if relationship, the object
+		// node name is in the second column
 		int lastColumn = 0;
 		for (int colIndex = currentColumn + 1; colIndex < row.getLastCellNum(); colIndex++) {
 			// add property name to vector
@@ -344,10 +341,10 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			// get the name of the relationship
 			if (rowIndex == 1) {
 				Cell relCell = nextRow.getCell(0);
-				if(relCell != null && !relCell.getStringCellValue().isEmpty()) {
+				if (relCell != null && !relCell.getStringCellValue().isEmpty()) {
 					relName = nextRow.getCell(0).getStringCellValue();
 				} else {
-					if(sheetType.equalsIgnoreCase("Relation")) {
+					if (sheetType.equalsIgnoreCase("Relation")) {
 						throw new IOException("Need to define the relationship on sheet " + sheetToLoad);
 					}
 					relName = "Ignore";
@@ -359,7 +356,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				nextRow.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
 			}
 
-			// to prevent errors when java thinks there is a row of data when the row is empty
+			// to prevent errors when java thinks there is a row of data when
+			// the row is empty
 			Cell instanceSubjectNodeCell = nextRow.getCell(1);
 			String instanceSubjectNode = "";
 			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != Cell.CELL_TYPE_BLANK
@@ -374,12 +372,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			int startCol = 1;
 			int offset = 1;
 			if (sheetType.equalsIgnoreCase("Relation")) {
-				if(nextRow.getCell(2) != null) {
+				if (nextRow.getCell(2) != null) {
 					// make it a string so i can easily parse it
 					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
 					Cell instanceObjectNodeCell = nextRow.getCell(2);
 					// if empty, ignore
-					if(ExcelParsing.isEmptyCell(instanceObjectNodeCell)) {
+					if (ExcelParsing.isEmptyCell(instanceObjectNodeCell)) {
 						continue;
 					}
 					instanceObjectNode = nextRow.getCell(2).getStringCellValue();
@@ -396,12 +394,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				}
 				String propName = propNames.elementAt(colIndex - offset).toString();
 				// ignore bad data
-				if(ExcelParsing.isEmptyCell(nextRow.getCell(colIndex))) {
+				if (ExcelParsing.isEmptyCell(nextRow.getCell(colIndex))) {
 					continue;
 				}
-				
+
 				Object propValue = ExcelParsing.getCell(nextRow.getCell(colIndex));
-				if(propValue instanceof SemossDate) {
+				if (propValue instanceof SemossDate) {
 					propValue = ((SemossDate) propValue).getDate();
 				}
 				propHash.put(propName, propValue);
@@ -477,11 +475,13 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				Row nextRow = lSheet.getRow(rowIndex);
 				// get the name subject instance
 				String instanceSubjectName = nextRow.getCell(1).getStringCellValue();
-				// see what relationships are mapped between subject instances and object instances
+				// see what relationships are mapped between subject instances
+				// and object instances
 				for (int colIndex = 2; colIndex <= lastColumn; colIndex++) {
 					String instanceObjectName = objectInstanceArray.get(colIndex - 2);
 					Hashtable<String, Object> propHash = new Hashtable<String, Object>();
-					// store value in cell between instance subject and object in current iteration of loop
+					// store value in cell between instance subject and object
+					// in current iteration of loop
 					Cell matrixContent = nextRow.getCell(colIndex);
 					// if any value in cell, there should be a mapping
 					if (matrixContent != null) {
@@ -495,7 +495,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 									mapExists = true;
 								}
 							} else {
-								// if not numeric, assume it is a string and check to make sure it is not empty
+								// if not numeric, assume it is a string and
+								// check to make sure it is not empty
 								if (!matrixContent.getStringCellValue().isEmpty()) {
 									propHash.put(propertyName, matrixContent.getStringCellValue());
 									mapExists = true;
@@ -520,6 +521,5 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			logger.info("Done processing: " + sheetToLoad);
 		}
 	}
-	
 
 }

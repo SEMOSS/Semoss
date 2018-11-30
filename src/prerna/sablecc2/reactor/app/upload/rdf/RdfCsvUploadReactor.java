@@ -10,7 +10,6 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
@@ -29,8 +28,6 @@ import prerna.util.OWLER;
 import prerna.util.Utility;
 
 public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
-	
-	private static final String CLASS_NAME = RdfCsvUploadReactor.class.getName();
 
 	private CSVFileHelper helper;
 	
@@ -58,11 +55,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ".Start validating app");
-		try {
-			UploadUtilities.validateApp(user, newAppName);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		UploadUtilities.validateApp(user, newAppName);
 		logger.info(stepCounter + ".Done validating app");
 		stepCounter++;
 
@@ -78,7 +71,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Create properties file for app...");
 		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(newAppId, newAppName, owlFile);
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -93,47 +86,43 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		 * Load data into rdf engine
 		 */
 		logger.info(stepCounter + ". Create  database store...");
-		BigDataEngine engine = new BigDataEngine();
-		engine.setEngineId(newAppId);
-		engine.setEngineName(newAppName);
-		engine.openDB(tempSmss.getAbsolutePath());
+		this.engine = new BigDataEngine();
+		this.engine.setEngineId(newAppId);
+		this.engine.setEngineName(newAppName);
+		this.engine.openDB(this.tempSmss.getAbsolutePath());
 		String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
 		String sub = semossURI + "/" + Constants.DEFAULT_NODE_CLASS;
 		String typeOf = RDF.TYPE.stringValue();
 		String obj = Constants.CLASS_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
 		sub = semossURI + "/" + Constants.DEFAULT_RELATION_CLASS;
 		obj = Constants.DEFAULT_PROPERTY_URI;
-		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
+		this.engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { sub, typeOf, obj, true });
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
 		logger.setLevel(Level.WARN);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
+		OWLER owler = new OWLER(owlFile.getAbsolutePath(), this.engine.getEngineType());
 		owler.addCustomBaseURI(UploadInputUtility.getCustomBaseURI(this.store));
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypes);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		processRelationships(engine, owler, helper, Arrays.asList(headers), types, metamodelProps);
+		processRelationships(this.engine, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Commit app metadata...");
-		RdfUploadReactorUtility.loadMetadataIntoEngine(engine, owler);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
 		owler.commit();
-		try {
-			owler.export();
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			// throw new IOException("Unable to export OWL file...");
-		}
+		owler.export();
+
 		// commit the created engine
-		engine.setOWL(owler.getOwlPath());
-		engine.commit();
-		engine.infer();
+		this.engine.setOWL(owler.getOwlPath());
+		this.engine.commit();
+		((BigDataEngine) this.engine).infer();
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
@@ -145,14 +134,14 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 		FileUtils.copyFile(this.tempSmss, this.smssFile);
 		this.tempSmss.delete();
-		engine.setPropFile(this.smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
+		this.engine.setPropFile(this.smssFile.getAbsolutePath());
+		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		engine.setInsightDatabase(insightDatabase);
-		RDFEngineCreationHelper.insertSelectConceptsAsInsights(engine, owler.getConceptualNodes());
+		this.engine.setInsightDatabase(insightDatabase);
+		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -160,7 +149,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
@@ -170,14 +159,13 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		// get existing app
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get existing app..");
-		if(!(Utility.getEngine(appId) instanceof BigDataEngine)) {
+		if (!(Utility.getEngine(appId) instanceof BigDataEngine)) {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
-		BigDataEngine engine = (BigDataEngine) Utility.getEngine(appId);
-		String appID = engine.getEngineId();
+		this.engine = (BigDataEngine) Utility.getEngine(appId);
 		logger.info(stepCounter + ". Done..");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + "Get app upload input...");
 		logger.setLevel(Level.WARN);
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
@@ -190,53 +178,53 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 		logger.info(stepCounter + "Done...");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + "Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// get the user selected datatypes for each header
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypes);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Start loading data..");
-		OWLER owler = new OWLER(engine, engine.getOWL());
-		processRelationships(engine, owler, helper, Arrays.asList(headers), types, metamodelProps);
+		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+		processRelationships(this.engine, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.warn(stepCounter + "Committing app metadata....");
-		RdfUploadReactorUtility.loadMetadataIntoEngine(engine, owler);
+		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
 		owler.commit();
 		owler.export();
 		// commit the created engine
-		engine.commit();
-		engine.infer();
+		this.engine.commit();
+		((BigDataEngine) this.engine).infer();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(engine, owler.getConceptualNodes());
+		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		UploadUtilities.updateMetadata(appID);
+		UploadUtilities.updateMetadata(appId);
 		logger.info(stepCounter + ". Complete");
-		
+
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
-		UploadUtilities.createPropFile(appID, engine.getEngineName(), filePath, metamodelProps);
+		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 	}
-	
+
 	@Override
 	public void closeFileHelpers() {
-		if(this.helper != null) {
-			helper.clear();
+		if (this.helper != null) {
+			this.helper.clear();
 		}
 	}
-	
+
 	private void parseMetamodel(Map<String, Object> metamodel, List<String> nodePropList, List<String> relationList, List<String> relPropList) {
 		// get node properties
 		if (metamodel.get(Constants.NODE_PROP) != null) {
@@ -286,31 +274,28 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		// TODO user subjects
 		// parse metamodel
 		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);
-		Logger logger = getLogger(CLASS_NAME);
 		List<String> nodePropList = new ArrayList<String>();
 		List<String> relationList = new ArrayList<String>();
 		List<String> relPropList = new ArrayList<String>();
 		parseMetamodel(metamodel, nodePropList, relationList, relPropList);
 		// skip rows
 		int startRow = (int) metamodel.get(Constants.START_ROW);
-		//start count at 1 just row 1 is the header
+		// start count at 1 just row 1 is the header
 		int count = 1;
-		while( count<startRow-1 && helper.getNextRow() != null)// && count<maxRows)
-		{
+		while (count < startRow - 1 && helper.getNextRow() != null) {
 			count++;
 		}
 		String[] values = null;
 		Integer endRow = (Integer) metamodel.get(Constants.END_ROW);
-		if(endRow == null) {
+		if (endRow == null) {
 			endRow = UploadInputUtility.END_ROW_INT;
 		}
 		while ((values = helper.getNextRow()) != null && count < endRow) {
 			count++;
-			logger.info("Process line: " +count);
+			logger.info("Process line: " + count);
 
 			// process all relationships in row
-			for(int relIndex = 0; relIndex < relationList.size(); relIndex++)
-			{
+			for (int relIndex = 0; relIndex < relationList.size(); relIndex++) {
 				String relation = relationList.get(relIndex);
 				String[] strSplit = relation.split("@");
 				// get the subject and object for triple (the two indexes)
@@ -321,81 +306,64 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 				String object = "";
 
 				// see if subject node URI exists in prop file
-				if(metamodel.containsKey(sub))
-				{
-					String userSub = metamodel.get(sub).toString(); 
-					subject = userSub.substring(userSub.lastIndexOf("/")+1);
+				if (metamodel.containsKey(sub)) {
+					String userSub = metamodel.get(sub).toString();
+					subject = userSub.substring(userSub.lastIndexOf("/") + 1);
 				}
 				// if no user specified URI, use generic URI
-				else
-				{
-					if(sub.contains("+"))
-					{
+				else {
+					if (sub.contains("+")) {
 						subject = processAutoConcat(sub);
-					}
-					else
-					{
+					} else {
 						subject = sub;
 					}
 				}
 				// see if object node URI exists in prop file
-				if(metamodel.containsKey(obj))
-				{
-					String userObj = metamodel.get(obj).toString(); 
-					object = userObj.substring(userObj.lastIndexOf("/")+1);
+				if (metamodel.containsKey(obj)) {
+					String userObj = metamodel.get(obj).toString();
+					object = userObj.substring(userObj.lastIndexOf("/") + 1);
 				}
 				// if no user specified URI, use generic URI
-				else
-				{
-					if(obj.contains("+"))
-					{
+				else {
+					if (obj.contains("+")) {
 						object = processAutoConcat(obj);
-					}
-					else
-					{
+					} else {
 						object = obj;
 					}
 				}
 
 				String subjectValue = createInstanceValue(sub, values, headers);
 				String objectValue = createInstanceValue(obj, values, headers);
-				if (subjectValue.isEmpty() || objectValue.isEmpty())
-				{
+				if (subjectValue.isEmpty() || objectValue.isEmpty()) {
 					continue;
 				}
 
-				// look through all relationship properties for the specific relationship
+				// look through all relationship properties for the specific
+				// relationship
 				Hashtable<String, Object> propHash = new Hashtable<String, Object>();
 
-				for(int relPropIndex = 0; relPropIndex < relPropList.size(); relPropIndex++)
-				{
+				for (int relPropIndex = 0; relPropIndex < relPropList.size(); relPropIndex++) {
 					String relProp = relPropList.get(relPropIndex);
 					String[] relPropSplit = relProp.split("%");
-					if(relPropSplit[0].equals(relation))
-					{
+					if (relPropSplit[0].equals(relation)) {
 						// loop through all properties on the relationship
-						for(int i = 1; i < relPropSplit.length; i++)
-						{			
-							// add the necessary triples for the relationship property
+						for (int i = 1; i < relPropSplit.length; i++) {
+							// add the necessary triples for the relationship
+							// property
 							String prop = relPropSplit[i];
 							String property = "";
 							// see if property node URI exists in prop file
-							if(metamodel.containsKey(prop))
-							{
-								String userProp = metamodel.get(prop).toString(); 
-								property = userProp.substring(userProp.lastIndexOf("/")+1);
+							if (metamodel.containsKey(prop)) {
+								String userProp = metamodel.get(prop).toString();
+								property = userProp.substring(userProp.lastIndexOf("/") + 1);
 
-								//property = rdfMap.get(prop);
+								// property = rdfMap.get(prop);
 							}
 							// if no user specified URI, use generic URI
-							else
-							{
-								if(prop.contains("+"))
-								{
+							else {
+								if (prop.contains("+")) {
 									property = processAutoConcat(prop);
-								}
-								else
-								{
+								} else {
 									property = prop;
 								}
 							}
@@ -407,8 +375,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 
 			// look through all node properties
-			for(int relIndex = 0;relIndex<nodePropList.size();relIndex++)
-			{
+			for (int relIndex = 0; relIndex < nodePropList.size(); relIndex++) {
 				Hashtable<String, Object> nodePropHash = new Hashtable<String, Object>();
 				String relation = nodePropList.get(relIndex);
 				String[] strSplit = relation.split("%");
@@ -416,48 +383,37 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 				String sub = strSplit[0].trim();
 				String subject = "";
 				// see if subject node URI exists in prop file
-				if(metamodel.containsKey(sub))
-				{
-					String userSub = metamodel.get(sub).toString(); 
-					subject = userSub.substring(userSub.lastIndexOf("/")+1);
+				if (metamodel.containsKey(sub)) {
+					String userSub = metamodel.get(sub).toString();
+					subject = userSub.substring(userSub.lastIndexOf("/") + 1);
 
-					//subject = rdfMap.get(sub);
+					// subject = rdfMap.get(sub);
 				}
 				// if no user specified URI, use generic URI
-				else
-				{	
-					if(sub.contains("+"))
-					{
+				else {
+					if (sub.contains("+")) {
 						subject = processAutoConcat(sub);
-					}
-					else
-					{
+					} else {
 						subject = sub;
 					}
 				}
 				String subjectValue = createInstanceValue(sub, values, headers);
 				// loop through all properties on the node
-				for(int i = 1; i < strSplit.length; i++)
-				{
+				for (int i = 1; i < strSplit.length; i++) {
 					String prop = strSplit[i].trim();
 					String property = "";
 					// see if property node URI exists in prop file
-					if(metamodel.containsKey(prop))
-					{
-						String userProp = metamodel.get(prop).toString(); 
-						property = userProp.substring(userProp.lastIndexOf("/")+1);
+					if (metamodel.containsKey(prop)) {
+						String userProp = metamodel.get(prop).toString();
+						property = userProp.substring(userProp.lastIndexOf("/") + 1);
 
-						//property = rdfMap.get(prop);
+						// property = rdfMap.get(prop);
 					}
 					// if no user specified URI, use generic URI
-					else
-					{
-						if(prop.contains("+"))
-						{
+					else {
+						if (prop.contains("+")) {
 							property = processAutoConcat(prop);
-						}
-						else
-						{
+						} else {
 							property = prop;
 						}
 					}
@@ -467,7 +423,8 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 					}
 					nodePropHash.put(property, propObj);
 				}
-				RdfUploadReactorUtility.addNodeProperties(engine, owler, customBaseURI, subject, subjectValue, nodePropHash);
+				RdfUploadReactorUtility.addNodeProperties(engine, owler, customBaseURI, subject, subjectValue,
+						nodePropHash);
 			}
 		}
 		metamodel.put(Constants.END_ROW, count);
@@ -485,38 +442,31 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 	 * @param colNameToIndex			Map containing the header names to index within the values array
 	 * @return							The return is the value for the instance
 	 */
-	private String createInstanceValue(String subject, String[] values, List<String> headers)
-	{
-		String retString ="";
+	private String createInstanceValue(String subject, String[] values, List<String> headers) {
+		String retString = "";
 		// if node is a concatenation
-		if(subject.contains("+")) 
-		{
+		if (subject.contains("+")) {
 			String elements[] = subject.split("\\+");
-			for (int i = 0; i<elements.length; i++)
-			{
+			for (int i = 0; i < elements.length; i++) {
 				String subjectElement = elements[i];
 				int colIndex = headers.indexOf(subjectElement);
-				if(values[colIndex] != null && !values[colIndex].toString().trim().isEmpty())
-				{
+				if (values[colIndex] != null && !values[colIndex].toString().trim().isEmpty()) {
 					String value = values[colIndex] + "";
 					value = Utility.cleanString(value, true);
 
-					retString = retString  + value + "-";
-				}
-				else
-				{
-					retString = retString  + "null-";
+					retString = retString + value + "-";
+				} else {
+					retString = retString + "null-";
 				}
 			}
-			// a - will show up at the end of this and we need to get rid of that
-			if(!retString.equals(""))
-				retString = retString.substring(0,retString.length()-1);
-		}
-		else
-		{
+			// a - will show up at the end of this and we need to get rid of
+			// that
+			if (!retString.equals(""))
+				retString = retString.substring(0, retString.length() - 1);
+		} else {
 			// if the value is not empty, get the correct value to return
 			int colIndex = headers.indexOf(subject);
-			if(values[colIndex] != null && !values[colIndex].trim().isEmpty()) {
+			if (values[colIndex] != null && !values[colIndex].trim().isEmpty()) {
 				retString = Utility.cleanString(values[colIndex], true);
 			}
 		}
@@ -531,14 +481,13 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 	 * @param dataTypes					The string[] containing the data type for each column in the values array
 	 * @return							The object in the correct data format
 	 */
-	private Object createObject(String object, String[] values, SemossDataType[] dataTypes, List<String> headers )
-	{
+	private Object createObject(String object, String[] values, SemossDataType[] dataTypes, List<String> headers ) {
 		// if it contains a plus sign, it is a concatenation
-		if(object.contains("+")) {
+		if (object.contains("+")) {
 			StringBuilder strBuilder = new StringBuilder();
 			String[] objList = object.split("\\+");
-			for(int i = 0; i < objList.length; i++){
-				strBuilder.append(values[headers.indexOf(objList[i])]); 
+			for (int i = 0; i < objList.length; i++) {
+				strBuilder.append(values[headers.indexOf(objList[i])]);
 			}
 			return Utility.cleanString(strBuilder.toString(), true);
 		}
@@ -549,18 +498,18 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 		SemossDataType type = dataTypes[colIndex];
 		String strVal = values[colIndex];
-		if(type == SemossDataType.INT) {
+		if (type == SemossDataType.INT) {
 			retObj = Utility.getInteger(strVal);
-		} else if(type == SemossDataType.DOUBLE) {
+		} else if (type == SemossDataType.DOUBLE) {
 			retObj = Utility.getDouble(strVal);
-		} else if(type == SemossDataType.DATE) {
+		} else if (type == SemossDataType.DATE) {
 			Long dTime = SemossDate.getTimeForDate(strVal);
-			if(dTime != null) {
+			if (dTime != null) {
 				retObj = new SemossDate(dTime, "yyyy-MM-dd");
 			}
-		} else if(type == SemossDataType.TIMESTAMP) {
+		} else if (type == SemossDataType.TIMESTAMP) {
 			Long dTime = SemossDate.getTimeForTimestamp(strVal);
-			if(dTime != null) {
+			if (dTime != null) {
 				retObj = new SemossDate(dTime, "yyyy-MM-dd HH:mm:ss");
 			}
 		} else {
@@ -569,14 +518,12 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 		return retObj;
 	}
-	
-	private String processAutoConcat(String input)
-	{
+
+	private String processAutoConcat(String input) {
 		String[] split = input.split("\\+");
 		String output = "";
-		for (int i=0;i<split.length;i++)
-		{
-			output = output+split[i].trim();
+		for (int i = 0; i < split.length; i++) {
+			output = output + split[i].trim();
 		}
 		return Utility.cleanString(output, true);
 	}
