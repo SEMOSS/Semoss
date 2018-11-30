@@ -31,7 +31,7 @@ public class QuerySelectReactor extends AbstractQueryStructReactor {
 					selectors.add(selector);
 				}
 			}
-			setAlias(selectors, this.selectorAlias);
+			setAlias(selectors, this.selectorAlias, 0);
 			qs.mergeSelectors(selectors);
 		}
 		return qs;
