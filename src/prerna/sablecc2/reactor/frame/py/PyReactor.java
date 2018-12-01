@@ -1,10 +1,14 @@
 package prerna.sablecc2.reactor.frame.py;
 
+import java.util.List;
+import java.util.Vector;
+
 import org.apache.log4j.Logger;
 
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyUtils;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
@@ -39,7 +43,9 @@ public class PyReactor extends AbstractReactor {
 			output = pyThread.response.get(code);
 		}
 		
-		return new NounMetadata(output, PixelDataType.CONST_STRING);
+		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
+		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
+		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
 
 }
