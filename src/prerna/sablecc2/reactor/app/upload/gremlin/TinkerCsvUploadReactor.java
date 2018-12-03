@@ -65,16 +65,6 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Start validating app");
-		UploadUtilities.validateApp(user, newAppName);
-		logger.info(stepCounter + ". Done validating app");
-		stepCounter++;
-
-		logger.info(stepCounter + ". Start generating app folder");
-		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
 		logger.info(stepCounter + ". Create metadata for app...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
 		logger.info(stepCounter + ". Complete");
@@ -634,7 +624,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	private TINKER_DRIVER getTinkerDriverType() {
 		GenRowStruct grs = this.store.getNoun(TINKER_DRIVER_TYPE);
 		if (grs == null || grs.isEmpty()) {
-			return null;
+			return TINKER_DRIVER.TG;
 		}
 		return TINKER_DRIVER.valueOf((String) grs.get(0));
 	}
