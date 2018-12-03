@@ -21,6 +21,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Utility;
 
 public abstract class AbstractUploadFileReactor extends AbstractReactor {
 
@@ -90,7 +91,18 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			try {
 				this.appId = appIdOrName;
 				this.appName = MasterDatabaseUtility.getEngineAliasForId(this.appId);
-				addToExistingApp(appIdOrName, filePath);
+				// get existing app
+				this.logger.info("Get existing app");
+				this.engine = Utility.getEngine(appId);
+				if (this.engine == null) {
+					throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
+				}
+				this.logger.info("Done");
+				addToExistingApp(this.appId, filePath);
+				// sync metadata
+				this.logger.info("Process app metadata to allow for traversing across apps");
+				UploadUtilities.updateMetadata(this.engine.getEngineId());
+				this.logger.info("Complete");
 			} catch (Exception e) {
 				e.printStackTrace();
 				this.error = true;
@@ -122,6 +134,16 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				this.appFolder = UploadUtilities.generateAppFolder(this.appId, this.appName);
 				this.logger.info("Complete");
 				generateNewApp(user, this.appId, this.appName, filePath);
+				// and rename .temp to .smss
+				this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+				FileUtils.copyFile(this.tempSmss, this.smssFile);
+				this.tempSmss.delete();
+				this.engine.setPropFile(this.smssFile.getAbsolutePath());
+				UploadUtilities.updateDIHelper(this.appId, this.appName, this.engine, this.smssFile);
+				// sync metadata
+				this.logger.info("Process app metadata to allow for traversing across apps");
+				UploadUtilities.updateMetadata(this.appId);
+				this.logger.info("Complete");
 			} catch (Exception e) {
 				e.printStackTrace();
 				this.error = true;
