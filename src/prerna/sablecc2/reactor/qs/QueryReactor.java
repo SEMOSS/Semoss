@@ -4,6 +4,7 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.Utility;
 
 public class QueryReactor extends AbstractQueryStructReactor {
 	
@@ -14,8 +15,8 @@ public class QueryReactor extends AbstractQueryStructReactor {
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		//grab the query
-		String query = (String) curRow.get(0);
-		
+		String query = Utility.decodeURIComponent(this.curRow.get(0).toString());
+
 		//create a new query struct
 		HardSelectQueryStruct hardQs = new HardSelectQueryStruct();
 		if(this.qs instanceof SelectQueryStruct) {
