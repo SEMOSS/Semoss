@@ -286,6 +286,7 @@ public class UploadInputUtility {
 				dataTypes.put(headers[i], oldMetamodel.get(columnHeaderIndex));
 			}
 		}
+		helper.clear();
 		newMetamodel.put(Constants.DATA_TYPES, dataTypes);
 		return newMetamodel;
 	}
