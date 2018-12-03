@@ -95,8 +95,7 @@ public class UploadUtilities {
 	 * Validate the app name
 	 * Does validation that:
 	 * 1) The input is not null/empty
-	 * 2) That the app name doesn't exist in solr already
-	 * 3) That the app folder doesn't exist in the file directory
+	 * 2) That the app folder doesn't exist in the file directory
 	 * @param appName
 	 * @throws IOException
 	 */

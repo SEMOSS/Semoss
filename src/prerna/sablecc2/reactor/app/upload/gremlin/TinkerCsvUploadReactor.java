@@ -65,9 +65,9 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ".Start validating app");
+		logger.info(stepCounter + ". Start validating app");
 		UploadUtilities.validateApp(user, newAppName);
-		logger.info(stepCounter + ".Done validating app");
+		logger.info(stepCounter + ". Done validating app");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating app folder");
@@ -185,7 +185,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info(stepCounter + "Get app upload input...");
+		logger.info(stepCounter + ". Get app upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
@@ -194,7 +194,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		if (metamodelProps != null) {
 			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
 		}
-		logger.info(stepCounter + "Done...");
+		logger.info(stepCounter + ". Done...");
 		stepCounter++;
 
 		logger.info(stepCounter + "Parsing file metadata...");
@@ -225,7 +225,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.warn(stepCounter + "Committing app metadata....");
+		logger.warn(stepCounter + ". Committing app metadata....");
 		owler.commit();
 		owler.export();
 		logger.info(stepCounter + ". Complete");
@@ -628,6 +628,9 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return Utility.cleanString(output, true);
 	}
 
+	////////////////////////////////////////////
+	// Specific Tinker Engine inputs
+	////////////////////////////////////////////
 	private TINKER_DRIVER getTinkerDriverType() {
 		GenRowStruct grs = this.store.getNoun(TINKER_DRIVER_TYPE);
 		if (grs == null || grs.isEmpty()) {
