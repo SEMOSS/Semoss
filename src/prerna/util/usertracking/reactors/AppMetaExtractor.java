@@ -84,9 +84,9 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 
 		if (UserTrackerFactory.isTracking()) {
 			// store descriptions if requested
-			if (descriptions) {
+//			if (descriptions) {
 				storeColumnDescriptions(engine);
-			}
+//			}
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -189,7 +189,7 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 					sb.append(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),15),c(");
 					sb.append("\"" + engineID + seperator + engineName + seperator + table + seperator + col + "\"");
 					sb.append(")];}\n");
-					logger.info("Generating and storing descriptions for: " + engine.getEngineName() + ":::" + table + ":::" + col);
+					logger.info("Searching description for: " + engine.getEngineName() + ":::" + table + ":::" + col);
 
 					// execute script to get descriptions for this column
 					sb.append(RSyntaxHelper.asDataFrame(rTempTable, rTempTable) + "\n");
