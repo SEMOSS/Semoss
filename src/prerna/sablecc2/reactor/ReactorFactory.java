@@ -67,6 +67,7 @@ import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.PredictDataTypesReactor;
+import prerna.sablecc2.reactor.app.upload.PredictExcelDataTypesReactor;
 import prerna.sablecc2.reactor.app.upload.PredictExcelRangeMetadataReactor;
 import prerna.sablecc2.reactor.app.upload.PredictMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.CreateExternalDSEGraphDBReactor;
@@ -474,6 +475,7 @@ public class ReactorFactory {
 		// Database uploading utils
 		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);
 		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
+		reactorHash.put("PredictExcelDataTypes", PredictExcelDataTypesReactor.class);
 		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
 		reactorHash.put("ExtractAppMeta", AppMetaExtractor.class);
