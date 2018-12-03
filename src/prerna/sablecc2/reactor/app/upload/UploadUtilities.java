@@ -99,7 +99,7 @@ public class UploadUtilities {
 	 * @param appName
 	 * @throws IOException
 	 */
-	public static void validateApp(User user, String appName) throws IOException {
+	public static void validateApp(User user, String appName, String appId) throws IOException {
 		if(appName == null || appName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the app");
 		}
@@ -115,8 +115,8 @@ public class UploadUtilities {
 		}
 		
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		// need to make sure app name doesn't already exist
-		String appLocation = baseFolder + ENGINE_DIRECTORY + appName;
+		// need to make sure app folder doesn't already exist
+		String appLocation = baseFolder + ENGINE_DIRECTORY +  SmssUtilities.getUniqueName(appName, appId);
 		File appFolder = new File(appLocation);
 		if(appFolder.exists()) {
 			throw new IOException("Database folder already contains an app directory with the same name. "

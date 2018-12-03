@@ -113,6 +113,14 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				// make a new id
 				this.appId = UUID.randomUUID().toString();
 				this.appName = appIdOrName;
+				// validate app
+				this.logger.info("Start validating app");
+				UploadUtilities.validateApp(user, this.appName, this.appId);
+				this.logger.info("Done validating app");
+				// create app folder
+				this.logger.info("Start generating app folder");
+				this.appFolder = UploadUtilities.generateAppFolder(this.appId, this.appName);
+				this.logger.info("Complete");
 				generateNewApp(user, this.appId, this.appName, filePath);
 			} catch (Exception e) {
 				e.printStackTrace();
