@@ -93,33 +93,38 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		 */
 
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> dataTypesMap = getDataTypeMap();
+		Map<String, String> dataTypesMap = UploadInputUtility.getCsvDataTypeMap(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
-		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
+		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		final boolean clean = UploadInputUtility.getClean(this.store);
 
 		// now that I have everything, let us go through and insert
 
 		// start by validation
-		logger.info("Start validating app");
+		int stepCounter = 1;
+		logger.info(stepCounter + ". Start validating app");
 		UploadUtilities.validateApp(user, newAppName);
-		logger.info("Done validating app");
+		logger.info(stepCounter + ". Done validating app");
+		stepCounter++;
 
-		logger.info("1. Start generating app folder");
+		logger.info(stepCounter + ". Start generating app folder");
 		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
-		logger.info("1. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
 		logger.info("Generate new app database");
-		logger.info("2. Create metadata for database...");
+		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
-		logger.info("2. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("3. Create properties file for database...");
+		logger.info(stepCounter + ". Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
 		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
-		logger.info("3. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("4. Create database store...");
+		logger.info(stepCounter + ". Create database store...");
 		this.engine = new RDBMSNativeEngine();
 		this.engine.setEngineId(newAppId);
 		this.engine.setEngineName(newAppName);
@@ -127,9 +132,10 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		props.put("TEMP", true);
 		this.engine.setProp(props);
 		this.engine.openDB(null);
-		logger.info("4. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("5. Start loading data..");
+		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Parsing file metadata...");
 
 		String fileName = FilenameUtils.getBaseName(filePath);
@@ -163,28 +169,31 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info("Done create table");
 		bulkInsertFile(this.engine, this.helper, tableName, headers, types, additionalTypes, clean);
 		RdbmsUploadReactorUtility.addIndex(this.engine, tableName, uniqueRowId);
-		logger.info("5. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("6. Start generating engine metadata...");
+		logger.info(stepCounter + ". Start generating engine metadata");
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
 		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
 		owler.commit();
 		owler.export();
 		this.engine.setOWL(owlFile.getPath());
-		logger.info("6. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("7. Start generating default app insights");
+		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, this.helper.orderHeadersToGet(headers));
 		UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId);
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
-		logger.info("7. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("8. Process app metadata to allow for traversing across apps	");
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
 		UploadUtilities.updateMetadata(newAppId);
-		logger.info("8. Complete");
+		logger.info(stepCounter + ". Complete");
 
 		// and rename .temp to .smss
 		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -213,30 +222,31 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> dataTypesMap = getDataTypeMap();
+		Map<String, String> dataTypesMap = UploadInputUtility.getCsvDataTypeMap(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
-		Map<String, String> additionalDataTypeMap = getAdditionalTypes();
+		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		final boolean clean = UploadInputUtility.getClean(this.store);
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Start loading data..");
-		logger.info("Parsing file metadata...");
+		logger.info(stepCounter + ". Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		logger.info("Done parsing file metadata");
+		logger.info(stepCounter + ". Done parsing file metadata");
+		stepCounter++;
 
-		logger.info("Get existing database schema...");
+		logger.info(stepCounter + ". Get existing database schema...");
 		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.engine);
-		logger.info("Done getting existing database schema");
+		logger.info(stepCounter + ". Done getting existing database schema");
+		stepCounter++;
 
 		logger.info("Determine if we can add into an existing table or make new table...");
 		String tableToInsertInto = determineExistingTableToInsert(existingRDBMSStructure, headers, types);
 		if (tableToInsertInto == null) {
 			logger.info("Could not find existing table to insert into");
-			logger.info("Create table...");
+			logger.info(stepCounter + ". Create table...");
 			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(FilenameUtils.getBaseName(filePath).replace(" ", "_")).toUpperCase();
 			String uniqueRowId = tableToInsertInto + "_UNIQUE_ROW_ID";
 
@@ -271,7 +281,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		} else {
 			logger.info("Found table " + tableToInsertInto + " that holds similar data! Will insert into this table");
 			bulkInsertFile(this.engine, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
-			logger.info(stepCounter + ". Complete");
 		}
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
@@ -500,28 +509,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 
 		return existingTableNameToInsert;
-	}
-
-	///////////////////////////////////////////////////////
-
-	/*
-	 * Getters from noun store
-	 */
-
-	private Map<String, String> getDataTypeMap() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.DATA_TYPE_MAP);
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
-	}
-
-	private Map<String, String> getAdditionalTypes() {
-		GenRowStruct grs = this.store.getNoun(UploadInputUtility.ADDITIONAL_DATA_TYPES);
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, String>) grs.get(0);
 	}
 
 	///////////////////////////////////////////////////////////////////
