@@ -2545,6 +2545,7 @@ public class Utility {
 					try {
 						AZClient.getInstance().pullApp(engineId);
 					} catch (IOException | InterruptedException e) {
+						e.printStackTrace();
 						return null;
 					}
 				}
