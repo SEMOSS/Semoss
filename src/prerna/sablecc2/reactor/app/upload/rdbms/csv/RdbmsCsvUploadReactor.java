@@ -176,22 +176,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
-		this.smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		FileUtils.copyFile(tempSmss, smssFile);
-		tempSmss.delete();
-		this.engine.setPropFile(smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, smssFile);
-
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
-		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -203,19 +192,12 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	public void addToExistingApp(final String appId, final String filePath) throws Exception {
-		int stepCounter = 1;
-		logger.info(stepCounter + ". Get existing app..");
-		this.engine = Utility.getEngine(appId);
-		if (this.engine == null) {
-			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
-		}
 		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
 		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) this.engine).getDbType());
-		logger.info(stepCounter + ". Done..");
-		stepCounter++;
-
+		
+		int stepCounter = 1;
 		logger.info(stepCounter + ". Get app upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
@@ -290,10 +272,6 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 		addOriginalIndices(this.engine);
 		cleanUpDBTables(this.engine, allowDuplicates);
-
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		UploadUtilities.updateMetadata(appId);
-		logger.info(stepCounter + ". Complete");
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, owler, addedTables);

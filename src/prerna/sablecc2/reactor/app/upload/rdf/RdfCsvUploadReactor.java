@@ -120,23 +120,11 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		 * Back to normal upload app stuff
 		 */
 
-		// and rename .temp to .smss
-		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		FileUtils.copyFile(this.tempSmss, this.smssFile);
-		this.tempSmss.delete();
-		this.engine.setPropFile(this.smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
-
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
-		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -148,13 +136,9 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 	public void addToExistingApp(String appId, String filePath) throws Exception {
 		// get existing app
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Get existing app..");
-		if (!(Utility.getEngine(appId) instanceof BigDataEngine)) {
+		if (!(this.engine instanceof BigDataEngine)) {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
-		this.engine = (BigDataEngine) Utility.getEngine(appId);
-		logger.info(stepCounter + ". Done");
-		stepCounter++;
 
 		logger.info(stepCounter + ". Get app upload input...");
 		logger.setLevel(Level.WARN);
@@ -198,10 +182,6 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		UploadUtilities.updateMetadata(appId);
-		logger.info(stepCounter + ". Complete");
 
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);

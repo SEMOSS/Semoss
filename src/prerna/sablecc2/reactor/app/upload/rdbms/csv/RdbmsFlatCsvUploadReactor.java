@@ -179,20 +179,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
-		UploadUtilities.updateMetadata(newAppId);
-		logger.info(stepCounter + ". Complete");
-
-		// and rename .temp to .smss
-		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		FileUtils.copyFile(this.tempSmss, this.smssFile);
-		this.tempSmss.delete();
-
-		// update DIHelper & engine smss file location
-		this.engine.setPropFile(this.smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
 	}
 
 	/**
@@ -203,10 +189,6 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 	 */
 	@Override
 	public void addToExistingApp(String appId, String filePath) throws Exception {
-		this.engine = Utility.getEngine(appId);
-		if (this.engine == null) {
-			throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
-		}
 		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
@@ -261,21 +243,17 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			owler.export();
 			this.engine.setOWL(this.engine.getOWL());
 			logger.info(stepCounter + ". Complete");
+			stepCounter++;
 
 			logger.info(stepCounter + ". Start generating default app insights");
 			Set<String> newTableSet = new HashSet<String>();
 			newTableSet.add(tableToInsertInto);
 			RDBMSEngineCreationHelper.insertNewTablesAsInsights(this.engine, owler, newTableSet);
 			logger.info(stepCounter + ". Complete");
-			stepCounter++;
 		} else {
 			logger.info("Found table " + tableToInsertInto + " that holds similar data! Will insert into this table");
 			bulkInsertFile(this.engine, this.helper, tableToInsertInto, headers, types, additionalTypes, clean);
 		}
-
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		UploadUtilities.updateMetadata(appId);
-		logger.info(stepCounter + ". Complete");
 	}
 	
 	@Override
