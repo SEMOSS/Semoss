@@ -89,7 +89,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		// start by validation
 		logger.info(stepCounter + ".Start validating app");
 		try {
-			UploadUtilities.validateApp(user, newAppName);
+			UploadUtilities.validateApp(user, newAppName, newAppId);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
