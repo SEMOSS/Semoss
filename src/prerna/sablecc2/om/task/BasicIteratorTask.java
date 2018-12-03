@@ -1,11 +1,13 @@
 package prerna.sablecc2.om.task;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.Vector;
 import java.util.stream.Collectors;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -18,10 +20,12 @@ import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -35,6 +39,7 @@ public class BasicIteratorTask extends AbstractTask {
 	private long startLimit = -1;
 	private long startOffset = -1;
 	private transient Iterator<IHeadersDataRow> iterator;
+	private boolean grabFromWrapper = false;
 	
 	public BasicIteratorTask(SelectQueryStruct qs) {
 		this.qs = qs;
@@ -85,18 +90,37 @@ public class BasicIteratorTask extends AbstractTask {
 		//need to create a proper iterate object that will get this info
 		//instead of how it is set up which takes it from the QS
 		if(this.headerInfo != null) {
-			String[] types = null;
 			if(this.iterator instanceof IRawSelectWrapper) {
 				SemossDataType[] sTypes = ((IRawSelectWrapper) this.iterator).getTypes();
-				types = Arrays.asList(sTypes).stream()
+				String[] types = Arrays.asList(sTypes).stream()
 						.map(p -> p == null ? "STRING" : p)
 						.map(p -> p.toString())
 						.map(p -> (p.equals("DOUBLE") || p.equals("INT") ? "NUMBER" : p))
 						.collect(Collectors.toList()).toArray(new String[]{});
-			}
-			if(types != null) {
 				for(int i = 0; i < headerInfo.size(); i++) {
 					headerInfo.get(i).put("type", Utility.getCleanDataType(types[i]));
+				}
+			}
+		} else if(this.grabFromWrapper && (this.headerInfo == null || this.headerInfo.isEmpty()) ) {
+			if(this.iterator == null) {
+				generateIterator(this.qs, false);
+			}
+			if(this.iterator instanceof IRawSelectWrapper) {
+				String[] headers = ((IRawSelectWrapper) this.iterator).getHeaders();
+				SemossDataType[] sTypes = ((IRawSelectWrapper) this.iterator).getTypes();
+				String[] types = Arrays.asList(sTypes).stream()
+						.map(p -> p == null ? "STRING" : p)
+						.map(p -> p.toString())
+						.map(p -> (p.equals("DOUBLE") || p.equals("INT") ? "NUMBER" : p))
+						.collect(Collectors.toList()).toArray(new String[]{});
+				this.headerInfo = new Vector<Map<String, Object>>();
+				for(int i = 0 ; i < headers.length; i++) {
+					Map<String, Object> headerMap = new HashMap<String, Object>();
+					headerMap.put("alias", headers[i]);
+					headerMap.put("derived", false);
+					headerMap.put("header", headers[i]);
+					headerMap.put("type", Utility.getCleanDataType(types[i]));
+					this.headerInfo.add(headerMap);
 				}
 			}
 		}
@@ -230,9 +254,24 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 	
 	private void setQsMetadata(SelectQueryStruct qs) {
-		setHeaderInfo(qs.getHeaderInfo());
-		setSortInfo(qs.getSortInfo());
-		setFilterInfo(qs.getExplicitFilters());
+		if(qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
+				qs.getQsType() == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			this.grabFromWrapper = true;
+			setSortInfo(new Vector<Map<String, Object>>());
+			setFilterInfo(new GenRowFilters());
+		} else {
+			setHeaderInfo(qs.getHeaderInfo());
+			setSortInfo(qs.getSortInfo());
+			setFilterInfo(qs.getExplicitFilters());
+		}
+	}
+	
+	@Override
+	public List<Map<String, Object>> getHeaderInfo() {
+		if(this.grabFromWrapper && (this.headerInfo == null || this.headerInfo.isEmpty()) ) {
+			setHeaderInfo(null);
+		}
+		return this.headerInfo;
 	}
 	
 	public SelectQueryStruct getQueryStruct() {
