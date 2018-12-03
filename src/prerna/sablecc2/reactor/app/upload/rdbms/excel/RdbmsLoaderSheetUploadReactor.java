@@ -102,23 +102,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete...");
 		stepCounter++;
 
-		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		FileUtils.copyFile(tempSmss, this.smssFile);
-		this.tempSmss.delete();
-		this.engine.setPropFile(this.smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
-
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		UploadUtilities.updateMetadata(newAppId);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
 	}
 
 	public void addToExistingApp(final String appId, final String filePath) throws Exception {
