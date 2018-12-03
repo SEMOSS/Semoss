@@ -42,8 +42,6 @@ public class ParseMetamodelReactor extends AbstractReactor {
 			throw exception;
 		}
 
-		String[] columnHeaders = helper.getHeaders();
-		int size = columnHeaders.length;
 		// get file location and file name
 		String filePath = helper.getFileLocation();
 		String file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(),
