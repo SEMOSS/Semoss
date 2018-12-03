@@ -272,13 +272,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String[] engineIds = new String[fileNames.length];
 		String localMasterDBName = Constants.LOCAL_MASTER_DB_NAME + this.extension;
 		String securityDBName = Constants.SECURITY_DB + this.extension;
-		
+		String themeDBName = Constants.THEMING_DB + this.extension;
+
 		// loop through and load all the engines
 		// but we will ignore the local master and security database
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				String fileName = fileNames[fileIdx];
-				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName)) {
+				if(fileName.equals(localMasterDBName) || fileName.equals(securityDBName) || fileName.equals(themeDBName)) {
 					// again, ignore local master + security
 					continue;
 				}
