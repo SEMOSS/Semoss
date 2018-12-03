@@ -133,13 +133,6 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		// TODO add additional tinker properties to smss
 		Files.write(Paths.get(this.tempSmss.getAbsolutePath()), mapProp.getBytes(), StandardOpenOption.APPEND);
 
-		// and rename .temp to .smss
-		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		FileUtils.copyFile(this.tempSmss, this.smssFile);
-
-		this.tempSmss.delete();
-		this.engine.setPropFile(this.smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, this.engine, this.smssFile);
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
@@ -148,15 +141,9 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
-		UploadUtilities.updateMetadata(newAppId);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
-		stepCounter++;
 	}
 	
 	//TODO
@@ -166,15 +153,11 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	//TODO
 	//TODO
 	public void addToExistingApp(String appId, String filePath) throws Exception {
-		int stepCounter = 1;
-		logger.info(stepCounter + ". Get existing app..");
-		this.engine = Utility.getEngine(appId);
 		if (!(this.engine instanceof TinkerEngine)) {
 			throw new IllegalArgumentException("Invalid app type");
 		}
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
+		
+		int stepCounter = 1;
 		logger.info(stepCounter + ". Get app upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
@@ -223,11 +206,6 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 
 		// TODO generate new app insights for tinker
 		// TODO update type map and node name map in smss
-
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		UploadUtilities.updateMetadata(this.engine.getEngineId());
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
 
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
 		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
