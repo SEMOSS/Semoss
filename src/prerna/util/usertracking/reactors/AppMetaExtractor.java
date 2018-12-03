@@ -70,7 +70,7 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 
 		// validate engine exists
 		if (engine == null) {
-			throw new IllegalArgumentException("Engine doesnt exist");
+			throw new IllegalArgumentException("Engine does not exist");
 		}
 		String owlPath = engine.getOWL();
 
@@ -107,6 +107,8 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 		String[] packages = new String[] { "data.table", "WikidataR", "curl", "doParallel", "XML" };
 		Logger logger = this.getLogger(CLASS_NAME);
 		this.rJavaTranslator.checkPackages(packages);
+		int stepCounter = 1;
+		logger.info(stepCounter + ". Loading R scripts to store column descriptions");
 		StringBuilder rsb = new StringBuilder();
 		String wd = "wd" + Utility.getRandomString(5);
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
@@ -117,18 +119,25 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 		rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\datasemantic.r\");\n");
 		rsb.append("source(\"" + baseFolder + "\\R\\Recommendations\\topic_modelling.r\");\n");
 		this.rJavaTranslator.runR(rsb.toString().replace("\\", "/"));
+		logger.info(stepCounter + ". Done");
+		stepCounter++;
 
 		// GENERATING DESCRIPTIONS
+		logger.info(stepCounter + ". Getting Database schema to generate descriptions");
 		String rTempTable = "semanticTempTable";
 		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engine.getEngineId());
 		String engineName = engine.getEngineName();
 		String engineID = engine.getEngineId();
 		String seperator = "$";
 		List<Object[]> list = new ArrayList<Object[]>();
+		logger.info(stepCounter + ". Done");
+		stepCounter++;
+
 
 		// iterate through all the rows and sample about 15 rows from each
 		// of
 		// those
+		logger.info(stepCounter + ". Processing columns to find descriptions");
 		for (Object[] tableCol : allTableCols) {
 			SelectQueryStruct qs = new SelectQueryStruct();
 			if (tableCol.length == 4) {
@@ -176,13 +185,11 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 					sb.append(RSyntaxHelper.getFReadSyntax(rTempTable, newFile.getAbsolutePath(), "\\t") + "\n");
 
 					// get random subset of column data
-
 					sb.append("if(nrow(" + rTempTable + ") > 15) {");
 					sb.append(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),15),c(");
 					sb.append("\"" + engineID + seperator + engineName + seperator + table + seperator + col + "\"");
 					sb.append(")];}\n");
-					logger.info("Generating and storing descriptions for : " + engine.getEngineName() + ", " + table
-							+ ", " + col);
+					logger.info("Generating and storing descriptions for: " + engine.getEngineName() + ":::" + table + ":::" + col);
 
 					// execute script to get descriptions for this column
 					sb.append(RSyntaxHelper.asDataFrame(rTempTable, rTempTable) + "\n");
@@ -199,14 +206,13 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 					if (descriptions == null) {
 						// no results found
 						continue;
-
 					}
 
 					// Truncate row lengths to be the appropriate lengths
 					// before
 					// sending to table
+					logger.info("Found description for: "  + engine.getEngineName() + ":::" + table + ":::" + col);
 					if (descriptions.length() > 1000) {
-						logger.info("Description was too long. Had to truncate.");
 						descriptions = descriptions.substring(0, 999);
 					}
 
@@ -221,8 +227,13 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 				}
 			}
 		}
+		logger.info(stepCounter + ". Done");
+		stepCounter++;
+		
+		logger.info(stepCounter + ". Storing descriptions");
 		sendTrackRequest("semantic", list);
-		logger.info("Finished Uploading Column Descriptions");
+		logger.info(stepCounter + ". Done");
+		
 
 		String gc = "rm(\"a5_97b6491748854929b50f55f5818b1634\",	\"a9_8ca904d356784e2d88427675e946b591\","
 				+ "\"apply_tfidf\",                        \"assign_unique_concepts\",            "
