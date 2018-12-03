@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 import org.apache.zookeeper.Watcher.Event.EventType;
 
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -258,52 +259,70 @@ public class AZClient {
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
-	
-		File db = new File(dbFolder);
-		List<File> files = Arrays.stream(db.listFiles()).parallel().filter(s -> s.getName().contains(appId)).collect(Collectors.toList());
 		
-		boolean opened = false;
+		// We need to push the folder alias__appId and the file alias__appId.smss
+		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String appReference = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + appReference;
+		String smss = appReference + ".smss";
+		String smssFile = dbFolder + FILE_SEPARATOR + smss;
+
+		// Start with the sas token
+		String appRcloneConfig = null;
+		String smssRCloneConfig = null;
 		try {
-			for (File file : files) {
+			appRcloneConfig = createRcloneConfig(appId);
+			String smssContainer = appId + "-smss";
+			smssRCloneConfig = createRcloneConfig(smssContainer);
+			
+			// Some temp files needed for the transfer
+			File temp = null;
+			File copy = null;
+			boolean opened = false;
+			try {
 				
-				File temp = null;
-				File copy = null;
+				// Close the database, so that we can push without file locks (also ensures that the db doesn't change mid push)
+				engine.closeDB();
 				
-				String remote = file.isDirectory() ? appId : appId + "-smss";
-				String rcloneConfig = createRcloneConfig(remote);
-				try {
-					System.out.println("Pushing from source=" + file.getName() + " to remote=" + remote);
-					if (file.isDirectory()) {
-						System.out.println("(directory)");
-						engine.closeDB();
-						runRcloneProcess(rcloneConfig, "rclone", "sync", file.getPath(), rcloneConfig + ":");
-						DIHelper.getInstance().removeLocalProperty(appId);
-						Utility.getEngine(appId, false);
-						opened = true;
-					} else {
-						System.out.println("(file)");
-						String tempFolder = Utility.getRandomString(10);
-						temp = new File(file.getParent() + FILE_SEPARATOR + tempFolder);
-						temp.mkdir();
-						copy = new File(temp.getPath() + FILE_SEPARATOR + file.getName());
-						Files.copy(file, copy);
-						runRcloneProcess(rcloneConfig, "rclone", "sync", temp.getPath(), rcloneConfig + ":");
-					}
-					System.out.println("Done pushing from source=" + file.getName() + " to remote=" + remote);
-				} finally {
-					if (copy != null) {
-						copy.delete();
-					}
-					if (temp != null) {
-						temp.delete();
-					}
-					deleteRcloneConfig(rcloneConfig);
-				}				
-			}
-		} finally {
-			if (!opened) {
+				// Push the app folder
+				System.out.println("Pushing from source=" + appFolder + " to remote=" + appId);
+				runRcloneProcess(appRcloneConfig, "rclone", "sync", appFolder, appRcloneConfig + ":");
+				System.out.println("Done pushing from source=" + appFolder + " to remote=" + appId);
+				
+				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
+				String tempFolder = Utility.getRandomString(10);
+				temp = new File(dbFolder + FILE_SEPARATOR + tempFolder);
+				temp.mkdir();
+				copy = new File(temp.getPath() + FILE_SEPARATOR + smss);
+				Files.copy(new File(smssFile), copy);
+				
+				// Push the smss
+				System.out.println("Pushing from source=" + smssFile + " to remote=" + smssContainer);
+				runRcloneProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
+				System.out.println("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
+				
+				// Re-open the database
 				DIHelper.getInstance().removeLocalProperty(appId);
 				Utility.getEngine(appId, false);
+				opened = true;
+			} finally {
+				if (copy != null) {
+					copy.delete();
+				}
+				if (temp != null) {
+					temp.delete();
+				}
+				if (!opened) {
+					DIHelper.getInstance().removeLocalProperty(appId);
+					Utility.getEngine(appId, false);
+				}
+			}
+		} finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+			if (smssRCloneConfig != null) {
+				deleteRcloneConfig(smssRCloneConfig);
 			}
 		}
 	}
@@ -330,8 +349,7 @@ public class AZClient {
 				}
 			}
 			if (smss == null) {
-				System.err.println("Failed to pull app for appid=" + appId);
-				return;
+				throw new IOException("Failed to pull app for appid=" + appId);
 			}
 			String aliasAppId = smss.replaceAll(".smss", "");
 			
