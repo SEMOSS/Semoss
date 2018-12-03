@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.upload;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import prerna.poi.main.helper.CSVFileHelper;
@@ -51,18 +52,15 @@ public class ParseMetamodelReactor extends AbstractReactor {
 		} catch (Exception e) {
 			// just in case that fails, this shouldnt because if its a filename
 			// it should have a "."
-			file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(),
-					filePath.lastIndexOf("."));
+			file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(), filePath.lastIndexOf("."));
 		}
 		
 		// store file path and file name to send to FE
 		metamodel.put("fileLocation", filePath);
 		metamodel.put("fileName", file);
-
-		// fileMetaModelData.put("additionalDataTypes",
-		// predictor.getAdditionalDataTypeMap());
-		// store auto modified header names
 		metamodel.put("headerModifications", helper.getChangedHeaders());
+		// adding an empty map for consistency
+		metamodel.put("additionalDataTypes", new HashMap<String, Object>());
 		// need to close the helper
 		helper.clear();
 
