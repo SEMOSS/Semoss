@@ -138,7 +138,7 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		// start by validation
 		logger.info("Start validating app");
 		try {
-			UploadUtilities.validateApp(user, newAppName);
+			UploadUtilities.validateApp(user, newAppName, newAppId);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}

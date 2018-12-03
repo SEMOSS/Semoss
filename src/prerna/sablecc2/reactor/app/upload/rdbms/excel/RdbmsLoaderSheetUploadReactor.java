@@ -56,16 +56,6 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 
 	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception{
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Start validating app");
-		UploadUtilities.validateApp(user, newAppName);
-		logger.info(stepCounter + ". Done validating app");
-		stepCounter++;
-
-		logger.info(stepCounter + ". Start generating app folder");
-		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
-
 		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
 		logger.info(stepCounter + ". Complete");
