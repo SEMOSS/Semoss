@@ -388,8 +388,6 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		this.retTableToSelectors.get(tableAlias).add(tableCol + " AS " + "\"" + colAlias +"\"");
 		//if the selector is one that user-requested, then update selectorAliases 
 		if (notEmbeddedColumn) {
-			this.selectorAliases.add(selector.getAlias());
-
 			// keep track of all the processed columns
 			this.retTableToCols.putIfAbsent(table, new Vector<String>());
 			this.retTableToCols.get(table).add(colName);
