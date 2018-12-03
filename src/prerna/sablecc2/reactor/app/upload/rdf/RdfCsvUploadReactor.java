@@ -54,9 +54,9 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ".Start validating app");
+		logger.info(stepCounter + ". Start validating app");
 		UploadUtilities.validateApp(user, newAppName);
-		logger.info(stepCounter + ".Done validating app");
+		logger.info(stepCounter + ". Done validating app");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating app folder");
@@ -123,7 +123,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		this.engine.setOWL(owler.getOwlPath());
 		this.engine.commit();
 		((BigDataEngine) this.engine).infer();
-		logger.info(stepCounter + ". Complete...");
+		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		/*
@@ -145,12 +145,12 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
 		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		logger.info(stepCounter + ". Save csv metamodel prop file");
 		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 	}
@@ -163,10 +163,10 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 			throw new IllegalArgumentException("Invalid engine type");
 		}
 		this.engine = (BigDataEngine) Utility.getEngine(appId);
-		logger.info(stepCounter + ". Done..");
+		logger.info(stepCounter + ". Done");
 		stepCounter++;
 
-		logger.info(stepCounter + "Get app upload input...");
+		logger.info(stepCounter + ". Get app upload input...");
 		logger.setLevel(Level.WARN);
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
@@ -176,10 +176,10 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		if (metamodelProps != null) {
 			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
 		}
-		logger.info(stepCounter + "Done...");
+		logger.info(stepCounter + ". Done");
 		stepCounter++;
 
-		logger.info(stepCounter + "Parsing file metadata...");
+		logger.info(stepCounter + ". Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// get the user selected datatypes for each header
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypes);
@@ -195,7 +195,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.warn(stepCounter + "Committing app metadata....");
+		logger.warn(stepCounter + ". Committing app metadata....");
 		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
 		owler.commit();
 		owler.export();

@@ -200,12 +200,12 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
 		UploadUtilities.updateMetadata(newAppId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		logger.info(stepCounter + ". Save csv metamodel prop file");
 		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -310,7 +310,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
-		logger.info(stepCounter + ". Save csv metamodel prop file	");
+		logger.info(stepCounter + ". Save csv metamodel prop file");
 		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
