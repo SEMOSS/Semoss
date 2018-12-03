@@ -52,7 +52,7 @@ public abstract class AbstractTask implements ITask {
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("data", getData());
 		if(meta) {
-			collectedData.put("headerInfo", this.headerInfo);
+			collectedData.put("headerInfo", this.getHeaderInfo());
 			if(this.taskOptions != null && !this.taskOptions.isEmpty()) {
 				collectedData.put("format", getFormatMap());
 				collectedData.put("taskOptions", this.taskOptions.getOptions());
@@ -68,7 +68,7 @@ public abstract class AbstractTask implements ITask {
 	@Override
 	public Map<String, Object> getMeta() {
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
-		collectedData.put("headerInfo", this.headerInfo);
+		collectedData.put("headerInfo", this.getHeaderInfo());
 		collectedData.put("numCollected", this.numCollect);
 		if(this.taskOptions != null && !this.taskOptions.isEmpty()) {
 			collectedData.put("format", getFormatMap());
