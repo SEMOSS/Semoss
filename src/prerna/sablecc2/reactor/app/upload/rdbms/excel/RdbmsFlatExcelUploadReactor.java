@@ -102,27 +102,29 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		// now that I have everything, let us go through and insert
 
 		// start by validation
-		logger.info("Start validating app");
+		int stepCounter = 1;
+		logger.info(stepCounter + ". Start validating app");
 		UploadUtilities.validateApp(user, newAppName);
-		logger.info("Done validating app");
+		logger.info(stepCounter + ". Done validating app");
+		stepCounter++;
 
-		logger.info("Starting app creation");
-
-		logger.info("1. Start generating app folder");
+		logger.info(stepCounter + ". Start generating app folder");
 		this.appFolder = UploadUtilities.generateAppFolder(newAppId, newAppName);
-		logger.info("1. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("Generate new app database");
-		logger.info("2. Create metadata for database...");
+		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
-		logger.info("2. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("3. Create properties file for database...");
+		logger.info(stepCounter + ". Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
 		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
-		logger.info("3. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("4. Create database store...");
+		logger.info(stepCounter + ". Create database store...");
 		this.engine = new RDBMSNativeEngine();
 		this.engine.setEngineId(newAppId);
 		this.engine.setEngineName(newAppName);
@@ -130,9 +132,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		props.put("TEMP", true);
 		this.engine.setProp(props);
 		this.engine.openDB(null);
-		logger.info("4. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("5. Start loading data..");
+		logger.info(stepCounter + ". Start loading data..");
 		logger.info("Load excel file...");
 		this.helper = new ExcelWorkbookFileHelper();
 		this.helper.parse(filePath);
@@ -143,9 +146,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		this.helper.clear();
 		owler.export();
 		this.engine.setOWL(owlFile.getPath());
-		logger.info("5. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("6. Start generating default app insights");
+		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
@@ -254,11 +258,13 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		}
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
-		logger.info("6. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
-		logger.info("7. Process app metadata to allow for traversing across apps");
+		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps");
 		UploadUtilities.updateMetadata(newAppId);
-		logger.info("7. Complete");
+		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
 		// and rename .temp to .smss
 		this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -307,14 +313,17 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		owler.export();
 		this.engine.setOWL(this.engine.getOWL());
 		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		UploadUtilities.updateMetadata(appId);
 		logger.info(stepCounter + ". Complete");
+		stepCounter++;
 	}
 
 	@Override

@@ -130,7 +130,7 @@ public class UploadInputUtility {
 		return (Map<String, String>) grs.get(0);
 	}
 
-	protected static Map<String, String> getCsvDataTypeMap(NounStore store) {
+	public static Map<String, String> getCsvDataTypeMap(NounStore store) {
 		GenRowStruct grs = store.getNoun(DATA_TYPE_MAP);
 		if (grs == null || grs.isEmpty()) {
 			return null;

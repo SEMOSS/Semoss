@@ -102,6 +102,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		((BigDataEngine) this.engine).infer();
 		logger.info(stepCounter + ". Complete...");
 		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
+		stepCounter++;
 
 		/*
 		 * Back to normal upload app stuff
