@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.poi.main.HeadersException;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -20,12 +19,8 @@ public class CheckHeadersReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
-		GenRowStruct grs = this.store.getNoun(keysToGet[0]);
-		Map<String, Object> headerMap = null;
-		if (grs != null && !grs.isEmpty()) {
-			headerMap = (Map<String, Object>) grs.get(0);
-		} else {
+		Map<String, Object> headerMap = (Map) this.curRow.get(0);
+		if (headerMap == null || headerMap.isEmpty()) {
 			throw new IllegalArgumentException("Need to define " + this.keysToGet[0]);
 		}
 
