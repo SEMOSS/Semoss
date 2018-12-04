@@ -11,7 +11,9 @@ import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.poi.main.helper.excel.ExcelSheetPreProcessor;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -29,6 +31,14 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String sheetName = this.keyValue.get(this.keysToGet[1]);
 		String sheetRange = this.keyValue.get(this.keysToGet[2]);
+		
+		// check if file is valid
+		if(!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException e = new SemossPixelException(error);
+			e.setContinueThreadOfExecution(false);
+			throw e;
+		}
 
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(filePath);
