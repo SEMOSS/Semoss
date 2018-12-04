@@ -101,6 +101,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 		}
 		
+		boolean loadedEngine = false;
 		RDBMSNativeEngine rne = new RDBMSNativeEngine();
 		File dbfile = SmssUtilities.getInsightsRdbmsFile(prop);
 		if(!dbfile.exists()) {
@@ -114,8 +115,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			rne.setEngineId(appId + "_InsightsRDBMS");
 			boolean connected = rne.makeConnection(jdbcURL, userName, password);
 			if (!connected) {
-				
 				// If the connection failed, then try and pull the insight database from the engine itself
+				loadedEngine = true;
 				rne = (RDBMSNativeEngine) Utility.getEngine(appId).getInsightDatabase();
 			}
 			
@@ -183,6 +184,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			ps.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
+		}
+		
+		// close the connection to the insights
+		// database since we will need to open it when we 
+		// load the actual engine
+		if(!loadedEngine && rne != null) {
+			rne.closeDB();
 		}
 		
 		if(reloadInsights) {
