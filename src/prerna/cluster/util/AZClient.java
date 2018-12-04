@@ -262,9 +262,9 @@ public class AZClient {
 		
 		// We need to push the folder alias__appId and the file alias__appId.smss
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
-		String appReference = alias + "__" + appId;
-		String appFolder = dbFolder + FILE_SEPARATOR + appReference;
-		String smss = appReference + ".smss";
+		String aliasAppId = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		String smss = aliasAppId + ".smss";
 		String smssFile = dbFolder + FILE_SEPARATOR + smss;
 
 		// Start with the sas token
@@ -272,16 +272,15 @@ public class AZClient {
 		String smssRCloneConfig = null;
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
-			String smssContainer = appId + "-smss";
+			String smssContainer = appId + SMSS_POSTFIX;
 			smssRCloneConfig = createRcloneConfig(smssContainer);
 			
 			// Some temp files needed for the transfer
 			File temp = null;
 			File copy = null;
-			boolean opened = false;
+			
+			// Close the database, so that we can push without file locks (also ensures that the db doesn't change mid push)
 			try {
-				
-				// Close the database, so that we can push without file locks (also ensures that the db doesn't change mid push)
 				engine.closeDB();
 				
 				// Push the app folder
@@ -300,11 +299,6 @@ public class AZClient {
 				System.out.println("Pushing from source=" + smssFile + " to remote=" + smssContainer);
 				runRcloneProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
 				System.out.println("Done pushing from source=" + smssFile + " to remote=" + smssContainer);
-				
-				// Re-open the database
-				DIHelper.getInstance().removeLocalProperty(appId);
-				Utility.getEngine(appId, false);
-				opened = true;
 			} finally {
 				if (copy != null) {
 					copy.delete();
@@ -312,10 +306,10 @@ public class AZClient {
 				if (temp != null) {
 					temp.delete();
 				}
-				if (!opened) {
-					DIHelper.getInstance().removeLocalProperty(appId);
-					Utility.getEngine(appId, false);
-				}
+				
+				// Re-open the database
+				DIHelper.getInstance().removeLocalProperty(appId);
+				Utility.getEngine(appId, false);
 			}
 		} finally {
 			if (appRcloneConfig != null) {
@@ -334,13 +328,26 @@ public class AZClient {
 		pullApp(appId, true);
 	}
 	
-	private void pullApp(String appId, boolean newEngine) throws IOException, InterruptedException {
+	private void pullApp(String appId, boolean newApp) throws IOException, InterruptedException {
+		IEngine engine = null;
+		if (!newApp) {
+			engine = Utility.getEngine(appId, false);
+			if (engine == null) {
+				throw new IllegalArgumentException("App not found...");
+			}
+		}
 		
-		// List the smss directory to get the alias + app id
 		String smssContainer = appId + SMSS_POSTFIX;
-		String smssConfig = createRcloneConfig(smssContainer);
+		
+		// Start with the sas token
+		String appRcloneConfig = null;
+		String smssRcloneConfig = null;
 		try {
-			List<String> results = runRcloneProcess(smssConfig, "rclone", "lsf", smssConfig + ":");
+			appRcloneConfig = createRcloneConfig(appId);
+			smssRcloneConfig = createRcloneConfig(smssContainer);
+			
+			// List the smss directory to get the alias + app id
+			List<String> results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig + ":");
 			String smss = null;
 			for (String result : results) {
 				if (result.endsWith(".smss")) {
@@ -351,49 +358,51 @@ public class AZClient {
 			if (smss == null) {
 				throw new IOException("Failed to pull app for appid=" + appId);
 			}
+			
+			// We need to pull the folder alias__appId and the file alias__appId.smss
 			String aliasAppId = smss.replaceAll(".smss", "");
 			
-			// Pull the contents of the app folder before the smss
-			File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
-			appFolder.mkdir();
-			System.out.println("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
-			
-			// If it is a new engine, just pull
-			String appConfig = createRcloneConfig(appId);
+			// Close the database (if an existing app), so that we can pull without file locks
 			try {
-				if (newEngine) {
-					runRcloneProcess(appConfig, "rclone", "sync", appConfig + ":", appFolder.getPath());
-				} else {
-					
-					// Otherwise, need to remove any locks then reopen
-					IEngine engine = Utility.getEngine(appId, false);
-					try {
-						engine.closeDB();
-						runRcloneProcess(appConfig, "rclone", "sync", appConfig + ":", appFolder.getPath());
-					} finally {
-						DIHelper.getInstance().removeLocalProperty(appId);
-						Utility.getEngine(appId, false);
-					}
+				if (!newApp) {
+					engine.closeDB();
+				}
+								
+				// Make the app directory (if it doesn't already exist)
+				File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
+				appFolder.mkdir(); 
+
+				// Pull the contents of the app folder before the smss
+				System.out.println("Pulling from remote=" + appId + " to target=" + appFolder.getPath());
+				runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":", appFolder.getPath());
+				System.out.println("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
+
+				// Now pull the smss
+				System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
+				
+				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
+				runRcloneProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", dbFolder);
+				System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
+
+				// Catalog the db if it is new
+				if (newApp) {
+					SMSSWebWatcher.catalogDB(smss, dbFolder);
 				}
 			} finally {
-				deleteRcloneConfig(appConfig);
-			}
-
-			System.out.println("Done pulling from remote=" + appId + " to target=" + appFolder.getPath());
-	
-			// Now pull the smss
-			System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
-			
-			// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
-			runRcloneProcess(smssConfig, "rclone", "copy", smssConfig + ":", dbFolder);
-			System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
-			
-			// Catalog the db if it is new
-			if (newEngine) {
-				SMSSWebWatcher.catalogDB(smss, dbFolder);
+				
+				// Re-open the database (if an existing app)
+				if (!newApp) {
+					DIHelper.getInstance().removeLocalProperty(appId);
+					Utility.getEngine(appId, false);
+				}
 			}
 		} finally {
-			deleteRcloneConfig(smssConfig);
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+			if (smssRcloneConfig != null) {
+				deleteRcloneConfig(smssRcloneConfig);
+			}
 		}
 	}
 	
