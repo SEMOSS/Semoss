@@ -25,7 +25,12 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
@@ -55,6 +60,12 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 
 
 	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception{
+		if(!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException e = new SemossPixelException(error);
+			e.setContinueThreadOfExecution(false);
+			throw e;
+		}
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);

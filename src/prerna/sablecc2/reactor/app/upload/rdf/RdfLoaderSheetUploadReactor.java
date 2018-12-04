@@ -26,6 +26,10 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.poi.main.helper.excel.ExcelParsing;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
@@ -46,6 +50,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
+		if(!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException e = new SemossPixelException(error);
+			e.setContinueThreadOfExecution(false);
+			throw e;
+		}
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
 		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
@@ -106,6 +116,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	public void addToExistingApp(String appId, String filePath) throws Exception {
+		if(!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException e = new SemossPixelException(error);
+			e.setContinueThreadOfExecution(false);
+			throw e;
+		}
 		int stepCounter = 1;
 		if (!(this.engine instanceof BigDataEngine)) {
 			throw new IllegalArgumentException("Invalid engine type");

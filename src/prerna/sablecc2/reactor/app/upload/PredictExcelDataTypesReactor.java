@@ -8,10 +8,13 @@ import org.apache.log4j.Logger;
 
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.excel.ExcelBlock;
+import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.poi.main.helper.excel.ExcelSheetPreProcessor;
 import prerna.poi.main.helper.excel.ExcelWorkbookFilePreProcessor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -28,6 +31,13 @@ public class PredictExcelDataTypesReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		int stepCounter = 1;
 		String filePath = this.keyValue.get(UploadInputUtility.FILE_PATH);
+		// check if file is valid
+		if(!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException e = new SemossPixelException(error);
+			e.setContinueThreadOfExecution(false);
+			throw e;
+		}
 		Map<String, Object> fileData = new HashMap<String, Object>();
 
 		// fileLocation

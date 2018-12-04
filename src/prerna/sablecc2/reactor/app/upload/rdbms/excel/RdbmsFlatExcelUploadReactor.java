@@ -26,6 +26,7 @@ import prerna.om.Insight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.excel.ExcelBlock;
 import prerna.poi.main.helper.excel.ExcelDataValidationHelper;
+import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.poi.main.helper.excel.ExcelSheetPreProcessor;
@@ -93,6 +94,12 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		 * 7) load default insights
 		 * 8) add to localmaster and solr
 		 */
+		if(!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException e = new SemossPixelException(error);
+			e.setContinueThreadOfExecution(false);
+			throw e;
+		}
 
 		Map<String, Map<String, Map<String, String>>> dataTypesMap = getDataTypeMap();
 		Map<String, Map<String, Map<String, String>>> newHeaders = getNewHeaders();
@@ -253,6 +260,12 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 	@Override
 	public void addToExistingApp(String appId, String filePath) throws Exception {
+		if(!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException e = new SemossPixelException(error);
+			e.setContinueThreadOfExecution(false);
+			throw e;
+		}
 		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
