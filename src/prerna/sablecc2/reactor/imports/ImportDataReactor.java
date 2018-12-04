@@ -97,7 +97,11 @@ public class ImportDataReactor extends AbstractReactor {
 		// try specific key
 		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[1]);
 		if(frameGrs != null && !frameGrs.isEmpty()) {
-			return (ITableDataFrame) frameGrs.get(0);
+			NounMetadata noun = frameGrs.getNoun(0);
+			if(noun.getNounType() == PixelDataType.FRAME) {
+				return (ITableDataFrame) noun.getValue();
+			}
+			throw new IllegalArgumentException("Input in frame key (" + noun.getValue().toString() + ") is not a valid frame");
 		}
 		
 		List<NounMetadata> frameCur = this.curRow.getNounsOfType(PixelDataType.FRAME);
