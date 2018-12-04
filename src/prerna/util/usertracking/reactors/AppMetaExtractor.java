@@ -189,7 +189,7 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 					sb.append(rTempTable + "<-" + rTempTable + "[sample(nrow(" + rTempTable + "),15),c(");
 					sb.append("\"" + engineID + seperator + engineName + seperator + table + seperator + col + "\"");
 					sb.append(")];}\n");
-					logger.info("Searching description for: " + engine.getEngineName() + ":::" + table + ":::" + col);
+					//logger.info("Searching description for: " + engine.getEngineName() + ":::" + table + ":::" + col);
 
 					// execute script to get descriptions for this column
 					sb.append(RSyntaxHelper.asDataFrame(rTempTable, rTempTable) + "\n");
@@ -211,7 +211,12 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 					// Truncate row lengths to be the appropriate lengths
 					// before
 					// sending to table
-					logger.info("Found description for: "  + engine.getEngineName() + ":::" + table + ":::" + col);
+					if (primFlag) {
+						logger.info("Found description for: " + engine.getEngineName() + ":::" + table);
+
+					} else {
+						logger.info("Found description for: " + engine.getEngineName() + ":::" + table + ":::" + col);
+					}
 					if (descriptions.length() > 1000) {
 						descriptions = descriptions.substring(0, 999);
 					}
