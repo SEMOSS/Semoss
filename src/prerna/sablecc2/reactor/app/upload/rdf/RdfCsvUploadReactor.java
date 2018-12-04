@@ -261,9 +261,6 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 			endRow = UploadInputUtility.END_ROW_INT;
 		}
 		while ((values = helper.getNextRow()) != null && count < endRow) {
-			count++;
-			logger.info("Process line: " + count);
-
 			// process all relationships in row
 			for (int relIndex = 0; relIndex < relationList.size(); relIndex++) {
 				String relation = relationList.get(relIndex);
@@ -393,16 +390,16 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 					}
 					nodePropHash.put(property, propObj);
 				}
-				RdfUploadReactorUtility.addNodeProperties(engine, owler, customBaseURI, subject, subjectValue,
-						nodePropHash);
+				RdfUploadReactorUtility.addNodeProperties(engine, owler, customBaseURI, subject, subjectValue, nodePropHash);
+			}
+			
+			if (++count % 1000 == 0) {
+				logger.info("Done inserting " + count + " number of rows");
 			}
 		}
+		logger.info("Completed " + count + " number of rows");
 		metamodel.put(Constants.END_ROW, count);
-
-		System.out.println("FINAL COUNT " + count);
 	}
-	
-
 	
 	/**
 	 * Gets the instance value for a given subject.  The subject can be a concatenation. Note that we do 
