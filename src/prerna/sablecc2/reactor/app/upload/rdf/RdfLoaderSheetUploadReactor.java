@@ -10,7 +10,6 @@ import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -36,14 +35,14 @@ import prerna.util.OWLER;
 import prerna.util.Utility;
 
 public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
-	
+
 	public RdfLoaderSheetUploadReactor() {
 		this.keysToGet = new String[] { 
 				UploadInputUtility.APP, 
 				UploadInputUtility.FILE_PATH,
 				UploadInputUtility.ADD_TO_EXISTING, 
 				UploadInputUtility.CUSTOM_BASE_URI
-			};
+		};
 	}
 
 	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
@@ -132,7 +131,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	public void closeFileHelpers() {
 
 	}
-	
+
 	/**
 	 * Load the excel workbook, determine which sheets to load in workbook from the Loader tab
 	 * @param fileName 					String containing the absolute path to the excel workbook to load
@@ -215,7 +214,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			}
 		}
 	}
-	
+
 	/**
 	 * Load subclassing information into the db and the owl file Requires the data to be in specific excel tab labeled "Subclass", with Parent nodes
 	 * in the first column and child nodes in the second column
@@ -269,7 +268,6 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			throw new IOException("Could not find sheet " + sheetToLoad + " in workbook.");
 		}
 		logger.info("Loading Sheet: " + sheetToLoad);
-		System.out.println(">>>>>>>>>>>>>>>>> " + sheetToLoad);
 		int lastRow = lSheet.getLastRowNum() + 1;
 
 		// Get the first row to get column names
@@ -301,10 +299,10 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				lastColumn = colIndex;
 			}
 		}
-		logger.info("Number of Columns: " + (lastColumn + 1));
+		logger.info(sheetToLoad + " has number of columns: " + (lastColumn + 1));
 
 		// processing starts
-		logger.info("Number of Rows: " + lastRow);
+		logger.info(sheetToLoad + " has number of rows: " + lastRow);
 		for (int rowIndex = 1; rowIndex < lastRow; rowIndex++) {
 			// first cell is the name of relationship
 			Row nextRow = lSheet.getRow(rowIndex);
@@ -381,18 +379,20 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			}
 
 			if (sheetType.equalsIgnoreCase("Relation")) {
-				// adjust indexing since first row in java starts at 0
-				logger.info("Processing Relationship Sheet: " + sheetToLoad + ", Row: " + (rowIndex + 1));
+				if(rowIndex % 100 == 0) {
+					logger.info("Processing Relationship Sheet: " + sheetToLoad + ", row = " + rowIndex);
+				}
 				RdfUploadReactorUtility.createRelationship(engine, owler, baseUri, subjectNode, objectNode, instanceSubjectNode, instanceObjectNode, relName, propHash);
 			} else {
+				if(rowIndex % 100 == 0) {
+					logger.info("Processing Node Sheet: " + sheetToLoad + ", row = " + rowIndex);
+				}
 				RdfUploadReactorUtility.addNodeProperties(engine, owler, baseUri, subjectNode, instanceSubjectNode, propHash);
 			}
-			if (rowIndex == (lastRow - 1)) {
-				logger.info("Done processing: " + sheetToLoad);
-			}
 		}
+		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
 	}
-	
+
 	/**
 	 * Load excel sheet in matrix format
 	 * @param sheetToLoad				String containing the name of the excel sheet to load
@@ -401,6 +401,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 */
 	public void loadMatrixSheet(IEngine engine, OWLER owler, String sheetToLoad, Workbook workbook, String baseUri) {
 		Sheet lSheet = workbook.getSheet(sheetToLoad);
+		logger.info("Loading Sheet: " + sheetToLoad);
 		int lastRow = lSheet.getLastRowNum();
 		logger.info("Number of Rows: " + lastRow);
 
@@ -442,59 +443,59 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		lastColumn--;
 		logger.info("Number of Columns: " + lastColumn);
 
-		try {
-			// process all rows (contains subject instances) in the matrix
-			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
-				// boolean to determine if a mapping exists
-				boolean mapExists = false;
-				Row nextRow = lSheet.getRow(rowIndex);
-				// get the name subject instance
-				String instanceSubjectName = nextRow.getCell(1).getStringCellValue();
-				// see what relationships are mapped between subject instances
-				// and object instances
-				for (int colIndex = 2; colIndex <= lastColumn; colIndex++) {
-					String instanceObjectName = objectInstanceArray.get(colIndex - 2);
-					Hashtable<String, Object> propHash = new Hashtable<String, Object>();
-					// store value in cell between instance subject and object
-					// in current iteration of loop
-					Cell matrixContent = nextRow.getCell(colIndex);
-					// if any value in cell, there should be a mapping
-					if (matrixContent != null) {
-						if (propExists) {
-							if (matrixContent.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-								if (DateUtil.isCellDateFormatted(matrixContent)) {
-									propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
-									mapExists = true;
-								} else {
-									propHash.put(propertyName, new Double(matrixContent.getNumericCellValue()));
-									mapExists = true;
-								}
+		// process all rows (contains subject instances) in the matrix
+		for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
+			// boolean to determine if a mapping exists
+			boolean mapExists = false;
+			Row nextRow = lSheet.getRow(rowIndex);
+			// get the name subject instance
+			String instanceSubjectName = nextRow.getCell(1).getStringCellValue();
+			// see what relationships are mapped between subject instances
+			// and object instances
+			for (int colIndex = 2; colIndex <= lastColumn; colIndex++) {
+				String instanceObjectName = objectInstanceArray.get(colIndex - 2);
+				Hashtable<String, Object> propHash = new Hashtable<String, Object>();
+				// store value in cell between instance subject and object
+				// in current iteration of loop
+				Cell matrixContent = nextRow.getCell(colIndex);
+				// if any value in cell, there should be a mapping
+				if (matrixContent != null) {
+					if (propExists) {
+						if (matrixContent.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+							if (DateUtil.isCellDateFormatted(matrixContent)) {
+								propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
+								mapExists = true;
 							} else {
-								// if not numeric, assume it is a string and
-								// check to make sure it is not empty
-								if (!matrixContent.getStringCellValue().isEmpty()) {
-									propHash.put(propertyName, matrixContent.getStringCellValue());
-									mapExists = true;
-								}
+								propHash.put(propertyName, new Double(matrixContent.getNumericCellValue()));
+								mapExists = true;
 							}
 						} else {
-							mapExists = true;
+							// if not numeric, assume it is a string and
+							// check to make sure it is not empty
+							if (!matrixContent.getStringCellValue().isEmpty()) {
+								propHash.put(propertyName, matrixContent.getStringCellValue());
+								mapExists = true;
+							}
 						}
-					}
-
-					if (sheetType.equalsIgnoreCase("Relation") && mapExists) {
-						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
-						RdfUploadReactorUtility.createRelationship(engine, owler, baseUri, subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
 					} else {
-						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
-						RdfUploadReactorUtility.addNodeProperties(engine, owler, baseUri, subjectNodeType, instanceSubjectName, propHash);
+						mapExists = true;
 					}
 				}
-				logger.info(instanceSubjectName);
+
+				if (sheetType.equalsIgnoreCase("Relation") && mapExists) {
+					if(rowIndex % 100 == 0) {
+						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
+					}
+					RdfUploadReactorUtility.createRelationship(engine, owler, baseUri, subjectNodeType, objectNodeType, instanceSubjectName, instanceObjectName, relName, propHash);
+				} else {
+					if(rowIndex % 100 == 0) {
+						logger.info("Processing" + sheetToLoad + " Row " + rowIndex + " Column " + colIndex);
+					}
+					RdfUploadReactorUtility.addNodeProperties(engine, owler, baseUri, subjectNodeType, instanceSubjectName, propHash);
+				}
 			}
-		} finally {
-			logger.info("Done processing: " + sheetToLoad);
 		}
+		logger.info("Done processing: " + sheetToLoad + ". Total rows processed = " + lastRow);
 	}
 
 }
