@@ -533,14 +533,13 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		processCSVTable(noExistingData, engine, helper, sqlDataTypes, headers, metamodel);
 	}
 
-	private void processCSVTable(boolean noExistingData, IEngine engine, CSVFileHelper csvHelper, String[] sqlDataTypes,
-			List<String> headers, Map<String, Object> metamodel) throws Exception {
+	private void processCSVTable(boolean noExistingData, IEngine engine, CSVFileHelper csvHelper, String[] sqlDataTypes, List<String> headers, Map<String, Object> metamodel) throws Exception {
 		logger.setLevel(Level.INFO);
-		long start = System.currentTimeMillis();
+//		long start = System.currentTimeMillis();
 
 		// Reset rowCounter to 0
 		rowCounter = 0;
-		long lastTimeCheck = start;
+//		long lastTimeCheck = start;
 		Map<String, String> defaultInsertStatements = getDefaultInsertStatements();
 		String[] values = null;
 		// skip rows
@@ -558,8 +557,9 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			// Increment the rowCounter by 1
 			rowCounter += 1;
 			if (rowCounter % 10000 == 0) {
-				logger.info(">>>>>Processing row " + rowCounter + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
-				lastTimeCheck = System.currentTimeMillis();
+//				logger.info(">>>>>Processing row " + rowCounter + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
+//				lastTimeCheck = System.currentTimeMillis();
+				logger.info("Done inserting " + count + " number of rows");
 			}
 
 			// loop through all the concepts
@@ -576,8 +576,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					}
 					// other case is if the table is there,
 					// but it hasn't been altered, also just add
-					else if (existingTableWithAllColsAccounted.contains(concept)
-							|| objectValueMap.containsKey(concept)) {
+					else if (existingTableWithAllColsAccounted.contains(concept) || objectValueMap.containsKey(concept)) {
 						sqlQuery = createInsertStatement(concept, defaultInsert, values, sqlDataTypes, headers);
 					} else {
 						// here we add the logic if we should perform an update
@@ -594,8 +593,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			count++;
 		}
+		logger.info("Completed " + count + " number of rows");
 		metamodel.put(Constants.END_ROW, count);
-
 		// delete the indexes created and clear the arrays
 		dropTempIndicies(engine);
 		tempIndexDropList.clear();// clear the drop index sql text
@@ -1186,8 +1185,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 				logger.info("Creating indexes for " + tableName);
 				for (String singleIndex : createIndex) {
 					insertData(engine, singleIndex);
-					logger.info(">>>>>" + singleIndex + ", elapsed time: "
-							+ (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
+					logger.info(">>>>>" + singleIndex + ", elapsed time: " + (System.currentTimeMillis() - lastTimeCheck) / 1000 + " sec");
 				}
 			} else {
 				logger.info("Will not create indexes for " + tableName);
