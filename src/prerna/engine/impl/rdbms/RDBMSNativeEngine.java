@@ -414,7 +414,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
 			return map;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			LOGGER.error("Error executing SQL query = " + query);
+			LOGGER.error("Error message = " + e.getMessage());
 			e.printStackTrace();
 		}
 		return null;
