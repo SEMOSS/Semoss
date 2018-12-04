@@ -8,7 +8,9 @@ import java.util.Vector;
 import org.apache.poi.ss.usermodel.Sheet;
 
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
@@ -26,6 +28,12 @@ public class ExcelDataValidationReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String filePath = this.keyValue.get(this.keysToGet[0]);
+		if(!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			SemossPixelException e = new SemossPixelException(error);
+			e.setContinueThreadOfExecution(false);
+			throw e;
+		}
 		String appName = this.keyValue.get(this.keysToGet[1]);
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(filePath);

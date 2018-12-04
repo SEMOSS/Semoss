@@ -24,6 +24,15 @@ public class ExcelParsing {
 		
 	}
 	
+	public static boolean isExcelFile(String filePath) {
+		String file = filePath.toLowerCase();
+		if(file.endsWith(".xlsx") || file.endsWith("xlsm") || file.endsWith("xls")) {
+			return true;	
+		}
+		
+		return false;
+		
+	}
 	public static boolean isEmptyCell(Cell thisCell) {
 		if (thisCell == null 
 				|| thisCell.getCellType() == Cell.CELL_TYPE_BLANK
