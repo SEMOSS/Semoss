@@ -8,13 +8,11 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
-import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.RDFEngineCreationHelper;
@@ -325,7 +323,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 									property = prop;
 								}
 							}
-							propHash.put(property, createObject(prop, values, dataTypes, headers));
+							propHash.put(property, CSVFileHelper.createObject(prop, values, dataTypes, headers));
 						}
 					}
 				}
@@ -375,7 +373,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 							property = prop;
 						}
 					}
-					Object propObj = createObject(prop, values, dataTypes, headers);
+					Object propObj = CSVFileHelper.createObject(prop, values, dataTypes, headers);
 					if (propObj == null || propObj.toString().isEmpty()) {
 						continue;
 					}
@@ -431,51 +429,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		return retString;
 	}
 	
-	/**
-	 * Gets the properly formatted object from the string[] values object
-	 * Also handles if the column is a concatenation
-	 * @param object					The column to get the correct data type for - can be a concatenation
-	 * @param values					The string[] containing the values for the row
-	 * @param dataTypes					The string[] containing the data type for each column in the values array
-	 * @return							The object in the correct data format
-	 */
-	private Object createObject(String object, String[] values, SemossDataType[] dataTypes, List<String> headers ) {
-		// if it contains a plus sign, it is a concatenation
-		if (object.contains("+")) {
-			StringBuilder strBuilder = new StringBuilder();
-			String[] objList = object.split("\\+");
-			for (int i = 0; i < objList.length; i++) {
-				strBuilder.append(values[headers.indexOf(objList[i])]);
-			}
-			return Utility.cleanString(strBuilder.toString(), true);
-		}
-
-		// here we need to grab the value and cast it based on the type
-		Object retObj = null;
-		int colIndex = headers.indexOf(object);
-
-		SemossDataType type = dataTypes[colIndex];
-		String strVal = values[colIndex];
-		if (type == SemossDataType.INT) {
-			retObj = Utility.getInteger(strVal);
-		} else if (type == SemossDataType.DOUBLE) {
-			retObj = Utility.getDouble(strVal);
-		} else if (type == SemossDataType.DATE) {
-			Long dTime = SemossDate.getTimeForDate(strVal);
-			if (dTime != null) {
-				retObj = new SemossDate(dTime, "yyyy-MM-dd");
-			}
-		} else if (type == SemossDataType.TIMESTAMP) {
-			Long dTime = SemossDate.getTimeForTimestamp(strVal);
-			if (dTime != null) {
-				retObj = new SemossDate(dTime, "yyyy-MM-dd HH:mm:ss");
-			}
-		} else {
-			retObj = strVal;
-		}
-
-		return retObj;
-	}
+	
 
 	private String processAutoConcat(String input) {
 		String[] split = input.split("\\+");

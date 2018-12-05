@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.google.gson.Gson;
@@ -107,7 +106,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
 		}
-		processRelationships(this.engine, owler, this.helper, headers, types, metamodelProps);
+		processRelationships(this.engine, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
 		this.engine.commit();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -183,7 +182,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			}
 			metamodelProps.put(Constants.DATA_TYPES, dataTypes);
 		}
-		processRelationships(this.engine, owler, this.helper, headers, types, metamodelProps);
+		processRelationships(this.engine, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
 		this.engine.commit();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -221,7 +220,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	 * 
 	 * @throws IOException
 	 */
-	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper csvHelper, String[] headers, SemossDataType[] types, Map<String, Object> metamodel) {
+	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper csvHelper, List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
 		// get all the relation
 		// overwrite this value if user specified the max rows to load
 		List<String> relationList = new ArrayList<String>();
@@ -322,7 +321,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 								property = prop;
 							}
 							// }
-							propHash.put(property, createObject(prop, values, types, headers));
+							propHash.put(property, CSVFileHelper.createObject(prop, values, types, headers));
 						}
 					}
 				}
@@ -373,7 +372,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 						property = prop;
 					}
 					// }
-					Object propObj = createObject(prop, values, types, headers);
+					Object propObj = CSVFileHelper.createObject(prop, values, types, headers);
 					if (propObj == null || propObj.toString().isEmpty()) {
 						continue;
 					}
@@ -424,7 +423,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	 *            array
 	 * @return The return is the value for the instance
 	 */
-	private String createInstanceValue(String subject, String[] values, String[] headers) {
+	private String createInstanceValue(String subject, String[] values, List<String> headers) {
 		String retString = "";
 		// if node is a concatenation
 		if (subject.contains("+")) {
@@ -432,7 +431,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 			for (int i = 0; i < elements.length; i++) {
 				String subjectElement = elements[i];
 
-				int colIndex = Arrays.asList(headers).indexOf(subjectElement);
+				int colIndex = headers.indexOf(subjectElement);
 				if (values[colIndex] != null && !values[colIndex].toString().trim().isEmpty()) {
 					String value = values[colIndex] + "";
 					value = Utility.cleanString(value, true);
@@ -448,7 +447,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 				retString = retString.substring(0, retString.length() - 1);
 		} else {
 			// if the value is not empty, get the correct value to return
-			int colIndex = Arrays.asList(headers).indexOf(subject);
+			int colIndex = headers.indexOf(subject);
 			if (values[colIndex] != null && !values[colIndex].trim().isEmpty()) {
 				retString = Utility.cleanString(values[colIndex], true);
 			}
@@ -521,51 +520,6 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		// upsert the edge between them
 		engine.doAction(IEngine.ACTION_TYPE.EDGE_UPSERT, new Object[] { startV, subjectNodeType, endV, objectNodeType, propHash });
 
-	}
-
-	/**
-	 * Gets the properly formatted object from the string[] values object Also
-	 * handles if the column is a concatenation
-	 * 
-	 * @param object
-	 *            The column to get the correct data type for - can be a
-	 *            concatenation
-	 * @param values
-	 *            The string[] containing the values for the row
-	 * @param types
-	 *            The string[] containing the data type for each column in the
-	 *            values array
-	 * @param colNameToIndex
-	 *            Map containing the column name to index in values[] for fast
-	 *            retrieval of data
-	 * @return The object in the correct data format
-	 */
-	private Object createObject(String object, String[] values, SemossDataType[] types, String[] headers) {
-		// if it contains a plus sign, it is a concatenation
-		if (object.contains("+")) {
-			StringBuilder strBuilder = new StringBuilder();
-			String[] objList = object.split("\\+");
-			for (int i = 0; i < objList.length; i++) {
-
-				strBuilder.append(values[Arrays.asList(headers).indexOf(objList[i])]);
-			}
-			return Utility.cleanString(strBuilder.toString(), true);
-		}
-
-		// here we need to grab the value and cast it based on the type
-		Object retObj = null;
-		int colIndex = Arrays.asList(headers).indexOf(object);
-
-		SemossDataType type = types[colIndex];
-		String strVal = values[colIndex];
-		if (type == SemossDataType.INT || type == SemossDataType.DOUBLE) {
-			retObj = Utility.getDouble(strVal);
-		} else if (type == SemossDataType.DATE) {
-			retObj = Utility.getDateAsDateObj(strVal);
-		} else {
-			retObj = strVal;
-		}
-		return retObj;
 	}
 
 	/**
