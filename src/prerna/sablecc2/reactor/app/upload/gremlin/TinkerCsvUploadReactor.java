@@ -61,8 +61,6 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 
 	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
-		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for app...");
@@ -78,10 +76,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 
 		// get metamodel
 		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
-		Map<String, String> dataTypesMap = null;
-		if (metamodelProps != null) {
-			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
-		}
+		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
 
 		/*
 		 * Load data into tinker engine
@@ -95,8 +90,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypes);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		// TODO additional types?
@@ -160,20 +155,15 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get app upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
-		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
-		Map<String, String> dataTypesMap = null;
-		if (metamodelProps != null) {
-			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
-		}
+		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);;
 		logger.info(stepCounter + ". Done...");
 		stepCounter++;
 
 		logger.info(stepCounter + "Parsing file metadata...");
-		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		// get the user selected datatypes for each header
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypes);
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];

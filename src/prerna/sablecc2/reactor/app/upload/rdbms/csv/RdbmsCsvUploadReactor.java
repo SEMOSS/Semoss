@@ -82,8 +82,6 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	@Override
 	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
-		Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		boolean allowDuplicates = false;
 
 		int stepCounter = 1;
@@ -100,10 +98,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 		// get metamodel
 		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
-		Map<String, String> dataTypesMap = null;
-		if (metamodelProps != null) {
-			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
-		}
+		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);;
 
 		/*
 		 * Load data into rdbms engine
@@ -120,12 +115,12 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Parsing file metadata...");
-		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), this.engine.getEngineType());
 		try {
 			// open the csv file
 			// and get the headers
-			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypes);
+			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 			String[] headers = (String[]) headerTypesArr[0];
 			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 			queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) this.engine).getDbType());
@@ -200,23 +195,18 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get app upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
-		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		boolean allowDuplicates = false;
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		// get metamodel
 		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
-		Map<String, String> dataTypesMap = null;
-		if (metamodelProps != null) {
-			dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
-		}
+		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);;
 		logger.info(stepCounter + ". Done...");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Parsing file metadata...");
 		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
-		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
-		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, additionalDataTypeMap);
+		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
+		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES) );
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] sqlDataTypes = parseMetamodel(metamodelProps, owler, Arrays.asList(headers), types);
