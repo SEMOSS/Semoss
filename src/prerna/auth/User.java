@@ -21,6 +21,12 @@ public class User extends AbstractValueObject {
 	
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
 	List<AuthProvider> loggedInProfiles = new ArrayList<AuthProvider>();
+
+	// keeps the secret for every insight
+	Hashtable <String, InsightToken> insightSecret = new Hashtable <String, InsightToken>();
+	
+	// shared sessions
+	List <String> sharedSessions = new ArrayList();
 	
 	/**
 	 * Set the access token for a given provider
@@ -98,4 +104,33 @@ public class User extends AbstractValueObject {
 	public void setRConn(RConnection rCon) {
 		this.rConn = rCon;
 	}	
+	
+	// add the insight instance id
+	public void addInsight(String id, InsightToken token)
+	{
+		insightSecret.put(id, token);
+	}
+	
+	// get insight token
+	public InsightToken getInsight(String id)
+	{
+		return insightSecret.get(id);
+	}
+	
+	public void addShare(String sessionId)
+	{
+		if(!sharedSessions.contains(sessionId))
+			sharedSessions.add(sessionId);
+	}	
+	
+	public void removeShare(String sessionId)
+	{
+		sharedSessions.remove(sessionId);
+	}
+	
+	public boolean isShareSession(String sessionId)
+	{
+		return sharedSessions.contains(sessionId);
+	}
+	
 }
