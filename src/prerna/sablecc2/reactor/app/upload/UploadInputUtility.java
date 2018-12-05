@@ -176,6 +176,12 @@ public class UploadInputUtility {
 			// add datatypes
 			dataTypesMap = UploadInputUtility.getCsvDataTypeMap(store);
 			metamodel.put(Constants.DATA_TYPES, dataTypesMap);
+			// add new headers
+			Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(store);
+			metamodel.put(NEW_HEADERS, newHeaders);
+			// add additionalDataTypes
+			Map<String, String> additionalDataTypes = UploadInputUtility.getAdditionalCsvDataTypes(store);
+			metamodel.put(ADDITIONAL_DATA_TYPES, additionalDataTypes);
 			// add start row
 			int startRow = UploadInputUtility.getStartRow(store);
 			metamodel.put(Constants.START_ROW, startRow);
@@ -184,6 +190,7 @@ public class UploadInputUtility {
 			if (endRow != null) {
 				metamodel.put(Constants.END_ROW, endRow);
 			}
+
 		}
 		return metamodel;
 	}
