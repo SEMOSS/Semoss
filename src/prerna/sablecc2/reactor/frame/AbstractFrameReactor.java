@@ -15,14 +15,14 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.toString());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
-			List<Object> frameInputs = this.curRow.getValuesOfType(PixelDataType.FRAME);
+			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
 			return (ITableDataFrame) frameInputs.get(0);
 		}
 		
 		grs = this.store.getNoun(ReactorKeysEnum.FRAME.getKey());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
-			List<Object> frameInputs = this.curRow.getValuesOfType(PixelDataType.FRAME);
+			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
 			return (ITableDataFrame) frameInputs.get(0);
 		}
 		
