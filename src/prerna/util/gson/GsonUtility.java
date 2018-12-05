@@ -10,6 +10,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -42,6 +43,7 @@ public class GsonUtility {
 				
 				// qs
 				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
+				.registerTypeAdapter(HardSelectQueryStruct.class, new HardSelectQueryStructAdapter())
 				
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
