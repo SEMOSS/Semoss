@@ -1,12 +1,11 @@
 package prerna.sablecc2.reactor.utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
@@ -24,10 +23,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.Utility;
 
-public class DatabaseProfileReactor extends AbstractReactor {
+public class DatabaseProfileReactor extends AbstractFrameReactor {
 
 	public DatabaseProfileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPTS.getKey() };
@@ -39,7 +38,11 @@ public class DatabaseProfileReactor extends AbstractReactor {
 		// output frame
 		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum", "numOfNullValues" };
 		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" , "Double" };
-		H2Frame frame = (H2Frame) this.insight.getDataMaker();
+		ITableDataFrame table = getFrame();
+		if(!(table instanceof H2Frame)) {
+			throw new IllegalArgumentException("Frame must be a grid to use DatabaseProfile");
+		}
+		H2Frame frame = (H2Frame) table;
 		String tableName = frame.getTableName();
 		// add headers to metadata output frame
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
