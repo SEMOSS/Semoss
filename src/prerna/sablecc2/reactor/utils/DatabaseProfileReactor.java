@@ -29,7 +29,7 @@ import prerna.util.Utility;
 public class DatabaseProfileReactor extends AbstractFrameReactor {
 
 	public DatabaseProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPTS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPTS.getKey() };
 	}
 
 	@Override
@@ -57,7 +57,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			metaData.setDataTypeToProperty(uniqueHeader, dataType);
 		}
 		
-		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String engineId = this.keyValue.get(this.keysToGet[1]);
 		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		IEngine engine = Utility.getEngine(engineId);
 		if (engine != null) {
@@ -274,7 +274,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 
 	private List<String> getConceptList() {
 		Vector<String> inputs = null;
-		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[1]);
+		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[2]);
 		if (valuesGrs != null && valuesGrs.size() > 0) {
 			int numInputs = valuesGrs.size();
 			inputs = new Vector<String>();
