@@ -287,7 +287,7 @@ public class UploadInputUtility {
 		Map<String, Object> dataTypes = new HashMap<>();
 		for (int i = 0; i < headers.length; i++) {
 			// headers are one off
-			String columnHeaderIndex = i+1+"";
+			String columnHeaderIndex = i + 1 + "";
 			//TODO hmmmm I need to get new header name and index
 			if (oldMetamodel.containsKey(columnHeaderIndex)) {
 				dataTypes.put(headers[i], oldMetamodel.get(columnHeaderIndex));

@@ -16,6 +16,7 @@ import com.univocity.parsers.csv.CsvParserSettings;
 
 import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.poi.main.HeadersException;
 import prerna.test.TestUtilityMethods;
 import prerna.util.ArrayUtilityMethods;
@@ -496,6 +497,54 @@ public class CSVFileHelper {
 	 */
 	public String[] getFileOriginalHeaders() {
 		return this.allCsvHeaders;
+	}
+	
+	/**
+	 * Gets the properly formatted object from the string[] values object Also
+	 * handles if the column is a concatenation
+	 * 
+	 * @param object The column to get the correct data type for - can be a concatenation
+	 * @param values The string[] containing the values for the row
+	 * @param dataTypes The smss data type for each column in the values array
+	 * @return The object in the correct data format
+	 */
+	public static Object createObject(String object, String[] values, SemossDataType[] dataTypes,
+			List<String> headers) {
+		// if it contains a plus sign, it is a concatenation
+		if (object.contains("+")) {
+			StringBuilder strBuilder = new StringBuilder();
+			String[] objList = object.split("\\+");
+			for (int i = 0; i < objList.length; i++) {
+				strBuilder.append(values[headers.indexOf(objList[i])]);
+			}
+			return Utility.cleanString(strBuilder.toString(), true);
+		}
+
+		// here we need to grab the value and cast it based on the type
+		Object retObj = null;
+		int colIndex = headers.indexOf(object);
+
+		SemossDataType type = dataTypes[colIndex];
+		String strVal = values[colIndex];
+		if (type == SemossDataType.INT) {
+			retObj = Utility.getInteger(strVal);
+		} else if (type == SemossDataType.DOUBLE) {
+			retObj = Utility.getDouble(strVal);
+		} else if (type == SemossDataType.DATE) {
+			Long dTime = SemossDate.getTimeForDate(strVal);
+			if (dTime != null) {
+				retObj = new SemossDate(dTime, "yyyy-MM-dd");
+			}
+		} else if (type == SemossDataType.TIMESTAMP) {
+			Long dTime = SemossDate.getTimeForTimestamp(strVal);
+			if (dTime != null) {
+				retObj = new SemossDate(dTime, "yyyy-MM-dd HH:mm:ss");
+			}
+		} else {
+			retObj = strVal;
+		}
+
+		return retObj;
 	}
 
 	///// TESTING CODE STARTS HERE /////
