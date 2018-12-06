@@ -2,7 +2,7 @@ package prerna.poi.main.helper;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,8 +23,8 @@ public class FileHelperUtil {
 	 */
 	public static Map[] generateDataTypeMapsFromPrediction(String[] headers, Object[][] predictions) {
 		Map[] retArray = new Map[2];
-		Map<String, String> dataTypeMap = new HashMap<String, String>();
-		Map<String, String> additionalDataTypeMap = new HashMap<String, String>();
+		Map<String, String> dataTypeMap = new LinkedHashMap<String, String>();
+		Map<String, String> additionalDataTypeMap = new LinkedHashMap<String, String>();
 		retArray[0] = dataTypeMap;
 		retArray[1] = additionalDataTypeMap;
 		
