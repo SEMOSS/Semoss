@@ -904,6 +904,7 @@ public class OwlTemporalEngineMeta {
 				+ "(coalesce(?qs, 'unknown') as ?qsName) "
 				+ "(coalesce(?parent, 'none') as ?parentNode) "
 				+ "(coalesce(?display, 'none') as ?alias) "
+				+ "(coalesce(lcase(?display), 'none') as ?loweralias) "
 				+ "(coalesce(?derived, 'false') as ?isDerived) "
 				+ "where {"
 				+ "{" 
@@ -927,7 +928,7 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
 					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
-				+ "} ORDER BY ?alias";
+				+ "} ORDER BY ?loweralias";
 		
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		
@@ -980,6 +981,8 @@ public class OwlTemporalEngineMeta {
 						} else {
 							rowMap.put("dataType", values[i]);
 						}
+					} else if(headers[i].equals("loweralias")) {
+						// ignore
 					} else {
 						rowMap.put(headers[i], values[i]);
 					}
