@@ -261,6 +261,14 @@ public class ExcelBlock {
 		return rowIndicesInBlock.isEmpty();
 	}
 	
+	/**
+	 * Get the number of indices in the block
+	 * @return
+	 */
+	public int numIndicesInBlock() {
+		return rowIndicesInBlock.size();
+	}
+	
 	public void addColumnToRowIndexWithData(int columnIndex, int rowIndex, SemossDataType type, String additionalType) {
 		Integer objColumnIndex = new Integer(columnIndex);
 		// update index stats
