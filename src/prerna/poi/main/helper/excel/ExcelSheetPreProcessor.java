@@ -108,8 +108,8 @@ public class ExcelSheetPreProcessor {
 			
 			// sometimes, we can have an empty row
 			// treat this as being a null row as well
-			if(lastCol == 0) {
-				if(!thisBlock.isEmpty()) {
+			if(lastCol <= 0) {
+				if(thisBlock.numIndicesInBlock() > 1) {
 					// add to the list of blocks
 					allBlocks.add(thisBlock);
 					// create a new block
@@ -166,7 +166,7 @@ public class ExcelSheetPreProcessor {
 		}
 		
 		// we gotta add the last block into the list
-		if(!thisBlock.isEmpty()) {
+		if(thisBlock.numIndicesInBlock() > 1) {
 			this.allBlocks.add(thisBlock);
 		}
 	}
