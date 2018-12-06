@@ -41,6 +41,9 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public static Object getActiveAdminTheme() {
+		if(themeDb == null) {
+			return new HashMap();
+		}
 		String query = "SELECT theme_map FROM ADMIN_THEME WHERE is_active=TRUE;";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
 		Object retVal = flushRsToObject(wrapper);
