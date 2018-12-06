@@ -9,6 +9,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -275,6 +276,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @return
 	 */
 	protected PixelRunner getCachedInsightData(Insight insight) throws IOException, JsonSyntaxException {
+		Gson gson = new Gson();
 		// I will create a temp insight
 		// so that I can mock the output as if this was run properly
 		Insight tempInsight = new Insight(insight.getEngineId(), insight.getEngineName(), insight.getRdbmsId());
@@ -298,12 +300,16 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			InsightPanel panel = panels.get(panelId);
 			String panelView = panel.getPanelView();
 			String panelViewOptions = panel.getPanelActiveViewOptions();
+			Map<String, Object> config = panel.getConfig();
 			
 			String pixelToRun = "";
 			if(panelViewOptions != null && !panelViewOptions.isEmpty()) {
 				pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\", \"" + Utility.encodeURIComponent(panelViewOptions) + "\");";
 			} else {
 				pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\");";
+			}
+			if(config != null && !config.isEmpty()) {
+				pixelToRun += "Panel(" + panelId + ") |AddPanelConfig(" + gson.toJson(config) + ");";
 			}
 			
 			panelToPanelView.put(panelId, pixelToRun);
