@@ -1,15 +1,16 @@
 package prerna.auth;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
-import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.om.AbstractValueObject;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 
 public class User extends AbstractValueObject {
 	
@@ -21,12 +22,10 @@ public class User extends AbstractValueObject {
 	
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
 	List<AuthProvider> loggedInProfiles = new ArrayList<AuthProvider>();
-
 	// keeps the secret for every insight
 	Hashtable <String, InsightToken> insightSecret = new Hashtable <String, InsightToken>();
-	
 	// shared sessions
-	List <String> sharedSessions = new ArrayList();
+	List<String> sharedSessions = new Vector<String>();
 	
 	/**
 	 * Set the access token for a given provider
@@ -133,4 +132,27 @@ public class User extends AbstractValueObject {
 		return sharedSessions.contains(sessionId);
 	}
 	
+	
+	/////////////////////////////////////////////////////
+	
+	/*
+	 * Static utility methods
+	 */
+	
+	public static Map<String, String> getLoginNames(User semossUser) {
+		Map<String, String> retMap = new HashMap<String, String>();
+		if(semossUser == null) {
+			return retMap;
+		}
+		List<AuthProvider> logins = semossUser.getLogins();
+		for(AuthProvider p : logins) {
+			String name = semossUser.getAccessToken(p).getName();
+			if(name == null) {
+				// need to send something
+				name = "";
+			}
+			retMap.put(p.toString().toUpperCase(), name);
+		}
+		return retMap;
+	}
 }
