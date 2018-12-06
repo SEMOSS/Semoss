@@ -83,7 +83,12 @@ public class CleanUpAppsReactor extends AbstractReactor {
 			for (String appId : appIds) {
 				String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 				String key = alias + "__" + appId; 
-				IEngine engine = Utility.getEngine(appId);
+				IEngine engine = null;
+				try {
+					engine = Utility.getEngine(appId);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 				if (engine == null) {
 					
 					// Cleanup the app
