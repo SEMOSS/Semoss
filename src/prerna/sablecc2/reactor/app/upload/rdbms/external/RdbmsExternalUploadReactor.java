@@ -40,8 +40,21 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsExternalUploadReactor extends AbstractReactor {
+	
 	private static final String CLASS_NAME = RdbmsExternalUploadReactor.class.getName();
 
+	// we need to define some variables that are stored at the class level
+	// so that we can properly account for cleanup if errors occur
+	protected transient Logger logger;
+	protected transient String appId;
+	protected transient String appName;
+	protected transient IEngine engine;
+	protected transient File appFolder;
+	protected transient File tempSmss;
+	protected transient File smssFile;
+	
+	protected transient boolean error = false;
+	
 	public RdbmsExternalUploadReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
@@ -51,6 +64,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		this.logger = getLogger(this.getClass().getName());
+
 		User user = null;
 		boolean security = AbstractSecurityUtils.securityEnabled();
 		if(security) {
@@ -65,14 +80,53 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 		
 		organizeKeys();
-		final String newAppName = UploadInputUtility.getAppName(this.store);
-		String appId = generateNewApp(user, newAppName);
+		this.appName = UploadInputUtility.getAppName(this.store);
 		
+		try {
+			// make a new id
+			this.appId = UUID.randomUUID().toString();
+			// validate app
+			this.logger.info("Start validating app");
+			UploadUtilities.validateApp(user, this.appName, this.appId);
+			this.logger.info("Done validating app");
+			// create app folder
+			this.logger.info("Start generating app folder");
+			this.appFolder = UploadUtilities.generateAppFolder(this.appId, this.appName);
+			this.logger.info("Complete");
+			generateNewApp();
+			// and rename .temp to .smss
+			this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+			FileUtils.copyFile(this.tempSmss, this.smssFile);
+			this.tempSmss.delete();
+			this.engine.setPropFile(this.smssFile.getAbsolutePath());
+			UploadUtilities.updateDIHelper(this.appId, this.appName, this.engine, this.smssFile);
+			// sync metadata
+			this.logger.info("Process app metadata to allow for traversing across apps");
+			UploadUtilities.updateMetadata(this.appId);
+			this.logger.info("Complete");
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.error = true;
+			if (e instanceof SemossPixelException) {
+				throw (SemossPixelException) e;
+			} else {
+				NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		} finally {
+			if (this.error) {
+				// need to delete everything...
+				cleanUpCreateNewError();
+			}
+		}
+
 		// even if no security, just add user as engine owner
-		if(user != null) {
+		if (user != null) {
 			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider ap : logins) {
-				SecurityUpdateUtils.addEngineOwner(appId, user.getAccessToken(ap).getId());
+			for (AuthProvider ap : logins) {
+				SecurityUpdateUtils.addEngineOwner(this.appId, user.getAccessToken(ap).getId());
 			}
 		}
 		
@@ -82,27 +136,12 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	private String generateNewApp(User user, String newAppName) {
+	private void generateNewApp() {
 		Logger logger = getLogger(CLASS_NAME);
-		String newAppId = UUID.randomUUID().toString();
-		int stepCounter = 1;
-		// start by validation
-		logger.info(stepCounter + ".Start validating app");
-		try {
-			UploadUtilities.validateApp(user, newAppName, newAppId);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		logger.info(stepCounter + ".Done validating app");
-		stepCounter++;
-		
-		logger.info(stepCounter + ". Start generating app folder");
-		UploadUtilities.generateAppFolder(newAppId, newAppName);
-		logger.info(stepCounter + ". Complete");
-		stepCounter++;
 
+		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.appId, this.appName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -120,17 +159,16 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
 		List<Map<String, Object>> relationships = (List<Map<String, Object>>) externalMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
 		logger.info(stepCounter + ". Create properties file for database...");
-		File tempSmss = null;
 		// Create default RDBMS engine or Impala
 		String engineClassName = RDBMSNativeEngine.class.getName();
-		IEngine engine = new RDBMSNativeEngine();
+		this.engine = new RDBMSNativeEngine();
 		if (dbType.toUpperCase().equals(RdbmsTypeEnum.IMPALA.getLabel())) {
 			engineClassName = ImpalaEngine.class.getName();
 			engine = new ImpalaEngine();
 		}
 		try {
-			tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(newAppId, newAppName, owlFile, engineClassName, dbType, host, port, schema, username, password, additionalProperties);
-			DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile, engineClassName, dbType, host, port, schema, username, password, additionalProperties);
+			DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		} catch (IOException | SQLException e) {
 			e.printStackTrace();
 		}
@@ -138,8 +176,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		stepCounter++;
 		
 		logger.info(stepCounter + ". Create database store...");
-		engine.setEngineId(newAppId);
-		engine.setEngineName(newAppName);
+		engine.setEngineId(this.appId);
+		engine.setEngineName(this.appName);
 		Properties prop = Utility.loadProperties(tempSmss.getAbsolutePath());
 		prop.put("TEMP", "TRUE");
 		// schema comes from existing db (connect to external db(schema))
@@ -176,8 +214,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, this.appName);
+		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
 		engine.setInsightDatabase(insightDatabase);
 		// generate base insights
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
@@ -186,26 +224,12 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
 		try {
-			UploadUtilities.updateMetadata(newAppId);
+			UploadUtilities.updateMetadata(this.appId);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
-		logger.info("8. Complete");
+		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-
-		// and rename .temp to .smss
-		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-		try {
-			FileUtils.copyFile(tempSmss, smssFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		tempSmss.delete();
-
-		// update DIHelper & engine smss file location
-		engine.setPropFile(smssFile.getAbsolutePath());
-		UploadUtilities.updateDIHelper(newAppId, newAppName, engine, smssFile);
-		return newAppId;
 	}
 	
 	/**
@@ -234,6 +258,40 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			}
 		}
 		return nodesAndPrimKeys;
+	}
+	
+	/**
+	 * Delete all the corresponding files that are generated from the upload the failed
+	 */
+	private void cleanUpCreateNewError() {
+		// TODO:clean up DIHelper!
+		try {
+			// close the DB so we can delete it
+			if (this.engine != null) {
+				engine.closeDB();
+			}
+
+			// delete the .temp file
+			if (this.tempSmss != null && this.tempSmss.exists()) {
+				FileUtils.forceDelete(this.tempSmss);
+			}
+			// delete the .smss file
+			if (this.smssFile != null && this.smssFile.exists()) {
+				FileUtils.forceDelete(this.smssFile);
+			}
+			// delete the engine folder and all its contents
+			if (this.appFolder != null && this.appFolder.exists()) {
+				File[] files = this.appFolder.listFiles();
+				if (files != null) { // some JVMs return null for empty dirs
+					for (File f : files) {
+						FileUtils.forceDelete(f);
+					}
+				}
+				FileUtils.forceDelete(this.appFolder);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
