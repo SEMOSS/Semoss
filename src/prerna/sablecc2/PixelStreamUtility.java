@@ -263,7 +263,6 @@ public class PixelStreamUtility {
 				int numCollect = task.getNumCollect();
 				boolean collectAll = numCollect == -1;
 				String formatType = task.getFormatter().getFormatType();
-				Map<String, Object> taskMeta = task.getMeta();
 
 				if(task instanceof ConstantDataTask) {
 					ps.print("\"output\":{");
@@ -346,6 +345,8 @@ public class PixelStreamUtility {
 					printMapData(ps, (Map<String, Object>) ((AbstractTask) task).getData(), gson);
 				}
 
+				// grab the meta and output as well
+				Map<String, Object> taskMeta = task.getMeta();
 				for(String taskMetaKey : taskMeta.keySet()) {
 					ps.print(",\"" + taskMetaKey + "\":" + gson.toJson(taskMeta.get(taskMetaKey)));
 					ps.flush();
