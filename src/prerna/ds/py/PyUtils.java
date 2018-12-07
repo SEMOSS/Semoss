@@ -1,9 +1,14 @@
 package prerna.ds.py;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class PyUtils {
+	
+	private static final Logger LOGGER = LogManager.getLogger(PyUtils.class.getName());
 	
 	private static Boolean pyEnabled = null;
 	private static PyUtils instance;
@@ -56,7 +61,7 @@ public class PyUtils {
 	 * @return
 	 */
 	public PyExecutorThread getJep() {
-		System.out.println(">>>STARTING PYTHON THREAD FOR USER<<<");
+		LOGGER.info(">>>STARTING PYTHON THREAD FOR USER<<<");
 		PyExecutorThread py = new PyExecutorThread();
 		py.start();
 		return py;
@@ -68,13 +73,13 @@ public class PyUtils {
 	 */
 	public void killPyThread(PyExecutorThread py) {
 		if(py != null) {
-		py.process = "stop";
-			System.out.println(">>>>>> KILLING THREAD FOR USER <<<<<");
+			py.killThread();
+			LOGGER.info(">>>>>> KILLING THREAD FOR USER <<<<<");
 			Object monitor = py.getMonitor();
 			synchronized(monitor) {
 				monitor.notify();
 			}
-			System.out.println(">>>>>> COMPLETE <<<<<");
+			LOGGER.info(">>>>>> COMPLETE <<<<<");
 		}
 	}
 }
