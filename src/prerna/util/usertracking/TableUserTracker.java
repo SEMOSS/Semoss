@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
@@ -753,8 +754,12 @@ public class TableUserTracker implements IUserTracker {
 		row[3] = java.sql.Timestamp.valueOf(LocalDateTime.now()).toString();
 		return row;
 	}
-
+	
 	private Long getUniqueValueCount(String engineId, String table, String column) {
+		if (StringUtils.countMatches(engineId, "-") != 4) {
+			// Not really an engineID (drag and drop...)
+			return null;
+		}
 		IEngine engine = Utility.getEngine(engineId);
 		if(engine != null) {
 			RDFFileSesameEngine owlEngine = ((AbstractEngine) engine).getBaseDataEngine();
