@@ -56,7 +56,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public List<Map<String, Object>> getAllUsers() throws IllegalArgumentException{
-		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER";
+		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER ORDER BY NAME, TYPE";
 		return getSimpleQuery(query);
 	}
 
