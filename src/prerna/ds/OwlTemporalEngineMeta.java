@@ -520,7 +520,8 @@ public class OwlTemporalEngineMeta {
 	 */
 	public List<String> getFrameSelectors() {
 		String query = "select distinct "
-				+ "?header (coalesce(?prim, 'false') as ?isPrim)"
+				+ "?header (coalesce(?prim, 'false') as ?isPrim) "
+				+ "(lcase(?header) as ?loweralias) "
 				+ "where {"
 				+ "{"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -533,7 +534,7 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
 					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
-				+ "} order by ?header";
+				+ "} order by ?loweralias";
 		
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		List<String> headers = new Vector<String>();
@@ -553,7 +554,9 @@ public class OwlTemporalEngineMeta {
 	 */
 	public List<String> getFrameColumnNames() {
 		String query = "select distinct "
-				+ "(coalesce(?alias, ?header) as ?frameName) (coalesce(?prim, 'false') as ?isPrim) "
+				+ "(coalesce(?alias, ?header) as ?frameName) "
+				+ "(coalesce(?prim, 'false') as ?isPrim) "
+				+ "(coalesce(lcase(?alias), lcase(?header)) as ?loweralias) "
 				+ "where {"
 				+ "{"
 				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
@@ -568,7 +571,7 @@ public class OwlTemporalEngineMeta {
 				+ "}"
 				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
 					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
-				+ "} order by ?header";
+				+ "} order by ?loweralias";
 		
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
 		List<String> headers = new Vector<String>();
