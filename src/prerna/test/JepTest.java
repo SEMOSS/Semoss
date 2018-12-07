@@ -93,7 +93,7 @@ public class JepTest implements Runnable {
 				}
 				else
 				{
-					py.process = "stop";
+					py.killThread();
 					synchronized(monitor)
 					{
 						py.command = new String[]{"print 'end'"};
