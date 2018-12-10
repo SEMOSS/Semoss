@@ -1,6 +1,8 @@
 package prerna.ds.py;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
@@ -29,6 +31,76 @@ public class PandasSyntaxHelper {
 	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName) {
 		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "')";
 		return readCsv;
+	}
+	
+	/**
+	 * 
+	 * @param leftTableName
+	 * @param rightTableName
+	 * @param joinType
+	 * @param joinCols
+	 * @return
+	 */
+	public static String getMergeSyntax(String pandasFrameVar, String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
+		/*
+		 * joinCols = [ {leftTable.Title -> rightTable.Movie} , {leftTable.Genre -> rightTable.Genre}  ]
+		 */
+
+		StringBuilder builder = new StringBuilder();
+		builder.append(returnTable).append(" = ").append(pandasFrameVar).append(".merge(").append(leftTableName).append(", ")
+			.append(rightTableName).append(", left_on=[");
+		getMergeColsSyntax(builder, joinCols);
+		builder.append("], right_on=[");
+		getMergeColsSyntax(builder, joinCols);
+		
+		if (joinType.equals("inner.join")) {
+			builder.append("], how=\"inner\")");
+		} else if (joinType.equals("left.outer.join")) {
+			builder.append("], how=\"left\")");
+		} else if (joinType.equals("right.outer.join")) {
+			builder.append("], how=\"right\")");
+		} else if (joinType.equals("outer.join")) {
+			builder.append("], how=\"outer\")");
+		}
+
+		return builder.toString();
+	}
+
+	/**
+	 * Get the correct r syntax for the table join columns
+	 * This uses the join information keys since it is {leftCol -> rightCol}
+	 * @param builder
+	 * @param colNames
+	 */
+	public static void getMergeColsSyntax(StringBuilder builder, List<Map<String, String>> colNames){
+		// iterate through the map
+		boolean firstLoop = true;
+		int numJoins = colNames.size();
+		for(int i = 0; i < numJoins; i++) {
+			Map<String, String> joinMap = colNames.get(i);
+			// just in case an empty map is passed
+			// we do not want to modify the firstLoop boolean
+			if(joinMap.isEmpty()) {
+				continue;
+			}
+			if(!firstLoop) {
+				builder.append(",");
+			}
+			// this should really be 1
+			// since each join between 2 columns is its own map
+			Set<String> tableCols = joinMap.keySet();
+			// keep track of where to add a ","
+			int counter = 0;
+			int numCols = tableCols.size();
+			for(String colName : tableCols){
+				builder.append("\"").append(colName).append("\"");
+				if(counter+1 != numCols) {
+					builder.append(",");
+				}
+				counter++;
+			}
+			firstLoop = false;
+		}
 	}
 	
 	// gets the number of rows in a given data frame
