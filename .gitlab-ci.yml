@@ -64,14 +64,14 @@ version_commit:
   script:
     - ls
     - cat ver.txt
-    # - svn --username ${SVN_USER} --password ${SVN_PASS} checkout svn://107.170.10.188:8080/Semoss/dev SemossVer --depth empty
-    # - cd SemossVer
-    # - svn --username ${SVN_USER} --password ${SVN_PASS} up ver.txt
-    # - cp -rf ../ver.txt ver.txt
-    # - svn --username ${SVN_USER} --password ${SVN_PASS} status -u
-    # - svn --username ${SVN_USER} --password ${SVN_PASS} commit -m "VERSION"
-    # - cd ..
-    # - rm -rf SemossVer
+    - svn --username ${SVN_USER} --password ${SVN_PASS} checkout svn://107.170.10.188:8080/Semoss/dev SemossVer --depth empty
+    - cd SemossVer
+    - svn --username ${SVN_USER} --password ${SVN_PASS} up ver.txt
+    - cp -rf ../ver.txt ver.txt
+    - svn --username ${SVN_USER} --password ${SVN_PASS} status -u
+    - svn --username ${SVN_USER} --password ${SVN_PASS} commit -m "VERSION"
+    - cd ..
+    - rm -rf SemossVer
 
 # Does not push to maven central
 build_dev:
