@@ -103,6 +103,10 @@ public class PandasSyntaxHelper {
 		}
 	}
 	
+	public static String alterColumnName(String tableName, String oldHeader, String newHeader) {
+		return tableName + ".rename(columns={'" + oldHeader + "':'" + newHeader + "'}, inplace=True)";
+	}
+	
 	// gets the number of rows in a given data frame
 	public static String getDFLength(String tableName)
 	{
