@@ -11,6 +11,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PandasSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.Join;
@@ -93,6 +94,21 @@ public class PandasImporter extends AbstractImporter {
 		String tempTableName = Utility.getRandomString(6);
 		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs, it);
 		this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
+		
+		// we may need to alias the headers in this new temp table
+		if(!rightTableAlias.isEmpty()) {
+			for(String oldColName : rightTableAlias.keySet()) {
+				this.dataframe.runScript(PandasSyntaxHelper.alterColumnName(tempTableName, oldColName, rightTableAlias.get(oldColName)));
+			}
+		}
+		
+		if(this.dataframe.isEmpty(tempTableName)) {
+//			if(joins.get(0).getJoinType().equals("inner.join")) {
+//				// clear the fake table
+//				builder.evalR("rm(" + tempTableName + ");");
+				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
+//			}
+		}
 		
 		//define parameters that we will pass into mergeSyntax method to get the R command
 		String returnTable = this.dataframe.getTableName();
