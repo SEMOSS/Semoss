@@ -104,40 +104,46 @@ public class PandasImporter extends AbstractImporter {
 		
 		if(this.dataframe.isEmpty(tempTableName)) {
 //			if(joins.get(0).getJoinType().equals("inner.join")) {
-//				// clear the fake table
-//				builder.evalR("rm(" + tempTableName + ");");
+				// clear the fake table
+				this.dataframe.runScript("del " + tempTableName);
 				throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
 //			}
-		}
+			// TODO: figure out this annoying "not in index" error that i get here
+//			// we are merging w/ no data
+//			// just add an empty column with the column name
+//			String alterTable = PandasSyntaxHelper.alterMissingColumns(this.dataframe.getTableName(), this.dataframe.getColumnHeaders(), newColumnsToTypeMap, joins, new HashMap<String, String>());
+//			this.dataframe.runScript(alterTable);
+		} else {
 		
-		//define parameters that we will pass into mergeSyntax method to get the R command
-		String returnTable = this.dataframe.getTableName();
-		String leftTableName = returnTable;
-		String rightTableName = tempTableName;
-		
-		// only a single join type can be passed at a time
-		String joinType = null;
-		List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
-		for(Join joinItem : joins) {
-			joinType = joinItem.getJoinType();
-			// in R, the existing column is referenced as frame__column
-			// but the R syntax only wants the col
-			Map<String, String> joinColMapping = new HashMap<String, String>();
-			String jSelector = joinItem.getSelector();
-			if(jSelector.contains("__")) {
-				jSelector = jSelector.split("__")[1];
+			//define parameters that we will pass into mergeSyntax method to get the R command
+			String returnTable = this.dataframe.getTableName();
+			String leftTableName = returnTable;
+			String rightTableName = tempTableName;
+			
+			// only a single join type can be passed at a time
+			String joinType = null;
+			List<Map<String, String>> joinCols = new ArrayList<Map<String, String>>();
+			for(Join joinItem : joins) {
+				joinType = joinItem.getJoinType();
+				// in R, the existing column is referenced as frame__column
+				// but the R syntax only wants the col
+				Map<String, String> joinColMapping = new HashMap<String, String>();
+				String jSelector = joinItem.getSelector();
+				if(jSelector.contains("__")) {
+					jSelector = jSelector.split("__")[1];
+				}
+				String jQualifier = joinItem.getQualifier();
+				if(jQualifier.contains("__")) {
+					jQualifier = jQualifier.split("__")[1];
+				}
+				joinColMapping.put(jSelector, jQualifier);
+				joinCols.add(joinColMapping);
 			}
-			String jQualifier = joinItem.getQualifier();
-			if(jQualifier.contains("__")) {
-				jQualifier = jQualifier.split("__")[1];
-			}
-			joinColMapping.put(jSelector, jQualifier);
-			joinCols.add(joinColMapping);
+			
+			//execute r command
+			this.dataframe.merge(returnTable, leftTableName, rightTableName, joinType, joinCols);
+			this.dataframe.syncHeaders();
 		}
-		
-		//execute r command
-		this.dataframe.merge(returnTable, leftTableName, rightTableName, joinType, joinCols);
-		this.dataframe.syncHeaders();
 		
 		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
 		return this.dataframe;
