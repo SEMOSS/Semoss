@@ -1,7 +1,6 @@
 package prerna.ds.r;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -497,33 +496,19 @@ public class RSyntaxHelper {
 		 */
 
 		StringBuilder builder = new StringBuilder();
+		builder.append(returnTable).append(" <- merge(").append(leftTableName).append(", ")
+				.append(rightTableName).append(", by.x = c(");
+		getMergeColsSyntax(builder, joinCols);
+		builder.append("), by.y = c(");
+		getMergeColsSyntax(builder, joinCols);
+		
 		if (joinType.equals("inner.join")) {
-			builder.append(returnTable).append(" <- merge(").append(leftTableName).append(", ")
-			.append(rightTableName).append(", by.x = c(");
-			getLeftMergeCols(builder, joinCols);
-			builder.append("), by.y = c(");
-			getRightMergeCols(builder, joinCols);
 			builder.append("), all = FALSE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("left.outer.join")) {
-			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
-			.append(rightTableName).append(", by.x = c(");
-			getLeftMergeCols(builder, joinCols);
-			builder.append("), by.y = c(");
-			getRightMergeCols(builder, joinCols);
 			builder.append("), all.x = TRUE, all.y = FALSE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("right.outer.join")) {
-			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
-			.append(rightTableName).append(", ").append("by.x").append(" = c("); 
-			getLeftMergeCols(builder, joinCols);
-			builder.append("), by.y").append(" = c(");
-			getRightMergeCols(builder, joinCols);
 			builder.append("), all.x = FALSE, all.y = TRUE, allow.cartesian = TRUE)");
 		} else if (joinType.equals("outer.join")) {
-			builder.append(returnTable).append(" <- ").append("merge(").append(leftTableName).append(", ")
-			.append(rightTableName).append(", ").append("by.x").append(" = c(");
-			getLeftMergeCols(builder, joinCols);
-			builder.append("), by.y").append(" = c(");
-			getRightMergeCols(builder, joinCols);
 			builder.append("), all = TRUE, allow.cartesian = TRUE)");
 		}
 
@@ -531,12 +516,12 @@ public class RSyntaxHelper {
 	}
 
 	/**
-	 * Get the correct r syntax for the left table join columns
+	 * Get the correct r syntax for the table join columns
 	 * This uses the join information keys since it is {leftCol -> rightCol}
 	 * @param builder
 	 * @param colNames
 	 */
-	public static void getLeftMergeCols(StringBuilder builder, List<Map<String, String>> colNames){
+	public static void getMergeColsSyntax(StringBuilder builder, List<Map<String, String>> colNames){
 		// iterate through the map
 		boolean firstLoop = true;
 		int numJoins = colNames.size();
@@ -552,12 +537,12 @@ public class RSyntaxHelper {
 			}
 			// this should really be 1
 			// since each join between 2 columns is its own map
-			Set<String> leftTableCols = joinMap.keySet();
+			Set<String> tableCols = joinMap.keySet();
 			// keep track of where to add a ","
 			int counter = 0;
-			int numCols = leftTableCols.size();
-			for(String leftColName : leftTableCols){
-				builder.append("\"").append(leftColName).append("\"");
+			int numCols = tableCols.size();
+			for(String colName : tableCols){
+				builder.append("\"").append(colName).append("\"");
 				if(counter+1 != numCols) {
 					builder.append(",");
 				}
@@ -567,43 +552,6 @@ public class RSyntaxHelper {
 		}
 	}
 
-	/**
-	 * Get the correct r syntax for the left table join columns
-	 * This uses the join information values since it is {leftCol -> rightCol} 
-	 * @param builder
-	 * @param colNames
-	 */
-	public static void getRightMergeCols(StringBuilder builder, List<Map<String, String>> colNames){
-		// iterate through the map
-		boolean firstLoop = true;
-		int numJoins = colNames.size();
-		for(int i = 0; i < numJoins; i++) {
-			Map<String, String> joinMap = colNames.get(i);
-			// just in case an empty map is passed
-			// we do not want to modify the firstLoop boolean
-			if(joinMap.isEmpty()) {
-				continue;
-			}
-			if(!firstLoop) {
-				builder.append(",");
-			}
-			// this should really be 1
-			// since each join between 2 columns is its own map
-			Collection <String> rightTableCols = joinMap.values();
-			// keep track of where to add a ","
-			int counter = 0;
-			int numCols = rightTableCols.size();
-			for(String rightColName : rightTableCols){
-				builder.append("\"").append(rightColName).append("\"");
-				if(counter+1 != numCols) {
-					builder.append(",");
-				}
-				counter++;
-			}
-			firstLoop = false;
-		}
-	}
-	
 	/**
 	 * Generate an alter statement to add new columns, taking into consideration joins
 	 * and new column alias's
