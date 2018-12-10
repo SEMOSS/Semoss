@@ -30,8 +30,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private static final String PANDAS_IMPORT_VAR = "pandas_import_var";
 	private static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
 	
-	private JepWrapper jep;
-	private String scripFolder;
+//	private String scripFolder;
 	private String tableName;
 	
 	static Hashtable <String, SemossDataType> pyS = new Hashtable();
@@ -72,21 +71,15 @@ public class PandasFrame extends AbstractTableDataFrame {
 		this(null);
 	}
 	
-	public void setJep(PyExecutorThread py)
-	{
-		this.py = py;
-	}
-	
 	public PandasFrame(String tableName) {
-		this.jep = new JepWrapper();
-		
-		this.scripFolder = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
-				"\\" + DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		
 		if(tableName == null || tableName.trim().isEmpty()) {
 			tableName = "PYFRAME_" + UUID.randomUUID().toString().replace("-", "_");
 		}
 		this.tableName = tableName;
+	}
+	
+	public void setJep(PyExecutorThread py) {
+		this.py = py;
 	}
 	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
@@ -135,13 +128,18 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		// need to get a pandas frame types and then see if this is the same as 
 		//alignColumns(tableName, dataTypeMap);
-		adjustDataTypes();
+		adjustDataTypes(tableName);
 		
 		//TODO: testing
 		//jep.eval(tableName);
 	}
 	
-	private void adjustDataTypes()
+	public void merge(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
+		String mergeString = PandasSyntaxHelper.getMergeSyntax(PANDAS_IMPORT_VAR, returnTable, leftTableName, rightTableName, joinType, joinCols);
+		runScript(mergeString);
+	}
+	
+	private void adjustDataTypes(String tableName)
 	{
 		
 		// get the data types from python first
@@ -441,28 +439,25 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	private Object runScript(String... script) {
-		
 		// so I am nto sure we need to write it to a file etc. for now.. I will run it
 		py.command = script;
 		Object monitor = py.getMonitor();
 		Object response = null;
-		synchronized(monitor)
-		{
-			try
-			{
+		synchronized(monitor) {
+			try {
 				monitor.notify();
 				monitor.wait(4000);
-			}catch (Exception ignored)
-			{
-				
+			} catch (Exception ignored) {
+
 			}
-			if(script.length == 1)
+			if(script.length == 1) {
 				response = py.response.get(script[0]);
-			else
+			} else {
 				response = py.response;
+			}
 		}
-		
-/*		// write the script to a file
+
+		/*		// write the script to a file
 		File f = new File(this.scripFolder + "/" + Utility.getRandomString(6) + ".py");
 		try {
 			FileUtils.writeStringToFile(f, script);
@@ -470,14 +465,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 			System.out.println("Error in writing python script for execution!");
 			e1.printStackTrace();
 		}
-		
+
 		// execute the file
 		jep.runScript(f.getAbsolutePath());
-		
+
 		// delete the file
 		f.delete();
-		
-*/	
+
+		 */	
 		commands.add(script[0]);
 		return response;
 	}
@@ -537,4 +532,5 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public String getTableName() {
 		return this.tableName;
 	}
+
 }
