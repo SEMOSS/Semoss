@@ -438,7 +438,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return newHeaders;
 	}
 	
-	private Object runScript(String... script) {
+	public Object runScript(String... script) {
 		// so I am nto sure we need to write it to a file etc. for now.. I will run it
 		py.command = script;
 		Object monitor = py.getMonitor();
@@ -479,9 +479,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public long size(String tableName) {
-		// TODO Auto-generated method stub
-		
-		return 0;
+		String command = "len(" + tableName + ")";
+		Number num = (Number) runScript(command);
+		return num.longValue();
 	}
 	
 	@Override
@@ -507,8 +507,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public boolean isEmpty() {
-		// TODO Auto-generated method stub
-		return false;
+		return isEmpty(this.tableName);
+	}
+	
+	public boolean isEmpty(String tableName) {
+		String command = "\"" + this.tableName + "\" in vars() and len(" + tableName + ") <= 0";
+		Boolean isEmpty = (Boolean) runScript(command);
+		return isEmpty;
 	}
 
 	@Override
