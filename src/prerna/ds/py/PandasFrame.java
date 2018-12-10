@@ -128,7 +128,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		// need to get a pandas frame types and then see if this is the same as 
 		//alignColumns(tableName, dataTypeMap);
-		adjustDataTypes(tableName);
+		if(!isEmpty(tableName)) {
+			adjustDataTypes(tableName);
+		}
 		
 		//TODO: testing
 		//jep.eval(tableName);
@@ -511,7 +513,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public boolean isEmpty(String tableName) {
-		String command = "\"" + this.tableName + "\" in vars() and len(" + tableName + ") <= 0";
+		String command = "\"" + tableName + "\" in vars() and len(" + tableName + ") <= 0";
 		Boolean isEmpty = (Boolean) runScript(command);
 		return isEmpty;
 	}
