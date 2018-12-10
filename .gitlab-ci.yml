@@ -50,11 +50,12 @@ version_info_release:
 version_commit:
   stage: version_commit
   # Only commit version to SVN when building off svn/dev, which mirrors SVN
+  # Also only commit when doing a release, or when the env explicitly permits it
   only:
     refs:
       - svn/dev
     variables:
-      - $VERSION_TEST == "TRUE"
+      - $RELEASE == "TRUE"
       - $VERSION_COMMIT == "TRUE"
   # Don't commit on pushes, otherwise might cause an infinite loop!
   except:
