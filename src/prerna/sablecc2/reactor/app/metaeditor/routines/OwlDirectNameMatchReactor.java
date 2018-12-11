@@ -181,6 +181,16 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 			}, typesMap);
 		} catch(EmptyIteratorException e) {
 			emptyMessage = true;
+			int size = typesMap.size();
+			String[] headers = new String[size];
+			String[] types = new String[size];
+			int i = 0;
+			for(String header : typesMap.keySet()) {
+				headers[i] = header;
+				types[i] = typesMap.get(header).toString();
+				i++;
+			}
+			frame.getBuilder().alterTableNewColumns(frame.getTableName(), headers, types);
 			// ignore, but need to add message
 		}
 		
