@@ -36,7 +36,19 @@ public class QueryArithmeticSelector extends AbstractQuerySelector {
 
 	@Override
 	public String getQueryStructName() {
-		return this.leftSelector.getQueryStructName() + this.mathExpr + this.rightSelector.getQueryStructName();
+		String ret = "";
+		if(this.leftSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+			ret += "(" + this.leftSelector.getQueryStructName() + ")";
+		} else {
+			ret += this.leftSelector.getQueryStructName();
+		}
+		ret += this.mathExpr;
+		if(this.rightSelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+			ret += "(" + this.rightSelector.getQueryStructName() + ")";
+		} else {
+			ret += this.rightSelector.getQueryStructName();
+		}
+		return ret;
 	}
 	
 	@Override

@@ -228,6 +228,12 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 				selectorMap.put("derived", false);
 			} else {
 				selectorMap.put("derived", true);
+				List<String> groupBy = new ArrayList<String>();
+				for(QueryColumnSelector groupBySelector : this.groupBy) {
+					String groupQs = groupBySelector.getQueryStructName();
+					groupBy.add(groupQs);
+				}
+				selectorMap.put("groupBy", groupBy);
 			}
 			// if it is a math, then there must be a group by associated with it
 			if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
