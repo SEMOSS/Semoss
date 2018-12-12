@@ -55,7 +55,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		for(int i = 0; i < this.innerSelectors.size(); i++) {
 			qsConcat.append(this.innerSelectors.get(i).getQueryStructName());
 		}
-		return this.functionName + "(" + qsConcat + ")";
+		return QueryFunctionHelper.getPrettyName(this.functionName) + "(" + qsConcat + ")";
 	}
 
 	public List<IQuerySelector> getInnerSelector() {
