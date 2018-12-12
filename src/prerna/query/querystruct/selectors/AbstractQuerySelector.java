@@ -25,4 +25,9 @@ public abstract class AbstractQuerySelector implements IQuerySelector {
 			}
 		}
 	}
+	
+	@Override
+	public String toString() {
+		return this.getQueryStructName();
+	}
 }
