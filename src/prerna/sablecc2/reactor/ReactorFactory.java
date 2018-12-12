@@ -475,7 +475,7 @@ public class ReactorFactory {
 		
 		// Database uploading utils
 		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);
-		reactorHash.put("PredictDataPredict", PredictFileDataTypesReactor.class);
+		reactorHash.put("PredictDataTypes", PredictFileDataTypesReactor.class);
 		reactorHash.put("PredictExcelDataTypes", PredictExcelDataTypesReactor.class);
 		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
