@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -188,7 +189,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			if(it.hasNext()) {
 				Object[] data = it.next().getValues();
 				for(int i = 0 ; i < data.length; i++) {
-					if(data[i] instanceof Number) {
+					if(data[i] == null) {
+						row.createCell(i+1).setCellType(CellType.BLANK);
+					} else if(data[i] instanceof Number) {
 						row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
 					} else {
 						row.createCell(i+1).setCellValue(data[i] + "");
@@ -203,7 +206,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			Row row = sheet.createRow(rowCounter);
 			Object[] data = it.next().getValues();
 			for(int i = 0 ; i < data.length; i++) {
-				if(data[i] instanceof Number) {
+				if(data[i] == null) {
+					row.createCell(i+1).setCellType(CellType.BLANK);
+				} else if(data[i] instanceof Number) {
 					row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
 				} else {
 					row.createCell(i+1).setCellValue(data[i] + "");
@@ -237,7 +242,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			if(it.hasNext()) {
 				Object[] data = it.next().getValues();
 				for(int i = 0 ; i < data.length; i++) {
-					if(data[i] instanceof Number) {
+					if(data[i] == null) {
+						row.createCell(i+1).setCellType(CellType.BLANK);
+					} else if(data[i] instanceof Number) {
 						row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
 					} else {
 						row.createCell(i+1).setCellValue(data[i] + "");
@@ -251,7 +258,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			Row row = sheet.createRow(rowCounter);
 			Object[] data = it.next().getValues();
 			for(int i = 0 ; i < data.length; i++) {
-				if(data[i] instanceof Number) {
+				if(data[i] == null) {
+					row.createCell(i+1).setCellType(CellType.BLANK);
+				} else if(data[i] instanceof Number) {
 					row.createCell(i+1).setCellValue(((Number) data[i]).doubleValue());
 				} else {
 					row.createCell(i+1).setCellValue(data[i] + "");
