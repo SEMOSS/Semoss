@@ -25,12 +25,16 @@ public class GoogleSentimentAnalyzerLambda extends AbstractFlatMapLambda {
 	
 	@Override
 	public List<IHeadersDataRow> process(IHeadersDataRow row) {
-		// grab the column index we want to use as the address
+		Object value = row.getValues()[colIndex];
+		if(value == null || value.toString().isEmpty()) {
+			return new Vector<IHeadersDataRow>();
+		}
+		// grab the column sindex we want to use as the address
 		Hashtable params = new Hashtable();
 		Hashtable docParam = new Hashtable();
 		docParam.put("type", "PLAIN_TEXT");
 		docParam.put("language", "EN");
-		docParam.put("content", row.getValues()[colIndex].toString().replace("_", " "));
+		docParam.put("content", value.toString().replace("_", " "));
 		params.put("document", docParam);
 		
 		// construct new values to append onto the row
