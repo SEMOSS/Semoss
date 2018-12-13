@@ -1207,22 +1207,51 @@ public class OwlTemporalEngineMeta {
 	public SelectQueryStruct getFlatTableQs() {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		
-		// set all the headers
-		List<String> allHeaders = this.getFrameSelectors();
-		for(String header : allHeaders) {
-			if(header.contains("__")) {
-				String[] split = header.split("__");
-				QueryColumnSelector qsSelector = new QueryColumnSelector();
-				qsSelector.setTable(split[0]);
-				qsSelector.setColumn(split[1]);
-				qsSelector.setAlias(split[1]);
-				qs.addSelector(qsSelector);
-			} else {
-				QueryColumnSelector qsSelector = new QueryColumnSelector();
-				qsSelector.setTable(header);
-				qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-				qsSelector.setAlias(header);
-				qs.addSelector(qsSelector);
+		// query to get all headers + aliases
+		String query = "select distinct "
+				+ "?header "
+				+ "(coalesce(?display, ?header) as ?alias) "
+				+ "(coalesce(?prim, 'false') as ?isPrim) "
+				+ "(coalesce(lcase(?display), lcase(?header)) as ?loweralias) "
+				+ "where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "optional{?header <" + IS_PRIM_KEY_PRED + "> ?prim}"
+				+ "optional{?header <" + ALIAS_PRED + "> ?display}"
+				+ "}"
+				+ "filter(?header != <" + SEMOSS_CONCEPT_PREFIX + "> && "
+					+ "?header != <" + SEMOSS_PROPERTY_PREFIX + ">)"
+				+ "} order by ?loweralias";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		while(it.hasNext()) {
+			Object[] row = it.next().getValues();
+			if(row[2].equals("false")) {
+				String header = row[0].toString();
+				String alias = row[1].toString();
+				if(alias.contains("__")) {
+					alias = alias.split("__")[1];
+				}
+				if(header.contains("__")) {
+					String[] split = header.split("__");
+					QueryColumnSelector qsSelector = new QueryColumnSelector();
+					qsSelector.setTable(split[0]);
+					qsSelector.setColumn(split[1]);
+					qsSelector.setAlias(alias);
+					qs.addSelector(qsSelector);
+				} else {
+					QueryColumnSelector qsSelector = new QueryColumnSelector();
+					qsSelector.setTable(header);
+					qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+					qsSelector.setAlias(alias);
+					qs.addSelector(qsSelector);
+				}
 			}
 		}
 		
