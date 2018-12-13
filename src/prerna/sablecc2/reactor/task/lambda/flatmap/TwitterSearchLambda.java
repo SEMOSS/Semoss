@@ -19,12 +19,16 @@ public class TwitterSearchLambda extends AbstractFlatMapLambda {
 	
 	@Override
 	public List<IHeadersDataRow> process(IHeadersDataRow row) {
+		Object value = row.getValues()[colIndex];
+		if(value == null || value.toString().isEmpty()) {
+			return new Vector<IHeadersDataRow>();
+		}
 		// construct new values to append onto the row
 		// add new headers
 		String[] newHeaders = new String[]{"review", "author", "retweet_count"};
 		
 		Hashtable params = new Hashtable();
-		params.put("q", row.getValues()[colIndex]);
+		params.put("q", value.toString().replace("_", " "));
 		params.put("lang", "en");
 		if(this.params.containsKey("output"))
 			params.put("count", this.params.get("output"));		
