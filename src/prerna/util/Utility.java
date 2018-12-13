@@ -2586,7 +2586,7 @@ public class Utility {
 				// TODO >>>timb: remove node exists error or catch it 
 				// TODO >>>cluster: tag
 				// Start with because the insights RDBMS has the id security_InsightsRDBMS
-				if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase") || engineId.startsWith("form_builder_engine"))) {
+				if (!(engineId.startsWith("security") || engineId.startsWith("LocalMasterDatabase") || engineId.startsWith("form_builder_engine") || engineId.startsWith("themes"))) {
 					Map<String, String> envMap = System.getenv();
 					if(envMap.containsKey(ZKClient.ZK_SERVER) || envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
 						if(ClusterUtil.LOAD_ENGINES_LOCALLY) {
