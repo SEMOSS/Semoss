@@ -140,7 +140,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		Insight cachedInsight = null;
 		if(cacheable && !isParam && !isDashoard) {
 			try {
-				cachedInsight = getCachedInsight(newInsight.getEngineId(), newInsight.getEngineName(), newInsight.getRdbmsId());
+				cachedInsight = getCachedInsight(newInsight);
 				if(cachedInsight != null) {
 					hasCache = true;
 					cachedInsight.setInsightName(newInsight.getInsightName());
@@ -253,7 +253,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @param insightId
 	 * @return
 	 */
-	protected Insight getCachedInsight(String engineId, String engineName, String insightId) throws IOException, JsonSyntaxException {
+	protected Insight getCachedInsight(Insight existingInsight) throws IOException, JsonSyntaxException {
+		String engineId = existingInsight.getEngineId();
+		String engineName = existingInsight.getEngineName();
+		String insightId = existingInsight.getRdbmsId();
+		
 		Insight insight = null;
 		
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
@@ -265,7 +269,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			return insight;
 		}
 		
-		insight = InsightCacheUtility.readInsightCache(insightZip);
+		insight = InsightCacheUtility.readInsightCache(insightZip, existingInsight);
 		return insight;
 	}
 	

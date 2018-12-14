@@ -1,6 +1,7 @@
 package prerna.ds.py;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -488,8 +489,58 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
+		// this should take the variable name and kill it
+		// if the user has created others, nothing can be done
+		logger.info("Removing variable " + this.tableName);
+		runScript("del " + this.tableName);
+	}
+	
+	@Override
+	public CachePropFileFrameObject save(String folderDir) throws IOException {
+		CachePropFileFrameObject cf = new CachePropFileFrameObject();
+
+		String frameName = this.getTableName();
+		cf.setFrameName(frameName);
 		
+		// save frame
+		String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".pkl";
+		cf.setFrameCacheLocation(frameFilePath);
+		String command = this.tableName + ".to_pickle(\"" + frameFilePath.replace("\\", "/") + "\")";
+		runScript(command);
+		
+		// also save the meta details
+		this.saveMeta(cf, folderDir, frameName);
+		return cf;
+	}
+	
+	@Override
+	public void open(CachePropFileFrameObject cf) {
+		// set the frame name
+		this.tableName = cf.getFrameName();
+		// load the pandas library
+		runScript(PANDAS_IMPORT_STRING);
+		// load the frame
+		String command = this.tableName + "= " + PANDAS_IMPORT_VAR + ".read_pickle(\"" +  cf.getFrameCacheLocation().replace("\\", "/") + "\")";
+		runScript(command);
+		// open the meta details
+		this.openCacheMeta(cf);
+		setDataTypeMap(this.metaData.getHeaderToTypeMap());
+	}
+
+	@Override
+	public String getTableName() {
+		return this.tableName;
+	}
+	
+	@Override
+	public boolean isEmpty() {
+		return isEmpty(this.tableName);
+	}
+	
+	public boolean isEmpty(String tableName) {
+		String command = "\"" + tableName + "\" in vars() and len(" + tableName + ") <= 0";
+		Boolean isEmpty = (Boolean) runScript(command);
+		return isEmpty;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////
@@ -508,36 +559,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public boolean isEmpty() {
-		return isEmpty(this.tableName);
-	}
-	
-	public boolean isEmpty(String tableName) {
-		String command = "\"" + tableName + "\" in vars() and len(" + tableName + ") <= 0";
-		Boolean isEmpty = (Boolean) runScript(command);
-		return isEmpty;
-	}
-
-	@Override
-	public CachePropFileFrameObject save(String fileName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void open(CachePropFileFrameObject cf) {
-		
-	}
-
-	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		// TODO Auto-generated method stub
 		
-	}
-	
-	@Override
-	public String getTableName() {
-		return this.tableName;
 	}
 
 }

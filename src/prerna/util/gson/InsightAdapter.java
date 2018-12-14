@@ -22,6 +22,7 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.ds.py.PandasFrame;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.InsightCacheUtility;
@@ -43,11 +44,17 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.translations.OptimizeRecipeTranslation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.insight.InsightUtility;
 
 public class InsightAdapter extends TypeAdapter<Insight> {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
+	// this var is only used so we have a way
+	// to pass specific variables into a new insight we are creating from a cache
+	// things like python thread
+	// or potentially the full user object
+	private Insight existingInsight;
 	private ZipFile zip;
 	private ZipOutputStream zos;
 	
@@ -281,6 +288,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
 		Insight insight = new Insight();
+		InsightUtility.transferDefaultVars(existingInsight, insight);
 		
 		in.beginObject();
 		in.nextName();
@@ -350,6 +358,10 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			ITableDataFrame frame;
 			try {
 				frame = (ITableDataFrame) Class.forName(cf.getFrameType()).newInstance();
+				// need to set the exector for pandas
+				if(frame instanceof PandasFrame) {
+					((PandasFrame)frame).setJep(insight.getPy());
+				}
 				frame.open(cf);
 				
 				NounMetadata fNoun = new NounMetadata(frame, PixelDataType.FRAME);
@@ -414,6 +426,10 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		path = path.replace("@" + Constants.BASE_FOLDER + "@", baseFolder);
 		path = path.replace("@" + Constants.ENGINE + "@", SmssUtilities.getUniqueName(engineName, engineId));
 		return path;
+	}
+
+	public void setUserContext(Insight existingInsight) {
+		this.existingInsight = existingInsight;		
 	}
 	
 }
