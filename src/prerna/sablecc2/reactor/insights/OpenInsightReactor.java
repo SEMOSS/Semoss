@@ -69,7 +69,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
+			// TODO>>>timb: switch this back once we have insight level security
+//			if(!SecurityQueryUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
+			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("User does not have access to this insight");
 			}
 		} else {
