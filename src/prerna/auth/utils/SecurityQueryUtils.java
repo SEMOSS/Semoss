@@ -13,6 +13,7 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 
 import prerna.auth.AccessPermission;
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -440,6 +441,29 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			if(AccessPermission.isOwner(permission)) {
 				return true;
 			}
+		}
+		
+		return false;
+	}
+	
+	public static boolean userCanViewEngine(User user, String engineId) {
+	
+		for (AuthProvider authProv : user.getLogins()) {
+			AccessToken token = user.getAccessToken(authProv);
+			String userId = token.getId();
+			
+			String query = "SELECT * from ENGINEPERMISSION WHERE USERID = '" + userId + 
+					"' AND ENGINEID = '" + engineId + "'";
+			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+			// Doesn't matter what level of access, as long as it is there
+			try {
+				if(wrapper.hasNext()) {
+					return true;
+				}
+			} finally {
+				wrapper.cleanUp();
+			}			
 		}
 		
 		return false;
