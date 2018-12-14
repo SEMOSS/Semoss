@@ -70,7 +70,7 @@ public class InsightCachingTest {
 		File insightFile;
 		try {
 			insightFile = InsightCacheUtility.cacheInsight(in);
-			Insight newIn = InsightCacheUtility.readInsightCache(insightFile);
+			Insight newIn = InsightCacheUtility.readInsightCache(insightFile, in);
 			printInsightDetails(newIn);
 		} catch (IOException e) {
 			e.printStackTrace();
