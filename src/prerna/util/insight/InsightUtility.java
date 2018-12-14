@@ -35,6 +35,7 @@ public class InsightUtility {
 				newInsight.getVarStore().put(key, origInsight.getVarStore().get(key));
 			}
 		}
+		newInsight.setPy(origInsight.getPy());
 	}
 	
 	/**
