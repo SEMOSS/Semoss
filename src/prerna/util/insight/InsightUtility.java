@@ -29,6 +29,9 @@ public class InsightUtility {
 	 * @param newInsight
 	 */
 	public static void transferDefaultVars(Insight origInsight, Insight newInsight) {
+		if(origInsight == null) {
+			return;
+		}
 		String[] keys = new String[]{JobReactor.JOB_KEY, JobReactor.SESSION_KEY, JobReactor.INSIGHT_KEY};
 		for(String key : keys) {
 			if(origInsight.getVarStore().containsKey(key)) {
