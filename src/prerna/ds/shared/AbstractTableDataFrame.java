@@ -498,6 +498,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	protected void openCacheMeta(CachePropFileFrameObject cf) {
 		//load owl meta
 		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaCacheLocation());
+		syncHeaders();
 		
 		String state = cf.getFrameStateCacheLocation();
 		if(state != null) {

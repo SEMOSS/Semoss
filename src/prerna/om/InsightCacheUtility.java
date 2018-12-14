@@ -131,7 +131,7 @@ public class InsightCacheUtility {
 	 * @return
  	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(File insightCacheZip) throws IOException, RuntimeException {
+	public static Insight readInsightCache(File insightCacheZip, Insight existingInsight) throws IOException, RuntimeException {
 		ZipFile zip = null;
 		ZipEntry entry = null;
 		InputStream is = null;
@@ -153,10 +153,14 @@ public class InsightCacheUtility {
 	        }
 	        
 	        InsightAdapter iAdapter = new InsightAdapter(zip);
+	        iAdapter.setUserContext(existingInsight);
 	        StringReader reader = new StringReader(sb.toString());
 	        JsonReader jReader = new JsonReader(reader);
 			Insight insight = iAdapter.read(jReader);
 			return insight;
+		} catch(Exception e) {
+			e.printStackTrace();
+			throw e;
 		} finally {
 			closeStream(br);
 			closeStream(isr);
@@ -171,9 +175,9 @@ public class InsightCacheUtility {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static Insight readInsightCache(String insightPath) throws IOException, JsonSyntaxException {
+	public static Insight readInsightCache(String insightPath, Insight existingInsight) throws IOException, JsonSyntaxException {
 		File insightFile = new File(insightPath);
-		return readInsightCache(insightFile);
+		return readInsightCache(insightFile, existingInsight);
 	}
 	
 	/**
@@ -245,6 +249,7 @@ public class InsightCacheUtility {
 		extentions.add("*.owl");
 		extentions.add("*.tg");
 		extentions.add("*.rda");
+		extentions.add("*.pkl");
 
 		FileFilter fileFilter = new WildcardFileFilter(extentions);
 		File[] cacheFiles = folder.listFiles(fileFilter);
