@@ -130,10 +130,6 @@ public class Insight {
 	// dont know how else to shift to this
 	protected boolean isOldInsight = false;
 	
-	// GA Values
-	private String prevType = null;
-	private String thisPrevExpression = null;
-	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////// START CONSTRUCTORS //////////////////////////////////
@@ -237,29 +233,6 @@ public class Insight {
 			}
 		}
 	}
-
-//	/**
-//	 * 
-//	 * @param curType
-//	 * @param curExpression
-//	 */
-//	public void trackPixels(String curType, String curExpression) {
-//		String thisType = curType;
-//		String prevType = this.prevType;
-//		String thisExpression = curExpression;
-//		String thisPrevExpression = this.thisPrevExpression;
-//		NounMetadata session = this.getVarStore().get("$SESSION_ID");
-//		// session is null if opening a saved insight
-//		// we don't need to track these pixels again
-//		if (session != null) {
-//			String userId = (String) session.getValue();
-//			// fire and release...
-//			UserTrackerFactory.getInstance().track(thisExpression, thisType, thisPrevExpression, prevType, userId);
-//			// set this expression as insight level previous expression
-//			this.thisPrevExpression = thisExpression;
-//			this.prevType = curType;
-//		}
-//	}
 
 	public PixelRunner getPixelRunner() {
 		PixelRunner runner = new PixelRunner();
