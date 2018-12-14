@@ -146,6 +146,7 @@ public class PandasImporter extends AbstractImporter {
 		}
 		
 		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
+		this.dataframe.setDataTypeMap(this.dataframe.getMetaData().getHeaderToTypeMap());
 		return this.dataframe;
 	}
 }

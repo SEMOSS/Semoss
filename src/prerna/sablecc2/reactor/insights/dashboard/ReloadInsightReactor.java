@@ -35,7 +35,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 		Insight cachedInsight = null;
 		if(cacheable && !isParam && !isDashoard) {
 			try {
-				cachedInsight = getCachedInsight(this.insight.getEngineId(), this.insight.getEngineName(), this.insight.getRdbmsId());
+				cachedInsight = getCachedInsight(this.insight);
 				if(cachedInsight != null) {
 					hasCache = true;
 					cachedInsight.setInsightId(this.insight.getInsightId());
