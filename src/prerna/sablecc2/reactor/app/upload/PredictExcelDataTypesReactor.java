@@ -40,18 +40,18 @@ public class PredictExcelDataTypesReactor extends AbstractReactor {
 		}
 		Map<String, Object> fileData = new HashMap<String, Object>();
 
-		// fileLocation
-		fileData.put("fileLocation", filePath);
-		String file = filePath.substring(filePath.lastIndexOf("\\") + 1, filePath.lastIndexOf("."));
-		try {
-			// taking out the date added onto the original file name
-			file = file.substring(0, file.indexOf("_____UNIQUE"));
-		} catch (Exception e) {
-			// just in case that fails, this shouldnt because if its a filename
-			// it should have a "."
-			file = filePath.substring(filePath.lastIndexOf("\\") + 1, filePath.lastIndexOf("."));
-		}
-		fileData.put("fileName", file);
+//		// fileLocation
+//		fileData.put("fileLocation", filePath);
+//		String file = filePath.substring(filePath.lastIndexOf("\\") + 1, filePath.lastIndexOf("."));
+//		try {
+//			// taking out the date added onto the original file name
+//			file = file.substring(0, file.indexOf("_____UNIQUE"));
+//		} catch (Exception e) {
+//			// just in case that fails, this shouldnt because if its a filename
+//			// it should have a "."
+//			file = filePath.substring(filePath.lastIndexOf("\\") + 1, filePath.lastIndexOf("."));
+//		}
+//		fileData.put("fileName", file);
 
 		// processing excel file data
 		// trying to determine data blocks within a sheet
