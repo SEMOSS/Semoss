@@ -14,10 +14,12 @@ import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
+import prerna.poi.main.HeadersException;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -26,6 +28,7 @@ import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
+import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 public class RDataTable extends AbstractTableDataFrame {
@@ -324,6 +327,37 @@ public class RDataTable extends AbstractTableDataFrame {
 //				logger.info("R Connection is already closed...");
 //			}
 //		}
+	}
+	
+	/**
+	 * Recrate the metadata for this existing frame
+	 */
+	public void recreateMeta() {
+		String[] colNames = this.builder.getColumnNames();
+		String[] colTypes = this.builder.getColumnTypes();
+		//clean headers
+		HeadersException headerChecker = HeadersException.getInstance();
+		colNames = headerChecker.getCleanHeaders(colNames);
+		// update frame header names in R
+		String rColNames = "";
+		for (int i = 0; i < colNames.length; i++) {
+			rColNames += "\"" + colNames[i] + "\"";
+			if (i < colNames.length - 1) {
+				rColNames += ", ";
+			}
+		}
+		String script = "colnames(" + getTableName() + ") <- c(" + rColNames + ")";
+		this.builder.evalR(script);
+
+		// close existing meta
+		// make a new one
+		// load into it
+		this.metaData.close();
+		this.metaData = new OwlTemporalEngineMeta();
+		ImportUtility.parserRTableColumnsAndTypesToFlatTable(this, colNames, colTypes, getTableName());
+		
+		// clear the cached info
+		this.clearCachedInfo();
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
