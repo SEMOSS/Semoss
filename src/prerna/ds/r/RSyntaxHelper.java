@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
 
@@ -109,6 +110,26 @@ public class RSyntaxHelper {
 					str.append(row.get(i));
 				}
 			}
+			// if not the last entry, append a "," to separate entries
+			if( (i+1) != size) {
+				str.append(",");
+			}
+		}
+		str.append(")");
+		return str.toString();
+	}
+	
+	/**
+	 * Convert a list to a r column vector of strings
+	 * @param values
+	 * @return
+	 */
+	public static String createStringRColVec(GenRowStruct grs) {
+		StringBuilder str = new StringBuilder("c(");
+		int i = 0;
+		int size = grs.size();
+		for(; i < size; i++) {
+			str.append("\"").append(grs.get(i)).append("\"");
 			// if not the last entry, append a "," to separate entries
 			if( (i+1) != size) {
 				str.append(",");
