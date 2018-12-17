@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.qs;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -39,13 +40,27 @@ public class ExecQueryReactor extends AbstractReactor {
 		IEngine engine = null;
 		ITableDataFrame frame = null;
 		AbstractQueryStruct qs = null;
-
+		String userId = "user not defined";
+		
 		if(qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
 				engine = qs.retrieveQueryStructEngine();
 				if(!(engine instanceof RDBMSNativeEngine)) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms databases");
+				}
+				
+				// If an engine and the user is defined, then grab it for the audit log
+				User user = this.insight.getUser();
+				if (user != null) {
+					userId = user.getAccessToken(user.getLogins().get(0)).getId();
+				}
+				
+				// If security is enabled, then check that the user can edit the engine
+				if (AbstractSecurityUtils.securityEnabled()) {
+					if(!SecurityQueryUtils.userCanEditEngine(user, engine.getEngineId())) {
+						throw new IllegalArgumentException("User does not have permission to exec query for this app");
+					}
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
@@ -59,14 +74,6 @@ public class ExecQueryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
 		
-		String userId = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			userId = user.getAccessToken(user.getLogins().get(0)).getId();
-		} else {
-			userId = "require login for user";
-		}
-
 		boolean update = false;
 		String query = null;
 		if(qs instanceof UpdateQueryStruct) {
