@@ -307,8 +307,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 
 //		//TODO: add the other tables...
-		boolean securityEnabled = Boolean.parseBoolean(DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED).toString());
-		if(securityEnabled){
+		if(AbstractSecurityUtils.securityEnabled){
 			removeDb(appId);
 		}
 	}
