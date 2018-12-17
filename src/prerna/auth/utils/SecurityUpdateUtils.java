@@ -1062,7 +1062,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws SQLException 
 	 */
 	public static void setDbVisibility(User user, String engineId, boolean visibility) throws SQLException {
-		if(!SecurityQueryUtils.getUserEngineIds(user).contains(engineId)) {
+		if(!SecurityQueryUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to modify his visibility of this app.");
 		}
 		String userFilters = getUserFilters(user);
