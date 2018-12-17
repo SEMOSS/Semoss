@@ -33,7 +33,7 @@ public class UpdateAppReactor extends AbstractReactor {
 		List<Map<String, Object>> baseInfo = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			if(!SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
+			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), appId)) {
 				// you dont have access
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
