@@ -91,6 +91,7 @@ import prerna.sablecc2.reactor.cluster.OpenAppReactor;
 import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
 import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.sablecc2.reactor.export.AsTaskReactor;
+import prerna.sablecc2.reactor.export.CollectAllReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.DropBoxUploaderReactor;
@@ -590,6 +591,7 @@ public class ReactorFactory {
 		reactorHash.put("ResetAll", ResetPanelTasksReactor.class); // reset all panel tasks
 		reactorHash.put("RemoveTask", RemoveTaskReactor.class);
 		reactorHash.put("Collect", CollectReactor.class); // collect from task
+		reactorHash.put("CollectAll", CollectAllReactor.class); // collect from task
 		reactorHash.put("CollectGraph", CollectGraphReactor.class); // collect from task
 		reactorHash.put("GrabScalarElement", GrabScalarElementReactor.class);
 		reactorHash.put("AsTask", AsTaskReactor.class);
