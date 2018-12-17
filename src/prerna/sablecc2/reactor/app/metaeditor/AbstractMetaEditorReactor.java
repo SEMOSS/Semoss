@@ -46,7 +46,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 				}
 			} else {
 				// just need read access
-				if(!SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(testId)) {
+				if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
 				}
 			}
