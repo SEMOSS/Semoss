@@ -76,6 +76,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		}
 
 		String targetTable = getTargetTable();
+		// clean up the table name
+		targetTable = Utility.makeAlphaNumeric(targetTable);
 		boolean overWrite = getOverWrite();
 		
 		logger.info("Persisting data into table = " + targetTable);
