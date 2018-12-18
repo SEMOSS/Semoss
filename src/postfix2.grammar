@@ -98,7 +98,7 @@ Productions
 
  // an assignment if a word or number equal to
  // some kind of evaluation
- assignment = word_or_id equal script;
+ assignment = id equal script;
 
  // i need a way to allow for an embedded_script
  // but i need it to not conflict with a formula

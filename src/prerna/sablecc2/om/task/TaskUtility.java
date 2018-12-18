@@ -96,4 +96,22 @@ public class TaskUtility {
 		return null;
 	}
 	
+	/**
+	 * See if there is data in the task data output
+	 * @param taskData
+	 * @return
+	 */
+	public static boolean noData(Object taskData) {
+		//TODO: grab the type from the task data if present instead of doing the cast
+		if(taskData instanceof Map) {
+			Map dataMap = (Map) ((Map) taskData).get("data");
+			if(dataMap != null) {
+				List<Object[]> values = (List<Object[]>) dataMap.get("values");
+				if(values == null || values.isEmpty()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 }

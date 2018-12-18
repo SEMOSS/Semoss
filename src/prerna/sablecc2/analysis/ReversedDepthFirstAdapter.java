@@ -250,9 +250,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getEqual().apply(this);
         }
-        if(node.getWordOrId() != null)
+        if(node.getId() != null)
         {
-            node.getWordOrId().apply(this);
+            node.getId().apply(this);
         }
         outAAssignment(node);
     }
