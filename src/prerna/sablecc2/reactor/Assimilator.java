@@ -23,7 +23,9 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 	@Override
 	public NounMetadata execute() {
 		modifySignatureFromLambdas();
-		
+		while(signature.startsWith("(") && signature.endsWith(")")) {
+			signature = signature.substring(1, signature.length()-1).trim();
+		}
 		// get the assimilator evaluator
 		// this is the class we are going to be using to execute
 		// if we are running this again, we will not create the class and add
@@ -111,7 +113,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 		} else {
 			// multiply by 1.0 to make sure everything is a double...
 			// as a pixel data type
-			expressionBuilder.append("return new java.math.BigDecimal(1.0 * (").append(this.signature).append("));}");
+			expressionBuilder.append("return new java.math.BigDecimal(1.0 * ").append(this.signature).append(");}");
 		}
 		return expressionBuilder.toString();
 	}

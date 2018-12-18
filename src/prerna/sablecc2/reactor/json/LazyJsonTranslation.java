@@ -303,7 +303,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPixel(node.getWordOrId().toString().trim(), node.toString().trim());
+        assignmentReactor.setPixel(node.getId().toString().trim(), node.toString().trim());
     	initReactor(assignmentReactor);
     }
 
