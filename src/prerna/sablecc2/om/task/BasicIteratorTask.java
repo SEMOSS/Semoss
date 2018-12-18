@@ -280,7 +280,7 @@ public class BasicIteratorTask extends AbstractTask {
 			setHeaderInfo(null);
 		} else if(this.grabTypesFromWrapper) {
 			setHeaderInfo(this.headerInfo);
-			this.grabFromWrapper = false;
+			this.grabTypesFromWrapper = false;
 		}
 		return this.headerInfo;
 	}
