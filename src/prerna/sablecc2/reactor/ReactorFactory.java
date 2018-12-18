@@ -95,6 +95,7 @@ import prerna.sablecc2.reactor.export.CollectAllReactor;
 import prerna.sablecc2.reactor.export.CollectGraphReactor;
 import prerna.sablecc2.reactor.export.CollectReactor;
 import prerna.sablecc2.reactor.export.DropBoxUploaderReactor;
+import prerna.sablecc2.reactor.export.EmptyDataReactor;
 import prerna.sablecc2.reactor.export.GoogleUploaderReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
 import prerna.sablecc2.reactor.export.IterateReactor;
@@ -595,6 +596,7 @@ public class ReactorFactory {
 		reactorHash.put("CollectGraph", CollectGraphReactor.class); // collect from task
 		reactorHash.put("GrabScalarElement", GrabScalarElementReactor.class);
 		reactorHash.put("AsTask", AsTaskReactor.class);
+		reactorHash.put("EmptyData", EmptyDataReactor.class);
 		reactorHash.put("CollectMeta", TaskMetaCollectorReactor.class); // collect meta from task
 		reactorHash.put("Format", TaskFormatReactor.class); // set formats
 		reactorHash.put("TaskOptions", TaskOptionsReactor.class); // set options
@@ -605,7 +607,6 @@ public class ReactorFactory {
 		reactorHash.put("ToExcel", ToExcelReactor.class); // take any task and output to a file
 		reactorHash.put("ToDatabase", ToDatabaseReactor.class);
 		reactorHash.put("ToLoaderSheet", ToLoaderSheetReactor.class);
-
 		
 		// Task Operations
 		reactorHash.put("CodeLambda", GenericMapLambdaTaskReactor.class);

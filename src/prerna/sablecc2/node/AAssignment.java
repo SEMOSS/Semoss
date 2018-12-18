@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AAssignment extends PAssignment
 {
-    private PWordOrId _wordOrId_;
+    private TId _id_;
     private TEqual _equal_;
     private PScript _script_;
 
@@ -17,12 +17,12 @@ public final class AAssignment extends PAssignment
     }
 
     public AAssignment(
-        @SuppressWarnings("hiding") PWordOrId _wordOrId_,
+        @SuppressWarnings("hiding") TId _id_,
         @SuppressWarnings("hiding") TEqual _equal_,
         @SuppressWarnings("hiding") PScript _script_)
     {
         // Constructor
-        setWordOrId(_wordOrId_);
+        setId(_id_);
 
         setEqual(_equal_);
 
@@ -34,7 +34,7 @@ public final class AAssignment extends PAssignment
     public Object clone()
     {
         return new AAssignment(
-            cloneNode(this._wordOrId_),
+            cloneNode(this._id_),
             cloneNode(this._equal_),
             cloneNode(this._script_));
     }
@@ -45,16 +45,16 @@ public final class AAssignment extends PAssignment
         ((Analysis) sw).caseAAssignment(this);
     }
 
-    public PWordOrId getWordOrId()
+    public TId getId()
     {
-        return this._wordOrId_;
+        return this._id_;
     }
 
-    public void setWordOrId(PWordOrId node)
+    public void setId(TId node)
     {
-        if(this._wordOrId_ != null)
+        if(this._id_ != null)
         {
-            this._wordOrId_.parent(null);
+            this._id_.parent(null);
         }
 
         if(node != null)
@@ -67,7 +67,7 @@ public final class AAssignment extends PAssignment
             node.parent(this);
         }
 
-        this._wordOrId_ = node;
+        this._id_ = node;
     }
 
     public TEqual getEqual()
@@ -124,7 +124,7 @@ public final class AAssignment extends PAssignment
     public String toString()
     {
         return ""
-            + toString(this._wordOrId_)
+            + toString(this._id_)
             + toString(this._equal_)
             + toString(this._script_);
     }
@@ -133,9 +133,9 @@ public final class AAssignment extends PAssignment
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._wordOrId_ == child)
+        if(this._id_ == child)
         {
-            this._wordOrId_ = null;
+            this._id_ = null;
             return;
         }
 
@@ -158,9 +158,9 @@ public final class AAssignment extends PAssignment
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._wordOrId_ == oldChild)
+        if(this._id_ == oldChild)
         {
-            setWordOrId((PWordOrId) newChild);
+            setId((TId) newChild);
             return;
         }
 
