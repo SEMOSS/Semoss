@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IEngine;
@@ -35,15 +37,30 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		
+		String engineId = this.keyValue.get(this.keysToGet[1]);
+		if(AbstractSecurityUtils.securityEnabled()) {
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
+			}
+		} else {
+			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
+			if(!MasterDatabaseUtility.getAllEngineIds().contains(engineId)) {
+				throw new IllegalArgumentException("Database " + engineId + " does not exist");
+			}
+		}
+
 		// output frame
-		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum", "numOfNullValues" };
-		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" , "Double" };
 		ITableDataFrame table = getFrame();
 		if(!(table instanceof H2Frame)) {
 			throw new IllegalArgumentException("Frame must be a grid to use DatabaseProfile");
 		}
 		H2Frame frame = (H2Frame) table;
 		String tableName = frame.getTableName();
+
+		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum", "numOfNullValues" };
+		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" , "Double" };
 		// add headers to metadata output frame
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		for (int i = 0; i < headers.length; i++) {
@@ -57,43 +74,43 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			metaData.setDataTypeToProperty(uniqueHeader, dataType);
 		}
 		
-		String engineId = this.keyValue.get(this.keysToGet[1]);
-		engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		IEngine engine = Utility.getEngine(engineId);
-		if (engine != null) {
-			List<String> conceptList = getConceptList();
-			// get concept properties from local master
-			Map<String, List<String>> conceptMap = MasterDatabaseUtility.getConceptProperties(conceptList, engineId);
-			for (String concept : conceptList) {
-				// first add concept profile data
-				String primKey = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER;
-				String conceptDataType = null;
-				conceptDataType = MasterDatabaseUtility.getBasicDataType(engineId,  concept, null);
-				// concept data type now get profile data based on type
-				if (Utility.isNumericType(conceptDataType)) {
-					String[] row = getNumericalProfileData(engine, concept, primKey);
-					frame.addRow(tableName, row, headers, dataTypes);
-				} else {
-					if (Utility.isStringType(conceptDataType)) {
-						String[] cells = getStringProfileData(engine, concept, primKey);
-						frame.addRow(tableName, cells, headers, dataTypes);
-					}
+		if(engine == null) {
+			throw new IllegalArgumentException("Could not find database " + engineId);
+		}
+		
+		List<String> conceptList = getConceptList();
+		// get concept properties from local master
+		Map<String, List<String>> conceptMap = MasterDatabaseUtility.getConceptProperties(conceptList, engineId);
+		for (String concept : conceptList) {
+			// first add concept profile data
+			String primKey = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER;
+			String conceptDataType = null;
+			conceptDataType = MasterDatabaseUtility.getBasicDataType(engineId,  concept, null);
+			// concept data type now get profile data based on type
+			if (Utility.isNumericType(conceptDataType)) {
+				String[] row = getNumericalProfileData(engine, concept, primKey);
+				frame.addRow(tableName, row, headers, dataTypes);
+			} else {
+				if (Utility.isStringType(conceptDataType)) {
+					String[] cells = getStringProfileData(engine, concept, primKey);
+					frame.addRow(tableName, cells, headers, dataTypes);
 				}
-				if (conceptMap != null) {
-					// now get property profile data
-					List<String> properties = conceptMap.get(concept);
-					if (properties != null) {
-						for (String prop : properties) {
-							// check property data type
-							String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
-							if (Utility.isNumericType(dataType)) {
-								String[] cells = getNumericalProfileData(engine, concept, prop);
+			}
+			if (conceptMap != null) {
+				// now get property profile data
+				List<String> properties = conceptMap.get(concept);
+				if (properties != null) {
+					for (String prop : properties) {
+						// check property data type
+						String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
+						if (Utility.isNumericType(dataType)) {
+							String[] cells = getNumericalProfileData(engine, concept, prop);
+							frame.addRow(tableName, cells, headers, dataTypes);
+						} else {
+							if (Utility.isStringType(dataType)) {
+								String[] cells = getStringProfileData(engine, concept, prop);
 								frame.addRow(tableName, cells, headers, dataTypes);
-							} else {
-								if (Utility.isStringType(dataType)) {
-									String[] cells = getStringProfileData(engine, concept, prop);
-									frame.addRow(tableName, cells, headers, dataTypes);
-								}
 							}
 						}
 					}
