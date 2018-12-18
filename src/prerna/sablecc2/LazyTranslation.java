@@ -444,8 +444,10 @@ public class LazyTranslation extends DepthFirstAdapter {
     {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPixel(node.getWordOrId().toString().trim(), node.toString().trim());
+    	String var = node.getId().toString().trim();
+        assignmentReactor.setPixel(var, node.toString().trim());
     	initReactor(assignmentReactor);
+    	assignmentReactor.getCurRow().addLiteral(var);
     }
 
     @Override
@@ -459,8 +461,10 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node) {
     	defaultIn(node);
     	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPixel(node.getId().toString().trim(), node.toString().trim());
+    	String var = node.getId().toString().trim();
+        assignmentReactor.setPixel(var, node.toString().trim());
     	initReactor(assignmentReactor);
+    	assignmentReactor.getCurRow().addLiteral(var);
     }
     
     @Override

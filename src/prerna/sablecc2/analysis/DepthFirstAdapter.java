@@ -240,9 +240,9 @@ public class DepthFirstAdapter extends AnalysisAdapter
     public void caseAAssignment(AAssignment node)
     {
         inAAssignment(node);
-        if(node.getWordOrId() != null)
+        if(node.getId() != null)
         {
-            node.getWordOrId().apply(this);
+            node.getId().apply(this);
         }
         if(node.getEqual() != null)
         {
