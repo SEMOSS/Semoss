@@ -40,6 +40,7 @@ public class BasicIteratorTask extends AbstractTask {
 	private long startOffset = -1;
 	private transient Iterator<IHeadersDataRow> iterator;
 	private boolean grabFromWrapper = false;
+	private boolean grabTypesFromWrapper = false;
 	
 	public BasicIteratorTask(SelectQueryStruct qs) {
 		this.qs = qs;
@@ -89,7 +90,10 @@ public class BasicIteratorTask extends AbstractTask {
 		//TODO: bad :(
 		//need to create a proper iterate object that will get this info
 		//instead of how it is set up which takes it from the QS
-		if(this.headerInfo != null) {
+		if(this.headerInfo != null && this.grabTypesFromWrapper) {
+			if(this.iterator == null) {
+				generateIterator(this.qs, false);
+			}
 			if(this.iterator instanceof IRawSelectWrapper) {
 				SemossDataType[] sTypes = ((IRawSelectWrapper) this.iterator).getTypes();
 				String[] types = Arrays.asList(sTypes).stream()
@@ -263,6 +267,10 @@ public class BasicIteratorTask extends AbstractTask {
 			setHeaderInfo(qs.getHeaderInfo());
 			setSortInfo(qs.getSortInfo());
 			setFilterInfo(qs.getExplicitFilters());
+			// set this at the end because i dont want to 
+			// get the iterator in the constructor
+			// of this class
+			this.grabTypesFromWrapper = true;
 		}
 	}
 	
@@ -270,6 +278,9 @@ public class BasicIteratorTask extends AbstractTask {
 	public List<Map<String, Object>> getHeaderInfo() {
 		if(this.grabFromWrapper && (this.headerInfo == null || this.headerInfo.isEmpty()) ) {
 			setHeaderInfo(null);
+		} else if(this.grabTypesFromWrapper) {
+			setHeaderInfo(this.headerInfo);
+			this.grabFromWrapper = false;
 		}
 		return this.headerInfo;
 	}
