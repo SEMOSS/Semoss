@@ -1,10 +1,10 @@
 package prerna.ds.r;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -519,9 +519,11 @@ public class RSyntaxHelper {
 		StringBuilder builder = new StringBuilder();
 		builder.append(returnTable).append(" <- merge(").append(leftTableName).append(", ")
 				.append(rightTableName).append(", by.x = c(");
-		getMergeColsSyntax(builder, joinCols);
+		// want to grab the keys since it is left table -> right table
+		getMergeColsSyntax(builder, joinCols, true);
 		builder.append("), by.y = c(");
-		getMergeColsSyntax(builder, joinCols);
+		// here is the reverse, grab the values of the map
+		getMergeColsSyntax(builder, joinCols, false);
 		
 		if (joinType.equals("inner.join")) {
 			builder.append("), all = FALSE, allow.cartesian = TRUE)");
@@ -542,7 +544,7 @@ public class RSyntaxHelper {
 	 * @param builder
 	 * @param colNames
 	 */
-	public static void getMergeColsSyntax(StringBuilder builder, List<Map<String, String>> colNames){
+	public static void getMergeColsSyntax(StringBuilder builder, List<Map<String, String>> colNames, boolean grabKeys){
 		// iterate through the map
 		boolean firstLoop = true;
 		int numJoins = colNames.size();
@@ -558,7 +560,12 @@ public class RSyntaxHelper {
 			}
 			// this should really be 1
 			// since each join between 2 columns is its own map
-			Set<String> tableCols = joinMap.keySet();
+			Collection<String> tableCols = null;
+			if(grabKeys) {
+				tableCols = joinMap.keySet();
+			} else {
+				tableCols = joinMap.values();
+			}
 			// keep track of where to add a ","
 			int counter = 0;
 			int numCols = tableCols.size();
