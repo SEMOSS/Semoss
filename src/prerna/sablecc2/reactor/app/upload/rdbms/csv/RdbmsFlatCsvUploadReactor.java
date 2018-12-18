@@ -325,12 +325,17 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 					SemossDataType type = types[colIndex];
 					// strings
 					if (type == SemossDataType.STRING || type == SemossDataType.FACTOR) {
+						String value = null;
 						if (clean) {
-							String value = Utility.cleanString(nextRow[colIndex], false);
-							ps.setString(colIndex + 1, value + "");
+							value = Utility.cleanString(nextRow[colIndex], false);
 						} else {
-							ps.setString(colIndex + 1, nextRow[colIndex] + "");
+							value = nextRow[colIndex] + "";
 						}
+						
+						if(value.length() > 2000) {
+							value = value.substring(0, 1997) + "...";
+						}
+						ps.setString(colIndex + 1, value);
 					}
 					// int
 					else if (type == SemossDataType.INT) {
