@@ -13,7 +13,6 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 
 import prerna.auth.AccessPermission;
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
@@ -388,6 +387,28 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Determine if a user can view an engine
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
+	public static boolean userCanViewEngine(User user, String engineId) {
+		String userFilters = getUserFilters(user);
+		String query = "SELECT DISTINCT * FROM ENGINEPERMISSION "
+				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			// if you are here, you can view
+			while(wrapper.hasNext()) {
+				return true;
+			} 
+		} finally {
+			wrapper.cleanUp();
+		}
+		return false;
+	}
+	
+	/**
 	 * Determine if the user can modify the database
 	 * @param engineId
 	 * @param userId
@@ -398,15 +419,19 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
 				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		while(wrapper.hasNext()) {
-			Object val = wrapper.next().getValues()[0];
-			if(val == null) {
-				return false;
+		try {
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val == null) {
+					return false;
+				}
+				int permission = ((Number) val).intValue();
+				if(AccessPermission.isEditor(permission)) {
+					return true;
+				}
 			}
-			int permission = ((Number) val).intValue();
-			if(AccessPermission.isEditor(permission)) {
-				return true;
-			}
+		} finally {
+			wrapper.cleanUp();
 		}
 		return false;
 	}
@@ -432,40 +457,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
 				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		while(wrapper.hasNext()) {
-			Object val = wrapper.next().getValues()[0];
-			if(val == null) {
-				return false;
-			}
-			int permission = ((Number) val).intValue();
-			if(AccessPermission.isOwner(permission)) {
-				return true;
-			}
-		}
-		
-		return false;
-	}
-	
-	public static boolean userCanViewEngine(User user, String engineId) {
-	
-		for (AuthProvider authProv : user.getLogins()) {
-			AccessToken token = user.getAccessToken(authProv);
-			String userId = token.getId();
-			
-			String query = "SELECT * from ENGINEPERMISSION WHERE USERID = '" + userId + 
-					"' AND ENGINEID = '" + engineId + "'";
-			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
-			// Doesn't matter what level of access, as long as it is there
-			try {
-				if(wrapper.hasNext()) {
+		try {
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val == null) {
+					return false;
+				}
+				int permission = ((Number) val).intValue();
+				if(AccessPermission.isOwner(permission)) {
 					return true;
 				}
-			} finally {
-				wrapper.cleanUp();
-			}			
-		}
-		
+			}
+		} finally {
+			wrapper.cleanUp();
+		}		
 		return false;
 	}
 	

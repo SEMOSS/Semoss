@@ -24,7 +24,7 @@ public class AuditDatabaseReactor extends AbstractQueryStructReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
+			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("Database " + appId + " does not exist or user does not have access to database");
 			}
 		} else {
