@@ -459,7 +459,12 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
 
 		StringBuilder centralDeployedSystems = new StringBuilder();
-		centralDeployedSystems.append("SELECT DISTINCT ?System WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'} } ");
+		centralDeployedSystems.append("SELECT DISTINCT ?System "
+				+ "WHERE "
+				+ "{ "
+				+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+				+ "{?System <http://semoss.org/ontologies/Relation/Contains/CentralDeployment> 'Y'} "
+				+ "} ");
 		centralDeployedSystems.append( getHPSystemFilterString() );
 
 		// get an iterator for the new data
@@ -501,7 +506,15 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
 
 		StringBuilder sysNumSitesQuery = new StringBuilder();
-		sysNumSitesQuery.append("SELECT ?System (COUNT(?HostSite) AS ?NumSites) WHERE { {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} {?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} } GROUP BY ?System ");
+		sysNumSitesQuery.append("SELECT ?System (COUNT(?HostSite) AS ?NumSites) "
+				+ "WHERE "
+				+ "{ "
+				+ "{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInstallation>} "
+				+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+				+ "{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemInstallation} "
+				+ "{?HostSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Installation>} "
+				+ "{?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSite} "
+				+ "} GROUP BY ?System ");
 		sysNumSitesQuery.append( getHPSystemFilterString() );
 
 		// get an iterator for the new data
@@ -532,7 +545,17 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		LOGGER.info("Running query to get the systems and their costs");
 
 		IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
-		String systemSustainmentBudgetQuery = "SELECT DISTINCT ?System ?FY (SUM(?Cost) AS ?Cost) WHERE { BIND(<http://health.mil/ontologies/Concept/GLTag/Grand_Total> AS ?OMTag) {?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SystemBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudget} {?SystemBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?OMTag} {?SystemBudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SystemBudget <http://semoss.org/ontologies/Relation/OccursIn> ?FY} } GROUP BY ?System ?FY ORDER BY ?System";
+		String systemSustainmentBudgetQuery = "SELECT DISTINCT ?System ?FY (SUM(?Cost) AS ?Cost) WHERE { "
+				+ "BIND(<http://health.mil/ontologies/Concept/GLTag/Grand_Total> AS ?OMTag) "
+				+ "{?OMTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/GLTag>} "
+				+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+				+ "{?SystemBudget <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemBudgetGLItem>} "
+				+ "{?System <http://semoss.org/ontologies/Relation/Has> ?SystemBudget} "
+				+ "{?SystemBudget <http://semoss.org/ontologies/Relation/TaggedBy> ?OMTag} "
+				+ "{?SystemBudget <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} "
+				+ "{?FY <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} "
+				+ "{?SystemBudget <http://semoss.org/ontologies/Relation/OccursIn> ?FY} "
+				+ "} GROUP BY ?System ?FY ORDER BY ?System";
 		StringBuilder systemSustainmentBudgetBuilder = new StringBuilder(systemSustainmentBudgetQuery);
 		systemSustainmentBudgetBuilder.append(getHPSystemFilterString());
 		Iterator<IHeadersDataRow> rawWrapper = WrapperManager.getInstance().getRawWrapper(tapPortfolio, systemSustainmentBudgetBuilder.toString());
@@ -698,7 +721,24 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 		// string to get the wave, site, and system
 		// note we append a limit on the systems we care about
-		String waveSiteSystemQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { {?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} {?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemDCSite>} {?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} } UNION { {?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} } } ORDER BY ?Wave";
+		String waveSiteSystemQuery = "SELECT DISTINCT ?Wave ?HostSiteAndFloater ?System WHERE { "
+				+ "{?Wave <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Wave>} "
+				+ "{ "
+				+ "{?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Installation>} "
+				+ "{?Wave <http://semoss.org/ontologies/Relation/Contains> ?HostSiteAndFloater} "
+				+ "{?SystemDCSite <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemInstallation>} "
+				+ "{?SystemDCSite <http://semoss.org/ontologies/Relation/DeployedAt> ?HostSiteAndFloater} "
+				+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+				+ "{?System <http://semoss.org/ontologies/Relation/DeployedAt> ?SystemDCSite} "
+				+ "} "
+				+ "UNION "
+				+ "{ "
+				+ "{?HostSiteAndFloater <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} "
+				+ "{?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?Wave} "
+				+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+				+ "{?HostSiteAndFloater <http://semoss.org/ontologies/Relation/Supports> ?System} "
+				+ "} "
+				+ "} ORDER BY ?Wave";
 		StringBuilder waveSiteSystemBuilder = new StringBuilder(waveSiteSystemQuery);
 		waveSiteSystemBuilder.append(getHPSystemFilterString());
 
@@ -768,8 +808,26 @@ public class MhsGenesisDeploymentSavingsProcessor {
 
 			IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
 			String[] systemSiteSustainmentQueryArr = new String[2];
-			systemSiteSustainmentQueryArr[0] = "SELECT DISTINCT ?System ?Site ?Cost ?FYTag WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?SysSiteGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemSiteSupportGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?SysSiteGLItem} {?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} {?Site <http://semoss.org/ontologies/Relation/Has> ?SysSiteGLItem} {?SysSiteGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?SysSiteGLItem <http://semoss.org/ontologies/Relation/OccursIn> ?FYTag} } ORDER BY ?System ?Site";
-			systemSiteSustainmentQueryArr[1] = "SELECT DISTINCT ?System ?Site ?Cost ?FYTag WHERE { {?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} {?FloaterGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FloaterGLItem>} {?System <http://semoss.org/ontologies/Relation/Has> ?FloaterGLItem} {?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} {?Site <http://semoss.org/ontologies/Relation/Has> ?FloaterGLItem} {?FloaterGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} {?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} {?FloaterGLItem <http://semoss.org/ontologies/Relation/OccursIn> ?FYTag} } ORDER BY ?System ?Site";
+			systemSiteSustainmentQueryArr[0] = "SELECT DISTINCT ?System ?Site ?Cost ?FYTag WHERE { "
+					+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+					+ "{?SysSiteGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/SystemSiteSupportGLItem>} "
+					+ "{?System <http://semoss.org/ontologies/Relation/Has> ?SysSiteGLItem} "
+					+ "{?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/DCSite>} "
+					+ "{?Site <http://semoss.org/ontologies/Relation/Has> ?SysSiteGLItem} "
+					+ "{?SysSiteGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} "
+					+ "{?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} "
+					+ "{?SysSiteGLItem <http://semoss.org/ontologies/Relation/OccursIn> ?FYTag} "
+					+ "} ORDER BY ?System ?Site";
+			systemSiteSustainmentQueryArr[1] = "SELECT DISTINCT ?System ?Site ?Cost ?FYTag WHERE { "
+					+ "{?System <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/System>} "
+					+ "{?FloaterGLItem <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FloaterGLItem>} "
+					+ "{?System <http://semoss.org/ontologies/Relation/Has> ?FloaterGLItem} "
+					+ "{?Site <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/Floater>} "
+					+ "{?Site <http://semoss.org/ontologies/Relation/Has> ?FloaterGLItem} "
+					+ "{?FloaterGLItem <http://semoss.org/ontologies/Relation/Contains/Cost> ?Cost} "
+					+ "{?FYTag <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Concept/FYTag>} "
+					+ "{?FloaterGLItem <http://semoss.org/ontologies/Relation/OccursIn> ?FYTag} "
+					+ "} ORDER BY ?System ?Site";
 
 			for(String query : systemSiteSustainmentQueryArr) {
 				Iterator<IHeadersDataRow> rawWrapper = WrapperManager.getInstance().getRawWrapper(tapPortfolio, query);
