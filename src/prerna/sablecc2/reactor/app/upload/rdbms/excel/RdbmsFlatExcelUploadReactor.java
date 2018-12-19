@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Sheet;
 
@@ -494,12 +493,14 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 					SemossDataType type = types[colIndex];
 					// strings
 					if (type == SemossDataType.STRING) {
+						String strValue = (String) value;
 						if (clean) {
-							value = Utility.cleanString(nextRow[colIndex].toString(), false);
-							ps.setString(colIndex + 1, value + "");
-						} else {
-							ps.setString(colIndex + 1, value + "");
+							value = Utility.cleanString(strValue, false);
 						}
+						if(strValue.length() > 2000) {
+							value = strValue.substring(0, 1997) + "...";
+						}
+						ps.setString(colIndex + 1, strValue);
 					}
 					// int
 					else if(type == SemossDataType.INT) {
