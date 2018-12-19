@@ -9,6 +9,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
@@ -40,13 +41,27 @@ public class QueryInsertReactor extends AbstractReactor {
 		AbstractQueryStruct qs = (AbstractQueryStruct) qStruct.getValue();
 		IEngine engine = null;
 		ITableDataFrame frame = null;
-		
+		String userId = "user not defined";
+
 		if(qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
 				engine = qs.retrieveQueryStructEngine();
 				if(!(engine instanceof RDBMSNativeEngine)) {
 					throw new IllegalArgumentException("Insert query only works for rdbms databases");
+				}
+				
+				// If an engine and the user is defined, then grab it for the audit log
+				User user = this.insight.getUser();
+				if (user != null) {
+					userId = user.getAccessToken(user.getLogins().get(0)).getId();
+				}
+				
+				// If security is enabled, then check that the user can edit the engine
+				if (AbstractSecurityUtils.securityEnabled()) {
+					if(!SecurityQueryUtils.userCanEditEngine(user, engine.getEngineId())) {
+						throw new IllegalArgumentException("User does not have permission to insert query for this app");
+					}
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
@@ -57,15 +72,7 @@ public class QueryInsertReactor extends AbstractReactor {
 		} else {
 			throw new IllegalArgumentException("Input to exec query requires a query struct");
 		}
-		
-		String userId = null;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			User user = this.insight.getUser();
-			userId = user.getAccessToken(user.getLogins().get(0)).getId();
-		} else {
-			userId = "require login for user";
-		}
-		
+
 		StringBuilder prefixSb = new StringBuilder("INSERT INTO ");
 		
 		GenRowStruct col_grs = this.store.getNoun("into");
