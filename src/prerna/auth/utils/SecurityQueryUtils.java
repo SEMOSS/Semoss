@@ -398,9 +398,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "FROM ENGINE "
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
-				+ "WHERE "
+				+ "WHERE ("
 				+ "ENGINE.GLOBAL=TRUE "
-				+ "OR (ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.ENGINEID='" + engineId + "') "
+				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + ") AND ENGINEPERMISSION.ENGINEID='" + engineId + "'"
 				;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
