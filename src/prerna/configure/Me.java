@@ -157,8 +157,11 @@ public class Me {
 		try {
 			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
 			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
-			
-			String options = "-Djava.library.path=\"" + rHome + "\";\"" + jriHome + "\"";
+			String prefix = "";
+			if (System.getenv().containsKey("PYTHON_HOME")) {
+				prefix += "\"%PYTHON_HOME%/\";\"%PYTHON_HOME%/Scripts/\";\"%PYTHON_HOME%/Lib/site-packages/jep\";";
+			}
+			String options = "-Djava.library.path=" + prefix + "\"" + rHome + "\";\"" + jriHome + "\"";
 			// should we also set the memory here ?
 			// to get max memory ?
 			//options = options + " " + "-Xms256m -Xmx512m";
