@@ -51,7 +51,6 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.py.PyExecutorThread;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
-import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.VarStore;
@@ -228,10 +227,8 @@ public class Insight {
 		if(tracker.isActive()) {
 			List<String> pixelStrings = runner.getPixelExpressions();
 			List<Boolean> isMeta = runner.isMeta();
-			Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
 			for(int i = 0; i < pixelStrings.size(); i++) {
 				String expression = pixelStrings.get(i);
-				expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
 				boolean meta = isMeta.get(i);
 				tracker.trackPixelExecution(this, expression, meta);
 			}
