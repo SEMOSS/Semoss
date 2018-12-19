@@ -1,5 +1,6 @@
 package prerna.ds.py;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,9 +52,9 @@ public class PandasSyntaxHelper {
 		StringBuilder builder = new StringBuilder();
 		builder.append(returnTable).append(" = ").append(pandasFrameVar).append(".merge(").append(leftTableName).append(", ")
 			.append(rightTableName).append(", left_on=[");
-		getMergeColsSyntax(builder, joinCols);
+		getMergeColsSyntax(builder, joinCols, true);
 		builder.append("], right_on=[");
-		getMergeColsSyntax(builder, joinCols);
+		getMergeColsSyntax(builder, joinCols, false);
 		
 		if (joinType.equals("inner.join")) {
 			builder.append("], how=\"inner\")");
@@ -69,12 +70,12 @@ public class PandasSyntaxHelper {
 	}
 
 	/**
-	 * Get the correct r syntax for the table join columns
+	 * Get the correct py syntax for the table join columns
 	 * This uses the join information keys since it is {leftCol -> rightCol}
 	 * @param builder
 	 * @param colNames
 	 */
-	public static void getMergeColsSyntax(StringBuilder builder, List<Map<String, String>> colNames){
+	public static void getMergeColsSyntax(StringBuilder builder, List<Map<String, String>> colNames, boolean grabKeys){
 		// iterate through the map
 		boolean firstLoop = true;
 		int numJoins = colNames.size();
@@ -90,7 +91,12 @@ public class PandasSyntaxHelper {
 			}
 			// this should really be 1
 			// since each join between 2 columns is its own map
-			Set<String> tableCols = joinMap.keySet();
+			Collection<String> tableCols = null;
+			if(grabKeys) {
+				tableCols = joinMap.keySet();
+			} else {
+				tableCols = joinMap.values();
+			}
 			// keep track of where to add a ","
 			int counter = 0;
 			int numCols = tableCols.size();
