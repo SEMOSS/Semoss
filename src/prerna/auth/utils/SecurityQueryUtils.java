@@ -394,8 +394,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanViewEngine(User user, String engineId) {
 		String userFilters = getUserFilters(user);
-		String query = "SELECT DISTINCT * FROM ENGINEPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+		String query = "SELECT * "
+				+ "FROM ENGINE "
+				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
+				+ "WHERE "
+				+ "ENGINE.GLOBAL=TRUE "
+				+ "OR (ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.ENGINEID='" + engineId + "') "
+				;
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			// if you are here, you can view
