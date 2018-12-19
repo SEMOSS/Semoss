@@ -116,7 +116,6 @@ public class PixelStreamUtility {
 		// this matches with the above by index
 		List<String> pixelStrings = runner.getPixelExpressions();
 		List<Boolean> isMeta = runner.isMeta();
-		Map<String, String> encodedTextToOriginal = runner.getEncodedTextToOriginal();
 
 		// start of the map
 		// and the insight id
@@ -143,16 +142,8 @@ public class PixelStreamUtility {
 		for (int i = startIndex; i < size; i++) {
 			NounMetadata noun = resultList.get(i);
 			String expression = pixelStrings.get(i);
-			expression = PixelUtility.recreateOriginalPixelExpression(expression, encodedTextToOriginal);
 			boolean meta = isMeta.get(i);
 			processNounMetadata(in, ps, gson, noun, expression, meta);
-
-			// THIS HAPPENS IN THE PIXEL RUNNER NOW!!!
-//			// update the pixel list to say this is routine is valid
-//			if (!meta && !invalidSyntax) {
-//				// update the insight recipe
-//				in.getPixelRecipe().add(expression);
-//			}
 
 			// add a comma for the next item in the list
 			if( (i+1) != size) {
@@ -168,13 +159,10 @@ public class PixelStreamUtility {
 		// help java do garbage cleaning
 		resultList.clear();
 		pixelStrings.clear();
-		encodedTextToOriginal.clear();
 		resultList = null;
 		pixelStrings = null;
-		encodedTextToOriginal = null;
 		runner = null;
 	}
-
 
 	/**
 	 * Process the noun metadata for consumption on the FE
