@@ -87,7 +87,8 @@ public class PixelRunner {
 	 * @param isMeta
 	 */
 	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta) {
-		this.pixelExpression.add(pixelExpression);
+		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, encodedTextToOriginal);
+		this.pixelExpression.add(origExpression);
 		this.results.add(result);
 		this.isMeta.add(isMeta);
 		
@@ -95,7 +96,7 @@ public class PixelRunner {
 		// when we have an expression that is returned
 		// that is not a meta
 		if(!isMeta) {
-			this.insight.getPixelRecipe().add(pixelExpression);
+			this.insight.getPixelRecipe().add(origExpression);
 		}
 	}
 	
@@ -111,10 +112,6 @@ public class PixelRunner {
 		return this.isMeta;
 	}
 	
-	public Map<String, String> getEncodedTextToOriginal() {
-		return this.encodedTextToOriginal;
-	}
-
 	public Insight getInsight() {
 		return this.insight;
 	}
