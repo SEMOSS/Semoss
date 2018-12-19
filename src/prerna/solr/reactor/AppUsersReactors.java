@@ -31,7 +31,7 @@ public class AppUsersReactors extends AbstractReactor {
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.getUserEngineIds(this.insight.getUser()).contains(appId)) {
+			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), appId)) {
 				// you dont have access
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
