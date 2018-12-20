@@ -101,6 +101,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 		}
 		
+		LOGGER.info("Security database going to add app with alias = " + appName);
+
 		boolean loadedEngine = false;
 		RDBMSNativeEngine rne = new RDBMSNativeEngine();
 		File dbfile = SmssUtilities.getInsightsRdbmsFile(prop);
