@@ -26,19 +26,10 @@ public class GoogleListFilesReactor extends AbstractReactor{
 
 	@Override
 	public NounMetadata execute() {
-		String url_str = "https://www.googleapis.com/drive/v3/files";
-		List<HashMap<String, Object>> masterList = new ArrayList<HashMap<String, Object>>();
-
-
-		// lists the various files for this user
-		// if the 
-		// name of the object to return
-		String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
-		String [] beanProps = {"id", "name", "type"}; // add is done when you have a list
-		String jsonPattern = "files[].{id:id, name:name, type:mimeType}";
+		List<Map<String, Object>> masterList = new ArrayList<Map<String, Object>>();
 
 		// possible properties that can be passed
-		//https://developers.google.com/drive/v2/web/search-parameters
+		// https://developers.google.com/drive/v2/web/search-parameters
 		// https://developers.google.com/drive/v3/web/mime-types
 		// CSV = text/csv
 		// spreadsheet - application/x-vnd.oasis.opendocument.spreadsheet
@@ -48,7 +39,7 @@ public class GoogleListFilesReactor extends AbstractReactor{
 		// mimeType="text/csv" or mimeType="application/vnd.google-apps.spreadsheet"
 
 		//get access token
-		String accessToken=null;
+		String accessToken = null;
 		User user = this.insight.getUser();
 		try{
 			if(user==null){
@@ -69,91 +60,57 @@ public class GoogleListFilesReactor extends AbstractReactor{
 			throwLoginError(retMap);
 		}
 
-
-		// you fill what you want to send on the API call
 		//text/csv call
-		Hashtable params = new Hashtable();
-		params.put("access_token", accessToken);
-		params.put("pageSize", "1000");
-		params.put("q=mimeType", "'text/csv'");
+		Hashtable csvParams = new Hashtable();
+		csvParams.put("access_token", accessToken);
+		csvParams.put("pageSize", "1000");
+		csvParams.put("q=mimeType", "'text/csv'");
+		// this makes the call with the params and pushes the results into masterList
+		gatherResults(accessToken, csvParams, masterList);
+
+		// spreadsheet call
+		Hashtable spreashseetParams = new Hashtable();
+		spreashseetParams.put("access_token", accessToken);
+		spreashseetParams.put("pageSize", "1000");
+		spreashseetParams.put("q=mimeType", "'application/vnd.google-apps.spreadsheet'");
+		// this makes the call with the params and pushes the results into masterList
+		gatherResults(accessToken, spreashseetParams, masterList);
+
+		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.CLOUD_FILE_LIST);
+	}
 	
-
-		String output = AbstractHttpHelper.makeGetCall(url_str, accessToken, params, false);
+	/**
+	 * This makes the call to the google api and populates the results into the master list
+	 * @param accessToken
+	 * @param params
+	 * @param masterList
+	 */
+	private void gatherResults(String accessToken, Hashtable params, List<Map<String, Object>> masterList) {
+		String url = "https://www.googleapis.com/drive/v3/files";
+		String [] beanProps = {"id", "name", "type"};
+		String jsonPattern = "files[].{id:id, name:name, type:mimeType}";
 		
-		Hashtable params2 = new Hashtable();
-		params.put("access_token", accessToken);
-		params.put("pageSize", "1000");
-		params.put("q=mimeType", "'application/vnd.google-apps.spreadsheet'");
+		String output = AbstractHttpHelper.makeGetCall(url, accessToken, params, false);
 		
-		String output2 = AbstractHttpHelper.makeGetCall(url_str, accessToken, params, false);
-
-
-		// fill the bean with the return
+		// loop through and aggregate results
 		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-		System.out.println(C.getClass().getName());
 		if(C instanceof RemoteItem){
-			RemoteItem fileList= (RemoteItem) C;
-			HashMap<String, Object> tempMap = new HashMap<String, Object>();
-			tempMap.put("name", fileList.getName());
-			tempMap.put("id", fileList.getId());
-			tempMap.put("type", fileList.getType());
-			masterList.add(tempMap);
-		}
-		else{
-			List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-			for(RemoteItem entry : fileList){
-				HashMap<String, Object> tempMap = new HashMap<String, Object>();
-				tempMap.put("name", entry.getName());
-				tempMap.put("id", entry.getId());
-				tempMap.put("type", entry.getType());
-				masterList.add(tempMap);
-			}
-		}
-		
-		Object D = BeanFiller.fillFromJson(output2, jsonPattern, beanProps, new RemoteItem());
-		System.out.println(D.getClass().getName());
-		if(D instanceof RemoteItem){
-			RemoteItem fileList2= (RemoteItem) D;
-			HashMap<String, Object> tempMap = new HashMap<String, Object>();
+			RemoteItem fileList2= (RemoteItem) C;
+			Map<String, Object> tempMap = new HashMap<String, Object>();
 			tempMap.put("name", fileList2.getName());
 			tempMap.put("id", fileList2.getId());
 			tempMap.put("type", fileList2.getType());
 			masterList.add(tempMap);
 		}
 		else{
-			List <RemoteItem> fileList2 = (List)BeanFiller.fillFromJson(output2, jsonPattern, beanProps, new RemoteItem());
+			List <RemoteItem> fileList2 = (List<RemoteItem>) C;
 			for(RemoteItem entry : fileList2){
-				HashMap<String, Object> tempMap = new HashMap<String, Object>();
+				Map<String, Object> tempMap = new HashMap<String, Object>();
 				tempMap.put("name", entry.getName());
 				tempMap.put("id", entry.getId());
 				tempMap.put("type", entry.getType());
 				masterList.add(tempMap);
 			}
 		}
-/*
-		List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-		List <RemoteItem> fileList2 = (List)BeanFiller.fillFromJson(output2, jsonPattern, beanProps, new RemoteItem());
-
-		for(RemoteItem entry : fileList){
-			if(((entry.getType().toString().equalsIgnoreCase("text/csv")&&(entry.getName().toString().contains(".csv"))))){
-				HashMap<String, Object> tempMap = new HashMap<String, Object>();
-				tempMap.put("name", entry.getName());
-				tempMap.put("id", entry.getId());
-				tempMap.put("type", entry.getType());
-				masterList.add(tempMap);
-			}
-
-		}
-		for(RemoteItem entry : fileList2){
-			HashMap<String, Object> tempMap = new HashMap<String, Object>();
-			tempMap.put("name", entry.getName());
-			tempMap.put("id", entry.getId());
-			tempMap.put("type", entry.getType());
-			masterList.add(tempMap);		
-			}
-			*/
-
-		return new NounMetadata(masterList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.CLOUD_FILE_LIST);	}
-
+	}
 }
