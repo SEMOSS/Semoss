@@ -128,7 +128,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		Boolean cacheable = getUserDefinedCacheable();
 		if(cacheable == null) {
-			cacheable = this.insight.isCacheable();
+			cacheable = newInsight.isCacheable();
 		}
 		// TODO: i am cheating here
 		// we do not cache dashboards or param insights currently
