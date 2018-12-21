@@ -7,6 +7,7 @@ public enum AuthProvider {
 	GITHUB,
 	MS, // this is azure graph
 	SF, // this is salesforce 
+	SURVEYMONKEY,
 	NATIVE,
 
 	// this one is kinda special ...
