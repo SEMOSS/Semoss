@@ -13,14 +13,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
-import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -43,21 +41,18 @@ import prerna.util.sql.SQLQueryUtil;
 
 public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	
-	protected Map<String, String> sqlHash = new Hashtable<String, String>();
+	private Map<String, String> sqlHash = new Hashtable<String, String>();
 	private Hashtable <String, Hashtable <String, String>> concepts = new Hashtable <String, Hashtable <String, String>>();
 	private Hashtable <String, Vector <String>> relations = new Hashtable <String, Vector<String>>();
 	private Hashtable <String, String> sheets = new Hashtable <String, String> ();
 
 	private int indexUniqueId = 1;
-	//	private List<String> recreateIndexList = new Vector<String>(); 
 	private List<String> tempIndexAddedList = new Vector<String>();
-	private List<String> tempIndexDropList = new Vector<String>();	
+	private List<String> tempIndexDropList = new Vector<String>();
+	
 	public RdbmsLoaderSheetUploadReactor() {
-		this.keysToGet = new String[] {
-				UploadInputUtility.APP, 
-				UploadInputUtility.FILE_PATH};
+		this.keysToGet = new String[]{ UploadInputUtility.APP, UploadInputUtility.FILE_PATH};
 	}
-
 
 	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception{
 		if(!ExcelParsing.isExcelFile(filePath)) {
@@ -571,7 +566,11 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
 				thisRow = lSheet.getRow(rowIndex);
 				String[] cells = getCells(thisRow);
-
+				if(cells.length < 3) {
+					// missing value
+					continue;
+				}
+				
 				if (cells[setter] == null || cells[setter].isEmpty() || cells[inserter] == null
 						|| cells[inserter].isEmpty()) {
 					continue; // why is there an empty in the excel sheet....
