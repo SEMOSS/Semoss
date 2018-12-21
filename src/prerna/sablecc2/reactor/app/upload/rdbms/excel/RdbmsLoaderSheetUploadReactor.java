@@ -493,6 +493,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			String values = "";
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
 				thisRow = lSheet.getRow(rowIndex);
+				if(thisRow == null) {
+					continue;
+				}
 				String[] uCells = getCells(thisRow, totalCols);
 				cells = Utility.castToTypes(uCells, types);
 				if (types[1].equals("INT") || types[1].equals("DOUBLE")) {
