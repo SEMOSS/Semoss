@@ -19,6 +19,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.forms.FormsReactor;
+import prerna.io.connector.surveymonkey.GetSurveyMonkeySurveysReactor;
 import prerna.poi.main.helper.excel.ExcelDataValidationReactor;
 import prerna.query.querystruct.delete.QueryDeleteReactor;
 import prerna.query.querystruct.update.reactors.QueryUpdateReactor;
@@ -553,7 +554,7 @@ public class ReactorFactory {
 		reactorHash.put("if", IfReactor.class);
 
 		// Data Source Reactors
-		// specifies that our pksl operations after this point are dealing with the specified database
+		// specifies that our pixel operations after this point are dealing with the specified database
 		reactorHash.put("Database", DatabaseReactor.class);
 		reactorHash.put("AuditDatabase", AuditDatabaseReactor.class);
 		reactorHash.put("API", APIReactor.class);
@@ -561,21 +562,27 @@ public class ReactorFactory {
 		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
 		reactorHash.put("URLSource", URLSourceReactor.class);
+		// drop box
 		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
 		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
 		reactorHash.put("DropBoxFileRetriever", DropBoxFileRetrieverReactor.class);
+		// one drive
 		reactorHash.put("OneDriveUploader", OneDriveUploaderReactor.class);
 		reactorHash.put("OneDriveListFiles", OneDriveListFilesReactor.class);
 		reactorHash.put("OneDriveFileRetriever", OneDriveFileRetrieverReactor.class);
+		// google
 		reactorHash.put("GoogleUploader", GoogleUploaderReactor.class);
 		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
 		reactorHash.put("GoogleFileRetriever", GoogleFileRetrieverReactor.class);
+		// share point
 		reactorHash.put("SharePointListFiles", SharePointListFilesReactor.class);
 		reactorHash.put("SharePointFileRetriever", SharePointFileRetrieverReactor.class);
 		reactorHash.put("SharePointSiteSelector", SharePointSiteSelectorReactor.class);
 		reactorHash.put("SharePointDriveSelector", SharePointDriveSelectorReactor.class);
 		reactorHash.put("SharePointWebDavPull", SharePointWebDavPullReactor.class);
-
+		// survey monkey
+		reactorHash.put("SurveyMonkeyListSurveys", GetSurveyMonkeySurveysReactor.class);
+		
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
 		reactorHash.put("CreateFrame", CreateFrameReactor.class);
