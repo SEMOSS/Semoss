@@ -16,8 +16,16 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 
 	private static final String CLASS_NAME = ClusterGraphReactor.class.getName();
 
+	/**
+	 * Example input for routine
+	 * 
+	 * previous method from AbstractBaseRClass -> Reactor input
+	 * walk info 	-> 	cluster_walktrap
+	 * cluster info -> 	clus
+	 */
+	
 	public ClusterGraphReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ROUTINE.getKey() };
+		this.keysToGet = new String[]{ReactorKeysEnum.ROUTINE.getKey()};
 	}
 
 	@Override
