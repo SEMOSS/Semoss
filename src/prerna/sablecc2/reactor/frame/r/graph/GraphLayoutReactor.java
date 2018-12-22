@@ -24,7 +24,7 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = GraphLayoutReactor.class.getName();
 
 	public GraphLayoutReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.GRAPH_LAYOUT.getKey(), "yMin", "yMax", "xMin", "xMax"};
+		this.keysToGet = new String[]{ReactorKeysEnum.GRAPH_LAYOUT.getKey(), "yMin", "yMax", "xMin", "xMax"};
 	}
 
 	@Override
@@ -37,6 +37,7 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 		TinkerFrame frame = (TinkerFrame) getFrame();
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		String inputLayout = this.keyValue.get(this.keysToGet[0]);
+		
 		try {
 			logger.info("Determining vertex positions...");
 			String tempOutputLayout = "xy_layout" + Utility.getRandomString(8);
@@ -55,8 +56,8 @@ public class GraphLayoutReactor extends AbstractRFrameReactor {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+		
 		throw new IllegalArgumentException("Unable to change layout");
-
 	}
 	
 	private void synchronizeXY(String layout) {
