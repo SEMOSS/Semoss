@@ -69,7 +69,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public static final String PRIM_KEY_DELIMETER = ":::";
 
 	public static final String TINKER_ID = "_T_ID";
-	public static final String TINKER_VALUE = "_T_VALUE";
+//	public static final String TINKER_VALUE = "_T_VALUE";
 	public static final String TINKER_TYPE = "_T_TYPE";
 	public static final String TINKER_NAME = "_T_NAME";
 	public static final String TINKER_FILTER = "_T_FILTER";
@@ -78,7 +78,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	//keeps the cache of whether a column is numerical or not, can this be stored on the meta model?
 	protected Map<String, Boolean> isNumericalMap = new HashMap<String, Boolean>(); //store on meta
-			
+	
 	public TinkerGraph g = null;
 
 	/***********************************  CONSTRUCTORS  **********************************/
