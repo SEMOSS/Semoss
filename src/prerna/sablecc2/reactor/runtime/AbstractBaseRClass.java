@@ -15,9 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 
 import prerna.algorithm.api.SemossDataType;
@@ -757,78 +755,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 	}
 
-	/**
-	 * Perform clusters routine on iGraph
-	 */
-	protected void clusterInfo() {
-		String clusters = "clusters";
-		clusterInfo(clusters);
-	}
-
-	/**
-	 * Perform clusters routine on iGraph
-	 */
-	protected void clusterInfo(String clusterRoutine) {
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		try {
-			logger.info("Determining graph clusters...");
-			this.rJavaTranslator.executeEmptyR("clus <- " + clusterRoutine + "(" + graphName + ")");
-			logger.info("Done calculating graph clusters...");
-			storeVariable("CLUSTER_NAME", new NounMetadata("clus", PixelDataType.CONST_STRING));
-			colorClusters();
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-	}
-
-	/**
-	 * Perform cluster_walktrap routine on iGraph
-	 */
-	protected void walkInfo() {
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		try {
-			logger.info("Determining graph clusters...");
-			this.rJavaTranslator.executeEmptyR("clus <- cluster_walktrap(" + graphName + ", membership=TRUE)");
-			logger.info("Done calculating graph clusters...");
-			storeVariable("CLUSTER_NAME",  new NounMetadata("clus", PixelDataType.CONST_STRING));
-			colorClusters();
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-	}
-
-	/**
-	 * Color tinker nodes based on iGrpah values
-	 */
-	private void colorClusters() {
-		String clusterName = (String) retrieveVariable("CLUSTER_NAME");
-		colorClusters(clusterName);
-	}
-
-	private void colorClusters(String clusterName) {
-		logger.info("Synchronizing graph clusters into frame...");
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		double [] memberships = this.rJavaTranslator.getDoubleArray(clusterName + "$membership");
-		String [] IDs = this.rJavaTranslator.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
-		for(int memIndex = 0; memIndex < memberships.length;memIndex++) {
-			String thisID = IDs[memIndex];
-			Vertex retVertex = null;
-			GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame) dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID); 
-			if(gt.hasNext()) {
-				retVertex = gt.next();
-			}
-			if(retVertex != null) {
-				retVertex.property("CLUSTER", memberships[memIndex]);
-			}
-			
-			if(memIndex % 100 == 0) {
-				logger.info("Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
-			}
-		}
-		logger.info("Done synchronizing graph vertices");
-		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
-	}
-
 	public void key() {
 		String graphName = (String)retrieveVariable("GRAPH_NAME");
 		String names = "";
@@ -855,39 +781,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		System.out.println(" Key Nodes \n " + names);
 	}
 	
-	public void synchronizeXY(String rVariable) {
-		logger.info("Synchronizing vertex positions into frame...");
-
-		String graphName = (String)retrieveVariable("GRAPH_NAME");
-		double [][] memberships = this.rJavaTranslator.getDoubleMatrix("xy_layout");
-		String [] axis = null;
-		if(memberships[0].length == 2) {
-			axis = new String[]{"X", "Y"};
-		} else if(memberships[0].length == 3) {
-			axis = new String[]{"X", "Y", "Z"};
-		}
-		String [] IDs = this.rJavaTranslator.getStringArray("vertex_attr(" + graphName + ", \"" + TinkerFrame.TINKER_ID + "\")");
-		for(int memIndex = 0; memIndex < memberships.length; memIndex++) {
-			String thisID = IDs[memIndex];
-			Vertex retVertex = null;
-			GraphTraversal<Vertex, Vertex>  gt = ((TinkerFrame)dataframe).g.traversal().V().has(TinkerFrame.TINKER_ID, thisID);
-			if(gt.hasNext()) {
-				retVertex = gt.next();
-			}
-			if(retVertex != null) {
-				for(int i = 0; i < axis.length; i++) {
-					retVertex.property(axis[i], memberships[memIndex][i]);
-				}
-			}
-			
-			if(memIndex % 100 == 0) {
-				logger.info("Done synchronizing graph vertex number " + memIndex + " out of " + memberships.length);
-			}
-		}
-		logger.info("Done synchronizing vertex positions");
-		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
-	}
-
 	/**
 	 * Serialize the TinkerGraph in GraphML format
 	 * 
@@ -918,25 +811,4 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		}
 		return absoluteFileName;
 	}
-
-	/**
-	 * Run a layout in iGraph and store back into tinker objects Possible
-	 * values: Fruchterman - layout_with_fr KK - layout_with_kk sugiyama -
-	 * layout_with_sugiyama layout_as_tree layout_as_star layout.auto
-	 * http://igraph.org/r/doc/layout_with_fr.html
-	 * 
-	 * @param layout
-	 */
-	public void doLayout(String layout) {
-		String graphName = (String) retrieveVariable("GRAPH_NAME");
-		try {
-			logger.info("Determining vertex positions...");
-			this.rJavaTranslator.executeEmptyR("xy_layout <- " + layout + "(" + graphName + ")");
-			logger.info("Done calculating positions...");
-			synchronizeXY("xy_layout");
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-	}
-
 }
