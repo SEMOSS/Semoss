@@ -81,7 +81,7 @@ public class FindPathsBetweenGroupsReactor extends AbstractFrameReactor {
 
 		int size = instancesToKeep.size();
 		if(size == 0) {
-			throw new IllegalStateException("Could not find any nodes to filter");
+			throw new IllegalStateException("Could not find any paths");
 		}
 
 		Map<String, List<String>> colToValues = new HashMap<String, List<String>>();
