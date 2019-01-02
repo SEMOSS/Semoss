@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.insights;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonWriter;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -34,6 +36,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
+import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -281,44 +285,31 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @return
 	 */
 	protected PixelRunner getCachedInsightData(Insight insight) throws IOException, JsonSyntaxException {
-		Gson gson = new Gson();
 		// I will create a temp insight
-		// so that I can mock the output as if this was run properly
+		// so that I don't mess up the insight recipe
 		Insight tempInsight = new Insight(insight.getEngineId(), insight.getEngineName(), insight.getRdbmsId());
 		tempInsight.setInsightId(insight.getInsightId());
 		tempInsight.setInsightName(insight.getInsightName());
 		tempInsight.setVarStore(insight.getVarStore());
 		
 		PixelRunner runner = new PixelRunner();
-		// i need to mock adding all the panels
+		Gson gson = GsonUtility.getDefaultGson();
 		Map<String, InsightPanel> panels = insight.getInsightPanels();
-		for(String panelId : panels.keySet()) {
-			runner.runPixel("AddPanel(" + panelId + ");", tempInsight);
-		}
 		
-		// i am going to run the panel view at the end again
-		// because if we clone to get a new panel
-		// and then switch it at another point
-		Map<String, String> panelToPanelView = new HashMap<String, String>();
-		// set the view to a vizual to paint the data
 		for(String panelId : panels.keySet()) {
-			InsightPanel panel = panels.get(panelId);
-			String panelView = panel.getPanelView();
-			String panelViewOptions = panel.getPanelActiveViewOptions();
-			Map<String, Object> config = panel.getConfig();
+			// make a copy
+			// there might be clones that are needed to set the view task data
+			// so we will set it here
+			// and then modify the cached data afterwards
+			InsightPanelAdapter adapter = new InsightPanelAdapter();
+			StringWriter writer = new StringWriter();
+			JsonWriter jWriter = new JsonWriter(writer);
+			adapter.write(jWriter, panels.get(panelId));
+			String panelStr = writer.toString();
+			InsightPanel panelClone = adapter.fromJson(panelStr);
+			tempInsight.addNewInsightPanel(panelClone);
 			
-			String pixelToRun = "";
-			if(panelViewOptions != null && !panelViewOptions.isEmpty()) {
-				pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\", \"" + Utility.encodeURIComponent(panelViewOptions) + "\");";
-			} else {
-				pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\");";
-			}
-			if(config != null && !config.isEmpty()) {
-				pixelToRun += "Panel(" + panelId + ") |AddPanelConfig(" + gson.toJson(config) + ");";
-			}
-			
-			panelToPanelView.put(panelId, pixelToRun);
-			runner.runPixel(pixelToRun, tempInsight);
+			runner.runPixel("CachedPanel(\"" + panelId + "\");", tempInsight);
 		}
 		
 		// send the view data
@@ -328,28 +319,78 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
 		}
 		
-		// now we will set the actual panels
-		for(String panelId : panels.keySet()) {
-			tempInsight.addNewInsightPanel(panels.get(panelId));
-		}
-		
-		// and finally return all the panel ornaments
-		for(String panelId : panels.keySet()) {
-			String userDefinedLabel = "";
-			String panelLabel = panels.get(panelId).getPanelLabel();
-			if(panelLabel != null) {
-				userDefinedLabel = "Panel(" + panelId + ")|SetPanelLabel(\"" + panelLabel + "\");";
-			}
-			runner.runPixel(panelToPanelView.get(panelId)
-					+ userDefinedLabel
-					+ "Panel(" + panelId + ") | RetrievePanelOrnaments();"
-					+ "Panel(" + panelId + ") | RetrievePanelEvents();"
-					+ "Panel(" + panelId + ") | RetrievePanelComment();"
-					, tempInsight);
-		}
-		
-		// we need to reset the recipe
+		// we need to reset the tempInsight recipe to the original recipe
 		tempInsight.setPixelRecipe(insight.getPixelRecipe());
+		
+//		Gson gson = new Gson();
+//		// I will create a temp insight
+//		// so that I can mock the output as if this was run properly
+//		Insight tempInsight = new Insight(insight.getEngineId(), insight.getEngineName(), insight.getRdbmsId());
+//		tempInsight.setInsightId(insight.getInsightId());
+//		tempInsight.setInsightName(insight.getInsightName());
+//		tempInsight.setVarStore(insight.getVarStore());
+//		
+//		PixelRunner runner = new PixelRunner();
+//		// i need to mock adding all the panels
+//		Map<String, InsightPanel> panels = insight.getInsightPanels();
+//		for(String panelId : panels.keySet()) {
+//			runner.runPixel("AddPanel(" + panelId + ");", tempInsight);
+//		}
+//		
+//		// i am going to run the panel view at the end again
+//		// because if we clone to get a new panel
+//		// and then switch it at another point
+//		Map<String, String> panelToPanelView = new HashMap<String, String>();
+//		// set the view to a vizual to paint the data
+//		for(String panelId : panels.keySet()) {
+//			InsightPanel panel = panels.get(panelId);
+//			String panelView = panel.getPanelView();
+//			String panelViewOptions = panel.getPanelActiveViewOptions();
+//			Map<String, Object> config = panel.getConfig();
+//			
+//			String pixelToRun = "";
+//			if(panelViewOptions != null && !panelViewOptions.isEmpty()) {
+//				pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\", \"" + Utility.encodeURIComponent(panelViewOptions) + "\");";
+//			} else {
+//				pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\");";
+//			}
+//			if(config != null && !config.isEmpty()) {
+//				pixelToRun += "Panel(" + panelId + ") |AddPanelConfig(" + gson.toJson(config) + ");";
+//			}
+//			
+//			panelToPanelView.put(panelId, pixelToRun);
+//			runner.runPixel(pixelToRun, tempInsight);
+//		}
+//		
+//		// send the view data
+//		Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
+//		List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
+//		if(!pixelReturn.isEmpty()) {
+//			runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
+//		}
+//		
+//		// now we will set the actual panels
+//		for(String panelId : panels.keySet()) {
+//			tempInsight.addNewInsightPanel(panels.get(panelId));
+//		}
+//		
+//		// and finally return all the panel ornaments
+//		for(String panelId : panels.keySet()) {
+//			String userDefinedLabel = "";
+//			String panelLabel = panels.get(panelId).getPanelLabel();
+//			if(panelLabel != null) {
+//				userDefinedLabel = "Panel(" + panelId + ")|SetPanelLabel(\"" + panelLabel + "\");";
+//			}
+//			runner.runPixel(panelToPanelView.get(panelId)
+//					+ userDefinedLabel
+//					+ "Panel(" + panelId + ") | RetrievePanelOrnaments();"
+//					+ "Panel(" + panelId + ") | RetrievePanelEvents();"
+//					+ "Panel(" + panelId + ") | RetrievePanelComment();"
+//					, tempInsight);
+//		}
+//		
+//		// we need to reset the recipe
+//		tempInsight.setPixelRecipe(insight.getPixelRecipe());
 		
 		return runner;
 	}
