@@ -28,7 +28,7 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
-		boolean keepCol = getKeepColBool();
+		boolean override = overrideExistingColumn();
 		RDataTable frame = (RDataTable) this.getFrame();
 		String tableName = frame.getTableName();
 
@@ -51,7 +51,7 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
 				PixelOperationType.FRAME_DATA_CHANGE);
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		if (keepCol) {
+		if(!override) {
 			// new col is mastered version of column
 			String tempCol = Utility.getRandomString(8);
 			String newHeaderName = getCleanNewHeader(tableName, column);
@@ -89,7 +89,7 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 	 * Create new column or override existing column
 	 * @return
 	 */
-	private boolean getKeepColBool() {
+	private boolean overrideExistingColumn() {
 		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[1]);
 		if (boolGrs != null) {
 			if (boolGrs.size() > 0) {
