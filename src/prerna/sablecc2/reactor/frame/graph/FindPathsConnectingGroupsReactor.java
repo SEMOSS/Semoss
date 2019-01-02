@@ -38,7 +38,6 @@ public class FindPathsConnectingGroupsReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		TinkerFrame tinker = (TinkerFrame) getFrame();
-		tinker.getFrameFilters().removeAllFilters();
 
 		String nodeType1 = getColumn(COLUMN1);
 		String nodeType2 = getColumn(COLUMN2);
@@ -82,6 +81,9 @@ public class FindPathsConnectingGroupsReactor extends AbstractFrameReactor {
 		if(size == 0) {
 			throw new IllegalStateException("Could not find any paths");
 		}
+		
+		// remove the current frame filters
+		tf.getFrameFilters().removeAllFilters();
 
 		Map<String, List<String>> colToValues = new HashMap<String, List<String>>();
 		for(Vertex v : instancesToKeep) {

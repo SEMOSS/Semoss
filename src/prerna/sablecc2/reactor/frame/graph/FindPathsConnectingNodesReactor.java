@@ -35,8 +35,6 @@ public class FindPathsConnectingNodesReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		TinkerFrame tinker = (TinkerFrame) getFrame();
-		// TODO: determine if reset or not
-		tinker.getFrameFilters().removeAllFilters();
 		
 		String nodeType = getColumn();
 		List<String> nodeValues = getValues();
@@ -49,7 +47,7 @@ public class FindPathsConnectingNodesReactor extends AbstractFrameReactor {
 		// get the correct physical name
 		String nodeType = tf.getMetaData().getPhysicalName(columnType);
 		
-		//keep set of all vertices to keep
+		// keep set of all vertices to keep
 		Set<Vertex> instancesToKeep = new HashSet<Vertex>();
 		
 		int numInstances = instances.size();
@@ -104,6 +102,9 @@ public class FindPathsConnectingNodesReactor extends AbstractFrameReactor {
 		if(size == 0) {
 			throw new IllegalStateException("Cannot find any path given the instances and the degrees of separation");
 		}
+		
+		// remove the current frame filters
+		tf.getFrameFilters().removeAllFilters();
 		
 		Map<String, List<String>> colToValues = new HashMap<String, List<String>>();
 		for(Vertex v : instancesToKeep) {
