@@ -219,6 +219,7 @@ import prerna.sablecc2.reactor.masterdatabase.SyncAppWithLocalMasterReactor;
 import prerna.sablecc2.reactor.panel.AddPanelConfigReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
 import prerna.sablecc2.reactor.panel.AddPanelReactor;
+import prerna.sablecc2.reactor.panel.CachedPanelReactor;
 import prerna.sablecc2.reactor.panel.ClosePanelReactor;
 import prerna.sablecc2.reactor.panel.GetInsightPanelsReactor;
 import prerna.sablecc2.reactor.panel.GetPanelIdReactor;
@@ -686,6 +687,7 @@ public class ReactorFactory {
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);
 		reactorHash.put("Panel", PanelReactor.class);
+		reactorHash.put("CachedPanel", CachedPanelReactor.class);
 		reactorHash.put("AddPanel", AddPanelReactor.class);
 		reactorHash.put("AddPanelIfAbsent", AddPanelIfAbsentReactor.class);
 		reactorHash.put("GetPanelId", GetPanelIdReactor.class);
