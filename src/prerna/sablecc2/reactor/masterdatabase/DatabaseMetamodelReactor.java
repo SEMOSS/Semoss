@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.masterdatabase;
 
-import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -42,7 +41,7 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 			}
 		}
 		
-		Map<String, Object[]> metamodelObject = MasterDatabaseUtility.getMetamodelRDBMS(engineId);
+		Map<String, Object> metamodelObject = MasterDatabaseUtility.getMetamodelRDBMS(engineId);
 		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);
 	}
 
