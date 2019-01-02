@@ -24,10 +24,11 @@ import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 public class ConnectedVerticesReactor  extends AbstractFrameReactor {
 
 	private static final String DEGREE_SEPERATION = "deg"; 
+	private static final String DIRECTION = "dir"; 
 
 	public ConnectedVerticesReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), 
-				ReactorKeysEnum.VALUES.getKey(), DEGREE_SEPERATION};
+				ReactorKeysEnum.VALUES.getKey(), DEGREE_SEPERATION, DIRECTION};
 	}
 
 	@Override
@@ -38,11 +39,12 @@ public class ConnectedVerticesReactor  extends AbstractFrameReactor {
 		String nodeType = getColumn();
 		List<String> nodeValues = getValues();
 		int seperation = getDegreeSep();
-		findConnectedVertices(tinker, nodeType, nodeValues, seperation);
+		String direction = getDirection();
+		findConnectedVertices(tinker, nodeType, nodeValues, seperation, direction);
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
 	}
 
-	public static void findConnectedVertices(TinkerFrame tf, String columnType, List<String> instances, int numTraversals) {
+	public static void findConnectedVertices(TinkerFrame tf, String columnType, List<String> instances, int numTraversals, String direction) {
 		// get the correct physical name
 		String nodeType = tf.getMetaData().getPhysicalName(columnType);
 		
@@ -52,12 +54,19 @@ public class ConnectedVerticesReactor  extends AbstractFrameReactor {
 		GraphTraversal<Vertex, Vertex> t1 = tf.g.traversal().V()
 				.has(TinkerFrame.TINKER_TYPE, nodeType)
 				.has(TinkerFrame.TINKER_NAME, P.within(instances))
-				.emit()
-				.repeat(__.both().simplePath())
-				.times(numTraversals)
-				.dedup()
-				;
-				
+				.emit();
+		
+		// use if we want directions or both
+		if(direction.equals("in")) {
+			t1 = t1.repeat(__.in().simplePath());
+		} else if(direction.equals("out")) {
+			t1 = t1.repeat(__.out().simplePath());
+		} else {
+			t1 = t1.repeat(__.both().simplePath());
+		}
+		
+		t1 = t1.times(numTraversals).dedup();
+		
 		while(t1.hasNext()) {
 			Vertex v = t1.next();
 			instancesToKeep.add(v);
@@ -65,7 +74,7 @@ public class ConnectedVerticesReactor  extends AbstractFrameReactor {
 		
 		int size = instancesToKeep.size();
 		if(size == 0) {
-			throw new IllegalStateException("Could not find any nodes to filter");
+			throw new IllegalStateException("Could not find any paths");
 		}
 		
 		Map<String, List<String>> colToValues = new HashMap<String, List<String>>();
@@ -140,5 +149,14 @@ public class ConnectedVerticesReactor  extends AbstractFrameReactor {
 		}
 		
 		throw new IllegalArgumentException("Must define a value for the degrees of seperation");
+	}
+	
+	private String getDirection() {
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		if(grs != null && !grs.isEmpty()) {
+			return grs.get(0).toString().toLowerCase();
+		}
+
+		return "both";
 	}
 }

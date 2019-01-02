@@ -102,7 +102,7 @@ public class FindSharedVerticesReactor  extends AbstractFrameReactor {
 
 		int size = instancesToKeep.size();
 		if(size == 0) {
-			throw new IllegalStateException("Cannot create any path given the instances and the degrees of separation");
+			throw new IllegalStateException("Cannot find any path given the instances and the degrees of separation");
 		}
 		
 		Map<String, List<String>> colToValues = new HashMap<String, List<String>>();
