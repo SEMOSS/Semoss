@@ -471,7 +471,7 @@ public class MasterDatabaseUtility {
 		return returnData;
 	}
 
-	public static Map<String, Object[]> getMetamodelRDBMS(String engineId) {
+	public static Map<String, Object> getMetamodelRDBMS(String engineId) {
 		// this needs to be moved to the name server
 		// and this needs to be based on local master database
 		// need this to be a simple OWL data
@@ -487,14 +487,18 @@ public class MasterDatabaseUtility {
 		Statement stmt = null;
 		ResultSet rs = null;
 		
-		Map<String, Object[]> finalHash = new Hashtable<String, Object[]>();
+		Map<String, Object> finalHash = new Hashtable<String, Object>();
 		
 		// idHash - physical ID to the name of the node
 		Hashtable <String, String> idHash = new Hashtable<String, String>();
 		Hashtable <String, MetamodelVertex> nodeHash = new Hashtable <String, MetamodelVertex>();
 		
+		Map<String, String> physicalDataTypes = new HashMap<String, String>();
+		Map<String, String> dataTypes = new HashMap<String, String>();
+		Map<String, String> additionalDataTypes = new HashMap<String, String>();
+		
 		try {
-			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property "
+			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property, ec.original_type, ec.property_type, ec.additional_type "
 					+ "from engineconcept ec, concept c "
 					 + "where ec.engine='" + engineId + "' "
 					 + "and c.localconceptid=ec.localconceptid order by ec.property";
@@ -506,28 +510,51 @@ public class MasterDatabaseUtility {
 				String physicalId = rs.getString(4);
 				String parentPhysicalId = rs.getString(5); 
 				
+				String origType = rs.getString(7);
+				String cleanType = rs.getString(8);
+				String additionalType = rs.getString(9);
+				
 				// sets the physical id to conceptual name
 				idHash.put(physicalId, conceptualName);
 				
-				MetamodelVertex node = null;
-				
 				// gets the conceptual name
 				String conceptName = idHash.get(physicalId);
-				
 				// because it is ordered by property, this would already be there
 				String parentName = idHash.get(parentPhysicalId);
-
+				
+				MetamodelVertex node = null;
 				// if already there, should we still add it ?
-				if(nodeHash.containsKey(parentName))
+				if(nodeHash.containsKey(parentName)) {
 					node = nodeHash.get(parentName);
-				else
-				{
+				} else {
 					node = new MetamodelVertex(parentName);
 					nodeHash.put(conceptualName, node);
 				}
 				
-				if(!conceptName.equalsIgnoreCase(parentName))
-					node.addProperty(conceptName);				
+				if(!conceptName.equalsIgnoreCase(parentName)) {
+					// store the property
+					node.addProperty(conceptName);
+					
+					// store the types
+					String uniqueName = parentName + "__" + conceptName;
+					if(origType.contains("TYPE:")) {
+						origType = origType.replace("TYPE:", "");
+					}
+					physicalDataTypes.put(uniqueName, origType);
+					dataTypes.put(uniqueName, cleanType);
+					additionalDataTypes.put(uniqueName, additionalType);
+				} else {
+					// store the key
+					node.addKey(conceptName);
+					
+					// store the types for the concept
+					if(origType.contains("TYPE:")) {
+						origType = origType.replace("TYPE:", "");
+					}
+					physicalDataTypes.put(conceptName, origType);
+					dataTypes.put(conceptName, cleanType);
+					additionalDataTypes.put(conceptName, additionalType);
+				}
 			}
 		} catch(SQLException ex) {
 			ex.printStackTrace();
@@ -536,7 +563,8 @@ public class MasterDatabaseUtility {
 			// reuse it below
 			closeStreams(null, rs);
 		}
-			
+		
+		Hashtable <String, Hashtable> edgeHash = new Hashtable<String, Hashtable>();
 		try {
 			// get the edges next
 			//SELECT er.sourceconceptid, er.targetconceptid FROM ENGINERELATION er, engine e where e.id = er.engine and e.enginename = 'Mv1'
@@ -549,7 +577,6 @@ public class MasterDatabaseUtility {
 			}
 			rs = stmt.executeQuery(edgeQuery);
 
-			Hashtable <String, Hashtable> edgeHash = new Hashtable<String, Hashtable>();
 			while(rs.next())
 			{
 				String startId = rs.getString(1);
@@ -578,15 +605,17 @@ public class MasterDatabaseUtility {
 					edgeHash.put(startId + "-" + endId, newEdge);
 				}
 			}
-			finalHash.put("nodes", nodeHash.values().toArray());
-			finalHash.put("edges", edgeHash.values().toArray());
-			
 		} catch(SQLException ex) {
 			ex.printStackTrace();
 		} finally {
 			closeStreams(stmt, rs);
 		}
 		
+		finalHash.put("nodes", nodeHash.values().toArray());
+		finalHash.put("edges", edgeHash.values().toArray());
+		finalHash.put("physicalTypes", physicalDataTypes);
+		finalHash.put("dataTypes", dataTypes);
+		finalHash.put("additionalTypes", additionalDataTypes);
 		return finalHash;
 	}
 	
