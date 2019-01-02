@@ -42,6 +42,7 @@ public enum PixelOperationType {
 	PANEL_POSITION,
 	PANEL_FILTER,
 	PANEL_SORT,
+	CACHED_PANEL,
 	
 	// EXTERNAL WINDOWS
 	OPEN_TAB,
