@@ -145,9 +145,9 @@ import prerna.sablecc2.reactor.frame.filter.RemoveFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.ReplaceFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
-import prerna.sablecc2.reactor.frame.graph.ConnectedVerticesReactor;
-import prerna.sablecc2.reactor.frame.graph.FindPathsBetweenGroupsReactor;
-import prerna.sablecc2.reactor.frame.graph.FindSharedVerticesReactor;
+import prerna.sablecc2.reactor.frame.graph.ConnectedNodesReactor;
+import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingGroupsReactor;
+import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingNodesReactor;
 import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
@@ -1001,10 +1001,10 @@ public class ReactorFactory {
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
+		tinkerFrameHash.put("ConnectedNodes", ConnectedNodesReactor.class);
 		tinkerFrameHash.put("RemoveIntermediaryNode", RemoveIntermediaryNodeReactor.class);
-		tinkerFrameHash.put("FindSharedVertices", FindSharedVerticesReactor.class);
-		tinkerFrameHash.put("ConnectedVertices", ConnectedVerticesReactor.class);
-		tinkerFrameHash.put("FindSharedPathsReactor", FindPathsBetweenGroupsReactor.class);
+		tinkerFrameHash.put("FindPathsConnectingNodes", FindPathsConnectingNodesReactor.class);
+		tinkerFrameHash.put("FindPathsConnectingGroups", FindPathsConnectingGroupsReactor.class);
 		// require r
 		tinkerFrameHash.put("ChangeGraphLayout", GraphLayoutReactor.class);
 		tinkerFrameHash.put("ClusterGraph", ClusterGraphReactor.class);
