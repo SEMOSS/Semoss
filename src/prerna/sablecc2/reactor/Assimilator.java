@@ -20,11 +20,13 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 	// filter is a good example of assimilator for example
 	private boolean containsStringValue = false;
 
+	protected List<String> formulas = new Vector<String>();
+	
 	@Override
 	public NounMetadata execute() {
 		modifySignatureFromLambdas();
-		while(signature.startsWith("(") && signature.endsWith(")")) {
-			signature = signature.substring(1, signature.length()-1).trim();
+		for(String formula : formulas) {
+			this.signature = StringUtils.replaceOnce( this.signature, formula, "( 1.0 * " + formula.substring(1, formula.length()));
 		}
 		// get the assimilator evaluator
 		// this is the class we are going to be using to execute
@@ -204,6 +206,12 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 				break;
 			}
 		}
+	}
+	
+	public void addFormula(String formula) {
+		// always append at the beginning
+		// so that we address the most inner one
+		this.formulas.add(0, formula);
 	}
 
 	@Override
