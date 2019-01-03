@@ -24,7 +24,7 @@ public class NodeDetailsReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = NodeDetailsReactor.class.getName();
 
 	public NodeDetailsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.PANEL.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.PANEL.getKey()};
 	}
 	
 	@Override
@@ -37,9 +37,9 @@ public class NodeDetailsReactor extends AbstractRFrameReactor {
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
 		TinkerFrame frame = (TinkerFrame) getFrame();
 
-		String type = this.keyValue.get(this.keysToGet[0]);
-		String instance = this.keyValue.get(this.keysToGet[1]);
-		String panelId = this.keyValue.get(this.keysToGet[2]);
+		String type = this.keyValue.get(this.keysToGet[1]);
+		String instance = this.keyValue.get(this.keysToGet[2]);
+		String panelId = this.keyValue.get(this.keysToGet[3]);
 		if(panelId == null) {
 			panelId = "Temp";
 		}
