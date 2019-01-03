@@ -112,6 +112,7 @@ import prerna.sablecc2.reactor.expression.OpAbsolute;
 import prerna.sablecc2.reactor.expression.OpAsString;
 import prerna.sablecc2.reactor.expression.OpIsEmpty;
 import prerna.sablecc2.reactor.expression.OpLarge;
+import prerna.sablecc2.reactor.expression.OpLen;
 import prerna.sablecc2.reactor.expression.OpMatch;
 import prerna.sablecc2.reactor.expression.OpMax;
 import prerna.sablecc2.reactor.expression.OpMean;
@@ -1036,6 +1037,7 @@ public class ReactorFactory {
 		expressionHash.put("SUMPRODUCT", OpSumProduct.class);
 		expressionHash.put("AND", OpAnd.class);
 		expressionHash.put("OR", OpOr.class);
+		expressionHash.put("LEN", OpLen.class);
 		expressionHash.put("IFERROR", IfError.class);
 		expressionHash.put("NOTEMPTY", OpNotEmpty.class);
 		expressionHash.put("ISEMPTY", OpIsEmpty.class);
