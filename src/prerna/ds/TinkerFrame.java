@@ -703,12 +703,10 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	}
 	
-	public Object degree(String type, String data)
-	{
+	public Object degree(String type, String data) {
 		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().has(TINKER_ID, type + ":" + data).group().by().by(__.bothE().count());
 		Object degree = null;
-		if(gt.hasNext())
-		{
+		if(gt.hasNext()) {
 			Map <Object, Object> map = gt.next();
 			Iterator mapKeys = map.keySet().iterator();
 			while(mapKeys.hasNext())
@@ -723,27 +721,22 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		return degree;
 	}
 	
-	
-	public Long eigen(String type, String data)
-	{
+	public Long eigen(String type, String data) {
 		Long retLong = null;
-		GraphTraversal<Vertex, Map<String, Object>> gt2 = g.traversal().V().repeat(__.groupCount("m").by(TINKER_ID).out()).times(5).cap("m")
+		GraphTraversal<Vertex, Map<String, Object>> gt2 = g.traversal().V()
+				.repeat(__.groupCount("m").by(TINKER_ID).out())
+				.times(5).cap("m")
 				.V()
-				//.has(TINKER_ID, type + ":" + data)
 				.select("m");
-				//.where("V);
-		if(gt2.hasNext())
-		{
+		if(gt2.hasNext()) {
 			Map <String, Object> map = gt2.next();
-			retLong = (Long)map.get(type + ":" +  data);
-			System.out.println(retLong);
+			retLong = (Long) map.get(type + ":" +  data);
 		}
 		
 		return retLong;
 	}
 
-	public void printEigenMatrix()
-	{
+	public void printEigenMatrix() {
 		GraphTraversal <Vertex, Map<Object, Object>> gt = g.traversal().V().repeat(__.groupCount("m").by(TINKER_ID).out()).times(5).cap("m"); //. //(1)
         //order(Scope.local).by(__.values(), Order.decr).limit(Scope.local, 10); //.next(); //(2)
 		if(gt.hasNext())
@@ -801,19 +794,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 //		return numV;
 	}
 	
-	public boolean isOrphan(String type, String data)
-	{
+	public boolean isOrphan(String type, String data) {
 		boolean retValue = false;
-		
 		GraphTraversal<Vertex, Edge> gt = g.traversal().V().has(TINKER_ID, type + ":" + data).bothE();
-		if(gt.hasNext())
-		{
-			System.out.println(data + "  Not Orphan");
+		if(gt.hasNext()) {
 			retValue = false;
-		}
-		else
-		{
-			System.out.println(data + "  is Orphan");
+		} else {
 			retValue = true;
 		}
 		

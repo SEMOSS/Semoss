@@ -44,7 +44,7 @@ public class CollectReactor extends TaskBuilderReactor {
 			}
 		}
 		
-		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA); //return the data
+		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 	
 	@Override
