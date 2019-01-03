@@ -293,29 +293,32 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		tempInsight.setVarStore(insight.getVarStore());
 		
 		PixelRunner runner = new PixelRunner();
-		Gson gson = GsonUtility.getDefaultGson();
-		Map<String, InsightPanel> panels = insight.getInsightPanels();
+		runner.setInsight(tempInsight);
 		
-		for(String panelId : panels.keySet()) {
-			// make a copy
-			// there might be clones that are needed to set the view task data
-			// so we will set it here
-			// and then modify the cached data afterwards
-			InsightPanelAdapter adapter = new InsightPanelAdapter();
-			StringWriter writer = new StringWriter();
-			JsonWriter jWriter = new JsonWriter(writer);
-			adapter.write(jWriter, panels.get(panelId));
-			String panelStr = writer.toString();
-			InsightPanel panelClone = adapter.fromJson(panelStr);
-			tempInsight.addNewInsightPanel(panelClone);
-			
-			runner.runPixel("CachedPanel(\"" + panelId + "\");", tempInsight);
-		}
+//		Map<String, InsightPanel> panels = insight.getInsightPanels();
+//		for(String panelId : panels.keySet()) {
+//			// make a copy
+//			// there might be clones that are needed to set the view task data
+//			// so we will set it here
+//			// and then modify the cached data afterwards
+//			InsightPanelAdapter adapter = new InsightPanelAdapter();
+//			StringWriter writer = new StringWriter();
+//			JsonWriter jWriter = new JsonWriter(writer);
+//			adapter.write(jWriter, panels.get(panelId));
+//			String panelStr = writer.toString();
+//			InsightPanel panelClone = adapter.fromJson(panelStr);
+//			tempInsight.addNewInsightPanel(panelClone);
+//			
+//			runner.runPixel("CachedPanel(\"" + panelId + "\");", tempInsight);
+//		}
 		
 		// send the view data
 		Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
 		List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
 		if(!pixelReturn.isEmpty()) {
+			for(int i = 0; i < pixelReturn.size(); i++) {
+				System.out.println(pixelReturn.get(i));
+			}
 			runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
 		}
 		
