@@ -1016,6 +1016,11 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inAFormula(AFormula node) {
         defaultIn(node);
+        
+        // need to account for formulas in assimilators
+        if(curReactor instanceof Assimilator) {
+        	((Assimilator) curReactor).addFormula(node.toString().trim());
+        }
     }
 
     @Override
