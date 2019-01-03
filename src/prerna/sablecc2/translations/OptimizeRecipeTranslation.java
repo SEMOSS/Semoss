@@ -50,6 +50,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		taskReactors.add("RunClassification");
 		taskReactors.add("GetRFResults");
 		taskReactors.add("RunAssociatedLearning");
+		taskReactors.add("NodeDetails");
 	}
 	
 	// we are going to take recipe and modify it to delete views (pixels with TaskOptions) that aren't needed
