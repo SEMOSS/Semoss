@@ -463,6 +463,7 @@ public class ReactorFactory {
 		reactorHash.put("AddOperationAlias", AddOperationAliasReactor.class);
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
 		reactorHash.put("RemoveVariable", RemoveVariableReactor.class);
+		reactorHash.put("rm", RemoveVariableReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
 		reactorHash.put("BackupApp", BackupAppReactor.class);
 		reactorHash.put("ExportApp", ExportAppReactor.class);
