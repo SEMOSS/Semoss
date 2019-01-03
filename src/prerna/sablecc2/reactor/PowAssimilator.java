@@ -40,12 +40,16 @@ public class PowAssimilator extends Assimilator {
 		// in order to ensure that we are properly creating the object as a double
 		// we need to remove any wrapping parenthesis such that we can 
 		// properly make it a double by multiplying by 1.0
-		while(lSignature.startsWith("(") && lSignature.endsWith(")")) {
-			lSignature = lSignature.substring(1, lSignature.length()-1).trim();
+		for(String formula : formulas) {
+			this.lSignature = StringUtils.replaceOnce( this.lSignature, formula, "( 1.0 * " + formula.substring(1, formula.length()));
+			this.rSignature = StringUtils.replaceOnce( this.rSignature, formula, "( 1.0 * " + formula.substring(1, formula.length()));
 		}
-		while(rSignature.startsWith("(") && rSignature.endsWith(")")) {
-			rSignature = rSignature.substring(1, rSignature.length()-1).trim();
-		}
+//		while(lSignature.startsWith("(") && lSignature.endsWith(")")) {
+//			lSignature = lSignature.substring(1, lSignature.length()-1).trim();
+//		}
+//		while(rSignature.startsWith("(") && rSignature.endsWith(")")) {
+//			rSignature = rSignature.substring(1, rSignature.length()-1).trim();
+//		}
 		
 		// evaluate the assimilator as an object
 		ClassMaker maker = new ClassMaker();
