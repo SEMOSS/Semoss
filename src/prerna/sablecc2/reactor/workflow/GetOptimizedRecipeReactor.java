@@ -90,7 +90,7 @@ public class GetOptimizedRecipeReactor extends AbstractReactor {
 		}
 		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
 		// this way we can find the last expression index used 
-		translation.finalizeExpressionsToKeep();
-		return translation.getModifiedRecipe();
+		List<String> modifiedRecipe = translation.finalizeExpressionsToKeep();
+		return modifiedRecipe;
 	}
 }

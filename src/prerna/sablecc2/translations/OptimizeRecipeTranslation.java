@@ -53,14 +53,14 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		taskReactors.add("NodeDetails");
 	}
 	
-	// we are going to take recipe and modify it to delete views (pixels with TaskOptions) that aren't needed
-	private List<String> modifiedRecipe = new ArrayList<String>();
-
 	// keep track of the index of expressions
 	private int index = 0;
 	
 	// map the index to the expressions
 	private HashMap<Integer, String> expressionMap = new HashMap<Integer, String>();
+	
+	// keep order of panel creation
+	private List<String> panelCreationOrder = new ArrayList<String>();
 	
 	// panelMap will keep track of the panelId -> list of expressions in order of occurrence
 	// "0" -> [0,1,3] means that panel zero occurred in the TaskOptions of expressions 0, 1 and 3
@@ -83,7 +83,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	private String curPanelId = null;
 	private Map<String, String> clonePanelToOrigPanel = new HashMap<String, String>();
 	private Map<String, Integer> cloneToOrigTask = new HashMap<String, Integer>();
-	private List<Integer> cloneIndex = new ArrayList<Integer>();
+	
+	private Map<Integer, String> cloneIndexToClonePanelId = new HashMap<Integer, String>();
+	private Map<String, Integer> cloneIdToIndex = new HashMap<String, Integer>();
 	
 	// need to keep track
 	// of the panel view modifications performed
@@ -173,7 +175,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	String closePanelId = closePanelInput.toString().trim();
         	
         	// we now have the panel id of the closed panel
-        	// look at the current panelmap and see if that key exists
+        	// look at the current panel map and see if that key exists
         	if (panelMap.containsKey(closePanelId)) {
         		// if it exists, then remove it, we don't need any of these expressions
         		panelMap.remove(closePanelId);
@@ -181,6 +183,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	// same with panel to panel view map
         	if (panelToPanelView.containsKey(closePanelId)) {
         		panelToPanelView.remove(closePanelId);
+        	}
+        	// remove the panel that was created
+        	if (panelCreationOrder.contains(closePanelId)) {
+        		panelCreationOrder.remove(closePanelId);
         	}
 		} else if(reactorId.equals("Panel")) {
 			// this is in case there is a clone that is coming up
@@ -192,6 +198,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			String panel = closePanelInput.toString().trim();
 			addPanelForCurrentIndex(panel);
 			
+			// store the order of the creation
+    		panelCreationOrder.add(panel);
+
 			// in the case when you cloned but the original panel has been modified
 			// we dont want to clone the new modification
 			// but the original
@@ -202,7 +211,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			Integer lastIndex = getLastPixelTaskIndexForPanel(curPanelId);
 			cloneToOrigTask.put(panel, lastIndex);
 			clonePanelToOrigPanel.put(panel, curPanelId);
-			cloneIndex.add(index);
+			
+			// store the index of the clone to the panel created
+			cloneIndexToClonePanelId.put(index, panel);
+			cloneIdToIndex.put(panel, index);
 		} 
         else if (reactorId.equals("SetPanelView")) {
         	// here, if we did a clone
@@ -223,7 +235,14 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	// this is a constant task
         	// let the inAGeneric and inAWordOrIdScalar handle getting the correct panel id
         	containsTaskOptions = true;
-        }
+        } 
+        // account for order of panel creation
+        else if(reactorId.equals("AddPanel")) {
+			// store order of panel creation
+			POpInput input = node.getOpInput();
+        	String panel = input.toString().trim();
+        	panelCreationOrder.add(panel);
+		}
 	}
 	
 	@Override
@@ -297,7 +316,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	/**
 	 * This method adds expressions to expressionsToKeep based on the panelMap
 	 */
-	public void finalizeExpressionsToKeep() {
+	public List<String> finalizeExpressionsToKeep() {
         // now all expressions have been processed
         // we've been keeping track of the expressions associated with each panel
         // we want to grab the last expression index from each panel in the panelMap and add this to expressions to keep
@@ -345,28 +364,26 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
        // grab each index from expressions to keep
        // then match the index with the expression using the expressionMap
        // then add the item from the expressionMap to the modifiedRecipe
+       List<String> modifiedRecipe = new ArrayList<String>();
        for (int j = 0; j < expressionsToKeep.size(); j++) {
 			Integer indexToGrab = expressionsToKeep.get(j);
 			String keepExpression = expressionMap.get(indexToGrab);
 			modifiedRecipe.add(keepExpression);
        }
-	}
-
-	/**
-	 * This method returns that modified recipe
-	 * 
-	 * @return modifiedRecipe
-	 */
-	public List<String> getModifiedRecipe() {
-		return modifiedRecipe;
+       
+       return modifiedRecipe;
 	}
 
 	/**
 	 * Get the last task executed for each panel
 	 * @return
 	 */
-	public List<String> getLastTasksForPanels() {
+	public List<String> getCachedPixelRecipeSteps() {
+		// keep all the expressions we want
 		List<Integer> expressionsToKeep = new ArrayList<Integer>();
+		
+		List<Integer> cloneExpressionsKept = new ArrayList<Integer>();
+		
         PANEL_MAP_LOOP : for(String panelId : panelMap.keySet()) {
 			List<Integer> expressionsForPanel = panelMap.get(panelId);
         	int lastExpressionIndex = expressionsForPanel.get(expressionsForPanel.size() - 1);
@@ -378,7 +395,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	// second, we need to make sure we are cloning the correct step
         	// so that the view has the panel at its original view
         	// not at a later view
-        	if(cloneIndex.contains(lastExpressionIndex)) {
+        	if(cloneIndexToClonePanelId.containsKey(lastExpressionIndex)) {
         		
         		// fist check - did we change the panel view at a later point
         		List<Object[]> panelViews = panelToPanelView.get(panelId);
@@ -423,23 +440,68 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
             				// add back the original task
             				if(!expressionsToKeep.contains(origTaskIndex)) {
             					expressionsToKeep.add(origTaskIndex);
+            					
+            					// do a sneak peak, is this expression a clone
+            		        	if(cloneIndexToClonePanelId.containsKey(origTaskIndex)) {
+            						cloneExpressionsKept.add(origTaskIndex);
+            					}
             				}
             			}
             		}
             	}
+            	
+            	// we know this expression is a clone
+            	cloneExpressionsKept.add(lastExpressionIndex);
         	}
         	
         	expressionsToKeep.add(lastExpressionIndex);
         }
+		// order the expressions
         Collections.sort(expressionsToKeep);
+
+        // store the return cached recipe
+		List<String> cacheRecipe = new ArrayList<String>();
+		
+        // first, add all the cached panel reactors
+        for(int i = 0; i < panelCreationOrder.size(); i++) {
+        	String orderedPanelId = panelCreationOrder.get(i);
+        	
+        	// find if this panel has a kept clone expression
+        	Integer creationIndex = cloneIdToIndex.get(orderedPanelId);
+        	// remember, not all panels are clones
+        	if(creationIndex != null) {
+        		// but this one is a clone 
+        		// is it saved
+        		if(cloneExpressionsKept.contains(creationIndex)) {
+        			// it is a clone
+        			// and we have kept the clone adding
+        			// we cannot load this yet
+        			continue;
+        		}
+        	}
+
+        	// we passed all our checks
+        	// save to load this cached panel at the beginning
+            cacheRecipe.add("CachedPanel(\"" + orderedPanelId + "\");");
+        }
         
-		List<String> lastTasks = new ArrayList<String>();
 		for(Integer index : expressionsToKeep) {
 			String keepExpression = expressionMap.get(index);
-			lastTasks.add(keepExpression);
+			
+			// is it a clone expression ?
+			if(cloneExpressionsKept.contains(index)) {
+				keepExpression = keepExpression.replace("Clone (", "CachedPanelClone (");
+				cacheRecipe.add(keepExpression);
+				// after we do the clone
+				// it is save to now load the cached panel details
+				String thisCachedPanelId = cloneIndexToClonePanelId.get(index);
+            	cacheRecipe.add("CachedPanel(\"" + thisCachedPanelId + "\");");
+			} else {
+				cacheRecipe.add(keepExpression);
+			}
 		}
 		
-		return lastTasks;
+		return cacheRecipe;
 	}
 	
 	/**
@@ -510,10 +572,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		}
 		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
 		// this way we can find the last expression index used 
-		translation.finalizeExpressionsToKeep();
 		Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-		System.out.println(gson.toJson(translation.getModifiedRecipe()));
-		System.out.println(gson.toJson(translation.getLastTasksForPanels()));
+		System.out.println(gson.toJson(translation.finalizeExpressionsToKeep()));
+		System.out.println(gson.toJson(translation.getCachedPixelRecipeSteps()));
 	}
 
 }
