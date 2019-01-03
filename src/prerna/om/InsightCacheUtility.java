@@ -209,7 +209,19 @@ public class InsightCacheUtility {
 			zip = new ZipFile(zipFileLoc);
 			zis = zip.getInputStream(viewData);
 			
-			String jsonString = IOUtils.toString(zis); 
+			String jsonString = IOUtils.toString(zis);
+			
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			//TODO:
+			// this is here to try to delete old invalid caches
+			if(!jsonString.contains("CACHED_PANEL")) {
+				throw new IllegalArgumentException("Old format of cache. Must delete and re-create.");
+			}
+			
 			Gson gson = GsonUtility.getDefaultGson();
 			return gson.fromJson(jsonString, Map.class);
 		} catch(Exception e) {
