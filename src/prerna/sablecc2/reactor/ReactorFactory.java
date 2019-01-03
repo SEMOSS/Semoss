@@ -173,6 +173,7 @@ import prerna.sablecc2.reactor.frame.r.analytics.RSimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RSimilarityHeatReactor;
 import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
 import prerna.sablecc2.reactor.frame.r.graph.GraphLayoutReactor;
+import prerna.sablecc2.reactor.frame.r.graph.NodeDetailsReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
@@ -1009,6 +1010,7 @@ public class ReactorFactory {
 		// require r
 		tinkerFrameHash.put("ChangeGraphLayout", GraphLayoutReactor.class);
 		tinkerFrameHash.put("ClusterGraph", ClusterGraphReactor.class);
+		tinkerFrameHash.put("NodeDetails", NodeDetailsReactor.class);
 	}
 	
 	private static void populatePandasFrameHash(Map<String, Class> pandasFrameHash) {
