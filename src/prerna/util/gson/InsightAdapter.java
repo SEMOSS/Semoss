@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -203,12 +204,23 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		// write the json for the viz
 		// this doesn't actually add anything to the insight object
 		File vizOutputFile = new File(folderDir + DIR_SEPARATOR + InsightCacheUtility.VIEW_JSON);
-		List<String> lastViewPixels = getLastViewPixels(recipe);
+		OptimizeRecipeTranslation opTrans = getOptimizedRecipe(recipe);
 		Insight rerunInsight = new Insight();
 		rerunInsight.setVarStore(value.getVarStore());
 		rerunInsight.setUser(value.getUser());
-		rerunInsight.setInsightPanels(value.getInsightPanels());
-		PixelRunner pixelRunner = rerunInsight.runPixel(lastViewPixels);
+		
+		// add a copy of all the insight panels
+		for(String panelId : panels.keySet()) {
+			InsightPanelAdapter adapter = new InsightPanelAdapter();
+			StringWriter writer = new StringWriter();
+			JsonWriter jWriter = new JsonWriter(writer);
+			adapter.write(jWriter, panels.get(panelId));
+			String panelStr = writer.toString();
+			InsightPanel panelClone = adapter.fromJson(panelStr);
+			rerunInsight.addNewInsightPanel(panelClone);
+		}
+		
+		PixelRunner pixelRunner = rerunInsight.runPixel(opTrans.getCachedPixelRecipeSteps());
 		// i am going to need to go through
 		// and re-align the task ids to match properly
 		List<NounMetadata> pixelRunnerResults = pixelRunner.getResults();
@@ -257,7 +269,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		return null;
 	}
 	
-	private List<String> getLastViewPixels(List<String> recipe) {
+	private OptimizeRecipeTranslation getOptimizedRecipe(List<String> recipe) {
 		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
 		for (int i = 0; i < recipe.size(); i++) {
 			String expression = recipe.get(i);
@@ -276,10 +288,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				e.printStackTrace();
 			}
 		}
-		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
-		// this way we can find the last expression index used 
-		translation.finalizeExpressionsToKeep();
-		return translation.getLastTasksForPanels();
+		return translation;
 	}
 	
 	
