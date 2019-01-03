@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.insights;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,9 +9,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.JsonWriter;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -22,7 +19,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightCacheUtility;
-import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.sablecc2.PixelRunner;
@@ -36,8 +32,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.gson.GsonUtility;
-import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.insight.InsightUtility;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -295,30 +289,10 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		PixelRunner runner = new PixelRunner();
 		runner.setInsight(tempInsight);
 		
-//		Map<String, InsightPanel> panels = insight.getInsightPanels();
-//		for(String panelId : panels.keySet()) {
-//			// make a copy
-//			// there might be clones that are needed to set the view task data
-//			// so we will set it here
-//			// and then modify the cached data afterwards
-//			InsightPanelAdapter adapter = new InsightPanelAdapter();
-//			StringWriter writer = new StringWriter();
-//			JsonWriter jWriter = new JsonWriter(writer);
-//			adapter.write(jWriter, panels.get(panelId));
-//			String panelStr = writer.toString();
-//			InsightPanel panelClone = adapter.fromJson(panelStr);
-//			tempInsight.addNewInsightPanel(panelClone);
-//			
-//			runner.runPixel("CachedPanel(\"" + panelId + "\");", tempInsight);
-//		}
-		
 		// send the view data
 		Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
 		List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
 		if(!pixelReturn.isEmpty()) {
-			for(int i = 0; i < pixelReturn.size(); i++) {
-				System.out.println(pixelReturn.get(i));
-			}
 			runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
 		}
 		

@@ -461,7 +461,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
         // store the return cached recipe
 		List<String> cacheRecipe = new ArrayList<String>();
-		
+		List<String> addedPanels = new ArrayList<String>();
         // first, add all the cached panel reactors
         for(int i = 0; i < panelCreationOrder.size(); i++) {
         	String orderedPanelId = panelCreationOrder.get(i);
@@ -483,6 +483,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	// we passed all our checks
         	// save to load this cached panel at the beginning
             cacheRecipe.add("CachedPanel(\"" + orderedPanelId + "\");");
+            addedPanels.add(orderedPanelId);
         }
         
 		for(Integer index : expressionsToKeep) {
@@ -490,11 +491,25 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			
 			// is it a clone expression ?
 			if(cloneExpressionsKept.contains(index)) {
+				// make sure the panel stil exists
+				// and wasn't removed
+				String thisCachedPanelId = cloneIndexToClonePanelId.get(index);
+				String origPanelId = clonePanelToOrigPanel.get(thisCachedPanelId);
+				
+				boolean addAndRemoveOrigPanel = !addedPanels.contains(origPanelId);
+				if(addAndRemoveOrigPanel) {
+					cacheRecipe.add("AddPanel(\"" + origPanelId + "\");");
+					Integer origTask = cloneToOrigTask.get(thisCachedPanelId);
+					String origExpression = expressionMap.get(origTask);
+					cacheRecipe.add(origExpression);
+				}
 				keepExpression = keepExpression.replace("Clone (", "CachedPanelClone (");
 				cacheRecipe.add(keepExpression);
+				if(addAndRemoveOrigPanel) {
+					cacheRecipe.add("ClosePanel(\"" + origPanelId + "\");");
+				}
 				// after we do the clone
 				// it is save to now load the cached panel details
-				String thisCachedPanelId = cloneIndexToClonePanelId.get(index);
             	cacheRecipe.add("CachedPanel(\"" + thisCachedPanelId + "\");");
 			} else {
 				cacheRecipe.add(keepExpression);
