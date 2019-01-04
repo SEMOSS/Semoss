@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
@@ -122,48 +123,75 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter{
 	@Override
 	public void run() {
 		WatchService watcher = null;
-		WatchKey key = null;
 		try {
 			watcher = FileSystems.getDefault().newWatchService();
-			while(!stop) {
+		} catch(IOException e) {
+			e.printStackTrace();
+			return;
+		}
+		
+		WatchKey key = null;
+		Path dir = (new File(this.folderToWatch)).toPath();
+		try {
+		    key = dir.register(watcher, StandardWatchEventKinds.ENTRY_CREATE);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		while(!stop) {
+			try {
 				key = watcher.take();
-				for(WatchEvent<?> event: key.pollEvents()) {
-					WatchEvent.Kind kind = event.kind();
-					if(kind == StandardWatchEventKinds.ENTRY_CREATE) {
-						String newFile = event.context() + "";
-						if(newFile.endsWith(extension)) {
-							Thread.sleep(2000);	 
-							try {
-								process(newFile);
-							} catch(RuntimeException ex) {
-								ex.printStackTrace();
-							}
-						} else {
-							logger.info("Ignoring File " + newFile);
-						}
+			} catch (InterruptedException x) {
+				if(watcher != null) {
+					try {
+						watcher.close();
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
 				}
-				key.reset();
+				return;
 			}
-		} catch(RuntimeException ex) {
-			logger.debug(ex);
-			// do nothing - I will be working it in the process block
-		} catch (InterruptedException ex) {
-			logger.debug(ex);
-			// do nothing - I will be working it in the process block
-		} catch (IOException ex) {
-			logger.debug(ex);
-			// do nothing - I will be working it in the process block
-		} finally {
-			if(key != null) {
-				key.cancel();
-			}
-			if(watcher != null) {
-				try {
-					watcher.close();
-				} catch (IOException e) {
-					e.printStackTrace();
+
+			for(WatchEvent<?> event: key.pollEvents()) {
+				WatchEvent.Kind kind = event.kind();
+				if(kind == StandardWatchEventKinds.ENTRY_CREATE) {
+					String newFile = event.context() + "";
+					if(newFile.endsWith(extension)) {
+						// cause a delay
+						// to ensure file is fully
+						// written
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+						
+						try {
+							process(newFile);
+						} catch(RuntimeException ex) {
+							ex.printStackTrace();
+						}
+					} else {
+						logger.info("Ignoring File " + newFile);
+					}
 				}
+			}
+
+			// Reset the key 
+			// required to receive further watch events
+			key.reset();
+		}
+
+		// close streams
+		if(key != null) {
+			key.cancel();
+		}
+		if(watcher != null) {
+			try {
+				watcher.close();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 	}	
