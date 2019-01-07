@@ -83,6 +83,14 @@
 						<artifactId>maven-dependency-plugin</artifactId>
 						<version>2.10</version>
 					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<!-- this fixes a bug for open jdk, see https://stackoverflow.com/questions/53010200/maven-surefire-could-not-find-forkedbooter-class -->
+						<configuration>
+							<useSystemClassLoader>false</useSystemClassLoader>
+						</configuration>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -108,6 +116,14 @@
 							<source>1.8</source>
 							<target>1.8</target>
 							<encoding>cp1252</encoding>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<!-- this fixes a bug for open jdk, see https://stackoverflow.com/questions/53010200/maven-surefire-could-not-find-forkedbooter-class -->
+						<configuration>
+							<useSystemClassLoader>false</useSystemClassLoader>
 						</configuration>
 					</plugin>
 					<plugin>
