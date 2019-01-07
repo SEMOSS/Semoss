@@ -615,7 +615,7 @@ public class MasterDatabaseUtility {
 		finalHash.put("edges", edgeHash.values().toArray());
 		finalHash.put("physicalTypes", physicalDataTypes);
 		finalHash.put("dataTypes", dataTypes);
-		finalHash.put("additionalTypes", additionalDataTypes);
+		finalHash.put("additionalDataTypes", additionalDataTypes);
 		return finalHash;
 	}
 	
