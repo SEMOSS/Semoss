@@ -283,8 +283,6 @@ public class PixelStreamUtility {
 							if(!first) {
 								ps.print(",");
 							}
-							System.out.println(row.getValues());
-							System.out.println(gson.toJson(row.getValues()));
 							ps.print(gson.toJson(row.getValues()));
 							ps.flush();
 
