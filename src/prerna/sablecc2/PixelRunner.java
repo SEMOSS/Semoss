@@ -47,7 +47,7 @@ public class PixelRunner {
 		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodedTextToOriginal);
 		GreedyTranslation translation = null;
 		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
 			translation = new GreedyTranslation(this, insight);
 
 			// parsing the pixel - this process also determines if expression is syntactically correct
@@ -150,7 +150,7 @@ public class PixelRunner {
 	 * Method to take a string and return the parsed value of the pixel
 	 */
 	public static List<String> parsePixel(String expression) throws ParserException, LexerException, IOException {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
 		Start tree = p.parse();
 
 		AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
@@ -171,7 +171,7 @@ public class PixelRunner {
 	 * throws exception if pixel cannot be parsed
 	 */
 	public static Set<String> validatePixel(String expression) throws ParserException, LexerException, IOException {
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
 		ValidatorTranslation translation = new ValidatorTranslation();
 		// parsing the pixel - this process also determines if expression is syntactically correct
 		Start tree = p.parse();

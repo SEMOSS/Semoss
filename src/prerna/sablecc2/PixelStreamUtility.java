@@ -53,7 +53,7 @@ public class PixelStreamUtility {
 			return new StreamingOutput() {
 				@Override
 				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
-					try(PrintStream ps = new PrintStream(outputStream)) {
+					try(PrintStream ps = new PrintStream(outputStream, false, "UTF-8")) {
 						// we want to ignore the first index since it will be a job
 						processPixelRunner(ps, gson, runner, true);
 						ps.close();
@@ -82,7 +82,7 @@ public class PixelStreamUtility {
 				@Override
 				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
 					try {
-						ps = new PrintStream(outputStream);
+						ps = new PrintStream(outputStream, false, "UTF-8");
 						// we want to ignore the first index since it will be a job
 						processPixelRunner(ps, gson, runner, ignoreFirst);
 					} catch(Exception e) {
@@ -283,6 +283,8 @@ public class PixelStreamUtility {
 							if(!first) {
 								ps.print(",");
 							}
+							System.out.println(row.getValues());
+							System.out.println(gson.toJson(row.getValues()));
 							ps.print(gson.toJson(row.getValues()));
 							ps.flush();
 
