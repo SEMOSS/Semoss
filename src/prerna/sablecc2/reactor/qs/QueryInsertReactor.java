@@ -10,6 +10,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.date.SemossDate;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
@@ -119,6 +120,9 @@ public class QueryInsertReactor extends AbstractReactor {
 					if(values[i] instanceof String) {
 						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "'");
 					}
+					else if(values[i] instanceof SemossDate) {
+						valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "'");
+					}
 					else {
 						valuesSb.append(values[i]);
 					}
@@ -126,6 +130,9 @@ public class QueryInsertReactor extends AbstractReactor {
 				else {
 					if(values[i] instanceof String) {
 						valuesSb.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(values[i] + "") + "', ");
+					}
+					else if(values[i] instanceof SemossDate) {
+						valuesSb.append("'" + ((SemossDate) values[i]).getFormattedDate() + "', ");
 					}
 					else {
 						valuesSb.append(values[i] + ", ");
