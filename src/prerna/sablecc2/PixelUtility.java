@@ -120,7 +120,11 @@ public class PixelUtility {
 	 */
 	public static void addPixelToTranslation(DepthFirstAdapter translation, String pixelString) {
 		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixelString.getBytes("UTF-8"))))));
+			Parser p = new Parser(
+					new Lexer(
+							new PushbackReader(
+									new InputStreamReader(
+											new ByteArrayInputStream(pixelString.getBytes("UTF-8")), "UTF-8"))));
 			Start tree = p.parse();
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
@@ -205,7 +209,11 @@ public class PixelUtility {
 	public static boolean hasParam(String pixel) {
 		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
 		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8"))), pixel.length())));
+			Parser p = new Parser(
+					new Lexer(
+							new PushbackReader(
+									new InputStreamReader(
+											new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
 			InsightParamTranslation translation = new InsightParamTranslation();
 			// parsing the pixel - this process also determines if expression is syntactically correct
 			Start tree = p.parse();
@@ -246,7 +254,11 @@ public class PixelUtility {
 	public static boolean isDashboard(String pixel) {
 		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
 		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8"))), pixel.length())));
+			Parser p = new Parser(
+					new Lexer(
+							new PushbackReader(
+									new InputStreamReader(
+											new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
 			DashboardRecipeTranslation translation = new DashboardRecipeTranslation();
 			// parsing the pixel - this process also determines if expression is syntactically correct
 			Start tree = p.parse();
@@ -268,7 +280,11 @@ public class PixelUtility {
 		pixel = PixelPreProcessor.preProcessPixel(pixel, new HashMap<String, String>());
 		Object[] ret = new Object[2];
 		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8"))), pixel.length())));
+			Parser p = new Parser(
+					new Lexer(
+							new PushbackReader(
+									new InputStreamReader(
+											new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
 			FormWidgetTranslation translation = new FormWidgetTranslation();
 			// parsing the pixel - this process also determines if expression is syntactically correct
 			Start tree = p.parse();
@@ -324,7 +340,11 @@ public class PixelUtility {
 		DatasourceTranslation translation = new DatasourceTranslation(in);
 		try {
 			expression = PixelPreProcessor.preProcessPixel(expression, new HashMap<String, String>());
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+			Parser p = new Parser(
+					new Lexer(
+							new PushbackReader(
+									new InputStreamReader(
+											new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
 			Start tree = p.parse();
 			// apply the translation.
 			tree.apply(translation);
@@ -351,7 +371,11 @@ public class PixelUtility {
 		translation.setReplacements(replacementOptions);
 		try {
 			fullRecipe = PixelPreProcessor.preProcessPixel(fullRecipe, translation.encodedToOriginal);
-			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(fullRecipe.getBytes("UTF-8"))), fullRecipe.length())));
+			Parser p = new Parser(
+					new Lexer(
+							new PushbackReader(
+									new InputStreamReader(
+											new ByteArrayInputStream(fullRecipe.getBytes("UTF-8")), "UTF-8"), fullRecipe.length())));
 			Start tree = p.parse();
 			// apply the translation.
 			tree.apply(translation);
@@ -390,7 +414,11 @@ public class PixelUtility {
 		for(String expression : recipe) {
 			try {
 				expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
-				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+				Parser p = new Parser(
+						new Lexer(
+								new PushbackReader(
+										new InputStreamReader(
+												new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct
 				Start tree = p.parse();
 				// apply the translation.

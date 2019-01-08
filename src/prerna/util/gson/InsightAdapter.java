@@ -276,7 +276,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			// fill in the encodedToOriginal with map for the current expression
 			expression = PixelPreProcessor.preProcessPixel(expression.trim(), translation.encodedToOriginal);
 			try {
-				Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8"))), expression.length())));
+				Parser p = new Parser(
+						new Lexer(
+								new PushbackReader(
+										new InputStreamReader(
+												new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
 				// parsing the pixel - this process also determines if expression is syntactically correct
 				Start tree = p.parse();
 				// apply the translation
