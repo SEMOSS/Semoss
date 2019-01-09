@@ -99,7 +99,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				String tableOrView = nextRow[0];
 				String tableType = nextRow[1];
 				String schem = nextRow[2];
-				boolean isTable = tableType.equalsIgnoreCase("TABLE");
+				boolean isTable = tableType.toUpperCase().contains("TABLE");
 
 				// this will be table or view
 				if(isTable) {
