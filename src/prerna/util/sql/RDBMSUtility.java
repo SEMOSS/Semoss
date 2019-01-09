@@ -47,7 +47,7 @@ public class RDBMSUtility {
 		return "jdbc:h2:nio:" + "@database@;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	}
 
-	public static String fillH2ConnectionURL(String baseURL, String engineId, String engineName) {
+	public static String fillParameterizedFileConnectionUrl(String baseURL, String engineId, String engineName) {
 		if(engineId == null && engineName == null) {
 			return baseURL;
 		}

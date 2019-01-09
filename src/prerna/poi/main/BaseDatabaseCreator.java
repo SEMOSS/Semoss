@@ -123,7 +123,7 @@ public class BaseDatabaseCreator {
 			this.baseEng.exportDB();
 		} catch (RepositoryException | RDFHandlerException | IOException e) {
 			e.printStackTrace();
-			throw new IOException("Error in writing base engine db as OWL file");
+			throw new IOException("Error in writing OWL file");
 		}
 	}
 
