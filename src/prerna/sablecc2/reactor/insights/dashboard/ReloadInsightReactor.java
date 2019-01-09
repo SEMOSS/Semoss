@@ -13,6 +13,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
+import prerna.util.insight.InsightUtility;
 
 public class ReloadInsightReactor extends OpenInsightReactor {
 
@@ -40,7 +41,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 					hasCache = true;
 					cachedInsight.setInsightId(this.insight.getInsightId());
 					cachedInsight.setInsightName(this.insight.getInsightName());
-					this.insight = cachedInsight;
+					InsightUtility.transferDefaultVars(this.insight, cachedInsight);
 				}
 			} catch (IOException | RuntimeException e) {
 				hasCache = true;
@@ -48,12 +49,6 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 			}
 			
 		}
-		
-		// add the insight to the insight store
-		InsightStore.getInstance().putWithCurrentId(this.insight);
-		InsightStore.getInstance().addToSessionHash(getSessionId(), this.insight.getInsightId());
-		// set user 
-		this.insight.setUser(this.insight.getUser());
 		
 		// get the insight output
 		PixelRunner runner = null;
@@ -85,6 +80,17 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 					e.printStackTrace();
 				}
 			}
+		} else {
+			// this means the cache worked!
+			// lets swap the insight with the cached one
+			
+			// set user 
+			cachedInsight.setUser(this.insight.getUser());
+			// add the insight to the insight store
+			this.insight = cachedInsight;
+			InsightStore.getInstance().putWithCurrentId(this.insight);
+			InsightStore.getInstance().addToSessionHash(getSessionId(), this.insight.getInsightId());
+			this.insight.setUser(this.insight.getUser());
 		}
 		
 		// return the recipe steps
