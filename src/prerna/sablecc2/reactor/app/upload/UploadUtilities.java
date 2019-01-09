@@ -681,8 +681,21 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.DRIVER + "\t" + dbDriver + "\n");
 			bufferedWriter.write(Constants.USERNAME + "\t" + username + "\n");
 			bufferedWriter.write(Constants.PASSWORD + "\t" + password + "\n");
-			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RdbmsConnectionHelper.getConnectionUrl(dbType, host, port, schema, additionalParams) + "\n");
-
+			String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(dbType, host, port, schema, additionalParams);
+			
+			// do we have a file that we want to parameterize?
+			File f = new File(host);
+			if(f.exists()) {
+				// we want to write a parameterized version of the connection url
+				// the engine when it loads this will fix it so connection url will still work
+				String fileBasePath = f.getParent();
+				connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+			}
+			
+			if(connectionUrl.contains("\\")) {
+				connectionUrl = connectionUrl.replace("\\", "\\\\");
+			}
+			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + connectionUrl + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IOException("Could not generate temporary smss file for app");

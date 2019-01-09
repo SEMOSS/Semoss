@@ -140,7 +140,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			this.userName = prop.getProperty(Constants.USERNAME);
 			this.password = (prop.containsKey(Constants.PASSWORD)) ? prop.getProperty(Constants.PASSWORD) : "";
 			this.driver = prop.getProperty(Constants.DRIVER);
-
 			
 			// make a check to see if it is asking to use file
 			boolean useFile = false;
@@ -153,8 +152,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			if(this.dbType == null) {
 				this.dbType = RdbmsTypeEnum.H2_DB;
 			}
-			if(this.dbType == RdbmsTypeEnum.H2_DB) {
-				this.connectionURL = RDBMSUtility.fillH2ConnectionURL(this.connectionURL, this.engineId, this.engineName);
+			if(this.dbType == RdbmsTypeEnum.H2_DB || this.dbType == RdbmsTypeEnum.SQLITE) {
+				this.connectionURL = RDBMSUtility.fillParameterizedFileConnectionUrl(this.connectionURL, this.engineId, this.engineName);
 			}
 			
 			this.connBuilder = null;
