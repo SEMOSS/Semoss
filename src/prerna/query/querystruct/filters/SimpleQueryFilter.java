@@ -823,4 +823,34 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return false;
 	}
 
+	/**
+	 * See if the query is doing a null check
+	 * @param filter
+	 * @return
+	 */
+	public static boolean colValuesContainsNull(SimpleQueryFilter filter) {
+		if(filter.getFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+			NounMetadata rComp = filter.getRComparison();
+			Object rVal = rComp.getValue();
+			if(rVal instanceof List) {
+				if(((List) rVal).contains(null)) {
+					return true;
+				}
+			} else if(rVal == null) {
+				return true;
+			}
+		} else if(filter.getFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+			NounMetadata lComp = filter.getLComparison();
+			Object lVal = lComp.getValue();
+			if(lVal instanceof List) {
+				if(((List) lVal).contains(null)) {
+					return true;
+				}
+			} else if(lVal == null) {
+				return true;
+			}
+		}
+		return false;
+ 	}
+	
 }
