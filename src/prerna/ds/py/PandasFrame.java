@@ -115,26 +115,46 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 			// generate the script
 			runScript(tableName + "=1");
-			StringBuilder script = new StringBuilder();
 			String fileLocation = newFile.getAbsolutePath();
-			script.append(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName));
-			
+			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
 			// execute the script
-			runScript(importS, script.toString());
+			runScript(importS, loadS);
 		}
-		
 		syncHeaders();
 		
 		runScript("list(locals())");
-		
 		// need to get a pandas frame types and then see if this is the same as 
-		//alignColumns(tableName, dataTypeMap);
 		if(!isEmpty(tableName)) {
 			adjustDataTypes(tableName);
 		}
-		
-		//TODO: testing
-		//jep.eval(tableName);
+	}
+	
+	/**
+	 * Generate a table from a CSV file iterator
+	 * @param it
+	 * @param tableName
+	 */
+	private void addRowsViaCsvIterator(CsvFileIterator it, String tableName) {
+		// generate the script
+		String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+		String fileLocation = it.getFileLocation();
+		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
+
+		// need to compose a string for names
+		StringBuilder header = new StringBuilder("");
+		String [] headers = it.getHeaders();
+		for(int headerIndex = 0;headerIndex < headers.length;headerIndex++) {
+			if(header.length() == 0) {
+				header.append("[");
+			} else {
+				header.append(",");
+			}
+			header.append("'").append(headers[headerIndex]).append("'");
+		}
+		header.append("]");
+		String headerS = tableName+".columns=" + header.toString();
+		// execute all 3 scripts
+		runScript(importS, loadS, headerS);
 	}
 	
 	public void merge(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
@@ -142,8 +162,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		runScript(mergeString);
 	}
 	
-	private void adjustDataTypes(String tableName)
-	{
+	private void adjustDataTypes(String tableName) {
 		
 		// get the data types from python first
 		// check against current
@@ -216,10 +235,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		retObject[1] = headers;
 	}
 	
-	
-	
-	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap)
-	{
+	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap) {
 		this.dataTypeMap = dataTypeMap;
 		interp.setDataTypeMap(dataTypeMap);
 	}
@@ -273,46 +289,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 			
 			return colChanger;
 		}
-	}
-	
-	/**
-	 * Generate a table from a CSV file iterator
-	 * @param it
-	 * @param tableName
-	 */
-	private void addRowsViaCsvIterator(CsvFileIterator it, String tableName) {
-		// generate the script
-		StringBuilder script = new StringBuilder(); //new StringBuilder(PANDAS_IMPORT_STRING);
-		//script.append("\n");
-		String fileLocation = it.getFileLocation();
-		runScript("import pandas as pd");
-		
-		// need to compose a string for names
-		StringBuilder header = new StringBuilder("");
-		
-		String [] headers = it.getHeaders();
-		
-		for(int headerIndex = 0;headerIndex < headers.length;headerIndex++)
-		{
-			if(header.length() == 0)
-				header.append("[");
-			else
-				header.append(",");
-			
-			header.append("'").append(headers[headerIndex]).append("'");
-			
-		}
-		
-		header.append("]");
-		
-		script.append(tableName + "= pd.read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', skiprows=[0], header = None)");
-		// execute the script
-		runScript(script.toString());
-		
-		script = new StringBuilder(tableName).append(".columns = ").append(header);
-		runScript(script.toString());
-		//script.append(PandasSyntaxHelper.getCsvFileRead("pd", fileLocation, tableName));
-		
 	}
 	
 	@Override
