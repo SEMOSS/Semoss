@@ -129,9 +129,8 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		this.engine.setInsightDatabase(insightDatabase);
+		// note, on engine creation, we auto create an insights database + add explore an instance
+		// TODO: should add some new ones...
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
