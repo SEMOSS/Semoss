@@ -322,6 +322,11 @@ public class ExcelDataValidationHelper {
 					int validationType = DataValidationConstraint.ValidationType.DECIMAL;
 					headerMeta.put("validationType", validationTypeToString(validationType));
 				}
+				if (Utility.isDateType(type.toString())) {
+					headerMeta.put("type",SemossDataType.DATE.toString());
+					int validationType = DataValidationConstraint.ValidationType.DATE;
+					headerMeta.put("validationType", validationTypeToString(validationType));
+				}
 				headerMeta.put("range", "");
 				headerMeta.put("emptyCells", true);
 				// add comment
