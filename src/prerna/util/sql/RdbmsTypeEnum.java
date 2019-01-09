@@ -17,8 +17,9 @@ public enum RdbmsTypeEnum {
 	SAP_HANA("SAP_HANA", "com.sap.db.jdbc.Driver"),
 	SQLSERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver"),
 	TERADATA("TERADATA", "com.teradata.jdbc.TeraDriver"),
-	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver");
-
+	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver"),
+	SQLITE("SQLITE", "org.sqlite.JDBC");
+	
 	private String label;
 	private String driver;
 	
