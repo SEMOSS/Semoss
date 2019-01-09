@@ -108,9 +108,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 */
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		this.engine.setInsightDatabase(insightDatabase);
+		// note, on engine creation, we auto create an insights database + add explore an instance
 		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
 		logger.info(stepCounter + ". Complete");
 	}

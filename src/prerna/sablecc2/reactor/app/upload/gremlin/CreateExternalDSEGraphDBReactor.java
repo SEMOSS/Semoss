@@ -199,8 +199,8 @@ public class CreateExternalDSEGraphDBReactor extends AbstractReactor {
 		logger.info("4. Complete");
 
 		logger.info("5. Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		// note, on engine creation, we auto create an insights database + add explore an instance
+		// TODO: should add some new ones...
 		logger.info("5. Complete");
 
 		logger.info("6. Process app metadata to allow for traversing across apps	");
