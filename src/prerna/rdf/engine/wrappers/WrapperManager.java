@@ -111,6 +111,7 @@ public class WrapperManager {
 			RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
 			gdi.execute();
 			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
+			returnWrapper.execute();
 			break;
 		}
 		case DATASTAX_GRAPH : {
@@ -122,6 +123,7 @@ public class WrapperManager {
 			RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
 			gdi.execute();
 			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
+			returnWrapper.execute();
 			break;
 		}
 		case REMOTE_SEMOSS : {
