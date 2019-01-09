@@ -33,10 +33,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
@@ -47,6 +47,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -2752,12 +2753,14 @@ public class Utility {
 			e.printStackTrace();
 		}
 		
-		FileWriter writer = null;
+		FileOutputStream fos = null;
+		OutputStreamWriter osw = null;
 		BufferedWriter bufferedWriter = null;
 		
 		try {
-			writer = new FileWriter(f);
-	        bufferedWriter = new BufferedWriter(writer);
+			fos = new FileOutputStream(f);
+			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+	        bufferedWriter = new BufferedWriter(osw);
 
 	        // store some variables and just reset
 	        // should be faster than creating new ones each time
@@ -2838,8 +2841,19 @@ public class Utility {
 				if(bufferedWriter != null) {
 					bufferedWriter.close();
 				}
-				if(writer != null) {
-					writer.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			try {
+				if(osw != null) {
+					osw.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			try {
+				if(fos != null) {
+					fos.close();
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
