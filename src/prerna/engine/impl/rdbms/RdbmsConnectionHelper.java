@@ -91,7 +91,8 @@ public class RdbmsConnectionHelper {
 			File f = new File(host);
 			if(f.exists()) {
 				host = host.replace(".mv.db", "");
-				connectionUrl = "jdbc:h2:nio:HOST:PORT/SCHEMA".replace("HOST", host);
+				// there is no port for files
+				connectionUrl = "jdbc:h2:nio:HOST/SCHEMA".replace("HOST", host);
 			} else {
 				connectionUrl = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host);
 			}
