@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.app.upload.rdbms.external;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,7 +11,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
+import org.python.google.common.io.Files;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -41,6 +42,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsExternalUploadReactor extends AbstractReactor {
 	
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String CLASS_NAME = RdbmsExternalUploadReactor.class.getName();
 
 	// we need to define some variables that are stored at the class level
@@ -136,7 +138,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	private void generateNewApp() {
+	private void generateNewApp() throws Exception {
 		Logger logger = getLogger(CLASS_NAME);
 
 		int stepCounter = 1;
@@ -154,6 +156,21 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		String schema = this.keyValue.get(this.keysToGet[5]);
 		String additionalProperties = this.keyValue.get(this.keysToGet[6]);
 		
+		// if the host is a file
+		// we should move it into the appFolder directory
+		File f = new File(host);
+		if(f.exists()) {
+			// move the file
+			// and then update the host value
+			String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(f.getAbsolutePath());
+			try {
+				Files.move(f, new File(newLocation));
+			} catch (IOException e) {
+				throw new IOException("Unable to relocate database to correct app folder");
+			}
+			host = newLocation;
+		}
+		
 		// the logical metamodel for the upload
 		Map<String, Object> externalMetamodel = getMetamodel();
 		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
@@ -166,12 +183,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			engineClassName = ImpalaEngine.class.getName();
 			engine = new ImpalaEngine();
 		}
-		try {
-			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile, engineClassName, dbType, host, port, schema, username, password, additionalProperties);
-			DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
-		} catch (IOException | SQLException e) {
-			e.printStackTrace();
-		}
+		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile, engineClassName, dbType, host, port, schema, username, password, additionalProperties);
+		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		
@@ -184,6 +197,9 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		prop.put("SCHEMA", schema);
 		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
+		if(!engine.isConnected()) {
+			throw new IllegalArgumentException("Unable to connect to external database");
+		}
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -204,12 +220,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		parseRelationships(owler, relationships, existingRDBMSStructure, nodesAndPrimKeys);
 		// commit / save the owl
 		owler.commit();
-		try {
-			owler.export();
-			engine.setOWL(owler.getOwlPath());
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
+		owler.export();
+		engine.setOWL(owler.getOwlPath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
