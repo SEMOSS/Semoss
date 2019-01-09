@@ -102,6 +102,11 @@ public class RdbmsConnectionHelper {
 			} else {
 				connectionUrl = connectionUrl.replace("SCHEMA", schema);
 			}
+		} else if( rdbmsType == RdbmsTypeEnum.SQLITE) {
+			host = host.replace(".mv.db", "");
+			// there is no port for files
+			// sqlite doesn't really support schemas
+			connectionUrl = "jdbc:sqlite:HOST".replace("HOST", host);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.IMPALA) {
 			connectionUrl = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
