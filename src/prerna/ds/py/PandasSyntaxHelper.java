@@ -3,7 +3,6 @@ package prerna.ds.py;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
@@ -27,12 +26,28 @@ public class PandasSyntaxHelper {
 	
 	/**
 	 * Get the syntax to load a csv file
+	 * Defaults the encoding to utf-8
+	 * @param pandasImportVar
 	 * @param fileLocation
 	 * @param tableName
-	 * @param tableName2 
+	 * @return
 	 */
 	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName) {
-		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "')";
+		return getCsvFileRead(pandasImportVar, fileLocation, tableName, null);
+	}
+	
+	/**
+	 * Get the syntax to load a csv file
+	 * @param pandas import var
+	 * @param fileLocation
+	 * @param tableName
+	 * @param encoding
+	 */
+	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName, String encoding) {
+		if(encoding == null || encoding.isEmpty()) {
+			encoding = "utf-8";
+		}
+		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', encoding='" + encoding + "')";
 		return readCsv;
 	}
 	
