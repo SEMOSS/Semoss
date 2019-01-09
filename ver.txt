@@ -1,2 +1,2 @@
-datetime=2019-01-08_21:34:28
-version=3.3.8.1-SNAPSHOT
+datetime=2019-01-09_09:21:06
+version=3.3.8.2-SNAPSHOT
