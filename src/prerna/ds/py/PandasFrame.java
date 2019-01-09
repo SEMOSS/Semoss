@@ -119,6 +119,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
 			// execute the script
 			runScript(importS, loadS);
+
+			// delete the generated file
+			newFile.delete();
 		}
 		syncHeaders();
 		
