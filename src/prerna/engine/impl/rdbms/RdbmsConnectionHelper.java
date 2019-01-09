@@ -1,5 +1,6 @@
 package prerna.engine.impl.rdbms;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -87,7 +88,19 @@ public class RdbmsConnectionHelper {
 			connectionUrl = "jdbc:derby://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.H2_DB) {
-			connectionUrl = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			File f = new File(host);
+			if(f.exists()) {
+				host = host.replace(".mv.db", "");
+				connectionUrl = "jdbc:h2:nio:HOST:PORT/SCHEMA".replace("HOST", host);
+			} else {
+				connectionUrl = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host);
+			}
+			// schema may be empty
+			if(schema == null || schema.isEmpty()) {
+				connectionUrl = connectionUrl.replace("/SCHEMA", "");
+			} else {
+				connectionUrl = connectionUrl.replace("SCHEMA", schema);
+			}
 		}
 		else if (rdbmsType == RdbmsTypeEnum.IMPALA) {
 			connectionUrl = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
