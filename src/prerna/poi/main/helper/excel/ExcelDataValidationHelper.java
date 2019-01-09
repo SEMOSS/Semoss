@@ -317,16 +317,28 @@ public class ExcelDataValidationHelper {
 					int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH;
 					headerMeta.put("validationType", validationTypeToString(validationType));
 				}
-				if (Utility.isNumericType(type.toString())) {
+				else if (type == SemossDataType.INT || type == SemossDataType.DOUBLE) {
 					headerMeta.put("type", SemossDataType.DOUBLE.toString());
 					int validationType = DataValidationConstraint.ValidationType.DECIMAL;
 					headerMeta.put("validationType", validationTypeToString(validationType));
 				}
-				if (Utility.isDateType(type.toString())) {
-					headerMeta.put("type",SemossDataType.DATE.toString());
+				else if (type == SemossDataType.DATE) {
+					headerMeta.put("type", SemossDataType.DATE.toString());
 					int validationType = DataValidationConstraint.ValidationType.DATE;
 					headerMeta.put("validationType", validationTypeToString(validationType));
 				}
+				else if (type == SemossDataType.TIMESTAMP) {
+					headerMeta.put("type", SemossDataType.TIMESTAMP.toString());
+					int validationType = DataValidationConstraint.ValidationType.DATE;
+					headerMeta.put("validationType", validationTypeToString(validationType));
+				}
+				// this is here to ensure that it gets added
+				else if (type == SemossDataType.BOOLEAN) {
+					headerMeta.put("type", SemossDataType.BOOLEAN.toString());
+					int validationType = DataValidationConstraint.ValidationType.TEXT_LENGTH;
+					headerMeta.put("validationType", validationTypeToString(validationType));
+				}
+				
 				headerMeta.put("range", "");
 				headerMeta.put("emptyCells", true);
 				// add comment
