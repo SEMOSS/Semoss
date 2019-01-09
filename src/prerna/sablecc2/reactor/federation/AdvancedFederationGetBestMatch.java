@@ -21,10 +21,12 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
+	
 	public static final String FRAME_COLUMN = "frameCol";	
+	public static final String OUTPUT_FRAME_NAME = "outputFrame";
 	
 	public AdvancedFederationGetBestMatch() {
-		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), FRAME_COLUMN};
+		this.keysToGet = new String[] {ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), FRAME_COLUMN, OUTPUT_FRAME_NAME};
 	}
 
 	@Override
@@ -32,12 +34,6 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		// 4 column results df with matches, distance, and combined column
-		final String matchesFrame = Utility.getRandomString(8) + "adFed";
-		// 1 column df of all data in frame join column
-		final String rCol1 = matchesFrame + "col1";
-		// 1 column df of all data in the incoming join column
-		final String rCol2 = matchesFrame + "col2";
 
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table" };
@@ -49,7 +45,14 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		String newTable = this.keyValue.get(this.keysToGet[1]);
 		String newCol = this.keyValue.get(this.keysToGet[2]);
 		String frameCol = this.keyValue.get(this.keysToGet[3]);
-
+		
+		// 4 column results df with matches, distance, and combined column
+		final String matchesFrame = getMatchesName();
+		// 1 column df of all data in frame join column
+		final String rCol1 = matchesFrame + "col1";
+		// 1 column df of all data in the incoming join column
+		final String rCol2 = matchesFrame + "col2";
+		
 		// accept input info, generate matches table
 		IEngine newColEngine = Utility.getEngine(newDb);
 		RDataTable frame = (RDataTable) getFrame();
@@ -137,9 +140,21 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(FRAME_COLUMN)) {
-			return "The column from the existing frame to join on.";
+			return "The column from the existing frame to join on";
+		} else if(key.equals(OUTPUT_FRAME_NAME)){
+			return "Specify the output frame name";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
 	}
+	
+	private String getMatchesName() {
+		String matchesFrame = this.keyValue.get(this.keysToGet[4]);
+		if(matchesFrame == null || matchesFrame.isEmpty()) {
+			matchesFrame = Utility.getRandomString(8) + "adFed";
+		}
+		return matchesFrame;
+	}
+	
+	
 }
