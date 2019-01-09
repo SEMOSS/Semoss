@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -14,6 +15,7 @@ import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -155,7 +157,21 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 							// reverse the comparator
 							SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
 							fCopy.reverseComparator();
-							inverseFilters.addFilters(fCopy);
+
+							if(fCopy.getComparator() == "!=" && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
+								// include a show of null
+								// so we need to add this fCopy with a null find
+								NounMetadata nullLComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
+								List<Object> nullList = new Vector<Object>();
+								nullList.add(null);
+								NounMetadata nullRComparison = new NounMetadata(nullList, PixelDataType.CONST_STRING);
+								SimpleQueryFilter nullFilter = new SimpleQueryFilter(nullLComparison, "==", nullRComparison);
+								
+								OrQueryFilter orFilter = new OrQueryFilter(fCopy, nullFilter);
+								inverseFilters.addFilters(orFilter);
+							} else {
+								inverseFilters.addFilters(fCopy);
+							}
 						} else {
 							// just add it to the filters
 							inverseFilters.addFilters(filter.copy());
@@ -171,7 +187,7 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 				// to get the filtered values
 				// run with the inverse filters of the current column
 				qs.setExplicitFilters(inverseFilters);
-
+				
 				// flush out the values
 				Iterator<IHeadersDataRow> filterValuesIt = dataframe.query(qs);
 				while (filterValuesIt.hasNext()) {
