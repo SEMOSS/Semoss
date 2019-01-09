@@ -10,20 +10,17 @@ import java.util.Set;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 
-public class PredictMetamodelReactor extends AbstractReactor {
+public class PredictCsvMetamodelReactor extends AbstractReactor {
+	
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	public PredictMetamodelReactor() {
+	public PredictCsvMetamodelReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT };
 	}
 	
