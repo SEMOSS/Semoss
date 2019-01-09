@@ -51,6 +51,8 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 			// well, no point in doing anything else
 			this.numRows = 0;
 		} else if(limit > 0 || offset > 0) {
+			// java is 0 based so the FE sends 0 when they want the first record
+			// but R is 1 based, so we need to add 1 to the offset value
 			String updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, limit, offset);
 			this.builder.evalR(updatedTempVarQuery);
 			// and then update the number of rows
@@ -97,21 +99,26 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 			if(offset > 0) {
 				// we have limit + offset
 				long lastRIndex = offset + limit;
+				// r is 1 based so we will increase the offset by 1
+				// since FE sends back limit/offset 0 based
+				offset++;
 				if(numRows < lastRIndex) {
 					query.append("[").append(offset).append(":").append(numRows).append("]");
 				} else {
-					query.append("[").append(offset).append(":").append((offset + limit)).append("]");
+					query.append("[").append(offset).append(":").append((lastRIndex)).append("]");
 				}
 			} else {
 				// we just have a limit
 				if(numRows < limit) {
-					query.append("[0:").append(numRows).append("]");
+					query.append("[1:").append(numRows).append("]");
 				} else {
-					query.append("[0:").append(limit).append("]");
+					query.append("[1:").append(limit).append("]");
 				}
 			}
 		} else if(offset > 0) {
-			// we just have offset
+			// r is 1 based so we will increase the offset by 1
+			// since FE sends back limit/offset 0 based
+			offset++;
 			query.append("[").append(offset).append(":").append(numRows).append("]");
 		}
 		return query.toString();
