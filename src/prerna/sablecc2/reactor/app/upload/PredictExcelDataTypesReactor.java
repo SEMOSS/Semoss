@@ -19,6 +19,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class PredictExcelDataTypesReactor extends AbstractReactor {
+	
 	private static final String CLASS_NAME = PredictExcelDataTypesReactor.class.getName();
 
 	public PredictExcelDataTypesReactor() {

@@ -67,10 +67,10 @@ import prerna.sablecc2.reactor.app.upload.CheckHeadersReactor;
 import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
+import prerna.sablecc2.reactor.app.upload.PredictCsvMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.PredictExcelDataTypesReactor;
 import prerna.sablecc2.reactor.app.upload.PredictExcelRangeMetadataReactor;
 import prerna.sablecc2.reactor.app.upload.PredictFileDataTypesReactor;
-import prerna.sablecc2.reactor.app.upload.PredictMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.CreateExternalDSEGraphDBReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.CreateExternalGraphDBReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.GetDSEGraphMetaModelReactor;
@@ -488,7 +488,7 @@ public class ReactorFactory {
 		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);
 		reactorHash.put("PredictDataTypes", PredictFileDataTypesReactor.class);
 		reactorHash.put("PredictExcelDataTypes", PredictExcelDataTypesReactor.class);
-		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
+		reactorHash.put("PredictMetamodel", PredictCsvMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
 		reactorHash.put("ExtractAppMeta", AppMetaExtractor.class);
 		// Excel Data validation
