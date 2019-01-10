@@ -172,7 +172,15 @@ public class MergeDataReactor extends AbstractReactor {
 			}
 		}
 		
-		IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
+		IRawSelectWrapper it = null;
+		try {
+			it = ImportUtility.generateIterator(qs, frame);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(
+					new NounMetadata("Error occured executing query before loading into frame", 
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
 		if(!ImportSizeRetrictions.mergeWithinLimit(frame, it)) {
 			SemossPixelException exception = new SemossPixelException(
 					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
