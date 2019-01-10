@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -76,7 +75,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		Statement stmt = null;
 		ResultSet rs = null;
 
-		String[] headers = new String[] { "Timestamp", "Id", "Type", "Table", "Key_Column", "Key_Column_Value","Altered_Column", "Old_Value", "New_Value", "User_Email" };
+		String[] headers = new String[] { "Modification_Date", "Id", "Modification_Type", "Altered_Table", "Key_Column", "Key_Column_Value","Altered_Column", "Old_Value", "New_Value", "User_Email" };
 		String[] types = new String[] { "TIMESTAMP", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING","STRING", "STRING", "STRING" };
 		H2Frame frame = new H2Frame(headers, types);
 		// create prepared statement to insert data into frame
@@ -138,7 +137,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 			}
 			// get user info from ids
 			List<String> userIds = new Vector<>(userIdSet);
-			Map<String, Map<String, Object>> userInfo = SecurityAdminUtils.getUserInfo(userIds);
+			Map<String, Map<String, Object>> userInfo = SecurityQueryUtils.getUserInfo(userIds);
 			// update user ids to user emails
 			for (String userId : userInfo.keySet()) {
 				updatePS.setObject(1, userInfo.get(userId).get("EMAIL"));

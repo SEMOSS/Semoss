@@ -926,6 +926,63 @@ public class UploadUtilities {
 	}
 	
 	/**
+	 * Add the insight to check the modifications made to a column from audit db
+	 * 
+	 * @param appId
+	 * @param insightEngine
+	 */
+	public static void addAuditModificationView(String appId, IEngine insightEngine) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		String insightName = "What are the modificatinos made to specific column(s)?";
+		String layout = "Bar";
+		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\AuditModificationView.json";
+		File jsonFile = new File(jsonLoc);
+		if (jsonFile.exists()) {
+			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			try {
+				newPixel += new String(Files.readAllBytes(jsonFile.toPath()))
+						.replaceAll("\n|\r|\t", "")
+						.replace("<<ENGINE>>", appId).
+						replace("<<INSIGHT_NAME>>", insightName);
+				newPixel += "} </encode>\" ) ;";
+				String[] pkqlRecipeToSave = { newPixel };
+				admin.addInsight(insightName, layout, pkqlRecipeToSave);
+				insightEngine.commit();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/**
+	 * Add the insight to check the modifications made to a column over time from audit db
+	 * 
+	 * @param appId
+	 * @param insightEngine
+	 */
+	public static void addAuditTimelineView(String appId, IEngine insightEngine) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		String insightName = "What are the modificatinos made to the specific column(s) made over time?";
+		String layout = "Line";
+		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\AuditTimelineView.json";
+		File jsonFile = new File(jsonLoc);
+		if (jsonFile.exists()) {
+			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			try {
+				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
+						.replace("<<ENGINE>>", appId)
+						.replace("<<INSIGHT_NAME>>", insightName);
+				newPixel += "} </encode>\" ) ;";
+				String[] pkqlRecipeToSave = { newPixel };
+				admin.addInsight(insightName, layout, pkqlRecipeToSave);
+				insightEngine.commit();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/**
 	 * Add insert form for csv
 	 * 
 	 * @param appId

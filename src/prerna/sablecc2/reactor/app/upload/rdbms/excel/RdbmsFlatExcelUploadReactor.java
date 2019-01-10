@@ -148,6 +148,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Start generating default app insights");
 		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		UploadUtilities.addAuditModificationView(newAppId, insightDatabase);
+		UploadUtilities.addAuditTimelineView(newAppId, insightDatabase);
 		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
 		// create form insights
 		// user hasn't defined the data types
