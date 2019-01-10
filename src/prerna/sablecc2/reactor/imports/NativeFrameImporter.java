@@ -117,7 +117,15 @@ public class NativeFrameImporter extends AbstractImporter {
 		rImporter.insertData();
 		
 		// now, we want to merge this new data into it
-		IRawSelectWrapper mergeFrameIt = ImportUtility.generateIterator(this.qs, this.dataframe);
+		IRawSelectWrapper mergeFrameIt = null;
+		try {
+			mergeFrameIt = ImportUtility.generateIterator(this.qs, this.dataframe);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(
+					new NounMetadata("Error occured executing query before loading into frame", 
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
 		if(!ImportSizeRetrictions.mergeWithinLimit(rFrame, mergeFrameIt)) {
 			SemossPixelException exception = new SemossPixelException(
 					new NounMetadata("Frame size is too large, please limit the data size before proceeding", 

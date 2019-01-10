@@ -21,6 +21,10 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class TinkerImporter extends AbstractImporter {
@@ -33,7 +37,14 @@ public class TinkerImporter extends AbstractImporter {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator
-		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+		try {
+			this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(
+					new NounMetadata("Error occured executing query before loading into frame", 
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
 	}
 	
 	public TinkerImporter(TinkerFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
