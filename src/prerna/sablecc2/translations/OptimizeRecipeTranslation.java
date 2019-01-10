@@ -499,6 +499,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				boolean addAndRemoveOrigPanel = !addedPanels.contains(origPanelId);
 				if(addAndRemoveOrigPanel) {
 					cacheRecipe.add("AddPanel(\"" + origPanelId + "\");");
+					cacheRecipe.add("Panel(\"" + origPanelId + "\")|SetPanelView(\"visualization\");");
 					Integer origTask = cloneToOrigTask.get(thisCachedPanelId);
 					String origExpression = expressionMap.get(origTask);
 					cacheRecipe.add(origExpression);
