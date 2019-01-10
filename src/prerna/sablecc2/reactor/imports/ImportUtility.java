@@ -44,7 +44,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @return
 	 */
-	public static IRawSelectWrapper generateIterator(SelectQueryStruct qs, ITableDataFrame frame) {
+	public static IRawSelectWrapper generateIterator(SelectQueryStruct qs, ITableDataFrame frame) throws Exception {
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// engine w/ qs
 		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {

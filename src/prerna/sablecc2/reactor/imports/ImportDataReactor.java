@@ -47,7 +47,14 @@ public class ImportDataReactor extends AbstractReactor {
 		
 		IRawSelectWrapper it = null;
 		if(!(frame instanceof NativeFrame)) {
-			it = ImportUtility.generateIterator(qs, frame);
+			try {
+				it = ImportUtility.generateIterator(qs, frame);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(
+						new NounMetadata("Error occured executing query before loading into frame", 
+								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
 			if(!ImportSizeRetrictions.importWithinLimit(frame, it)) {
 				SemossPixelException exception = new SemossPixelException(
 						new NounMetadata("Frame size is too large, please limit the data size before proceeding", 

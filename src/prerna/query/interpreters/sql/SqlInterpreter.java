@@ -16,6 +16,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.poi.main.HeadersException;
 import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -43,6 +44,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
 public class SqlInterpreter extends AbstractQueryInterpreter {
+	
+	protected static HeadersException headerExec = HeadersException.getInstance();
 	
 	// this keeps the table aliases
 	protected Hashtable<String, String> aliases = new Hashtable<String, String>();
@@ -222,7 +225,6 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected void addSelector(IQuerySelector selector) {
 		String alias = selector.getAlias();
 		String newSelector = processSelector(selector, true) + " AS " + "\""+alias+"\"";
-		
 		if(selectors.length() == 0) {
 			selectors = newSelector;
 		} else {
@@ -306,7 +308,15 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			this.retTableToCols.get(table).add(colName);
 		}
 		
-		return tableAlias + "." + physicalColName;
+		// if its an illegal char
+		// first,  you are a jerk for how you made your table
+		// but we will just put quotes around it
+		String quote = "";
+		if(headerExec.isIllegalHeader(physicalColName)) {
+			quote = "\"";
+		}
+		
+		return tableAlias + "." + quote + physicalColName + quote;
 	}
 	
 	protected String processFunctionSelector(QueryFunctionSelector selector) {
