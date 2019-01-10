@@ -16,6 +16,10 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.Join;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class RImporter extends AbstractImporter {
@@ -28,7 +32,14 @@ public class RImporter extends AbstractImporter {
 		this.dataframe = dataframe;
 		this.qs = qs;
 		// generate the iterator
-		this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+		try {
+			this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new SemossPixelException(
+					new NounMetadata("Error occured executing query before loading into frame", 
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
 	}
 	
 	public RImporter(RDataTable dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
