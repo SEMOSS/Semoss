@@ -1,6 +1,7 @@
 package prerna.sablecc2;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,10 +101,11 @@ public class PixelPreProcessor {
 		}
 		
 		// loop through and remove the encapsulated blocks
-		int adjustCounter = 0;
-		for(int i = 0; i < indexToRemove.size(); i++) {
-			encodeBlocks.remove(indexToRemove.get(i).intValue() - adjustCounter);
-			adjustCounter++;
+		if(!indexToRemove.isEmpty()) {
+			Collections.sort(indexToRemove);
+			for(int i = indexToRemove.size(); i > 0; i--) {
+				encodeBlocks.remove(indexToRemove.get(i-1).intValue());
+			}
 		}
 		
 		int continueSize = "</encode>".length();
