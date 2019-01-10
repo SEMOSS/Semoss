@@ -704,6 +704,35 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * Get user info from ids
+	 * 
+	 * @param userIds
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public static Map<String, Map<String, Object>> getUserInfo(List<String> userIds) throws IllegalArgumentException {
+		String query = "SELECT DISTINCT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER ";
+		String userFilter = createFilter(userIds);
+		query += " WHERE ID " + userFilter + ";";
+		Map<String, Map<String, Object>> userMap = new HashMap<>();
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		String[] names = wrapper.getHeaders();
+		if (wrapper.hasNext()) {
+			Object[] values = wrapper.next().getValues();
+			Map<String, Object> userInfo = new HashMap<>();
+			String userId = values[0].toString();
+			userInfo.put(names[0], userId);
+			userInfo.put(names[1], values[1].toString());
+			userInfo.put(names[2], values[2].toString());
+			userInfo.put(names[3], values[3].toString());
+			userInfo.put(names[4], values[4].toString());
+			userInfo.put(names[5], values[5].toString());
+			userMap.put(userId, userInfo);
+		}
+		return userMap;
+	}
+	
 	//////////////////////////////////////////////////////////////////
 	
 	/*

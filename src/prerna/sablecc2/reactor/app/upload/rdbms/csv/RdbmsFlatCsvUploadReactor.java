@@ -175,6 +175,8 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, this.helper.orderHeadersToGet(headers));
 		UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId);
+		UploadUtilities.addAuditModificationView(newAppId, insightDatabase);
+		UploadUtilities.addAuditTimelineView(newAppId, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info(stepCounter + ". Complete");
