@@ -32,6 +32,7 @@ public enum ReactorKeysEnum {
 	DEDUPLICATE("deduplicate",							    "Boolean if we should remove duplicate."),
 	DATA_TYPE("dataType", 									"Data type of the column (STRING, NUMBER, DATE)"),
 	DATA_TYPE_MAP("dataTypeMap", 							"Map of column name to the column data types"),
+	DATE_TIME_FIELD("dateTimeField", 						"Data time field (SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, YEAR)"),
 	DB_DRIVER_KEY("dbDriver",								"Name of the JDBC driver.  Not all JDBC drivers are open source so make sure you include the driver within the classpath of SEMOSS"),
 	DEFAULT_VALUE_KEY("defaultValue", 						"A default value to use for null columns"),
 	DELIMITER("delimiter", 									"Delimiter to be used"),
