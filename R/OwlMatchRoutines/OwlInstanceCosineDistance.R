@@ -125,7 +125,7 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, sampleInstancesList
   similarity_frame <- as.data.table(as.data.frame(cbind(col1, col3, col2, col4, cosine_distance)));
   names(similarity_frame) <- c('sourceCol', 'sourceTable', 'targetCol', 'targetTable', 'distance');
   # remove exact column name matches
-  similarity_frame <- similarity_frame[sourceCol != targetCol];
+  similarity_frame <- similarity_frame[toupper(sourceCol) != toupper(targetCol)];
   # ignore same table joins
   similarity_frame <- similarity_frame[targetTable != sourceTable];
   

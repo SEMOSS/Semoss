@@ -105,7 +105,7 @@ getDocumentCosineSimilarity<-function(allTables, allColumns) {
   similarity_frame <- as.data.table(as.data.frame(cbind(col1, col2, cosine_distance)));
   names(similarity_frame) <- c('sourceCol', 'targetCol', 'distance');
   # remove exact column name matches
-  similarity_frame <- similarity_frame[sourceCol != targetCol];
+  similarity_frame <- similarity_frame[toupper(sourceCol) != toupper(targetCol)];
   
   # make sure column is numeric
   similarity_frame$distance <- as.numeric(as.character(similarity_frame$distance));
