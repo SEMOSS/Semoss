@@ -115,10 +115,12 @@ public class InsightUtility {
 	 */
 	public static NounMetadata clearInsight(Insight insight) {
 		synchronized(insight) {
+			LOGGER.info("Start clearning insight " + insight.getInsightId());
+
 			// drop all the tasks that are currently running
 			TaskStore taskStore = insight.getTaskStore();
 			taskStore.clearAllTasks();
-			LOGGER.info("Successfully cleared all stored tasks for the insight");
+			LOGGER.debug("Successfully cleared all stored tasks for the insight");
 	
 			// drop all the frame connections
 			VarStore varStore = insight.getVarStore();
@@ -133,7 +135,7 @@ public class InsightUtility {
 					dm.close();
 				}
 			}
-			LOGGER.info("Successfully removed all frames from insight");
+			LOGGER.debug("Successfully removed all frames from insight");
 			
 			// need to keep session key
 			NounMetadata sessionKey = varStore.get(JobReactor.SESSION_KEY);
@@ -141,25 +143,25 @@ public class InsightUtility {
 			insight.getVarStore().clear();
 			// add session key
 			insight.getVarStore().put(JobReactor.SESSION_KEY, sessionKey);
-			LOGGER.info("Successfully removed all variables from varstore");
+			LOGGER.debug("Successfully removed all variables from varstore");
 	
 			Map<String, String> fileExports = insight.getExportFiles();
 			if (fileExports != null && !fileExports.isEmpty()) {
 				for (String fileKey : fileExports.keySet()){
 					File f = new File(fileExports.get(fileKey));
 					f.delete();
-					LOGGER.info("Successfully deleted export file used in insight " + f.getName());
+					LOGGER.debug("Successfully deleted export file used in insight " + f.getName());
 				}
 			}
 			
-			LOGGER.info("Successfully cleared insight");
+			LOGGER.info("Successfully cleared insight " + insight.getInsightId());
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 		}
 	}
 	
 	public static NounMetadata dropInsight(Insight insight) {
 		synchronized(insight) {
-			LOGGER.info("Droping insight");
+			LOGGER.info("Droping insight " + insight.getInsightId());
 	
 			// since we do not do this in the clear
 			// i will first grab all the files used
@@ -170,7 +172,7 @@ public class InsightUtility {
 					FileMeta file = fileData.get(fileIdx);
 					File f = new File(file.getFileLoc());
 					f.delete();
-					LOGGER.info("Successfully deleted File used in insight " + file.getFileLoc());
+					LOGGER.debug("Successfully deleted File used in insight " + file.getFileLoc());
 				}
 			}
 			
@@ -178,7 +180,7 @@ public class InsightUtility {
 			LOGGER.info("Clear insight for drop");
 			clearInsight(insight);
 	
-			LOGGER.info("Removing from insight store");
+			LOGGER.debug("Removing from insight store");
 			String insightId = insight.getInsightId();
 			InsightStore.getInstance().remove(insightId);
 	
@@ -191,6 +193,7 @@ public class InsightUtility {
 				}
 			}
 			
+			LOGGER.info("Successfully dropped insight " + insight.getInsightId());
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 		}
 	}
