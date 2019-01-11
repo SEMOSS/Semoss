@@ -1,5 +1,7 @@
 package prerna.poi.main.helper.excel;
 
+import org.apache.poi.ss.util.CellReference;
+
 public class ExcelRange {
 
 	private int startCol = -1;
@@ -94,29 +96,10 @@ public class ExcelRange {
 	}
 	
 	private static int[] convertExcelCellIndex(String excelCellIndex) {
-		int col = 0;
-		int row = 0;
-		
-		// excel syntax is AAB50
-		// break apart the numbers to get the row
-		// convert string to number to get the col
-		
-		// lets do the easy one...
-		String rowStr = excelCellIndex.replaceAll("[A-Z]+", "");
-		row = Integer.parseInt(rowStr);
-		
-		// this isn't that bad since ASCII 'A' starts at 1
-		String colStr = excelCellIndex.replaceAll("\\d+", "");
-		int colLength = colStr.length();
-		int counter = 0;
-		for(int i = colLength-1; i >= 0; i--) {
-			char c = colStr.charAt(i);
-			col += ((int) c) - ((int) 'A') + (26*(i+counter));
-			counter++;
-		}
-		col++;
-		
-		return new int[]{col, row};
+		CellReference cellReference = new CellReference(excelCellIndex);
+		int col = cellReference.getCol() + 1;
+		int row = cellReference.getRow() + 1;
+		return new int[] { col, row };
 	}
 	
 	public int getStartRow() {
@@ -124,7 +107,7 @@ public class ExcelRange {
 	}
 	
 	public static void main(String[] args) {
-		String rStr = "A1:BB9";
+		String rStr = "A1:EJ1459";
 		int[] rIdx = getSheetRangeIndex(rStr);
 		System.out.println("START : " + rIdx[0] + ", " + rIdx[1]);
 		System.out.println("END : " + rIdx[2] + ", " + rIdx[3]);
