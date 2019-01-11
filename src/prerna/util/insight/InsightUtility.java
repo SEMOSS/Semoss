@@ -1,8 +1,12 @@
 package prerna.util.insight;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
@@ -15,9 +19,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.job.JobReactor;
 
 public class InsightUtility {
+
+	protected static final Logger LOGGER = LogManager.getLogger(InsightUtility.class.getName());
 
 	private InsightUtility() {
 		
@@ -107,72 +114,84 @@ public class InsightUtility {
 	 * @return
 	 */
 	public static NounMetadata clearInsight(Insight insight) {
-		// drop all the tasks that are currently running
-		TaskStore taskStore = insight.getTaskStore();
-		taskStore.clearAllTasks();
-//		logger.info("Successfully cleared all stored Tasks for the insight");
-
-		// drop all the frame connections
-		VarStore varStore = insight.getVarStore();
-		Set<String> keys = varStore.getKeys();
-		// find all the vars which are frames
-		// and drop them
-		for(String key : keys) {
-			NounMetadata noun = varStore.get(key);
-			PixelDataType nType = noun.getNounType();
-			if(nType == PixelDataType.FRAME) {
-				ITableDataFrame dm = (ITableDataFrame) noun.getValue();
-				dm.close();
+		synchronized(insight) {
+			// drop all the tasks that are currently running
+			TaskStore taskStore = insight.getTaskStore();
+			taskStore.clearAllTasks();
+			LOGGER.info("Successfully cleared all stored tasks for the insight");
+	
+			// drop all the frame connections
+			VarStore varStore = insight.getVarStore();
+			Set<String> keys = varStore.getKeys();
+			// find all the vars which are frames
+			// and drop them
+			for(String key : keys) {
+				NounMetadata noun = varStore.get(key);
+				PixelDataType nType = noun.getNounType();
+				if(nType == PixelDataType.FRAME) {
+					ITableDataFrame dm = (ITableDataFrame) noun.getValue();
+					dm.close();
+				}
 			}
-		}
-//		logger.info("Successfully removed all frames from insight");
-		// need to keep session key
-		NounMetadata sessionKey = varStore.get(JobReactor.SESSION_KEY);
-		// clear insight
-		insight.getVarStore().clear();
-		// add session key
-		insight.getVarStore().put(JobReactor.SESSION_KEY, sessionKey);
-		//		logger.info("Successfully removed all variables from varstore");
-
-		// also delete any files that were used
-//		List<FileMeta> fileData = insight.getFilesUsedInInsight();
-//		if (fileData != null && !fileData.isEmpty()) {
-//			for (int fileIdx = 0; fileIdx < fileData.size(); fileIdx++) {
-//				FileMeta file = fileData.get(fileIdx);
-//				File f = new File(file.getFileLoc());
-//				f.delete();
-//				logger.info("Successfully deleted File used in insight " + file.getFileLoc());
-//			}
-//		}
-		
-		Map<String, String> fileExports = insight.getExportFiles();
-		if (fileExports != null && !fileExports.isEmpty()) {
-			for (String fileKey : fileExports.keySet()){
-				File f = new File(fileExports.get(fileKey));
-				f.delete();
-//				logger.info("Successfully deleted File used in insight " + f.getName());
+			LOGGER.info("Successfully removed all frames from insight");
+			
+			// need to keep session key
+			NounMetadata sessionKey = varStore.get(JobReactor.SESSION_KEY);
+			// clear insight
+			insight.getVarStore().clear();
+			// add session key
+			insight.getVarStore().put(JobReactor.SESSION_KEY, sessionKey);
+			LOGGER.info("Successfully removed all variables from varstore");
+	
+			Map<String, String> fileExports = insight.getExportFiles();
+			if (fileExports != null && !fileExports.isEmpty()) {
+				for (String fileKey : fileExports.keySet()){
+					File f = new File(fileExports.get(fileKey));
+					f.delete();
+					LOGGER.info("Successfully deleted export file used in insight " + f.getName());
+				}
 			}
+			
+			LOGGER.info("Successfully cleared insight");
+			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 		}
-		
-//		logger.info("Successfully cleared insight");
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 	}
 	
 	public static NounMetadata dropInsight(Insight insight) {
-		clearInsight(insight);
-		
-		String insightId = insight.getInsightId();
-		InsightStore.getInstance().remove(insightId);
-
-		NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);;
-		if(sessionNoun != null) {
-			String sessionId = sessionNoun.getValue().toString();
-			Set<String> insightIdsForSesh = InsightStore.getInstance().getInsightIDsForSession(sessionId);
-			if(insightIdsForSesh != null) {
-				insightIdsForSesh.remove(insightId);
+		synchronized(insight) {
+			LOGGER.info("Droping insight");
+	
+			// since we do not do this in the clear
+			// i will first grab all the files used
+			// then delete them
+			List<FileMeta> fileData = insight.getFilesUsedInInsight();
+			if (fileData != null && !fileData.isEmpty()) {
+				for (int fileIdx = 0; fileIdx < fileData.size(); fileIdx++) {
+					FileMeta file = fileData.get(fileIdx);
+					File f = new File(file.getFileLoc());
+					f.delete();
+					LOGGER.info("Successfully deleted File used in insight " + file.getFileLoc());
+				}
 			}
+			
+			// now i will clear
+			LOGGER.info("Clear insight for drop");
+			clearInsight(insight);
+	
+			LOGGER.info("Removing from insight store");
+			String insightId = insight.getInsightId();
+			InsightStore.getInstance().remove(insightId);
+	
+			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);;
+			if(sessionNoun != null) {
+				String sessionId = sessionNoun.getValue().toString();
+				Set<String> insightIdsForSesh = InsightStore.getInstance().getInsightIDsForSession(sessionId);
+				if(insightIdsForSesh != null) {
+					insightIdsForSesh.remove(insightId);
+				}
+			}
+			
+			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 		}
-		
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 	}
 }
