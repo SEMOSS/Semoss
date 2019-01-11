@@ -146,11 +146,12 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 	
 							for(int cIndex = 0; cIndex < sourceColumnsToTest.size(); cIndex++) {
 								String testColumn = sourceColumnsToTest.get(cIndex);
-								if(containsIgnoreCase(targetColumnsToTest, testColumn)) {
+								String otherColumn = getIgnoreCase(targetColumnsToTest, testColumn);
+								if(otherColumn != null) {
 									// we have a match!!!
 									// always send a distance measure of 1
 									String[] headers = new String[]{"targetTable", "targetCol", "sourceTable", "sourceCol", "distance"};
-									Object[] value = new Object[]{sourceTable, testColumn, targetTable, testColumn, 1.0};
+									Object[] value = new Object[]{sourceTable, testColumn, targetTable, otherColumn, 1.0};
 									rows.add(new HeadersDataRow(headers, value));
 								}
 							}
@@ -169,13 +170,13 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 					return false;
 				}
 	
-				private boolean containsIgnoreCase(List<String> targetColumnsToTest, String testColumn) {
+				private String getIgnoreCase(List<String> targetColumnsToTest, String testColumn) {
 					for(String s : targetColumnsToTest) {
 						if(s.equalsIgnoreCase(testColumn)) {
-							return true;
+							return s;
 						}
 					}
-					return false;
+					return null;
 				}
 				
 			}, typesMap);
