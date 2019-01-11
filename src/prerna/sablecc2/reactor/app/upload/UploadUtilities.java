@@ -267,8 +267,6 @@ public class UploadUtilities {
 //			bufferedWriter.write(Constants.USE_OUTER_JOINS + "\t" + queryUtil.getDefaultOuterJoins()+ "\n");
 //			//commenting out this item below by default
 //			bufferedWriter.write("# " + Constants.USE_CONNECTION_POOLING + "\t" + queryUtil.getDefaultConnectionPooling());
-
-			
 		
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -354,8 +352,7 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryTinkerSmss(String appId, String appName, File owlFile,
-			TINKER_DRIVER tinkerDriverType) throws IOException {
+	public static File generateTemporaryTinkerSmss(String appId, String appName, File owlFile, TINKER_DRIVER tinkerDriverType) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		// i am okay with deleting the .temp if it exists
@@ -503,7 +500,7 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryTinkerSmss(String appId, String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType) throws IOException {
+	public static File generateTemporaryExternalTinkerSmss(String appId, String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		// i am okay with deleting the .temp if it exists
@@ -528,6 +525,10 @@ public class UploadUtilities {
 			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, TinkerEngine.class.getName(), newLine, tab);
 			
 			// tinker file location
+			// we will want to parameterize this
+			File f = new File(tinkerFilePath);
+			String fileBasePath = f.getParent();
+			tinkerFilePath = tinkerFilePath.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
 			bufferedWriter.write(Constants.TINKER_FILE + tab + tinkerFilePath + newLine);
 			// tinker driver
 			bufferedWriter.write(Constants.TINKER_DRIVER + tab + tinkerDriverType + newLine);
