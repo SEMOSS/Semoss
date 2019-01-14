@@ -56,7 +56,7 @@ public class AsTaskReactor extends AbstractReactor {
 			}
 		}
 		
-		if(this.curRow != null && this.curRow.isEmpty()) {
+		if(this.curRow != null && !this.curRow.isEmpty()) {
 			return this.curRow.getNoun(0);
 		}
 		
