@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.sablecc2.om.task.options.TaskOptions;
 
 public class ConstantDataTask extends AbstractTask {
 
@@ -20,7 +21,12 @@ public class ConstantDataTask extends AbstractTask {
 		collectedData.put("data", outputData);
 		if(meta) {
 			collectedData.put("format", getFormatMap());
-			collectedData.put("taskOptions", getTaskOptions().getOptions());
+			TaskOptions thisTaskOptions = getTaskOptions();
+			if(thisTaskOptions != null) {
+				collectedData.put("taskOptions", thisTaskOptions.getOptions());
+			} else {
+				collectedData.put("taskOptions", new HashMap<String, Object>());
+			}
 			collectedData.put("headerInfo", getHeaderInfo());
 			collectedData.put("sortInfo", getSortInfo());
 			collectedData.put("filterInfo", getFilterInfo());
