@@ -189,9 +189,11 @@ public class H2Frame extends AbstractTableDataFrame {
 		// should delete the folder from the server
 		if(previousPhysicalSchema != null) {
 			File file = new File(previousPhysicalSchema);
-			String folder = file.getParent();
-			logger.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
-			ICache.deleteFolder(folder);
+			if(file.exists()) {
+				String folder = file.getParent();
+				logger.info("DELETING ON-DISK SCHEMA AT FOLDER PATH = " + folder);
+				ICache.deleteFolder(folder);
+			}
 		}
 	}
 	
