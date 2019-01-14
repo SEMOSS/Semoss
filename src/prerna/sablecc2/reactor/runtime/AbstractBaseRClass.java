@@ -142,7 +142,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		if (dataframe instanceof TinkerFrame) {
 			String graphName = (String) retrieveVariable("GRAPH_NAME");
 			synchronizeGraphFromR(graphName);
-		} else if (dataframe instanceof H2Frame) {
+		} else if (dataframe instanceof H2Frame || dataframe instanceof RDataTable) {
 			String frameName = (String) retrieveVariable("GRID_NAME");
 			synchronizeGridFromR(frameName, true);
 		}
