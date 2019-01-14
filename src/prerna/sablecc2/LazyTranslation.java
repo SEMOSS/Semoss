@@ -614,7 +614,9 @@ public class LazyTranslation extends DepthFirstAdapter {
         String word = PixelUtility.removeSurroundingQuotes(trimmedWord);
         // also replace any escaped quotes
         word = word.replace("\\\"", "\"");
-        if(curReactor != null) {
+       	// if its an assignment
+    	// just put in results in case we are doing a |
+    	if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
 	        curReactor.getCurRow().addLiteral(word);
 	        curReactor.setProp(node.toString().trim(), word);
         } else {
@@ -628,7 +630,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	String booleanStr = node.getBoolean().toString().trim();
     	Boolean bool = Boolean.parseBoolean(booleanStr);
-        if(curReactor != null) {
+       	// if its an assignment
+    	// just put in results in case we are doing a |
+    	if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
 	        curReactor.getCurRow().addBoolean(bool);
 	        curReactor.setProp(node.toString().trim(), booleanStr);
         } else {
@@ -675,7 +679,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     	} else {
     		noun = new NounMetadata(retNum.intValue(), PixelDataType.CONST_INT);
     	}
-    	if(curReactor != null) {
+    	// if its an assignment
+    	// just put in results in case we are doing a |
+    	if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
     		curReactor.getCurRow().add(noun);
 	    	// modify the parent such that the signature has the correct
 	    	// value of the numerical without any extra spaces
@@ -702,7 +708,9 @@ public class LazyTranslation extends DepthFirstAdapter {
 //        		retNum = -1.0 * retNum.doubleValue();
 //    		}
 //    	}
-    	if(curReactor != null) {
+	   	// if its an assignment
+    	// just put in results in case we are doing a |
+    	if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
 	    	// add the decimal to the cur row
 	        curReactor.getCurRow().addDecimal(retNum.doubleValue());
 	    	// modify the parent such that the signature has the correct
