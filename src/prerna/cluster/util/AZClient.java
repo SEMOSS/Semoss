@@ -64,7 +64,6 @@ public class AZClient {
 	static String rcloneConfigFolder = null;
 
 	CloudBlobClient serviceClient = null;
-	SharedAccessBlobPolicy sasConstraints = null;
 	String connectionString = null;
 	String name = null;
 	String key = null;
@@ -207,16 +206,14 @@ public class AZClient {
 	
 	public SharedAccessBlobPolicy getSASConstraints()
 	{
-		if(sasConstraints == null)
-		{
+		SharedAccessBlobPolicy sasConstraints = null;
 			
         sasConstraints = new SharedAccessBlobPolicy();
         
         // get the current time + 24 hours or some
         
         Calendar calendar = Calendar.getInstance();
-        
-        calendar.add(Calendar.HOUR, +24);
+        calendar.add(Calendar.MINUTE, +3);
         Date date = calendar.getTime();
         
         sasConstraints.setSharedAccessExpiryTime(date);
@@ -233,7 +230,6 @@ public class AZClient {
         
         sasConstraints.setPermissions(permSet);
         
-		}
         return sasConstraints;
 
 	}
