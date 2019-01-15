@@ -1,20 +1,22 @@
-package prerna.sablecc2.reactor.app.metaeditor;
+package prerna.sablecc2.reactor.app.metaeditor.meta;
 
 import java.io.IOException;
 
+import cern.colt.Arrays;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
+public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
-	public AddOwlDescriptionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DESCRIPTION.getKey()};
+	public RemoveOwlLogicalNamesReactor() {
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};
 	}
 	
 	@Override
@@ -25,7 +27,7 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		
 		String concept = getConcept();
 		String prop = getProperty();
-		String[] descriptions = getDescriptions();
+		String[] logicalNames = getLogicalNames();
 		
 		OWLER owler = getOWLER(appId);
 		// set all the existing values into the OWLER
@@ -34,9 +36,9 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		setOwlerValues(engine, owler);
 		if(prop == null || prop.isEmpty()) {
 			String physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + concept);
-			owler.addConceptDescription(concept, Utility.getClassName(physicalUri), descriptions);
+			owler.deleteConceptLogicalNames(concept, Utility.getClassName(physicalUri), logicalNames);
 		} else {
-			owler.addPropDescription(concept, prop, descriptions);
+			owler.deletePropLogicalNames(concept, prop, logicalNames);
 		}
 		owler.commit();
 		
@@ -45,15 +47,13 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-//			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add descriptions : " + Arrays.toString(descriptions),
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add description", 
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove logical names : " + Arrays.toString(logicalNames), 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-//		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions : " + Arrays.toString(descriptions), 
-		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions",
+		noun.addAdditionalReturn(new NounMetadata("Successfully removed logical names : " + Arrays.toString(logicalNames), 
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
@@ -99,7 +99,7 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		return "";
 	}
 
-	private String[] getDescriptions() {
+	private String[] getLogicalNames() {
 		String[] logicalNames = null;
 		GenRowStruct grs = this.store.getNoun(keysToGet[3]);
 		if (grs != null && !grs.isEmpty()) {
