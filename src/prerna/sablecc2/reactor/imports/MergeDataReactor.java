@@ -80,8 +80,8 @@ public class MergeDataReactor extends AbstractReactor {
 		// in case we generated a new frame
 		// update existing references
 		if(mergeFrame != frame) {
-			if(frame.getTableName() != null) {
-				this.insight.getVarStore().put(frame.getTableName(), noun);
+			if(frame.getName() != null) {
+				this.insight.getVarStore().put(frame.getName(), noun);
 			} 
 			if(frame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
 				this.insight.setDataMaker(mergeFrame);

@@ -81,31 +81,32 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 		typesMap.put("distance", SemossDataType.DOUBLE);
 
 		H2Frame frame = new H2Frame();
+		String tableName = frame.getName();
 		
 		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta();
-		meta.addProperty(frame.getTableName(), frame.getTableName() + "__targetTable");
-		meta.addProperty(frame.getTableName(), frame.getTableName() + "__targetCol");
-		meta.addProperty(frame.getTableName(), frame.getTableName() + "__sourceTable");
-		meta.addProperty(frame.getTableName(), frame.getTableName() + "__sourceCol");
-		meta.addProperty(frame.getTableName(), frame.getTableName() + "__distance");
+		meta.addProperty(tableName, tableName + "__targetTable");
+		meta.addProperty(tableName, tableName + "__targetCol");
+		meta.addProperty(tableName, tableName + "__sourceTable");
+		meta.addProperty(tableName, tableName + "__sourceCol");
+		meta.addProperty(tableName, tableName + "__distance");
 
-		meta.setDataTypeToProperty(frame.getTableName() + "__targetTable", "STRING");
-		meta.setDataTypeToProperty(frame.getTableName() + "__targetCol", "STRING");
-		meta.setDataTypeToProperty(frame.getTableName() + "__sourceTable", "STRING");
-		meta.setDataTypeToProperty(frame.getTableName() + "__sourceCol", "STRING");
-		meta.setDataTypeToProperty(frame.getTableName() + "__distance", "DOUBLE");
+		meta.setDataTypeToProperty(tableName + "__targetTable", "STRING");
+		meta.setDataTypeToProperty(tableName + "__targetCol", "STRING");
+		meta.setDataTypeToProperty(tableName + "__sourceTable", "STRING");
+		meta.setDataTypeToProperty(tableName + "__sourceCol", "STRING");
+		meta.setDataTypeToProperty(tableName + "__distance", "DOUBLE");
 
-		meta.setAliasToProperty(frame.getTableName() + "__targetTable", "targetTable");
-		meta.setAliasToProperty(frame.getTableName() + "__targetCol", "targetCol");
-		meta.setAliasToProperty(frame.getTableName() + "__sourceTable", "sourceTable");
-		meta.setAliasToProperty(frame.getTableName() + "__sourceCol", "sourceCol");
-		meta.setAliasToProperty(frame.getTableName() + "__distance", "distance");
+		meta.setAliasToProperty(tableName + "__targetTable", "targetTable");
+		meta.setAliasToProperty(tableName + "__targetCol", "targetCol");
+		meta.setAliasToProperty(tableName + "__sourceTable", "sourceTable");
+		meta.setAliasToProperty(tableName + "__sourceCol", "sourceCol");
+		meta.setAliasToProperty(tableName + "__distance", "distance");
 
-		meta.setDerivedToProperty(frame.getTableName() + "__targetTable", true);
-		meta.setDerivedToProperty(frame.getTableName() + "__targetCol", true);
-		meta.setDerivedToProperty(frame.getTableName() + "__sourceTable", true);
-		meta.setDerivedToProperty(frame.getTableName() + "__sourceCol", true);
-		meta.setDerivedToProperty(frame.getTableName() + "__distance", true);
+		meta.setDerivedToProperty(tableName + "__targetTable", true);
+		meta.setDerivedToProperty(tableName + "__targetCol", true);
+		meta.setDerivedToProperty(tableName + "__sourceTable", true);
+		meta.setDerivedToProperty(tableName + "__sourceCol", true);
+		meta.setDerivedToProperty(tableName + "__distance", true);
 		frame.setMetaData(meta);
 
 		boolean emptyMessage = false;
@@ -191,7 +192,7 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 				types[i] = typesMap.get(header).toString();
 				i++;
 			}
-			frame.getBuilder().alterTableNewColumns(frame.getTableName(), headers, types);
+			frame.getBuilder().alterTableNewColumns(tableName, headers, types);
 			// ignore, but need to add message
 		}
 		
@@ -204,7 +205,7 @@ public class OwlDirectNameMatchReactor extends AbstractMetaEditorReactor {
 		if(this.insight.getDataMaker() == null) {
 			this.insight.setDataMaker(frame);
 		}
-		this.insight.getVarStore().put(frame.getTableName(), retNoun);
+		this.insight.getVarStore().put(tableName, retNoun);
 		
 		// return the frame
 		return retNoun;

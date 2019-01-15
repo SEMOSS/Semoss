@@ -22,7 +22,7 @@ public class TrimReactor extends AbstractFrameReactor {
 				NounMetadata input = inputsGRS.getNoun(selectIndex);
 				String columnName = input.getValue() + "";
 				
-				String table = frame.getTableName();
+				String table = frame.getName();
 				String column = columnName;
 				if (columnName.contains("__")) {
 					String[] split = columnName.split("__");

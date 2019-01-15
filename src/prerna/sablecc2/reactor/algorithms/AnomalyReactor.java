@@ -55,9 +55,8 @@ public class AnomalyReactor extends AbstractRFrameReactor {
 		if (!(frame instanceof RDataTable)) {
 			throw new IllegalArgumentException("Frame must be an R Datatable to generate anomalies.");
 		}
-		String frameName = frame.getTableName();
-
-		String table = frame.getTableName();
+		
+		String table = frame.getName();
 		// Convert string direction to AnomDirection
 		// Default to both
 		AnomDirection anomDirection;
@@ -75,7 +74,7 @@ public class AnomalyReactor extends AbstractRFrameReactor {
 
 		String argsScript = "args <- list('" + timeColumn + "', '" + seriesColumn + "', '" + aggregateFunction + "', "
 				+ maxAnoms + ", '" + anomDirection.toString().toLowerCase() + "', " + alpha + ", " + period + ")";
-		String createFrame = "this.dt.is.reserved.for.anomaly.detection <- " + frameName;
+		String createFrame = "this.dt.is.reserved.for.anomaly.detection <- " + table;
 		this.rJavaTranslator.executeR(argsScript);
 		this.rJavaTranslator.executeR(createFrame);
 
@@ -85,7 +84,7 @@ public class AnomalyReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.executeR(script);
 
 		// do something with the results df
-		String frameUpdate = frameName + " <- " + "this.dt.is.reserved.for.anomaly.detection";
+		String frameUpdate = table + " <- " + "this.dt.is.reserved.for.anomaly.detection";
 		this.rJavaTranslator.executeR(frameUpdate);
 
 		// garbage cleanup

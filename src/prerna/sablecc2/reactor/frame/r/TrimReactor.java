@@ -31,7 +31,7 @@ public class TrimReactor extends AbstractRFrameReactor {
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		String table = frame.getTableName();
+		String table = frame.getName();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
 		// get inputs

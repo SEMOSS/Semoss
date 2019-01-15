@@ -83,7 +83,7 @@ public class InsightUtility {
 			} else if(key.equals(Insight.CUR_FRAME_KEY)) {
 				// if we are removing curframekey
 				// also remove if it is added twice with its alias
-				String alias = dm.getTableName();
+				String alias = dm.getName();
 				if(alias != null && !alias.isEmpty()) {
 					varStore.remove(alias);
 				}

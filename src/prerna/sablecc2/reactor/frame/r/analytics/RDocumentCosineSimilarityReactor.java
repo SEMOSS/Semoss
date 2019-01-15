@@ -36,7 +36,7 @@ public class RDocumentCosineSimilarityReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable rFrame = (RDataTable) this.getFrame();
 		OwlTemporalEngineMeta meta = rFrame.getMetaData();
-		String dataFrame = rFrame.getTableName();
+		String dataFrame = rFrame.getName();
 		String instanceCol = this.keyValue.get(ReactorKeysEnum.INSTANCE_KEY.getKey());
 		String description = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
 		boolean override = overrideFrame();

@@ -96,7 +96,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			double[] oldValues = new double[numColumns];
 			boolean foundExisting = false;;
 			if(!frame.isEmpty()) {
-				String curSystemDeploymentSavingsQuery = "SELECT * FROM " + frame.getTableName() + " WHERE " + mainColName + " = '" + instance + "'";
+				String curSystemDeploymentSavingsQuery = "SELECT * FROM " + frame.getName() + " WHERE " + mainColName + " = '" + instance + "'";
 				ResultSet curSavingRs = frame.execQuery(curSystemDeploymentSavingsQuery);
 
 				if(curSavingRs.next()) {
@@ -163,7 +163,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		for(int i = 2; i < headers.length; i++) {
 			rowTotal.append("+").append(headers[i]);
 		}
-		rowTotal.append(" FROM ").append(frame.getTableName());
+		rowTotal.append(" FROM ").append(frame.getName());
 		
 		String[] newHeaders = new String[2];
 		String[] dataTypes = new String[2];
@@ -173,7 +173,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		dataTypes[1] = SemossDataType.DOUBLE.toString();
 
 		// we will merge the new headers into our existing frame
-		frame.addNewColumn(newHeaders, dataTypes, frame.getTableName());
+		frame.addNewColumn(newHeaders, dataTypes, frame.getName());
 
 		ResultSet it = frame.execQuery(rowTotal.toString());
 		try {
@@ -194,7 +194,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		for(int i = 2; i < headers.length; i++) {
 			colTotals.append(", SUM(").append(headers[i]).append(")");
 		}
-		colTotals.append(" FROM ").append(frame.getTableName());
+		colTotals.append(" FROM ").append(frame.getName());
 		it = frame.execQuery(colTotals.toString());
 		Object[] colTotalArr = new Object[headers.length];
 		colTotalArr[0] = "Total";
@@ -347,7 +347,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		dataTypes[1] = SemossDataType.STRING.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
 
 		try {
 			// create an update statement to set the systems last wave
@@ -382,7 +382,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		dataTypes[1] = SemossDataType.STRING.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
 
 		try {
 			// create an update statement to set all the values to false as default
@@ -416,7 +416,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		dataTypes[1] = SemossDataType.STRING.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
 
 		try {
 			// create an update statement to set all the values to false as default
@@ -426,7 +426,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 			updatePs.executeBatch();
 
 			StringBuilder siteSpecificSystems = new StringBuilder();
-			siteSpecificSystems.append("SELECT DISTINCT System FROM " + systemSiteSustainmentFrame.getTableName());
+			siteSpecificSystems.append("SELECT DISTINCT System FROM " + systemSiteSustainmentFrame.getName());
 
 			// get an iterator for the systems which we have site specific data
 			ResultSet siteSpecificSystemsIterator = systemSiteSustainmentFrame.execQuery(siteSpecificSystems.toString());
@@ -456,7 +456,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		dataTypes[1] = SemossDataType.STRING.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
 
 		StringBuilder centralDeployedSystems = new StringBuilder();
 		centralDeployedSystems.append("SELECT DISTINCT ?System "
@@ -503,7 +503,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		dataTypes[1] = SemossDataType.DOUBLE.toString();
 
 		// we will merge the new headers into our existing frame
-		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
 
 		StringBuilder sysNumSitesQuery = new StringBuilder();
 		sysNumSitesQuery.append("SELECT ?System (COUNT(?HostSite) AS ?NumSites) "
@@ -570,14 +570,14 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		tempDataType.put("FY", SemossDataType.STRING);
 		tempDataType.put("Cost", SemossDataType.DOUBLE);
 		H2Frame tempFrame = new H2Frame();
-		tempFrame.addNewColumn(tempHeaders, new String[] {"String", "String", "Number"}, tempFrame.getTableName());
+		tempFrame.addNewColumn(tempHeaders, new String[] {"String", "String", "Number"}, tempFrame.getName());
 		tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
 
 		int numFYs = inflationArr.length;
 		int systemSustainmentFrameSize = numFYs+1;
 
 		// get the list of all the systems we have cost data for
-		String tempFrameName = tempFrame.getTableName();
+		String tempFrameName = tempFrame.getName();
 		ResultSet rs = tempFrame.execQuery("SELECT DISTINCT System FROM " + tempFrameName);
 		List<String> systemsWithCostList = new Vector<String>();
 		try {
@@ -611,7 +611,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 		}
 
 		// we will add the new headers into our existing frame
-		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getTableName());
+		mainSustainmentFrame.addNewColumn(headers, dataTypes, mainSustainmentFrame.getName());
 
 		PreparedStatement updatePs = mainSustainmentFrame.createUpdatePreparedStatement(newColumnsForFrame, new String[] { "System" });
 
@@ -804,7 +804,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				dataTypes[i + 2] = "Number";
 			}
 			this.systemSiteSustainmentFrame = new H2Frame();
-			this.systemSiteSustainmentFrame.addNewColumn(headers, dataTypes, this.systemSiteSustainmentFrame.getTableName());
+			this.systemSiteSustainmentFrame.addNewColumn(headers, dataTypes, this.systemSiteSustainmentFrame.getName());
 
 			IEngine tapPortfolio = Utility.getEngine(MasterDatabaseUtility.testEngineIdIfAlias("TAP_Portfolio"));
 			String[] systemSiteSustainmentQueryArr = new String[2];
@@ -846,7 +846,7 @@ public class MhsGenesisDeploymentSavingsProcessor {
 				tempFrame.addRowsViaIterator(rawWrapper, tempDataType);			
 	
 				// get the list of all the systems we have cost data for
-				String tempFrameName = tempFrame.getTableName();
+				String tempFrameName = tempFrame.getName();
 				ResultSet rs = tempFrame.execQuery("SELECT DISTINCT System, Site FROM " + tempFrameName);
 				List<String> systemsSiteComboList = new Vector<String>();
 				try {

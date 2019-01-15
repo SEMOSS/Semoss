@@ -17,7 +17,7 @@ public class H2ChangeTypeReactor extends DataframeChangeTypeReactor {
 	@Override
 	public Iterator process() {
 		H2Frame frame = (H2Frame) myStore.get("G");
-		String tableName = frame.getTableName();
+		String tableName = frame.getName();
 		
 		// column name and new type are passed in the pkql
 		this.columnName = ((List<String>) myStore.get(PKQLEnum.COL_DEF)).get(0);

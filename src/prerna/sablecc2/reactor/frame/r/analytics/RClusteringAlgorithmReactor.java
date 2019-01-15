@@ -68,7 +68,7 @@ public class RClusteringAlgorithmReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
-		String dtName = frame.getTableName();
+		String dtName = frame.getName();
 		boolean implicitFilter = false;
 		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
 		String tempKeyCol = "tempGenUUID99SM_" + Utility.getRandomString(6);

@@ -20,7 +20,7 @@ public class ExtractAlphaCharsReactor extends AbstractFrameReactor {
 	public NounMetadata execute() {
 		H2Frame frame = (H2Frame) getFrame();
 		// get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 		// get columns to extract alphabet characters
 		List<String> columns = getColumns();
 		// check if user want to override the column or create new columns

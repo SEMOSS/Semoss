@@ -32,7 +32,7 @@ public class DuplicateColumnReactor extends AbstractRFrameReactor {
 
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// get source column to duplicate
 		String srcCol = this.keyValue.get(this.keysToGet[0]);

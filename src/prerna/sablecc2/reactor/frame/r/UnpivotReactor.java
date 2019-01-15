@@ -38,7 +38,7 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 
 		// get frame name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// get column inputs in an array
 		String[] columns = getStringArray();

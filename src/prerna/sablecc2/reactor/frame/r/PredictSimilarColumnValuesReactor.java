@@ -35,7 +35,7 @@ public class PredictSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
 		// get single column input
 		RDataTable frame = (RDataTable) getFrame();
-		String frameName = frame.getTableName();
+		String frameName = frame.getName();
 		String matchesTable = Utility.getRandomString(8);
 		String col1 = matchesTable + "col1";
 

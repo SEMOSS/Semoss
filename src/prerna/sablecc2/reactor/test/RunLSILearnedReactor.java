@@ -43,7 +43,7 @@ public class RunLSILearnedReactor extends AbstractRFrameReactor{
 		this.rJavaTranslator.checkPackages(packages);
 		// output frame name
 		RDataTable frame = (RDataTable) getFrame();
-		String returnTable = frame.getTableName();
+		String returnTable = frame.getName();
 		
 		String frameJoinCol = this.keyValue.get(this.keysToGet[0]);
 		int numRows = Integer.parseInt(this.keyValue.get(this.keysToGet[1]));

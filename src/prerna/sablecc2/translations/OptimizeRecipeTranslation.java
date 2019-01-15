@@ -288,7 +288,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			// first get the existing set of index values
 			List<Integer> indexVals = panelMap.get(panel);
 			// next, add the new index value to the list of values
-			indexVals.add(index);
+			if(!indexVals.contains(index)) {
+				indexVals.add(index);
+			}
 		} else {
 			// if the panel DOES NOT already exist in the panelMap, we need to add it
 			List<Integer> indexVals = new ArrayList<Integer>();
@@ -436,7 +438,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
             		if(origMapTaskIndices != null) {
             			// we need to check to see if the last task for that panel has changed
             			Integer currentLastTaskForPanel = origMapTaskIndices.get(origMapTaskIndices.size()-1);
-            			if(currentLastTaskForPanel < origTaskIndex) {
+            			if(currentLastTaskForPanel > origTaskIndex) {
             				// add back the original task
             				if(!expressionsToKeep.contains(origTaskIndex)) {
             					expressionsToKeep.add(origTaskIndex);

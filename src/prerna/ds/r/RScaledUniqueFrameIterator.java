@@ -98,7 +98,7 @@ public class RScaledUniqueFrameIterator implements Iterator<List<Object[]>> {
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
-		interp.setDataTableName(frame.getTableName());
+		interp.setDataTableName(frame.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 		String rQuery = interp.composeQuery();
 		
