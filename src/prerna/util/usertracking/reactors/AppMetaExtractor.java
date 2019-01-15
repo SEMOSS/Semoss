@@ -76,8 +76,7 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 
 		// only executes for rdbms, tinker, and rdf
 		ENGINE_TYPE engineType = engine.getEngineType();
-		if (engineType.equals(ENGINE_TYPE.RDBMS) || engineType.equals(ENGINE_TYPE.SESAME)
-				|| engineType.equals(ENGINE_TYPE.TINKER)) {
+		if (engineType.equals(ENGINE_TYPE.RDBMS) || engineType.equals(ENGINE_TYPE.SESAME) || engineType.equals(ENGINE_TYPE.TINKER)) {
 			OWLER owl = new OWLER(engine, owlPath);
 			owl.addUniqueCounts(engine);
 		}
