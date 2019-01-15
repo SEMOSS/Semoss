@@ -6,6 +6,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
@@ -583,10 +584,14 @@ public class OWLER {
 	 * 
 	 * @param queryEngine
 	 */
-	public void addUniqueCounts(IEngine queryEngine){
-		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinEngineRDBMS(queryEngine.getEngineId());
-		
-		for (String tab : concepts){
+	public void addUniqueCounts(IEngine queryEngine) {
+		String uniqueCountProp = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
+
+		Vector<String> concepts = queryEngine.getConcepts(false);
+		for (String conceptPhysicalUri : concepts){
+			String conceptConceptualUri = queryEngine.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
+			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
+			
 			// query for unique column values and dont 
 			// store it if it returns null
 			SelectQueryStruct qs = new SelectQueryStruct();
@@ -594,7 +599,7 @@ public class OWLER {
 			newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
 			newSelector.setDistinct(true);
 			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			innerSelector.setTable(tab);
+			innerSelector.setTable(conceptualName);
 			innerSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
 			newSelector.addInnerSelector(innerSelector);
 			qs.addSelector(newSelector);
@@ -605,17 +610,14 @@ public class OWLER {
 				continue;
 			}
 			long uniqueRows = ((Number) it.next().getValues()[0]).longValue();
-			String baseUri = queryEngine.getNodeBaseUri();
-			String conceptUri = baseUri + tab + "/" + Utility.getInstanceName(tab);
-			String prop = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
-			this.engine.addToBaseEngine(conceptUri, prop, uniqueRows, false);
-			this.engine.addToBaseEngine(conceptUri, prop, uniqueRows, false);
+			this.engine.addToBaseEngine(conceptPhysicalUri, uniqueCountProp, uniqueRows, false);
 			
-			List<String> properties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(tab, queryEngine.getEngineId());
-			for (int i = 0; i < properties.size() ; i++){
-				if (properties.get(i).equals(tab)){
-					continue;
-				}
+			List<String> properties = queryEngine.getProperties4Concept(conceptPhysicalUri, false);
+			for(String propertyPhysicalUri : properties) {
+				// so grab the conceptual name
+				String propertyConceptualUri = queryEngine.getConceptualUriFromPhysicalUri(propertyPhysicalUri);
+				// property conceptual uris are always /Column/Table
+				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
 				
 				// query for unique column values and dont 
 				// store it if it returns null
@@ -624,8 +626,8 @@ public class OWLER {
 				newSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
 				newSelector.setDistinct(true);
 				innerSelector = new QueryColumnSelector();
-				innerSelector.setTable(tab);
-				innerSelector.setColumn(properties.get(i));
+				innerSelector.setTable(conceptualName);
+				innerSelector.setColumn(propertyConceptualName);
 				newSelector.addInnerSelector(innerSelector);
 				qs.addSelector(newSelector);
 				qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
@@ -635,14 +637,10 @@ public class OWLER {
 					continue;
 				}
 				uniqueRows = ((Number) it.next().getValues()[0]).longValue();
-			
-				// update the owl file and export it
-				conceptUri = baseUri + properties.get(i) + "/" + Utility.getInstanceName(tab);
-				prop = BASE_URI + DEFAULT_PROP_CLASS + "/UNIQUE";
-				this.engine.addToBaseEngine(conceptUri, prop, uniqueRows, false);
-				this.engine.addToBaseEngine(conceptUri, prop, uniqueRows, false);
+				this.engine.addToBaseEngine(propertyPhysicalUri, uniqueCountProp, uniqueRows, false);
 			}
 		}
+		
 		this.engine.commit();
 		try {
 			this.engine.exportBaseEng(true);

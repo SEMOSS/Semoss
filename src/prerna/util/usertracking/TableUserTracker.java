@@ -763,20 +763,21 @@ public class TableUserTracker implements IUserTracker {
 		IEngine engine = Utility.getEngine(engineId);
 		if(engine != null) {
 			RDFFileSesameEngine owlEngine = ((AbstractEngine) engine).getBaseDataEngine();
-
-			// get unique values for string columns, if it doesnt exist
-			// or isnt a string then it is defaulted to zero
-			String queryCol = column;
-			// prim key placeholder cant be queried in
-			// the owl
-			// so we convert it back to the display name
-			// of the concept
-			if (column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				queryCol = table;
+			
+			// are we dealing with a concept or a property
+			String conceptualUri = null;
+			if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				// table
+				conceptualUri = "http://semoss.org/ontologies/Concept/" + table;
+			} else {
+				// property
+				conceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + column + "/" + table;
 			}
+			
+			String physicalUri = engine.getPhysicalUriFromConceptualUri(conceptualUri);
+			
 			String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
-					+ "{ BIND(<http://semoss.org/ontologies/Concept/" + queryCol + "/" + table
-					+ "> AS ?concept)"
+					+ "{ BIND(<" + physicalUri + "> AS ?concept)"
 					+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
 			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
 			while (it.hasNext()) {
