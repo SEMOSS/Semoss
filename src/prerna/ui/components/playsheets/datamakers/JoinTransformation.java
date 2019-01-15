@@ -102,7 +102,7 @@ public class JoinTransformation extends AbstractTransformation {
 				SelectQueryStruct qs2 = new SelectQueryStruct();
 				Iterator<IHeadersDataRow> rowIt = null;
 				if (dm instanceof H2Frame) {
-					qs2.addSelector(((ITableDataFrame) dm).getTableName(), props.get(COLUMN_TWO_KEY).toString());
+					qs2.addSelector(((ITableDataFrame) dm).getName(), props.get(COLUMN_TWO_KEY).toString());
 					rowIt = ((ITableDataFrame) dm).query(qs2);
 				} else {
 					// tinker

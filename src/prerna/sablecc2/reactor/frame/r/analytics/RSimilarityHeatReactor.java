@@ -27,7 +27,7 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		// get Pixel inputs
 		RDataTable frame = (RDataTable) this.getFrame();
-		String frameName = frame.getTableName();
+		String frameName = frame.getName();
 		String instanceCol = this.keyValue.get(this.keysToGet[0]);
 		List<String> comparisonColumn = getComparisonColumns();
 		

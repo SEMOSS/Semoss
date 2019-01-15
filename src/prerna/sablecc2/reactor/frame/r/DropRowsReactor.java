@@ -28,7 +28,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 		init();
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// the first noun will be a query struct - the filter
 		SelectQueryStruct qs = getQueryStruct();

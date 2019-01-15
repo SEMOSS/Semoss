@@ -60,7 +60,7 @@ public class RAprioriReactor extends AbstractRFrameReactor {
 		String[] packages = new String[] { "data.table", "dplyr", "arules" };
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
-		String dtName = frame.getTableName();
+		String dtName = frame.getName();
 		List<String> colNames = Arrays.asList(frame.getColumnNames());
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
 		boolean implicitFilter = false;

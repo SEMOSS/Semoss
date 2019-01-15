@@ -48,7 +48,7 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		//get frame name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		String colType = this.rJavaTranslator.getColumnType(table, column);
 		if(colType.equals("int") || colType.equals("num") || colType.equals("numeric")) {

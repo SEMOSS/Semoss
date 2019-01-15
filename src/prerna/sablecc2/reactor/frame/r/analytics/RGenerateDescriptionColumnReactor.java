@@ -28,7 +28,7 @@ public class RGenerateDescriptionColumnReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable rFrame = (RDataTable) this.getFrame();
 
-		String dataFrame = rFrame.getTableName();
+		String dataFrame = rFrame.getName();
 		String instanceCol = this.keyValue.get(ReactorKeysEnum.INSTANCE_KEY.getKey());
 		String descriptionCol = "desc" + Utility.getRandomString(8);
 		String descriptionHeader = "description";

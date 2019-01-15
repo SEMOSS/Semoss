@@ -43,7 +43,7 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Need to define the new column name");
 		}
 
-		String table = frame.getTableName();
+		String table = frame.getName();
 		// clean colName
 		if (newColName.contains("__")) {
 			String[] split = newColName.split("__");

@@ -157,13 +157,13 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		}
 		String endYear = "FY" + (15 + numColumns-3);
 		StringBuilder systemFixedCostQuery = new StringBuilder(baseSystemFixedCostQuery.toString());
-		systemFixedCostQuery.append(" FROM ").append(mainSustainmentFrame.getTableName())
+		systemFixedCostQuery.append(" FROM ").append(mainSustainmentFrame.getName())
 					.append(" WHERE Central_Deployment='FALSE' AND SYSTEM != 'CHCS'").append(" and system = 'CIS-Essentris'");
 		updateSystemFixedCostValues(systemFixedCostQuery.toString(), endYear);
 		
 //		endYear = "FY" + (15 + numColumns-2);
 //		StringBuilder chcsFixedCostQuery = new StringBuilder(baseSystemFixedCostQuery.toString());
-//		chcsFixedCostQuery.append(" FROM ").append(mainSustainmentFrame.getTableName())
+//		chcsFixedCostQuery.append(" FROM ").append(mainSustainmentFrame.getName())
 //					.append(" WHERE Central_Deployment='FALSE' AND SYSTEM='CHCS';");
 //		updateSystemFixedCostValues(chcsFixedCostQuery.toString(), endYear);
 		
@@ -193,13 +193,13 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		// this section will add the site specific sustainment costs
 		// base query below is to determine which sites are in each wave
 		// as this requires 2 separate queries
-		StringBuilder baseSitesInWaveQuery = new StringBuilder("SELECT DISTINCT HostSiteAndFloater FROM ").append(mainSustainmentFrame.getTableName());
+		StringBuilder baseSitesInWaveQuery = new StringBuilder("SELECT DISTINCT HostSiteAndFloater FROM ").append(mainSustainmentFrame.getName());
 		// get all the systems and their cost
 		StringBuilder baseSiteSystemSpecificCost = new StringBuilder("SELECT SYSTEM, SITE ");
 		for(int i = 0; i < numColumns; i++) {
 			baseSiteSystemSpecificCost.append(", FY" + (15+i));
 		}
-		baseSiteSystemSpecificCost.append(" FROM ").append(systemSiteSustainmentFrame.getTableName());
+		baseSiteSystemSpecificCost.append(" FROM ").append(systemSiteSustainmentFrame.getName());
 		
 		for(String wave : waveStartEndDate.keySet()) {
 			String[] startDate = waveStartEndDate.get(wave);
@@ -247,7 +247,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		for(int i = 0; i < numColumns; i++) {
 			baseSystemsCostQuery.append(", SUM( FY" + (15+i) + " / NUM_SITES ) ");
 		}
-		baseSystemsCostQuery.append(" FROM ").append(mainSustainmentFrame.getTableName());
+		baseSystemsCostQuery.append(" FROM ").append(mainSustainmentFrame.getName());
 		baseSystemsCostQuery.append(" WHERE Central_Deployment='FALSE' AND Site_Specific='FALSE' "); 
 
 		for(String wave : waveStartEndDate.keySet()) {
@@ -277,7 +277,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 		for(int i = 0; i < numColumns; i++) {
 			globallyDeployedSystemCostSavings.append(", SUM(FY" + (15+i) + " / NUM_SITES)");
 		}
-		globallyDeployedSystemCostSavings.append(" FROM ").append(mainSustainmentFrame.getTableName());
+		globallyDeployedSystemCostSavings.append(" FROM ").append(mainSustainmentFrame.getName());
 		globallyDeployedSystemCostSavings.append(" WHERE Central_Deployment='TRUE' GROUP BY HostSiteAndFloater;");
 		
 		// the cost savings for all of these systems will occur on final year of deployment schedule 
@@ -410,7 +410,7 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 //		}
 		// iterate through the results for testing
 		
-		String fName = ps.siteDeploymentSavings.getTableName();
+		String fName = ps.siteDeploymentSavings.getName();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for(String head : ps.siteDeploymentSavingsHeaders) {
 			qs.addSelector(new QueryColumnSelector(fName + "__" + head));

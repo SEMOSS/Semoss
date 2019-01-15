@@ -33,7 +33,7 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		
 		//get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// get column to update
 		String column = this.keyValue.get(this.keysToGet[0]);

@@ -25,7 +25,7 @@ public class AddColumnReactor extends AbstractFrameReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		H2Frame frame = (H2Frame) getFrame();
-		String table = frame.getTableName();
+		String table = frame.getName();
 		// get column
 		String colName = this.keyValue.get(this.keysToGet[0]);
 		if (colName == null || colName.length() == 0) {

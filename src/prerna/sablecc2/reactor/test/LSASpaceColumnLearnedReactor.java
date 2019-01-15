@@ -39,7 +39,7 @@ public class LSASpaceColumnLearnedReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 
 		// get frame name
-		String table = frame.getTableName();
+		String table = frame.getName();
 		
 		// create a string builder to keep track of the scripts to execute
 		StringBuilder sb = new StringBuilder();

@@ -45,7 +45,7 @@ public class UpdateSimilarColumnValuesReactor extends AbstractRFrameReactor {
 		// get single column input
 		String linkFrame = "link" + Utility.getRandomString(5);
 		RDataTable frame = (RDataTable) getFrame();
-		String frameName = frame.getTableName();
+		String frameName = frame.getName();
 		String col1 = matchesTable + "col1";
 		rsb.append(col1 + "<- as.character(" + frameName + "$" + column + ");");
 

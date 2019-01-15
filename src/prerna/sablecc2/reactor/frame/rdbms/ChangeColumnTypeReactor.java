@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
 import java.util.Arrays;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
@@ -29,7 +30,7 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 		String column = getColumn();
 		String columnType = getColumnType();
 
-		String table = frame.getTableName();
+		String table = frame.getName();
 		if (column.contains("__")) {
 			String[] split = column.split("__");
 			table = split[0];

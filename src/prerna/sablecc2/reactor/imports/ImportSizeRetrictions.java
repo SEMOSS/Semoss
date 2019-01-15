@@ -56,7 +56,7 @@ public class ImportSizeRetrictions {
 			return true;
 		}
 		
-		long frameSize = frame.size(frame.getTableName());
+		long frameSize = frame.size(frame.getName());
 		if(frameSize > LIMIT_SIZE) {
 			return false;
 		}
@@ -77,7 +77,7 @@ public class ImportSizeRetrictions {
 			return true;
 		}
 
-		long curFrameSize = frame.size(frame.getTableName());
+		long curFrameSize = frame.size(frame.getName());
 
 		// we can increase performance since
 		// a file requires us to loop through
@@ -116,7 +116,7 @@ public class ImportSizeRetrictions {
 		int numColumns = it.getHeaders().length;
 		long additionalRecords = (long) ( ((double) (numColumns-1) / numColumns) * it.getNumRecords());
 
-		long curFrameSize = frame.size(frame.getTableName());
+		long curFrameSize = frame.size(frame.getName());
 		if(additionalRecords + curFrameSize > LIMIT_SIZE) {
 			return false;
 		}

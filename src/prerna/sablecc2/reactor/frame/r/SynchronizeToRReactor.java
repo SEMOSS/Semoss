@@ -147,7 +147,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R"
 				+ sep + "Temp" + sep + "output" + random + ".tsv";
 		gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM "
-				+ gridFrame.getTableName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
+				+ gridFrame.getName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
 		this.rJavaTranslator.executeR("library(data.table);");
 		this.rJavaTranslator.executeR(rDataTableName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
 		File f = new File(outputLocation);

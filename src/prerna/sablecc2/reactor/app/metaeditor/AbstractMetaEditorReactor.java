@@ -351,7 +351,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * @param randomVar
 	 */
 	private void execQueryStore(RDataTable storeFrame, IRJavaTranslator rJavaTranslator, StringBuilder newValuesBuilder) {
-		String frameName = storeFrame.getTableName();
+		String frameName = storeFrame.getName();
 		if(storeFrame.isEmpty()) {
 			// frame has not been set
 			// we will override it
@@ -367,7 +367,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			// remove the random var
 			String randomVar = "storeDataFrame_" + Utility.getRandomString(6);
 			rJavaTranslator.runR(randomVar + "<-" + newValuesBuilder.toString()
-					+ storeFrame.getTableName() + "<-funion(" + frameName + "," + randomVar + ");rm(" + randomVar + ");");
+					+ storeFrame.getName() + "<-funion(" + frameName + "," + randomVar + ");rm(" + randomVar + ");");
 		}
 	}
 	
@@ -381,7 +381,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		boolean storeResults = (storeFrame != null);
 		if(storeResults) {
 			logger.info("Removing previously mastered data from the results...");
-			String storeFrameName = storeFrame.getTableName();
+			String storeFrameName = storeFrame.getName();
 			String filter = RSyntaxHelper.createStringRColVec(storeTypesToRemove);
 			
 			String subsetVar = "subset_" + Utility.getRandomString(6);
