@@ -39,7 +39,7 @@ public class ApplyFormattingTaskReactor extends TaskBuilderReactor {
 				//populate the colIndexFormatMap, which will indicate the column index and the format requested for a column
 				Map<String, SemossDataType> dataTypeMap = frame.getMetaData().getHeaderToTypeMap();
 				List<IQuerySelector> selectors = qs.getSelectors();
-				populateColIndexFormatMap(selectors, additionalDataTypeMap, dataTypeMap, frame.getTableName());
+				populateColIndexFormatMap(selectors, additionalDataTypeMap, dataTypeMap, frame.getName());
 				
 				//create a new iterator task and attach it to the previous iterator
 				ApplyFormattingTask newTask = new ApplyFormattingTask();

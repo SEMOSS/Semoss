@@ -24,7 +24,7 @@ public class PrintDataToConsoleJob implements org.quartz.Job {
 
 		// Do work
 		List<Object[]> resultsList = new ArrayList<Object[]>();
-		Iterator<IHeadersDataRow> iteratorResults = results.query("SELECT * FROM " + results.getTableName());
+		Iterator<IHeadersDataRow> iteratorResults = results.query("SELECT * FROM " + results.getName());
 		while (iteratorResults.hasNext()) {
 			resultsList.add(iteratorResults.next().getRawValues());
 		}

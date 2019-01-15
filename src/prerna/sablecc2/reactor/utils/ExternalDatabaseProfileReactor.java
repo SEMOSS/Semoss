@@ -30,7 +30,7 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum" , "numOfNullValues"};
 		String[] dataTypes = new String[] { "String", "String", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE" , "DOUBLE"};
 		H2Frame frame = (H2Frame) this.insight.getDataMaker();
-		String tableName = frame.getTableName();
+		String tableName = frame.getName();
 		
 		// add headers to metadata output frame
 		OwlTemporalEngineMeta metaData = frame.getMetaData();

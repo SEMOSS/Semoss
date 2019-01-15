@@ -40,10 +40,12 @@ public class RDataTable extends AbstractTableDataFrame {
 	public RDataTable() {
 		AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(new Insight(), this.logger);
 		this.builder = new RFrameBuilder(rJavaTranslator);
+		this.frameName = getName();
 	}
 	
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator) {
 		this.builder = new RFrameBuilder(rJavaTranslator);
+		this.frameName = getName();
 	}
 	
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator, String rTableVarName) {
@@ -52,6 +54,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		} else {
 			this.builder = new RFrameBuilder(rJavaTranslator);
 		}
+		this.frameName = getName();
 	}
 	
 	public RFrameBuilder getBuilder() {
@@ -72,6 +75,15 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.builder.setLogger(logger);
 	}
 	
+	/**
+	 * Get the table name for the current frame
+	 * @return
+	 */
+	@Override
+	public String getName() {
+		return this.builder.getTableName();
+	}
+	
 	//////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////
@@ -86,7 +98,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		for(String rawHeader : rawDataTypeMap.keySet()) {
 			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
 		}
-		this.addRowsViaIterator(it, this.getTableName(), dataTypeMap);
+		this.addRowsViaIterator(it, this.getName(), dataTypeMap);
 		syncHeaders();
 	}
 	
@@ -140,7 +152,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
-		interp.setDataTableName(this.getTableName());
+		interp.setDataTableName(this.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
@@ -194,13 +206,13 @@ public class RDataTable extends AbstractTableDataFrame {
 			String[] split = columnName.split("__");
 			this.builder.addColumnIndex(split[0], split[1]);
 		} else {
-			String tableName = getTableName();
+			String tableName = getName();
 			this.builder.addColumnIndex(tableName, columnName);
 		}
 	}
 	
 	public void addColumnIndex(String[] columnName) {
-		String tableName = getTableName();
+		String tableName = getName();
 		this.builder.addColumnIndex(tableName, columnName);
 	}
 
@@ -217,12 +229,10 @@ public class RDataTable extends AbstractTableDataFrame {
 		return this.builder.isEmpty();
 	}
 	
-	public String getTableName() {
-		return this.builder.getTableName();
-	}
-	
-	public void setTableName(String tableVarName) {
+	@Override
+	public void setName(String tableVarName) {
 		this.builder.setTableName(tableVarName);
+		this.frameName = this.builder.getTableName();
 	}
 	
 	@Override
@@ -247,7 +257,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
-		String frameName = this.getTableName();
+		String frameName = this.getName();
 		cf.setFrameName(frameName);
 		
 		// save frame
@@ -281,7 +291,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		// using the below syntax which works for only a single column
 		// than it is using the syntax in the interpreter
 		
-		String tableName = getTableName();
+		String tableName = getName();
 		String[] cleanCols = new String[1];
 		if(columnName.contains("__")) {
 			cleanCols[0] = columnName.split("__")[1];
@@ -307,7 +317,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	
 	// generates a row id and binds it
 	public void generateRowIdWithName() {
-		this.builder.genRowId(getTableName(), "PRIM_KEY_PLACEHOLDER");
+		this.builder.genRowId(getName(), "PRIM_KEY_PLACEHOLDER");
 	}
 	
 	@Override
@@ -346,7 +356,7 @@ public class RDataTable extends AbstractTableDataFrame {
 				rColNames += ", ";
 			}
 		}
-		String script = "colnames(" + getTableName() + ") <- c(" + rColNames + ")";
+		String script = "colnames(" + getName() + ") <- c(" + rColNames + ")";
 		this.builder.evalR(script);
 
 		// close existing meta
@@ -354,7 +364,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		// load into it
 		this.metaData.close();
 		this.metaData = new OwlTemporalEngineMeta();
-		ImportUtility.parserRTableColumnsAndTypesToFlatTable(this, colNames, colTypes, getTableName());
+		ImportUtility.parserRTableColumnsAndTypesToFlatTable(this, colNames, colTypes, getName());
 		
 		// clear the cached info
 		this.clearCachedInfo();

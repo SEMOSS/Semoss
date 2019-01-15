@@ -14,7 +14,7 @@ public class H2DuplicatesReactor extends DataFrameDuplicatesReactor {
 		// This reactor checks for duplicates
 		boolean hasDuplicates = false;
 		H2Frame dataframe = (H2Frame) myStore.get("G");
-		String tableName = dataframe.getTableName();
+		String tableName = dataframe.getName();
 		Vector<String> columns = (Vector) myStore.get(PKQLEnum.COL_CSV);
 
 		String query = "SELECT COUNT(*) FROM (SELECT ";

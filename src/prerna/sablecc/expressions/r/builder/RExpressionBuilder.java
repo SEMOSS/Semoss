@@ -25,7 +25,7 @@ public class RExpressionBuilder extends AbstractExpressionBuilder{
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(this.frame.getTableName()).append("[ ").append(this.frame.getFilterString())
+		builder.append(this.frame.getName()).append("[ ").append(this.frame.getFilterString())
 			.append(" , ").append(this.selectors.toString());
 
 		// for R, the group by's end up being returned, so we can get duplicate headers

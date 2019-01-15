@@ -57,7 +57,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			throw new IllegalArgumentException("Frame must be a grid to use DatabaseProfile");
 		}
 		H2Frame frame = (H2Frame) table;
-		String tableName = frame.getTableName();
+		String tableName = frame.getName();
 
 		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum", "numOfNullValues" };
 		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" , "Double" };

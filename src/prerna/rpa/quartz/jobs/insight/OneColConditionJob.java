@@ -57,7 +57,7 @@ public class OneColConditionJob implements org.quartz.InterruptableJob {
 		////////////////////
 		
 		// Get the iterator
-		String tableName = frame.getTableName();
+		String tableName = frame.getName();
 		
 		// Need this to preserve a logical order
 		String[] headers = frame.getColumnHeaders();

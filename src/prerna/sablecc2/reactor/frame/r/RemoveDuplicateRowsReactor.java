@@ -23,7 +23,7 @@ public class RemoveDuplicateRowsReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		
 		//get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 		
 		//define the r script to be executed
 		String script = table + " <- unique(" + table + ")";

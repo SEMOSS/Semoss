@@ -59,7 +59,7 @@ public class RatioAlgorithmReactor extends AbstractReactor {
 		String instanceColumn = getInstanceColumn();
 		List<String> attributeColumns = getAttributes();
 		ITableDataFrame frame = getData();
-		String origTableName = frame.getTableName();
+		String origTableName = frame.getName();
 		frame.setLogger(logger);
 		optimizeFrame(frame, instanceColumn);
 

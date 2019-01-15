@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.script.ScriptContext;
 import javax.script.ScriptException;
@@ -83,33 +84,26 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 	/***********************************  CONSTRUCTORS  **********************************/
 	
-	public TinkerFrame(String[] headerNames) {
-		this.qsNames = headerNames;
-		g = TinkerGraph.open();
-		g.createIndex(TINKER_TYPE, Vertex.class);
-		g.createIndex(TINKER_ID, Vertex.class);
-		g.createIndex(T.label.toString(), Edge.class);
-		g.createIndex(TINKER_ID, Edge.class);
-//		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headerNames);
-//		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, null);
-	}
-	
-	public TinkerFrame(String[] headerNames, Map<String, Set<String>> edgeHash) {
-		this.qsNames = headerNames;
-		g = TinkerGraph.open();
-		g.createIndex(TINKER_TYPE, Vertex.class);
-		g.createIndex(TINKER_ID, Vertex.class);
-		g.createIndex(T.label.toString(), Edge.class);
-		g.createIndex(TINKER_ID, Edge.class);
-//		TinkerMetaHelper.mergeEdgeHash(this.metaData, edgeHash, null);
-	}			 
-
 	public TinkerFrame() {
 		g = TinkerGraph.open();
 		g.createIndex(TINKER_TYPE, Vertex.class);
 		g.createIndex(TINKER_ID, Vertex.class);
 		g.createIndex(TINKER_ID, Edge.class);
 		g.createIndex(T.label.toString(), Edge.class);
+		setDefaultName();
+	}
+	
+	public TinkerFrame(String[] headerNames) {
+		this();
+		this.qsNames = headerNames;
+//		Map<String, Set<String>> primKeyEdgeHash = TinkerMetaHelper.createPrimKeyEdgeHash(headerNames);
+//		TinkerMetaHelper.mergeEdgeHash(this.metaData, primKeyEdgeHash, null);
+	}
+	
+	private void setDefaultName() {
+		String uuid = UUID.randomUUID().toString().toUpperCase();
+		uuid = uuid.replaceAll("-", "_");
+		setName("TINKER_" + uuid);
 	}
 
 	/*********************************  END CONSTRUCTORS  ********************************/

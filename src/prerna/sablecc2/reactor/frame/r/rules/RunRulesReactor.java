@@ -35,7 +35,7 @@ public class RunRulesReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta meta = frame.getMetaData();
-		String dfName = frame.getTableName();
+		String dfName = frame.getName();
 		String[] frameColumnNames = frame.getColumnNames();
 		HashMap<String, Pattern> colRegexMap = new HashMap<String, Pattern>();
 		List<Object> mapList = this.curRow.getValuesOfType(PixelDataType.MAP);

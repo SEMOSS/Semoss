@@ -18,47 +18,73 @@ public class FrameFactory {
 	public static ITableDataFrame getFrame(Insight insight, String frameType, String alias) {
 		Logger logger = null;
 		switch (frameType.toUpperCase()) {
-		case "GRID": { return new H2Frame(alias); }
+			case "GRID": { 
+				return new H2Frame(alias); 
+			}
+			case "H2": { 
+				return new H2Frame(alias); 
+			}
+			
+			case "GRAPH": { 
+				TinkerFrame frame = new TinkerFrame();
+				frame.setName(alias);
+				return frame;
+			} 
+			case "TINKER": { 
+				TinkerFrame frame = new TinkerFrame();
+				frame.setName(alias);
+				return frame;
+			} 
+			
+			case "R": { 
+				logger = LogManager.getLogger(CLASS_NAME);
+				return new RDataTable(insight.getRJavaTranslator(logger), alias); 
+			}
+			case "RFRAME": { 
+				logger = LogManager.getLogger(CLASS_NAME);
+				return new RDataTable(insight.getRJavaTranslator(logger), alias); 
+			}
+			case "DATATABLE": { 
+				logger = LogManager.getLogger(CLASS_NAME);
+				return new RDataTable(insight.getRJavaTranslator(logger), alias); 
+			}
+			
+			case "PYTHON": {
+				PandasFrame frame = new PandasFrame(alias);
+				frame.setJep(insight.getPy());
+				return frame;
+			}
+			case "PY": {
+				PandasFrame frame = new PandasFrame(alias);
+				frame.setJep(insight.getPy());
+				return frame;
+			}
+			case "PYFRAME": {
+				PandasFrame frame = new PandasFrame(alias);
+				frame.setJep(insight.getPy());
+				return frame;
+			}
+			case "PANDAS": {
+				PandasFrame frame = new PandasFrame(alias);
+				frame.setJep(insight.getPy());
+				return frame;
+			}
+			
+			case "NATIVE": { 
+				NativeFrame frame = new NativeFrame();
+				frame.setName(alias);
+				return frame;
+			}
+			case "ENGINE": { 
+				NativeFrame frame = new NativeFrame();
+				frame.setName(alias);
+				return frame;
+			}
+			
+			default: { 
+				return new H2Frame(alias); 
+			}
 		
-		case "GRAPH": { return new TinkerFrame(); } 
-		
-		case "R": { 
-			logger = LogManager.getLogger(CLASS_NAME);
-			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
-		}
-		case "RFRAME": { 
-			logger = LogManager.getLogger(CLASS_NAME);
-			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
-		}
-		case "DATATABLE": { 
-			logger = LogManager.getLogger(CLASS_NAME);
-			return new RDataTable(insight.getRJavaTranslator(logger), alias); 
-		}
-		
-		case "PYTHON": {
-			PandasFrame frame = new PandasFrame(alias);
-			frame.setJep(insight.getPy());
-			return frame;
-		}
-		case "PY": {
-			PandasFrame frame = new PandasFrame(alias);
-			frame.setJep(insight.getPy());
-			return frame;
-		}
-		case "PYFRAME": {
-			PandasFrame frame = new PandasFrame(alias);
-			frame.setJep(insight.getPy());
-			return frame;
-		}
-		case "PANDAS": {
-			PandasFrame frame = new PandasFrame(alias);
-			frame.setJep(insight.getPy());
-			return frame;
-		}
-		
-		case "NATIVE": { return new NativeFrame(); }
-		
-		default: { return new H2Frame(alias); }
 		}
 	}
 	

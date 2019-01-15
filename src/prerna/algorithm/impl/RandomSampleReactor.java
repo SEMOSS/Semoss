@@ -69,7 +69,7 @@ public class RandomSampleReactor extends MathReactor {
 		if(sampleColumn != null){
 			filterValues.add(colValue);
 			NounMetadata valNoun = new NounMetadata(filterValues, PixelDataType.CONST_STRING);
-			NounMetadata colNoun = new NounMetadata(dataFrame.getTableName() + "__" + sampleColumn, PixelDataType.COLUMN);
+			NounMetadata colNoun = new NounMetadata(dataFrame.getName() + "__" + sampleColumn, PixelDataType.COLUMN);
 			SimpleQueryFilter qf = new SimpleQueryFilter(colNoun, "==", valNoun);
 			GenRowFilters grf = new GenRowFilters();
 			grf.addFilters(qf);

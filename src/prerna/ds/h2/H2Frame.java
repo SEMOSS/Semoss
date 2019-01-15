@@ -61,6 +61,7 @@ public class H2Frame extends AbstractTableDataFrame {
 		} else {
 			this.builder.tableName = this.builder.getNewTableName();
 		}
+		setName(this.builder.tableName);
 	}
 
 	public H2Frame(String[] headers) {
@@ -89,6 +90,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	private void setSchema() {
 		if (this.builder == null) {
 			this.builder = new H2Builder();
+			setName(this.builder.tableName);
 		}
 		this.builder.setSchema(this.userId +"_"+ Utility.getRandomString(10));
 		// we also set the logger into the builder
@@ -127,7 +129,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> types) {
 		long start = System.currentTimeMillis();
-		logger.info("Begin adding new rows into table = " + getTableName());
+		logger.info("Begin adding new rows into table = " + getName());
 		this.builder.addRowsViaIterator(it, tableName, types);
 		long end = System.currentTimeMillis();
 		logger.info("Done adding new rows in " + (end-start) +  "ms");
@@ -237,14 +239,14 @@ public class H2Frame extends AbstractTableDataFrame {
 		if(this.builder.isEmpty(tableName)) {
 			return 0;
 		}
-		return this.builder.getNumRecords(getTableName());
+		return this.builder.getNumRecords(getName());
 	}
 
 	@Override
 	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		
-		String frameName = this.getTableName();
+		String frameName = this.getName();
 		cf.setFrameName(frameName);
 		
 		//save frame
@@ -303,10 +305,8 @@ public class H2Frame extends AbstractTableDataFrame {
 	 * Get the table name for the current frame
 	 * @return
 	 */
-	public String getTableName() {
-		// return the table name for the builder
-		// this is needed for specific reactors where operations are more efficient
-		// being performed directly via sql
+	@Override
+	public String getName() {
 		return this.builder.getTableName();
 	}
 	
@@ -355,7 +355,7 @@ public class H2Frame extends AbstractTableDataFrame {
 			String[] split = columnName.split("__");
 			this.builder.addColumnIndex(split[0], split[1]);
 		} else {
-			String tableName = getTableName();
+			String tableName = getName();
 			this.builder.addColumnIndex(tableName, columnName);
 		}
 	}
@@ -365,7 +365,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	 * @param columnName
 	 */
 	public void addColumnIndex(String[] columnName) {
-		String tableName = getTableName();
+		String tableName = getName();
 		this.builder.addColumnIndex(tableName, columnName);
 	}
 	
@@ -374,7 +374,7 @@ public class H2Frame extends AbstractTableDataFrame {
 	 * @param columnName
 	 */
 	public void removeColumnIndex(String columnName) {
-		String tableName = getTableName();
+		String tableName = getName();
 		this.builder.removeColumnIndex(tableName, columnName);
 	}
 	
@@ -383,12 +383,12 @@ public class H2Frame extends AbstractTableDataFrame {
 	 * @param columnName
 	 */
 	public void removeColumnIndex(String[] columnName) {
-		String tableName = getTableName();
+		String tableName = getName();
 		this.builder.removeColumnIndex(tableName, columnName);
 	}
 
 	public void deleteAllRows() {
-		String tableName = getTableName();
+		String tableName = getName();
 		this.builder.deleteAllRows(tableName);
 	}
 	
@@ -539,7 +539,7 @@ public class H2Frame extends AbstractTableDataFrame {
 				joinMap.put(joinCol2, joinCol1); // physical in query struct
 				// ----> logical in existing
 				// data maker
-				prerna.sablecc2.om.Join colJoin = new prerna.sablecc2.om.Join(this.getTableName()+"__"+joinCol1, joinType, joinCol2);
+				prerna.sablecc2.om.Join colJoin = new prerna.sablecc2.om.Join(this.getName()+"__"+joinCol1, joinType, joinCol2);
 				joins.add(colJoin);
 				joinColList.add(joinMap);
 			}

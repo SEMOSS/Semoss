@@ -30,7 +30,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 		RDataTable frame = (RDataTable) getFrame();
 
 		// get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// get inputs
 		// first input is the column that we are updating

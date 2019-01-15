@@ -47,7 +47,7 @@ public class SplitColumnReactor extends AbstractFrameReactor {
 			QueryColumnSelector selector = new QueryColumnSelector(column);
 			qs.addSelector(selector);
 
-			String table = frame.getTableName();
+			String table = frame.getName();
 			if(column.contains("__")) {
 				String[] split = column.split("__");
 				column = split[1];
@@ -95,7 +95,7 @@ public class SplitColumnReactor extends AbstractFrameReactor {
 							newColumns[k] = addedColumns.get(k);
 							columnTypes[k] = "STRING";
 						}
-						frame.addNewColumn(newColumns, columnTypes, frame.getTableName());
+						frame.addNewColumn(newColumns, columnTypes, frame.getName());
 						ps = frame.createUpdatePreparedStatement(addedColumns.toArray(new String[]{}), new String[]{column});
 					}
 

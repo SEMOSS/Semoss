@@ -151,8 +151,16 @@ public interface ITableDataFrame extends IDataMaker {
 	
 	IRawSelectWrapper query(SelectQueryStruct qs);
 	
-	// gets the table name
-	String getTableName();
+	/**
+	 * Get the name of the frame
+	 */
+	String getName();
+	
+	/**
+	 * Set the name of the frame
+	 * @param name
+	 */
+	void setName(String name);
 	
 	OwlTemporalEngineMeta getMetaData();
 

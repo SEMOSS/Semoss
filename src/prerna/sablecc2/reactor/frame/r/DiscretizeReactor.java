@@ -48,7 +48,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
 
-		String dtName = frame.getTableName();
+		String dtName = frame.getName();
 		List<String> colNames = Arrays.asList(frame.getColumnNames());
 		List<Object> reqList = this.curRow.getValuesOfType(PixelDataType.MAP);
 
