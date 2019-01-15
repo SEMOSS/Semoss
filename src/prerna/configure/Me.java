@@ -308,11 +308,8 @@ public class Me {
 		return portStr;
 	}
 	
-	public void changeRDFMap(String homePath, String port)
-	{
+	public void changeRDFMap(String homePath, String port, String rdfHome) {
 		System.out.println("Configuring RDF Map.. ");
-		String rdfHome = homePath + "/RDF_Map.prop";
-//		rdfHome = homePath + "/RDF_Map2.prop";
 		
 		String [] stringToReplace = {"BaseFolder", 
 									"LOG4J", 
@@ -338,6 +335,11 @@ public class Me {
 										 homePath + "/rpa"}; 
 		
 		replaceProp(rdfHome, stringToReplace, stringToReplaceWith);
+	}
+	
+	public void changeRDFMap(String homePath, String port)
+	{
+		changeRDFMap(homePath, port, homePath + "/RDF_Map.prop");
 		
 	}
 	
