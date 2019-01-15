@@ -1,0 +1,15 @@
+[
+   {
+      "pixelType":"MAP",
+      "class":"java.util.HashMap",
+      "value":[
+         {
+            "datetime":"2019-01-14_09:21:17",
+            "version":"3.3.8.7-SNAPSHOT"
+         }
+      ],
+      "opType":[
+         "VERSION"
+      ]
+   }
+]

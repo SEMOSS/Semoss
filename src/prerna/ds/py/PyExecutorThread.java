@@ -18,17 +18,21 @@ public class PyExecutorThread extends Thread {
 	public String [] command = null;
 	public Hashtable <String, Object> response = new Hashtable<String, Object>();
 	
-	private boolean keepAlive = true;
+	private volatile boolean keepAlive = true;
+	private volatile boolean ready = false;
 
 	@Override
 	public void run() {
 		// wait to see if process is true
 		// if process is true - process, put the result and go back to sleep
+		LOGGER.info("Running Python thread");
 		getJep();
+
 		while(this.keepAlive) {
 			try {
 				synchronized(daLock) {
 					LOGGER.info("Waiting for next command");
+					ready = true;
 					daLock.wait();
 					
 					// if someone wakes up
@@ -68,6 +72,10 @@ public class PyExecutorThread extends Thread {
 			}
 		}
 		LOGGER.info("Thread ENDED");
+	}
+	
+	public boolean isReady() {
+		return ready;
 	}
 	
 	public Object getMonitor() {

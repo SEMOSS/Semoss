@@ -74,14 +74,14 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 	 * Returns an array of strings naming the files in the directory. Goes through list and loads an existing database.
 	 */
 	public String loadExistingDB(String fileName) {
-		return loadNewDB(fileName);
+		return loadNewDB(fileName, folderToWatch);
 	}
 
 	/**
 	 * Loads a new database by setting a specific engine with associated properties.
 	 * @param 	Specifies properties to load 
 	 */
-	public String loadNewDB(String newFile) {
+	public static String loadNewDB(String newFile, String folderToWatch) {
 		String engines = DIHelper.getInstance().getLocalProp(Constants.ENGINES) + "";
 		FileInputStream fileIn = null;
 		String engineId = null;
