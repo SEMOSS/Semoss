@@ -49,7 +49,11 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);
 			con = RdbmsConnectionHelper.buildConnection(connectionUrl, username, password, driver);
 		} catch (SQLException e) {
-			throw new SemossPixelException(new NounMetadata("Unable to establish connection given the connection details", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			String driverError = e.getMessage();
+			String errorMessage = "Unable to establish connection given the connection details.\nDriver produced error: \" ";
+			errorMessage += driverError;
+			errorMessage += " \"";
+			throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
 		// keep a list of tables and views
