@@ -379,15 +379,17 @@ public class UploadUtilities {
 			// tinker-specific properties
 			// neo4j does not have an extension
 			// basefolder/db/engine/engine
-			String tinkerPath = " @BaseFolder@" + System.getProperty("file.separator") + "db"
-					+ System.getProperty("file.separator") + "@ENGINE@" + System.getProperty("file.separator")
-					+ "@ENGINE@";
-
+			String tinkerFilePath = " @BaseFolder@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR + "@ENGINE@";
+			if(tinkerFilePath.contains("\\")) {
+				tinkerFilePath = tinkerFilePath.replace("\\", "\\\\");
+			}
+			
+			// if neo4j, point to the folder
 			if (tinkerDriverType == TINKER_DRIVER.NEO4J) {
-				bufferedWriter.write(Constants.TINKER_FILE + tinkerPath + "\n");
+				bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "\n");
 			} else {
 				// basefolder/db/engine/engine.driverTypeExtension
-				bufferedWriter.write(Constants.TINKER_FILE + tinkerPath + "." + tinkerDriverType + "\n");
+				bufferedWriter.write(Constants.TINKER_FILE + tinkerFilePath + "." + tinkerDriverType + "\n");
 			}
 			bufferedWriter.write(Constants.TINKER_DRIVER + "\t" + tinkerDriverType + "\n");
 
@@ -448,8 +450,8 @@ public class UploadUtilities {
 			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
 			// get additional RDF default properties
 			String defaultDBPropName = "db" + DIR_SEPARATOR + "Default" + DIR_SEPARATOR + "Default.properties";
-			String jnlName = "db" + System.getProperty("file.separator") + SmssUtilities.getUniqueName(appName, appId) + System.getProperty("file.separator") + appName + ".jnl";
-			String rdfDefaultProps = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + System.getProperty("file.separator") + defaultDBPropName;
+			String jnlName = "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + appName + ".jnl";
+			String rdfDefaultProps = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + defaultDBPropName;
 
 			fileRead = new FileReader(rdfDefaultProps);
 			bufferedReader = new BufferedReader(fileRead);
@@ -529,6 +531,9 @@ public class UploadUtilities {
 			File f = new File(tinkerFilePath);
 			String fileBasePath = f.getParent();
 			tinkerFilePath = tinkerFilePath.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+			if(tinkerFilePath.contains("\\")) {
+				tinkerFilePath = tinkerFilePath.replace("\\", "\\\\");
+			}
 			bufferedWriter.write(Constants.TINKER_FILE + tab + tinkerFilePath + newLine);
 			// tinker driver
 			bufferedWriter.write(Constants.TINKER_DRIVER + tab + tinkerDriverType + newLine);
@@ -599,7 +604,10 @@ public class UploadUtilities {
 			bufferedWriter = new BufferedWriter(writer);
 			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, DataStaxGraphEngine.class.getName(), newLine, tab);
 			
-			// tinker file location
+			// host + port
+			if(host.contains("\\")) {
+				host = host.replace("\\", "\\\\");
+			}
 			bufferedWriter.write("HOST" + tab + host + newLine);
 			bufferedWriter.write("PORT" + "\t" + port + newLine);
 			if(username != null){
