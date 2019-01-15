@@ -39,6 +39,8 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
 			} else if(name.equals("engineName")) {
 				qs.setEngineId(in.nextString());
+			} else if(name.equals("frameName")) {
+				qs.setFrameName(in.nextString());
 			} else if(name.equals("isDistinct")) {
 				qs.setDistinct(in.nextBoolean());
 			} else if(name.equals("overrideImplicit")) {
@@ -140,6 +142,9 @@ public class SelectQueryStructAdapter  extends TypeAdapter<SelectQueryStruct> {
 		out.name("qsType").value(value.getQsType().toString());
 		if(value.getEngineId() != null) {
 			out.name("engineName").value(value.getEngineId());
+		}
+		if(value.getFrameName() != null) {
+			out.name("frameName").value(value.getFrameName());
 		}
 		out.name("isDistinct").value(value.isDistinct());
 		out.name("overrideImplicit").value(value.isOverrideImplicit());

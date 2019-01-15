@@ -26,7 +26,7 @@ public class RColumnSelector implements IExpressionSelector {
 	
 	@Override
 	public String toString() {
-		String tableName = frame.getTableName();
+		String tableName = frame.getName();
 		String uniqueName = tableName + "__" + columnName;
 		if(frame.getMetaData().getHeaderTypeAsEnum(uniqueName) == SemossDataType.DATE) {
 			StringBuilder builder = new StringBuilder();

@@ -3,8 +3,6 @@ package prerna.ui.components.playsheets.datamakers;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -23,7 +21,6 @@ import prerna.ds.QueryStruct;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.rdf.query.builder.QueryBuilderData;
 import prerna.util.Utility;
 
 public class FilterTransformation extends AbstractTransformation {
@@ -65,7 +62,7 @@ public class FilterTransformation extends AbstractTransformation {
 				SelectQueryStruct qs2 = new SelectQueryStruct();
 				Iterator<IHeadersDataRow> uniqIterator = null;
 				if (dm instanceof H2Frame) {
-					qs2.addSelector(((ITableDataFrame) dm).getTableName(), props.get(COLUMN_HEADER_KEY).toString());
+					qs2.addSelector(((ITableDataFrame) dm).getName(), props.get(COLUMN_HEADER_KEY).toString());
 					uniqIterator = ((ITableDataFrame) dm).query(qs2);
 				} else {
 					// tinker

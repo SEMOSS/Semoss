@@ -195,7 +195,7 @@ public class RdbmsGexfIterator extends AbstractGexfIterator {
 		for(int i = 1; i < selectors.length; i++) {
 			sql.append(", ").append(selectors[i]);
 		}
-		sql.append(" FROM ").append(dataframe.getTableName());
+		sql.append(" FROM ").append(dataframe.getName());
 		return sql.toString();
 	}
 }

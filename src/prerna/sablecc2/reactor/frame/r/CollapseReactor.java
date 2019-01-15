@@ -27,7 +27,7 @@ public class CollapseReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		RDataTable frame = (RDataTable) getFrame();
-		String frameName = frame.getTableName();
+		String frameName = frame.getName();
 		List<String> groupByCol = getGroupByCols();
 		String valueCol = this.keyValue.get(this.keysToGet[1]);
 		String delim = this.keyValue.get(this.keysToGet[2]);

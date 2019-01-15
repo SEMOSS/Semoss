@@ -101,7 +101,7 @@ public class OwlIndirectNameMatchReactor extends AbstractMetaEditorReactor {
 		if(this.insight.getDataMaker() == null) {
 			this.insight.setDataMaker(frame);
 		}
-		this.insight.getVarStore().put(frame.getTableName(), retNoun);
+		this.insight.getVarStore().put(frame.getName(), retNoun);
 		
 		// return the frame
 		return retNoun;

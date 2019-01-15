@@ -36,7 +36,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		RDataTable frame = (RDataTable) getFrame();
 
 		// get frame name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// get inputs
 		String updateCol = getUpdateColumn();

@@ -31,7 +31,7 @@ public class DescriptiveStatsReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 
 		//get frame name
-		String table = frame.getTableName();
+		String table = frame.getName();
 				
 		//get inputs
 		String column = getColumn();

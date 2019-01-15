@@ -34,7 +34,7 @@ public class ToUpperCaseReactor extends AbstractRFrameReactor {
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
 		// get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// get inputs
 		List<String> columns = getColumns();

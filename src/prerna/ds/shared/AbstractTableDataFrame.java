@@ -82,6 +82,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// this is used for correct logging based on the pixel passed
 	protected transient Logger logger;
 	
+	protected String frameName;
+	
 	/**
 	 * Constructor
 	 */
@@ -393,13 +395,21 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return this.dataId.intValue();
 	}
 
+	@Override
 	public void resetDataId() {
 		this.dataId = BigInteger.valueOf(0);
 	}
 
-	public String getTableName()
-	{
-		return null;
+	@Override
+	public String getName() {
+		return this.frameName;
+	}
+	
+	@Override
+	public void setName(String name) {
+		if(name != null) {
+			this.frameName = name;
+		}
 	}
 
 	/////////////////////////////////////////////////////
@@ -490,12 +500,18 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			cf.setFrameStateCacheLocation(frameStateFileName);
 		}
 		
-		//save frame type
+		// save frame type
 		String frameType = this.getClass().getName();
 		cf.setFrameType(frameType);
+		
+		// save frame name
+		cf.setFrameName(this.frameName);
 	}
 	
 	protected void openCacheMeta(CachePropFileFrameObject cf) {
+		// set the frame name
+		this.frameName = cf.getFrameName();
+		
 		//load owl meta
 		this.metaData = new OwlTemporalEngineMeta(cf.getFrameMetaCacheLocation());
 		syncHeaders();

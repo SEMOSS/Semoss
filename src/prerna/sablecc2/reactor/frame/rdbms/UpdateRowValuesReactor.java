@@ -33,7 +33,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 			updateTable = split[0];
 			updateColumn = split[1];
 		} else {
-			updateTable = frame.getTableName();
+			updateTable = frame.getName();
 			updateColumn = updateColumnInput;
 		}
 		// get update value

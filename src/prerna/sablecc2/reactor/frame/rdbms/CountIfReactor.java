@@ -20,7 +20,7 @@ public class CountIfReactor extends AbstractFrameReactor {
 		String newColumnName = getNewColumn();
 		String columnToCount = getCountColumn();
 		String regex = getRegexString();
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// clean column to count
 		if (columnToCount.contains("__")) {

@@ -54,7 +54,7 @@ public class Lambda implements Iterator{
 		System.out.println("Making Query Struct");
 		String tableName = "";
 		if(this.frame != null)
-			tableName = frame.getTableName();
+			tableName = frame.getName();
 		
 		// need to think about the as here
 		if(cols != null)

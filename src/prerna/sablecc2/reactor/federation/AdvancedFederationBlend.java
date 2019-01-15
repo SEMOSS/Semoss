@@ -155,7 +155,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 
 		// get R Frame
 		RDataTable frame = (RDataTable) getFrame();
-		String frameName = frame.getTableName();
+		String frameName = frame.getName();
 
 		// get all columns to federate on
 		List<String> columnArray = new ArrayList<String>();
@@ -198,7 +198,7 @@ public class AdvancedFederationBlend extends AbstractRFrameReactor {
 			// add the selector to the qs
 			qs.addSelector(selector);
 			
-			String name = getCleanNewColName(frame.getTableName(), selector.getAlias());
+			String name = getCleanNewColName(frame.getName(), selector.getAlias());
 
 			// get semoss type, update meta data and keep track
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);

@@ -15,6 +15,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
@@ -113,24 +114,25 @@ public class TaskStoreAdapter extends TypeAdapter<TaskStore> {
 				adapter.setCurMode(BasicIteratorTaskAdapter.MODE.CONTINUE_PREVIOUS_ITERATING);
 				task = adapter.read(in);
 				SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
-				try {
-					IEngine engine = qs.retrieveQueryStructEngine();
-					if(engine == null && this.insight != null) {
-						// this means we cached a task that is using the frame
-						// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-						// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-						// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-						// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-						qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
-					}
-				} catch(Exception e) {
-					// this means we cached a task that is using the frame
-					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-					// TODO: NEED THE QS TO START TO HOLD THE FRAME NAME!!!!
-					if(this.insight != null) {
-						qs.setFrame( (ITableDataFrame) insight.getDataMaker()); 
+				// need to set the source
+				IEngine engine = qs.retrieveQueryStructEngine();
+				// is it an engine
+				if(engine != null) {
+					qs.setEngine(engine);
+				} else if(this.insight != null) {
+					// not an engine
+					// must be a frame
+					// see if we can identify the variable
+					String frameName = qs.getFrameName();
+					if(frameName != null) {
+						NounMetadata frame = insight.getVarStore().get(frameName);
+						if(frame != null) {
+							qs.setFrame( (ITableDataFrame) frame.getValue());
+						} else {
+							qs.setFrame( (ITableDataFrame) insight.getDataMaker());
+						}
+					} else {
+						qs.setFrame( (ITableDataFrame) insight.getDataMaker());
 					}
 				}
 			} else if(type.equals(CONSTANT)) {
