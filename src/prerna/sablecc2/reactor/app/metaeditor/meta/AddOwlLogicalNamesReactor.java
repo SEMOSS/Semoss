@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app.metaeditor;
+package prerna.sablecc2.reactor.app.metaeditor.meta;
 
 import java.io.IOException;
 
@@ -8,6 +8,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
