@@ -46,18 +46,22 @@ import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.DatabaseColumnUniqueReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
-import prerna.sablecc2.reactor.app.metaeditor.AddBulkOwlRelationshipsReactor;
-import prerna.sablecc2.reactor.app.metaeditor.AddOwlDescriptionReactor;
-import prerna.sablecc2.reactor.app.metaeditor.AddOwlLogicalNamesReactor;
-import prerna.sablecc2.reactor.app.metaeditor.AddOwlRelationshipReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDescriptionsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlDictionaryReactor;
 import prerna.sablecc2.reactor.app.metaeditor.OwlMetamodelReactor;
 import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
-import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlDescriptionReactor;
-import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlLogicalNamesReactor;
-import prerna.sablecc2.reactor.app.metaeditor.RemoveOwlRelationshipReactor;
+import prerna.sablecc2.reactor.app.metaeditor.concepts.AddOwlConceptReactor;
+import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
+import prerna.sablecc2.reactor.app.metaeditor.meta.AddOwlDescriptionReactor;
+import prerna.sablecc2.reactor.app.metaeditor.meta.AddOwlLogicalNamesReactor;
+import prerna.sablecc2.reactor.app.metaeditor.meta.RemoveOwlDescriptionReactor;
+import prerna.sablecc2.reactor.app.metaeditor.meta.RemoveOwlLogicalNamesReactor;
+import prerna.sablecc2.reactor.app.metaeditor.properties.AddOwlPropertyReactor;
+import prerna.sablecc2.reactor.app.metaeditor.properties.RemoveOwlPropertyReactor;
+import prerna.sablecc2.reactor.app.metaeditor.relationships.AddBulkOwlRelationshipsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.relationships.AddOwlRelationshipReactor;
+import prerna.sablecc2.reactor.app.metaeditor.relationships.RemoveOwlRelationshipReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.OwlColumnSemanticCosineSimilarityMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.OwlDirectNameMatchReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.OwlIndirectNameMatchReactor;
@@ -654,6 +658,13 @@ public class ReactorFactory {
 		reactorHash.put("ReloadAppOwl", ReloadAppOwlReactor.class);
 		reactorHash.put("GetOwlMetamodel", OwlMetamodelReactor.class);
 		reactorHash.put("GetOwlDictionary", OwlDictionaryReactor.class);
+		// owl concepts
+		reactorHash.put("AddOwlConcept", AddOwlConceptReactor.class);
+//		reactorHash.put("RemoveOwlConcept", RemoveOwlConceptReactor.class);
+		// owl properties
+//		reactorHash.put("AddOwlProperty", AddOwlPropertyReactor.class);
+//		reactorHash.put("RemoveOwlProperty", RemoveOwlPropertyReactor.class);
+		// owl relationships
 		reactorHash.put("AddOwlRelationship", AddOwlRelationshipReactor.class);
 		reactorHash.put("AddBulkOwlRelationships", AddBulkOwlRelationshipsReactor.class);
 		reactorHash.put("RemoveOwlRelationship", RemoveOwlRelationshipReactor.class);
