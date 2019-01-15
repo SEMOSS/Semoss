@@ -123,10 +123,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		String mapProp = "TYPE_MAP" + "\t" + json + "\n";
 		json = gson.toJson(((TinkerEngine) this.engine).getNameMap());
 		mapProp += "NAME_MAP" + "\t" + json + "\n";
-
-		// TODO add additional tinker properties to smss
 		Files.write(Paths.get(this.tempSmss.getAbsolutePath()), mapProp.getBytes(), StandardOpenOption.APPEND);
-
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		// note, on engine creation, we auto create an insights database + add explore an instance
@@ -139,12 +136,6 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 	}
 	
-	//TODO
-	//TODO
-	//TODO
-	//TODO
-	//TODO
-	//TODO
 	public void addToExistingApp(String appId, String filePath) throws Exception {
 		if (!(this.engine instanceof TinkerEngine)) {
 			throw new IllegalArgumentException("Invalid app type");
