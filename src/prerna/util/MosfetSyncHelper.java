@@ -270,7 +270,7 @@ public class MosfetSyncHelper {
 	 */
 	public static File makeMosfitFile(String appId, String appName, String rdbmsID, String insightName, String layout, String[] recipeToSave, boolean hidden) {
 		String recipePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + Constants.DB 
+				+ DIR_SEPARATOR + "db"
 				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
 				+ DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsID;
