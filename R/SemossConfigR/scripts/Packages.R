@@ -211,3 +211,6 @@ install.packages("arules", dependencies=TRUE)
 #install.packages("futile.options", dependencies=TRUE)
 #install.packages("lambda.r", dependencies=TRUE)
 #install.packages("text2vec", dependencies=TRUE)
+
+#Natural Language Search
+install.packages("udpipe", dependencies=TRUE)
