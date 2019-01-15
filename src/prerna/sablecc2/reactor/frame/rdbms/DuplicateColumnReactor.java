@@ -31,7 +31,7 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 
 		// get frame
 		H2Frame frame = (H2Frame) getFrame();
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// get source column to duplicate
 		String srcCol = this.keyValue.get(this.keysToGet[0]);

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -46,8 +47,15 @@ public class NativeFrame extends AbstractTableDataFrame {
 		this.qs = new SelectQueryStruct();
 		this.qs.setFrame(this);
 		this.grf = this.qs.getExplicitFilters();
+		setDefaultName();
 	}
 
+	private void setDefaultName() {
+		String uuid = UUID.randomUUID().toString().toUpperCase();
+		uuid = uuid.replaceAll("-", "_");
+		setName("NATIVE_" + uuid);
+	}
+	
 	public void setConnection(String engineName) {
 		qs.setEngineId(engineName);
 	}

@@ -45,7 +45,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		// get frame name
-		String table = frame.getTableName();
+		String table = frame.getName();
 		// get inputs
 		// get the column to pivot
 		String pivotCol = getColumnToPivot();

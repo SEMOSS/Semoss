@@ -30,7 +30,7 @@ public class DetermineIfAnomalyJob implements org.quartz.Job {
 //		List<Object[]> resultsList = results.getData();
 		List<Object[]> resultsList = new ArrayList<Object[]>();
 		// TODO Parameterize
-		Iterator<IHeadersDataRow> iteratorResults = results.query("SELECT * FROM " + results.getTableName() + " ORDER BY Kickout_Date ASC");
+		Iterator<IHeadersDataRow> iteratorResults = results.query("SELECT * FROM " + results.getName() + " ORDER BY Kickout_Date ASC");
 		while (iteratorResults.hasNext()) {
 			resultsList.add(iteratorResults.next().getRawValues());
 		}

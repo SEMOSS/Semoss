@@ -56,7 +56,7 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 		// accept input info, generate matches table
 		IEngine newColEngine = Utility.getEngine(newDb);
 		RDataTable frame = (RDataTable) getFrame();
-		String frameName = frame.getTableName();
+		String frameName = frame.getName();
 		String rTable1 = rCol1 + " <- as.character(" + frameName + "$" + frameCol + ");";
 
 		// create script to generate col2 from table to be joined

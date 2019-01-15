@@ -49,7 +49,7 @@ public class PandasImporter extends AbstractImporter {
 	
 	@Override
 	public void insertData() {
-		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getTableName(), this.it);
+		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName(), this.it);
 		processInsertData();
 	}
 	
@@ -126,7 +126,7 @@ public class PandasImporter extends AbstractImporter {
 		} else {
 		
 			//define parameters that we will pass into mergeSyntax method to get the R command
-			String returnTable = this.dataframe.getTableName();
+			String returnTable = this.dataframe.getName();
 			String leftTableName = returnTable;
 			String rightTableName = tempTableName;
 			

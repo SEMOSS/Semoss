@@ -28,6 +28,8 @@ public class HardSelectQueryStructAdapter  extends TypeAdapter<HardSelectQuerySt
 				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
 			} else if(name.equals("engineName")) {
 				qs.setEngineId(in.nextString());
+			} else if(name.equals("frameName")) {
+				qs.setFrameName(in.nextString());
 			} else if(name.equals("query")) {
 				qs.setQuery(in.nextString());
 			}
@@ -54,6 +56,9 @@ public class HardSelectQueryStructAdapter  extends TypeAdapter<HardSelectQuerySt
 		out.name("qsType").value(value.getQsType().toString());
 		if(value.getEngineId() != null) {
 			out.name("engineName").value(value.getEngineId());
+		}
+		if(value.getFrameName() != null) {
+			out.name("frameName").value(value.getFrameName());
 		}
 		out.name("query").value(value.getQuery());
 		out.endObject();

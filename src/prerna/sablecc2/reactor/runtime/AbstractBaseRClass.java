@@ -199,7 +199,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		try {
 			rs = gridFrame.execQuery("CALL CSVWRITE("
 					+ "'" + outputLocation + "', "
-					+ "'SELECT " + selectors + " FROM " + gridFrame.getTableName() + "', "
+					+ "'SELECT " + selectors + " FROM " + gridFrame.getName() + "', "
 					+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')"
 					+ ");");
 		} finally {
@@ -300,14 +300,14 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				gridFrame.close();
 			}
 			
-		} else if(dataframe  instanceof RDataTable){
+		} else if(dataframe instanceof RDataTable){
 			// ughhh... why are you calling this?
-			// i will just change the r var name
-			table.executeRScript(rVarName + " <- " + ((RDataTable) dataframe).getTableName());
-			table.setTableName(rVarName);
+			// i will just reassign the current var name
+			// to the new one
+			table.executeRScript(rVarName + " <- " + ((RDataTable) dataframe).getName());
 			table.setMetaData(dataframe.getMetaData());
 			// also, dont forget to update the metadata
-			table.getMetaData().modifyVertexName(((RDataTable) dataframe).getTableName(), rVarName);
+			table.getMetaData().modifyVertexName(((RDataTable) dataframe).getName(), rVarName);
 
 		} else if(dataframe instanceof NativeFrame || dataframe instanceof PandasFrame) {
 			IRawSelectWrapper it = dataframe.iterator();
@@ -345,7 +345,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		table.setFilter(dataframe.getFrameFilters());
 
 		Map<String, SemossDataType> types = table.getMetaData().getHeaderToTypeMap();
-		String frameName = table.getTableName();
+		String frameName = table.getName();
 		// change r dataTypes such as dates, logicals, etc to be displayed as strings
 		StringBuilder dataTypeConversion = new StringBuilder();
 		for (String colName : types.keySet()) {
@@ -430,13 +430,13 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// if we dont even have a h2frame currently, make a new one
 		if (!(dataframe instanceof H2Frame)) {
 			determineNewFrameNeeded = true;
-			if(dataframe instanceof RDataTable && ((RDataTable) dataframe).getTableName().equals(frameName)) {
+			if(dataframe instanceof RDataTable && ((RDataTable) dataframe).getName().equals(frameName)) {
 				syncExistingRMetadata = true;
 			}
 		} else {
 			frameIsH2 = true;
 			schemaName = ((H2Frame) dataframe).getSchema();
-			tableName = ((H2Frame) dataframe).getTableName();
+			tableName = ((H2Frame) dataframe).getName();
 
 			// if we do have an h2frame, look at headers to figure
 			// out if the metadata has changed
@@ -456,12 +456,12 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 		if (!overrideExistingTable || determineNewFrameNeeded) {
 			frameToUse = new H2Frame();
-			tableName = frameToUse.getTableName();
+			tableName = frameToUse.getName();
 
 			// if we can use the existing metadata, use it
 			if(syncExistingRMetadata) {
 				newMeta = this.dataframe.getMetaData().copy();
-				newMeta.modifyVertexName(frameName, frameToUse.getTableName());
+				newMeta.modifyVertexName(frameName, frameToUse.getName());
 			} 
 			
 			// set the correct schema in the new frame
@@ -588,7 +588,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 	protected boolean checkRTableModified(String frameName) {
 		if (this.dataframe instanceof RDataTable) {
-			String tableVarName = ((RDataTable) this.dataframe).getTableName();
+			String tableVarName = ((RDataTable) this.dataframe).getName();
 			if (frameName.equals(tableVarName)) {
 				this.dataframe.updateDataId();
 				this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));

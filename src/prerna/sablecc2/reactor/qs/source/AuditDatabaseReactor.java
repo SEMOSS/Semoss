@@ -79,7 +79,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		String[] types = new String[] { "TIMESTAMP", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING","STRING", "STRING", "STRING" };
 		H2Frame frame = new H2Frame(headers, types);
 		// create prepared statement to insert data into frame
-		PreparedStatement insertPS = frame.getBuilder().createInsertPreparedStatement(frame.getTableName(), headers);
+		PreparedStatement insertPS = frame.getBuilder().createInsertPreparedStatement(frame.getName(), headers);
 		// create prepared statement to update frame user ids to user emails
 		PreparedStatement updatePS = frame.createUpdatePreparedStatement(new String[] { "USER_EMAIL" }, new String[] { "USER_EMAIL" });
 		try {

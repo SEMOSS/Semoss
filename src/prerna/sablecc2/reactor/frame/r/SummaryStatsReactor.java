@@ -24,7 +24,7 @@ public class SummaryStatsReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		RDataTable frame = (RDataTable) getFrame();
-		String dtName = frame.getTableName();
+		String dtName = frame.getName();
 		
 		//get inputs
 		String panelId = getPanelId();

@@ -26,7 +26,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 			// make sql data type
 			String dataType = "STRING";
 			dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(dataType));
-			String table = frame.getTableName();
+			String table = frame.getName();
 
 			// validate new column name
 			colName = getCleanNewColName(table, colName);

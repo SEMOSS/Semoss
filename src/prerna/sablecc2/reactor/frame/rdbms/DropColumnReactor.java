@@ -20,7 +20,7 @@ public class DropColumnReactor extends AbstractFrameReactor {
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
 				NounMetadata input = inputsGRS.getNoun(selectIndex);
 				String thisSelector = input.getValue() + "";
-				String table = frame.getTableName();
+				String table = frame.getName();
 				String column = thisSelector;
 				if (thisSelector.contains("__")) {
 					String[] split = thisSelector.split("__");

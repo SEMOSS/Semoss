@@ -31,7 +31,7 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 
 		// get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// get inputs
 		// the first input is the column to sort

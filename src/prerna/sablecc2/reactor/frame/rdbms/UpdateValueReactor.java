@@ -25,7 +25,7 @@ public class UpdateValueReactor extends AbstractFrameReactor {
 			table = split[0];
 			column = split[1];
 		} else {
-			table = frame.getTableName();
+			table = frame.getName();
 			column = columnInput;
 		}
 

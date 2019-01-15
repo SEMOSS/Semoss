@@ -18,7 +18,7 @@ public class H2RawQueryApiReactor extends RawQueryApiReactor {
 		// since the user doesn't know the table name
 		// as it is dynamically generated
 		// we will replace a placeholder for it with the frame name
-		query = query.replace("<TABLE_NAME>", frame.getTableName());
+		query = query.replace("<TABLE_NAME>", frame.getName());
 		
 		Iterator<IHeadersDataRow> it = frame.query(query);
 		

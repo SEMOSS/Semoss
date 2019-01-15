@@ -60,6 +60,7 @@ public abstract class AbstractQueryStruct {
 
 	// Datasource
 	protected transient ITableDataFrame frame;
+	protected String frameName;
 	protected transient IEngine engine;
 	protected String engineId;
 	
@@ -213,7 +214,18 @@ public abstract class AbstractQueryStruct {
 	}
 
 	public void setFrame(ITableDataFrame frame) {
-		this.frame = frame;
+		if(frame != null) {
+			this.frame = frame;
+			this.frameName = frame.getName();
+		}
+	}
+	
+	public void setFrameName(String frameName) {
+		this.frameName = frameName;
+	}
+	
+	public String getFrameName() {
+		return this.frameName;
 	}
 	
 	public void setOverrideImplicit(boolean overrideImplicit) {

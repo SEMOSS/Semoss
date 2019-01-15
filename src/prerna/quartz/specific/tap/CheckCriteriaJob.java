@@ -10,10 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.quartz.JobDataMap;
-import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import static org.quartz.JobBuilder.newJob;
 
 import com.google.gson.Gson;
 
@@ -55,7 +53,7 @@ public class CheckCriteriaJob implements org.quartz.Job {
 		List<Object[]> resultsList = new ArrayList<Object[]>();
 		// TODO Parameterize
 		Iterator<IHeadersDataRow> iteratorResults = results
-				.query("SELECT " + returnColumn + ", " + compareColumn + " FROM " + results.getTableName());
+				.query("SELECT " + returnColumn + ", " + compareColumn + " FROM " + results.getName());
 		while (iteratorResults.hasNext()) {
 			resultsList.add(iteratorResults.next().getRawValues());
 		}
