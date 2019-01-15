@@ -397,8 +397,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		String semossBaseURI = owler.addConcept(nodeType);
 		String instanceBaseURI = getInstanceURI(nodeType);
 		String subjectNodeURI = instanceBaseURI + "/" + instanceName;
-		Vertex vert = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT,
-				new Object[] { nodeType, instanceName });
+		Vertex vert = (Vertex) engine.doAction(IEngine.ACTION_TYPE.VERTEX_UPSERT, new Object[] { nodeType, instanceName });
 		Set<String> vertProps = vert.keys();
 		for (String key : propHash.keySet()) {
 			if (!vertProps.contains(key)) {
