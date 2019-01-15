@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app.metaeditor;
+package prerna.sablecc2.reactor.app.metaeditor.relationships;
 
 import java.io.IOException;
 import java.util.List;
@@ -20,6 +20,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.OWLER;

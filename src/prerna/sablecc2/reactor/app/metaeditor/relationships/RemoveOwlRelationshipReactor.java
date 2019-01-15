@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app.metaeditor;
+package prerna.sablecc2.reactor.app.metaeditor.relationships;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -12,13 +12,14 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
+public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 
-	private static final String CLASS_NAME = AddOwlRelationshipReactor.class.getName();
-	
+	private static final String CLASS_NAME = RemoveOwlRelationshipReactor.class.getName();
+
 	private boolean organized;
 	private Map<String, String> tableToPrim = new HashMap<String, String>();
 	
@@ -26,7 +27,7 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 	 * This class assumes that the start table, start column, end table, and end column have already been defined
 	 */
 	
-	public AddOwlRelationshipReactor() {
+	public RemoveOwlRelationshipReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), "startT", "endT", "startC", "endC", STORE_VALUES_FRAME};
 	}
 	
@@ -73,7 +74,7 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 			}
 			
 			// add the relationship
-			owler.addRelation(startT, startC, endT, endC, rel);
+			owler.removeRelation(startT, startC, endT, endC, rel);
 		}
 		owler.commit();
 		
@@ -88,7 +89,7 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		}
 		
 		// store user inputed values
-		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "added");
+		storeUserInputs(getLogger(CLASS_NAME), startTList, startCList, endTList, endCList, "removed");
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully adding relationships", 
