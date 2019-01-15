@@ -107,7 +107,7 @@ public class TinkerEngine extends AbstractEngine {
 					yes.readGraph(fileLocation);
 				}
 			} catch (IOException e) {
-				// e.printStackTrace();
+				e.printStackTrace();
 			}
 		}
 	}
