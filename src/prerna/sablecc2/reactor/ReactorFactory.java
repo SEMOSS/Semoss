@@ -29,6 +29,7 @@ import prerna.sablecc2.reactor.algorithms.GenericRReactor;
 import prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
 import prerna.sablecc2.reactor.algorithms.MultiClusteringAlgorithmReactor;
+import prerna.sablecc2.reactor.algorithms.NaturalLanguageSearchReactor;
 import prerna.sablecc2.reactor.algorithms.NumericalCorrelationReactor;
 import prerna.sablecc2.reactor.algorithms.OutlierAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.RatioAlgorithmReactor;
@@ -590,6 +591,7 @@ public class ReactorFactory {
 		reactorHash.put("SharePointWebDavPull", SharePointWebDavPullReactor.class);
 		// survey monkey
 		reactorHash.put("SurveyMonkeyListSurveys", GetSurveyMonkeySurveysReactor.class);
+		reactorHash.put("NaturalLanguageSearch", NaturalLanguageSearchReactor.class);
 		
 		// specifies that our pksl operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
