@@ -38,7 +38,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		String originalColName = keyValue.get(this.keysToGet[0]);
 		String updatedColName = keyValue.get(this.keysToGet[1]);
 		// check that the frame isn't null
-		String table = frame.getTableName();
+		String table = frame.getName();
 		// check if new colName is valid
 		updatedColName = getCleanNewColName(table, updatedColName);
 		if (originalColName.contains("__")) {

@@ -29,7 +29,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		// get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 		// get columns to extract numeric characters
 		List<String> columns = getColumns();
 		// check if user want to override the column or create new columns

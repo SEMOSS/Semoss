@@ -22,7 +22,7 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		String originalColName = getOriginalColumn();
 		String newColName = getNewColumnName();
 
-		String table = frame.getTableName();
+		String table = frame.getName();
 		String column = originalColName;
 		if (originalColName.contains("__")) {
 			String[] split = originalColName.split("__");

@@ -31,9 +31,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private static final String PANDAS_IMPORT_VAR = "pandas_import_var";
 	private static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
 	
-//	private String scripFolder;
-	private String tableName;
-	
 	static Hashtable <String, SemossDataType> pyS = new Hashtable();
 	static Hashtable  spy = new Hashtable();
 	
@@ -64,8 +61,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		spy.put("dtype('O')", "string");
 		spy.put("dtype('int64')", "int64");
 		spy.put("dtype('float64')", "float64");
-
-
 	}
 	
 	public PandasFrame() {
@@ -76,7 +71,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(tableName == null || tableName.trim().isEmpty()) {
 			tableName = "PYFRAME_" + UUID.randomUUID().toString().replace("-", "_");
 		}
-		this.tableName = tableName;
+		this.frameName = tableName;
 	}
 	
 	public void setJep(PyExecutorThread py) {
@@ -92,7 +87,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		for(String rawHeader : rawDataTypeMap.keySet()) {
 			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
 		}
-		this.addRowsViaIterator(it, this.tableName, dataTypeMap);
+		this.addRowsViaIterator(it, this.frameName, dataTypeMap);
 	}
 	
 	/**
@@ -356,10 +351,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	
 	// get the types of headers
-	public Object [] getHeaderAndTypes()
-	{
-		String colScript = PandasSyntaxHelper.getColumns(tableName);
-		String typeScript = PandasSyntaxHelper.getTypes(tableName);
+	public Object [] getHeaderAndTypes() {
+		String colScript = PandasSyntaxHelper.getColumns(this.frameName);
+		String typeScript = PandasSyntaxHelper.getTypes(this.frameName);
 		
 		Hashtable response = (Hashtable)runScript(colScript, typeScript);
 
@@ -384,7 +378,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
-		interp.setDataTableName(this.tableName);
+		interp.setDataTableName(this.frameName);
 		interp.setDataTypeMap(dataTypeMap);
 		interp.setQueryStruct(qs);
 		String query = interp.composeQuery();
@@ -470,21 +464,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public void close() {
 		// this should take the variable name and kill it
 		// if the user has created others, nothing can be done
-		logger.info("Removing variable " + this.tableName);
-		runScript("del " + this.tableName);
+		logger.info("Removing variable " + this.frameName);
+		runScript("del " + this.frameName);
 	}
 	
 	@Override
 	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
-
-		String frameName = this.getTableName();
-		cf.setFrameName(frameName);
-		
 		// save frame
 		String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".pkl";
 		cf.setFrameCacheLocation(frameFilePath);
-		String command = this.tableName + ".to_pickle(\"" + frameFilePath.replace("\\", "/") + "\")";
+		String command = this.frameName + ".to_pickle(\"" + frameFilePath.replace("\\", "/") + "\")";
 		runScript(command);
 		
 		// also save the meta details
@@ -494,12 +484,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public void open(CachePropFileFrameObject cf) {
-		// set the frame name
-		this.tableName = cf.getFrameName();
 		// load the pandas library
 		runScript(PANDAS_IMPORT_STRING);
 		// load the frame
-		String command = this.tableName + "= " + PANDAS_IMPORT_VAR + ".read_pickle(\"" +  cf.getFrameCacheLocation().replace("\\", "/") + "\")";
+		String command = this.frameName + "= " + PANDAS_IMPORT_VAR + ".read_pickle(\"" +  cf.getFrameCacheLocation().replace("\\", "/") + "\")";
 		runScript(command);
 		// open the meta details
 		this.openCacheMeta(cf);
@@ -507,13 +495,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public String getTableName() {
-		return this.tableName;
-	}
-	
-	@Override
 	public boolean isEmpty() {
-		return isEmpty(this.tableName);
+		return isEmpty(this.frameName);
 	}
 	
 	public boolean isEmpty(String tableName) {

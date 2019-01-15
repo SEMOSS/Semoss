@@ -31,7 +31,7 @@ public class SqlExpressionBuilder extends AbstractExpressionBuilder {
 //		if(frame.isJoined()) {
 //			builder.append(frame.getViewTableName());
 //		} else {
-			builder.append(frame.getTableName());
+			builder.append(frame.getName());
 //		}
 		
 		// add filters

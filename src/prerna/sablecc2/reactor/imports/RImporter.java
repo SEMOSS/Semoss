@@ -51,7 +51,7 @@ public class RImporter extends AbstractImporter {
 	
 	@Override
 	public void insertData() {
-		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getTableName(), this.it);
+		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName(), this.it);
 		processInsertData();
 	}
 	
@@ -73,7 +73,7 @@ public class RImporter extends AbstractImporter {
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
 		RFrameBuilder builder = this.dataframe.getBuilder();
-		String tableName = this.dataframe.getTableName();
+		String tableName = this.dataframe.getName();
 		
 		// need to ensure no names overlap
 		// otherwise we R will create a weird renaming for the column
@@ -139,7 +139,7 @@ public class RImporter extends AbstractImporter {
 //			System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
 			
 			//define parameters that we will pass into mergeSyntax method to get the R command
-			String returnTable = this.dataframe.getTableName();
+			String returnTable = this.dataframe.getName();
 			String leftTableName = returnTable;
 			String rightTableName = tempTableName;
 			

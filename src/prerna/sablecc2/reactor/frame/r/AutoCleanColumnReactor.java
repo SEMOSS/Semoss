@@ -30,7 +30,7 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		String column = this.keyValue.get(this.keysToGet[0]);
 		boolean override = overrideExistingColumn();
 		RDataTable frame = (RDataTable) this.getFrame();
-		String tableName = frame.getTableName();
+		String tableName = frame.getName();
 
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table", "tm", "cluster" };

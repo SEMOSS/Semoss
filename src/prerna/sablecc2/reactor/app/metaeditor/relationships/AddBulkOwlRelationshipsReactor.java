@@ -166,8 +166,8 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 	private void optimzieStore(RDataTable frame, double distance, RDataTable storeFrame, Logger logger) {
 		IRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
 
-		String storeFrameName = storeFrame.getTableName();
-		String dataFrameName = frame.getTableName();
+		String storeFrameName = storeFrame.getName();
+		String dataFrameName = frame.getName();
 		
 		String positiveVarName = "add_" + Utility.getRandomString(6);
 		String negativeVarName = "rem_" + Utility.getRandomString(6);

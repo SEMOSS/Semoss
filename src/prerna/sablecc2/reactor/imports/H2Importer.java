@@ -54,7 +54,7 @@ public class H2Importer extends AbstractImporter {
 
 	@Override
 	public void insertData() {
-		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getTableName(), this.it);
+		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName(), this.it);
 		processInsertData();
 	}
 	
@@ -79,7 +79,7 @@ public class H2Importer extends AbstractImporter {
 		}
 		
 		// use the base table name
-		String tableName = this.dataframe.getTableName();
+		String tableName = this.dataframe.getName();
 		try {
 			this.dataframe.addRowsViaIterator(this.it, tableName, dataTypeMap);
 		} catch(Exception e) {
@@ -141,7 +141,7 @@ public class H2Importer extends AbstractImporter {
 	private ITableDataFrame performMerge(List<Join> joins, String[] origHeaders, String[] newHeaders) {
 		// need to know the starting headers
 		// we will lose this once we synchronize the frame with the new header info
-		String leftTableName = this.dataframe.getTableName();
+		String leftTableName = this.dataframe.getName();
 //		testGridData("select * from " + leftTableName);
 		Map<String, SemossDataType> leftTableTypes = this.dataframe.getMetaData().getHeaderToTypeMap();
 		
@@ -264,7 +264,7 @@ public class H2Importer extends AbstractImporter {
 		// we will also create a random table name as the return of this operation
 		// dont worry, we will override this back to normal once we are done
 		String returnTableName = Utility.getRandomString(6);
-		String leftTableName = this.dataframe.getTableName();
+		String leftTableName = this.dataframe.getName();
 		// we will make the right table from the iterator
 		// this will happen in the try catch
 		String rightTableName = Utility.getRandomString(6);

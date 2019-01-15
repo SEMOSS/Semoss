@@ -35,7 +35,7 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 
 		// get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// make a temporary table name
 		// we will reassign the table to this variable

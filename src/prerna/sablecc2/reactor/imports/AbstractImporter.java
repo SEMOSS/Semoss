@@ -83,7 +83,7 @@ public abstract class AbstractImporter implements IImporter {
 				}
 			}
 		}
-		ImportUtility.parseQueryStructToFlatTableWithJoin(dataframe, qs, dataframe.getTableName(), it, joins);
+		ImportUtility.parseQueryStructToFlatTableWithJoin(dataframe, qs, dataframe.getName(), it, joins);
 		dataframe.syncHeaders();
 	}
 	

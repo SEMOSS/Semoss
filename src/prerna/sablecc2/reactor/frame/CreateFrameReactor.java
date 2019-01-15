@@ -45,6 +45,10 @@ public class CreateFrameReactor extends AbstractReactor {
 		// add the alias as a noun by default
 		if(alias != null && !alias.isEmpty()) {
 			this.insight.getVarStore().put(alias, noun);
+		} else {
+			// even if we cannot create an alias for the frame
+			// always add it as the default
+			this.insight.getVarStore().put(newFrame.getName(), noun);
 		}
 		
 		return noun;

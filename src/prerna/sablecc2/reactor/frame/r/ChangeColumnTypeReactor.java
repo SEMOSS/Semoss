@@ -31,7 +31,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		// get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 		// get inputs
 		String column = this.keyValue.get(this.keysToGet[0]);
 		if (column == null) {

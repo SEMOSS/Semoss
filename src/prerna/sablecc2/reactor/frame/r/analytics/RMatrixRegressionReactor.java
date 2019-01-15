@@ -35,7 +35,7 @@ public class RMatrixRegressionReactor extends AbstractRFrameReactor {
 		init();
 		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
-		String frameName = dataFrame.getTableName();
+		String frameName = dataFrame.getName();
 		dataFrame.setLogger(logger);
 		
 		// figure out inputs

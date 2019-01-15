@@ -36,7 +36,7 @@ public class JoinColumnsReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 
 		// get table name
-		String table = frame.getTableName();
+		String table = frame.getName();
 
 		// create string builder to build the r script
 		StringBuilder rsb = new StringBuilder();

@@ -43,7 +43,7 @@ public class RRandomForestAlgorithmReactor extends AbstractRFrameReactor {
 		String[] packages = new String[] { "data.table", "randomForest", "dplyr" };
 		this.rJavaTranslator.checkPackages(packages);
 		RDataTable frame = (RDataTable) getFrame();
-		String dtName = frame.getTableName();
+		String dtName = frame.getName();
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
 		boolean implicitFilter = false;
 		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
