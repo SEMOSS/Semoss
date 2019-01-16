@@ -42,7 +42,7 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SQLQueryUtil;
 
-public class ImpalaInterpreter extends AbstractQueryInterpreter {
+public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
 	// this keeps the table aliases
 	private Hashtable<String, String> aliases = new Hashtable<String, String>();
@@ -82,16 +82,16 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 
 	private SQLQueryUtil queryUtil = SQLQueryUtil.initialize(RdbmsTypeEnum.IMPALA);
 
-	public ImpalaInterpreter() {
+	public ImpalaSqlInterpreter() {
 
 	}
 
-	public ImpalaInterpreter(IEngine engine) {
+	public ImpalaSqlInterpreter(IEngine engine) {
 		this.engine = engine;
 		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
 	}
 
-	public ImpalaInterpreter(ITableDataFrame frame) {
+	public ImpalaSqlInterpreter(ITableDataFrame frame) {
 		this.frame = frame;
 	}
 
@@ -675,7 +675,7 @@ public class ImpalaInterpreter extends AbstractQueryInterpreter {
 		String leftSelectorExpression = processSelector(leftSelector, false);
 		
 		SelectQueryStruct subQs = (SelectQueryStruct) rightComp.getValue();
-		ImpalaInterpreter innerInterpreter;
+		ImpalaSqlInterpreter innerInterpreter;
 		try {
 			innerInterpreter = this.getClass().newInstance();
 			if(this.frame != null) {
