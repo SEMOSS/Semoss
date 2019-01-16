@@ -159,7 +159,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			qs_nulls.addSelector(uniqueCountSelector);
 			SimpleQueryFilter nulls = new SimpleQueryFilter(
 					new NounMetadata(col, PixelDataType.COLUMN), "==",
-					new NounMetadata("null", PixelDataType.NULL_VALUE));
+					new NounMetadata(null, PixelDataType.NULL_VALUE));
 			qs_nulls.addExplicitFilter(nulls);
 		}
 		// get blank values count
@@ -261,7 +261,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			qs_nulls.addSelector(uniqueCountSelector);
 			SimpleQueryFilter nulls = new SimpleQueryFilter(
 					new NounMetadata(col, PixelDataType.COLUMN), "==",
-					new NounMetadata("null", PixelDataType.NULL_VALUE));
+					new NounMetadata(null, PixelDataType.NULL_VALUE));
 			qs_nulls.addExplicitFilter(nulls);
 		}
 		// get null values count
