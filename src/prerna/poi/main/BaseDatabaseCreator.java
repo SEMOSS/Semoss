@@ -8,9 +8,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Vector;
 
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
-
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
@@ -121,7 +118,7 @@ public class BaseDatabaseCreator {
 				baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseEng.exportDB();
-		} catch (RepositoryException | RDFHandlerException | IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IOException("Error in writing OWL file");
 		}
@@ -141,7 +138,7 @@ public class BaseDatabaseCreator {
 			this.baseEng.exportDB(writer);
 			writer.flush();
 			return writer.toString();
-		} catch (RepositoryException | RDFHandlerException | IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IOException("Error in writing base engine db as OWL file");
 		}

@@ -16,7 +16,6 @@ import com.hp.hpl.jena.vocabulary.OWL;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.BaseDatabaseCreator;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
