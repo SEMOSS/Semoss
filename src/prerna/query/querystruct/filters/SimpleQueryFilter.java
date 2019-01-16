@@ -632,12 +632,12 @@ public class SimpleQueryFilter implements IQueryFilter {
 			return FILTER_TYPE.COL_TO_COL;
 		} 
 		// col to values
-		else if(lCompType == PixelDataType.COLUMN && (rCompType == PixelDataType.CONST_DECIMAL || rCompType == PixelDataType.CONST_INT || rCompType == PixelDataType.CONST_STRING || rCompType == PixelDataType.NULL_VALUE) ) 
+		else if(lCompType == PixelDataType.COLUMN && isScalar(rCompType) ) 
 		{
 			return FILTER_TYPE.COL_TO_VALUES;
 		} 
 		// values to col
-		else if((lCompType == PixelDataType.CONST_DECIMAL || lCompType == PixelDataType.CONST_INT || lCompType == PixelDataType.CONST_STRING || rCompType == PixelDataType.NULL_VALUE) && rCompType == PixelDataType.COLUMN)
+		else if( isScalar(lCompType) && rCompType == PixelDataType.COLUMN)
 		{
 			return FILTER_TYPE.VALUES_TO_COL;
 		}
@@ -653,13 +653,22 @@ public class SimpleQueryFilter implements IQueryFilter {
 		}
 		
 		// values to values
-		else if((rCompType == PixelDataType.CONST_DECIMAL || rCompType == PixelDataType.CONST_INT || rCompType == PixelDataType.CONST_STRING || rCompType == PixelDataType.NULL_VALUE) 
-				&& (lCompType == PixelDataType.CONST_DECIMAL || lCompType == PixelDataType.CONST_INT || lCompType == PixelDataType.CONST_STRING || rCompType == PixelDataType.NULL_VALUE)) 
+		else if( isScalar(lCompType) && isScalar(rCompType) ) 
 		{
 			return FILTER_TYPE.VALUE_TO_VALUE;
 		}
 
 		return null;
+	}
+	
+	private static boolean isScalar(PixelDataType type) {
+		return type == PixelDataType.CONST_DECIMAL 
+				|| type == PixelDataType.CONST_INT 
+				|| type == PixelDataType.CONST_STRING 
+				|| type == PixelDataType.CONST_DATE 
+				|| type == PixelDataType.CONST_TIMESTAMP
+				|| type == PixelDataType.BOOLEAN
+				|| type == PixelDataType.NULL_VALUE;
 	}
 	
 	/**

@@ -163,12 +163,23 @@ public class SemossDate {
 		}
 		return this.date;
 	}
+	
+	/**
+	 * Get the date in a requested format
+	 * @param requestedPattern
+	 * @return
+	 */
+	public String getFormatted(String requestedPattern) {
+		Date date = getDate();
+		SimpleDateFormat formatter = new SimpleDateFormat(requestedPattern);
+		return formatter.format(date);
+	}
 
 	@Override
 	public String toString() {
 		return getFormattedDate();
 	}
-
+	
 	/**
 	 * Using this to test the string value + pattern
 	 * @return
