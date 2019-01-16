@@ -1,11 +1,16 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+import org.semarglproject.vocab.RDFS;
+
+import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -32,6 +37,14 @@ import prerna.util.Utility;
 
 public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 
+	protected static Set<String> literalPreds = new HashSet<String>();
+	static {
+		literalPreds.add(RDFS.LABEL);
+		literalPreds.add(OWL.sameAs.toString());
+		literalPreds.add(RDFS.COMMENT);
+		literalPreds.add(OWLER.BASE_URI + OWLER.DEFAULT_PROP_CLASS + "/UNIQUE");
+	}
+	
 	protected static final String TABLES_FILTER = ReactorKeysEnum.TABLES.getKey();
 	protected static final String STORE_VALUES_FRAME = "store";
 
@@ -401,6 +414,18 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			
 			logger.info("Finsihed removing previously mastered data from the results");
 		}
+	}
+	
+	/**
+	 * Determine if the predicate points to a literal
+	 * @param predicate
+	 * @return
+	 */
+	protected boolean objectIsLiteral(String predicate) {
+		if(literalPreds.contains(predicate)) {
+			return true;
+		}
+		return false;
 	}
 	
 }
