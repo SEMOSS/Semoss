@@ -1,56 +1,41 @@
 package prerna.junit;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeThat;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class PixelUnitTest extends PixelUnit {
+@RunWith(Parameterized.class)
+public class PixelUnitTests extends PixelUnitWithDatabases {
 
 	protected static final String TESTS_DIRECTORY = Paths.get(TEST_RESOURCES_DIRECTORY, "tests").toAbsolutePath().toString();
-	
-	private static final String COLLEGE = "unit_test_college";
-	private static final String MOVIE = "unit_test_movie";
-	
-	private static final String METAMODEL_EXTENSION = "_metamodel.txt";
-	
+		
 	private static final String PIXEL_EXTENSION = "_pixel.txt";
 	private static final String EXPECTED_EXTENSION = "_expected.txt";
 	private static final String EXCLUDED_EXTENSION = "_excluded.txt";
+	private static final String CLEAN_EXTENSION = "_clean.txt";
 	
-	@Before
-	public void checkAssumptions() {
-		checkTestDatabase(COLLEGE);
-		checkTestDatabase(MOVIE);
+	// Needed for parameterized tests
+	private String test;
+	
+	public PixelUnitTests(String test) {
+		this.test = test;
 	}
 	
-	public void checkTestDatabase(String alias) {
-		String appId = aliasToAppId.get(alias);
-		String pixel = "GetDatabaseMetamodel(database=[\"" + appId + "\"]);";
-		try {
-			String expectedJson = FileUtils.readFileToString(Paths.get(TEST_DATA_DIRECTORY, alias + METAMODEL_EXTENSION).toFile());
-			Object result = compareResult(pixel, expectedJson);
-			assumeThat(result, is(equalTo(new HashMap<>())));
-		} catch (IOException e) {
-			LOGGER.error(e);
-			fail();
-		}
-	}
-	
-	@Test
-	public void runTests() {
-			
+	// TODO >>>timb: replace this with PK's excel stuff eventually
+	@Parameters(name = "test {0}") // TODO >>>timb: this should be named
+	public static Collection<Object[]> getTestParams() {
+		
 		// List all the files in the test database directory
 		String[] fileNames = new File(TESTS_DIRECTORY).list();
 		
@@ -64,24 +49,43 @@ public class PixelUnitTest extends PixelUnit {
 				expectedNames.add(file.substring(0, file.length() - EXPECTED_EXTENSION.length()));
 			}
 		}
+		
+		// Stage all the tests
+		Collection<Object[]> params = new ArrayList<>();
 		for (String test : pixelNames) {
 			if (expectedNames.contains(test)) {
-				runTest(test);
+				params.add(new Object[] {test});
 			}
 		}
+		return params;
 	}
 	
-	public void runTest(String test) {
+	@Test
+	public void runTest() {
 		LOGGER.info("RUNNING TEST: " + test);
 		try {
+			
+			// The Pixel
 			String pixel = FileUtils.readFileToString(Paths.get(TESTS_DIRECTORY, test + PIXEL_EXTENSION).toFile());
+			
+			// The expected JSON
 			String expectedJson = FileUtils.readFileToString(Paths.get(TESTS_DIRECTORY, test + EXPECTED_EXTENSION).toFile());
+			
+			// These are optional
+			// The excluded paths in the JSON
 			File excludedFile = Paths.get(TESTS_DIRECTORY, test + EXCLUDED_EXTENSION).toFile();
 			if (excludedFile.exists()) {
 				List<String> excludePaths = FileUtils.readLines(excludedFile);
 				testPixel(pixel, expectedJson, excludePaths);
 			} else {
 				testPixel(pixel, expectedJson);
+			}
+			
+			// The dbs to clean after the test
+			File cleanFile = Paths.get(TESTS_DIRECTORY, test + CLEAN_EXTENSION).toFile();
+			if (cleanFile.exists()) {
+				List<String> dbs = FileUtils.readLines(cleanFile);
+				setCleanTestDatabases(dbs);
 			}
 		} catch (IOException e) {
 			LOGGER.error(e);
