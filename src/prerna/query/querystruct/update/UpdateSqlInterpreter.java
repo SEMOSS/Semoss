@@ -18,8 +18,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class UpdateSqlInterpreter extends SqlInterpreter {
 	
-	private UpdateQueryStruct qs;
-	
 	private StringBuilder sets = new StringBuilder();
 	private StringBuilder updateFrom = new StringBuilder();
 	
@@ -85,7 +83,7 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 
 	private void addSets() {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		List<Object> values = qs.getValues();
+		List<Object> values = ((UpdateQueryStruct) qs).getValues();
 		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
 			if(i != 0) {

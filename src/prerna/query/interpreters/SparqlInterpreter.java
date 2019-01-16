@@ -109,15 +109,15 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		addFilters(combinedFilters, baseUri);
 		
 		// add the group bys
-		addGroupClause(this.qs.getGroupBy());
+		addGroupClause(((SelectQueryStruct) this.qs).getGroupBy());
 
 		// add sort bys
-		addOrderByClause(this.qs.getOrderBy());
+		addOrderByClause(((SelectQueryStruct) this.qs).getOrderBy());
 		
 		// combine the pieces and return
 		StringBuilder query = new StringBuilder();
 		String distinct = "";
-		if(this.qs.isDistinct()) {
+		if(((SelectQueryStruct) this.qs).isDistinct()) {
 			distinct = "DISTINCT ";
 		}
 		query.append("SELECT ").append(distinct).append(this.selectors.toString());
@@ -131,8 +131,8 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		query.append(" ");
 		query.append(this.sortByClause);
 		
-		long limit = qs.getLimit();
-		long offset = qs.getOffset();
+		long limit = ((SelectQueryStruct) this.qs).getLimit();
+		long offset = ((SelectQueryStruct) this.qs).getOffset();
 		if(limit > 0) {
 			query.append(" LIMIT ").append(limit); 
 		}
