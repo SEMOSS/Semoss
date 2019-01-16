@@ -3,6 +3,7 @@ package prerna.query.interpreters.sql;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 
@@ -23,14 +24,14 @@ public class MicrosoftSqlServerInterpreter extends SqlInterpreter {
 	@Override
 	public String composeQuery() {
 		if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct) ) {
-			if(this.qs.getLimit() > 0 || this.qs.getOffset() > 0) {
-				if(this.qs.getOrderBy().isEmpty()) {
+			if(((SelectQueryStruct) this.qs).getLimit() > 0 || ((SelectQueryStruct) this.qs).getOffset() > 0) {
+				if(((SelectQueryStruct) this.qs).getOrderBy().isEmpty()) {
 					// need to add an implicit order
 					IQuerySelector firstSelector = this.qs.getSelectors().get(0);
 					if(firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
-						this.qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
+						((SelectQueryStruct) this.qs).addOrderBy(firstSelector.getQueryStructName(), "ASC");
 					} else {
-						this.qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
+						((SelectQueryStruct) this.qs).addOrderBy(firstSelector.getAlias(), null, "ASC");
 					}
 				}
 			}
