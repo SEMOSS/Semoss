@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import prerna.sablecc2.PixelRunner;
 
-public class PixelUnitConsole extends PixelUnitTest {
+public class PixelUnitConsole extends PixelUnitWithDatabases {
 
 	@Test
 	public void runConsole() {
