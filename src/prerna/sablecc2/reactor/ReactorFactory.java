@@ -57,8 +57,6 @@ import prerna.sablecc2.reactor.app.metaeditor.meta.AddOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.AddOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.RemoveOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.RemoveOwlLogicalNamesReactor;
-import prerna.sablecc2.reactor.app.metaeditor.properties.AddOwlPropertyReactor;
-import prerna.sablecc2.reactor.app.metaeditor.properties.RemoveOwlPropertyReactor;
 import prerna.sablecc2.reactor.app.metaeditor.relationships.AddBulkOwlRelationshipsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.relationships.AddOwlRelationshipReactor;
 import prerna.sablecc2.reactor.app.metaeditor.relationships.RemoveOwlRelationshipReactor;
@@ -660,7 +658,7 @@ public class ReactorFactory {
 		reactorHash.put("GetOwlDictionary", OwlDictionaryReactor.class);
 		// owl concepts
 		reactorHash.put("AddOwlConcept", AddOwlConceptReactor.class);
-//		reactorHash.put("RemoveOwlConcept", RemoveOwlConceptReactor.class);
+		reactorHash.put("RemoveOwlConcept", RemoveOwlConceptReactor.class);
 		// owl properties
 //		reactorHash.put("AddOwlProperty", AddOwlPropertyReactor.class);
 //		reactorHash.put("RemoveOwlProperty", RemoveOwlPropertyReactor.class);
