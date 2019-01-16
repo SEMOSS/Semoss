@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -86,7 +85,8 @@ public class PixelUnit {
 	
 	private static final String TEST_DIR_REGEX = "<<<testDir>>>";
 	private static final String BASE_DIR_REGEX = "<<<baseDir>>>";
-	private static final String APP_ID_REGEX = ".*<<<appId>>>(.*?)<<</appId>>>.*";
+	private static final String APP_ID_REGEX = "<<<appId>>>(.*?)<<</appId>>>";
+//	private static final String APP_ID_REGEX = ".*<<<appId>>>(.*?)<<</appId>>>.*";
 
 	private static final String DATA_EXTENSION = ".csv";
 	private static final String IMPORT_EXTENSION = "_import.txt";
@@ -100,6 +100,10 @@ public class PixelUnit {
 	
 	protected PyExecutorThread jep = null;
 
+	private List<String> cleanTestDatabases = new ArrayList<>();
+
+	
+	
 	//////////////////////////////////////////////////////////////////////
 	// Before and after class
 	//////////////////////////////////////////////////////////////////////
@@ -129,18 +133,22 @@ public class PixelUnit {
 		unloadOther(); // Just in case
 	}
 	
+	
 	//////////////////////////////
 	// Assumptions
 	//////////////////////////////
+	
 	private static void checkAssumptions() {
 		
 		// Assume that Python must be enabled for tests to run, since we use deepdiff for tests
 		assumeThat(PyUtils.pyEnabled(), is(equalTo(true)));
 	}
 	
+	
 	//////////////////////////////
 	// Log4j
 	//////////////////////////////
+	
 	private static void configureLog4j() {
 		String log4JPropFile = Paths.get(TEST_RESOURCES_DIRECTORY, "log4j.properties").toAbsolutePath().toString();
 		Properties prop = new Properties();
@@ -153,9 +161,11 @@ public class PixelUnit {
 		}
 	}
 	
+	
 	//////////////////////////////
 	// DIHelper
 	//////////////////////////////
+	
 	private static void loadDIHelper() throws IOException {
 		Files.copy(BASE_RDF_MAP, TEST_RDF_MAP, StandardCopyOption.REPLACE_EXISTING);
 		Me configurationManager = new Me();
@@ -171,9 +181,11 @@ public class PixelUnit {
 		}
 	}
 
+	
 	//////////////////////////////
 	// Databases
 	//////////////////////////////
+	
 	private static void loadDatabases() throws SQLException, IOException {
 
 		// Local master database
@@ -221,9 +233,11 @@ public class PixelUnit {
 		DIHelper.getInstance().removeLocalProperty(Constants.THEMING_DB);
 	}
 	
+	
 	//////////////////////////////
 	// Test databases
 	//////////////////////////////
+	
 	private static void loadTestDatabases() throws IOException, ClassNotFoundException, SQLException, DatabaseUnitException {
 		
 		// List all the files in the test database directory
@@ -258,6 +272,10 @@ public class PixelUnit {
 		List<String> existingAppIds = MasterDatabaseUtility.getEngineIdsForAlias(alias);
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		for(String appId : existingAppIds) {
+			
+			// First must catalog the db in order to call the getEngine
+			SMSSWebWatcher.catalogDB(alias + "__" + appId + ".smss", BASE_DB_DIRECTORY);
+			
 			@SuppressWarnings("deprecation")
 			IEngine engine = Utility.getEngine(appId);
 			
@@ -349,9 +367,11 @@ public class PixelUnit {
 		return returnData;
 	}
 	
+	
 	//////////////////////////////
 	// Other
 	//////////////////////////////
+	
 	private static void unloadOther() {
 		
 		// Close scheduler
@@ -365,25 +385,31 @@ public class PixelUnit {
 		RJavaTranslatorFactory.stopRConnection();
 	}
 	
+	
+	
 	//////////////////////////////////////////////////////////////////////
 	// Before and after each test method
 	//////////////////////////////////////////////////////////////////////
+	
 	@Before
 	public void initializeTest() {
 		initializeInsight();
 		initializeJep();
-		resetTestDatabases();
+		cleanTestDatabases = new ArrayList<>(); // Reset the list of databases to clean
 	}
 	
 	@After
 	public void destroyTest() {
 		destroyInsight();
 		destroyJep();
+		cleanTestDatabases();
 	}
+	
 	
 	//////////////////////////////
 	// Insight
 	//////////////////////////////
+	
 	private void initializeInsight() {
 		insight = new Insight();
 		InsightStore.getInstance().put(insight);
@@ -396,9 +422,11 @@ public class PixelUnit {
 		insight = null;
 	}
 	
+	
 	//////////////////////////////
 	// Python
 	//////////////////////////////
+	
 	private void initializeJep() {
 		
 		// Initialize jep
@@ -408,9 +436,9 @@ public class PixelUnit {
 		LOGGER.info("Waiting for python to initialize...");
 		long start = System.currentTimeMillis();
 		boolean timeout = false;
-		while(!jep.isReady() && !timeout) {
+		while (!jep.isReady() && !timeout) {
 			timeout = (System.currentTimeMillis() - start) > 30000;
-		};
+		}
 		
 		// Assume that Python did not timeout for tests to run
 		assumeThat(timeout, is(not(equalTo(true))));
@@ -423,15 +451,16 @@ public class PixelUnit {
 		jep = null;
 	}	
 	
+	
 	//////////////////////////////
 	// Test databases
 	//////////////////////////////
+	
 	@SuppressWarnings("deprecation")
-	private static void resetTestDatabases() {
-		for (Entry<String, String> entry : aliasToAppId.entrySet()) {
-			String alias = entry.getKey();
-			String appId = entry.getValue();
-			
+	// https://www.marcphilipp.de/blog/2012/03/13/database-tests-with-dbunit-part-1/
+	private void cleanTestDatabases() {
+		for (String alias : cleanTestDatabases) {
+			String appId = aliasToAppId.get(alias);
 			IEngine engine = Utility.getEngine(appId);
 			if (engine != null && engine.getEngineType().equals(ENGINE_TYPE.RDBMS)) {
 				
@@ -451,6 +480,7 @@ public class PixelUnit {
 					databaseTester.setSetUpOperation(DatabaseOperation.CLEAN_INSERT);
 					databaseTester.setDataSet(dataSet);
 					databaseTester.onSetup();
+					LOGGER.info("Cleaned: " + alias);
 				} catch (Exception e) {
 					LOGGER.warn("Unable to reset database state for: " + alias, e);
 				} finally {
@@ -460,10 +490,19 @@ public class PixelUnit {
 		}
 	}
 	
+	protected void setCleanTestDatabases(List<String> cleanTestDatabases) {
+		this.cleanTestDatabases = cleanTestDatabases;
+	}
+	
+	
 	//////////////////////////////////////////////////////////////////////
 	// Methods for use during testing (by subclasses)
 	//////////////////////////////////////////////////////////////////////
 
+	
+	//////////////////////////////
+	// Pixel
+	//////////////////////////////
 	
 	protected void testPixel(String pixel, String expectedJson) {
 		testPixel(pixel, expectedJson, null);
@@ -518,13 +557,21 @@ public class PixelUnit {
 		pixel = pixel.replaceAll(TEST_DIR_REGEX, Paths.get(TEST_RESOURCES_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
 		pixel = pixel.replaceAll(BASE_DIR_REGEX, Paths.get(BASE_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
 		
-		Matcher appIdMatcher = Pattern.compile(APP_ID_REGEX).matcher(pixel);
-		if (appIdMatcher.matches()) {			
+		Pattern appIdPattern = Pattern.compile(APP_ID_REGEX);
+		Matcher appIdMatcher = appIdPattern.matcher(pixel);
+		while(appIdMatcher.find()) {
 			String alias = appIdMatcher.group(1);
-			pixel = appIdMatcher.replaceAll(aliasToAppId.get(alias));
+			String appId = aliasToAppId.containsKey(alias) ? aliasToAppId.get(alias) : "null";
+			pixel = appIdMatcher.replaceFirst(appId);
+			appIdMatcher = appIdPattern.matcher(pixel);
 		}
 		return pixel;
 	}
+	
+	
+	//////////////////////////////
+	// Python
+	//////////////////////////////
 	
 	// Method for running a single Python command
 	protected Object runPy(String script) {
