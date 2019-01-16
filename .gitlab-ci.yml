@@ -64,6 +64,8 @@ version_commit:
   script:
     - ls
     - cat ver.txt
+    - apt-get update
+    - apt-get install -y subversion
     - svn --username ${SVN_USER} --password ${SVN_PASS} checkout svn://107.170.10.188:8080/Semoss/dev SemossVer --depth empty
     - cd SemossVer
     - svn --username ${SVN_USER} --password ${SVN_PASS} up ver.txt
