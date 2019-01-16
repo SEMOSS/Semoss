@@ -578,7 +578,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
 						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
@@ -603,7 +603,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "WHERE "
 				+ "INSIGHT.ENGINEID='" + engineId + "' "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
@@ -832,7 +832,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) )) "
 				// and match what i search
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i') " : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
@@ -865,7 +865,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "LOWER(INSIGHT.INSIGHTNAME) AS \"low_name\" "
 				+ "FROM INSIGHT INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
+				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
 				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
 				;
