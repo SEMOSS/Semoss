@@ -13,6 +13,7 @@ import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -805,7 +806,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				for(; i < size; i++) {
 					myObj.append(" , ").append(objects.get(i));
 				}
-			} else if(SemossDataType.DATE == type) {
+			} else if(SemossDataType.DATE == type || SemossDataType.TIMESTAMP == type) {
 				String leftWrapper = null;
 				String rightWrapper = null;
 				if(!comparator.equalsIgnoreCase(SEARCH_COMPARATOR)) {
@@ -817,14 +818,14 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 				
 				// get the first value
-				String val = objects.get(0).toString();
-				String d = Utility.getDate(val);
+				Object val = objects.get(0);
+				String d = formatDate(val, type);
 				// get the first value
 				myObj.append(leftWrapper).append(d).append(rightWrapper);
 				i++;
 				for(; i < size; i++) {
 					val = objects.get(i).toString();
-					d = Utility.getDate(val);
+					d = formatDate(val, type);
 					// get the first value
 					myObj.append(" , ").append(leftWrapper).append(d).append(rightWrapper);
 				}
@@ -912,6 +913,25 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		return myObj.toString();
+	}
+	
+	private String formatDate(Object o, SemossDataType dateType) {
+		if(o instanceof SemossDate) {
+			return ((SemossDate) o).getFormattedDate();
+		} else {
+			if(dateType == SemossDataType.DATE) {
+				SemossDate value = SemossDate.genDateObj(o + "");
+				if(value != null) {
+					return value.getFormatted("yyyy-MM-dd");
+				}
+			} else {
+				SemossDate value = SemossDate.genTimeStampDateObj(o + "");
+				if(value != null) {
+					return value.getFormatted("yyyy-MM-dd HH:mm:ss");
+				}
+			}
+		}
+		return null;
 	}
 	
 	////////////////////////////////////// end adding filters ////////////////////////////////////////////
