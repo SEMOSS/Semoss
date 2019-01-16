@@ -67,7 +67,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		traverseRelations();
 		addOrderBy();
 		setSelectors();
-		if(this.qs.isDistinct()) {
+		if(((SelectQueryStruct) this.qs).isDistinct()) {
 			this.gt.dedup();
 		}
 		
@@ -561,7 +561,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	}
 
 	protected void addOrderBy() {
-		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
+		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
 		int numOrderBys = orderBy.size();
 		for(int i = 0; i < numOrderBys; i++) {
 			QueryColumnOrderBySelector orderSelector = orderBy.get(i);

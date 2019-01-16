@@ -60,7 +60,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		if(this.additionalTypes == null) {
 			this.additionalTypes = new Hashtable<String, String>();
 		}
-		boolean isDistinct = qs.isDistinct();
+		boolean isDistinct = ((SelectQueryStruct) this.qs).isDistinct();
 		// note, that the join info in the QS has no meaning for a R frame as 
 		// we cannot connect across data tables
 		addFilters(qs.getCombinedFilters().getFilters(), this.dataTableName, this.filterCriteria, false);
@@ -640,7 +640,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	//////////////////////////////////// end adding filters /////////////////////////////////////
 	
 	private void addGroupBy() {
-		List<QueryColumnSelector> groups = qs.getGroupBy();
+		List<QueryColumnSelector> groups = ((SelectQueryStruct) this.qs).getGroupBy();
 		if(groups == null || groups.isEmpty()) {
 			return;
 		}
@@ -659,7 +659,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	
 	private void addOrderBy(String tempTableName) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
+		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
 		if (orderBy == null || orderBy.isEmpty()) {
 			return;
 		}

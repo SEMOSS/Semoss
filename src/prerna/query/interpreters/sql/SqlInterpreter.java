@@ -130,7 +130,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 		StringBuilder query = new StringBuilder("SELECT ");
 		String distinct = "";
-		if(this.qs.isDistinct()) {
+		if(((SelectQueryStruct) this.qs).isDistinct()) {
 			distinct = "DISTINCT ";
 		}
 		if(this.engine != null && !engine.isBasic() && joinStructList.isEmpty()) {
@@ -196,8 +196,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 		query = appendOrderBy(query);
 		
-		long limit = qs.getLimit();
-		long offset = qs.getOffset();
+		long limit = ((SelectQueryStruct) this.qs).getLimit();
+		long offset = ((SelectQueryStruct) this.qs).getOffset();
 		
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 		
@@ -941,7 +941,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	public StringBuilder appendOrderBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
+		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
 		List<StringBuilder> validOrderBys = new Vector<StringBuilder>();
 		for(QueryColumnOrderBySelector orderBySelector : orderBy) {
 			String tableConceptualName = orderBySelector.getTable();
@@ -1005,7 +1005,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	public StringBuilder appendGroupBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnSelector> groupBy = qs.getGroupBy();
+		List<QueryColumnSelector> groupBy = ((SelectQueryStruct) this.qs).getGroupBy();
 		String groupByName = null;
 		for(QueryColumnSelector groupBySelector : groupBy) {
 			String tableConceptualName = groupBySelector.getTable();
