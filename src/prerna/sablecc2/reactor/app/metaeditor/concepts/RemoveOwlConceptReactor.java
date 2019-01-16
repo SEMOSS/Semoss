@@ -134,7 +134,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		} catch (Exception e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add the relationships defined", 
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to remove the desired concept", 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
