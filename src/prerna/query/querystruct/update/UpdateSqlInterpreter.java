@@ -11,6 +11,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -132,9 +134,10 @@ public class UpdateSqlInterpreter {
 			}
 			Object v = values.get(i);
 			if(v instanceof String) {
-				sets.append(table + "." + column + "=" + "'" + v + "'");
-			}
-			else {
+				sets.append(table + "." + column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
+			} else if(v instanceof SemossDate) {
+				sets.append(table + "." + column + "=" + "'" + ((SemossDate) v).getFormattedDate() + "'");
+			} else {
 				sets.append(table + "." + column + "=" + v );
 			}
 		}
