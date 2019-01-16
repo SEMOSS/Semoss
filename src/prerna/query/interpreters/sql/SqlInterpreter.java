@@ -841,12 +841,12 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 				
 				// get the first value
-				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
+				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
 				myObj.append(leftWrapper).append(val).append(rightWrapper);
 				i++;
 				for(; i < size; i++) {
-					val = objects.get(i).toString().replace("\"", "").replaceAll("'", "''").trim();
+					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 					// get the first value
 					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
 				}
@@ -900,12 +900,12 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				}
 				
 				// get the first value
-				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
+				String val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 				// get the first value
 				myObj.append(leftWrapper).append(val).append(rightWrapper);
 				i++;
 				for(; i < size; i++) {
-					val = objects.get(i).toString().replace("\"", "").replaceAll("'", "''").trim();
+					val = RdbmsQueryBuilder.escapeForSQLStatement(objects.get(i).toString());
 					// get the first value
 					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
 				}
