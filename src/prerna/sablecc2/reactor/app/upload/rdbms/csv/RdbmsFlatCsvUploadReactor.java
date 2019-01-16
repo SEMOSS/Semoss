@@ -220,9 +220,17 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		if (tableToInsertInto == null) {
 			logger.info("Could not find existing table to insert into");
 			logger.info(stepCounter + ". Create table...");
-			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(FilenameUtils.getBaseName(filePath).replace(" ", "_")).toUpperCase();
+			
+			String fileName = FilenameUtils.getBaseName(filePath);
+			if (fileName.contains("_____UNIQUE")) {
+				// ... yeah, this is not intuitive at all,
+				// but I add a timestamp at the end to make sure every file is unique
+				// but i want to remove it so things are "pretty"
+				fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
+			}
+			tableToInsertInto = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
+			
 			String uniqueRowId = tableToInsertInto + "_UNIQUE_ROW_ID";
-
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 			String[] sqlTypes = null;
 			try {
