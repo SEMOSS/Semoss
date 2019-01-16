@@ -518,17 +518,14 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * @throws RDFHandlerException 
 	 * @throws RepositoryException 
 	 */
-	public void exportDB() throws RepositoryException, RDFHandlerException, IOException
-	{
+	public void exportDB() throws Exception {
+		System.err.println("Exporting database");
 		FileWriter writer = null;
 		try{
-			System.err.println("Exporting database");
 			writer = new FileWriter(fileName);
 			exportDB(writer);
-		}catch(IOException e) {
-			e.printStackTrace();
 		} finally {
-			if(writer!=null) {
+			if(writer != null) {
 				try{
 					writer.close();
 				} catch (IOException e) {
@@ -544,24 +541,20 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	 * @throws RDFHandlerException 
 	 * @throws RepositoryException 
 	 */
-	public void exportDB(Writer writer) throws RepositoryException, RDFHandlerException, IOException
-	{
+	public void exportDB(Writer writer) throws Exception {
+		System.err.println("Exporting database");
 		try{
-			System.err.println("Exporting database");
-			//writer = new FileWriter(fileName);
 			rc.export(new RDFXMLPrettyWriter(writer));
-		}catch(Exception e) {
-			e.printStackTrace();
 		} finally {
-			try{
-				if(writer!=null)
+			if(writer != null) {
+				try{
 					writer.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
-
 
 	/**
 	 * Method getRc.  Gets the repository connection.

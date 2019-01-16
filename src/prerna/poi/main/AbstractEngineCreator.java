@@ -8,8 +8,6 @@ import java.util.Properties;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
@@ -251,7 +249,7 @@ public class AbstractEngineCreator {
 		} else if(engine!=null && engine instanceof RDFFileSesameEngine){
 			try {
 				((RDFFileSesameEngine)engine).exportDB();
-			} catch (RepositoryException | RDFHandlerException | IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 				throw new IOException("Unable to commit data from file into database");
 			}
