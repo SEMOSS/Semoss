@@ -59,10 +59,9 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 			
 		String script = "";
 		if (oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("NA")) {
-			script = table + "$" + column + "[is.null(" + table + "$" + column + ")] <- " + neededQuote + newValue + neededQuote;
+			script = table + "$" + column + "[is.na(" + table + "$" + column + ")] <- " + neededQuote + newValue + neededQuote;
 		} else {
-			script = table + "$" + column + "[" + table + "$" + column + " == " + 
-					neededQuote + oldValue + neededQuote + "] <- " + neededQuote + newValue + neededQuote;
+			script = table + "$" + column + "[" + table + "$" + column + " == " + neededQuote + oldValue + neededQuote + "] <- " + neededQuote + newValue + neededQuote;
 		}
 		
 		// NEW TRACKING
