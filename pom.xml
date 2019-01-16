@@ -2096,7 +2096,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency-->
-		<dependency>
+		<!--dependency>
 			<groupId>edu.cmu</groupId>
 			<artifactId>ws4j</artifactId>
 			<version>1.0.1</version>
@@ -2106,7 +2106,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency-->
 		<dependency>
 			<groupId>org.rosuda.REngine</groupId>
 			<artifactId>Rserve</artifactId>
