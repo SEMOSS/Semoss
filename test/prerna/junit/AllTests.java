@@ -7,7 +7,7 @@ import org.junit.runners.Suite.SuiteClasses;
 import prerna.util.gson.IHeadersDataRowAdapterTest;
 
 @RunWith(Suite.class)
-@SuiteClasses({ IHeadersDataRowAdapterTest.class, PixelUnitTest.class })
+@SuiteClasses({ IHeadersDataRowAdapterTest.class, PixelUnitTests.class })
 public class AllTests {
 		
 }
