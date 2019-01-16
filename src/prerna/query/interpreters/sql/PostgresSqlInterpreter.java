@@ -3,17 +3,17 @@ package prerna.query.interpreters.sql;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
 
-public class PostgresInterpreter extends SqlInterpreter {
+public class PostgresSqlInterpreter extends SqlInterpreter {
 
-	public PostgresInterpreter() {
+	public PostgresSqlInterpreter() {
 		
 	}
 
-	public PostgresInterpreter(IEngine engine) {
+	public PostgresSqlInterpreter(IEngine engine) {
 		super(engine);
 	}
 	
-	public PostgresInterpreter(ITableDataFrame frame) {
+	public PostgresSqlInterpreter(ITableDataFrame frame) {
 		super(frame);
 	}
 	
