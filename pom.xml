@@ -89,6 +89,7 @@
 						<!-- this fixes a bug for open jdk, see https://stackoverflow.com/questions/53010200/maven-surefire-could-not-find-forkedbooter-class -->
 						<configuration>
 							<useSystemClassLoader>false</useSystemClassLoader>
+							<test>prerna.junit.AllTests</test>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -124,6 +125,7 @@
 						<!-- this fixes a bug for open jdk, see https://stackoverflow.com/questions/53010200/maven-surefire-could-not-find-forkedbooter-class -->
 						<configuration>
 							<useSystemClassLoader>false</useSystemClassLoader>
+							<test>prerna.junit.AllTests</test>
 						</configuration>
 					</plugin>
 					<plugin>
