@@ -4,13 +4,13 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct;
 
 public interface IQueryInterpreter {
 	
 	String SEARCH_COMPARATOR = "?like";
 
-	void setQueryStruct(SelectQueryStruct qs);
+	void setQueryStruct(AbstractQueryStruct qs);
 
 	String composeQuery();
 

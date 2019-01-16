@@ -5,6 +5,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 
 public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
@@ -12,7 +13,7 @@ public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
 	protected Logger logger = null;
 	
 	protected int performCount;
-	protected SelectQueryStruct qs;
+	protected AbstractQueryStruct qs;
 	protected boolean isDistinct;
 	protected Map<String, String> additionalTypes;
 
@@ -21,7 +22,7 @@ public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
 	}
 	
 	@Override
-	public void setQueryStruct(SelectQueryStruct qs) {
+	public void setQueryStruct(AbstractQueryStruct qs) {
 		this.qs = qs;
 	}
 

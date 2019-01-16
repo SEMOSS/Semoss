@@ -97,7 +97,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		StringBuilder query = new StringBuilder();
 		StringBuilder subquery = new StringBuilder();
 		String distinct = "";
-		if (this.qs.isDistinct()) {
+		if (((SelectQueryStruct) this.qs).isDistinct()) {
 			distinct = "DISTINCT ";
 		}
 		
@@ -179,8 +179,8 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 //			query.append(" ORDER BY ").append(orderByStr.replaceAll("[^ ]*\\.", ""));
 //		}
 		
-		long limit = qs.getLimit();
-		long offset = qs.getOffset();
+		long limit = ((SelectQueryStruct) this.qs).getLimit();
+		long offset = ((SelectQueryStruct) this.qs).getOffset();
 		
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 		
