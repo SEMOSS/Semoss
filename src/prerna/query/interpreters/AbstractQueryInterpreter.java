@@ -6,7 +6,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
 
 public abstract class AbstractQueryInterpreter implements IQueryInterpreter {
 
