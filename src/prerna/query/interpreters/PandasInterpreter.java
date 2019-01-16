@@ -2,7 +2,6 @@ package prerna.query.interpreters;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -10,6 +9,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -109,12 +109,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		start = 0 + "";
 		end = limit + "";
 
-		if(qs.getOffset() > 0)
-			start = qs.getOffset() + "";
-		
-		if(qs.getLimit() != 0)
-			end = (Integer.parseInt(start) + qs.getLimit()) + "";
-		
+		if(((SelectQueryStruct) this.qs).getOffset() > 0) {
+			start = ((SelectQueryStruct) this.qs).getOffset() + "";
+		}
+		if(((SelectQueryStruct) this.qs).getLimit() != 0) {
+			end = (Integer.parseInt(start) + ((SelectQueryStruct) this.qs).getLimit()) + "";
+		}
 	
 		// add the filters, it doesn't matter where you add it.
 		// add the selectors - the act headers are no longer required since I look at the columns now to generate the remaining pieces
@@ -151,7 +151,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		//t.agg({'Title': 'count'}).rename({'Title': 'count(Title)'}).reset_index().to_dict('split')['data']
 		if(this.aggCriteria.toString().length() > 0)
 		{
-			if(qs.getGroupBy().size() != 0)
+			if(((SelectQueryStruct) this.qs).getGroupBy().size() != 0)
 			{
 				this.aggCriteria = aggCriteria.append("})").append(".iloc[" + start + ":" + end + "]").append(".reset_index()");
 				this.renCriteria = renCriteria.append("}).reset_index()");
@@ -165,7 +165,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// if there is agroup by.. this whole thing should be ignored pretty much
-		if(this.selectorCriteria.toString().length() > 0 && qs.getGroupBy().size() == 0)
+		if(this.selectorCriteria.toString().length() > 0 && ((SelectQueryStruct) this.qs).getGroupBy().size() == 0)
 		{
 			StringBuilder newSelectorCriteria = new StringBuilder(".iloc[" + start + ":" + end + "][[");
 			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]].drop_duplicates()");
@@ -192,7 +192,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private void processOrderBy()
 	{
-		List <QueryColumnOrderBySelector> qcos = qs.getOrderBy();
+		List <QueryColumnOrderBySelector> qcos = ((SelectQueryStruct) this.qs).getOrderBy();
 		boolean processed = false;
 		StringBuilder thisOrderBy = new StringBuilder("");
 		for(int orderIndex = 0;orderIndex < qcos.size();orderIndex++)
@@ -349,7 +349,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private void processGroupSelectors()
 	{
-		List <QueryColumnSelector> groupSelectors = qs.getGroupBy();
+		List <QueryColumnSelector> groupSelectors = ((SelectQueryStruct) this.qs).getGroupBy();
 		for(int sIndex = 0;sIndex < groupSelectors.size();sIndex++)
 		{
 			QueryColumnSelector qcs = groupSelectors.get(sIndex);

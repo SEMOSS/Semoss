@@ -30,7 +30,7 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 	@Override
 	public StringBuilder appendOrderBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnOrderBySelector> orderBy = qs.getOrderBy();
+		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
 		List<StringBuilder> validOrderBys = new Vector<StringBuilder>();
 		
 		if(this.outerJoinsRequested) {
@@ -113,7 +113,7 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 	@Override
 	public StringBuilder appendGroupBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
-		List<QueryColumnSelector> groupBy = qs.getGroupBy();
+		List<QueryColumnSelector> groupBy = ((SelectQueryStruct) this.qs).getGroupBy();
 
 		String groupByName = null;
 		if(this.outerJoinsRequested) {
