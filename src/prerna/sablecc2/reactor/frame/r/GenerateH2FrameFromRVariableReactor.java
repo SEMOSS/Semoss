@@ -83,7 +83,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 			}
 		}
 		if (dataTypeConversion.toString().length() > 0) {
-			this.rJavaTranslator.runR(dataTypeConversion.toString());
+			rJavaTranslator.runR(dataTypeConversion.toString());
 		}
 
 		if (colNames == null || colTypes == null) {
