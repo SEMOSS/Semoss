@@ -29,7 +29,6 @@ package prerna.ui.components.playsheets;
 
 import java.awt.Dimension;
 import java.beans.PropertyVetoException;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -46,7 +45,6 @@ import org.openrdf.query.Update;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryConnection;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
 
 import prerna.om.GraphDataModel;
 import prerna.om.InsightStore;
@@ -57,7 +55,6 @@ import prerna.ui.components.ControlData;
 import prerna.ui.components.ControlPanel;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.VertexFilterData;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.helpers.NetworkGraphHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -386,14 +383,7 @@ public class GraphGDMPlaySheetHelper extends NetworkGraphHelper {
 	{
 		try {
 			((GraphDataModel)this.gps.dataFrame).baseRelEngine.exportDB();
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RDFHandlerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}	
