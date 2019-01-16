@@ -59,7 +59,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		H2Frame frame = (H2Frame) table;
 		String tableName = frame.getName();
 
-		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "min", "average", "max", "sum", "numOfNullValues" };
+		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "minValue", "averageValue", "maxValue", "sumValue", "numOfNullValues" };
 		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" , "Double" };
 		// add headers to metadata output frame
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
