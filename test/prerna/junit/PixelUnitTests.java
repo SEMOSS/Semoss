@@ -67,7 +67,9 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 	
 	@Test
 	public void runTest() {
+		LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 		LOGGER.info("RUNNING TEST: " + name);
+		LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		testPixel(pixel, expectedJson, excludePaths, ignoreOrder);
 		setCleanTestDatabases(cleanTestDatabases);
 	}
