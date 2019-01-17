@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.app.upload.gremlin.external;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.python.google.common.io.Files;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
@@ -49,7 +49,7 @@ public class CreateExternalGraphDBReactor extends AbstractCreateExternalGraphRea
 		String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
 		File updatedFileLoc =  new File(newLocation);
 		try {
-			Files.move(this.file, updatedFileLoc);
+			FileUtils.copyFile(this.file, updatedFileLoc);
 			this.file = updatedFileLoc;
 		} catch (IOException e) {
 			throw new IOException("Unable to relocate uploaded file to correct app folder");
