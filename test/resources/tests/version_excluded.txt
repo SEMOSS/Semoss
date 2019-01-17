@@ -1,2 +1,0 @@
-root[0]['value'][0]['datetime']
-root[0]['value'][0]['version']

@@ -86,7 +86,6 @@ public class PixelUnit {
 	private static final String TEST_DIR_REGEX = "<<<testDir>>>";
 	private static final String BASE_DIR_REGEX = "<<<baseDir>>>";
 	private static final String APP_ID_REGEX = "<<<appId>>>(.*?)<<</appId>>>";
-//	private static final String APP_ID_REGEX = ".*<<<appId>>>(.*?)<<</appId>>>.*";
 
 	private static final String DATA_EXTENSION = ".csv";
 	private static final String IMPORT_EXTENSION = "_import.txt";
@@ -96,11 +95,12 @@ public class PixelUnit {
 		
 	protected static Map<String, String> aliasToAppId = new HashMap<>();
 	
-	protected Insight insight = null;
-	
-	protected PyExecutorThread jep = null;
-
+	private static boolean testDatabasesAreClean = true; // This must be static, as one instance of PixelUnit can dirty databases for all others
 	private List<String> cleanTestDatabases = new ArrayList<>();
+	
+	private Insight insight = null;
+	
+	private PyExecutorThread jep = null;
 
 	
 	
@@ -119,6 +119,7 @@ public class PixelUnit {
 		} catch (Exception e) {
 			
 			// Tests assume that this setup is correct in order to run
+			LOGGER.error(e);
 			assumeNoException(e);
 		}
 		checkAssumptions();
@@ -406,6 +407,7 @@ public class PixelUnit {
 		initializeInsight();
 		initializeJep();
 		cleanTestDatabases = new ArrayList<>(); // Reset the list of databases to clean
+		assumeThat(testDatabasesAreClean, is(equalTo(true))); // Assume that the databases are clean for tests to work properly
 	}
 	
 	@After
@@ -471,31 +473,40 @@ public class PixelUnit {
 	private void cleanTestDatabases() {
 		for (String alias : cleanTestDatabases) {
 			String appId = aliasToAppId.get(alias);
-			IEngine engine = Utility.getEngine(appId);
-			if (isRelationalDatabase(engine)) {
-				
-				// Cast to RDBMS to grab the connection details
-				RDBMSNativeEngine rdbms = (RDBMSNativeEngine) engine;
-				
-				try {
-					String connectionUrl = rdbms.getConnectionMetadata().getURL();
-					String driver = rdbms.getDbType().getDriver();
-	
-					// Close the db
-					rdbms.closeDB();
-				
-					// Clean insert
-					IDataSet dataSet = new FlatXmlDataSetBuilder().build(new File(getXMLFileForAlias(alias).toAbsolutePath().toString()));
-					IDatabaseTester databaseTester = new JdbcDatabaseTester(driver, connectionUrl, "sa", "");
-					databaseTester.setSetUpOperation(DatabaseOperation.CLEAN_INSERT);
-					databaseTester.setDataSet(dataSet);
-					databaseTester.onSetup();
-					LOGGER.info("Cleaned: " + alias);
-				} catch (Exception e) {
-					LOGGER.warn("Unable to reset database state for: " + alias, e);
-				} finally {
-					rdbms.openDB(null);
+			if (appId != null) {
+				IEngine engine = Utility.getEngine(appId);
+				if (isRelationalDatabase(engine)) {
+					
+					// Cast to RDBMS to grab the connection details
+					RDBMSNativeEngine rdbms = (RDBMSNativeEngine) engine;
+					
+					try {
+						String connectionUrl = rdbms.getConnectionMetadata().getURL();
+						String driver = rdbms.getDbType().getDriver();
+		
+						// Close the db
+						rdbms.closeDB();
+					
+						// Clean insert
+						IDataSet dataSet = new FlatXmlDataSetBuilder().build(new File(getXMLFileForAlias(alias).toAbsolutePath().toString()));
+						IDatabaseTester databaseTester = new JdbcDatabaseTester(driver, connectionUrl, "sa", "");
+						databaseTester.setSetUpOperation(DatabaseOperation.CLEAN_INSERT);
+						databaseTester.setDataSet(dataSet);
+						databaseTester.onSetup();
+						LOGGER.info("Cleaned: " + alias);
+					} catch (Exception e) {
+						LOGGER.warn("Cannot clean database with the alias " + alias + ", an exception has occurred.", e);
+						testDatabasesAreClean = false;
+					} finally {
+						rdbms.openDB(null);
+					}
+				} else {
+					LOGGER.warn("Cannot clean database with the alias " + alias + ", database is not an RDBMS.");
+					testDatabasesAreClean = false;
 				}
+			} else {
+				LOGGER.warn("Cannot clean database with the alias " + alias + ", database not found.");
+				testDatabasesAreClean = false;
 			}
 		}
 	}
@@ -519,20 +530,38 @@ public class PixelUnit {
 	// Pixel
 	//////////////////////////////
 	
+	// Test pixel methods (overloaded)
 	protected void testPixel(String pixel, String expectedJson) {
-		testPixel(pixel, expectedJson, null);
+		testPixel(pixel, expectedJson, new ArrayList<String>(), false);
 	}
 	
 	protected void testPixel(String pixel, String expectedJson, List<String> excludePaths) {
-		Object result = compareResult(pixel, expectedJson, excludePaths);
+		testPixel(pixel, expectedJson, excludePaths, false);
+	}
+	
+	protected void testPixel(String pixel, String expectedJson, boolean ignoreOrder) {
+		testPixel(pixel, expectedJson, new ArrayList<String>(), ignoreOrder);
+	}
+	
+	protected void testPixel(String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder) {
+		Object result = compareResult(pixel, expectedJson, excludePaths, ignoreOrder);
 		assertThat(result, is(equalTo(new HashMap<>())));
 	}
 	
+	// Compare result methods (overloaded)
 	protected Object compareResult(String pixel, String expectedJson) {
-		return compareResult(pixel, expectedJson, null);
+		return compareResult(pixel, expectedJson, new ArrayList<String>(), false);
 	}
 	
 	protected Object compareResult(String pixel, String expectedJson, List<String> excludePaths) {
+		return compareResult(pixel, expectedJson, excludePaths, false);
+	}
+	
+	protected Object compareResult(String pixel, String expectedJson, boolean ignoreOrder) {
+		return compareResult(pixel, expectedJson, new ArrayList<String>(), ignoreOrder);
+	}
+	
+	protected Object compareResult(String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder) {
 		
 		// Cleanup the expected json to make sure that it doesn't have any newlines
 		expectedJson = expectedJson.replaceAll("\r", "");
@@ -542,9 +571,10 @@ public class PixelUnit {
 		PixelRunner returnData = runPixel(pixel);
 		String actualJson = GSON.toJson(returnData.getResults());
 		
-		// TODO >>>timb: need to parameterize ignore_order..., should just do this with excel?
 		// The Python script to compare the deep difference
-		String ddiffCommand = (excludePaths == null) ? "DeepDiff(a, b, ignore_order=True)" : "DeepDiff(a, b, exclude_paths={\"" + String.join("\", \"", excludePaths) + "\"}, ignore_order=True)";
+		String ignoreOrderString = ignoreOrder ? "True" : "False";
+		String ddiffCommand = (excludePaths.size() > 0) ? "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ", exclude_paths={\"" + String.join("\", \"", excludePaths) + "\"})" : 
+			"DeepDiff(a, b, ignore_order=" + ignoreOrderString + ")";
 		String[] script = new String[] {"import json",
 				"from deepdiff import DeepDiff",
 				"a = json.loads('" + actualJson + "')",
