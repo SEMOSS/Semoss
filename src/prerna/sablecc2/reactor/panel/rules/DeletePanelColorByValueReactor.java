@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.panel.rules;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -17,13 +20,20 @@ public class DeletePanelColorByValueReactor extends AbstractPanelColorByValueRea
 	public NounMetadata execute() {
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
-		String ruleId = getCbvId(1);
-		SelectQueryStruct rule = insightPanel.getColorByValue().remove(ruleId);
-		boolean removedRule = true;
+		String cbvRule = getCbvId(1);
+		SelectQueryStruct rule = insightPanel.getColorByValue().remove(cbvRule);
 		if(rule == null) {
-			removedRule = false;
+			throw new IllegalArgumentException("Cannot find the color by value rule within the panel");
 		}
+
+		// need to return
+		// panelId
+		// cbvRuleId (name)
+		// filter info of the qs
 		
-		return new NounMetadata(removedRule, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_PANEL_COLOR_BY_VALUE);
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		retMap.put("panelId", insightPanel.getPanelId());
+		retMap.put("name", cbvRule);
+		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.REMOVE_PANEL_COLOR_BY_VALUE);
 	}
 }
