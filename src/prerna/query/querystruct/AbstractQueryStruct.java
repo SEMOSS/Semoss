@@ -151,7 +151,10 @@ public abstract class AbstractQueryStruct {
 				}
 			}
 		} else {
-			combinedFilters.merge(this.implicitFilters.copy());
+			// we want to append these filters
+			// we do not want them merged into one
+			// so it is possible that the results result in no values
+			combinedFilters.merge(this.implicitFilters.copy(), true);
 		}
 		return combinedFilters;
 	}
