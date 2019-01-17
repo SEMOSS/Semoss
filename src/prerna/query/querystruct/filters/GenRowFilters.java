@@ -80,6 +80,10 @@ public class GenRowFilters {
 	}
 	
 	public void merge(GenRowFilters incomingFilters) {
+		merge(incomingFilters, false);
+	}
+	
+	public void merge(GenRowFilters incomingFilters, boolean append) {
 		if(incomingFilters == null || incomingFilters.size() == 0) {
 			return;
 		}
@@ -92,7 +96,10 @@ public class GenRowFilters {
 		Set<String> newQsToFilter = new HashSet<String>();
 		
 		NEW_FILTERS_LOOP : for(IQueryFilter incoming_filter : incomingFilters.filterVec) {
-			if(incoming_filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+			// if we only want to append
+			// we dont need to do through this logic
+			// and we just add to the list
+			if(!append && incoming_filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 				SimpleQueryFilter i_filter = (SimpleQueryFilter) incoming_filter;
 				// get the new filter
 				Set<String> i_usedCols = i_filter.getAllUsedColumns();
