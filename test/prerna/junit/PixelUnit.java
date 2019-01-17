@@ -172,6 +172,7 @@ public class PixelUnit {
 		Me configurationManager = new Me();
 		configurationManager.changeRDFMap(BASE_DIRECTORY.replace('\\', '/'), "80", TEST_RDF_MAP.toAbsolutePath().toString());
 		DIHelper.getInstance().loadCoreProp(TEST_RDF_MAP.toAbsolutePath().toString());
+		DIHelper.getInstance().setLocalProperty(Constants.USE_PYTHON, "true"); // Just in case
 	}
 	
 	private static void unloadDIHelper() {
