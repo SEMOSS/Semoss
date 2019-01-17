@@ -24,8 +24,17 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 	public NounMetadata execute() {
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
+		if(insightPanel == null) {
+			throw new NullPointerException("Could not find insight panel");
+		}
 		String cbvRule = getCbvId(1);
+		if(cbvRule == null) {
+			throw new NullPointerException("Must define a name for this color by value rule");
+		}
 		SelectQueryStruct qs = getQs();
+		if(qs == null) {
+			throw new NullPointerException("Must define a query struct that is the color by value rule");
+		}
 		insightPanel.getColorByValue().put(cbvRule, qs);
 		
 		// need to return

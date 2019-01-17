@@ -24,6 +24,11 @@ public enum PixelDataType {
 	// upload map
 	UPLOAD_RETURN_MAP ("UPLOAD_RETURN_MAP"),
 	
+	// specific ornament map 
+	// reacted to in collect reactor
+	// to ensure ornament data is sent properly
+	ORNAMENT_MAP ("ORNAMENT_MAP"),
+	
 	SQLE ("SQLE"), 									// sql expression
 	E ("E"), 										// some other expression
 	FILTER ("FILTER"), 								// filter object
