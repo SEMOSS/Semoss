@@ -20,7 +20,8 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = TaskBuilderReactor.class.getName();
 	protected ITask task;
-
+	protected List<NounMetadata> subAdditionalReturn;
+	
 	//This method is implemented by child classes, each class is responsible for building different pieces of the task
 	protected abstract void buildTask();
 	
@@ -76,16 +77,19 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 	 * @return
 	 */
 	private ITask constructTaskFromQs() {
+		NounMetadata noun = null;
 		SelectQueryStruct qs = null;
 
 		GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
 		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
 		if(grsQs != null && !grsQs.isEmpty()) {
-			qs = (SelectQueryStruct) grsQs.get(0);
+			noun = grsQs.getNoun(0);
+			qs = (SelectQueryStruct) noun.getValue();
 		} else {
-			List<Object> qsList = this.curRow.getValuesOfType(PixelDataType.QUERY_STRUCT);
+			List<NounMetadata> qsList = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
 			if(qsList != null && !qsList.isEmpty()) {
-				qs = (SelectQueryStruct) qsList.get(0);
+				noun = qsList.get(0);
+				qs = (SelectQueryStruct) noun.getValue();
 			}
 		}
 		
@@ -96,6 +100,9 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			this.insight.getTaskStore().addTask(task);
 			return task;
 		}
+		
+		// set any additional details required
+		this.subAdditionalReturn = noun.getAdditionalReturn();
 		
 		// handle some defaults
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
