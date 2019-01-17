@@ -33,7 +33,7 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 	}
 	
 	// TODO >>>timb: replace this with PK's excel stuff eventually
-	@Parameters(name = "test {0}") // TODO >>>timb: this should be named
+	@Parameters(name = "test {0}")
 	public static Collection<Object[]> getTestParams() {
 		
 		// List all the files in the test database directory
