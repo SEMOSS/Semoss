@@ -547,7 +547,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     					|| curReactor instanceof QuerySelectorExpressionAssimilator 
     					|| curReactor instanceof QueryFilterReactor) {
     				if(varType == PixelDataType.CONST_STRING || varType == PixelDataType.CONST_INT || varType == PixelDataType.CONST_DECIMAL
-    						|| varType == PixelDataType.CONST_DATE || varType == PixelDataType.CONST_TIMESTAMP || varType == PixelDataType.TASK) {
+    						|| varType == PixelDataType.CONST_DATE || varType == PixelDataType.CONST_TIMESTAMP || varType == PixelDataType.FORMATTED_DATA_SET) {
     					// this is a basic type
     					// or a task which needs to be flushed out
     					// so i can probably add it to the 
