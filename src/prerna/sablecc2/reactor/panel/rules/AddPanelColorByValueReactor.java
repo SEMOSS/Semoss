@@ -1,6 +1,8 @@
 package prerna.sablecc2.reactor.panel.rules;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -14,7 +16,7 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 	
 	public AddPanelColorByValueReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), 
-				ReactorKeysEnum.PANEL_COLOR_RULE_ID.getKey(),
+				ReactorKeysEnum.NAME.getKey(),
 				ReactorKeysEnum.QUERY_STRUCT.getKey()};
 	}
 
@@ -25,7 +27,18 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 		String cbvRule = getCbvId(1);
 		SelectQueryStruct qs = getQs();
 		insightPanel.getColorByValue().put(cbvRule, qs);
-		return new NounMetadata(qs, PixelDataType.QUERY_STRUCT, PixelOperationType.QUERY);
+		
+		// need to return
+		// panelId
+		// cbvRuleId (name)
+		// filter info of the qs
+		
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		retMap.put("panelId", insightPanel.getPanelId());
+		retMap.put("name", cbvRule);
+		retMap.put("filterInfo", qs.getExplicitFilters().getFormatedFilters());
+		
+		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ADD_PANEL_COLOR_BY_VALUE);
 	}
 	
 	private SelectQueryStruct getQs() {
