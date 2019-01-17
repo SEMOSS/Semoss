@@ -175,7 +175,7 @@ public class PixelUnit {
 		
 		// Just in case, manually override USE_PYTHON to be true for testing purposes
 		// Warn if this was not the case to begin with
-		if (!PyUtils.pyEnabled()) {
+		if (!Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USE_PYTHON))) {
 			LOGGER.warn("Python must be functional for local testing.");
 			Properties coreProps = DIHelper.getInstance().getCoreProp();
 			coreProps.setProperty(Constants.USE_PYTHON, "true");
