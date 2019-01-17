@@ -3,14 +3,13 @@ package prerna.sablecc2.reactor.panel.rules;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class RetrievePanelColorByValueReactor extends AbstractPanelColorByValueReactor {
 	
 	public RetrievePanelColorByValueReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.PANEL_COLOR_RULE_ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.NAME.getKey()};
 	}
 
 	@Override
@@ -25,6 +24,6 @@ public class RetrievePanelColorByValueReactor extends AbstractPanelColorByValueR
 		newQs.merge(qs);
 		newQs.setDistinct(qs.isDistinct());
 		newQs.setOverrideImplicit(qs.isOverrideImplicit());
-		return new NounMetadata(newQs, PixelDataType.QUERY_STRUCT, PixelOperationType.QUERY);
+		return new NounMetadata(newQs, PixelDataType.QUERY_STRUCT);
 	}
 }
