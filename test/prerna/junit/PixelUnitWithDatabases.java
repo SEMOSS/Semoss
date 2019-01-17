@@ -2,7 +2,7 @@ package prerna.junit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 
 import java.io.IOException;
@@ -30,11 +30,11 @@ public class PixelUnitWithDatabases extends PixelUnit {
 		String pixel = "GetDatabaseMetamodel(database=[\"" + appId + "\"]);";
 		try {
 			String expectedJson = FileUtils.readFileToString(Paths.get(TEST_DATA_DIRECTORY, alias + METAMODEL_EXTENSION).toFile());
-			Object result = compareResult(pixel, expectedJson);
+			Object result = compareResult(pixel, expectedJson, true);
 			assumeThat(result, is(equalTo(new HashMap<>())));
 		} catch (IOException e) {
 			LOGGER.error(e);
-			fail();
+			assumeNoException(e);
 		}
 	}
 	
