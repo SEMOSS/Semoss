@@ -1,0 +1,84 @@
+name,pixel,expected_json,exclude_paths,ignore_order,clean_test_databases
+version,Version();,"[
+   {
+      ""pixelType"":""MAP"",
+      ""class"":""java.util.HashMap"",
+      ""value"":[
+         {
+            ""datetime"":""2019-01-14_09:21:17"",
+            ""version"":""3.3.8.7-SNAPSHOT""
+         }
+      ],
+      ""opType"":[
+         ""VERSION""
+      ]
+   }
+]","root[0]['value'][0]['datetime'],root[0]['value'][0]['version']",,
+predict metamodel,"PredictMetamodel(filePath=[""<<<testDir>>>/data/unit_test_movie.csv""], delimiter=["",""], rowCount=[false]);","[  
+   {  
+      ""pixelType"":""MAP"",
+      ""class"":""java.util.HashMap"",
+      ""value"":[  
+         {  
+            ""dataTypes"":{  
+               ""Nominated"":""STRING"",
+               ""Title"":""STRING"",
+               ""Genre"":""STRING"",
+               ""Studio"":""STRING"",
+               ""Director"":""STRING"",
+               ""Revenue_Domestic"":""INT"",
+               ""MovieBudget"":""INT"",
+               ""Revenue_International"":""INT"",
+               ""RottenTomatoes_Critics"":""DOUBLE"",
+               ""RottenTomatoes_Audience"":""DOUBLE""
+            },
+            ""startCount"":2,
+            ""fileName"":""C:/Users/tbanach/Documents/Workspace/Semoss/test/resources/data/unit_test_movie"",
+            ""headerModifications"":{  
+               ""Revenue_International"":""Original Header Value = Revenue-International"",
+               ""RottenTomatoes_Critics"":""Original Header Value = RottenTomatoes-Critics"",
+               ""RottenTomatoes_Audience"":""Original Header Value = RottenTomatoes-Audience"",
+               ""Revenue_Domestic"":""Original Header Value = Revenue-Domestic""
+            },
+            ""nodeProp"":{  
+               ""Title"":[  
+                  ""RottenTomatoes_Audience"",
+                  ""RottenTomatoes_Critics"",
+                  ""Revenue_Domestic"",
+                  ""MovieBudget"",
+                  ""Revenue_International""
+               ]
+            },
+            ""fileLocation"":""C:/Users/tbanach/Documents/Workspace/Semoss/test/resources/data/unit_test_movie.csv"",
+            ""additionalDataTypes"":{  
+
+            },
+            ""relation"":[  
+               {  
+                  ""relName"":""Title_Director"",
+                  ""toTable"":""Director"",
+                  ""fromTable"":""Title""
+               },
+               {  
+                  ""relName"":""Title_Genre"",
+                  ""toTable"":""Genre"",
+                  ""fromTable"":""Title""
+               },
+               {  
+                  ""relName"":""Title_Studio"",
+                  ""toTable"":""Studio"",
+                  ""fromTable"":""Title""
+               },
+               {  
+                  ""relName"":""Title_Nominated"",
+                  ""toTable"":""Nominated"",
+                  ""fromTable"":""Title""
+               }
+            ]
+         }
+      ],
+      ""opType"":[  
+         ""OPERATION""
+      ]
+   }
+]","root[0]['value'][0]['fileName'],root[0]['value'][0]['fileLocation']",,
