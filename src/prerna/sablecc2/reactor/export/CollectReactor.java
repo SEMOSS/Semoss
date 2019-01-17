@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.export;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import prerna.sablecc2.om.GenRowStruct;
@@ -9,6 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -44,12 +46,28 @@ public class CollectReactor extends TaskBuilderReactor {
 			}
 		}
 		
+		TaskOptions ornamnetOptions = genOrnamentTaskOptions();
+		if(ornamnetOptions != null) {
+			task.setTaskOptions(ornamnetOptions);
+		}
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
 	
 	@Override
 	protected void buildTask() {
 		this.task.optimizeQuery(this.limit);
+	}
+	
+	private TaskOptions genOrnamentTaskOptions() {
+		if(this.subAdditionalReturn != null && this.subAdditionalReturn.size() == 1) {
+			NounMetadata noun = this.subAdditionalReturn.get(0);
+			if(noun.getNounType() == PixelDataType.ORNAMENT_MAP) {
+				// we will use this map as task options
+				TaskOptions options = new TaskOptions((Map<String, Object>) noun.getValue());
+				return options;
+			}
+		}
+		return null;
 	}
 	
 	//returns how much do we need to collect
