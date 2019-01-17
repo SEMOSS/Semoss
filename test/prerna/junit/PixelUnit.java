@@ -172,7 +172,15 @@ public class PixelUnit {
 		Me configurationManager = new Me();
 		configurationManager.changeRDFMap(BASE_DIRECTORY.replace('\\', '/'), "80", TEST_RDF_MAP.toAbsolutePath().toString());
 		DIHelper.getInstance().loadCoreProp(TEST_RDF_MAP.toAbsolutePath().toString());
-		DIHelper.getInstance().setLocalProperty(Constants.USE_PYTHON, "true"); // Just in case
+		
+		// Just in case, manually override USE_PYTHON to be true for testing purposes
+		// Warn if this was not the case to begin with
+		if (!PyUtils.pyEnabled()) {
+			LOGGER.warn("Python must be functional for local testing.");
+			Properties coreProps = DIHelper.getInstance().getCoreProp();
+			coreProps.setProperty(Constants.USE_PYTHON, "true");
+			DIHelper.getInstance().setCoreProp(coreProps);
+		}
 	}
 	
 	private static void unloadDIHelper() {
