@@ -302,7 +302,9 @@ public class PixelUnit {
 		aliasToAppId.put(alias, appId);	
 		
 		// Save the original state of the database
-		if (importPixel.contains("RdbmsUploadTableData")) {
+		@SuppressWarnings("deprecation")
+		IEngine engine = Utility.getEngine(appId);
+		if (isRelationalDatabase(engine)) {
 			exportDatabaseToXml(alias);
 		}
 	}
@@ -310,13 +312,21 @@ public class PixelUnit {
 	private static void unloadTestDatabase(String alias) {
 		String appId = aliasToAppId.get(alias);
 		if (appId != null) {
+			
+			// If relational, delete the corresponding xml file
+			@SuppressWarnings("deprecation")
+			IEngine engine = Utility.getEngine(appId);
+			if (isRelationalDatabase(engine)) {
+				Path xmlFile = getXMLFileForAlias(alias);
+				try {
+					Files.delete(xmlFile);
+				} catch (IOException e) {
+					LOGGER.warn("Unable to delete " + xmlFile, e);
+				}
+			}
+			
+			// Next, delete the app
 			deleteApp(appId);
-		}
-		Path xmlFile = getXMLFileForAlias(alias);
-		try {
-			Files.delete(xmlFile);
-		} catch (IOException e) {
-			LOGGER.warn("Unable to delete " + xmlFile, e);
 		}
 	}
 	
@@ -456,13 +466,13 @@ public class PixelUnit {
 	// Test databases
 	//////////////////////////////
 	
-	@SuppressWarnings("deprecation")
 	// https://www.marcphilipp.de/blog/2012/03/13/database-tests-with-dbunit-part-1/
+	@SuppressWarnings("deprecation")
 	private void cleanTestDatabases() {
 		for (String alias : cleanTestDatabases) {
 			String appId = aliasToAppId.get(alias);
 			IEngine engine = Utility.getEngine(appId);
-			if (engine != null && engine.getEngineType().equals(ENGINE_TYPE.RDBMS)) {
+			if (isRelationalDatabase(engine)) {
 				
 				// Cast to RDBMS to grab the connection details
 				RDBMSNativeEngine rdbms = (RDBMSNativeEngine) engine;
@@ -493,6 +503,11 @@ public class PixelUnit {
 	protected void setCleanTestDatabases(List<String> cleanTestDatabases) {
 		this.cleanTestDatabases = cleanTestDatabases;
 	}
+	
+	private static boolean isRelationalDatabase(IEngine engine) {
+		return engine != null && engine.getEngineType().equals(ENGINE_TYPE.RDBMS);
+	}
+	
 	
 	
 	//////////////////////////////////////////////////////////////////////
@@ -527,8 +542,9 @@ public class PixelUnit {
 		PixelRunner returnData = runPixel(pixel);
 		String actualJson = GSON.toJson(returnData.getResults());
 		
+		// TODO >>>timb: need to parameterize ignore_order..., should just do this with excel?
 		// The Python script to compare the deep difference
-		String ddiffCommand = (excludePaths == null) ? "DeepDiff(a, b)" : "DeepDiff(a, b, exclude_paths={\"" + String.join("\", \"", excludePaths) + "\"})";
+		String ddiffCommand = (excludePaths == null) ? "DeepDiff(a, b, ignore_order=True)" : "DeepDiff(a, b, exclude_paths={\"" + String.join("\", \"", excludePaths) + "\"}, ignore_order=True)";
 		String[] script = new String[] {"import json",
 				"from deepdiff import DeepDiff",
 				"a = json.loads('" + actualJson + "')",

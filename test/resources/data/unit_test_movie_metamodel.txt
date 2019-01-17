@@ -5,56 +5,100 @@
       "value":[
          {
             "edges":[
-
+               {
+                  "source":"Title",
+                  "target":"Nominated"
+               },
+               {
+                  "source":"Title",
+                  "target":"Genre"
+               },
+               {
+                  "source":"Title",
+                  "target":"Studio"
+               },
+               {
+                  "source":"Title",
+                  "target":"Director"
+               }
             ],
             "nodes":[
                {
                   "propSet":[
-                     "Director",
-                     "Genre",
+
+                  ],
+                  "keySet":[
+                     "Director"
+                  ],
+                  "conceptualName":"Director"
+               },
+               {
+                  "propSet":[
                      "MovieBudget",
-                     "Nominated",
                      "Revenue_Domestic",
                      "Revenue_International",
                      "RottenTomatoes_Audience",
-                     "RottenTomatoes_Critics",
-                     "Studio",
-                     "Title"
+                     "RottenTomatoes_Critics"
                   ],
                   "keySet":[
-                     "UNIT_TEST_MOVIE"
+                     "Title"
                   ],
-                  "conceptualName":"UNIT_TEST_MOVIE"
+                  "conceptualName":"Title"
+               },
+               {
+                  "propSet":[
+
+                  ],
+                  "keySet":[
+                     "Nominated"
+                  ],
+                  "conceptualName":"Nominated"
+               },
+               {
+                  "propSet":[
+
+                  ],
+                  "keySet":[
+                     "Studio"
+                  ],
+                  "conceptualName":"Studio"
+               },
+               {
+                  "propSet":[
+
+                  ],
+                  "keySet":[
+                     "Genre"
+                  ],
+                  "conceptualName":"Genre"
                }
             ],
             "additionalDataTypes":{
 
             },
             "dataTypes":{
-               "UNIT_TEST_MOVIE__Studio":"STRING",
-               "UNIT_TEST_MOVIE__Director":"STRING",
-               "UNIT_TEST_MOVIE__Title":"STRING",
-               "UNIT_TEST_MOVIE__Genre":"STRING",
-               "UNIT_TEST_MOVIE__RottenTomatoes_Critics":"DOUBLE",
-               "UNIT_TEST_MOVIE__Revenue_International":"INT",
-               "UNIT_TEST_MOVIE":"INT",
-               "UNIT_TEST_MOVIE__MovieBudget":"INT",
-               "UNIT_TEST_MOVIE__RottenTomatoes_Audience":"DOUBLE",
-               "UNIT_TEST_MOVIE__Nominated":"STRING",
-               "UNIT_TEST_MOVIE__Revenue_Domestic":"INT"
+               "Title__MovieBudget":"INT",
+               "Title__RottenTomatoes_Critics":"DOUBLE",
+               "Director":"STRING",
+               "Title":"STRING",
+               "Title__Revenue_Domestic":"INT",
+               "Title__RottenTomatoes_Audience":"DOUBLE",
+               "Genre":"STRING",
+               "Studio":"STRING",
+               "Title__Revenue_International":"INT",
+               "Nominated":"STRING"
             },
             "physicalTypes":{
-               "UNIT_TEST_MOVIE__Studio":"VARCHAR(2000)",
-               "UNIT_TEST_MOVIE__Director":"VARCHAR(2000)",
-               "UNIT_TEST_MOVIE__Title":"VARCHAR(2000)",
-               "UNIT_TEST_MOVIE__Genre":"VARCHAR(2000)",
-               "UNIT_TEST_MOVIE__RottenTomatoes_Critics":"DOUBLE",
-               "UNIT_TEST_MOVIE__Revenue_International":"INT",
-               "UNIT_TEST_MOVIE":"LONG",
-               "UNIT_TEST_MOVIE__MovieBudget":"INT",
-               "UNIT_TEST_MOVIE__RottenTomatoes_Audience":"DOUBLE",
-               "UNIT_TEST_MOVIE__Nominated":"VARCHAR(2000)",
-               "UNIT_TEST_MOVIE__Revenue_Domestic":"INT"
+               "Title__MovieBudget":"INT",
+               "Title__RottenTomatoes_Critics":"FLOAT",
+               "Director":"VARCHAR(2000)",
+               "Title":"VARCHAR(2000)",
+               "Title__Revenue_Domestic":"INT",
+               "Title__RottenTomatoes_Audience":"FLOAT",
+               "Genre":"VARCHAR(2000)",
+               "Studio":"VARCHAR(2000)",
+               "Title__Revenue_International":"INT",
+               "Nominated":"VARCHAR(2000)"
             }
          }
       ],
