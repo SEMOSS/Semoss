@@ -1,96 +1,75 @@
 package prerna.junit;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import au.com.bytecode.opencsv.CSVReader;
+
 @RunWith(Parameterized.class)
 public class PixelUnitTests extends PixelUnitWithDatabases {
 
-	protected static final String TESTS_DIRECTORY = Paths.get(TEST_RESOURCES_DIRECTORY, "tests").toAbsolutePath().toString();
-		
-	private static final String PIXEL_EXTENSION = "_pixel.txt";
-	private static final String EXPECTED_EXTENSION = "_expected.txt";
-	private static final String EXCLUDED_EXTENSION = "_excluded.txt";
-	private static final String CLEAN_EXTENSION = "_clean.txt";
+	protected static final String TESTS_CSV = Paths.get(TEST_RESOURCES_DIRECTORY, "tests.csv").toAbsolutePath().toString();
 	
 	// Needed for parameterized tests
-	private String test;
+	private String name;
+	private String pixel;
+	private String expectedJson;
+	private List<String> excludePaths;
+	private boolean ignoreOrder;
+	private List<String> cleanTestDatabases;
 	
-	public PixelUnitTests(String test) {
-		this.test = test;
+	public PixelUnitTests(String name, String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder, List<String> cleanTestDatabases) {
+		this.name = name;
+		this.pixel = pixel;
+		this.expectedJson = expectedJson;
+		this.excludePaths = excludePaths;
+		this.ignoreOrder = ignoreOrder;
+		this.cleanTestDatabases = cleanTestDatabases;
 	}
 	
-	// TODO >>>timb: replace this with PK's excel stuff eventually
-	@Parameters(name = "test {0}")
+	@Parameters(name = "{index}: test {0}")
 	public static Collection<Object[]> getTestParams() {
-		
-		// List all the files in the test database directory
-		String[] fileNames = new File(TESTS_DIRECTORY).list();
-		
-		// If there are corresponding csv and txt files, then load the test database
-		List<String> pixelNames = new ArrayList<>();
-		List<String> expectedNames = new ArrayList<>();
-		for (String file : fileNames) {
-			if (file.endsWith(PIXEL_EXTENSION)) {
-				pixelNames.add(file.substring(0, file.length() - PIXEL_EXTENSION.length()));
-			} else if (file.endsWith(EXPECTED_EXTENSION)) {
-				expectedNames.add(file.substring(0, file.length() - EXPECTED_EXTENSION.length()));
-			}
+		Collection<Object[]> testParams = null;
+		try(CSVReader csv = new CSVReader(new FileReader(new File(TESTS_CSV)))) {
+			csv.readNext(); // Discard the header
+			testParams = csv.readAll().stream().map(row -> new Object[] {
+						row[0], // name
+						row[1], // pixel
+						row[2], // expected
+						parseListFromString(row[3]), // exclude paths 
+						Boolean.parseBoolean(row[4]), // ignore order
+						parseListFromString(row[5]) // clean test databases
+					}).collect(Collectors.toList());
+		} catch (IOException e) {
+			LOGGER.error(e);
+			assumeNoException(e);
 		}
-		
-		// Stage all the tests
-		Collection<Object[]> params = new ArrayList<>();
-		for (String test : pixelNames) {
-			if (expectedNames.contains(test)) {
-				params.add(new Object[] {test});
-			}
-		}
-		return params;
+		return testParams;
+	}
+	
+	private static List<String> parseListFromString(String string) {
+		return string.trim().isEmpty() ? new ArrayList<String>() : Arrays.asList(string.split(","));
 	}
 	
 	@Test
 	public void runTest() {
-		LOGGER.info("RUNNING TEST: " + test);
-		try {
-			
-			// The Pixel
-			String pixel = FileUtils.readFileToString(Paths.get(TESTS_DIRECTORY, test + PIXEL_EXTENSION).toFile());
-			
-			// The expected JSON
-			String expectedJson = FileUtils.readFileToString(Paths.get(TESTS_DIRECTORY, test + EXPECTED_EXTENSION).toFile());
-			
-			// These are optional
-			// The excluded paths in the JSON
-			File excludedFile = Paths.get(TESTS_DIRECTORY, test + EXCLUDED_EXTENSION).toFile();
-			if (excludedFile.exists()) {
-				List<String> excludePaths = FileUtils.readLines(excludedFile);
-				testPixel(pixel, expectedJson, excludePaths);
-			} else {
-				testPixel(pixel, expectedJson);
-			}
-			
-			// The dbs to clean after the test
-			File cleanFile = Paths.get(TESTS_DIRECTORY, test + CLEAN_EXTENSION).toFile();
-			if (cleanFile.exists()) {
-				List<String> dbs = FileUtils.readLines(cleanFile);
-				setCleanTestDatabases(dbs);
-			}
-		} catch (IOException e) {
-			LOGGER.error(e);
-			fail();
-		}
+		LOGGER.info("RUNNING TEST: " + name);
+		testPixel(pixel, expectedJson, excludePaths, ignoreOrder);
+		setCleanTestDatabases(cleanTestDatabases);
 	}
 
 }
