@@ -20,10 +20,16 @@ public class DeletePanelColorByValueReactor extends AbstractPanelColorByValueRea
 	public NounMetadata execute() {
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
+		if(insightPanel == null) {
+			throw new NullPointerException("Could not find insight panel");
+		}
 		String cbvRule = getCbvId(1);
+		if(cbvRule == null) {
+			throw new NullPointerException("Must provide the color by value name within the panel");
+		}
 		SelectQueryStruct rule = insightPanel.getColorByValue().remove(cbvRule);
 		if(rule == null) {
-			throw new IllegalArgumentException("Cannot find the color by value rule within the panel");
+			throw new NullPointerException("Could not find the color by value rule within the panel");
 		}
 
 		// need to return
