@@ -94,6 +94,7 @@ build_dev:
   artifacts:
     paths:
       - target/semoss-${VERSION}-SNAPSHOT.jar
+      - target/surefire-reports
 
 # Pushes to maven central
 build_deploy:
@@ -118,6 +119,7 @@ build_deploy:
   artifacts:
     paths:
       - target/semoss-${VERSION}-SNAPSHOT.jar
+      - target/surefire-reports
       
 # Releases to maven central
 build_release:
@@ -141,3 +143,4 @@ build_release:
   artifacts:
     paths:
       - target/semoss-${VERSION}.jar
+      - target/surefire-reports
