@@ -10,7 +10,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class DeletePanelColorByValueReactor extends AbstractPanelColorByValueReactor {
 	
 	public DeletePanelColorByValueReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.PANEL_COLOR_RULE_ID.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.NAME.getKey()};
 	}
 
 	@Override
@@ -24,6 +24,6 @@ public class DeletePanelColorByValueReactor extends AbstractPanelColorByValueRea
 			removedRule = false;
 		}
 		
-		return new NounMetadata(removedRule, PixelDataType.BOOLEAN, PixelOperationType.PANEL_COLOR_BY_VALUE);
+		return new NounMetadata(removedRule, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_PANEL_COLOR_BY_VALUE);
 	}
 }

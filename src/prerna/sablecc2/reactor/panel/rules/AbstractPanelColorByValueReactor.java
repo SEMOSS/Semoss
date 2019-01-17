@@ -9,6 +9,8 @@ import prerna.sablecc2.reactor.panel.AbstractInsightPanelReactor;
 
 public abstract class AbstractPanelColorByValueReactor extends AbstractInsightPanelReactor {
 
+	protected static final String LEGACY_KEY = "panelCbv";
+	
 	/**
 	 * Get the color by value id from the input
 	 */
@@ -26,7 +28,13 @@ public abstract class AbstractPanelColorByValueReactor extends AbstractInsightPa
 		if(strNouns != null && !strNouns.isEmpty()) {
 			return strNouns.get(0).getValue().toString();
 		}
-				
+		
+		// TRY THE LEGACY KEY!
+		GenRowStruct legacyReactorGrs = this.store.getNoun(LEGACY_KEY);
+		if(legacyReactorGrs != null && !legacyReactorGrs.isEmpty()) {
+			return legacyReactorGrs.get(0).toString();
+		}
+		
 		// well, you are out of luck
 		throw new IllegalArgumentException("Need to specify the color by value id");
 	}
