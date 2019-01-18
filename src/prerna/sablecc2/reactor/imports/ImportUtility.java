@@ -1106,6 +1106,9 @@ public class ImportUtility {
 		// this will get a new QS with the base details copied for the original qs
 		// but does not have any selector/relationship/filter options
 		SelectQueryStruct updatedQsForJoins = qs.getNewBaseQueryStruct();
+		// need to account if this join has been already accounted for
+		Set<Integer> indexIncluded = new HashSet<Integer>();
+		int numJoins = joins.size();
 		
 		List<IQuerySelector> newSelectors = qs.getSelectors();
 		int numNewSelectors = newSelectors.size();
@@ -1117,7 +1120,19 @@ public class ImportUtility {
 			String alias = newSelector.getAlias();
 			
 			String qsName = newSelector.getQueryStructName();
-			for(Join j : joins) {
+			JOIN_LOOP : for(int jIdx = 0; jIdx < numJoins; jIdx++) {
+				if(indexIncluded.size() == numJoins) {
+					// all joins have been accounted for
+					// so we are done
+					break JOIN_LOOP;
+				}
+				// if we accounted for this
+				// continue
+				if(indexIncluded.contains(jIdx)) { 
+					continue;
+				}
+				Join j = joins.get(jIdx);
+				
 				String existingColName = j.getSelector();
 				String newColName = j.getQualifier();
 				
@@ -1130,6 +1145,8 @@ public class ImportUtility {
 					} else {
 						modifiedNewHeaders[i] = existingColName;
 					}
+					// so we do not do this index again
+					indexIncluded.add(jIdx);
 					continue NEW_SELECTOR_LOOP;
 				}
 			}
