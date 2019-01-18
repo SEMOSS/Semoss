@@ -942,7 +942,7 @@ public class UploadUtilities {
 	 */
 	public static void addAuditModificationView(String appId, IEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String insightName = "What are the modificatinos made to specific column(s)?";
+		String insightName = "What are the modifications made to specific column(s)?";
 		String layout = "Bar";
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\AuditModificationView.json";
 		File jsonFile = new File(jsonLoc);
@@ -971,7 +971,7 @@ public class UploadUtilities {
 	 */
 	public static void addAuditTimelineView(String appId, IEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String insightName = "What are the modificatinos made to the specific column(s) made over time?";
+		String insightName = "What are the modifications made to the specific column(s) made over time?";
 		String layout = "Line";
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\AuditTimelineView.json";
 		File jsonFile = new File(jsonLoc);
