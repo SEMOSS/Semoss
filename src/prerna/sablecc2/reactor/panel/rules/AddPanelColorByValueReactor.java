@@ -17,7 +17,8 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 	public AddPanelColorByValueReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), 
 				ReactorKeysEnum.NAME.getKey(),
-				ReactorKeysEnum.QUERY_STRUCT.getKey()};
+				ReactorKeysEnum.QUERY_STRUCT.getKey(),
+				ReactorKeysEnum.OPTIONS.getKey()};
 	}
 
 	@Override
@@ -35,8 +36,14 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 		if(qs == null) {
 			throw new NullPointerException("Must define a query struct that is the color by value rule");
 		}
+		Map<String, Object> cbvOptions = getOptions();
+//		if(cbvOptions == null) {
+//			throw new NullPointerException("Must define the options associated with the color by value rule");
+//		}
+
+		// store the cbv
 		insightPanel.getColorByValue().put(cbvRule, qs);
-		
+
 		// need to return
 		// panelId
 		// cbvRuleId (name)
@@ -46,10 +53,18 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 		retMap.put("panelId", insightPanel.getPanelId());
 		retMap.put("name", cbvRule);
 		retMap.put("filterInfo", qs.getExplicitFilters().getFormatedFilters());
-		
+		retMap.put("options", cbvOptions);
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ADD_PANEL_COLOR_BY_VALUE);
 	}
 	
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Get the QS for the rule
+	 * @return
+	 */
 	private SelectQueryStruct getQs() {
 		// see if it was passed directly in with the lower case key ornaments
 		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[2]);
@@ -70,6 +85,31 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 		}
 				
 		// well, you are out of luck
-		throw new IllegalArgumentException("Need to specify a query struct for the rule");
+		throw new NullPointerException("Must define a query struct that is the color by value rule");
+	}
+	
+	/**
+	 * Get the options for the color by value rule
+	 * @return
+	 */
+	private Map<String, Object> getOptions() {
+		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[3]);
+		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+			return (Map<String, Object>) genericReactorGrs.get(0);
+		}
+		
+		genericReactorGrs = this.store.getNoun(PixelDataType.MAP.toString());
+		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+			return (Map<String, Object>) genericReactorGrs.get(0);
+		}
+		
+		// see if it is in the curRow
+		// if it was passed directly in as a variable
+		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
+		if(strNouns != null && !strNouns.isEmpty()) {
+			return (Map<String, Object>) strNouns.get(0).getValue();
+		}
+		
+		return null;
 	}
 }
