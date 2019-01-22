@@ -53,6 +53,7 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 		retMap.put("panelId", insightPanel.getPanelId());
 		retMap.put("name", cbvRule);
 		retMap.put("filterInfo", qs.getExplicitFilters().getFormatedFilters());
+		retMap.put("havingInfo", qs.getHavingFilters().getFormatedFilters());
 		retMap.put("options", cbvOptions);
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ADD_PANEL_COLOR_BY_VALUE);
 	}
