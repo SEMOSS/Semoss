@@ -355,8 +355,9 @@ public class MhsGenesisSiteDeploymentSavingsPlaySheet extends TablePlaySheet {
 	/**
 	 * Testing method
 	 * @param args
+	 * @throws Exception 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data.smss";

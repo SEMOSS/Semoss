@@ -346,7 +346,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		return physicalNodeName;
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";

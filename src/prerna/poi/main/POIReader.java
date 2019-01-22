@@ -160,6 +160,9 @@ public class POIReader extends AbstractFileReader {
 		} catch(IOException e) {
 			error = true;
 			throw new IOException(e.getMessage());
+		} catch(Exception e) {
+			error = true;
+			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
 				closeDB();
@@ -197,6 +200,9 @@ public class POIReader extends AbstractFileReader {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
 		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
+		} catch(Exception e) {
 			error = true;
 			throw new IOException(e.getMessage());
 		} finally {

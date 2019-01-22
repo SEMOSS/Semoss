@@ -436,7 +436,7 @@ public class InsightsConverter2 {
 		}
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper();
 		
 		String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
