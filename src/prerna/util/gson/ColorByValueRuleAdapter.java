@@ -6,6 +6,7 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.om.ColorByValueRule;
@@ -22,7 +23,10 @@ public class ColorByValueRuleAdapter extends TypeAdapter<ColorByValueRule> {
 
 		out.name("id").value(value.getId());
 		out.name("options").value(SIMPLE_GSON.toJson(value.getOptions()));
-		out.name("qs").value(GSON.toJson(value.getQueryStruct()));
+		out.name("qs");
+		// write the QS
+		SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
+		adapter.write(out, value.getQueryStruct());
 		
 		out.endObject();
 	}
@@ -39,12 +43,18 @@ public class ColorByValueRuleAdapter extends TypeAdapter<ColorByValueRule> {
 			if(name.equals("id")) {
 				id = in.nextString();
 			} else if(name.equals("options")) {
-				options = GSON.fromJson(in.nextString(), Map.class);
+				//TODO: adding null point as options isn't required yet on FE
+				if(in.peek() == JsonToken.NULL) {
+					in.nextNull();
+				} else {
+					options = GSON.fromJson(in.nextString(), Map.class);
+				}
 			} else if(name.equals("qs")) {
 				SelectQueryStructAdapter qsAdapter = new SelectQueryStructAdapter();
 				qs = qsAdapter.read(in);
 			}
 		}
+		in.endObject();
 		
 		return new ColorByValueRule(id, qs, options);
 	}
