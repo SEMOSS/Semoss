@@ -1,5 +1,6 @@
 package prerna.util.usertracking;
 
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class UserTrackerFactory {
@@ -29,7 +30,7 @@ public class UserTrackerFactory {
 	private static IUserTracker createInstance() {
 		String trackingOn = "true";
 		try {
-			trackingOn = DIHelper.getInstance().getProperty("T_ON");
+			trackingOn = DIHelper.getInstance().getProperty(Constants.T_ON);
 			// for the old key that was google analytics specific
 			if(trackingOn == null) {
 				trackingOn = DIHelper.getInstance().getProperty("GA_TRACKING");

@@ -516,6 +516,9 @@ public class Constants {
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
 	
+	// tracking
+	public static final String T_ON = "T_ON";
+	
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_HOME = "GOOGLE_CHROME_HOME";
 	
