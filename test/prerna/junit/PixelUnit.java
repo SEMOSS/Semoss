@@ -2,11 +2,13 @@ package prerna.junit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -28,6 +30,8 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.ws.rs.core.StreamingOutput;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -48,6 +52,9 @@ import org.junit.BeforeClass;
 import org.quartz.SchedulerException;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
@@ -64,6 +71,7 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.rpa.quartz.SchedulerUtil;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.theme.AbstractThemeUtils;
 import prerna.util.Constants;
@@ -80,13 +88,17 @@ public class PixelUnit {
 	protected static final String BASE_DB_DIRECTORY = Paths.get(BASE_DIRECTORY, "db").toAbsolutePath().toString();
 	protected static final String TEST_RESOURCES_DIRECTORY = Paths.get(BASE_DIRECTORY, "test", "resources").toAbsolutePath().toString();
 	protected static final String TEST_DATA_DIRECTORY = Paths.get(TEST_RESOURCES_DIRECTORY, "data").toAbsolutePath().toString();
-	
+	protected static final String TEST_TEXT_DIRECTORY = Paths.get(TEST_RESOURCES_DIRECTORY, "text").toAbsolutePath().toString();
+
 	protected static final Gson GSON = GsonUtility.getDefaultGson();
 	
 	private static final String TEST_DIR_REGEX = "<<<testDir>>>";
 	private static final String BASE_DIR_REGEX = "<<<baseDir>>>";
 	private static final String APP_ID_REGEX = "<<<appId>>>(.*?)<<</appId>>>";
-
+	private static final String TEXT_REGEX = "<<<text>>>(.*?)<<</text>>>";
+	
+	private static final String TEXT_ENCODING = "UTF-8";
+	
 	private static final String DATA_EXTENSION = ".csv";
 	private static final String IMPORT_EXTENSION = "_import.txt";
 	
@@ -119,7 +131,7 @@ public class PixelUnit {
 		} catch (Exception e) {
 			
 			// Tests assume that this setup is correct in order to run
-			LOGGER.error(e);
+			LOGGER.error("Error: ", e);
 			assumeNoException(e);
 		}
 		checkAssumptions();
@@ -142,7 +154,7 @@ public class PixelUnit {
 	private static void checkAssumptions() {
 		
 		// Assume that Python must be enabled for tests to run, since we use deepdiff for tests
-		assumeThat(PyUtils.pyEnabled(), is(equalTo(true)));
+		assumeThat(PyUtils.pyEnabled(), is(equalTo(true)));		
 	}
 	
 	
@@ -179,6 +191,14 @@ public class PixelUnit {
 			LOGGER.warn("Python must be functional for local testing.");
 			Properties coreProps = DIHelper.getInstance().getCoreProp();
 			coreProps.setProperty(Constants.USE_PYTHON, "true");
+			DIHelper.getInstance().setCoreProp(coreProps);
+		}
+		
+		// Turn tracking off while testing
+		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.T_ON))) {
+			LOGGER.info("Setting tracking off during unit tests.");
+			Properties coreProps = DIHelper.getInstance().getCoreProp();
+			coreProps.setProperty(Constants.T_ON, "false");
 			DIHelper.getInstance().setCoreProp(coreProps);
 		}
 	}
@@ -336,11 +356,15 @@ public class PixelUnit {
 			}
 			
 			// Next, delete the app
-			deleteApp(appId);
+			try {
+				deleteApp(appId);
+			} catch (IOException e) {
+				LOGGER.warn("Unable to app " + appId, e);
+			}
 		}
 	}
 	
-	private static void deleteApp(String appId) {
+	private static void deleteApp(String appId) throws IOException {
 		String deletePixel = "DeleteApp(app=[\"" + appId + "\"] );";
 		runPixelUtil(deletePixel);
 	}
@@ -377,8 +401,8 @@ public class PixelUnit {
 		return Paths.get(TEST_RESOURCES_DIRECTORY, alias + ".xml");
 	}
 	
-	private static PixelRunner runPixelUtil(String pixel) {
-		pixel = fillPixelString(pixel);
+	private static PixelRunner runPixelUtil(String pixel) throws IOException {
+		pixel = formatString(pixel);
 		long start = System.currentTimeMillis();
 		PixelRunner returnData = new Insight().runPixel(pixel);
 		LOGGER.info(GSON.toJson(returnData.getResults()));
@@ -416,7 +440,7 @@ public class PixelUnit {
 		initializeInsight();
 		initializeJep();
 		cleanTestDatabases = new ArrayList<>(); // Reset the list of databases to clean
-		assumeThat(testDatabasesAreClean, is(equalTo(true))); // Assume that the databases are clean for tests to work properly
+		checkTestAssumptions();
 	}
 	
 	@After
@@ -424,6 +448,42 @@ public class PixelUnit {
 		destroyInsight();
 		destroyJep();
 		cleanTestDatabases();
+	}
+	
+	
+	//////////////////////////////
+	// Assumptions
+	//////////////////////////////
+	public void checkTestAssumptions() {
+		
+		// Assume that the databases are clean for tests to work properly
+		assumeThat(testDatabasesAreClean, is(equalTo(true))); 
+		
+		// Assume that Python is returning valid differences
+		try {
+			Object result = compareResult("Version();", "{\"datetime\":\"1000-01-01_01:01:01\",\"version\":\"1.0.0-SNAPSHOT\"}");
+
+			// Assume that we are getting differences in the form of a hash map
+			assumeThat(result, is(instanceOf(HashMap.class)));
+			
+			// Assume that we are getting values changed for this example
+			String valuesChangedKey = "values_changed";
+			@SuppressWarnings("unchecked")
+			HashMap<String, Object> differences = (HashMap<String, Object>) result;
+			assumeThat(differences.containsKey(valuesChangedKey), is(equalTo(true)));
+			
+			// Assume that the values changed are root['datetime'] and root['version']
+			@SuppressWarnings("unchecked")
+			HashMap<String, Object> valuesChanged = (HashMap<String, Object>) differences.get(valuesChangedKey);
+			assumeThat(valuesChanged.containsKey("root['datetime']"), is(equalTo(true)));
+			assumeThat(valuesChanged.containsKey("root['version']"), is(equalTo(true)));
+			
+			// Assume these are the only two differences
+			assumeThat(valuesChanged.size(), is(equalTo(2)));			
+		} catch (IOException e) {
+			LOGGER.error("Error: ", e);
+			assumeNoException(e);
+		}
 	}
 	
 	
@@ -540,45 +600,46 @@ public class PixelUnit {
 	//////////////////////////////
 	
 	// Test pixel methods (overloaded)
-	protected void testPixel(String pixel, String expectedJson) {
+	protected void testPixel(String pixel, String expectedJson) throws IOException {
 		testPixel(pixel, expectedJson, new ArrayList<String>(), false);
 	}
 	
-	protected void testPixel(String pixel, String expectedJson, List<String> excludePaths) {
+	protected void testPixel(String pixel, String expectedJson, List<String> excludePaths) throws IOException {
 		testPixel(pixel, expectedJson, excludePaths, false);
 	}
 	
-	protected void testPixel(String pixel, String expectedJson, boolean ignoreOrder) {
+	protected void testPixel(String pixel, String expectedJson, boolean ignoreOrder) throws IOException {
 		testPixel(pixel, expectedJson, new ArrayList<String>(), ignoreOrder);
 	}
 	
-	protected void testPixel(String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder) {
+	protected void testPixel(String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder) throws IOException {
 		Object result = compareResult(pixel, expectedJson, excludePaths, ignoreOrder);
 		assertThat(result, is(equalTo(new HashMap<>())));
 	}
 	
 	// Compare result methods (overloaded)
-	protected Object compareResult(String pixel, String expectedJson) {
+	protected Object compareResult(String pixel, String expectedJson) throws IOException {
 		return compareResult(pixel, expectedJson, new ArrayList<String>(), false);
 	}
 	
-	protected Object compareResult(String pixel, String expectedJson, List<String> excludePaths) {
+	protected Object compareResult(String pixel, String expectedJson, List<String> excludePaths) throws IOException {
 		return compareResult(pixel, expectedJson, excludePaths, false);
 	}
 	
-	protected Object compareResult(String pixel, String expectedJson, boolean ignoreOrder) {
+	protected Object compareResult(String pixel, String expectedJson, boolean ignoreOrder) throws IOException {
 		return compareResult(pixel, expectedJson, new ArrayList<String>(), ignoreOrder);
 	}
 	
-	protected Object compareResult(String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder) {
+	protected Object compareResult(String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder) throws IOException {
 		
 		// Cleanup the expected json to make sure that it doesn't have any newlines
+		expectedJson = formatString(expectedJson);
 		expectedJson = expectedJson.replaceAll("\r", "");
 		expectedJson = expectedJson.replaceAll("\n", "");
 		
 		// Run the pixel and get the result
 		PixelRunner returnData = runPixel(pixel);
-		String actualJson = GSON.toJson(returnData.getResults());
+		String actualJson = collectPixelJson(returnData);
 		
 		// The Python script to compare the deep difference
 		String ignoreOrderString = ignoreOrder ? "True" : "False";
@@ -588,9 +649,10 @@ public class PixelUnit {
 				"from deepdiff import DeepDiff",
 				"a = json.loads('" + actualJson + "')",
 				"b = json.loads('" + expectedJson +  "')",
-				"ddiff = " + ddiffCommand,
-				"ddiff"};
-		Object result = runPy(script).get("ddiff");
+				ddiffCommand};
+		
+		Hashtable<String, Object> results = runPy(script);		
+		Object result = results.get(ddiffCommand);
 		
 		// Make sure there is no difference, ignoring order
 		LOGGER.info("EXPECTED: " + expectedJson);
@@ -599,8 +661,8 @@ public class PixelUnit {
 		return result;
 	}
 	
-	protected PixelRunner runPixel(String pixel) {
-		pixel = fillPixelString(pixel);
+	protected PixelRunner runPixel(String pixel) throws IOException {
+		pixel = formatString(pixel);
 		long start = System.currentTimeMillis();
 		PixelRunner returnData = insight.runPixel(pixel);
 		long end = System.currentTimeMillis();
@@ -608,19 +670,42 @@ public class PixelUnit {
 		return returnData;
 	}
 	
-	protected static String fillPixelString(String pixel) {
-		pixel = pixel.replaceAll(TEST_DIR_REGEX, Paths.get(TEST_RESOURCES_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
-		pixel = pixel.replaceAll(BASE_DIR_REGEX, Paths.get(BASE_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
+	protected static String formatString(String string) throws IOException {
+		string = string.replaceAll(TEST_DIR_REGEX, Paths.get(TEST_RESOURCES_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
+		string = string.replaceAll(BASE_DIR_REGEX, Paths.get(BASE_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
 		
 		Pattern appIdPattern = Pattern.compile(APP_ID_REGEX);
-		Matcher appIdMatcher = appIdPattern.matcher(pixel);
+		Matcher appIdMatcher = appIdPattern.matcher(string);
 		while(appIdMatcher.find()) {
 			String alias = appIdMatcher.group(1);
 			String appId = aliasToAppId.containsKey(alias) ? aliasToAppId.get(alias) : "null";
-			pixel = appIdMatcher.replaceFirst(appId);
-			appIdMatcher = appIdPattern.matcher(pixel);
+			string = appIdMatcher.replaceFirst(appId);
+			appIdMatcher = appIdPattern.matcher(string);
 		}
-		return pixel;
+		
+		Pattern textPattern = Pattern.compile(TEXT_REGEX);
+		Matcher textMatcher = textPattern.matcher(string);
+		while(textMatcher.find()) {
+			String file = textMatcher.group(1);
+			String text = FileUtils.readFileToString(Paths.get(TEST_TEXT_DIRECTORY, file).toFile(), TEXT_ENCODING);
+			string = textMatcher.replaceFirst(text);
+			textMatcher = textPattern.matcher(string);
+		}
+		
+		return string;
+	}
+	
+	protected static String collectPixelJson(PixelRunner returnData) throws IOException {
+		StreamingOutput so = PixelStreamUtility.collectPixelData(returnData);
+		try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+			so.write(output);
+			String jsonString = new String(output.toByteArray(), TEXT_ENCODING);
+			JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
+			JsonArray pixelReturns = jsonObject.get("pixelReturn").getAsJsonArray();
+			JsonObject pixelOutput = pixelReturns.get(pixelReturns.size() - 1).getAsJsonObject().get("output").getAsJsonObject();
+			String pixelJson = pixelOutput.toString();
+			return pixelJson;
+		}
 	}
 	
 	
@@ -640,6 +725,7 @@ public class PixelUnit {
 		jep.command = script;
 		
 		// Tell the thread to execute its commands
+		Hashtable<String, Object> response = null;
 		Object jepMonitor = jep.getMonitor();
 		synchronized(jepMonitor) {
 			jepMonitor.notifyAll();
@@ -647,11 +733,12 @@ public class PixelUnit {
 				
 				// Wait for the commands to finish execution, but abort after 30s
 				jepMonitor.wait(30000);
+				response = jep.response;
 			} catch (InterruptedException e) {
 				LOGGER.error("The following Python script was interrupted: " + String.join("\n", script), e);
 			}
 		}
-		return jep.response;
+		return response;
 	}
 	
 }
