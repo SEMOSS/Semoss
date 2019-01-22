@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.om.ColorByValueRule;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
@@ -42,7 +43,8 @@ public class AddPanelColorByValueReactor extends AbstractPanelColorByValueReacto
 //		}
 
 		// store the cbv
-		insightPanel.getColorByValue().put(cbvRule, qs);
+		ColorByValueRule cbv = new ColorByValueRule(cbvRule, qs, cbvOptions);
+		insightPanel.addColorByValue(cbv);
 
 		// need to return
 		// panelId

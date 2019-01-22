@@ -63,7 +63,6 @@ public class GsonUtility {
 				// noun meta
 				.registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
 				.registerTypeAdapter(VarStore.class, new VarStoreAdapter())
-//				.registerTypeAdapter(Insight.class, new InsightAdapter())
 
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
