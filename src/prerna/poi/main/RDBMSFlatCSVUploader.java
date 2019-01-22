@@ -126,6 +126,14 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 				errorMessage = "Uknown error occured...";
 			}
 			throw new IOException(errorMessage);
+		} catch(Exception e) {
+			e.printStackTrace();
+			error = true;
+			String errorMessage = e.getMessage();
+			if(errorMessage == null || errorMessage.trim().isEmpty()) {
+				errorMessage = "Uknown error occured...";
+			}
+			throw new IOException(errorMessage);
 		} finally {
 			// close the helper
 			csvHelper.clear();

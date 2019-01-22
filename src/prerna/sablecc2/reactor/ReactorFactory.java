@@ -69,7 +69,6 @@ import prerna.sablecc2.reactor.app.metaeditor.routines.OwlInstanceSemanticCosine
 import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlDescriptionsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.upload.CheckHeadersReactor;
-import prerna.sablecc2.reactor.app.upload.FormUploadReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.PredictCsvMetamodelReactor;
@@ -503,7 +502,6 @@ public class ReactorFactory {
 		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
 		reactorHash.put("ExternalJdbcTablesAndViews", ExternalJdbcTablesAndViewsReactor.class);
 		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
-		reactorHash.put("FormUpload", FormUploadReactor.class);
 		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
 		reactorHash.put("RdbmsUploadExcelData", RdbmsFlatExcelUploadReactor.class);
 		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);

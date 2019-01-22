@@ -115,6 +115,9 @@ public class CSVReader extends AbstractCSVFileReader {
 		} catch(IOException e) {
 			error = true;
 			throw new IOException(e.getMessage());
+		} catch(Exception e) {
+			error = true;
+			throw new IOException(e.getMessage());
 		} finally {
 			if(error || autoLoad) {
 				closeDB();
