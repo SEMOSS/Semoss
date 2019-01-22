@@ -111,6 +111,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAAssignRoutine(node);
     }
 
+    public void inAMetaRoutine(AMetaRoutine node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMetaRoutine(AMetaRoutine node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMetaRoutine(AMetaRoutine node)
+    {
+        inAMetaRoutine(node);
+        if(node.getSemicolon() != null)
+        {
+            node.getSemicolon().apply(this);
+        }
+        if(node.getMetaRoutine() != null)
+        {
+            node.getMetaRoutine().apply(this);
+        }
+        outAMetaRoutine(node);
+    }
+
     public void inAMainCommentRoutine(AMainCommentRoutine node)
     {
         defaultIn(node);
@@ -154,53 +179,11 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
                 e.apply(this);
             }
         }
-        if(node.getScriptstart() != null)
-        {
-            node.getScriptstart().apply(this);
-        }
-        outAScript(node);
-    }
-
-    public void inAExpressionScriptstart(AExpressionScriptstart node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAExpressionScriptstart(AExpressionScriptstart node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAExpressionScriptstart(AExpressionScriptstart node)
-    {
-        inAExpressionScriptstart(node);
         if(node.getMasterExpr() != null)
         {
             node.getMasterExpr().apply(this);
         }
-        outAExpressionScriptstart(node);
-    }
-
-    public void inAMetaScriptstart(AMetaScriptstart node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAMetaScriptstart(AMetaScriptstart node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAMetaScriptstart(AMetaScriptstart node)
-    {
-        inAMetaScriptstart(node);
-        if(node.getMeta() != null)
-        {
-            node.getMeta().apply(this);
-        }
-        outAMetaScriptstart(node);
+        outAScript(node);
     }
 
     public void inAOtherscript(AOtherscript node)
@@ -255,6 +238,64 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getId().apply(this);
         }
         outAAssignment(node);
+    }
+
+    public void inAMetaScriptMetaRoutine(AMetaScriptMetaRoutine node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMetaScriptMetaRoutine(AMetaScriptMetaRoutine node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMetaScriptMetaRoutine(AMetaScriptMetaRoutine node)
+    {
+        inAMetaScriptMetaRoutine(node);
+        if(node.getScript() != null)
+        {
+            node.getScript().apply(this);
+        }
+        if(node.getCustom() != null)
+        {
+            node.getCustom().apply(this);
+        }
+        if(node.getMeta() != null)
+        {
+            node.getMeta().apply(this);
+        }
+        outAMetaScriptMetaRoutine(node);
+    }
+
+    public void inAMetaAssignmentMetaRoutine(AMetaAssignmentMetaRoutine node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAMetaAssignmentMetaRoutine(AMetaAssignmentMetaRoutine node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAMetaAssignmentMetaRoutine(AMetaAssignmentMetaRoutine node)
+    {
+        inAMetaAssignmentMetaRoutine(node);
+        if(node.getAssignment() != null)
+        {
+            node.getAssignment().apply(this);
+        }
+        if(node.getCustom() != null)
+        {
+            node.getCustom().apply(this);
+        }
+        if(node.getMeta() != null)
+        {
+            node.getMeta().apply(this);
+        }
+        outAMetaAssignmentMetaRoutine(node);
     }
 
     public void inAMandatoryScriptchain(AMandatoryScriptchain node)
@@ -588,17 +629,9 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        if(node.getScript() != null)
+        if(node.getAssignment() != null)
         {
-            node.getScript().apply(this);
-        }
-        if(node.getEqual() != null)
-        {
-            node.getEqual().apply(this);
-        }
-        if(node.getId() != null)
-        {
-            node.getId().apply(this);
+            node.getAssignment().apply(this);
         }
         if(node.getLPar() != null)
         {

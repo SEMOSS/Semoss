@@ -37,7 +37,7 @@ import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapEntry;
 import prerna.sablecc2.node.AMapList;
 import prerna.sablecc2.node.AMapVar;
-import prerna.sablecc2.node.AMetaScriptstart;
+import prerna.sablecc2.node.AMetaRoutine;
 import prerna.sablecc2.node.AMinusBaseExpr;
 import prerna.sablecc2.node.AModBaseExpr;
 import prerna.sablecc2.node.AMultBaseExpr;
@@ -173,7 +173,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 	}
 	
 	@Override
-	public void inAMetaScriptstart(AMetaScriptstart node) {
+	public void inAMetaRoutine(AMetaRoutine node) {
 		this.isMeta = true;
 	}
 	
@@ -312,14 +312,6 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     {
     	deInitReactor();
         defaultOut(node);
-    }
-    
-    @Override
-    public void inAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node) {
-    	defaultIn(node);
-    	IReactor assignmentReactor = new AssignmentReactor();
-        assignmentReactor.setPixel(node.getId().toString().trim(), node.toString().trim());
-    	initReactor(assignmentReactor);
     }
     
     @Override
