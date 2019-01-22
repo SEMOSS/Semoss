@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.panel.rules;
 import java.util.HashMap;
 import java.util.Map;
 
+import prerna.om.ColorByValueRule;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -27,10 +28,12 @@ public class RetrievePanelColorByValueReactor extends AbstractPanelColorByValueR
 		if(cbvRule == null) {
 			throw new NullPointerException("Must provide the color by value name within the panel");
 		}
-		SelectQueryStruct qs = insightPanel.getColorByValue().get(cbvRule);
-		if(qs == null) {
+		ColorByValueRule rule = insightPanel.getColorByValue(cbvRule);
+		if(rule == null) {
 			throw new NullPointerException("Could not find the color by value rule within the panel");
 		}
+		SelectQueryStruct qs = rule.getQueryStruct();
+		
 		// make a copy
 		// so that the original QS is not modified if additional changes
 		// are added to the rule
