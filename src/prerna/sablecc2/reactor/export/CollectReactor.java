@@ -45,12 +45,14 @@ public class CollectReactor extends TaskBuilderReactor {
 				e.printStackTrace();
 			}
 		}
+		PixelOperationType retOpType = PixelOperationType.TASK_DATA;
 		
 		TaskOptions ornamnetOptions = genOrnamentTaskOptions();
 		if(ornamnetOptions != null) {
 			task.setTaskOptions(ornamnetOptions);
+			retOpType = PixelOperationType.PANEL_ORNAMENT_DATA;
 		}
-		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, retOpType);
 	}
 	
 	@Override
