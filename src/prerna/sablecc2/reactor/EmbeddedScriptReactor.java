@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor;
 
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class EmbeddedScriptReactor extends AbstractReactor {
@@ -12,6 +13,10 @@ public class EmbeddedScriptReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		int size = this.curRow.size();
-		return this.curRow.getNoun(size - 1);
+		NounMetadata n = this.curRow.getNoun(size-1);
+		if(n.getNounType() == PixelDataType.LAMBDA) {
+			n = ((IReactor) n.getValue()).execute();
+		}
+		return n;
 	}
 }

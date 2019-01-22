@@ -8,9 +8,7 @@ import prerna.sablecc2.analysis.*;
 public final class AEmbeddedAssignmentExpr extends PExpr
 {
     private TLPar _lPar_;
-    private TId _id_;
-    private TEqual _equal_;
-    private PScript _script_;
+    private PAssignment _assignment_;
     private TRPar _rPar_;
 
     public AEmbeddedAssignmentExpr()
@@ -20,19 +18,13 @@ public final class AEmbeddedAssignmentExpr extends PExpr
 
     public AEmbeddedAssignmentExpr(
         @SuppressWarnings("hiding") TLPar _lPar_,
-        @SuppressWarnings("hiding") TId _id_,
-        @SuppressWarnings("hiding") TEqual _equal_,
-        @SuppressWarnings("hiding") PScript _script_,
+        @SuppressWarnings("hiding") PAssignment _assignment_,
         @SuppressWarnings("hiding") TRPar _rPar_)
     {
         // Constructor
         setLPar(_lPar_);
 
-        setId(_id_);
-
-        setEqual(_equal_);
-
-        setScript(_script_);
+        setAssignment(_assignment_);
 
         setRPar(_rPar_);
 
@@ -43,9 +35,7 @@ public final class AEmbeddedAssignmentExpr extends PExpr
     {
         return new AEmbeddedAssignmentExpr(
             cloneNode(this._lPar_),
-            cloneNode(this._id_),
-            cloneNode(this._equal_),
-            cloneNode(this._script_),
+            cloneNode(this._assignment_),
             cloneNode(this._rPar_));
     }
 
@@ -80,16 +70,16 @@ public final class AEmbeddedAssignmentExpr extends PExpr
         this._lPar_ = node;
     }
 
-    public TId getId()
+    public PAssignment getAssignment()
     {
-        return this._id_;
+        return this._assignment_;
     }
 
-    public void setId(TId node)
+    public void setAssignment(PAssignment node)
     {
-        if(this._id_ != null)
+        if(this._assignment_ != null)
         {
-            this._id_.parent(null);
+            this._assignment_.parent(null);
         }
 
         if(node != null)
@@ -102,57 +92,7 @@ public final class AEmbeddedAssignmentExpr extends PExpr
             node.parent(this);
         }
 
-        this._id_ = node;
-    }
-
-    public TEqual getEqual()
-    {
-        return this._equal_;
-    }
-
-    public void setEqual(TEqual node)
-    {
-        if(this._equal_ != null)
-        {
-            this._equal_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._equal_ = node;
-    }
-
-    public PScript getScript()
-    {
-        return this._script_;
-    }
-
-    public void setScript(PScript node)
-    {
-        if(this._script_ != null)
-        {
-            this._script_.parent(null);
-        }
-
-        if(node != null)
-        {
-            if(node.parent() != null)
-            {
-                node.parent().removeChild(node);
-            }
-
-            node.parent(this);
-        }
-
-        this._script_ = node;
+        this._assignment_ = node;
     }
 
     public TRPar getRPar()
@@ -185,9 +125,7 @@ public final class AEmbeddedAssignmentExpr extends PExpr
     {
         return ""
             + toString(this._lPar_)
-            + toString(this._id_)
-            + toString(this._equal_)
-            + toString(this._script_)
+            + toString(this._assignment_)
             + toString(this._rPar_);
     }
 
@@ -201,21 +139,9 @@ public final class AEmbeddedAssignmentExpr extends PExpr
             return;
         }
 
-        if(this._id_ == child)
+        if(this._assignment_ == child)
         {
-            this._id_ = null;
-            return;
-        }
-
-        if(this._equal_ == child)
-        {
-            this._equal_ = null;
-            return;
-        }
-
-        if(this._script_ == child)
-        {
-            this._script_ = null;
+            this._assignment_ = null;
             return;
         }
 
@@ -238,21 +164,9 @@ public final class AEmbeddedAssignmentExpr extends PExpr
             return;
         }
 
-        if(this._id_ == oldChild)
+        if(this._assignment_ == oldChild)
         {
-            setId((TId) newChild);
-            return;
-        }
-
-        if(this._equal_ == oldChild)
-        {
-            setEqual((TEqual) newChild);
-            return;
-        }
-
-        if(this._script_ == oldChild)
-        {
-            setScript((PScript) newChild);
+            setAssignment((PAssignment) newChild);
             return;
         }
 
