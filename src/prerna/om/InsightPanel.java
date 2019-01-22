@@ -7,7 +7,6 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.util.gson.GsonUtility;
@@ -44,7 +43,7 @@ public class InsightPanel {
 	private transient Map<String, Object> position;
 	
 	// store the color by value rules for the panel
-	private transient Map<String, SelectQueryStruct> colorByValue;
+	private transient List<ColorByValueRule> colorByValue;
 	
 	
 	public InsightPanel(String panelId) {
@@ -56,7 +55,7 @@ public class InsightPanel {
 		this.comments = new HashMap<String, Map<String, Object>>();
 		this.position = new HashMap<String, Object>();
 		
-		this.colorByValue = new HashMap<String, SelectQueryStruct>();
+		this.colorByValue = new ArrayList<ColorByValueRule>();
 		this.grf = new GenRowFilters();
 		this.orderBys = new ArrayList<QueryColumnOrderBySelector>();
 	}
@@ -82,8 +81,52 @@ public class InsightPanel {
 	 * Get the color by value rules
 	 * @return
 	 */
-	public Map<String, SelectQueryStruct> getColorByValue() {
+	public List<ColorByValueRule> getColorByValue() {
 		return this.colorByValue;
+	}
+	
+	/**
+	 * Add a new cbv rule
+	 * @param cbv
+	 */
+	public void addColorByValue(ColorByValueRule cbv) {
+		// if the name is the same
+		// we will override
+		// we defined the equals to do this
+		if(this.colorByValue.contains(cbv)) {
+			this.colorByValue.remove(cbv);
+		}
+		this.colorByValue.add(cbv);
+	}
+	
+	/**
+	 * Get a specific color by value rule
+	 * @param ruleId
+	 * @return
+	 */
+	public ColorByValueRule getColorByValue(String ruleId) {
+		for(ColorByValueRule cbv : this.colorByValue) {
+			if(cbv.getId().equals(ruleId)) {
+				return cbv;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Delete a specific color by value rule
+	 * @param ruleId
+	 * @return
+	 */
+	public boolean removeColorByValue(String ruleId) {
+		for(int i = 0; i < this.colorByValue.size(); i++) {
+			ColorByValueRule cbv = this.colorByValue.get(i);
+			if(cbv.getId().equals(ruleId)) {
+				this.colorByValue.remove(i);
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**
