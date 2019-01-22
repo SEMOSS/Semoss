@@ -6,7 +6,8 @@ import java.util.Set;
 public class TaskOptions {
 
 	private Map<String, Object> options;
-
+	private boolean ornament = false;
+	
 	/**
 	 * Constructor for task options
 	 * @param options
@@ -17,6 +18,14 @@ public class TaskOptions {
 
 	public Set<String> getPanelIds() {
 		return this.options.keySet();
+	}
+	
+	public boolean isOrnament() {
+		return this.ornament;
+	}
+	
+	public void setOrnament(boolean ornament) {
+		this.ornament = ornament;
 	}
 
 	public Map<String, Object> getAlignmentMap(String panelId) {
