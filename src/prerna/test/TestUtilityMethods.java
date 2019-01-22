@@ -23,7 +23,7 @@ public final class TestUtilityMethods {
 		DIHelper.getInstance().loadCoreProp(propFile);
 	}
 	
-	public static void loadLocalMasterAndSecruity() {
+	public static void loadLocalMasterAndSecruity() throws Exception {
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("LocalMasterDatabase");
@@ -42,7 +42,7 @@ public final class TestUtilityMethods {
 		}
 	}
 	
-	public static void loadAll(String propFile) {
+	public static void loadAll(String propFile) throws Exception {
 		loadDIHelper(propFile);	
 		loadLocalMasterAndSecruity();
 	}

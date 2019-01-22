@@ -25,7 +25,7 @@ public class PixelConsole {
 
 	private static Gson gson = GsonUtility.getDefaultGson();
 	
-	public static void main(String[] args){
+	public static void main(String[] args) throws Exception{
 		TestUtilityMethods.loadDIHelper();
 		loadEngines();
 
@@ -74,7 +74,7 @@ public class PixelConsole {
 		return insight.runPixel(pixel);
 	}
 
-	public static void loadEngines() {
+	public static void loadEngines() throws Exception {
 		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);

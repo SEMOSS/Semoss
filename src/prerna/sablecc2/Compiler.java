@@ -13,7 +13,7 @@ import prerna.util.gson.GsonUtility;
 
 public class Compiler
 {
-	public static void main(String[] arguments)
+	public static void main(String[] arguments) throws Exception
 	{
 
 		//	 String test = "{'Type':'pkql','EXPRESSION':'panel[0].config({'panelstatus':'normalized','size':{'width':'900px','height':'400px'},'position':{'top':'3px','left':'5px'}});'}";

@@ -727,8 +727,9 @@ public class MHSGenesisDeploymentStrategyPlaySheet extends InputPanelPlaySheet {
 	/**
 	 * Testing method
 	 * @param args
+	 * @throws Exception 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper();
 
 		String engineProp = "C:\\Users\\rramirezjimenez\\pksl\\Semoss\\db\\TAP_Core_Data.smss";
