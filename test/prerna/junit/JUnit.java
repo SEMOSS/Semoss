@@ -27,7 +27,7 @@ public class JUnit {
 			PropertyConfigurator.configure(prop);
 			LOGGER.info("Successfully configured Log4j for JUnit suite.");
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.warn("Unable to initialize log4j for testing.", e);
 		}
 	}
 	

@@ -40,7 +40,7 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 		this.ignoreOrder = ignoreOrder;
 		this.cleanTestDatabases = cleanTestDatabases;
 	}
-	
+		
 	@Parameters(name = "{index}: test {0}")
 	public static Collection<Object[]> getTestParams() {
 		Collection<Object[]> testParams = null;
@@ -55,23 +55,29 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 						parseListFromString(row[5]) // clean test databases
 					}).collect(Collectors.toList());
 		} catch (IOException e) {
-			LOGGER.error(e);
+			LOGGER.error("Error: ", e);
 			assumeNoException(e);
 		}
 		return testParams;
 	}
-	
+		
 	private static List<String> parseListFromString(String string) {
 		return string.trim().isEmpty() ? new ArrayList<String>() : Arrays.asList(string.split(","));
 	}
 	
 	@Test
-	public void runTest() {
+	public void runTest() throws IOException {
 		LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 		LOGGER.info("RUNNING TEST: " + name);
 		LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-		testPixel(pixel, expectedJson, excludePaths, ignoreOrder);
-		setCleanTestDatabases(cleanTestDatabases);
+		try {
+			testPixel(pixel, expectedJson, excludePaths, ignoreOrder);
+		} catch (IOException e) {
+			LOGGER.error("Error: ", e);
+			throw e;
+		} finally {
+			setCleanTestDatabases(cleanTestDatabases);
+		}
 	}
 
 }
