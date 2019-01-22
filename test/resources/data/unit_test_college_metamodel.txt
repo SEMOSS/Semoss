@@ -10,7 +10,7 @@
             "nodes":[
                {
                   "propSet":[
-                     "ACT_CUM_75___3",
+                     "ACT_CUM_75",
                      "Adm_Rate",
                      "Avg_Cost_Academic_Year",
                      "Avg_Cost_Program_Year",

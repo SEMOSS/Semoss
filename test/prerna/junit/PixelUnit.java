@@ -588,9 +588,9 @@ public class PixelUnit {
 				"from deepdiff import DeepDiff",
 				"a = json.loads('" + actualJson + "')",
 				"b = json.loads('" + expectedJson +  "')",
-				"ddiff = " + ddiffCommand};
-		runPy(script);
-		Object result = runPy("ddiff");
+				"ddiff = " + ddiffCommand,
+				"ddiff"};
+		Object result = runPy(script).get("ddiff");
 		
 		// Make sure there is no difference, ignoring order
 		LOGGER.info("EXPECTED: " + expectedJson);
