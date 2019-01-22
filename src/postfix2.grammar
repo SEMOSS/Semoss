@@ -89,17 +89,20 @@ Productions
  routine = 
 	{output} script semicolon 
 	| {assign} assignment semicolon
+	| {meta} meta_routine semicolon
 	| {main_comment} comment
 	;
  
- script = scriptstart otherscript*;
- scriptstart = {expression} master_expr | {meta} meta;
+ script = master_expr otherscript*;
  otherscript = custom master_expr;
-
  // an assignment if a word or number equal to
  // some kind of evaluation
  assignment = id equal script;
 
+ // allow for meta expressions + assignments
+ meta_routine = {meta_script} meta custom script |
+	{meta_assignment} meta custom assignment;
+ 
  // i need a way to allow for an embedded_script
  // but i need it to not conflict with a formula
  // so this is basically just enforcing that there is a pipe
@@ -132,7 +135,7 @@ Productions
 	// or we can have a full inner script just for fun as well!
 	| {embedded_routine} l_par sub_routine r_par 
 	| {embedded_scriptchain} l_par mandatory_scriptchain r_par 
-	| {embedded_assignment} l_par id equal script r_par
+	| {embedded_assignment} l_par assignment r_par
 	| {help} id help_token
 	| {comment} comment
 	;

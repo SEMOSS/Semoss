@@ -197,6 +197,7 @@ public class GreedyTranslation extends LazyTranslation {
     }
 	
 	protected void postProcess(String pixelExpression) {
+		super.postProcess(pixelExpression);
 		// get the noun meta result
 		// set that in the runner for later retrieval
 		// if it is a frame
@@ -211,23 +212,23 @@ public class GreedyTranslation extends LazyTranslation {
 		else {
 			this.runner.addResult(pixelExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta);
 		}
-		curReactor = null;
-		prevReactor = null;
+		this.curReactor = null;
+		this.prevReactor = null;
 		this.isMeta = false;
 	}
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, List<String> unexecutedPixels) {
 		errorNoun.addAdditionalReturn(new NounMetadata(unexecutedPixels, PixelDataType.CONST_STRING, PixelOperationType.UNEXECUTED_PIXELS));
 		this.runner.addResult(pixelExpression, errorNoun, this.isMeta);
-		curReactor = null;
-		prevReactor = null;
+		this.curReactor = null;
+		this.prevReactor = null;
 		this.isMeta = false;
 	}
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, boolean isMeta) {
 		this.runner.addResult(pixelExpression, errorNoun, this.isMeta);
-		curReactor = null;
-		prevReactor = null;
+		this.curReactor = null;
+		this.prevReactor = null;
 		this.isMeta = false;
 	}
 }
