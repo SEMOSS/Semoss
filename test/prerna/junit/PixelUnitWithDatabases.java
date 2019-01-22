@@ -33,7 +33,7 @@ public class PixelUnitWithDatabases extends PixelUnit {
 			Object result = compareResult(pixel, expectedJson, true);
 			assumeThat(result, is(equalTo(new HashMap<>())));
 		} catch (IOException e) {
-			LOGGER.error(e);
+			LOGGER.error("Error: ", e);
 			assumeNoException(e);
 		}
 	}
