@@ -8,7 +8,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class AScript extends PScript
 {
-    private PScriptstart _scriptstart_;
+    private PMasterExpr _masterExpr_;
     private final LinkedList<POtherscript> _otherscript_ = new LinkedList<POtherscript>();
 
     public AScript()
@@ -17,11 +17,11 @@ public final class AScript extends PScript
     }
 
     public AScript(
-        @SuppressWarnings("hiding") PScriptstart _scriptstart_,
+        @SuppressWarnings("hiding") PMasterExpr _masterExpr_,
         @SuppressWarnings("hiding") List<?> _otherscript_)
     {
         // Constructor
-        setScriptstart(_scriptstart_);
+        setMasterExpr(_masterExpr_);
 
         setOtherscript(_otherscript_);
 
@@ -31,7 +31,7 @@ public final class AScript extends PScript
     public Object clone()
     {
         return new AScript(
-            cloneNode(this._scriptstart_),
+            cloneNode(this._masterExpr_),
             cloneList(this._otherscript_));
     }
 
@@ -41,16 +41,16 @@ public final class AScript extends PScript
         ((Analysis) sw).caseAScript(this);
     }
 
-    public PScriptstart getScriptstart()
+    public PMasterExpr getMasterExpr()
     {
-        return this._scriptstart_;
+        return this._masterExpr_;
     }
 
-    public void setScriptstart(PScriptstart node)
+    public void setMasterExpr(PMasterExpr node)
     {
-        if(this._scriptstart_ != null)
+        if(this._masterExpr_ != null)
         {
-            this._scriptstart_.parent(null);
+            this._masterExpr_.parent(null);
         }
 
         if(node != null)
@@ -63,7 +63,7 @@ public final class AScript extends PScript
             node.parent(this);
         }
 
-        this._scriptstart_ = node;
+        this._masterExpr_ = node;
     }
 
     public LinkedList<POtherscript> getOtherscript()
@@ -96,7 +96,7 @@ public final class AScript extends PScript
     public String toString()
     {
         return ""
-            + toString(this._scriptstart_)
+            + toString(this._masterExpr_)
             + toString(this._otherscript_);
     }
 
@@ -104,9 +104,9 @@ public final class AScript extends PScript
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._scriptstart_ == child)
+        if(this._masterExpr_ == child)
         {
-            this._scriptstart_ = null;
+            this._masterExpr_ = null;
             return;
         }
 
@@ -122,9 +122,9 @@ public final class AScript extends PScript
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        if(this._scriptstart_ == oldChild)
+        if(this._masterExpr_ == oldChild)
         {
-            setScriptstart((PScriptstart) newChild);
+            setMasterExpr((PMasterExpr) newChild);
             return;
         }
 

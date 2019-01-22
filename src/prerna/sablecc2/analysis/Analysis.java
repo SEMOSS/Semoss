@@ -15,12 +15,13 @@ public interface Analysis extends Switch
     void caseAConfiguration(AConfiguration node);
     void caseAOutputRoutine(AOutputRoutine node);
     void caseAAssignRoutine(AAssignRoutine node);
+    void caseAMetaRoutine(AMetaRoutine node);
     void caseAMainCommentRoutine(AMainCommentRoutine node);
     void caseAScript(AScript node);
-    void caseAExpressionScriptstart(AExpressionScriptstart node);
-    void caseAMetaScriptstart(AMetaScriptstart node);
     void caseAOtherscript(AOtherscript node);
     void caseAAssignment(AAssignment node);
+    void caseAMetaScriptMetaRoutine(AMetaScriptMetaRoutine node);
+    void caseAMetaAssignmentMetaRoutine(AMetaAssignmentMetaRoutine node);
     void caseAMandatoryScriptchain(AMandatoryScriptchain node);
     void caseABaseSubExpr(ABaseSubExpr node);
     void caseABaseSubScript(ABaseSubScript node);
