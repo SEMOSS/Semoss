@@ -641,6 +641,10 @@ public class PixelUnit {
 		PixelRunner returnData = runPixel(pixel);
 		String actualJson = collectPixelJson(returnData);
 		
+		// Only allow ASCII characters
+		actualJson = actualJson.replaceAll("[^\\p{ASCII}]", "?");
+		expectedJson = expectedJson.replaceAll("[^\\p{ASCII}]", "?");
+		
 		// The Python script to compare the deep difference
 		String ignoreOrderString = ignoreOrder ? "True" : "False";
 		String ddiffCommand = (excludePaths.size() > 0) ? "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ", exclude_paths={\"" + String.join("\", \"", excludePaths) + "\"})" : 
