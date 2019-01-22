@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.om.InsightPanel;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,11 +26,10 @@ public class DeletePanelColorByValueReactor extends AbstractPanelColorByValueRea
 		if(cbvRule == null) {
 			throw new NullPointerException("Must provide the color by value name within the panel");
 		}
-		SelectQueryStruct rule = insightPanel.getColorByValue().remove(cbvRule);
-		if(rule == null) {
+		boolean removed = insightPanel.removeColorByValue(cbvRule);
+		if(!removed) {
 			throw new NullPointerException("Could not find the color by value rule within the panel");
 		}
-
 		// need to return
 		// panelId
 		// cbvRuleId (name)
