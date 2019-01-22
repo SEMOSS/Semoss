@@ -52,8 +52,8 @@ public class NLPReader extends AbstractFileReader {
 		boolean error = false;
 		
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
-		openRdfEngineWithoutConnection(engineName, appID);		
 		try {
+			openRdfEngineWithoutConnection(engineName, appID);		
 			//if user selected a map, load just as before--using the prop file to discover Excel->URI translation
 			ProcessNLP processor = new ProcessNLP();
 			triples = processor.generateTriples(files);
@@ -64,6 +64,9 @@ public class NLPReader extends AbstractFileReader {
 			error = true;
 			throw new FileNotFoundException(e.getMessage());
 		} catch(IOException e) {
+			error = true;
+			throw new IOException(e.getMessage());
+		} catch(Exception e) {
 			error = true;
 			throw new IOException(e.getMessage());
 		} finally {

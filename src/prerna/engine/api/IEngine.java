@@ -56,7 +56,7 @@ public interface IEngine extends IExplorable {
 	 * @param propFile contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
 	 * what type of engine is being instantiated.
 	 */
-	public void openDB(String propFile);
+	public void openDB(String propFile) throws Exception;
 
 	/**
 	 * Set the smss file within the engine

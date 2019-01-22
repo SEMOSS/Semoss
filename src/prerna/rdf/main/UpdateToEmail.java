@@ -24,7 +24,7 @@ import prerna.util.DIHelper;
 
 public class UpdateToEmail {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		//////////////////////////////////////////////////////////////////////
 		
 		/*
