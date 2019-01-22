@@ -57,27 +57,27 @@ public class AbstractEngineCreator {
 		}
 	}
 	
-	protected void openRdfEngineWithoutConnection(String appName, String appID) {
+	protected void openRdfEngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewRdfEngine(appName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	protected void openRdbmsEngineWithoutConnection(String appName, String engineID) {
+	protected void openRdbmsEngineWithoutConnection(String appName, String engineID) throws Exception {
 		createNewRDBMSEngine(appName, engineID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
-	protected void openTinkerEngineWithoutConnection(String appName, String appID) {
+	protected void openTinkerEngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewTinkerEngine(appName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	protected void openREngineWithoutConnection(String appName, String appID) {
+	protected void openREngineWithoutConnection(String appName, String appID) throws Exception {
 		createNewREngine(appName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.SESAME, this.customBaseURI);
 	}
 	
-	private void createNewRDBMSEngine(String appName, String appID) {
+	private void createNewRDBMSEngine(String appName, String appID) throws Exception {
 		engine = new RDBMSNativeEngine();
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
@@ -101,7 +101,7 @@ public class AbstractEngineCreator {
 		}
 	}
 
-	private void createNewRdfEngine(String appName, String appID) {
+	private void createNewRdfEngine(String appName, String appID) throws Exception {
 		engine = new BigDataEngine();
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
@@ -123,7 +123,7 @@ public class AbstractEngineCreator {
 		}
 	}
 	
-	private void createNewTinkerEngine(String appName, String appID) {
+	private void createNewTinkerEngine(String appName, String appID) throws Exception {
 		engine = new TinkerEngine();
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
@@ -136,7 +136,7 @@ public class AbstractEngineCreator {
 		}
 	}
 	
-	private void createNewREngine(String appName, String appID) {
+	private void createNewREngine(String appName, String appID) throws Exception {
 		engine = new RNativeEngine();
 		engine.setEngineName(appName);
 		engine.setEngineId(appID);
@@ -150,18 +150,18 @@ public class AbstractEngineCreator {
 	}
 	
 	//added for connect to external RDBMS workflow
-	protected void generateEngineFromRDBMSConnection(String schema, String appName, String appID) {
+	protected void generateEngineFromRDBMSConnection(String schema, String appName, String appID) throws Exception {
 		connectToExternalRDBMSEngine(schema,appName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.RDBMS, this.customBaseURI);
 	}
 	
 	//added for connect to external Impala workflow
-	protected void generateEngineFromImpalaConnection(String schema, String dbName, String appID) {
+	protected void generateEngineFromImpalaConnection(String schema, String dbName, String appID) throws Exception {
 		connectToExternalImpalaEngine(schema,dbName, appID);
 		openOWLWithOutConnection(owlFile, IEngine.ENGINE_TYPE.IMPALA, this.customBaseURI);
 	}
 	//added for connect to external RDBMS workflow
-	private void connectToExternalRDBMSEngine(String schema, String appName, String appID) {
+	private void connectToExternalRDBMSEngine(String schema, String appName, String appID) throws Exception {
 		engine = new RDBMSNativeEngine();
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
@@ -191,7 +191,7 @@ public class AbstractEngineCreator {
 	}
 
 	//added for connect to external Impala workflow
-	private void connectToExternalImpalaEngine(String schema, String appName, String appID) {
+	private void connectToExternalImpalaEngine(String schema, String appName, String appID) throws Exception {
 		engine = new ImpalaEngine();
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);

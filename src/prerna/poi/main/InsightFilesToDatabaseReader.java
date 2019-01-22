@@ -423,7 +423,7 @@ public class InsightFilesToDatabaseReader {
 		return this.newTables;
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper();
 
 		// load in the engine

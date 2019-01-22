@@ -269,7 +269,7 @@ public class RiGraph extends AbstractTableDataFrame {
 		return DATA_MAKER_NAME;
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper();
 		String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
