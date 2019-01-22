@@ -9,6 +9,7 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.TaskUtility;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class QuerySelectorExpressionAssimilator extends AbstractReactor {
@@ -57,6 +58,17 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 			return selectors.get(0);
 		} else if(nounType == PixelDataType.COLUMN) {
 			return (IQuerySelector) input.getValue();
+		} else if(nounType == PixelDataType.FORMATTED_DATA_SET) {
+			Object value = input.getValue();
+			NounMetadata formatData = TaskUtility.getTaskDataScalarElement(value);
+			if(formatData == null) {
+				throw new IllegalArgumentException("Can only handle query data that is a scalar input");
+			} else {
+				Object newValue = formatData.getValue();
+				QueryConstantSelector cSelect = new QueryConstantSelector();
+				cSelect.setConstant(newValue);
+				return cSelect;
+			}
 		} else {
 			// we have a constant...
 			QueryConstantSelector cSelect = new QueryConstantSelector();
