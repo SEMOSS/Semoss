@@ -2,8 +2,11 @@ package prerna.sablecc2;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.LogManager;
@@ -19,8 +22,6 @@ import prerna.sablecc2.node.AAsop;
 import prerna.sablecc2.node.AAssignRoutine;
 import prerna.sablecc2.node.AAssignment;
 import prerna.sablecc2.node.ABaseSimpleComparison;
-import prerna.sablecc2.node.ABaseSubExpr;
-import prerna.sablecc2.node.ABaseSubScript;
 import prerna.sablecc2.node.ABasicAndComparisonTerm;
 import prerna.sablecc2.node.ABasicOrComparisonTerm;
 import prerna.sablecc2.node.ABooleanScalar;
@@ -31,7 +32,6 @@ import prerna.sablecc2.node.AComplexOrComparisonExpr;
 import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
-import prerna.sablecc2.node.AEmbeddedAssignmentExpr;
 import prerna.sablecc2.node.AEmbeddedScriptchainExpr;
 import prerna.sablecc2.node.AExplicitRel;
 import prerna.sablecc2.node.AFormula;
@@ -47,7 +47,7 @@ import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapList;
 import prerna.sablecc2.node.AMapNegNum;
 import prerna.sablecc2.node.AMapVar;
-import prerna.sablecc2.node.AMetaScriptstart;
+import prerna.sablecc2.node.AMetaRoutine;
 import prerna.sablecc2.node.AMinusBaseExpr;
 import prerna.sablecc2.node.AModBaseExpr;
 import prerna.sablecc2.node.AMultBaseExpr;
@@ -110,7 +110,13 @@ public class LazyTranslation extends DepthFirstAdapter {
 	protected Insight insight;
 	protected IReactor curReactor = null;
 	protected IReactor prevReactor = null;
+	
 	protected boolean isMeta = false;
+	// if we have META and a variable definition
+	// we need to not record this variable
+	// this includes embedded expressions
+	protected List<String> metaVariables = new Vector<String>();
+	protected Map<String, NounMetadata> prevVariables = new HashMap<String, NounMetadata>();
 	
 	public enum TypeOfOperation {PIPELINE, COMPOSITION};
 	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
@@ -126,8 +132,18 @@ public class LazyTranslation extends DepthFirstAdapter {
 	}
 	
 	protected void postProcess(String pixelExpression) {
-		// do nothing
-		// only the lazy implements this
+		// need to account for META variables
+		// that were defined
+		if(this.isMeta) {
+			for(String var : this.metaVariables) {
+				this.planner.removeVariable(var);
+			}
+			
+			// now add back the other variables we had to keep
+			for(String var : this.prevVariables.keySet()) {
+				this.planner.addVariable(var, this.prevVariables.get(var));
+			}
+		}
 	}
 	
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun, List<String> unexecutedPixels) {
@@ -202,6 +218,21 @@ public class LazyTranslation extends DepthFirstAdapter {
 	}
 	
 	@Override
+	public void inAMetaRoutine(AMetaRoutine node) {
+		defaultIn(node);
+		this.isMeta = true;
+	}
+
+    public void outAMetaRoutine(AMetaRoutine node) {
+    	defaultOut(node);
+        // we do this in case someone is doing an embedded assignment 
+        // instead of just doing a normal assignment...
+        if(!(curReactor instanceof AssignmentReactor)) {
+    		postProcess(node.toString().trim());
+    	}
+    }
+    
+	@Override
 	public void inAAssignRoutine(AAssignRoutine node) {
 		defaultIn(node);
 	}
@@ -213,6 +244,34 @@ public class LazyTranslation extends DepthFirstAdapter {
         // instead of just doing a normal assignment...
     	postProcess(node.toString().trim());
 	}
+	
+    @Override
+    public void inAAssignment(AAssignment node) {
+    	// if this is a META
+    	// we need to store the original assignment if it exists
+    	// and we need to make sure we clean this up at the end
+    	defaultIn(node);
+    	String var = node.getId().toString().trim();
+
+    	if(this.isMeta) {
+    		if(this.planner.hasVariable(var)) {
+    			this.prevVariables.put(var, this.planner.getVariable(var));
+    		}
+    		// make sure we remove this at the end
+    		this.metaVariables.add(var);
+    	}
+    	
+    	IReactor assignmentReactor = new AssignmentReactor();
+        assignmentReactor.setPixel(var, node.toString().trim());
+    	initReactor(assignmentReactor);
+    	assignmentReactor.getCurRow().addLiteral(var);
+    }
+
+    @Override
+    public void outAAssignment(AAssignment node) {
+        defaultOut(node);
+    	deInitReactor();
+    }
 	
 	@Override
 	public void inAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
@@ -226,51 +285,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 	public void outAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
 		defaultOut(node);
 		deInitReactor();
-		// if no parent, that means this embedded script
-		// is the only thing
-		if(curReactor == null) {
-			postProcess(node.toString().trim());
-		}
-	}
-
-	@Override
-	public void inABaseSubExpr(ABaseSubExpr node) {
-		// this is no different that an embedded script
-		defaultIn(node);
-		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
-		embeddedScriptReactor.setPixel(node.getMasterExpr().toString().trim(), node.toString().trim());
-    	initReactor(embeddedScriptReactor);
-	}
-
-	@Override
-	public void outABaseSubExpr(ABaseSubExpr node) {
-		defaultOut(node);
-		deInitReactor();
-		// if no parent, that means this embedded script
-		// is the only thing
-		if(curReactor == null) {
-			postProcess(node.toString().trim());
-		}
-	}
-	
-	@Override
-	public void inABaseSubScript(ABaseSubScript node) {
-		// this is no different that an embedded script
-		defaultIn(node);
-		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
-		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim());
-    	initReactor(embeddedScriptReactor);
-	}
-	
-	@Override
-	public void outABaseSubScript(ABaseSubScript node) {
-		defaultOut(node);
-		deInitReactor();
-		// if no parent, that means this embedded script
-		// is the only thing
-		if(curReactor == null) {
-			postProcess(node.toString().trim());
-		}
 	}
 	
 	@Override
@@ -285,16 +299,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 	public void outASubRoutine(ASubRoutine node) {
 		defaultOut(node);
 		deInitReactor();
-		// if no parent, that means this embedded script
-		// is the only thing
-		if(curReactor == null) {
-			postProcess(node.toString().trim());
-		}
-	}
-	
-	@Override
-	public void inAMetaScriptstart(AMetaScriptstart node) {
-		this.isMeta = true;
 	}
 	
 	@Override
@@ -437,40 +441,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void outAJavaOp(AJavaOp node) {
     	defaultOut(node);
     	deInitReactor();
-    }
-
-    @Override
-    public void inAAssignment(AAssignment node)
-    {
-    	defaultIn(node);
-    	IReactor assignmentReactor = new AssignmentReactor();
-    	String var = node.getId().toString().trim();
-        assignmentReactor.setPixel(var, node.toString().trim());
-    	initReactor(assignmentReactor);
-    	assignmentReactor.getCurRow().addLiteral(var);
-    }
-
-    @Override
-    public void outAAssignment(AAssignment node)
-    {
-    	deInitReactor();
-        defaultOut(node);
-    }
-    
-    @Override
-    public void inAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node) {
-    	defaultIn(node);
-    	IReactor assignmentReactor = new AssignmentReactor();
-    	String var = node.getId().toString().trim();
-        assignmentReactor.setPixel(var, node.toString().trim());
-    	initReactor(assignmentReactor);
-    	assignmentReactor.getCurRow().addLiteral(var);
-    }
-    
-    @Override
-    public void outAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node) {
-    	deInitReactor();
-        defaultOut(node);
     }
 
     @Override

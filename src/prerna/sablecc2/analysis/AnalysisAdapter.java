@@ -93,6 +93,12 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
+    public void caseAMetaRoutine(AMetaRoutine node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
     public void caseAMainCommentRoutine(AMainCommentRoutine node)
     {
         defaultCase(node);
@@ -105,18 +111,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAExpressionScriptstart(AExpressionScriptstart node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
-    public void caseAMetaScriptstart(AMetaScriptstart node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAOtherscript(AOtherscript node)
     {
         defaultCase(node);
@@ -124,6 +118,18 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAAssignment(AAssignment node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMetaScriptMetaRoutine(AMetaScriptMetaRoutine node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAMetaAssignmentMetaRoutine(AMetaAssignmentMetaRoutine node)
     {
         defaultCase(node);
     }
