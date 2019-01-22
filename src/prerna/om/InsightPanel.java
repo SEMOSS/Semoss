@@ -1,15 +1,19 @@
 package prerna.om;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.util.gson.ColorByValueRuleAdapter;
 import prerna.util.gson.GsonUtility;
+import prerna.util.gson.NumberAdapter;
 
 public class InsightPanel {
 
@@ -474,7 +478,12 @@ public class InsightPanel {
 	 * @param existingPanel
 	 */
 	public void clone(InsightPanel existingPanel) {
-		Gson gson = new Gson();
+		Gson gson =  new GsonBuilder()
+				.disableHtmlEscaping()
+				.excludeFieldsWithModifiers(Modifier.STATIC)
+				.registerTypeAdapter(Double.class, new NumberAdapter())
+				.registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
+				.create();
 		this.view = existingPanel.view;
 		if(existingPanel.panelLabel != null) {
 			this.panelLabel = existingPanel.panelLabel + " Clone";
@@ -486,6 +495,11 @@ public class InsightPanel {
 		this.comments.putAll(gson.fromJson(gson.toJson(existingPanel.comments), Map.class));
 		this.events.putAll(gson.fromJson(gson.toJson(existingPanel.events), Map.class));
 		this.grf = existingPanel.grf.copy();
+		
+		// also move over the CBV
+		for(ColorByValueRule rule : existingPanel.colorByValue) {
+			this.addColorByValue(gson.fromJson(gson.toJson(rule), ColorByValueRule.class));
+		}
 	}
 
 }
