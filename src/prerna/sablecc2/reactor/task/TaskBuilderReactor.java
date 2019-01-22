@@ -96,9 +96,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		// no qs either... i guess we will return an empty constant data task
 		// this will just store the information
 		if(qs == null) {
-			ConstantDataTask task = new ConstantDataTask();
-			this.insight.getTaskStore().addTask(task);
-			return task;
+			throw new IllegalArgumentException("Not enough information to identify/generate query data");
 		}
 		
 		// set any additional details required

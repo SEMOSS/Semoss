@@ -48,7 +48,7 @@ public class CollectReactor extends TaskBuilderReactor {
 		PixelOperationType retOpType = PixelOperationType.TASK_DATA;
 		
 		TaskOptions ornamnetOptions = genOrnamentTaskOptions();
-		if(ornamnetOptions != null) {
+		if(ornamnetOptions != null || (task.getTaskOptions() != null && task.getTaskOptions().isOrnament()) ) {
 			task.setTaskOptions(ornamnetOptions);
 			retOpType = PixelOperationType.PANEL_ORNAMENT_DATA;
 		}
@@ -66,6 +66,7 @@ public class CollectReactor extends TaskBuilderReactor {
 			if(noun.getNounType() == PixelDataType.ORNAMENT_MAP) {
 				// we will use this map as task options
 				TaskOptions options = new TaskOptions((Map<String, Object>) noun.getValue());
+				options.setOrnament(true);
 				return options;
 			}
 		}
