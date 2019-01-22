@@ -154,6 +154,14 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 				errorMessage = "Uknown error occured...";
 			}
 			throw new IOException(errorMessage);
+		} catch(Exception e) {
+			e.printStackTrace();
+			error = true;
+			String errorMessage = e.getMessage();
+			if(errorMessage == null || errorMessage.trim().isEmpty()) {
+				errorMessage = "Uknown error occured...";
+			}
+			throw new IOException(errorMessage);
 		} finally {
 			// close the helper
 			xlHelper.clear();

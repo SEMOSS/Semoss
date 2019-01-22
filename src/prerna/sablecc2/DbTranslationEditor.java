@@ -107,7 +107,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 	}
 
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		//		String expression = "CreateFrame(py); Database(Movie_RDBMS) | Select(Title, Title__Movie_Budget) | Import();";
 		//		DbTranslationEditor translation = new DbTranslationEditor();
 		//		translation.setEngineToFind("Movie_RDBMS");

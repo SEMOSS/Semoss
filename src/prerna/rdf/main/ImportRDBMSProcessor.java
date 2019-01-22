@@ -52,7 +52,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	
 	private static final Logger LOGGER = LogManager.getLogger(ImportRDBMSProcessor.class.getName());
 
-	public IEngine addNewRDBMS(ImportOptions options) throws IOException {
+	public IEngine addNewRDBMS(ImportOptions options) throws Exception {
 		// information for connection details
 		RdbmsTypeEnum sqlType = options.getRDBMSDriverType();
 		String host = options.getHost();

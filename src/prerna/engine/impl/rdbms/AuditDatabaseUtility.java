@@ -294,7 +294,7 @@ public class AuditDatabaseUtility {
 	
 	
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		Gson gson = new GsonBuilder().disableHtmlEscaping()
 				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT).setPrettyPrinting().create();
 		TestUtilityMethods.loadDIHelper("C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\RDF_Map.prop");

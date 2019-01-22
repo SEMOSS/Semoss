@@ -23,7 +23,7 @@ public class InsightCachingTest {
 
 	private static final Gson GSON = GsonUtility.getDefaultGson();
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
 		String coreName = "MovieDatabase__93857bba-5aea-447b-94f4-f9d9179da4da";
