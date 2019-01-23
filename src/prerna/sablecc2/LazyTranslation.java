@@ -32,7 +32,7 @@ import prerna.sablecc2.node.AComplexOrComparisonExpr;
 import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
-import prerna.sablecc2.node.AEmbeddedScriptchainExpr;
+import prerna.sablecc2.node.AEmbeddedScriptchainExprComponent;
 import prerna.sablecc2.node.AExplicitRel;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
@@ -274,20 +274,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
 	
 	@Override
-	public void inAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
-		defaultIn(node);
-		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
-		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim());
-    	initReactor(embeddedScriptReactor);
-	}
-	
-	@Override
-	public void outAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
-		defaultOut(node);
-		deInitReactor();
-	}
-	
-	@Override
 	public void inASubRoutine(ASubRoutine node) {
 		defaultIn(node);
 		EmbeddedRoutineReactor embeddedScriptReactor = new EmbeddedRoutineReactor();
@@ -319,6 +305,20 @@ public class LazyTranslation extends DepthFirstAdapter {
 			curReactor.getCurRow().add(noun);
 		}
 	}
+	
+    @Override
+    public void inAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node) {
+    	defaultIn(node);
+		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
+		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim());
+    	initReactor(embeddedScriptReactor);
+    }
+    
+    @Override
+    public void outAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node) {
+    	defaultOut(node);
+		deInitReactor();
+    }
 	
 	//////////////////////////////////////////
 	//////////////////////////////////////////
