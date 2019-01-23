@@ -622,37 +622,52 @@ public class PixelUnit {
 	
 	protected Object compareResult(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder) throws IOException {
 		
-		// Cleanup the expected json to make sure that it doesn't have any newlines
+		// Cleanup the expected json, including formatting it
 		expectedJson = formatString(expectedJson);
-		expectedJson = expectedJson.replaceAll("\r", "");
-		expectedJson = expectedJson.replaceAll("\n", "");
+		expectedJson = new JsonParser().parse(expectedJson).toString();
 		
 		// Run the pixel and get the result
 		PixelRunner returnData = runPixel(pixel);
 		String actualJson = compareAll ? collectAllPixelJsons(returnData) : collectLastPixelJson(returnData);
 		
 		// Only allow ASCII characters
-		actualJson = actualJson.replaceAll("[^\\p{ASCII}]", "?");
 		expectedJson = expectedJson.replaceAll("[^\\p{ASCII}]", "?");
+		actualJson = actualJson.replaceAll("[^\\p{ASCII}]", "?");
 		
-		// The Python script to compare the deep difference
-		String ignoreOrderString = ignoreOrder ? "True" : "False";
-		String ddiffCommand = (excludePaths.size() > 0) ? "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ", exclude_paths={\"" + String.join("\", \"", excludePaths) + "\"})" : 
-			"DeepDiff(a, b, ignore_order=" + ignoreOrderString + ")";
-		String[] script = new String[] {"import json",
-				"from deepdiff import DeepDiff",
-				"a = json.loads('" + actualJson + "')",
-				"b = json.loads('" + expectedJson +  "')",
-				ddiffCommand};
-		
-		Hashtable<String, Object> results = runPy(script);		
-		Object result = results.get(ddiffCommand);
-		
-		// Make sure there is no difference, ignoring order
-		LOGGER.info("EXPECTED: " + expectedJson);
-		LOGGER.info("ACTUAL: " + actualJson);
-		LOGGER.info("DIFF: " + result);
-		return result;
+		// Write temp files
+		String random = Utility.getRandomString(10);
+		File expectedJsonFile = Paths.get(TEST_RESOURCES_DIRECTORY, "expected__" + random + ".json").toFile();
+		File actualJsonFile = Paths.get(TEST_RESOURCES_DIRECTORY, "actual__" + random + ".json").toFile();
+		try {
+			FileUtils.writeStringToFile(expectedJsonFile, expectedJson, TEXT_ENCODING);
+			FileUtils.writeStringToFile(actualJsonFile, actualJson, TEXT_ENCODING);
+			
+			// The Python script to compare the deep difference
+			String ignoreOrderString = ignoreOrder ? "True" : "False";
+			String ddiffCommand = (excludePaths.size() > 0) ? "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ", exclude_paths={\"" + String.join("\", \"", excludePaths) + "\"})" : 
+				"DeepDiff(a, b, ignore_order=" + ignoreOrderString + ")";
+			
+			String[] script = new String[] {"import json",
+					"from deepdiff import DeepDiff",
+					"with open('" + expectedJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='" + TEXT_ENCODING.toLowerCase() + "') as f:\n" +
+					"    a = json.load(f)",
+					"with open('" + actualJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='" + TEXT_ENCODING.toLowerCase() + "') as f:\n" +
+					"    b = json.load(f)",
+					ddiffCommand};
+						
+			Hashtable<String, Object> results = runPy(script);		
+			Object result = results.get(ddiffCommand);
+			
+			// Make sure there is no difference, ignoring order
+			LOGGER.info("EXPECTED: " + expectedJson);
+			LOGGER.info("ACTUAL:   " + actualJson);
+			LOGGER.info("DIFF:     " + result);
+			return result;
+			
+		} finally {
+			expectedJsonFile.delete();
+			actualJsonFile.delete();
+		}
 	}
 	
 	protected PixelRunner runPixel(String pixel) throws IOException {
@@ -665,6 +680,13 @@ public class PixelUnit {
 	}
 	
 	protected static String formatString(String string) throws IOException {
+		Pattern textPattern = Pattern.compile(TEXT_REGEX); // TODO >>>timb: move this out of format string... and put it in compare
+		Matcher textMatcher = textPattern.matcher(string);
+		if (textMatcher.matches()) {
+			String file = textMatcher.group(1);
+			string = FileUtils.readFileToString(Paths.get(TEST_TEXT_DIRECTORY, file).toFile(), TEXT_ENCODING);
+		}
+		
 		string = string.replaceAll(TEST_DIR_REGEX, Paths.get(TEST_RESOURCES_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
 		string = string.replaceAll(BASE_DIR_REGEX, Paths.get(BASE_DIRECTORY).toAbsolutePath().toString().replace('\\', '/'));
 		
@@ -675,15 +697,6 @@ public class PixelUnit {
 			String appId = aliasToAppId.containsKey(alias) ? aliasToAppId.get(alias) : "null";
 			string = appIdMatcher.replaceFirst(appId);
 			appIdMatcher = appIdPattern.matcher(string);
-		}
-		
-		Pattern textPattern = Pattern.compile(TEXT_REGEX);
-		Matcher textMatcher = textPattern.matcher(string);
-		while(textMatcher.find()) {
-			String file = textMatcher.group(1);
-			String text = FileUtils.readFileToString(Paths.get(TEST_TEXT_DIRECTORY, file).toFile(), TEXT_ENCODING);
-			string = textMatcher.replaceFirst(text);
-			textMatcher = textPattern.matcher(string);
 		}
 		
 		return string;
