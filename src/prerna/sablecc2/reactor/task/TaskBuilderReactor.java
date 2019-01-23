@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.task;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 
@@ -96,7 +97,11 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		// no qs either... i guess we will return an empty constant data task
 		// this will just store the information
 		if(qs == null) {
-			throw new IllegalArgumentException("Not enough information to identify/generate query data");
+			// THIS SHOULD ONLY HAPPEN WHEN YOU CARE CALLING COLLECTGRAPH 
+			// SINCE THERE ARE NO SELECTORS
+			ConstantDataTask cdTask = new ConstantDataTask();
+			cdTask.setOutputData(new HashMap<Object, Object>());
+			return cdTask;
 		}
 		
 		// set any additional details required
