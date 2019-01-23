@@ -16,6 +16,7 @@ public class PixelUnitWithDatabases extends PixelUnit {
 
 	private static final String COLLEGE = "unit_test_college";
 	private static final String MOVIE = "unit_test_movie";
+	private static final String MOVIE_RDF = "unit_test_movie_rdf";
 	
 	private static final String METAMODEL_EXTENSION = "_metamodel.txt";
 	
@@ -23,6 +24,7 @@ public class PixelUnitWithDatabases extends PixelUnit {
 	public void checkAssumptions() {
 		checkTestDatabase(COLLEGE);
 		checkTestDatabase(MOVIE);
+		checkTestDatabase(MOVIE_RDF);
 	}
 	
 	public void checkTestDatabase(String alias) {
