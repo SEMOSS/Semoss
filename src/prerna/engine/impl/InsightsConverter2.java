@@ -287,7 +287,7 @@ public class InsightsConverter2 {
 					if(layout.equals("WorldMap")) {
 						layout = "Map";
 					}
-					sb.append(") | Format(type=['table']) | TaskOptions({'0': {\"layout\":\"" + layout + "\", \"alignment\" : {");
+					sb.append(") | Format(type=['table']) | TaskOptions({\"0\": {\"layout\":\"" + layout + "\", \"alignment\" : {");
 					
 					/*
 					 * This is super annoying
