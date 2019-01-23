@@ -58,7 +58,7 @@ public class QuerySelectorExpressionAssimilator extends AbstractReactor {
 			return selectors.get(0);
 		} else if(nounType == PixelDataType.COLUMN) {
 			return (IQuerySelector) input.getValue();
-		} else if(nounType == PixelDataType.FORMATTED_DATA_SET) {
+		} else if(nounType == PixelDataType.FORMATTED_DATA_SET || nounType == PixelDataType.TASK) {
 			Object value = input.getValue();
 			NounMetadata formatData = TaskUtility.getTaskDataScalarElement(value);
 			if(formatData == null) {
