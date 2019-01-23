@@ -34,7 +34,6 @@ public interface Analysis extends Switch
     void caseAComparisonMasterExpr(AComparisonMasterExpr node);
     void caseABaseExprExpr(ABaseExprExpr node);
     void caseAEmbeddedRoutineExpr(AEmbeddedRoutineExpr node);
-    void caseAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node);
     void caseAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node);
     void caseAHelpExpr(AHelpExpr node);
     void caseACommentExpr(ACommentExpr node);
@@ -46,6 +45,7 @@ public interface Analysis extends Switch
     void caseAModBaseExpr(AModBaseExpr node);
     void caseATermExprComponent(ATermExprComponent node);
     void caseAPowerExprComponent(APowerExprComponent node);
+    void caseAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node);
     void caseAPower(APower node);
     void caseARegTermTerm(ARegTermTerm node);
     void caseANegTermTerm(ANegTermTerm node);

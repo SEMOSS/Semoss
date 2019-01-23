@@ -111,7 +111,7 @@ Productions
  base_sub_expr = master_expr semicolon;
  base_sub_script = mandatory_scriptchain semicolon;
  base_assignment = assignment semicolon;
- sub_routine_options = {simple} base_sub_expr | {chain} base_sub_script |  {assignment} base_assignment; 
+ sub_routine_options = {simple} base_sub_expr | {chain} base_sub_script | {assignment} base_assignment; 
  sub_routine = sub_routine_options+;
  
  ///////////////////////////////////////////////////////////////////////
@@ -134,7 +134,6 @@ Productions
 	// note that the embedded_assignment can be set to an inner script!
 	// or we can have a full inner script just for fun as well!
 	| {embedded_routine} l_par sub_routine r_par 
-	| {embedded_scriptchain} l_par mandatory_scriptchain r_par 
 	| {embedded_assignment} l_par assignment r_par
 	| {help} id help_token
 	| {comment} comment
@@ -152,10 +151,10 @@ Productions
 	;
  
  // base expression component is a term or a power
- expr_component = {term} term | {power} power;
+ expr_component = {term} term | {power} power | {embedded_scriptchain} l_par mandatory_scriptchain r_par ;
  
  // to handle 5 ^ 2
- power = [base]:term pow [exponent]:term;
+ power = [base]:expr_component pow [exponent]:term;
  
  term = {reg_term} reg_term | {neg_term} neg_term | {pos_term} pos_term;
  // to accomodate for -var and +var 
