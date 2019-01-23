@@ -14,7 +14,6 @@ import java.util.Set;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -43,6 +42,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	
 	// set of reactors that send back task data to visualize
 	private static Set<String> taskReactors = new HashSet<String>();
+	
+	// gson variable
+	private static Gson gson = new Gson();
 	
 	static {
 		taskReactors.add("RunNumericalCorrelation");
@@ -149,8 +151,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	// convert the inputMapString to a map
         	Map<String, Object> inputMap = null;
     		try {
-    			inputMap = new ObjectMapper().readValue(inputMapString, Map.class);
-    		} catch (IOException e2) {
+    			inputMap = gson.fromJson(inputMapString, Map.class);
+    		} catch (Exception e2) {
     			throw new IllegalArgumentException("Unable to cast TaskOptions into a map");
     		}
         	
