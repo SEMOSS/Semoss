@@ -16,7 +16,7 @@ public class PixelUnitConsole extends PixelUnitWithDatabases {
 			try {
 				
 				// Initialize the "test" - setup state
-				initializeTest();
+				initializeTest(false);
 
 				// Read pixel from tester
 				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
