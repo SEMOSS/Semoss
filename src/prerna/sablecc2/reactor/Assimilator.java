@@ -11,7 +11,6 @@ import org.codehaus.plexus.util.StringUtils;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 
 public class Assimilator extends AbstractReactor implements JavaExecutable {
@@ -177,14 +176,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 					throw new IllegalArgumentException("Assimilator cannot handle this type if input");
 				}
 			} else if(dataType == PixelDataType.FORMATTED_DATA_SET || dataType == PixelDataType.TASK) {
-				NounMetadata formatData = null;
-				if(value instanceof ITask) {
-					// flush it out
-					Map<String, Object> collect = ((ITask) value).collect(false);
-					formatData = TaskUtility.getTaskDataScalarElement(collect);
-				} else {
-					formatData = TaskUtility.getTaskDataScalarElement(value);
-				}
+				NounMetadata formatData = TaskUtility.getTaskDataScalarElement(value);
 				if(formatData == null) {
 					throw new IllegalArgumentException("Can only handle query data that is a scalar input");
 				} else {
@@ -235,14 +227,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 					this.signature = StringUtils.replaceOnce( this.signature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), output.getValue().toString());
 					this.containsStringValue = true;
 				} else if(dataType == PixelDataType.FORMATTED_DATA_SET || dataType == PixelDataType.TASK) {
-					NounMetadata formatData = null;
-					if(output.getValue() instanceof ITask) {
-						// flush it out
-						Map<String, Object> collect = ((ITask) output.getValue()).collect(false);
-						formatData = TaskUtility.getTaskDataScalarElement(collect);
-					} else {
-						formatData = TaskUtility.getTaskDataScalarElement(output);
-					}
+					NounMetadata formatData = TaskUtility.getTaskDataScalarElement(output);
 					if(formatData == null) {
 						throw new IllegalArgumentException("Can only handle query data that is a scalar input");
 					} else {
