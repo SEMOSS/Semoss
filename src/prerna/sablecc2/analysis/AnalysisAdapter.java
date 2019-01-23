@@ -207,12 +207,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node)
     {
         defaultCase(node);
@@ -274,6 +268,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAPowerExprComponent(APowerExprComponent node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node)
     {
         defaultCase(node);
     }

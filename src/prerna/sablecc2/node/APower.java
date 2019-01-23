@@ -7,7 +7,7 @@ import prerna.sablecc2.analysis.*;
 @SuppressWarnings("nls")
 public final class APower extends PPower
 {
-    private PTerm _base_;
+    private PExprComponent _base_;
     private TPow _pow_;
     private PTerm _exponent_;
 
@@ -17,7 +17,7 @@ public final class APower extends PPower
     }
 
     public APower(
-        @SuppressWarnings("hiding") PTerm _base_,
+        @SuppressWarnings("hiding") PExprComponent _base_,
         @SuppressWarnings("hiding") TPow _pow_,
         @SuppressWarnings("hiding") PTerm _exponent_)
     {
@@ -45,12 +45,12 @@ public final class APower extends PPower
         ((Analysis) sw).caseAPower(this);
     }
 
-    public PTerm getBase()
+    public PExprComponent getBase()
     {
         return this._base_;
     }
 
-    public void setBase(PTerm node)
+    public void setBase(PExprComponent node)
     {
         if(this._base_ != null)
         {
@@ -160,7 +160,7 @@ public final class APower extends PPower
         // Replace child
         if(this._base_ == oldChild)
         {
-            setBase((PTerm) newChild);
+            setBase((PExprComponent) newChild);
             return;
         }
 

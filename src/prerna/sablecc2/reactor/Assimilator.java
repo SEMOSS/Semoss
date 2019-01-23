@@ -11,6 +11,7 @@ import org.codehaus.plexus.util.StringUtils;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 
 public class Assimilator extends AbstractReactor implements JavaExecutable {
@@ -24,6 +25,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 	
 	@Override
 	public NounMetadata execute() {
+		modifyForEmbeddedScripts();
 		modifySignatureFromLambdas();
 		for(String formula : formulas) {
 			this.signature = StringUtils.replaceOnce( this.signature, formula, "( 1.0 * " + formula.substring(1, formula.length()));
@@ -174,8 +176,15 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 					// this should never ever happen....
 					throw new IllegalArgumentException("Assimilator cannot handle this type if input");
 				}
-			} else if(dataType == PixelDataType.FORMATTED_DATA_SET) {
-				NounMetadata formatData = TaskUtility.getTaskDataScalarElement(value);
+			} else if(dataType == PixelDataType.FORMATTED_DATA_SET || dataType == PixelDataType.TASK) {
+				NounMetadata formatData = null;
+				if(value instanceof ITask) {
+					// flush it out
+					Map<String, Object> collect = ((ITask) value).collect(false);
+					formatData = TaskUtility.getTaskDataScalarElement(collect);
+				} else {
+					formatData = TaskUtility.getTaskDataScalarElement(value);
+				}
 				if(formatData == null) {
 					throw new IllegalArgumentException("Can only handle query data that is a scalar input");
 				} else {
@@ -194,7 +203,7 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 					}
 				}
 			} else {
-				throw new IllegalArgumentException("Assimilator can currently only handle outputs of scalar variables");
+				throw new IllegalArgumentException("Unable to handle this type of input");
 			}
 		}
 		
@@ -208,6 +217,51 @@ public class Assimilator extends AbstractReactor implements JavaExecutable {
 		}
 	}
 	
+	/**
+	 * Modify the expression for embedded scripts
+	 */
+	protected void modifyForEmbeddedScripts() {
+		// need to account for embedded scripts that we want to evaluate
+		List<NounMetadata> lambdas = curRow.getNounsOfType(PixelDataType.LAMBDA);
+		for(int i = 0; i < lambdas.size(); i++) {
+			NounMetadata n = lambdas.get(i);
+			if(n.getValue() instanceof EmbeddedScriptReactor) {
+				// replace the value with the output
+				NounMetadata output = ((EmbeddedScriptReactor) n.getValue()).execute();
+				PixelDataType dataType = output.getNounType();
+				if(dataType == PixelDataType.CONST_DECIMAL || dataType == PixelDataType.CONST_INT) {
+					this.signature = StringUtils.replaceOnce( this.signature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), output.getValue().toString());
+				} else if(dataType == PixelDataType.CONST_STRING) {
+					this.signature = StringUtils.replaceOnce( this.signature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), output.getValue().toString());
+					this.containsStringValue = true;
+				} else if(dataType == PixelDataType.FORMATTED_DATA_SET || dataType == PixelDataType.TASK) {
+					NounMetadata formatData = null;
+					if(output.getValue() instanceof ITask) {
+						// flush it out
+						Map<String, Object> collect = ((ITask) output.getValue()).collect(false);
+						formatData = TaskUtility.getTaskDataScalarElement(collect);
+					} else {
+						formatData = TaskUtility.getTaskDataScalarElement(output);
+					}
+					if(formatData == null) {
+						throw new IllegalArgumentException("Can only handle query data that is a scalar input");
+					} else {
+						Object newValue = formatData.getValue();
+						PixelDataType newDataType = formatData.getNounType();
+						if(newDataType == PixelDataType.CONST_DECIMAL || newDataType == PixelDataType.CONST_INT) {
+							this.signature = StringUtils.replaceOnce( this.signature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), newValue.toString());
+						} else {
+							this.signature = StringUtils.replaceOnce( this.signature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), newValue.toString());
+							this.containsStringValue = true;
+						}
+					}
+				} else {
+					throw new IllegalArgumentException("Unable to handle this type of input");
+				}
+			}
+		}
+	}
+
 	public void addFormula(String formula) {
 		// always append at the beginning
 		// so that we address the most inner one
