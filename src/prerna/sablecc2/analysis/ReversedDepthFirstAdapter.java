@@ -582,35 +582,6 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outAEmbeddedRoutineExpr(node);
     }
 
-    public void inAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node)
-    {
-        defaultIn(node);
-    }
-
-    public void outAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node)
-    {
-        inAEmbeddedScriptchainExpr(node);
-        if(node.getRPar() != null)
-        {
-            node.getRPar().apply(this);
-        }
-        if(node.getMandatoryScriptchain() != null)
-        {
-            node.getMandatoryScriptchain().apply(this);
-        }
-        if(node.getLPar() != null)
-        {
-            node.getLPar().apply(this);
-        }
-        outAEmbeddedScriptchainExpr(node);
-    }
-
     public void inAEmbeddedAssignmentExpr(AEmbeddedAssignmentExpr node)
     {
         defaultIn(node);
@@ -892,6 +863,35 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getPower().apply(this);
         }
         outAPowerExprComponent(node);
+    }
+
+    public void inAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node)
+    {
+        inAEmbeddedScriptchainExprComponent(node);
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        if(node.getMandatoryScriptchain() != null)
+        {
+            node.getMandatoryScriptchain().apply(this);
+        }
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        outAEmbeddedScriptchainExprComponent(node);
     }
 
     public void inAPower(APower node)

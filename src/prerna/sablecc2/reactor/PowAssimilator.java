@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -11,6 +12,8 @@ import org.codehaus.plexus.util.StringUtils;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.om.task.TaskUtility;
 
 public class PowAssimilator extends Assimilator {
 
@@ -20,22 +23,8 @@ public class PowAssimilator extends Assimilator {
 	private String rSignature;
 	
 	@Override
-	public void modifySignature(String stringToFind, String stringReplacement) {
-		// for this special reactor
-		// we need to run this on both the 
-		// left hand side and
-		// right hand size
-		LOGGER.debug("Original left signature value = " + this.lSignature);
-		this.lSignature = StringUtils.replaceOnce( this.lSignature, stringToFind, stringReplacement);
-		LOGGER.debug("New left signature value = " + this.lSignature);
-		
-		LOGGER.debug("Original right signature value = " + this.rSignature);
-		this.rSignature = StringUtils.replaceOnce( this.rSignature, stringToFind, stringReplacement);
-		LOGGER.debug("New right signature value = " + this.rSignature);
-	}
-
-	@Override
 	public NounMetadata execute() {
+		modifyForEmbeddedScripts();
 		modifySignatureFromLambdas();
 		// in order to ensure that we are properly creating the object as a double
 		// we need to remove any wrapping parenthesis such that we can 
@@ -85,6 +74,63 @@ public class PowAssimilator extends Assimilator {
 			e.printStackTrace();
 		}
 		return noun;
+	}
+	
+	@Override
+	public void modifySignature(String stringToFind, String stringReplacement) {
+		// for this special reactor
+		// we need to run this on both the 
+		// left hand side and
+		// right hand size
+		LOGGER.debug("Original left signature value = " + this.lSignature);
+		this.lSignature = StringUtils.replaceOnce( this.lSignature, stringToFind, stringReplacement);
+		LOGGER.debug("New left signature value = " + this.lSignature);
+		
+		LOGGER.debug("Original right signature value = " + this.rSignature);
+		this.rSignature = StringUtils.replaceOnce( this.rSignature, stringToFind, stringReplacement);
+		LOGGER.debug("New right signature value = " + this.rSignature);
+	}
+	
+	/**
+	 * Modify the expression for embedded scripts
+	 */
+	@Override
+	protected void modifyForEmbeddedScripts() {
+		// need to account for embedded scripts that we want to evaluate
+		List<NounMetadata> lambdas = curRow.getNounsOfType(PixelDataType.LAMBDA);
+		for(int i = 0; i < lambdas.size(); i++) {
+			NounMetadata n = lambdas.get(i);
+			if(n.getValue() instanceof EmbeddedScriptReactor) {
+				// replace the value with the output
+				NounMetadata output = ((EmbeddedScriptReactor) n.getValue()).execute();
+				PixelDataType dataType = output.getNounType();
+				if(dataType == PixelDataType.CONST_DECIMAL || dataType == PixelDataType.CONST_INT) {
+					this.lSignature = StringUtils.replaceOnce( this.lSignature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), output.getValue().toString());
+					this.rSignature = StringUtils.replaceOnce( this.rSignature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), output.getValue().toString());
+				} else if(dataType == PixelDataType.FORMATTED_DATA_SET || dataType == PixelDataType.TASK) {
+					NounMetadata formatData = null;
+					if(output.getValue() instanceof ITask) {
+						// flush it out
+						Map<String, Object> collect = ((ITask) output.getValue()).collect(false);
+						formatData = TaskUtility.getTaskDataScalarElement(collect);
+					} else {
+						formatData = TaskUtility.getTaskDataScalarElement(output);
+					}
+					if(formatData == null) {
+						throw new IllegalArgumentException("Can only handle query data that is a scalar input");
+					} else {
+						Object newValue = formatData.getValue();
+						PixelDataType newDataType = formatData.getNounType();
+						if(newDataType == PixelDataType.CONST_DECIMAL || newDataType == PixelDataType.CONST_INT) {
+							this.lSignature = StringUtils.replaceOnce( this.lSignature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), newValue.toString());
+							this.rSignature = StringUtils.replaceOnce( this.rSignature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), newValue.toString());
+						}
+					}
+				} else {
+					throw new IllegalArgumentException("Unable to handle this type of input");
+				}
+			}
+		}
 	}
 
 	/**

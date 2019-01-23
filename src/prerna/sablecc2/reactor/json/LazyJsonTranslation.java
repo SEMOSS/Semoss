@@ -23,7 +23,7 @@ import prerna.sablecc2.node.ABooleanScalar;
 import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.AEmbeddedAssignmentExpr;
-import prerna.sablecc2.node.AEmbeddedScriptchainExpr;
+import prerna.sablecc2.node.AEmbeddedScriptchainExprComponent;
 import prerna.sablecc2.node.AExplicitRel;
 import prerna.sablecc2.node.AFormula;
 import prerna.sablecc2.node.AFractionDecimal;
@@ -153,24 +153,19 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
     	postProcess(node.toString().trim());
 	}
 	
-	@Override
-	public void inAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
-		defaultIn(node);
+    @Override
+    public void inAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node) {
+    	defaultIn(node);
 		EmbeddedScriptReactor embeddedScriptReactor = new EmbeddedScriptReactor();
 		embeddedScriptReactor.setPixel(node.getMandatoryScriptchain().toString().trim(), node.toString().trim());
     	initReactor(embeddedScriptReactor);
-	}
-	
-	@Override
-	public void outAEmbeddedScriptchainExpr(AEmbeddedScriptchainExpr node) {
-		defaultOut(node);
+    }
+    
+    @Override
+    public void outAEmbeddedScriptchainExprComponent(AEmbeddedScriptchainExprComponent node) {
+    	defaultOut(node);
 		deInitReactor();
-		// if no parent, that means this embedded script
-		// is the only thing
-		if(curReactor == null) {
-			postProcess(node.toString().trim());
-		}
-	}
+    }
 	
 	@Override
 	public void inAMetaRoutine(AMetaRoutine node) {
