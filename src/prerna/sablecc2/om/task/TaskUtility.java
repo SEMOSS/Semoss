@@ -78,6 +78,10 @@ public class TaskUtility {
 	 * @return
 	 */
 	public static NounMetadata getTaskDataScalarElement(Object taskData) {
+		if(taskData instanceof ITask) {
+			Map<String, Object> collect = ((ITask) taskData).collect(false);
+			return TaskUtility.getTaskDataScalarElement(collect);
+		}
 		//TODO: grab the type from the task data if present instead of doing the cast
 		if(taskData instanceof Map) {
 			Map dataMap = (Map) ((Map) taskData).get("data");
