@@ -607,36 +607,20 @@ public class PixelUnit {
 	
 	// Test pixel methods (overloaded)
 	protected void testPixel(String pixel, String expectedJson) throws IOException {
-		testPixel(pixel, expectedJson, new ArrayList<String>(), false);
+		testPixel(pixel, expectedJson, false, new ArrayList<String>(), false);
 	}
-	
-	protected void testPixel(String pixel, String expectedJson, List<String> excludePaths) throws IOException {
-		testPixel(pixel, expectedJson, excludePaths, false);
-	}
-	
-	protected void testPixel(String pixel, String expectedJson, boolean ignoreOrder) throws IOException {
-		testPixel(pixel, expectedJson, new ArrayList<String>(), ignoreOrder);
-	}
-	
-	protected void testPixel(String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder) throws IOException {
-		Object result = compareResult(pixel, expectedJson, excludePaths, ignoreOrder);
+
+	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder) throws IOException {
+		Object result = compareResult(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
 		assertThat(result, is(equalTo(new HashMap<>())));
 	}
 	
 	// Compare result methods (overloaded)
 	protected Object compareResult(String pixel, String expectedJson) throws IOException {
-		return compareResult(pixel, expectedJson, new ArrayList<String>(), false);
+		return compareResult(pixel, expectedJson, false, new ArrayList<String>(), false);
 	}
 	
-	protected Object compareResult(String pixel, String expectedJson, List<String> excludePaths) throws IOException {
-		return compareResult(pixel, expectedJson, excludePaths, false);
-	}
-	
-	protected Object compareResult(String pixel, String expectedJson, boolean ignoreOrder) throws IOException {
-		return compareResult(pixel, expectedJson, new ArrayList<String>(), ignoreOrder);
-	}
-	
-	protected Object compareResult(String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder) throws IOException {
+	protected Object compareResult(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder) throws IOException {
 		
 		// Cleanup the expected json to make sure that it doesn't have any newlines
 		expectedJson = formatString(expectedJson);
@@ -645,7 +629,7 @@ public class PixelUnit {
 		
 		// Run the pixel and get the result
 		PixelRunner returnData = runPixel(pixel);
-		String actualJson = collectPixelJson(returnData);
+		String actualJson = compareAll ? collectAllPixelJsons(returnData) : collectLastPixelJson(returnData);
 		
 		// Only allow ASCII characters
 		actualJson = actualJson.replaceAll("[^\\p{ASCII}]", "?");
@@ -705,7 +689,19 @@ public class PixelUnit {
 		return string;
 	}
 	
-	protected static String collectPixelJson(PixelRunner returnData) throws IOException {
+	protected static String collectAllPixelJsons(PixelRunner returnData) throws IOException {
+		StreamingOutput so = PixelStreamUtility.collectPixelData(returnData);
+		try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+			so.write(output);
+			String jsonString = new String(output.toByteArray(), TEXT_ENCODING);
+			JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
+			JsonArray pixelReturns = jsonObject.get("pixelReturn").getAsJsonArray();
+			String pixelJsons = pixelReturns.toString();
+			return pixelJsons;
+		}
+	}
+	
+	protected static String collectLastPixelJson(PixelRunner returnData) throws IOException {
 		StreamingOutput so = PixelStreamUtility.collectPixelData(returnData);
 		try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 			so.write(output);
