@@ -437,10 +437,16 @@ public class PixelUnit {
 	
 	@Before
 	public void initializeTest() {
+		initializeTest(true);
+	}
+	
+	public void initializeTest(boolean checkAssumptions) {
 		initializeInsight();
 		initializeJep();
 		cleanTestDatabases = new ArrayList<>(); // Reset the list of databases to clean
-		checkTestAssumptions();
+		if (checkAssumptions) {
+			checkTestAssumptions();
+		}
 	}
 	
 	@After
