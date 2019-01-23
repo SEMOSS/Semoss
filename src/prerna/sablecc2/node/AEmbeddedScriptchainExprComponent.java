@@ -5,18 +5,18 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AEmbeddedScriptchainExpr extends PExpr
+public final class AEmbeddedScriptchainExprComponent extends PExprComponent
 {
     private TLPar _lPar_;
     private PMandatoryScriptchain _mandatoryScriptchain_;
     private TRPar _rPar_;
 
-    public AEmbeddedScriptchainExpr()
+    public AEmbeddedScriptchainExprComponent()
     {
         // Constructor
     }
 
-    public AEmbeddedScriptchainExpr(
+    public AEmbeddedScriptchainExprComponent(
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PMandatoryScriptchain _mandatoryScriptchain_,
         @SuppressWarnings("hiding") TRPar _rPar_)
@@ -33,7 +33,7 @@ public final class AEmbeddedScriptchainExpr extends PExpr
     @Override
     public Object clone()
     {
-        return new AEmbeddedScriptchainExpr(
+        return new AEmbeddedScriptchainExprComponent(
             cloneNode(this._lPar_),
             cloneNode(this._mandatoryScriptchain_),
             cloneNode(this._rPar_));
@@ -42,7 +42,7 @@ public final class AEmbeddedScriptchainExpr extends PExpr
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAEmbeddedScriptchainExpr(this);
+        ((Analysis) sw).caseAEmbeddedScriptchainExprComponent(this);
     }
 
     public TLPar getLPar()
