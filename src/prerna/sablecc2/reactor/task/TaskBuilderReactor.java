@@ -101,6 +101,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			// SINCE THERE ARE NO SELECTORS
 			ConstantDataTask cdTask = new ConstantDataTask();
 			cdTask.setOutputData(new HashMap<Object, Object>());
+			this.insight.getTaskStore().addTask(cdTask);
 			return cdTask;
 		}
 		
