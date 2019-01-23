@@ -45,8 +45,12 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 		
 	@Parameters(name = "{index}: test {0}")
 	public static Collection<Object[]> getTestParams() {
+		return getTestParams(TESTS_CSV);
+	}
+	
+	public static Collection<Object[]> getTestParams(String csvFile) {
 		Collection<Object[]> testParams = null;
-		try(CSVReader csv = new CSVReader(new FileReader(new File(TESTS_CSV)))) {
+		try(CSVReader csv = new CSVReader(new FileReader(new File(csvFile)))) {
 			csv.readNext(); // Discard the header
 			testParams = csv.readAll().stream().map(row -> new Object[] {
 						row[0], // name
@@ -63,23 +67,27 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 		}
 		return testParams;
 	}
-		
+	
 	private static List<String> parseListFromString(String string) {
 		return string.trim().isEmpty() ? new ArrayList<String>() : Arrays.asList(string.split(","));
 	}
 	
 	@Test
 	public void runTest() throws IOException {
+		runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, cleanTestDatabases);
+	}
+	
+	public static void runTest(PixelUnit testRunner, String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, List<String> cleanTestDatabases) throws IOException {
 		LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 		LOGGER.info("RUNNING TEST: " + name);
 		LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		try {
-			testPixel(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
+			testRunner.testPixel(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
 			throw e;
 		} finally {
-			setCleanTestDatabases(cleanTestDatabases);
+			testRunner.setCleanTestDatabases(cleanTestDatabases);
 		}
 	}
 
