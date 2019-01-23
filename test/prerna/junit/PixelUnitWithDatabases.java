@@ -7,6 +7,7 @@ import static org.junit.Assume.assumeThat;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.commons.io.FileUtils;
@@ -32,7 +33,7 @@ public class PixelUnitWithDatabases extends PixelUnit {
 		String pixel = "GetDatabaseMetamodel(database=[\"" + appId + "\"]);";
 		try {
 			String expectedJson = FileUtils.readFileToString(Paths.get(TEST_DATA_DIRECTORY, alias + METAMODEL_EXTENSION).toFile());
-			Object result = compareResult(pixel, expectedJson, true);
+			Object result = compareResult(pixel, expectedJson, false, new ArrayList<String>(), true);
 			assumeThat(result, is(equalTo(new HashMap<>())));
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
