@@ -28,7 +28,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	private List<Object[]> data;
 	private int dataPos = 0;
 	private int rowIndex = 1;
-	private int bulkRowSize = 5000;
+	private int bulkRowSize = 10_000;
 
 	public RIterator(RFrameBuilder builder, String rQuery, SelectQueryStruct qs) {
 		this.builder = builder;
@@ -161,7 +161,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 			String query = this.tempVarName + "[" + this.rowIndex + ":" + end + "]";
 			this.data = this.builder.getBulkDataRow(query, headers);
 			long endT = System.currentTimeMillis();
-			LOGGER.info("TIME TO GET SUBSET OF R VALUES = " + (endT-startT) + "ms");
+			LOGGER.debug("TIME TO GET SUBSET OF R VALUES = " + (endT-startT) + "ms");
 			
 			this.dataPos = 0;
 		}
