@@ -20,6 +20,10 @@ public class PixelUnitConsole extends PixelUnitWithDatabases {
 
 				// Read pixel from tester
 				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+				
+				LOGGER.info("Collect all pixel outputs?: (true or false): ");
+				boolean collectAll = Boolean.parseBoolean(reader.readLine().trim());
+				
 				LOGGER.info("Enter Pixel command (separated by ; and on one line): ");
 				String pixel = reader.readLine();   
 				pixel = pixel.trim();
@@ -27,7 +31,7 @@ public class PixelUnitConsole extends PixelUnitWithDatabases {
 				// Run the pixel
 				if(!pixel.isEmpty()) {
 					PixelRunner returnData = runPixel(pixel);
-					String json = collectPixelJson(returnData);
+					String json = collectAll ? collectAllPixelJsons(returnData) : collectLastPixelJson(returnData);
 					LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 					LOGGER.info("OUTPUT: ");
 					System.out.println(json);

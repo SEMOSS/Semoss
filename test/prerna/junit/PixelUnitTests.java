@@ -28,14 +28,16 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 	private String name;
 	private String pixel;
 	private String expectedJson;
+	private boolean compareAll;
 	private List<String> excludePaths;
 	private boolean ignoreOrder;
 	private List<String> cleanTestDatabases;
 	
-	public PixelUnitTests(String name, String pixel, String expectedJson, List<String> excludePaths, boolean ignoreOrder, List<String> cleanTestDatabases) {
+	public PixelUnitTests(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, List<String> cleanTestDatabases) {
 		this.name = name;
 		this.pixel = pixel;
 		this.expectedJson = expectedJson;
+		this.compareAll = compareAll;
 		this.excludePaths = excludePaths;
 		this.ignoreOrder = ignoreOrder;
 		this.cleanTestDatabases = cleanTestDatabases;
@@ -49,10 +51,11 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 			testParams = csv.readAll().stream().map(row -> new Object[] {
 						row[0], // name
 						row[1], // pixel
-						row[2], // expected
-						parseListFromString(row[3]), // exclude paths 
-						Boolean.parseBoolean(row[4]), // ignore order
-						parseListFromString(row[5]) // clean test databases
+						row[2], // expected json
+						Boolean.parseBoolean(row[3]), // compare all
+						parseListFromString(row[4]), // exclude paths 
+						Boolean.parseBoolean(row[5]), // ignore order
+						parseListFromString(row[6]) // clean test databases
 					}).collect(Collectors.toList());
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
@@ -71,7 +74,7 @@ public class PixelUnitTests extends PixelUnitWithDatabases {
 		LOGGER.info("RUNNING TEST: " + name);
 		LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		try {
-			testPixel(pixel, expectedJson, excludePaths, ignoreOrder);
+			testPixel(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
 			throw e;
