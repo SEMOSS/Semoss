@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -12,7 +11,6 @@ import org.codehaus.plexus.util.StringUtils;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 
 public class PowAssimilator extends Assimilator {
@@ -108,14 +106,7 @@ public class PowAssimilator extends Assimilator {
 					this.lSignature = StringUtils.replaceOnce( this.lSignature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), output.getValue().toString());
 					this.rSignature = StringUtils.replaceOnce( this.rSignature, ((EmbeddedScriptReactor) n.getValue()).getOriginalSignature(), output.getValue().toString());
 				} else if(dataType == PixelDataType.FORMATTED_DATA_SET || dataType == PixelDataType.TASK) {
-					NounMetadata formatData = null;
-					if(output.getValue() instanceof ITask) {
-						// flush it out
-						Map<String, Object> collect = ((ITask) output.getValue()).collect(false);
-						formatData = TaskUtility.getTaskDataScalarElement(collect);
-					} else {
-						formatData = TaskUtility.getTaskDataScalarElement(output);
-					}
+					NounMetadata formatData = TaskUtility.getTaskDataScalarElement(output);
 					if(formatData == null) {
 						throw new IllegalArgumentException("Can only handle query data that is a scalar input");
 					} else {
