@@ -1,5 +1,5 @@
-name,pixel,expected_json,exclude_paths,ignore_order,clean_test_databases
-version,Version();,"{""datetime"":""1000-01-01_01:01:01"",""version"":""1.0.0-SNAPSHOT""}","root['datetime'],root['version']",TRUE,
+name,pixel,expected_json,compare_all,exclude_paths,ignore_order,clean_test_databases
+version,Version();,"{""datetime"":""1000-01-01_01:01:01"",""version"":""1.0.0-SNAPSHOT""}",FALSE,"root['datetime'],root['version']",TRUE,
 predict metamodel,"PredictMetamodel(filePath=[""<<<testDir>>>/data/unit_test_movie.csv""], delimiter=["",""], rowCount=[false]);","{
    ""dataTypes"":{
       ""Nominated"":""STRING"",
@@ -56,10 +56,10 @@ predict metamodel,"PredictMetamodel(filePath=[""<<<testDir>>>/data/unit_test_mov
          ""fromTable"":""Title""
       }
    ]
-}","root['fileName'],root['fileLocation']",TRUE,
+}",FALSE,"root['fileName'],root['fileLocation']",TRUE,
 inner join,"CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAMEUNITTEST' ] ) ; 
 Database ( database = [ ""<<<appId>>>unit_test_movie<<</appId>>>"" ] ) | Select ( Director , Title , Title__MovieBudget , Title__Revenue_Domestic , Title__Revenue_International , Title__RottenTomatoes_Audience , Title__RottenTomatoes_Critics , Nominated , Studio , Genre ) .as ( [ Director , Title , MovieBudget , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Nominated , Studio , Genre ] ) | Join ( ( Title , inner.join , Director ) , ( Title , inner.join , Genre ) , ( Title , inner.join , Studio ) , ( Title , inner.join , Nominated ) ) | Import ( ) ;
-Frame ( ) | QueryAll ( ) | Collect ( -1 ) ;",<<<text>>>inner_join.txt<<</text>>>,,TRUE,
+Frame ( ) | QueryAll ( ) | Collect ( -1 ) ;",<<<text>>>inner_join.txt<<</text>>>,FALSE,,TRUE,
 sort ascending,"AddPanel ( 0 ) ;
 Panel ( 0 ) | AddPanelEvents ( { ""onSingleClick"" : { ""Unfilter"" : [ { ""panel"" : """" , ""query"" : ""<encode>UnfilterFrame(<SelectedColumn>);</encode>"" , ""options"" : { } , ""refresh"" : false , ""default"" : true , ""disabledVisuals"" : [ ""Grid"" , ""Sunburst"" ] , ""disabled"" : false } ] } , ""onBrush"" : { ""Filter"" : [ { ""panel"" : """" , ""query"" : ""<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>"" , ""options"" : { } , ""refresh"" : false , ""default"" : true , ""disabled"" : false } ] } } ) ;
 Panel ( 0 ) | RetrievePanelEvents ( ) ;
@@ -71,7 +71,7 @@ Database ( database = [ ""<<<appId>>>unit_test_movie<<</appId>>>"" ] ) | Select 
 Panel ( 0 ) | SetPanelView ( ""visualization"" ) ;
 Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ ""0"" ] , layout = [ ""Grid"" ] ) | Collect ( 500 ) ;
 Panel ( 0 ) | SetPanelSort ( columns = [ ""Title"" ] , sort = [ ""asc"" ] ) ;
-Frame ( ) | Select ( Director , Genre , MovieBudget , Nominated , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Title ) .as ( [ Director , Genre , MovieBudget , Nominated , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Title ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { ""0"" : { ""layout"" : ""Grid"" , ""alignment"" : { ""label"" : [ ""Director"" , ""Genre"" , ""MovieBudget"" , ""Nominated"" , ""Revenue_Domestic"" , ""Revenue_International"" , ""RottenTomatoes_Audience"" , ""RottenTomatoes_Critics"" , ""Studio"" , ""Title"" ] } } } ) | Collect ( 500 ) ;",<<<text>>>sort_ascending.txt<<</text>>>,,FALSE,
+Frame ( ) | Select ( Director , Genre , MovieBudget , Nominated , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Title ) .as ( [ Director , Genre , MovieBudget , Nominated , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Title ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { ""0"" : { ""layout"" : ""Grid"" , ""alignment"" : { ""label"" : [ ""Director"" , ""Genre"" , ""MovieBudget"" , ""Nominated"" , ""Revenue_Domestic"" , ""Revenue_International"" , ""RottenTomatoes_Audience"" , ""RottenTomatoes_Critics"" , ""Studio"" , ""Title"" ] } } } ) | Collect ( 500 ) ;",<<<text>>>sort_ascending.txt<<</text>>>,FALSE,,FALSE,
 sort descending,"AddPanel ( 0 ) ;
 Panel ( 0 ) | AddPanelEvents ( { ""onSingleClick"" : { ""Unfilter"" : [ { ""panel"" : """" , ""query"" : ""<encode>UnfilterFrame(<SelectedColumn>);</encode>"" , ""options"" : { } , ""refresh"" : false , ""default"" : true , ""disabledVisuals"" : [ ""Grid"" , ""Sunburst"" ] , ""disabled"" : false } ] } , ""onBrush"" : { ""Filter"" : [ { ""panel"" : """" , ""query"" : ""<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>"" , ""options"" : { } , ""refresh"" : false , ""default"" : true , ""disabled"" : false } ] } } ) ;
 Panel ( 0 ) | RetrievePanelEvents ( ) ;
@@ -83,4 +83,4 @@ Database ( database = [ ""<<<appId>>>unit_test_movie<<</appId>>>"" ] ) | Select 
 Panel ( 0 ) | SetPanelView ( ""visualization"" ) ;
 Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ ""0"" ] , layout = [ ""Grid"" ] ) | Collect ( 500 ) ;
 Panel ( 0 ) | SetPanelSort ( columns = [ ""Title"" ] , sort = [ ""desc"" ] ) ;
-Frame ( ) | Select ( Director , Genre , MovieBudget , Nominated , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Title ) .as ( [ Director , Genre , MovieBudget , Nominated , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Title ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { ""0"" : { ""layout"" : ""Grid"" , ""alignment"" : { ""label"" : [ ""Director"" , ""Genre"" , ""MovieBudget"" , ""Nominated"" , ""Revenue_Domestic"" , ""Revenue_International"" , ""RottenTomatoes_Audience"" , ""RottenTomatoes_Critics"" , ""Studio"" , ""Title"" ] } } } ) | Collect ( 500 ) ;",<<<text>>>sort_descending.txt<<</text>>>,,FALSE,
+Frame ( ) | Select ( Director , Genre , MovieBudget , Nominated , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Title ) .as ( [ Director , Genre , MovieBudget , Nominated , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Title ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { ""0"" : { ""layout"" : ""Grid"" , ""alignment"" : { ""label"" : [ ""Director"" , ""Genre"" , ""MovieBudget"" , ""Nominated"" , ""Revenue_Domestic"" , ""Revenue_International"" , ""RottenTomatoes_Audience"" , ""RottenTomatoes_Critics"" , ""Studio"" , ""Title"" ] } } } ) | Collect ( 500 ) ;",<<<text>>>sort_descending.txt<<</text>>>,FALSE,,FALSE,
