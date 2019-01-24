@@ -139,6 +139,7 @@ public class MergeDataReactor extends AbstractReactor {
 					if(qs.hasFiltered(q)) {
 						continue;
 					}
+					
 					SelectQueryStruct filterQs = new SelectQueryStruct();
 					QueryColumnSelector column = new QueryColumnSelector(s);
 					filterQs.addSelector(column);
@@ -147,6 +148,11 @@ public class MergeDataReactor extends AbstractReactor {
 						List<Object> values = new ArrayList<Object>();
 						while(it.hasNext()) {
 							values.add(it.next().getValues()[0]);
+						}
+						// if we get no values back
+						// i.e. your frame right now is empty :/
+						if(values.isEmpty()) {
+							continue;
 						}
 						// create a selector
 						// just set the table to be the alias
