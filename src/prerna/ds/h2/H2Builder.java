@@ -244,7 +244,7 @@ public class H2Builder {
 			}
 
 			if(ps == null) {
-				throw new EmptyIteratorException("Iterator generated returned no values");
+				throw new EmptyIteratorException("Query returned no data");
 			}
 			
 			// well, we are done looping through now
