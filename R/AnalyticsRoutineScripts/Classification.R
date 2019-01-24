@@ -43,7 +43,13 @@ getCTree <- function(dt, instanceCol, attrColList, subsetPercent=0.8){
 	predict <- predict(tree,testset,type="response")
 	accuracy <- 
 		if (is.numeric((trainset[[instanceCol]]))) {
-			rmse <- sqrt(mean((as.numeric(predict)-(as.numeric(testset[[instanceCol]]))^2)))
+			# need to normalize to keep values between 0 and 1
+			# will normalize based on the range and the actual range
+		  min_norm <- min(testset[[instanceCol]])
+		  max_norm <- max(testset[[instanceCol]])
+		  predict_acc <- (as.numeric(predict) - min_norm) / ( max_norm - min_norm)
+		  test_acc <- ( testset[[instanceCol]] - min_norm) / ( max_norm - min_norm) 
+		  rmse <- (1 - mean(sqrt( (predict_acc - test_acc )^2 ) )) * 100;
 			paste0(round(rmse, digits = 2))
 		} else {
 			acc <- 100 * mean(as.character(predict)==as.character(testset[[instanceCol]]))
