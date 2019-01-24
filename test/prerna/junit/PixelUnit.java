@@ -659,8 +659,8 @@ public class PixelUnit {
 			Object result = results.get(ddiffCommand);
 			
 			// Make sure there is no difference, ignoring order
-			LOGGER.info("EXPECTED: " + expectedJson);
-			LOGGER.info("ACTUAL:   " + actualJson);
+			LOGGER.debug("EXPECTED: " + expectedJson);
+			LOGGER.debug("ACTUAL:   " + actualJson);
 			LOGGER.info("DIFF:     " + result);
 			return result;
 			
