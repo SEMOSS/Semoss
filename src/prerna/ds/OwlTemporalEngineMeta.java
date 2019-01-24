@@ -894,10 +894,18 @@ public class OwlTemporalEngineMeta {
 					filter.append(" || ");
 				}
 				// clean data types to keep consistent
-				String cleanType = SemossDataType.convertStringToDataType(dataTypes[i]).toString();
+				SemossDataType type = SemossDataType.convertStringToDataType(dataTypes[i]);
+				String cleanType = type.toString();
 				filter.append("?dt = \"")
 				.append(cleanType)
 				.append("\"");
+				if(type == SemossDataType.STRING) {
+					// add factor as well
+					filter.append(" || ");
+					filter.append("?dt = \"")
+					.append(SemossDataType.FACTOR.toString())
+					.append("\"");
+				}
 			}
 			filter.append(") {?header <").append(OWL.DATATYPEPROPERTY).append("> ?dt}");
 		}
