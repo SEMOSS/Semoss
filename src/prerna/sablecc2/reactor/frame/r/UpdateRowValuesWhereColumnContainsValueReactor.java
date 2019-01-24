@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -24,7 +25,9 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 	 */
 	
 	public UpdateRowValuesWhereColumnContainsValueReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(),
+		this.keysToGet = new String[] { 
+				ReactorKeysEnum.COLUMN.getKey(), 
+				ReactorKeysEnum.VALUE.getKey(),
 				ReactorKeysEnum.QUERY_STRUCT.getKey() };
 	}
 
@@ -49,11 +52,10 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		String value = getNewValue();
 
 		// get data type of column being updated
-		String updateDataType = getColumnType(table, updateCol);
+		SemossDataType updateDataType = frame.getMetaData().getHeaderTypeAsEnum(table + "__" + updateCol);
 
 		// account for quotes around the new value if needed
-		if (updateDataType.contains("character") || updateDataType.contains("string")
-				|| updateDataType.contains("factor")) {
+		if (updateDataType == SemossDataType.STRING || updateDataType == SemossDataType.FACTOR) {
 			value = "\"" + value + "\"";
 		}
 
@@ -66,6 +68,9 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractRFra
 		SelectQueryStruct qs = getQueryStruct();
 		// get all of the filters from this querystruct
 		GenRowFilters grf = qs.getExplicitFilters();
+		if (grf.isEmpty()) {
+			throw new IllegalArgumentException("Need to define filter condition");
+		}
 
 		// use RInterpreter to create filter syntax
 		StringBuilder rFilterBuilder = new StringBuilder();
