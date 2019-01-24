@@ -140,6 +140,9 @@ public abstract class AbstractSecurityUtils {
 		colNames = new String[] { "enginename", "engineid", "global", "type", "cost" };
 		types = new String[] { "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINE", colNames, types));
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINE_GLOBAL_INDEX ON ENGINE (GLOBAL);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINE_ENGINENAME_INDEX ON ENGINE (ENGINENAME);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINE_ENGINEID_INDEX ON ENGINE (ENGINEID);");
 
 		// ENGINEMETA
 		colNames = new String[] { "engineid", "key", "value" };
@@ -151,16 +154,27 @@ public abstract class AbstractSecurityUtils {
 		types = new String[] { "varchar(255)", "integer", "varchar(255)", "boolean" };
 		defaultValues = new Object[]{null, null, null, true};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEPERMISSION", colNames, types, defaultValues));
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_PERMISSION_INDEX ON ENGINEPERMISSION (PERMISSION);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_VISIBILITY_INDEX ON ENGINEPERMISSION (VISIBILITY);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_ENGINEID_INDEX ON ENGINEPERMISSION (ENGINEID);");
 
 		// INSIGHT
 		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)", "boolean" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_LASTMODIFIEDON_INDEX ON INSIGHT (LASTMODIFIEDON);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_GLOBAL_INDEX ON INSIGHT (GLOBAL);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_ENGINEID_INDEX ON INSIGHT (ENGINEID);");
+//		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_INSIGHTNAME_INDEX ON INSIGHT (INSIGHTNAME);");
+//		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_INSIGHTID_INDEX ON INSIGHT (INSIGHTID);");
 
 		// USERINSIGHTPERMISSION
 		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERINSIGHTPERMISSION", colNames, types));
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS USERINSIGHTPERMISSION_PERMISSION_INDEX ON USERINSIGHTPERMISSION (PERMISSION);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS USERINSIGHTPERMISSION_ENGINEID_INDEX ON USERINSIGHTPERMISSION (ENGINEID);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS USERINSIGHTPERMISSION_USERID_INDEX ON USERINSIGHTPERMISSION (USERID);");
 
 		// PERMISSION
 		colNames = new String[] { "id", "name" };
@@ -174,7 +188,8 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
 			}
 		}
-		
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS PERMISSION_ID_NAME_INDEX ON PERMISSION (ID, NAME);");
+
 		// ACCESSREQUEST
 		colNames = new String[] { "id", "submittedby", "engine", "permission" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
