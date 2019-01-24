@@ -134,10 +134,6 @@ public class RImporter extends AbstractImporter {
 			String alterTable = RSyntaxHelper.alterMissingColumns(tableName, newColumnsToTypeMap, joins, new HashMap<String, String>());
 			this.dataframe.executeRScript(alterTable);
 		} else {
-			
-//			System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
-//			System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
-			
 			//define parameters that we will pass into mergeSyntax method to get the R command
 			String returnTable = this.dataframe.getName();
 			String leftTableName = returnTable;
@@ -163,6 +159,12 @@ public class RImporter extends AbstractImporter {
 				joinCols.add(joinColMapping);
 			}
 			
+			// need to account for the data types being different for the join columns
+			updateTypesForJoin(leftTableTypes, tempTableName, newColumnsToTypeMap, joinCols);
+			
+//			System.out.println(Arrays.toString(this.dataframe.getColumnNames(tempTableName)));
+//			System.out.println(Arrays.toString(this.dataframe.getColumnTypes(tempTableName)));
+
 			//execute r command
 			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
 			this.dataframe.executeRScript(mergeString);
@@ -177,5 +179,61 @@ public class RImporter extends AbstractImporter {
 		
 		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
 		return this.dataframe;
+	}
+	
+	/**
+	 * R merge syntax for join only works if the types are the same
+	 * We will convert the temp table types to match those of the current frame
+	 * @param existingTableTypes
+	 * @param tempTable
+	 * @param newColumnsToTypeMap
+	 * @param joins
+	 */
+	private void updateTypesForJoin(Map<String, SemossDataType> existingTableTypes, 
+			String tempTable, 
+			Map<String, SemossDataType> newColumnsToTypeMap, 
+			List<Map<String, String>> joins) {
+		// we will keep the source type as being the intended one
+		// and cast the temp table columns into that type
+		
+		StringBuilder builder = new StringBuilder();
+		for(Map<String, String> j : joins) {
+			String existingColName = j.keySet().iterator().next();
+			SemossDataType existingType = existingTableTypes.get(existingColName);
+			if(existingType == null) {
+				existingType = existingTableTypes.get(this.dataframe.getName() + "__" + existingColName);
+			}
+			String joinColumnInTempFrame = j.get(existingColName);
+			SemossDataType joinColumnInTempFrameType = newColumnsToTypeMap.get(joinColumnInTempFrame);
+			
+			// if they are not the same
+			// update the new column
+			if(existingType != joinColumnInTempFrameType) {
+				if(existingType == SemossDataType.STRING) {
+					builder.append( RSyntaxHelper.alterColumnTypeToCharacter(tempTable, joinColumnInTempFrame) ).append(";");
+					
+				} else if(existingType == SemossDataType.INT) {
+					builder.append( RSyntaxHelper.alterColumnTypeToInteger(tempTable, joinColumnInTempFrame) ).append(";");
+
+				} else if(existingType == SemossDataType.DOUBLE) {
+					builder.append( RSyntaxHelper.alterColumnTypeToNumeric(tempTable, joinColumnInTempFrame) ).append(";");
+
+				} else if(existingType == SemossDataType.FACTOR) {
+					builder.append( RSyntaxHelper.alterColumnTypeToFactor(tempTable, joinColumnInTempFrame) ).append(";");
+
+				} else if(existingType == SemossDataType.DATE) {
+					builder.append( RSyntaxHelper.alterColumnTypeToDate(tempTable, null, joinColumnInTempFrame) ).append(";");
+
+				} else if(existingType == SemossDataType.TIMESTAMP) {
+					builder.append( RSyntaxHelper.alterColumnTypeToDateTime(tempTable, null, joinColumnInTempFrame) ).append(";");
+
+				}
+			}
+		}
+		
+		String changeTypeScript = builder.toString();
+		if(!changeTypeScript.isEmpty()) {
+			this.dataframe.executeRScript(changeTypeScript);
+		}
 	}
 }
