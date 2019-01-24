@@ -32,8 +32,12 @@ public abstract class AbstractFilterReactor extends AbstractReactor {
 		}
 		
 		// else, grab the default frame from the insight
-		return (ITableDataFrame) this.insight.getDataMaker();
-
+		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		
+		if(defaultFrame == null) {
+			throw new NullPointerException("No frame defined and could not find the default insight frame");
+		}
+		return defaultFrame;
 	}
 
 	/**
