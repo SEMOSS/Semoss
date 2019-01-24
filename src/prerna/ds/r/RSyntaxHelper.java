@@ -311,6 +311,21 @@ public class RSyntaxHelper {
 		return builder.toString();
 	}
 	
+	public static String alterColumnTypeToFactor(String tableName, String colName) {
+		// will generate a string similar to
+		// "datatable$Revenue_International <- as.factor(datatable$Revenue_International)"
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.factor(")
+		.append(tableName).append("$").append(colName).append(")");
+		return builder.toString();
+	}
+	
+	public static String alterColumnTypeToFactor(String tableName, List<String> colName) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName + "[,(c('" + StringUtils.join(colName,"','") + "')) := lapply(.SD, as.factor), .SDcols = c('" + StringUtils.join(colName,"','") + "')]");
+		return builder.toString();
+	}
+	
 	/**
 	 * Converts a R column type to numeric
 	 * @param tableName				The name of the R table
@@ -329,6 +344,27 @@ public class RSyntaxHelper {
 	public static String alterColumnTypeToNumeric(String tableName, List<String> colName) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(tableName + "[,(c('" + StringUtils.join(colName,"','") + "')) := lapply(.SD, as.numeric), .SDcols = c('" + StringUtils.join(colName,"','") + "')]");
+		return builder.toString();
+	}
+	
+	/**
+	 * Converts a R column type to numeric
+	 * @param tableName				The name of the R table
+	 * @param colName				The name of the column
+	 * @return						The r script to execute
+	 */
+	public static String alterColumnTypeToInteger(String tableName, String colName) {
+		// will generate a string similar to
+		// "datatable$Revenue_International <- as.integer(as.character(datatable$Revenue_International))"
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.integer(as.character(")
+		.append(tableName).append("$").append(colName).append("))");
+		return builder.toString();
+	}
+	
+	public static String alterColumnTypeToInteger(String tableName, List<String> colName) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName + "[,(c('" + StringUtils.join(colName,"','") + "')) := lapply(.SD, as.integer), .SDcols = c('" + StringUtils.join(colName,"','") + "')]");
 		return builder.toString();
 	}
 
