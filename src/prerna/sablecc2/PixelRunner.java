@@ -71,7 +71,8 @@ public class PixelRunner {
 					eMessage += ". Error in syntax around " + expression.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, expression.length())).trim();
 				}
 			}
-			addResult(expression, new NounMetadata(eMessage, PixelDataType.INVALID_SYNTAX, PixelOperationType.INVALID_SYNTAX), false);
+			// treat this as a META so that FE doesn't record it
+			addInvalidSyntaxResult(expression, new NounMetadata(eMessage, PixelDataType.INVALID_SYNTAX, PixelOperationType.ERROR, PixelOperationType.INVALID_SYNTAX), false);
 		} finally {
 			// help clean up
 			PixelPlanner planner = translation.getPlanner();
@@ -98,6 +99,19 @@ public class PixelRunner {
 		if(!isMeta) {
 			this.insight.getPixelRecipe().add(origExpression);
 		}
+	}
+	
+	/**
+	 * Same as addResult but since this is an error we do not want to store it in the pixel recipe
+	 * @param pixelExpression
+	 * @param result
+	 * @param isMeta
+	 */
+	private void addInvalidSyntaxResult(String pixelExpression, NounMetadata result, boolean isMeta) {
+		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, encodedTextToOriginal);
+		this.pixelExpression.add(origExpression);
+		this.results.add(result);
+		this.isMeta.add(isMeta);
 	}
 	
 	public List<NounMetadata> getResults() {
