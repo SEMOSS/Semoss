@@ -89,8 +89,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		boolean engineExists = containsEngineId(appId);
 		if(engineExists && !reloadInsights) {
 			LOGGER.info("Security database already contains app with alias = " + appName);
-			// update engine properties anyway ... in case global was shifted for example
-//			updateEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
 			return;
 		} else if(!engineExists) {
 			addEngine(appId, appName, typeAndCost[0], typeAndCost[1], global);
@@ -140,6 +138,24 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			e.printStackTrace();
 		}
 		
+		// if we are doing a reload
+		// we will want to remove unnecessary insights
+		// from the insight permissions
+		boolean existingInsightPermissions = true;
+		Set<String> insightPermissionIds = null;
+		if(reloadInsights) {
+			// need to flush out the current insights w/ permissions
+			// will keep the same permissions
+			// and perform a delta
+			LOGGER.info("Reloading app. Retrieving existing insights with permissions");
+			String insightsWPer = "SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE ENGINEID='" + appId + "'";
+			IRawSelectWrapper insightWPerWrapper = WrapperManager.getInstance().getRawWrapper(securityDb, insightsWPer);
+			insightPermissionIds = flushToSetString(insightWPerWrapper, false);
+			if(insightPermissionIds.isEmpty()) {
+				existingInsightPermissions = true;
+			}
+		}
+		
 		// make a prepared statement
 		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(
 				new String[]{"INSIGHT","ENGINEID","INSIGHTID","INSIGHTNAME","GLOBAL","EXECUTIONCOUNT","CREATEDON","LASTMODIFIEDON","LAYOUT", "CACHEABLE"});
@@ -155,7 +171,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			Object[] row = wrapper.next().getValues();
 			try {
 				ps.setString(1, appId);
-				ps.setString(2, row[0].toString());
+				String insightId = row[0].toString();
+				ps.setString(2, insightId);
 				ps.setString(3, row[1].toString());
 				ps.setBoolean(4, !((boolean) row[3]));
 				ps.setLong(5, 0);
@@ -169,6 +186,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				if (++count % batchSize == 0) {
 					LOGGER.info("Executing batch .... row num = " + count);
 					ps.executeBatch();
+				}
+				
+				if(reloadInsights && existingInsightPermissions) {
+					insightPermissionIds.remove(insightId);
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -198,6 +219,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if(reloadInsights) {
 			LOGGER.info("Modifying force reload to false");
 			Utility.changePropMapFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");	
+			
+			// need to remove existing insights w/ permissions that do not exist anymore
+			if(existingInsightPermissions && !insightPermissionIds.isEmpty()) {
+				LOGGER.info("Removing insights with permissions that no longer exist");
+				String deleteInsightPermissionQuery = "DELETE FROM USERINSIGHTPERMISSION "
+					+ "WHERE ENGINEID='" + appId + "'"
+					+ " AND INSIGHTID " + createFilter(insightPermissionIds);
+				try {
+					securityDb.removeData(deleteInsightPermissionQuery);
+					securityDb.commit();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		LOGGER.info("Finished adding engine = " + appId);
