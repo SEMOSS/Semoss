@@ -22,6 +22,20 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	private static final Gson GSON = GsonUtility.getDefaultGson();
 	private static final Gson SIMPLE_GSON = new Gson();
 
+	private boolean simple = false;
+	
+	public InsightPanelAdapter() {
+		
+	}
+	
+	public InsightPanelAdapter(boolean simple) {
+		this.simple = simple;
+	}
+	
+	public void setSimple(boolean simple) {
+		this.simple= simple;
+	}
+	
 	@Override
 	public void write(JsonWriter out, InsightPanel value) throws IOException {
 		out.beginObject();
@@ -54,7 +68,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		out.beginArray();
 		List<ColorByValueRule> cbvList = value.getColorByValue();
 		for(ColorByValueRule rule : cbvList) {
-			ColorByValueRuleAdapter cbvAdapter = new ColorByValueRuleAdapter();
+			ColorByValueRuleAdapter cbvAdapter = new ColorByValueRuleAdapter(simple);
 			cbvAdapter.write(out, rule);
 		}
 		out.endArray();
