@@ -1,8 +1,8 @@
 package prerna.junit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeNoException;
@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -101,6 +102,7 @@ public class PixelUnit {
 	
 	private static final String DATA_EXTENSION = ".csv";
 	private static final String IMPORT_EXTENSION = "_import.txt";
+	private static final String METAMODEL_EXTENSION = "_metamodel.txt";
 	
 	private static final Path BASE_RDF_MAP = Paths.get(BASE_DIRECTORY, "RDF_Map.prop");
 	private static final Path TEST_RDF_MAP = Paths.get(TEST_RESOURCES_DIRECTORY, "RDF_Map.prop");
@@ -273,19 +275,25 @@ public class PixelUnit {
 		// List all the files in the test database directory
 		String[] fileNames = new File(TEST_DATA_DIRECTORY).list();
 		
-		// If there are corresponding csv and txt files, then load the test database
+		// If there are corresponding csv, import, and metamodel files, then load the test database
+		// There is probably a more efficient way to do this but I can't think of it right now
 		List<String> dataNames = new ArrayList<>();
 		List<String> importNames = new ArrayList<>();
-		for (String file : fileNames) {
-			if (file.endsWith(DATA_EXTENSION)) {
-				dataNames.add(file.substring(0, file.length() - DATA_EXTENSION.length()));
-			} else if (file.endsWith(IMPORT_EXTENSION)) {
-				importNames.add(file.substring(0, file.length() - IMPORT_EXTENSION.length()));
+		List<String> metamodelNames = new ArrayList<>();
+		for (String fileName : fileNames) {
+			if (fileName.endsWith(DATA_EXTENSION)) {
+				dataNames.add(fileName.substring(0, fileName.length() - DATA_EXTENSION.length()));
+			} else if (fileName.endsWith(IMPORT_EXTENSION)) {
+				importNames.add(fileName.substring(0, fileName.length() - IMPORT_EXTENSION.length()));
+			} else if (fileName.endsWith(METAMODEL_EXTENSION)) {
+				metamodelNames.add(fileName.substring(0, fileName.length() - METAMODEL_EXTENSION.length()));
 			}
 		}
 		for (String alias : dataNames) {
-			if (importNames.contains(alias)) {
+			if (importNames.contains(alias) & metamodelNames.contains(alias)) {
 				loadTestDatabase(alias);
+			} else {
+				LOGGER.warn("Cannot load " + alias + ", missing the corresponding import pixel or metamodel file.");
 			}
 		}
 	}
@@ -489,6 +497,21 @@ public class PixelUnit {
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
 			assumeNoException(e);
+		}
+		
+		// Assume that database metamodels are correct
+		for (Entry<String, String> entry : aliasToAppId.entrySet()) {
+			String alias = entry.getKey();
+			String appId = entry.getValue();
+			String pixel = "GetDatabaseMetamodel(database=[\"" + appId + "\"]);";
+			try {
+				String expectedJson = FileUtils.readFileToString(Paths.get(TEST_DATA_DIRECTORY, alias + METAMODEL_EXTENSION).toFile());
+				Object result = compareResult(pixel, expectedJson, false, new ArrayList<String>(), true);
+				assumeThat(result, is(equalTo(new HashMap<>())));
+			} catch (IOException e) {
+				LOGGER.error("Error: ", e);
+				assumeNoException(e);
+			}
 		}
 	}
 	
