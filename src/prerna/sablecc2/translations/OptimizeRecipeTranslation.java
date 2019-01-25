@@ -42,10 +42,6 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	
 	// set of reactors that send back task data to visualize
 	private static Set<String> taskReactors = new HashSet<String>();
-	
-	// gson variable
-	private static Gson gson = new Gson();
-	
 	static {
 		taskReactors.add("RunNumericalCorrelation");
 		taskReactors.add("RunMatrixRegression");
@@ -54,6 +50,15 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		taskReactors.add("RunAssociatedLearning");
 		taskReactors.add("NodeDetails");
 	}
+	
+	// set of reactors that are used to send back ornaments w/ a task to a panel
+	private static Set<String> taskOrnamentReactors = new HashSet<String>();
+	static {
+		taskOrnamentReactors.add("RetrievePanelColorByValue");
+	}
+	
+	// gson variable
+	private static Gson gson = new Gson();
 	
 	// keep track of the index of expressions
 	private int index = 0;
@@ -68,15 +73,20 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	// "0" -> [0,1,3] means that panel zero occurred in the TaskOptions of expressions 0, 1 and 3
 	private HashMap<String, List<Integer>> panelMap = new HashMap<String, List<Integer>>();
 	
+	// panelOrnamentMap will track panelId -> list of expressions in order of occurrence
+	// "0" -> [5.6] means that panel zero has these panel ornament tasks that need to be tracked
+	private HashMap<String, List<Integer>> panelOrnamentMap = new HashMap<String, List<Integer>>();
+
 	// keep a list of the expressions to keep
 	// we will add all expressions with no TaskOptions and then add the expressions that we do need with the task options
 	// we will order it at the end
-	private List<Integer> expressionsToKeep = new ArrayList<Integer>();
+	private List<Integer> optimizedRecipeIndicesToKeep = new ArrayList<Integer>();
 	
 	// we need to keep track of whether each expression contained TaskOptions
 	// create a variable that will be reset for each expression to indicate whether or not we encountered an instance of TaskOptions
 	// this is needed because if we get through a whole expression without hitting TaskOptions then we want to go ahead and add it to expressionsToKeep
-	private boolean containsTaskOptions = false; 
+	private boolean containsTaskOptions = false;
+	private boolean containsOrnamentTaskOptions = false;
 	private boolean containsPanelKey = false;
 	
 	// need to account for clones
@@ -97,6 +107,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	// create a variable to keep track of the current mapping of the original expression to the encoded expression
 	public HashMap<String, String> encodedToOriginal = new HashMap<String, String>();
 	
+	
 	/**
 	 * This method overrides caseAConfiguration, adds each expression to the expressionMap, adds expression indexes to the expression map, and updates the index
 	 * 
@@ -108,7 +119,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         for(PRoutine e : copy) {
         	// for each expression, reset whether it contains TaskOptions
         	// default to false and change to true if we hit TaskOptions within the expression
+        	curPanelId = null;
         	containsTaskOptions = false; 
+        	containsOrnamentTaskOptions = false;
         	String expression = e.toString();
         	
         	// add the expression to the map
@@ -119,8 +132,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	e.apply(this);
         	// if we made it through all reactors of the expression without ever hitting TaskOptions, go ahead and add the expression to expressionsToKeep
         	// this is run for each expression
-        	if (!containsTaskOptions) {
-        		expressionsToKeep.add(index);
+        	if (!containsTaskOptions && !containsOrnamentTaskOptions) {
+        		optimizedRecipeIndicesToKeep.add(index);
         	}
         	
         	// increase the index for each expression 
@@ -230,14 +243,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         		view = view.substring(0, view.length()-1);
         	}
         	addPanelView(curPanelId, view);
-        }
-        // need to account for auto tasks
-        // need to account for algorithms that just send data to the FE directly
-        else if(reactorId.equals("AutoTaskOptions") || taskReactors.contains(reactorId) ) {
-        	// this is a constant task
-        	// let the inAGeneric and inAWordOrIdScalar handle getting the correct panel id
-        	containsTaskOptions = true;
-        } 
+        }  
         // account for order of panel creation
         else if(reactorId.equals("AddPanel")) {
 			// store order of panel creation
@@ -245,6 +251,26 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	String panel = input.toString().trim();
         	panelCreationOrder.add(panel);
 		}
+        // need to account for auto tasks
+        // need to account for algorithms that just send data to the FE directly
+        else if(reactorId.equals("AutoTaskOptions") || taskReactors.contains(reactorId) ) {
+        	// this is a constant task
+        	// let the inAGeneric and inAWordOrIdScalar handle getting the correct panel id
+        	containsTaskOptions = true;
+        }
+        // need to account for task ornaments
+        else if(taskOrnamentReactors.contains(reactorId)) {
+        	// this is a panel ornament task
+        	// need to account for this differently
+        	
+        	// you can technically passin the panel directly
+        	// so will first see if a panel has been defined or not
+        	if(curPanelId != null) {
+            	addPanelOrnamentTaskForCurrentIndex(curPanelId);
+        	} else {
+            	containsOrnamentTaskOptions = true;
+        	}
+        }
 	}
 	
 	@Override
@@ -274,6 +300,17 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				panel = panel.substring(0, panel.length()-1);
 			}
 			addPanelForCurrentIndex(panel);
+		} else if(containsOrnamentTaskOptions && containsPanelKey) {
+			// this is the value for a panel
+			// store it with the current index
+			String panel = node.toString().trim();
+			if(panel.startsWith("\"") || panel.startsWith("'")) {
+				panel = panel.substring(1);
+			}
+			if(panel.endsWith("\"") || panel.endsWith("'")) {
+				panel = panel.substring(0, panel.length()-1);
+			}
+			addPanelOrnamentTaskForCurrentIndex(panel);
 		}
 	}
 	
@@ -298,6 +335,29 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			List<Integer> indexVals = new ArrayList<Integer>();
 			indexVals.add(index);
 			panelMap.put(panel, indexVals);
+		}
+	}
+	
+	/**
+	 * Same as addPanelForCurrentIndex
+	 * But for task ornaments
+	 * @param panel
+	 */
+	private void addPanelOrnamentTaskForCurrentIndex(String panel) {
+		panel = panel.trim();
+		if (panelOrnamentMap.keySet().contains(panel)) {
+			// if the panel DOES already exist in the panelMap, we just need to add the expression id to the set of values
+			// first get the existing set of index values
+			List<Integer> indexVals = panelOrnamentMap.get(panel);
+			// next, add the new index value to the list of values
+			if(!indexVals.contains(index)) {
+				indexVals.add(index);
+			}
+		} else {
+			// if the panel DOES NOT already exist in the panelMap, we need to add it
+			List<Integer> indexVals = new ArrayList<Integer>();
+			indexVals.add(index);
+			panelOrnamentMap.put(panel, indexVals);
 		}
 	}
 	
@@ -361,7 +421,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         }
         // we've now created our full list of expressionsToKeep
         // we should order expressions to keep
-       Collections.sort(expressionsToKeep);
+       Collections.sort(optimizedRecipeIndicesToKeep);
        
        // now that our expressions are sorted, we can add them to our modifiedRecipe variable to return 
        
@@ -369,8 +429,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
        // then match the index with the expression using the expressionMap
        // then add the item from the expressionMap to the modifiedRecipe
        List<String> modifiedRecipe = new ArrayList<String>();
-       for (int j = 0; j < expressionsToKeep.size(); j++) {
-			Integer indexToGrab = expressionsToKeep.get(j);
+       for (int j = 0; j < optimizedRecipeIndicesToKeep.size(); j++) {
+			Integer indexToGrab = optimizedRecipeIndicesToKeep.get(j);
 			String keepExpression = expressionMap.get(indexToGrab);
 			modifiedRecipe.add(keepExpression);
        }
@@ -459,6 +519,21 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
         	}
         	
         	expressionsToKeep.add(lastExpressionIndex);
+        	
+    		// let us find any panel ornaments to keep
+        	// so we can flush these as well
+        	if(panelOrnamentMap.containsKey(panelId)) {
+        		List<Integer> ornamentIndices = panelOrnamentMap.get(panelId);
+        		int size = ornamentIndices.size();
+        		for(int i = size; i > 0; i--) {
+        			int ornamentIndex = ornamentIndices.get(i-1);
+        			// if this happened after the last view
+        			// add it to the list of expressions to keep
+        			if(ornamentIndex > lastExpressionIndex) {
+        	        	expressionsToKeep.add(ornamentIndex);
+        			}
+        		}
+        	}
         }
 		// order the expressions
         Collections.sort(expressionsToKeep);
@@ -544,8 +619,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	 * @param index
 	 */
 	public void addToExpressions(int index) {
-		if (!expressionsToKeep.contains(index)) {
-			expressionsToKeep.add(index);
+		if (!optimizedRecipeIndicesToKeep.contains(index)) {
+			optimizedRecipeIndicesToKeep.add(index);
 		}
 	}
 
@@ -569,7 +644,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				"Panel ( 0 ) | Clone ( 2 ) ;",
 				"Select ( Director ) .as ( [ Director ] ) | With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"2\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Director\" ] } } } ) | Collect ( 500 ) ;",
 //				"if ( ( HasDuplicates ( Genre ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) , ( Select ( Genre , Count ( Title ) ) .as ( [ Genre , CountofTitle ] ) | Group ( Genre ) | With ( Panel ( 1 ) ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"1\" : { \"layout\" : \"Column\" , \"alignment\" : { \"label\" : [ \"Genre\" ] , \"value\" : [ \"CountofTitle\" ] , \"facet\" : [ ] } } } ) | Collect ( 500 ) ) ) ;",
-				"RunNumericalCorrelation ( attributes = [ MovieBudget, Revenue_Domestic, Revenue_International, RottenTomatoes_Audience, RottenTomatoes_Critics] , panel = [ 0 ] ) ;"
+				"RunNumericalCorrelation ( attributes = [ MovieBudget, Revenue_Domestic, Revenue_International, RottenTomatoes_Audience, RottenTomatoes_Critics] , panel = [ 0 ] ) ;",
+				"x = Select(Genre) | Filter(Genre == \"Thriller-Horror\");",
+				"Panel(0) | AddPanelColorByValue(name=[\"abc\"], qs=[x], options=[{\"a\":\"b\"}]);",
+				"Panel(0) | RetrievePanelColorByValue(name=[\"abc\"]) | Collect(-1);"
 		};
 
 		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
@@ -593,7 +671,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		// we want to run the finalizeExpressionsToKeep method only after all expressions have been run
 		// this way we can find the last expression index used 
 		Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-		System.out.println(gson.toJson(translation.finalizeExpressionsToKeep()));
+//		System.out.println(gson.toJson(translation.finalizeExpressionsToKeep()));
 		System.out.println(gson.toJson(translation.getCachedPixelRecipeSteps()));
 	}
 
