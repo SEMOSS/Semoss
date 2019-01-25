@@ -1,0 +1,6 @@
+college      : 
+epa contracts: https://www.usaspending.gov/
+movie        :
+movie rdf    :
+state pop    : http://www.census.gov/popest/data/state/totals/2015/
+zip lat lng  : https://gist.github.com/erichurst/7882666
