@@ -6,10 +6,6 @@
          "panelId":"0",
          "view":"visualization",
          "viewOptions":"{\"type\":\"echarts\"}",
-         "config":{
-            "type":"STANDARD",
-            "opacity":100
-         },
          "viewOptionsMap":{
             "federate-view":{
                "app_id":"<<<appId>>>unit_test_movie<<</appId>>>"
@@ -17,6 +13,10 @@
             "visualization":{
                "type":"echarts"
             }
+         },
+         "config":{
+            "type":"STANDARD",
+            "opacity":100
          },
          "ornaments":{
 
@@ -55,19 +55,19 @@
                ]
             }
          },
-         "grf":[
-
-         ],
-         "orderBys":[
-
-         ],
          "comments":{
 
          },
          "position":{
 
          },
-         "colorByValue":[
+         "filters":[
+
+         ],
+         "order":[
+
+         ],
+         "cbv":[
 
          ]
       },
@@ -150,10 +150,6 @@
          "panelId":"0",
          "view":"visualization",
          "viewOptions":"{\"type\":\"echarts\"}",
-         "config":{
-            "type":"STANDARD",
-            "opacity":100
-         },
          "viewOptionsMap":{
             "federate-view":{
                "app_id":"<<<appId>>>unit_test_movie<<</appId>>>"
@@ -161,6 +157,10 @@
             "visualization":{
                "type":"echarts"
             }
+         },
+         "config":{
+            "type":"STANDARD",
+            "opacity":100
          },
          "ornaments":{
 
@@ -199,19 +199,19 @@
                ]
             }
          },
-         "grf":[
-
-         ],
-         "orderBys":[
-
-         ],
          "comments":{
 
          },
          "position":{
 
          },
-         "colorByValue":[
+         "filters":[
+
+         ],
+         "order":[
+
+         ],
+         "cbv":[
 
          ]
       },
