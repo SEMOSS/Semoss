@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,10 +16,13 @@ import javax.ws.rs.core.StreamingOutput;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
+import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -28,6 +32,9 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.export.GraphFormatter;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.util.gson.GsonUtility;
+import prerna.util.gson.InsightPanelAdapter;
+import prerna.util.gson.NumberAdapter;
+import prerna.util.gson.SemossDateAdapter;
 import prerna.util.insight.InsightUtility;
 
 public class PixelStreamUtility {
@@ -37,6 +44,16 @@ public class PixelStreamUtility {
 
 	private static Gson getDefaultGson() {
 		return GsonUtility.getDefaultGson();
+	}
+	
+	private static Gson getPanelGson() {
+		 return new GsonBuilder()
+			.disableHtmlEscaping()
+			.excludeFieldsWithModifiers(Modifier.STATIC)
+			.registerTypeAdapter(Double.class, new NumberAdapter())
+			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.registerTypeAdapter(InsightPanel.class, new InsightPanelAdapter(true))
+			.create();
 	}
 	
 	/**
@@ -439,6 +456,15 @@ public class PixelStreamUtility {
 			}
 		}
 
+		// panel information
+		else if(nounT == PixelDataType.PANEL) {
+			Gson panelGson = getPanelGson();
+			ps.print("\"output\":");
+			ps.print(panelGson.toJson(noun.getValue()));
+			ps.print(",\"operationType\":");
+			ps.print(panelGson.toJson(noun.getOpType()));
+		}
+		
 		// everything else is simple
 		else {
 			ps.print("\"output\":");
