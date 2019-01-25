@@ -1,0 +1,48 @@
+{
+   "edges":[
+
+   ],
+   "nodes":[
+      {
+         "propSet":[
+            "census",
+            "estimates_base",
+            "pop_2010",
+            "pop_2011",
+            "pop_2012",
+            "pop_2013",
+            "pop_2014",
+            "pop_2015"
+         ],
+         "keySet":[
+            "state"
+         ],
+         "conceptualName":"state"
+      }
+   ],
+   "additionalDataTypes":{
+
+   },
+   "dataTypes":{
+      "state__estimates_base":"INT",
+      "state__pop_2011":"INT",
+      "state__pop_2010":"INT",
+      "state__pop_2013":"INT",
+      "state__pop_2012":"INT",
+      "state__census":"INT",
+      "state":"STRING",
+      "state__pop_2015":"INT",
+      "state__pop_2014":"INT"
+   },
+   "physicalTypes":{
+      "state__estimates_base":"INT",
+      "state__pop_2011":"INT",
+      "state__pop_2010":"INT",
+      "state__pop_2013":"INT",
+      "state__pop_2012":"INT",
+      "state__census":"INT",
+      "state":"VARCHAR(2000)",
+      "state__pop_2015":"INT",
+      "state__pop_2014":"INT"
+   }
+}
