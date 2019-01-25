@@ -1,0 +1,1 @@
+RdbmsCsvUpload(app=["unit_test_zip_lat_lng"], filePath=["<<<testDir>>>/data/unit_test_zip_lat_lng.csv"], delimiter=[","], metamodel=[{"relation":[],"nodeProp":{"zip":["lat","lng"]}}], dataTypeMap=[{"lat":"DOUBLE","lng":"DOUBLE","zip":"STRING"}], newHeaders=[{}], additionalDataTypes=[{}], existing=[false]);

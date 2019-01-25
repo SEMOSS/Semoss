@@ -1,0 +1,30 @@
+{
+   "edges":[
+
+   ],
+   "nodes":[
+      {
+         "propSet":[
+            "lat",
+            "lng"
+         ],
+         "keySet":[
+            "zip"
+         ],
+         "conceptualName":"zip"
+      }
+   ],
+   "additionalDataTypes":{
+
+   },
+   "dataTypes":{
+      "zip":"STRING",
+      "zip__lng":"DOUBLE",
+      "zip__lat":"DOUBLE"
+   },
+   "physicalTypes":{
+      "zip":"VARCHAR(2000)",
+      "zip__lng":"FLOAT",
+      "zip__lat":"FLOAT"
+   }
+}
