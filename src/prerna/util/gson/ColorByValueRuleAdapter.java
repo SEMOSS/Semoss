@@ -35,9 +35,16 @@ public class ColorByValueRuleAdapter extends TypeAdapter<ColorByValueRule> {
 	public void write(JsonWriter out, ColorByValueRule value) throws IOException {
 		out.beginObject();
 
+		// cbv name
 		out.name("name").value(value.getId());
-		out.name("options").value(SIMPLE_GSON.toJson(value.getOptions()));
-		
+		// options
+		if(value.getOptions() != null) {
+			out.name("options");
+			Map<String, Object> options = value.getOptions();
+			TypeAdapter oAdapter = SIMPLE_GSON.getAdapter(options.getClass());
+			oAdapter.write(out, options);
+		}
+
 		SelectQueryStruct qs = value.getQueryStruct();
 		if(simple) {
 			out.name("filterInfo");
@@ -74,7 +81,8 @@ public class ColorByValueRuleAdapter extends TypeAdapter<ColorByValueRule> {
 				if(in.peek() == JsonToken.NULL) {
 					in.nextNull();
 				} else {
-					options = GSON.fromJson(in.nextString(), Map.class);
+					TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
+					options = (Map<String, Object>) adapter.read(in);
 				}
 			} else if(name.equals("qs")) {
 				SelectQueryStructAdapter qsAdapter = new SelectQueryStructAdapter();
