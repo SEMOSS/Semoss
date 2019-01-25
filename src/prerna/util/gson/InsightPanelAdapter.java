@@ -44,13 +44,42 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		out.name("panelLabel").value(value.getPanelLabel());
 		out.name("view").value(value.getPanelView());
 		out.name("viewOptions").value(value.getPanelActiveViewOptions());
-		out.name("viewOptionsMap").value(SIMPLE_GSON.toJson(value.getPanelViewOptions()));
-		out.name("config").value(SIMPLE_GSON.toJson(value.getConfig()));
-		out.name("ornaments").value(SIMPLE_GSON.toJson(value.getOrnaments()));
-		out.name("events").value(SIMPLE_GSON.toJson(value.getEvents()));
-		out.name("comments").value(SIMPLE_GSON.toJson(value.getComments()));
-		out.name("position").value(SIMPLE_GSON.toJson(value.getPosition()));
-
+		out.name("viewOptionsMap");
+		{
+			Map<String, Map<String, String>> obj = value.getPanelViewOptions();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("config");
+		{
+			Map<String, Object> obj = value.getConfig();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("ornaments");
+		{
+			Map<String, Object> obj = value.getOrnaments();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("events");
+		{
+			Map<String, Object> obj = value.getEvents();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("comments");
+		{
+			Map<String, Map<String, Object>> obj = value.getComments();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
+		out.name("position");
+		{
+			Map<String, Object> obj = value.getPosition();
+			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+			adapter.write(out, obj);
+		}
 		out.name("filters");
 		// this adapter will write an array
 		GenRowFiltersAdapter grsAdapter = new GenRowFiltersAdapter();
@@ -116,23 +145,35 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 			} else if(key.equals("viewOptions")) {
 				viewOptions = value;
 			} else if(key.equals("viewOptionsMap")) {
-				viewOptionsMap =  SIMPLE_GSON.fromJson(value, Map.class);
+				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
+				viewOptionsMap = (Map<String, Map<String, String>>) adapter.read(in);
+				
 			} else if(key.equals("config")) {
-				config =  SIMPLE_GSON.fromJson(value, Map.class);
+				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
+				config = (Map<String, Object>) adapter.read(in);
+			
 			} else if(key.equals("ornaments")) {
-				ornaments = SIMPLE_GSON.fromJson(value, Map.class);
+				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
+				ornaments = (Map<String, Object>) adapter.read(in);
+			
 			} else if(key.equals("events")) {
-				events = SIMPLE_GSON.fromJson(value, Map.class);
+				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
+				events = (Map<String, Object>) adapter.read(in);
+			
 			} else if(key.equals("comments")) {
-				comments = SIMPLE_GSON.fromJson(value, Map.class);
+				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
+				comments = (Map<String, Map<String, Object>>) adapter.read(in);
+			
 			} else if(key.equals("position")) {
-				position = SIMPLE_GSON.fromJson(value, Map.class);
+				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
+				position = (Map<String, Object>) adapter.read(in);
 			} 
 			
 			// the values that are not strings
 			else if(key.equals("filters")) {
 				GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
 				grf = adapter.read(in);
+				
 			} else if(key.equals("order")) {
 				in.beginArray();
 				orders = new Vector<QueryColumnOrderBySelector>();
@@ -142,6 +183,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 					orders.add(s);
 				}
 				in.endArray();
+			
 			} else if(key.equals("cbv")) {
 				cbvList = new ArrayList<ColorByValueRule>();
 				in.beginArray();
