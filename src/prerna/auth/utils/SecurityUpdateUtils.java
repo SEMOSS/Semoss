@@ -859,20 +859,29 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// not added by admin
 				// lets see if he exists or not
 				boolean isNewUser = SecurityQueryUtils.checkUserExist(newUser.getId());
-				if(!isNewUser) {		
-					query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN) VALUES ('" + 
-							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
-							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
-							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
-							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
-							newUser.getProvider() + "', 'FALSE');";
-					try {
-						securityDb.insertData(query);
-						securityDb.commit();
-					} catch (SQLException e) {
-						e.printStackTrace();
+				if(!isNewUser) {
+					// need to synchronize the adding of new users
+					// so that we do not enter here from different threads 
+					// and add the same user twice
+					synchronized(SecurityUpdateUtils.class) {
+						// need to prevent 2 threads attempting to add the same user
+						isNewUser = SecurityQueryUtils.checkUserExist(newUser.getId());
+						if(!isNewUser) {
+							query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN) VALUES ('" + 
+									RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
+									RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
+									RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
+									RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
+									newUser.getProvider() + "', 'FALSE');";
+							try {
+								securityDb.insertData(query);
+								securityDb.commit();
+							} catch (SQLException e) {
+								e.printStackTrace();
+							}
+							return true;
+						}
 					}
-					return true;
 				}
 			}
 		} finally {
