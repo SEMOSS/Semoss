@@ -605,10 +605,9 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 			e.printStackTrace();
 			String errorMessage = "";
 			if (nextRow == null) {
-				errorMessage = "Error occured while performing insert on csv on row number = " + count;
+				errorMessage = "Error occured while performing insert on excel row number = " + count;
 			} else {
-				errorMessage = "Error occured while performing insert on csv data row:" + "\n"
-						+ Arrays.toString(nextRow);
+				errorMessage = "Error occured while performing insert on excel data row:" + "\n" + Arrays.toString(nextRow);
 			}
 			throw new IOException(errorMessage);
 		}
