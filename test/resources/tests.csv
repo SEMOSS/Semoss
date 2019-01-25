@@ -14,7 +14,7 @@ predict metamodel,"PredictMetamodel(filePath=[""<<<testDir>>>/data/unit_test_mov
       ""RottenTomatoes_Audience"":""DOUBLE""
    },
    ""startCount"":2,
-   ""fileName"":""C:/unit_test_movie"",
+   ""fileName"":""C:/unit_test_movie.csv"",
    ""headerModifications"":{
       ""Revenue_International"":""Original Header Value = Revenue-International"",
       ""RottenTomatoes_Critics"":""Original Header Value = RottenTomatoes-Critics"",
