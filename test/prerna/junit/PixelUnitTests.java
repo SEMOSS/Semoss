@@ -20,7 +20,7 @@ import org.junit.runners.Parameterized.Parameters;
 import au.com.bytecode.opencsv.CSVReader;
 
 @RunWith(Parameterized.class)
-public class PixelUnitTests extends PixelUnitWithDatabases {
+public class PixelUnitTests extends PixelUnit {
 
 	protected static final String TESTS_CSV = Paths.get(TEST_RESOURCES_DIRECTORY, "tests.csv").toAbsolutePath().toString();
 	

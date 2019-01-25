@@ -11,7 +11,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class PixelUnitTestsUser extends PixelUnitWithDatabases {
+public class PixelUnitTestsUser extends PixelUnit {
 
 	protected static final String USER_TESTS_CSV = Paths.get(TEST_RESOURCES_DIRECTORY, "user_tests.csv").toAbsolutePath().toString();
 	
