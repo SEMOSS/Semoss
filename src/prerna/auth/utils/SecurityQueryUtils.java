@@ -555,7 +555,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchUserInsights(User user, String engineId, String searchTerm, String limit, String offset) {
+	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, String limit, String offset) {
 		String userFilters = getUserFilters(user);
 
 		String query = "SELECT DISTINCT "
@@ -574,8 +574,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
 				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.INSIGHTID=INSIGHT.INSIGHTID "
 				+ "WHERE "
-				+ "INSIGHT.ENGINEID='" + engineId + "' "
-				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
+				+ "INSIGHT.ENGINEID " + createFilter(engineFilter)+ " "
+				+ " AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
 						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
@@ -586,7 +586,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 	
-	public static List<Map<String, Object>> searchInsights(String engineId, String searchTerm, String limit, String offset) {
+	public static List<Map<String, Object>> searchInsights(List<String> eFilters, String searchTerm, String limit, String offset) {
 		String query = "SELECT DISTINCT "
 				+ "INSIGHT.ENGINEID AS \"app_id\", "
 				+ "ENGINE.ENGINENAME AS \"app_name\", "
@@ -601,7 +601,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				+ "FROM INSIGHT "
 				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
 				+ "WHERE "
-				+ "INSIGHT.ENGINEID='" + engineId + "' "
+				+ "INSIGHT.ENGINEID " + createFilter(eFilters) + " "
 				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ escapeRegexCharacters(searchTerm) + "', 'i')" : "")
 				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
 				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
