@@ -203,6 +203,44 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		}
 		return null;
 	}
+	
+	/**
+	 * This method is used to get the column types of a frame
+	 * Need to account for R where factors come in as ordered factors...
+	 * Have portions in other places to pick up "ordered" and "factor" as both factor
+	 * @param frameName
+	 */
+	@Override
+	public String[] getColumnTypes(String frameName) {
+		String script = "sapply(" + frameName + ", class);";
+		REXP val = engine.eval(encapsulateForEnv(script));
+		if(val != null) {
+			int typeInt = val.getType();
+			if(typeInt == REXP.XT_ARRAY_STR) {
+				return val.asStringArray();
+			} else if(typeInt == REXP.XT_VECTOR) {
+				RVector vector = val.asVector();
+				int vSize = vector.size();
+				String[] arr = new String[vSize];
+				for(int i = 0; i < vSize; i++) {
+					Object v = vector.get(i);
+					if(v instanceof REXP) {
+						REXP vRexp = (REXP) v;
+						int vType = vRexp.getType();
+						if(vType == REXP.XT_STR) {
+							arr[i] = vRexp.asString();
+						} else if(vType == REXP.XT_ARRAY_STR) {
+							arr[i] = vRexp.asStringArray()[0];
+						}
+					} else {
+						arr[i] = v.toString();
+					}
+				}
+				return arr;
+			}
+		}
+		return null;
+	}
 
 	@Override 
 	public int getInt(String script) {
