@@ -111,6 +111,9 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 * 
 	 * @param frameName
 	 */
+	// THIS METHOD IS OVERRIDEN IN BOTH SUBCLASSES
+	// FOR JRI + RSERVE
+	// DUE TO TYPES BEING AN ARRAY WHEN ORDERED FACTORS
 	public String[] getColumnTypes(String frameName) {
 		String script = "sapply(" + frameName + ", class);";
 		String[] colTypes = this.getStringArray(script);
