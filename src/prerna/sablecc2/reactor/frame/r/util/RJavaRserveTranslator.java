@@ -9,6 +9,7 @@ import java.util.Vector;
 
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
+import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
@@ -24,7 +25,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	String port;
 
 	/**
-	 * Constructor only accesssible through the package
+	 * Constructor only accessible through the package
 	 * Please use the insight object or the RJavaTranslatorFactory
 	 * to get the correct instance
 	 */
@@ -146,6 +147,55 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * This method is used to get the column types of a frame
+	 * 
+	 * @param frameName
+	 */
+	public String[] getColumnTypes(String frameName) {
+		String script = "sapply(" + frameName + ", class);";
+		try {
+			REXP val = retCon.eval(script);
+			try {
+				 return val.asStrings();
+			} catch (REXPMismatchException e) {
+				// ignore
+			}
+			
+			try {
+				RList list = val.asList();
+				int size = list.size();
+				String[] arr = new String[size];
+				for(int i = 0; i < size; i++) {
+					Object v = list.get(i);
+					if(v instanceof REXP) {
+						try {
+							REXP vRexp = (REXP) v;
+							arr[i] = vRexp.asString();
+						}  catch (REXPMismatchException e) {
+							// could be an array
+							// actually, seems like RServe 
+							// will give you the first element
+							// of an array if you use asString
+							// even if asStrings() works
+							REXP vRexp = (REXP) v;
+							arr[i] = vRexp.asStrings()[0];
+						}
+					} else {
+						arr[i] = v.toString();
+					}
+				}
+				
+				return arr;
+			} catch (REXPMismatchException e) {
+				e.printStackTrace();
+			}
+		} catch (RserveException e) {
 			e.printStackTrace();
 		}
 		return null;
