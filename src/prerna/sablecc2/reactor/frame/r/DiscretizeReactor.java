@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -168,12 +169,12 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(sb.toString());
 
 		// retrieve new columns to add to meta
-		List<String> updatedDtColumns = Arrays.asList(this.rJavaTranslator.getColumns(dtName));
-		List<String> updatedDtColsSubset = new ArrayList<String>(CollectionUtils.removeAll(updatedDtColumns, colNames));
+		List<String> updatedDtColumns = new ArrayList<String>(Arrays.asList(this.rJavaTranslator.getColumns(dtName)));
+		updatedDtColumns.removeAll(colNames);
 
 		String colLevels_R = "colLevels" + Utility.getRandomString(8);
-		if (!updatedDtColsSubset.isEmpty()) {
-			for (String newColName : updatedDtColsSubset) {
+		if (!updatedDtColumns.isEmpty()) {
+			for (String newColName : updatedDtColumns) {
 				meta.addProperty(dtName, dtName + "__" + newColName);
 				meta.setAliasToProperty(dtName + "__" + newColName, newColName);
 				meta.setDataTypeToProperty(dtName + "__" + newColName, "FACTOR");

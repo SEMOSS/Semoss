@@ -701,6 +701,8 @@ public class Utility {
 		dataType = dataType.toUpperCase().trim();		
 		if(dataType.startsWith("FACTOR")) {
 			return true;
+		} else if(dataType.startsWith("ORDER")) {
+			return true;
 		}
 
 		return false;
