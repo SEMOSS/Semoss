@@ -8,7 +8,7 @@ install.packages("stringr", dependencies=TRUE)
 install.packages("lubridate", dependencies=TRUE)
 install.packages("dplyr", dependencies=TRUE)
 #install.packages("Rserve", dependencies=TRUE)
-#install.packages("RJava", dependencies=TRUE)
+#install.packages("rJava", dependencies=TRUE)
 
 ###############################################################################
 # Clean Routines
