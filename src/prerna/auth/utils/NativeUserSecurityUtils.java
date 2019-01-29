@@ -173,6 +173,26 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Brings the email from database.
+	 * @param username
+	 * @return email if it exists otherwise null
+	 */
+	public static String getUserEmail(String username) {
+		String query = "SELECT EMAIL FROM USER WHERE USERNAME = '?1'";
+		query = query.replace("?1", username);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if (wrapper.hasNext()) {
+				IHeadersDataRow sjss = wrapper.next();
+				return sjss.getValues()[0].toString();
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+		return null;
+	}
+	
+	/**
 	 * Brings the user name from database.
 	 * @param username
 	 * @return userId if it exists otherwise null
