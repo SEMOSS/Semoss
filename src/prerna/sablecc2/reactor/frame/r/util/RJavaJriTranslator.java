@@ -216,7 +216,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 		REXP val = engine.eval(encapsulateForEnv(script));
 		if(val != null) {
 			int typeInt = val.getType();
-			if(typeInt == REXP.XT_ARRAY_STR) {
+			if(typeInt == REXP.XT_ARRAY_STR || typeInt == REXP.XT_STR) {
 				return val.asStringArray();
 			} else if(typeInt == REXP.XT_VECTOR) {
 				RVector vector = val.asVector();
