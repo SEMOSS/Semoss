@@ -1,86 +1,123 @@
-discretizeColumnsDt <- function(dt, inputList=NULL){
-	#inputList = list(colName=list(breaks=..., labels=...), colName2=list(breaks2=..., labels2=...))
-	lapply(list('dplyr', 'data.table'), require, character.only = TRUE)
-	if("arules" %in% (.packages()))  detach("package:arules", unload=TRUE) 
-	
-	#vector of indexes of requested-columns containing NAs
-	naColVector<- sapply(dt[,names(inputList), with=FALSE], function(x) any(is.na(x) | is.nan(x) |is.infinite(x))) 
-	naColVector <- names(subset(naColVector, naColVector == TRUE))
-	if (length(naColVector) > 0) {
-		dt$generated_uuid99 <- seq.int(nrow(dt))
-	}
-	
-	#get max value from each requested-columns
-	maxValues <- sapply(dt[,names(inputList), with=FALSE], function(x) ceiling(max(x, na.rm = TRUE)))
+mainMethod <- function() {
+  library(datasets);
+  library(data.table);
+  data(iris);
+  iris;
+  iris <- as.data.table(iris);
+  iris$Sepal.Length[1] = NULL;
+  
+  inputList <- list(
+    Petal.Length=list(), 
+    Sepal.Length=list(breaks=c(4.3, 5.5, 6.7, 7.9), labels=c('Short','Medium','Long')), 
+    Petal.Width=list(breaks=c(0:5*.5))
+  );
+  
+  discretizeColumnsDt(iris, inputList);
+}
 
-	#validate requested breaks
-	for (requestedColName in names(inputList)) {
-		str <- ""
-		
-		#if breaks is not specificed, then need to run hist function to determine binning number (Sturges algorithm under the hood of hist)
-		breaksItem <- 
-			if(!is.null(getElement(inputList, requestedColName)$breaks)) {
-				unique(getElement(inputList, requestedColName)$breaks)
-			} else {
-				bin <- length(hist(dt[[requestedColName]], plot=FALSE)$counts)
-				inputList[[requestedColName]]["breaks"] <- bin
-			}
-		
-		if (is.numeric(breaksItem) && is.vector(breaksItem) && (
-		(length(breaksItem) == 1 && (breaksItem > 1L && eval(parse(text=paste0("is.integer(", breaksItem ,"L)"))))) ||
-		(length(breaksItem) > 1))) {
-			labels <- inputList[[requestedColName]][["labels"]]
-			if (is.null(labels) || (!is.null(labels) && ( (length(breaksItem) > 1 && length(labels) == length(breaksItem) - 1) || 
-			(length(breaksItem) == 1 && length(labels) == breaksItem) ))) {
-				if (length(breaksItem) > 1) inputList[[requestedColName]][["method"]] <- "'fixed'"
-				
-				if (is.null(inputList[[requestedColName]][["dig.lab"]])){
-					inputList[[requestedColName]][["dig.lab"]] <- nchar(maxValues[[requestedColName]]) + 3
-				}
-				
-				for (name in names(inputList[[requestedColName]])) {
-					valuesToSTring <- {
-						substring <- ifelse(name != "labels", paste0(inputList[[requestedColName]][[name]], collapse=","), 
-							toString(sprintf("'%s'", unlist(inputList[[requestedColName]][[name]]))))
-						ifelse(length(inputList[[requestedColName]][[name]]) > 1, paste0("c(", substring, ")", collapse=''),substring)
-					}
-					str <- paste0(str, name, " = ", valuesToSTring, sep = ", ")
-				}
-				str <- substr(str,1,nchar(str)-2)
-			
-				newColName <- getNewColumnName(requestedColName, names(dt))
-				
-				if (length(grep(requestedColName, naColVector)) == 0) { 
-					dt[, (newColName):=eval(parse(text = paste0("discretize(dt[['", requestedColName, "']],", str, ",include.lowest = TRUE, right=TRUE,ordered_result=TRUE)")))]
-				} else { 
-					#requestedCol has NAs
-					subsetDt <- dt[complete.cases(dt[[requestedColName]]),c("generated_uuid99", requestedColName), with=FALSE]
-					subsetDt[, (newColName):=eval(parse(text = paste0("discretize(subsetDt[['", requestedColName, "']],", 	str, ",include.lowest = TRUE, right=TRUE,ordered_result=TRUE)")))][, eval(requestedColName):=NULL]
-					setindex(dt, generated_uuid99)
-					setindex(subsetDt, generated_uuid99)
-					dt <- merge(x = dt, y = subsetDt, all.x = TRUE)
-				}
-			}
-		}
-	}
-	dt[, generated_uuid99 := NULL]
+# method to discretize a numeric column and add it back to the frame
+discretizeColumnsDt <- function(dt, inputList){
+  
+  # this options string is used for the discretize method
+  discretizeOptions <- ",include.lowest = TRUE, right=TRUE,ordered_result=TRUE)";
+  
+  #we will construct R syntax to execute based on the type of input that is provided
+  colNames <- names(inputList);
+  # loop through each input
+  for(name in colNames) {
+    discretizedColumnName <- getNewColumnName(name, names(dt))
+    
+    options <- inputList[[name]];
 
-	return (dt)
+    # case 1 - no input
+    # even though is is a subset of the other
+    # will treat it different for optimization
+    if(length(options) == 0) {
+      # we need to determine the optimal breaks
+      numBins <- length(hist(dt[[name]], plot=FALSE)$counts);
+      
+      # this is easy to set
+      # will just add this
+      dt[, (discretizedColumnName):=eval(parse(text = paste0("discretize(dt[['", name, "']], breaks=", numBins, discretizeOptions)))];
+    } else {
+      
+      # alright, we got some input
+      # we could have the following
+      # breaks: can be an array or a positive integer
+      # lables: must be an array
+      # dig.lab: must be a positive integer
+      
+      # we really only need to take into consideration breaks
+      # since if that is not there, we need to calculate it using hist
+      
+      if( !("breaks" %in% names(options)) ) {
+        numBins <- length(hist(dt[[name]], plot=FALSE)$counts);
+        # add the numBins into the options list
+        # so when we loop through all the options
+        # we have it considered
+        options$breaks = numBins;
+      }
+      
+      # if we have defined the breaks as an array of values
+      # we need to tell the algorithm this
+      # placeholder for the variable
+      method <- "";
+      
+      # now we loop through and generate the expression we want
+      distOptions <- "";
+      for(distOptionName in names(options)) {
+        thisOptionExpression <- "";
+        
+        distOptionValue = options[[distOptionName]];
+        # if array, we will wrap around as a vector
+        if(distOptionName == "dig.lab") {
+          thisOptionExpression <- paste(distOptionValue);
+        } else if(distOptionName == "breaks") {
+          if(length(distOptionValue) == 1) {
+            thisOptionExpression <- paste0(distOptionValue);
+          } else {
+            method = "fixed";
+            thisOptionExpression <- paste0("c(", paste(distOptionValue, collapse=", "), ")");
+          }
+        } else if(distOptionName == "labels") {
+          if(length(distOptionValue) == 1) {
+            thisOptionExpression <- paste0("\"", distOptionValue, "\"");
+          } else {
+            thisOptionExpression <- paste0("c(\"", paste(distOptionValue, collapse="\", \""), "\")");
+          }
+        }
+        
+        # append to entire expression
+        distOptions <- paste(distOptions, paste0(distOptionName, "=", thisOptionExpression), sep=",");
+      }
+      
+      # add the method if necessary
+      if(method != "") {
+        distOptions <- paste(distOptions, paste0("method=\"", method, "\""), sep=",");
+      }
+      # now execute
+      dt[, (discretizedColumnName):=eval(parse(text = paste0("discretize(dt[['", name, "']]", distOptions, discretizeOptions)))];
+    }
+  }
+  
+  return (dt);
 }
 
 
+
+## get a new column name that is unique
 getNewColumnName <- function(requestedColName, allColNames, colSuffix="_Discretized"){
-	proposedColName <- paste0(requestedColName, colSuffix)
-	nameGrepVec <- grep(proposedColName, allColNames)
-	if (length(nameGrepVec) == 0) {
-		proposedColName
-	} else {
-		existingColNames <- allColNames[nameGrepVec]
-		if (length(existingColNames) == 1) {
-			paste0(requestedColName, colSuffix, "_1")
-		} else {
-			largestIndex <- strsplit(existingColNames, paste0(colSuffix,'_')) %>% unlist(lapply(1:length(existingColNames), function(i) paste0(.[[i]][2]))) %>% as.integer(.) %>% max(., na.rm=TRUE) 
-			paste0(requestedColName, colSuffix, "_", largestIndex+1)
-		}
-	}
+  proposedColName <- paste0(requestedColName, colSuffix)
+  nameGrepVec <- grep(proposedColName, allColNames)
+  if (length(nameGrepVec) == 0) {
+    proposedColName
+  } else {
+    existingColNames <- allColNames[nameGrepVec]
+    if (length(existingColNames) == 1) {
+      paste0(requestedColName, colSuffix, "_1")
+    } else {
+      largestIndex <- strsplit(existingColNames, paste0(colSuffix,'_')) %>% unlist(lapply(1:length(existingColNames), function(i) paste0(.[[i]][2]))) %>% as.integer(.) %>% max(., na.rm=TRUE) 
+      paste0(requestedColName, colSuffix, "_", largestIndex+1)
+    }
+  }
 }
