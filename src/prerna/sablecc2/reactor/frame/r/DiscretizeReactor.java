@@ -58,8 +58,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 			if (name == null || name == "") {
 				throw new IllegalArgumentException("Column name needs to be specified.");
 			} else if (!colNames.contains(name)) {
-				throw new IllegalArgumentException(
-						"Specified column name, " + name + ", is unavailable in the data frame.");
+				throw new IllegalArgumentException("Specified column name, " + name + ", is unavailable in the data frame.");
 			}
 
 			// if we get to this point, we have a valid column name specified
@@ -67,75 +66,78 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 
 			// get column data type & only proceed if type = numeric
 			String dataType = meta.getHeaderTypeAsString(dtName + "__" + name);
-			if (Utility.isNumericType(dataType)) {
-				String breaks = (String) parsedMap.get("breaks");
-				String labels = (String) parsedMap.get("labels");
-				String numDigitsStr = (String) parsedMap.get("numDigits");
+			
+			if (!Utility.isNumericType(dataType)) {
+				throw new IllegalArgumentException("Specified column name, " + name + ", must be a numeric type");
+			}
+			
+			String breaks = (String) parsedMap.get("breaks");
+			String labels = (String) parsedMap.get("labels");
+			String numDigitsStr = (String) parsedMap.get("numDigits");
 
-				// validate that if breaks specified, then it doesn't contain
-				// any alpahbetical characters
-				if (breaks == null || breaks == "") {
-					// breaks var was not specified
-					listSB.append("list(");
+			// validate that if breaks specified, then it doesn't contain
+			// any alpahbetical characters
+			if (breaks == null || breaks == "") {
+				// breaks var was not specified
+				listSB.append("list(");
+			} else {
+				breaks = breaks.replaceAll("[()]", "").trim();
+				if (breaks != null && breaks != "" && breaks.matches(".*[a-zA-z]+.*") == true) {
+					throw new IllegalArgumentException("Breaks should be either a numerical integer or a "
+							+ "numerical vector. No alphabetical characters allowed.");
 				} else {
-					breaks = breaks.replaceAll("[()]", "").trim();
-					if (breaks != null && breaks != "" && breaks.matches(".*[a-zA-z]+.*") == true) {
-						throw new IllegalArgumentException("Breaks should be either a numerical integer or a "
-								+ "numerical vector. No alphabetical characters allowed.");
+					// valid breaks specified
+					if ((Object) breaks instanceof Integer) {
+						listSB.append("list(breaks=" + breaks + ")");
 					} else {
-						// valid breaks specified
-						if ((Object) breaks instanceof Integer) {
-							listSB.append("list(breaks=" + breaks + ")");
-						} else {
-							listSB.append("list(breaks=c(" + breaks + ")");
-						}
+						listSB.append("list(breaks=c(" + breaks + ")");
 					}
 				}
+			}
 
-				// validate that if labels specified, then valid breaks variable
-				// is available also
-				boolean isValidLabels = false;
-				if (labels != null && labels != "") {
-					if (breaks == null || breaks == "" || breaks.matches(".*[a-zA-z]+.*") == true) {
-						throw new IllegalArgumentException("Please specify breaks (cannot contain "
-								+ "alphabetical characters) - breaks are required if labels are provided.");
-					} else {
-						// check if labels contains whitespaces, then replace with
-						// underscore
-						labels = Utility.decodeURIComponent((String) labels).replaceAll("[()]", "").trim();
-						String[] labelsSplit = labels.split(",");
-						List<String> labelsList = Arrays.asList(labelsSplit);
-						if (labelsList.size() < 2)
-							throw new IllegalArgumentException("Labels has to contain more than 1 itme");
-						for (int j = 0; j < labelsList.size(); j++) {
-							String jLabel = "'" + labelsList.get(j).replaceAll("\"", "").trim().replaceAll("\\s", "_")
-									+ "'";
-							labelsList.set(j, jLabel);
-						}
-						labels = String.join(",", labelsList);
-						listSB.append(", labels=c(" + labels + ")");
-						isValidLabels = true;
-					}
-				}
-				
-				// validate that if numDigits specified AND labels is absent, then numDigits is a positive integer > 0
-				if (numDigitsStr == null || numDigitsStr == "" || isValidLabels == true) {
-					listSB.append(")");
+			// validate that if labels specified, then valid breaks variable
+			// is available also
+			boolean isValidLabels = false;
+			if (labels != null && labels != "") {
+				if (breaks == null || breaks == "" || breaks.matches(".*[a-zA-z]+.*") == true) {
+					throw new IllegalArgumentException("Please specify breaks (cannot contain "
+							+ "alphabetical characters) - breaks are required if labels are provided.");
 				} else {
-					try {
-						int numDigits = Integer.parseInt(numDigitsStr);
-						if (numDigitsStr.replaceAll("[\\D]", "").matches("^[0-9]*[1-9][0-9]*$")) {
-							if (listSB.indexOf("(") == listSB.length() - 1) {
-								listSB.append("dig.lab=" + numDigits + ")");
-							} else {
-								listSB.append(", dig.lab=" + numDigits + ")");
-							}
-						} else {
-							throw new IllegalArgumentException("Number of digits specified must be a positive integer.");
-						}
-					} catch (NumberFormatException e) {
-						throw new IllegalArgumentException("Number of digits specified must be an integer.");
+					// check if labels contains whitespaces, then replace with
+					// underscore
+					labels = Utility.decodeURIComponent((String) labels).replaceAll("[()]", "").trim();
+					String[] labelsSplit = labels.split(",");
+					List<String> labelsList = Arrays.asList(labelsSplit);
+					if (labelsList.size() < 2)
+						throw new IllegalArgumentException("Labels has to contain more than 1 itme");
+					for (int j = 0; j < labelsList.size(); j++) {
+						String jLabel = "'" + labelsList.get(j).replaceAll("\"", "").trim().replaceAll("\\s", "_")
+								+ "'";
+						labelsList.set(j, jLabel);
 					}
+					labels = String.join(",", labelsList);
+					listSB.append(", labels=c(" + labels + ")");
+					isValidLabels = true;
+				}
+			}
+			
+			// validate that if numDigits specified AND labels is absent, then numDigits is a positive integer > 0
+			if (numDigitsStr == null || numDigitsStr == "" || isValidLabels == true) {
+				listSB.append(")");
+			} else {
+				try {
+					int numDigits = Integer.parseInt(numDigitsStr);
+					if (numDigitsStr.replaceAll("[\\D]", "").matches("^[0-9]*[1-9][0-9]*$")) {
+						if (listSB.indexOf("(") == listSB.length() - 1) {
+							listSB.append("dig.lab=" + numDigits + ")");
+						} else {
+							listSB.append(", dig.lab=" + numDigits + ")");
+						}
+					} else {
+						throw new IllegalArgumentException("Number of digits specified must be a positive integer.");
+					}
+				} catch (NumberFormatException e) {
+					throw new IllegalArgumentException("Number of digits specified must be an integer.");
 				}
 			}
 
