@@ -91,7 +91,7 @@ public class RSyntaxHelper {
 		int i = 0;
 		int size = row.size();
 		for(; i < size; i++) {
-			if(SemossDataType.STRING == dataType) {
+			if(SemossDataType.STRING == dataType || SemossDataType.FACTOR == dataType) {
 				str.append("\"").append(row.get(i)).append("\"");
 			} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
 				str.append(row.get(i).toString());
