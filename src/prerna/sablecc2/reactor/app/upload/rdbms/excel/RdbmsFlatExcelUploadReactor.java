@@ -76,7 +76,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 				UploadInputUtility.NEW_HEADERS, 
 				UploadInputUtility.ADDITIONAL_DATA_TYPES, 
 				UploadInputUtility.CLEAN_STRING_VALUES,
-				UploadInputUtility.REMOVE_DUPLICATE_ROWS
+				UploadInputUtility.REMOVE_DUPLICATE_ROWS,
+				UploadInputUtility.REPLACE_EXISTING
 			};
 	}
 
@@ -104,6 +105,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		Map<String, Map<String, Map<String, String>>> newHeaders = getNewHeaders();
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
 		final boolean clean = UploadInputUtility.getClean(this.store);
+		final boolean replace = UploadInputUtility.getReplace(this.store);
 
 		// now that I have everything, let us go through and insert
 
@@ -138,7 +140,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		logger.info("Done loading excel file");
 
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
-		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean);
+		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, replace);
 		this.helper.clear();
 		owler.export();
 		this.engine.setOWL(owlFile.getPath());
@@ -275,6 +277,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		Map<String, Map<String, Map<String, String>>> newHeaders = getNewHeaders();
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
 		final boolean clean = UploadInputUtility.getClean(this.store);
+		final boolean replace = UploadInputUtility.getReplace(this.store);
 
 		// logger.info("Get existing database schema...");
 		// Map<String, Map<String, String>> existingRDBMSStructure =
@@ -294,7 +297,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		 */
 
 		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
-		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean);
+		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, replace);
 		owler.export();
 		this.engine.setOWL(this.engine.getOWL());
 		logger.info(stepCounter + ". Complete");
@@ -343,7 +346,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
 			Map<String, Map<String, Map<String, String>>> additionalDataTypeMap,
 			Map<String, Map<String, Map<String, String>>> newHeaders,
-			boolean clean) throws Exception {
+			boolean clean,
+			boolean replace) throws Exception {
 		// user hasn't defined the data types
 		// that means i am going ot assume that i should 
 		// load everything
@@ -369,7 +373,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 						qs.setSheetRange(range);
 						// sheetIterator will calculate the types if necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-						processSheet(engine, owler, sheetIterator, singleRange, clean);
+						processSheet(engine, owler, sheetIterator, singleRange, clean, replace);
 
 					}
 				}
@@ -399,7 +403,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 					}
 
 					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-					processSheet(engine, owler, sheetIterator, singleRange, clean);
+					processSheet(engine, owler, sheetIterator, singleRange, clean, replace);
 				}
 			}
 		}
@@ -417,7 +421,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws Exception 
 	 */
-	private void processSheet(IEngine engine, OWLER owler, ExcelSheetFileIterator helper, boolean singleRange, boolean clean) throws Exception {
+	private void processSheet(IEngine engine, OWLER owler, ExcelSheetFileIterator helper, boolean singleRange, boolean clean, boolean replace) throws Exception {
 		logger.info("Start parsing sheet metadata");
 		// even if types are not defined
 		// the qs will end up calculating everything for unknown types
@@ -443,7 +447,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes = null;
 		try {
-			sqlTypes = RdbmsUploadReactorUtility.createNewTable(engine, tableName, uniqueRowId, headers, types);
+			sqlTypes = RdbmsUploadReactorUtility.createNewTable(engine, tableName, uniqueRowId, headers, types, replace);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
