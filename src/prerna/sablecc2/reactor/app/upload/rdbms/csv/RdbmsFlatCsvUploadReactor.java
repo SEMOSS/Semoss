@@ -69,6 +69,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 				UploadInputUtility.ADDITIONAL_DATA_TYPES,
 				UploadInputUtility.CLEAN_STRING_VALUES, 
 				UploadInputUtility.REMOVE_DUPLICATE_ROWS,
+				UploadInputUtility.REPLACE_EXISTING
 		};
 	}
 
@@ -96,6 +97,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		final boolean clean = UploadInputUtility.getClean(this.store);
+		final boolean replace = UploadInputUtility.getReplace(this.store);
 
 		// now that I have everything, let us go through and insert
 
@@ -150,7 +152,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes = null;
 		try {
-			sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.engine, tableName, uniqueRowId, headers, types);
+			sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.engine, tableName, uniqueRowId, headers, types, replace);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -199,6 +201,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		final boolean clean = UploadInputUtility.getClean(this.store);
+		final boolean replace = UploadInputUtility.getReplace(this.store);
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Parsing file metadata...");
@@ -234,7 +237,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 			String[] sqlTypes = null;
 			try {
-				sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.engine, tableToInsertInto, uniqueRowId, headers, types);
+				sqlTypes = RdbmsUploadReactorUtility.createNewTable(this.engine, tableToInsertInto, uniqueRowId, headers, types, replace);
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(new NounMetadata("Error occured during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
