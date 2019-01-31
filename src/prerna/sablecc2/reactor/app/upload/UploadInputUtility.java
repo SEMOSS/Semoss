@@ -27,6 +27,7 @@ public class UploadInputUtility {
 	public static final String ADD_TO_EXISTING = ReactorKeysEnum.EXISTING.getKey();
 	public static final String CLEAN_STRING_VALUES = ReactorKeysEnum.CLEAN.getKey();
 	public static final String REMOVE_DUPLICATE_ROWS = ReactorKeysEnum.DEDUPLICATE.getKey();
+	public static final String REPLACE_EXISTING = ReactorKeysEnum.REPLACE.getKey();
 	public static final String METAMODEL = ReactorKeysEnum.METAMODEL.getKey();
 	public static final String END_ROW = ReactorKeysEnum.END_ROW.getKey();
 	public static final String START_ROW = ReactorKeysEnum.START_ROW.getKey();
@@ -82,6 +83,14 @@ public class UploadInputUtility {
 		GenRowStruct grs = store.getNoun(CLEAN_STRING_VALUES);
 		if (grs == null || grs.isEmpty()) {
 			return true;
+		}
+		return (boolean) grs.get(0);
+	}
+	
+	public static boolean getReplace(NounStore store) {
+		GenRowStruct grs = store.getNoun(REPLACE_EXISTING);
+		if (grs == null || grs.isEmpty()) {
+			return false;
 		}
 		return (boolean) grs.get(0);
 	}
