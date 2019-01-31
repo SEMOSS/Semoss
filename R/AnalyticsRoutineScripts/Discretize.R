@@ -25,8 +25,7 @@ discretizeColumnsDt <- function(dt, inputList){
   colNames <- names(inputList);
   # loop through each input
   for(name in colNames) {
-    discretizedColumnName <- getNewColumnName(name, names(dt))
-    
+    discretizedColumnName <- getNewColumnName(name, names(dt));
     options <- inputList[[name]];
 
     # case 1 - no input
@@ -35,10 +34,11 @@ discretizeColumnsDt <- function(dt, inputList){
     if(length(options) == 0) {
       # we need to determine the optimal breaks
       numBins <- length(hist(dt[[name]], plot=FALSE)$counts);
+      digits <- nchar(format(ceiling(max(na.omit(dt[[name]]))), scientific=F));
       
       # this is easy to set
       # will just add this
-      dt[, (discretizedColumnName):=eval(parse(text = paste0("discretize(dt[['", name, "']], breaks=", numBins, discretizeOptions)))];
+      dt[, (discretizedColumnName):=eval(parse(text = paste0("discretize(dt[['", name, "']], breaks=", numBins, ", dig.lab=", digits, discretizeOptions)))];
     } else {
       
       # alright, we got some input
