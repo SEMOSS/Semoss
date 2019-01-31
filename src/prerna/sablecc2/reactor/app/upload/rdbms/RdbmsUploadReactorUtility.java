@@ -69,7 +69,7 @@ public class RdbmsUploadReactorUtility {
 	 * @param types
 	 * @throws IOException 
 	 */
-	public static String[] createNewTable(IEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types) throws Exception {
+	public static String[] createNewTable(IEngine engine, String tableName, String uniqueRowId, String[] headers, SemossDataType[] types, boolean replace) throws Exception {
 		// we need to add the identity column
 		int size = types.length;
 		String[] sqlTypes = new String[size + 1];
@@ -93,8 +93,24 @@ public class RdbmsUploadReactorUtility {
 			}
 		}
 
-		String createTable = RdbmsQueryBuilder.makeOptionalCreate(tableName, newHeaders, sqlTypes);
-		engine.insertData(createTable);
+		if (replace) {
+			try {
+				String createTable = RdbmsQueryBuilder.makeCreate(tableName, newHeaders, sqlTypes);
+				engine.insertData(createTable);
+			} catch (Exception e) {
+				if (e.getMessage().contains("already exists")) {
+					String dropTable = RdbmsQueryBuilder.makeDropTable(tableName);
+					engine.removeData(dropTable);
+					String createTable = RdbmsQueryBuilder.makeCreate(tableName, newHeaders, sqlTypes);
+					engine.insertData(createTable);
+				}
+			}
+		} else {
+			String createTable = RdbmsQueryBuilder.makeOptionalCreate(tableName, newHeaders, sqlTypes);
+			engine.insertData(createTable);
+		}
+
+
 		return sqlTypes;
 	}
 
