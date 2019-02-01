@@ -35,6 +35,8 @@ public abstract class AbstractTask implements ITask {
 	protected long internalOffset = 0;
 	// num to collect
 	protected int numCollect = 500;
+	// size of the task
+	protected long numRows = 0;
 	
 	public AbstractTask() {
 		this.sortInfo = new ArrayList<Map<String, Object>>();
@@ -217,7 +219,15 @@ public abstract class AbstractTask implements ITask {
 	public String toString() {
 		return this.id;
 	}
+	
+	public long getNumRows() {
+		return this.numRows;
+	}
 
+	public void setNumRows(long numRows) {
+		this.numRows = numRows;
+	}
+	
 	public long getInternalOffset() {
 		return this.internalOffset;
 	}

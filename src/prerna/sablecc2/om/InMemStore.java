@@ -1,9 +1,8 @@
 package prerna.sablecc2.om;
 
-import java.util.Iterator;
 import java.util.Set;
 
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 
 public interface InMemStore<K, V> {
@@ -12,14 +11,14 @@ public interface InMemStore<K, V> {
 	 * Default iterator
 	 * @return
 	 */
-	public Iterator<IHeadersDataRow> getIterator();
+	public IRawSelectWrapper getIterator();
 	
 	/**
 	 * Iterator with qs defined
 	 * @param qs
 	 * @return
 	 */
-	public Iterator<IHeadersDataRow> getIterator(SelectQueryStruct qs);
+	public IRawSelectWrapper getIterator(SelectQueryStruct qs);
 
 	/**
 	 * Insert data to be stored
