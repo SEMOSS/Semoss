@@ -211,24 +211,31 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 	}
 
 	@Override
-	public long getNumRecords() {
-		String query = "select (count(*) * " + this.numColumns + " as ?count) where { " + this.query + "}";
-		TupleQueryResult tqr = (TupleQueryResult) engine.execQuery(query);
-
-		try {
-			if(tqr.hasNext()) {
-				BindingSet bindSet = tqr.next();
-				Object val = bindSet.getValue("count");
-				Object cleanValue = getRealValue(val);
-				if(cleanValue instanceof Number) {
-					return ((Number) cleanValue).longValue();
+	public long getNumRows() {
+		if(this.numRows == 0) {
+			String query = "select (count(*) as ?count) where { " + this.query + "}";
+			TupleQueryResult tqr = (TupleQueryResult) engine.execQuery(query);
+	
+			try {
+				if(tqr.hasNext()) {
+					BindingSet bindSet = tqr.next();
+					Object val = bindSet.getValue("count");
+					Object cleanValue = getRealValue(val);
+					if(cleanValue instanceof Number) {
+						this.numRows = ((Number) cleanValue).longValue();
+					}
 				}
+			} catch (QueryEvaluationException e) {
+				e.printStackTrace();
 			}
-		} catch (QueryEvaluationException e) {
-			e.printStackTrace();
 		}
 
-		return 0;
+		return this.numRows;
+	}
+	
+	@Override
+	public long getNumRecords() {
+		return getNumRows() * getHeaders().length;
 	}
 
 	@Override

@@ -65,8 +65,7 @@ public class RawPandasWrapper implements IRawSelectWrapper {
 	}
 
 	@Override
-	public long getNumRecords() {
-		// TODO Auto-generated method stub
+	public long getNumRows() {
 		return iterator.fullData.size();
 	}
 
@@ -79,6 +78,12 @@ public class RawPandasWrapper implements IRawSelectWrapper {
 	public void setPandasIterator(PandasIterator pi) {
 		// TODO Auto-generated method stub
 		this.iterator = pi;
+	}
+
+	@Override
+	public long getNumRecords() {
+		// TODO Auto-generated method stub
+		return iterator.fullData.size() * getHeaders().length;
 	}
 
 }

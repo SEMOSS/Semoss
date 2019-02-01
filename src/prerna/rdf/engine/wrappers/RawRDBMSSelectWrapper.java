@@ -17,6 +17,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.HeadersDataRow;
+import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.util.ConnectionUtils;
 
 public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
@@ -235,36 +236,50 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public long getNumRecords() {
-		String query = "select (count(*) * " + this.numColumns + ") from (" + this.query + ")";
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = this.conn.createStatement();
-			rs = stmt.executeQuery(query);
-			if(rs.next()) {
-				return rs.getLong(1);
+	public long getNumRows() {
+		if(this.numRows == 0) {
+			PraseSqlQueryForCount parser = new PraseSqlQueryForCount();
+			String query;
+			try {
+				query = parser.processQuery(this.query);
+			} catch (Exception e) {
+				e.printStackTrace();
+				query = this.query;
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
+			query = "select count(*) from (" + query + ") t";
+			Statement stmt = null;
+			ResultSet rs = null;
+			try {
+				stmt = this.conn.createStatement();
+				rs = stmt.executeQuery(query);
+				if(rs.next()) {
+					this.numRows = rs.getLong(1);
 				}
-			}
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				if(rs != null) {
+					try {
+						rs.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+				if(stmt != null) {
+					try {
+						stmt.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
-		
-		return 0;
+		return this.numRows;
+	}
+	
+	@Override
+	public long getNumRecords() {
+		return getNumRows() * this.numColumns;
 	}
 	
 	@Override
