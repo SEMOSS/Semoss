@@ -18,6 +18,12 @@ public interface IRawSelectWrapper extends IEngineWrapper, Iterator<IHeadersData
 	SemossDataType[] getTypes();
 
 	/**
+	 * Get the number of rows
+	 * @return
+	 */
+	long getNumRows();
+	
+	/**
 	 * Get the size of the return
 	 */
 	long getNumRecords();

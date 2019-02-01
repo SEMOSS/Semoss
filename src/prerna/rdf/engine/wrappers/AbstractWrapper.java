@@ -57,6 +57,8 @@ public abstract class AbstractWrapper implements IRemoteQueryable, IEngineWrappe
 	//TODO: move to pixel data type
 	protected SemossDataType[] types = null;
 	protected int numColumns;
+
+	protected long numRows;
 	
 	@Override
 	public void setRemoteId(String id) {

@@ -111,6 +111,11 @@ public class JsonWrapper implements IRawSelectWrapper {
 	}
 	
 	@Override
+	public long getNumRows() {
+		return this.numRows;
+	}
+	
+	@Override
 	public long getNumRecords() {
 		return this.numRows * this.headers.length;
 	}

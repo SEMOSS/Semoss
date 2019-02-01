@@ -189,11 +189,20 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 	}
 
 	@Override
-	public long getNumRecords() {
-		if(processedData == null) {
-			return this.subIt.getNumRecords();
+	public long getNumRows() {
+		if(this.numRows == 0) {
+			if(processedData == null) {
+				this.numRows = this.subIt.getNumRows();
+			} else {
+				this.numRows = processedDataSize;
+			}
 		}
-		return processedDataSize;
+		return this.numRows;
+	}
+
+	@Override
+	public long getNumRecords() {
+		return getNumRows() * getHeaders().length;	
 	}
 
 	@Override
