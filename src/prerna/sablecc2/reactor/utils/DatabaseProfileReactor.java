@@ -16,7 +16,9 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -246,23 +248,27 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		// nulls
 		qs_nulls = new SelectQueryStruct();
 		{
-			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
-			uniqueCountSelector.setFunction(QueryFunctionHelper.COUNT);
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			innerSelector.setTable(concept);
-			innerSelector.setColumn(prop);
-			uniqueCountSelector.addInnerSelector(innerSelector);
-			qs2.addSelector(uniqueCountSelector);
-			QueryColumnSelector col = new QueryColumnSelector();
-			col.setTable(concept);
-			col.setColumn(prop);
-
-			// nulls
-			qs_nulls.addSelector(uniqueCountSelector);
-			SimpleQueryFilter nulls = new SimpleQueryFilter(
-					new NounMetadata(col, PixelDataType.COLUMN), "==",
-					new NounMetadata(null, PixelDataType.NULL_VALUE));
-			qs_nulls.addExplicitFilter(nulls);
+			QueryArithmeticSelector arithmaticSelector = new QueryArithmeticSelector();
+			arithmaticSelector.setMathExpr("-");
+			QueryFunctionSelector countAllRows = new QueryFunctionSelector();
+			countAllRows.setFunction(QueryFunctionHelper.COUNT);
+			{
+				QueryConstantSelector innerSelector = new QueryConstantSelector();
+				innerSelector.setConstant(1);
+				countAllRows.addInnerSelector(innerSelector);
+			}
+			QueryFunctionSelector countNonNulls = new QueryFunctionSelector();
+			countNonNulls.setFunction(QueryFunctionHelper.COUNT);
+			{
+				QueryColumnSelector innerSelector = new QueryColumnSelector();
+				innerSelector.setTable(concept);
+				innerSelector.setColumn(prop);
+				countNonNulls.addInnerSelector(innerSelector);
+			}
+			arithmaticSelector.setLeftSelector(countAllRows);
+			arithmaticSelector.setRightSelector(countNonNulls);
+			
+			qs_nulls.addSelector(arithmaticSelector);
 		}
 		// get null values count
 		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);

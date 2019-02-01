@@ -108,11 +108,8 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 					labels = Utility.decodeURIComponent((String) labels).replaceAll("[()]", "").trim();
 					String[] labelsSplit = labels.split(",");
 					List<String> labelsList = Arrays.asList(labelsSplit);
-					if (labelsList.size() < 2)
-						throw new IllegalArgumentException("Labels has to contain more than 1 itme");
 					for (int j = 0; j < labelsList.size(); j++) {
-						String jLabel = "'" + labelsList.get(j).replaceAll("\"", "").trim().replaceAll("\\s", "_")
-								+ "'";
+						String jLabel = "'" + labelsList.get(j).replaceAll("\"", "").trim().replaceAll("\\s", "_") + "'";
 						labelsList.set(j, jLabel);
 					}
 					labels = String.join(",", labelsList);
