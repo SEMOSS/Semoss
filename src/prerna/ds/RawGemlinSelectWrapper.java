@@ -172,27 +172,32 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 			e.printStackTrace();
 		}
 	}
+	
+	@Override
+	public long getNumRows() {
+		if(this.numRows == 0) {
+			GremlinInterpreter interp = this.interp.copy();
+			GraphTraversal it = interp.composeIterator();
+			
+			GraphTraversal<Vertex, Long> numValues = it.count();
+			try {
+				if(numValues.hasNext()) {
+					this.numRows = numValues.next();
+				}
+			} finally {
+				try {
+					numValues.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return this.numRows;
+	}
 
 	@Override
 	public long getNumRecords() {
-		GremlinInterpreter interp = this.interp.copy();
-		GraphTraversal it = interp.composeIterator();
-		
-		GraphTraversal<Vertex, Long> numValues = it.count();
-		try {
-			if(numValues.hasNext()) {
-				long numRecords = numValues.next() * this.numColumns;
-				return numRecords;
-			}
-		} finally {
-			try {
-				numValues.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-			
-		return 0;
+		return getNumRows() * this.numColumns;
 	}
 
 	@Override

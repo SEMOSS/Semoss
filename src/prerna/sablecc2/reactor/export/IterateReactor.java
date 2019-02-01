@@ -1,13 +1,12 @@
 package prerna.sablecc2.reactor.export;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
@@ -55,7 +54,7 @@ public class IterateReactor extends AbstractReactor {
 		if(inMemStore != null) 
 		{
 			// TODO: figure out how to use a QS if present with this query
-			Iterator<IHeadersDataRow> iterator = inMemStore.getIterator();
+			IRawSelectWrapper iterator = inMemStore.getIterator();
 			this.task = new BasicIteratorTask(iterator);
 			this.insight.getTaskStore().addTask(this.task);
 		} 
@@ -67,7 +66,7 @@ public class IterateReactor extends AbstractReactor {
 
 			// okay, we want to query an engine or a frame
 			// do this based on if the key is defined in the QS
-			Iterator<IHeadersDataRow> iterator = null;
+			IRawSelectWrapper iterator = null;
 			if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE ||
 					qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				iterator = WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
@@ -81,7 +80,6 @@ public class IterateReactor extends AbstractReactor {
 				}
 				Logger logger = getLogger(frame.getClass().getName());
 				frame.setLogger(logger);
-				
 				iterator = frame.query(qs);
 			}
 			this.task = new BasicIteratorTask(qs, iterator);

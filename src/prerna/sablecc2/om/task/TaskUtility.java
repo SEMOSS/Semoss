@@ -6,11 +6,22 @@ import java.util.Map;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.task.lambda.map.MapLambdaTask;
 
 public class TaskUtility {
 
 	private TaskUtility() {
 		
+	}
+	
+	public static long getNumRows(ITask task) {
+		if(task instanceof BasicIteratorTask) {
+			return ((BasicIteratorTask) task).getIterator().getNumRows();
+		} else if(task instanceof MapLambdaTask){
+			return getNumRows(((MapLambdaTask) task).getInnerTask());
+		}
+		
+		return 0;
 	}
 	
 	/**

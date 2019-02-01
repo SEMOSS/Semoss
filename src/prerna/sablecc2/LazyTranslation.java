@@ -3,7 +3,6 @@ package prerna.sablecc2;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -13,7 +12,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -789,7 +788,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     			// i guess we should just return the first 500 records of the column...
     			SelectQueryStruct qs = new SelectQueryStruct();
     			qs.addSelector(colSelector);
-    			Iterator<IHeadersDataRow> iterator = frame.query(qs);
+    			IRawSelectWrapper iterator = frame.query(qs);
     			ITask task = new BasicIteratorTask(qs, iterator);
     			this.insight.getTaskStore().addTask(task);
     			this.planner.addVariable("$RESULT", new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));

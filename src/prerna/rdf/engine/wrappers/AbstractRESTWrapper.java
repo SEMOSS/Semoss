@@ -83,6 +83,8 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 	protected SemossDataType[] types = null;
 	protected int numColumns;
 	
+	protected long numRows;
+
 	/*
 	 * Cluster variables
 	 */
@@ -366,8 +368,20 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 			return 0;
 		}
 	}
-
+	
 	protected abstract long localGetNumRecords();
+	
+	@Override
+	public long getNumRows() {
+		if (isLocal()) {
+			return localGetNumRows();
+		} else {
+			// TODO execute via rest
+			return 0;
+		}
+	}
+
+	protected abstract long localGetNumRows();
 	
 	@Override
 	public void reset() {

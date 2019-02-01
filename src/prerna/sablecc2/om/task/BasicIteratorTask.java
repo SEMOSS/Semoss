@@ -2,7 +2,6 @@ package prerna.sablecc2.om.task;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -38,7 +37,7 @@ public class BasicIteratorTask extends AbstractTask {
 	private SelectQueryStruct qs;
 	private long startLimit = -1;
 	private long startOffset = -1;
-	private transient Iterator<IHeadersDataRow> iterator;
+	private transient IRawSelectWrapper iterator;
 	private boolean grabFromWrapper = false;
 	private boolean grabTypesFromWrapper = false;
 	
@@ -52,11 +51,11 @@ public class BasicIteratorTask extends AbstractTask {
 		setQsMetadata(this.qs);
 	}
 	
-	public BasicIteratorTask(Iterator<IHeadersDataRow> iterator) {
+	public BasicIteratorTask(IRawSelectWrapper iterator) {
 		this.iterator = iterator;
 	}
 	
-	public BasicIteratorTask(SelectQueryStruct qs, Iterator<IHeadersDataRow> iterator) {
+	public BasicIteratorTask(SelectQueryStruct qs, IRawSelectWrapper iterator) {
 		this(qs);
 		this.iterator = iterator;
 	}
@@ -289,10 +288,7 @@ public class BasicIteratorTask extends AbstractTask {
 		return this.qs;
 	}
 	
-	//TODO: come back to this and why it is used
-	@Deprecated
-	public Iterator getIterator() {
+	public IRawSelectWrapper getIterator() {
 		return this.iterator;
 	}
-	
 }
