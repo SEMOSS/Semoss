@@ -135,18 +135,25 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 	}
 	
 	@Override
-	public long getNumRecords() {
-		String query = "select (count(*) * " + this.numColumns + " as ?count) where { " + this.query + "}";
-		ResultSet rs = (ResultSet) engine.execQuery(query);
-		if(rs.hasNext()) {
-			QuerySolution row = rs.next();
-			RDFNode node = row.get("count");
-			Object cleanValue = getRealValue(node);
-			if(cleanValue instanceof Number) {
-				return ((Number) cleanValue).longValue();
+	public long getNumRows() {
+		if(this.numRows == 0) {
+			String query = "select count(*) where { " + this.query + "}";
+			ResultSet rs = (ResultSet) engine.execQuery(query);
+			if(rs.hasNext()) {
+				QuerySolution row = rs.next();
+				RDFNode node = row.get("count");
+				Object cleanValue = getRealValue(node);
+				if(cleanValue instanceof Number) {
+					this.numRows = ((Number) cleanValue).longValue();
+				}
 			}
 		}
-		return 0;
+		return this.numRows;
+	}
+	
+	@Override
+	public long getNumRecords() {
+		return getNumRows() * this.numColumns;
 	}
 	
 	@Override

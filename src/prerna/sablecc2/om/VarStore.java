@@ -3,11 +3,10 @@ package prerna.sablecc2.om;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.IReactor;
@@ -87,12 +86,12 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 	
 	@Override
-	public Iterator<IHeadersDataRow> getIterator() {
+	public IRawSelectWrapper getIterator() {
 		return new MapHeaderDataRowIterator(this);
 	}
 
 	@Override
-	public Iterator<IHeadersDataRow> getIterator(SelectQueryStruct qs) {
+	public IRawSelectWrapper getIterator(SelectQueryStruct qs) {
 		//TODO: figure out how to use a qs with this
 		return new MapHeaderDataRowIterator(this);
 	}

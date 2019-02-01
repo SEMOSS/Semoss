@@ -23,6 +23,7 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 	public BasicIteratorTask read(JsonReader in) throws IOException {
 		String taskId = null;
 		int numCollected = 0;
+//		long numRows = 0;
 		long internalOffset = 0;
 		TaskOptions tOptions = null;
 		SelectQueryStruct qs = null;
@@ -42,7 +43,11 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 				taskId = in.nextString();
 			} else if(key.equals("numCollected")) {
 				numCollected = (int) in.nextLong();
-			} else if(key.equals("internalOffset")) {
+			}
+//			else if(key.equals("numRows")) {
+//				numRows = in.nextLong();
+//			} 
+			else if(key.equals("internalOffset")) {
 				internalOffset = in.nextLong();
 			} else if(key.equals("taskOptions")) {
 				tOptions = GSON.fromJson(in.nextString(), TaskOptions.class);
@@ -57,6 +62,7 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 		task.setId(taskId);
 		task.setTaskOptions(tOptions);
 		task.setNumCollect(numCollected);
+//		task.setNumRows(numRows);
 		task.setInternalOffset(internalOffset);
 		if(curMode == MODE.CONTINUE_PREVIOUS_ITERATING) {
 			task.setInternalOffset(internalOffset + numCollected);
@@ -71,6 +77,7 @@ public class BasicIteratorTaskAdapter extends TypeAdapter<BasicIteratorTask> {
 		out.name("taskType").value("basic");
 		out.name("id").value(value.getId());
 		out.name("numCollected").value(value.getNumCollect());
+//		out.name("numRows").value(value.getNumRows());
 		out.name("internalOffset").value(value.getInternalOffset());
 		out.name("taskOptions").value(GSON.toJson(value.getTaskOptions()));
 		out.name("qs");
