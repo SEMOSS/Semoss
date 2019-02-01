@@ -171,6 +171,11 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	}
 	
 	@Override
+	public long getNumRows() {
+		return this.numRecords / getHeaders().length;
+	}
+	
+	@Override
 	public long getNumRecords() {
 		return this.numRecords;
 	}
