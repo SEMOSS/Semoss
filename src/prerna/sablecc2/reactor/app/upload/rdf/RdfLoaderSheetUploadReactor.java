@@ -177,12 +177,15 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				if (row != null) {
 					Cell sheetNameCell = row.getCell(0);
 					Cell sheetTypeCell = row.getCell(1);
-					if (sheetNameCell != null && sheetTypeCell != null) {
+					if (sheetNameCell != null) {
 						// get the name of the sheet
-						String sheetToLoad = sheetNameCell.getStringCellValue();
+						String sheetToLoad = sheetNameCell.getStringCellValue().trim();
 						// determine the type of load
-						String loadTypeName = sheetTypeCell.getStringCellValue();
-						if (!sheetToLoad.isEmpty() && !loadTypeName.isEmpty()) {
+						String loadTypeName = "";
+						if(sheetTypeCell != null) {
+							loadTypeName = sheetTypeCell.getStringCellValue();
+						}
+						if (!sheetToLoad.isEmpty()) {
 							this.logger.debug("Cell Content is " + sheetToLoad);
 							// this is a relationship
 							if (loadTypeName.contains("Matrix")) {
