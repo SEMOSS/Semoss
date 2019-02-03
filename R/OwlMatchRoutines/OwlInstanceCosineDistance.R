@@ -64,7 +64,13 @@ generateDescriptionFrame<-function(allTables, allColumns, sampleInstances){
         # grab for this instance the values
         # print(paste(i, " ::: ", j, " ::: ", splitCamelCase(instances[j]) ));
         cleanInstance <- splitCamelCase(instances[j]);
-        values <- find_item(cleanInstance);
+        cleanInstance <- gsub("[\r\n]", "", cleanInstance);
+        cleanInstance <- gsub("\\s+", " ", cleanInstance);
+        values <- tryCatch({
+          find_item(cleanInstance);
+        }, finally = {
+          values <- c();
+        });
         if(length(values) == 0) {
           # wiki returned nothing, try google
           googleResults <- searchGoogle(cleanInstance);
