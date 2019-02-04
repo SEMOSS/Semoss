@@ -79,22 +79,22 @@ public class FindPathsConnectingNodesReactor extends AbstractFrameReactor {
 			}
 
 			while(t1.hasNext()) {
-				StringBuilder linkage = new StringBuilder();
+//				StringBuilder linkage = new StringBuilder();
 				Object data = t1.next();
 				if(data instanceof Map) {
 					Vertex start = (Vertex) ((Map) data).get("start");
 					instancesToKeep.add(start);
-					linkage.append(start.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
+//					linkage.append(start.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
 					for(int i = 0; i < numTraversals; i++) {
 						Vertex v = (Vertex) ((Map) data).get( i + "deg");
 						instancesToKeep.add(v);
-						linkage.append(v.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
+//						linkage.append(v.value(TinkerFrame.TINKER_NAME) + "").append(" ->");
 					}
 				} else {
 					System.err.println("Ughhh.... shouldn't get here");
 				}
 
-				System.out.println(linkage.toString());
+//				System.out.println(linkage.toString());
 			}
 		}
 
