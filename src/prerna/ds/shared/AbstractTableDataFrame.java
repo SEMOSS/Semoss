@@ -407,7 +407,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public void setName(String name) {
-		if(name != null) {
+		if(name != null && !name.isEmpty()) {
 			this.frameName = name;
 		}
 	}
