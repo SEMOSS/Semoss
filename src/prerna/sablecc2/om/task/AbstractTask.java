@@ -37,6 +37,7 @@ public abstract class AbstractTask implements ITask {
 	protected int numCollect = 500;
 	// size of the task
 	protected long numRows = 0;
+	private boolean meta = true;
 	
 	public AbstractTask() {
 		this.sortInfo = new ArrayList<Map<String, Object>>();
@@ -60,6 +61,10 @@ public abstract class AbstractTask implements ITask {
 				collectedData.put("taskOptions", this.taskOptions.getOptions());
 				collectedData.put("sortInfo", this.sortInfo);
 				collectedData.put("filterInfo", this.filterInfo);
+				long numRows = TaskUtility.getNumRows(this);
+				if(numRows > 0) {
+					collectedData.put("numRows", numRows);
+				}
 			}
 		}
 		collectedData.put("taskId", this.id);
@@ -68,7 +73,7 @@ public abstract class AbstractTask implements ITask {
 	}
 	
 	@Override
-	public Map<String, Object> getMeta() {
+	public Map<String, Object> getMetaMap() {
 		Map<String, Object> collectedData = new HashMap<String, Object>(7);
 		collectedData.put("headerInfo", this.getHeaderInfo());
 		collectedData.put("numCollected", this.numCollect);
@@ -77,6 +82,10 @@ public abstract class AbstractTask implements ITask {
 			collectedData.put("taskOptions", this.taskOptions.getOptions());
 			collectedData.put("sortInfo", this.sortInfo);
 			collectedData.put("filterInfo", this.filterInfo);
+			long numRows = TaskUtility.getNumRows(this);
+			if(numRows > 0) {
+				collectedData.put("numRows", numRows);
+			}
 		}
 		return collectedData;
 	}
@@ -207,6 +216,16 @@ public abstract class AbstractTask implements ITask {
 	}
 	
 	@Override
+	public void setMeta(boolean meta) {
+		this.meta  = meta;
+	}
+	
+	@Override
+	public boolean getMeta() {
+		return this.meta;
+	}
+	
+	@Override
 	public void optimizeQuery(int limit) {
 		// this does nothing by default
 		// only makes sense for BasicIterator
@@ -235,4 +254,5 @@ public abstract class AbstractTask implements ITask {
 	public void setInternalOffset(long internalOffset) {
 		this.internalOffset = internalOffset;
 	}
+	
 }
