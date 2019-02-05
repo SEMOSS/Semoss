@@ -29,7 +29,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.AbstractTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
-import prerna.sablecc2.om.task.TaskUtility;
 import prerna.sablecc2.reactor.export.GraphFormatter;
 import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.util.gson.GsonUtility;
@@ -351,17 +350,12 @@ public class PixelStreamUtility {
 					printMapData(ps, (Map<String, Object>) ((AbstractTask) task).getData(), gson);
 				}
 				
-				long numRows = TaskUtility.getNumRows(task);
-				if(numRows > 0) {
-					ps.print(",\"numRows\":" + numRows);
-				}
-				
 				// grab the meta and output as well
-				Map<String, Object> taskMeta = task.getMeta();
+				Map<String, Object> taskMeta = task.getMetaMap();
 				for(String taskMetaKey : taskMeta.keySet()) {
 					ps.print(",\"" + taskMetaKey + "\":" + gson.toJson(taskMeta.get(taskMetaKey)));
 					ps.flush();
-				}
+				} 
 				
 				ps.print(",\"taskId\":\"" + task.getId() + "\"");
 				ps.print("}");
