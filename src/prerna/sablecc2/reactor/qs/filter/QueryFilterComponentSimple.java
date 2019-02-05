@@ -7,7 +7,6 @@ import java.util.Vector;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 
 public class QueryFilterComponentSimple extends QueryFilterReactor {
@@ -75,8 +74,8 @@ public class QueryFilterComponentSimple extends QueryFilterReactor {
 			List<Object> values = new Vector<Object>();
 			for(int i = 0; i < nouns.size(); i++) {
 				NounMetadata subNoun = nouns.get(i);
-				if(subNoun.getNounType() == PixelDataType.TASK) {
-					values.addAll(TaskUtility.flushJobData((ITask) subNoun.getValue()));
+				if(subNoun.getNounType() == PixelDataType.TASK || subNoun.getNounType() == PixelDataType.FORMATTED_DATA_SET) {
+					values.addAll(TaskUtility.flushJobData(subNoun.getValue()));
 				} else {
 					if(subNoun.getValue() instanceof List) {
 						values.addAll( (List) subNoun.getValue());
@@ -89,8 +88,8 @@ public class QueryFilterComponentSimple extends QueryFilterReactor {
 		} else {
 			noun = nouns.get(0);
 			PixelDataType nounType = noun.getNounType();
-			if(nounType == PixelDataType.TASK) {
-				List<Object> values = TaskUtility.flushJobData((ITask) noun.getValue());
+			if(nounType == PixelDataType.TASK || nounType == PixelDataType.FORMATTED_DATA_SET) {
+				List<Object> values = TaskUtility.flushJobData(noun.getValue());
 				noun = new NounMetadata(values, TaskUtility.predictTypeFromObject(values));
 			}
 		}
