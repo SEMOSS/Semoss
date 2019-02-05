@@ -632,12 +632,12 @@ public class SimpleQueryFilter implements IQueryFilter {
 			return FILTER_TYPE.COL_TO_COL;
 		} 
 		// col to values
-		else if(lCompType == PixelDataType.COLUMN && isScalar(rCompType) ) 
+		else if(lCompType == PixelDataType.COLUMN && isValues(rCompType) ) 
 		{
 			return FILTER_TYPE.COL_TO_VALUES;
 		} 
 		// values to col
-		else if( isScalar(lCompType) && rCompType == PixelDataType.COLUMN)
+		else if( isValues(lCompType) && rCompType == PixelDataType.COLUMN)
 		{
 			return FILTER_TYPE.VALUES_TO_COL;
 		}
@@ -653,7 +653,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 		}
 		
 		// values to values
-		else if( isScalar(lCompType) && isScalar(rCompType) ) 
+		else if( isValues(lCompType) && isValues(rCompType) ) 
 		{
 			return FILTER_TYPE.VALUE_TO_VALUE;
 		}
@@ -661,14 +661,16 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return null;
 	}
 	
-	private static boolean isScalar(PixelDataType type) {
+	private static boolean isValues(PixelDataType type) {
 		return type == PixelDataType.CONST_DECIMAL 
 				|| type == PixelDataType.CONST_INT 
 				|| type == PixelDataType.CONST_STRING 
 				|| type == PixelDataType.CONST_DATE 
 				|| type == PixelDataType.CONST_TIMESTAMP
 				|| type == PixelDataType.BOOLEAN
-				|| type == PixelDataType.NULL_VALUE;
+				|| type == PixelDataType.NULL_VALUE
+				|| type == PixelDataType.FORMATTED_DATA_SET
+				|| type == PixelDataType.TASK;
 	}
 	
 	/**
