@@ -3,6 +3,7 @@ package prerna.sablecc2.om.task;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -30,7 +31,34 @@ public class TaskUtility {
 	 * @param taskData
 	 * @return
 	 */
-	public static List<Object> flushJobData(ITask taskData) {
+	public static List<Object> flushJobData(Object taskData) {
+		if(taskData instanceof ITask) {
+			return flushJobData((ITask) taskData);
+		} else if(taskData instanceof Map) {
+			Map dataMap = (Map) ((Map) taskData).get("data");
+			if(dataMap != null) {
+				List<Object[]> values = (List<Object[]>) dataMap.get("values");
+				if(values != null) {
+					List<Object> retVal = new Vector<Object>();
+					int size = values.size();
+					for(int i = 0; i < size; i++) {
+						retVal.add(values.get(i)[0]);
+					}
+					return retVal;
+				}
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Flush the task data into an array
+	 * This assumes you have table data!!!
+	 * @param taskData
+	 * @return
+	 */
+	private static List<Object> flushJobData(ITask taskData) {
 		List<Object> flushedOutCol = new ArrayList<Object>();
 		// iterate through the task to get the table data
 		List<Object[]> data = taskData.flushOutIteratorAsGrid();
