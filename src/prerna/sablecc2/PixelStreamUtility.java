@@ -351,10 +351,10 @@ public class PixelStreamUtility {
 					printMapData(ps, (Map<String, Object>) ((AbstractTask) task).getData(), gson);
 				}
 				
-//				long numRows = TaskUtility.getNumRows(task);
-//				if(numRows > 0) {
-//					ps.print(",\"numRows\":" + numRows);
-//				}
+				long numRows = TaskUtility.getNumRows(task);
+				if(numRows > 0) {
+					ps.print(",\"numRows\":" + numRows);
+				}
 				
 				// grab the meta and output as well
 				Map<String, Object> taskMeta = task.getMeta();
