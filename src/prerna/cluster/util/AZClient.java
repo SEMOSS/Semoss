@@ -38,7 +38,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 
-public class AZClient {
+public class AZClient extends CloudClient {
 	
 	// this is a singleton
 	
@@ -324,7 +324,7 @@ public class AZClient {
 		pullApp(appId, true);
 	}
 	
-	private void pullApp(String appId, boolean newApp) throws IOException, InterruptedException {
+	protected void pullApp(String appId, boolean newApp) throws IOException, InterruptedException {
 		IEngine engine = null;
 		if (!newApp) {
 			engine = Utility.getEngine(appId, false);
@@ -475,6 +475,8 @@ public class AZClient {
 		return rcloneConfig;
 	}
 	
+	/*
+	
 	private static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
 		try {
@@ -538,5 +540,6 @@ public class AZClient {
 			return lines;
 		}
 	}
+	*/
 		
 }
