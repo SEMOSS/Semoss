@@ -1,35 +1,144 @@
-
-nlidb_mgr<-function(txt,db){
+nliapp_mgr<-function(txt,db,joins=data.frame()){
+	library(data.table)
+	library(plyr)
+	library(udpipe)
+	library(stringdist)
+	library(igraph)
+	
+	# db includes: Column, Table and AppID columns
 	df<-parse_question(txt)
 	# map nouns to db items
-	df<-map_nouns(df,db)
-	df$processed<-"no"
+	df<-map_dbitems(df,db)
+	# to handle column names that are not words of English language
+	df<-refine_parsing(df)
 	#get pos groups
 	chunks<-get_chunks(df)
 	
-	# process prepositions
-	out<-analyze_prep(df,chunks)
-	df<-out[[1]]
-	where_part<-out[[2]]
-	group_part<-out[[3]]
-	
-	#process adjectives
-	out<-analyze_adj(df,chunks)
-	df<-out[[1]]
-	select_part1<-out[[2]]
-	select_part1<-get_alias(select_part1)
-	where_part<-c(where_part,out[[3]])
-	having_part<-out[[4]]
-	
-	# the rest of the select
-	select_part2<-analyze_noun(df)
-	if(select_part2[1] != ""){
-		sql<-build_sql(select_part1,select_part2,where_part,group_part,having_part)
+	# get columns used in the request
+	cols<-df[df$itemtype == "column","item"]
+	# get potential appids used in the request
+	apps<-unique(db[db$Column %in% cols,"AppID"])
+	N<-length(apps)
+	r<-data.table(Response=character(),AppID=character(),Statement=character())
+	p<-data.table(appid=character(),part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
+	if(N>0){
+		for(i in 1:N){
+			df$processed<-"no"
+			cur_db<-db[db$AppID==apps[i],]
+			if(nrow(joins)!=0){
+				cur_joins<-joins[joins$AppID==apps[i],1:4]
+			}else{
+				cur_joins<-joins
+			}
+			# get from clause (joins)
+			out<-join_clause_mgr(cols,cur_db,cur_joins)
+			if(out[[1]]==""){
+				from_clause<-out[[2]]
+				from_joins<-out[[3]]
+				pixel_from<-build_pixel_from(from_joins)
+				request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
+				request_tbls<-request_tbls[request_tbls!=""]
+				response<-"SQL"
+			}else{
+				sql<-out[[1]]
+				response<-"Error"
+			}
+			
+			# process prepositions
+			out<-analyze_prep(df,chunks)
+			df<-out[[1]]
+			where_part<-out[[2]]
+			group_part<-out[[3]]
+			
+			#process adjectives
+			out<-analyze_adj(df,chunks)
+			df<-out[[1]]
+			select_part1<-out[[2]]
+			select_part1<-get_alias(select_part1)
+			
+			# construct pixel aggregate select part
+			pixel_aggr_select<-build_pixel_aggr_select(select_part1,request_tbls,cur_db)
+			where_part<-c(where_part,out[[3]])
+			
+			# construct pixel where based on where_part
+			pixel_where<-build_pixel_where(where_part,request_tbls,cur_db)
+			having_part<-out[[4]]
+			pixel_having<-build_pixel_having(having_part,request_tbls,cur_db)
+			
+			# the rest of the select
+			select_part2<-analyze_noun(df)
+			# if having part existing add select singles to groups
+			if(length(having_part)>0){
+				pixel_group<-build_pixel_group(c(group_part,select_part2),request_tbls,cur_db)
+			}else{
+				pixel_group<-build_pixel_group(group_part,request_tbls,cur_db)
+			}
+			# if groups part exists add groups to select singles
+			if(length(group_part)>0){
+				pixel_single_select<-build_pixel_single_select(c(select_part2,group_part),request_tbls,cur_db)
+				# if single select added then we need to recheck from part
+				cols<-unique(c(select_part2,cols,group_part))
+				# recompute joins
+				out<-join_clause_mgr(cols,cur_db,cur_joins)
+				if(out[[1]]==""){
+					from_clause<-out[[2]]
+					from_joins<-out[[3]]
+					pixel_from<-build_pixel_from(from_joins)
+					request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
+					request_tbls<-request_tbls[request_tbls!=""]
+					response<-"SQL"
+				}else{
+					sql<-out[[1]]
+					response<-"Error"
+				}	
+			}else{
+				pixel_single_select<-build_pixel_single_select(select_part2,request_tbls,cur_db)
+			}
+			
+			# complete building sql nad pixel objects
+			if(response == "SQL"){
+				sql<-build_sql(select_part1,select_part2,where_part,group_part,having_part,from_clause)
+				pixel<-build_pixel(apps[i],pixel_aggr_select,pixel_single_select,pixel_where,pixel_group,pixel_having,pixel_from)
+				p<-rbind(p,pixel)
+			}
+			r<-rbindlist(list(r,list(response,as.character(apps[i]),sql)))
+		}
 	}else{
-		sql<-"Rephrase the request"
+		r<-rbindlist(list(r,list("Error","","Rephrase the request: no applicable databases found")))
+	}
+	# keep only query object if at least one of the results is proper
+	if(nrow(r[r$Response == "SQL",])>0){
+		#r<-r[r$Response == "SQL",]
+		myapps<-r$AppID
+		p<-validate_pixel(p,myapps)
+	}else{
+		p<-data.table(appid=character(),part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
+		n<-nrow(r)
+		if(n>0){
+			for(i in 1:n){
+				p<-rbindlist(list(p,list(r$AppID[i],r$Response[i],r$Statement[i],"","","","","","")))
+			}
+		}
 	}
 	gc()
-	return(sql)
+	return(p)
+}
+
+validate_pixel<-function(p,myapps){
+	n<-length(myapps)
+	err<-data.table(appid=character(),part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
+	for(i in 1:n){
+		app<-myapps[i]
+		app_p<-p[p$appid == app,]
+		if(nrow(app_p[app_p$part == "select",])==0 | nrow(app_p[app_p$part == "from",])==0){
+			err<-rbindlist(list(err,list(app,"Error","Rephrase the request: no applicable databases found","","","","","","")))
+			p<-p[p$appid!=app,]
+		}
+	}
+	if(nrow(p)==0){
+		p<-err
+	}
+	return(p)
 }
 
 get_alias<-function(items){
@@ -49,23 +158,22 @@ get_alias<-function(items){
 	return(repl)
 }
 
-build_sql<-function(select_part1,select_part2,where_part,group_part,having_part){
+build_sql<-function(select_part1,select_part2,where_part,group_part,having_part,from_clause){
 	# process select
-	tbl<-select_part2[1]
-	if(length(select_part2)==1){
+	if(length(select_part2)==0){
 		 if(length(select_part1)==0){
 			select_items<-"*"
 		 }else{
 			select_items<-select_part1
 		 }
 	}else{
-		select_items<-c(select_part2[2:length(select_part2)],select_part1)
+		select_items<-c(select_part2,select_part1)
 	}
 	# add groups to select if any
 	if(length(group_part)>0){
 		select_items<-c(group_part,select_items)
 	}
-	select_clause<-paste0("select ",paste(select_items,collapse=",")," from ",tbl)
+	select_clause<-paste0("select ",paste(select_items,collapse=",")," from ",from_clause)
 	# process where/group
 	if(length(where_part) != 0){
 		where_clause<-paste0("where ",paste(where_part,collapse=" and "))
@@ -75,16 +183,14 @@ build_sql<-function(select_part1,select_part2,where_part,group_part,having_part)
 	having_clause<-""
 	if(length(having_part)>0){
 		# group clause includes all items in the having section
-		group_items<-select_part2[2:length(select_part2)]
+		group_items<-select_part2
 		group_clause<-paste0("group by ",paste(group_items,collapse=","))
 		
 		# where clause included in the having clause
-		#having_part<-c(where_part,having_part)
 		having_clause<-paste0("having ",paste(having_part,collapse=" and "))
-		#where_clause<-""
 		
-		select_items<-select_part2[2:length(select_part2)]
-		select_clause<-paste0("select ",paste(select_items,collapse=",")," from ",tbl)
+		select_items<-select_part2
+		select_clause<-paste0("select ",paste(select_items,collapse=",")," from ",from_clause)
 	}else if(length(group_part) != 0){
 			group_clause<-paste0("group by ",paste(group_part,collapse=","))
 	}else{
@@ -94,15 +200,10 @@ build_sql<-function(select_part1,select_part2,where_part,group_part,having_part)
 	return(sql)
 }
 
+
 analyze_noun<-function(df){
-	tbl<-df[substr(df$xpos,1,2)=="NN" & df$itemtype=="table" & df$processed=="no","item"]
 	clmns<-df[substr(df$xpos,1,2)=="NN" & df$itemtype=="column" & df$processed=="no","item"]
-	if(length(tbl)==0){
-		out<-c("",clmns)
-	}else{
-		out<-c(tbl,clmns)
-	}
-	return(out)
+	return(clmns)
 }
 
 analyze_prep<-function(df,chunks){
@@ -153,7 +254,7 @@ analyze_prep<-function(df,chunks){
 						}
 						sibling_rec<-df[df$head_token_id==parent_rec$token_id & df$token_id != cur_rec$token_id & substr(df$xpos,1,2)=="NN" & df$dep_rel %in% c("compound","flat") & df$itemtype=="column",]
 						if(nrow(sibling_rec)>0){
-							where_clause[length(where_clause)+1]<-paste0(sibling_rec[1,"item"],"='",value,"'")
+							where_clause[length(where_clause)+1]<-paste0(sibling_rec[1,"item"],"=",value)
 							df[parent_rec$token_id,"processed"]<-"yes"
 							df[sibling_rec$token_id,"processed"]<-"yes"
 							# process conjunction if any
@@ -163,7 +264,7 @@ analyze_prep<-function(df,chunks){
 								for(j in 1:k){
 									child_rec<-df[df$head_token_id==conj_rec$token_id[j] & df$itemtype=="column" & df$processed=="no",]
 									if(nrow(child_rec)>0){
-										where_clause[length(where_clause)+1]<-paste0(child_rec[1,"item"],"='",conj_rec$token,"'")
+										where_clause[length(where_clause)+1]<-paste0(child_rec[1,"item"],"=",conj_rec$token)
 										df[conj_rec$token_id,"processed"]<-"yes"
 										df[child_rec$token_id,"processed"]<-"yes"
 									}
@@ -172,7 +273,7 @@ analyze_prep<-function(df,chunks){
 						}
 					}
 				} else if(tolower(parent_rec$itemtype)=="column"){
-					oper_rec<-df[df$head_token_id==parent_rec$token_id & df$token_id!=cur_rec$token_id & df$processed=="no" & df$itemtype == "",]
+					oper_rec<-df[df$head_token_id==parent_rec$token_id & df$token_id!=cur_rec$token_id & df$dep_rel!="det" & df$processed=="no" & df$itemtype == "",]
 					if(nrow(oper_rec)>0){
 						if(nrow(oper_rec[substr(oper_rec$xpos,1,2)=="JJ",])>0){
 							oper_rec<-oper_rec[substr(oper_rec$xpos,1,2)=="JJ",]
@@ -235,7 +336,15 @@ analyze_prep<-function(df,chunks){
 								df[parent_rec$token_id,"processed"]<-"yes"
 								df[oper_rec$token_id,"processed"]<-"yes"
 							}
-						}else if(oper_rec$dep_rel %in% c("flat","compound","appos")){
+						}else if(nrow(oper_rec[oper_rec$dep_rel %in% c("flat","compound","appos"),])>0){
+							# if appos in oper_rec select it here, if not use flat, then compound
+							if(nrow(oper_rec[oper_rec$dep_rel=="appos",])){
+								oper_rec<-oper_rec[oper_rec$dep_rel=="appos",]
+							}else if(nrow(oper_rec[oper_rec$dep_rel=="flat",])){
+								oper_rec<-oper_rec[oper_rec$dep_rel=="flat",]
+							}else{
+								oper_rec<-oper_rec[oper_rec$dep_rel=="compound",]
+							}
 							token_ids<-vector()
 							token_ids[1]<-oper_rec$token_id
 							while(TRUE){
@@ -247,7 +356,7 @@ analyze_prep<-function(df,chunks){
 								}
 							}
 							value<-paste(df[token_ids,"token"],collapse=" ")
-							where_clause[length(where_clause)+1]<-paste0(parent_rec$token,"='",value,"'")
+							where_clause[length(where_clause)+1]<-paste0(parent_rec$token,"=",value)
 							df[parent_rec$token_id,"processed"]<-"yes"
 							df[oper_rec$token_id,"processed"]<-"yes"
 							for(j in 1:length(token_ids)){
@@ -256,12 +365,12 @@ analyze_prep<-function(df,chunks){
 						}
 					}else{
 						#grouping
-						group_clause[length(group_clause)+1]<-parent_rec$token
+						group_clause[length(group_clause)+1]<-parent_rec$item
 						df[parent_rec$token_id,"processed"]<-"yes"
 						df[cur_rec$token_id,"processed"]<-"yes"
 						oper_rec<-df[df$head_token_id==parent_rec$token_id & df$token_id!=cur_rec$token_id & df$processed=="no" & df$itemtype == "column",]
 						if(nrow(oper_rec)>0){
-							group_clause<-c(group_clause,oper_rec$token)
+							group_clause<-c(group_clause,oper_rec$item)
 							df[oper_rec$token_id,"processed"]<-"yes"
 						}
 					}
@@ -443,7 +552,7 @@ extract_subtree<-function(df,ind,excl=c("NN","JJ","RB","CD","IN")){
 parse_question<-function(txt){
 	STOPWORDS<-c("a","the","here","there","it","he","she","they","is","are","which","what")
 	FILE_MODEL<-"english-ud-2.0-170801.udpipe"
-	library(udpipe)
+	
 	words<-unlist(strsplit(txt," "))
 	words<-words[!(tolower(words) %in% STOPWORDS)]
 	words<-replace_words(words)
@@ -456,6 +565,7 @@ parse_question<-function(txt){
 	gc()
 	return(df[,4:12])
 }
+
 
 replace_words<-function(words){
 	orig=c("mean","less","lower")
@@ -472,7 +582,7 @@ replace_words<-function(words){
 
 db_match<-function(db,token,type="Column"){
 	THRESHOLD<-0.9
-	library(stringdist)
+	
 	db$Column<-as.character(db$Column)
 	db$Table<-as.character(db$Table)
 	matches<-stringsim(tolower(token),tolower(db[,type]),method='jw', p=0.1)
@@ -485,11 +595,14 @@ db_match<-function(db,token,type="Column"){
 	return(db_item)
 }
 
-map_nouns<-function(df,db){
+map_dbitems<-function(df,db,pos="ALL"){
 	df$item<-""
 	df$itemtype<-""
-	ind<-df[substr(df$xpos,1,2)=="NN","token_id"]
-	#ind<-df$token_id
+	if(pos=="ALL")
+		ind<-df$token_id
+	else{
+		ind<-df[substr(df$xpos,1,2)=="NN","token_id"]
+	}
 	n<-length(ind)
 	for(i in 1:n){
 		token<-df[ind[i],"token"]
@@ -507,4 +620,151 @@ map_nouns<-function(df,db){
 	}
 	gc()
 	return(df)
+}
+
+refine_parsing<-function(df){
+	ind<-as.integer(df[df$itemtype %in% c("column","table") & substr(df$xpos,1,2)!="NN","token_id"])
+	if(length(ind)>0){
+		mydf<-df
+		mydf$token[ind]<-"producer"
+		mytxt<-paste(mydf$token,collapse=" ")
+		mydf<-parse_question(mytxt)
+		df[,5:9]<-mydf[,5:9]
+	}
+	gc()
+	return(df)
+}
+
+build_joins<-function(cur_db){
+	joins<-data.table(tbl1=character(),tbl2=character(),joinby1=character(),joinby2=character())
+	# add joins
+	dups<-count(cur_db,"Column")
+	dups<-dups[dups$freq>=2,]
+	n<-nrow(dups)
+	if(n>0){
+		for(i in 1:n){
+			joinby<-dups[i,"Column"]
+			joinby_rec<-cur_db[cur_db$Column == joinby,]
+			N<-nrow(joinby_rec)
+			for(j in 1:(N-1)){
+				for(k in (j+1):N){
+					joins<-rbindlist(list(joins,list(as.character(joinby_rec[j,"Table"]),as.character(joinby_rec[k,"Table"]),as.character(joinby),as.character(joinby))))
+				}
+			}
+				
+		}
+	}
+	
+	return(joins)
+}
+
+optimize_joins<-function(cols,joins,cur_db){
+	# get the existing tables with required columns
+	tbls<-as.character(unique(cur_db[tolower(cur_db$Column) %in% tolower(cols),"Table"]))
+	if(length(tbls)==1){
+		# if all columns in a single table
+		joins<-joins[0,]
+		joins<-rbindlist(list(joins,list(tbls[1],tbls[1],"","")))
+	}else{
+		# remove unneeded leaves
+		repeat{
+			tbls_freq<-count(c(joins$tbl1,joins$tbl2))
+			tbls_todrop<-tbls_freq[tbls_freq$freq==1 & !(tbls_freq$x %in% tbls),"x"]
+			if(length(tbls_todrop)>0){
+				joins<-joins[!(joins$tbl1 %in% tbls_todrop) & !(joins$tbl2 %in% tbls_todrop),]
+			}else{
+				break
+			}
+		}
+	}
+	gc()
+	return(joins)
+}
+
+verify_joins<-function(cols,joins,cur_db){
+	
+	myList<-list()
+	myList[[1]]<-""
+	g<-graph_from_edgelist(as.matrix(joins[,1:2]),directed=FALSE)
+	g_mst<-mst(g)
+	# verifu that all required columns accessible
+	tbls<-vertex_attr(g_mst)$name
+	tbls_cols<-as.character(cur_db[cur_db$Table %in% tbls,"Column"])
+	if(all(cols %in% tbls_cols)){
+		myList[[2]]<-joins
+	}else{
+		myList[[1]]<-"Rephrase the request: could not join all required tables"
+	}
+	gc()
+	return(myList)
+}
+
+build_join_clause<-function(joins){
+	n<-nrow(joins)
+	clause<-""
+	from_joins<-data.table(tbl1=character(),tbl2=character(),joinby1=character(),joinby2=character())
+	if(n>0){
+		if(joins[1,"tbl1"]==joins[1,"tbl2"]){
+			clause<-as.character(joins[1,"tbl1"])
+			from_joins<-rbindlist(list(from_joins,list(clause,"","","")))
+		}else{
+			joins$processed<-"no"
+			joins$id<-seq(1:n)
+			tbls<-vector()
+			tbls[1]<-as.character(joins[1,"tbl1"])
+			id<-0
+			clause<-as.character(joins[1,"tbl1"])
+			from_joins<-rbindlist(list(from_joins,list(clause,"","","")))
+			while(nrow(joins[(joins$tbl1 %in% tbls | joins$tbl2 %in% tbls & joins$id != id) & joins$processed == "no",])>0){
+				cur_rec<-joins[(joins$tbl1 %in% tbls | joins$tbl2 %in% tbls & joins$id != id)  & joins$processed == "no",][1,]
+				if(length(tbls[cur_rec$tbl1 %in% tbls])>0){
+					if(length(tbls[cur_rec$tbl2 %in% tbls])>0){
+						clause<-paste0(clause, "on ",cur_rec$tbl1,".",cur_rec$joinby1,"=",cur_rec$tbl2,".",cur_rec$joinby2)
+						from_joins<-rbindlist(list(from_joins,list(cur_rec$tbl1,cur_rec$tbl2,cur_rec$joinby1,cur_rec$joinby2)))
+					}else{
+						tbls[length(tbls)+1]<-cur_rec$tbl2
+						clause<-paste0(clause," inner join ",cur_rec$tbl2," on ",cur_rec$tbl1,".",cur_rec$joinby1,"=",cur_rec$tbl2,".",cur_rec$joinby2)
+						from_joins<-rbindlist(list(from_joins,list(cur_rec$tbl2,cur_rec$tbl1,cur_rec$joinby2,cur_rec$joinby1)))
+					}
+				}else{
+					tbls[length(tbls)+1]<-cur_rec$tbl1
+					clause<-paste0(clause," inner join ",cur_rec$tbl1," on ",cur_rec$tbl2,".",cur_rec$joinby1,"=",cur_rec$tbl1,".",cur_rec$joinby2)
+					from_joins<-rbindlist(list(from_joins,list(cur_rec$tbl1,cur_rec$tbl2,cur_rec$joinby1,cur_rec$joinby2)))
+				}
+				joins[cur_rec$id,"processed"]<-"yes"
+			}
+		}
+	}
+	myList<-list()
+	myList[[1]]<-clause
+	myList[[2]]<-from_joins
+	return(myList)
+}	
+
+join_clause_mgr<-function(cols,cur_db,joins){
+	
+	myList<-list()
+	if(nrow(joins)!=0){
+		joins$tbl1<-as.character(joins$tbl1)
+		joins$tbl2<-as.character(joins$tbl2)
+	}else{
+		joins<-build_joins(cur_db)
+	}
+	joins<-optimize_joins(cols,joins,cur_db)
+	if(nrow(joins)>0){
+		out<-verify_joins(cols,joins,cur_db)
+		if(out[[1]]==""){
+			joins<-out[[2]]
+			out<-build_join_clause(joins)
+			myList[[1]]<-""
+			myList[[2]]<-out[[1]]
+			myList[[3]]<-out[[2]]
+		}else{
+			myList[[1]]<-out[[1]]
+		}
+	}else{
+		myList[[1]]<-"Reprase the request: could not locate required tables"
+	}
+	gc()
+	return(myList)
 }
