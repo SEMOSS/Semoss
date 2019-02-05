@@ -13,7 +13,7 @@ public class PushAppRunner implements Runnable {
 	@Override
 	public void run() {
 		try {
-			AZClient.getInstance().pushApp(appId);
+			CloudClient.getClient().pushApp(appId);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {

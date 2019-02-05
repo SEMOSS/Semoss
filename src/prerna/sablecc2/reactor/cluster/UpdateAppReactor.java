@@ -7,6 +7,7 @@ import java.util.Map;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.AZClient;
+import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -51,7 +52,7 @@ public class UpdateAppReactor extends AbstractReactor {
 		boolean update = false;
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				AZClient.getInstance().updateApp(appId);
+				CloudClient.getClient().updateApp(appId);
 				update = true;
 			} catch (IOException | InterruptedException e) {
 				NounMetadata noun = new NounMetadata("Failed to update app from cloud storage", PixelDataType.CONST_STRING, PixelOperationType.ERROR);

@@ -13,7 +13,7 @@ public class DeleteAppRunner implements Runnable {
 	@Override
 	public void run() {
 		try {
-			AZClient.getInstance().deleteApp(appId);
+			CloudClient.getClient().deleteApp(appId);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {

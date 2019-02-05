@@ -13,7 +13,7 @@ public class PullAppRunner implements Runnable {
 	@Override
 	public void run() {
 		try {
-			AZClient.getInstance().pullApp(appId);
+			CloudClient.getClient().pullApp(appId);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
