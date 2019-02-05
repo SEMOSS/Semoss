@@ -105,6 +105,7 @@ import com.ibm.icu.text.DecimalFormat;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.AZClient;
+import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.date.SemossDate;
@@ -2549,7 +2550,7 @@ public class Utility {
 			try {
 				if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
 					try {
-						AZClient.getInstance().pullApp(engineId);
+						CloudClient.getClient().pullApp(engineId);
 					} catch (IOException | InterruptedException e) {
 						e.printStackTrace();
 						return null;

@@ -10,6 +10,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.AZClient;
+import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -103,7 +104,7 @@ public class CleanUpAppsReactor extends AbstractReactor {
 						
 						// Delete from cluster
 						try {
-							AZClient.getInstance().deleteApp(appId);
+							CloudClient.getClient().deleteApp(appId);
 							
 							// Successful cleanup
 							removedAppsMap.put(key, "removed");
@@ -132,7 +133,7 @@ public class CleanUpAppsReactor extends AbstractReactor {
 			Map<String, Object> removedContainersMap = new HashMap<String, Object>();
 			if (cleanUpCloudStorage) {
 				try {
-					List<String> allContainers = AZClient.getInstance().listAllBlobContainers();
+					List<String> allContainers = CloudClient.getClient().listAllBlobContainers();
 					for (String container : allContainers) {
 						String cleanedContainerName = container.replaceAll("-smss", "").replaceAll("/", "");
 						if (!appIds.contains(cleanedContainerName)) {
@@ -142,7 +143,7 @@ public class CleanUpAppsReactor extends AbstractReactor {
 								
 								// Actually remove
 								try {
-									AZClient.getInstance().deleteContainer(container);
+									CloudClient.getClient().deleteContainer(container);
 									
 									// Successful cleanup
 									removedContainersMap.put(container, "removed");
