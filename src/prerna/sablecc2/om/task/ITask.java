@@ -23,7 +23,11 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	 */
 	Map<String, Object> collect(boolean meta);
 	
-	Map<String, Object> getMeta();
+	Map<String, Object> getMetaMap();
+	
+	boolean getMeta();
+	
+	void setMeta(boolean meta);
 	
 	void setNumCollect(int numCollect);
 	
