@@ -115,17 +115,22 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			stepCounter++;
 
 			// Loop through the apps and call the method
-			logger.info(stepCounter + ". Building data frames");
+			logger.info(stepCounter + ". Building pixel for search results");
 			for (String eng : cleanEngineIdList) {
 				SelectQueryStruct resultQuery = null;
 				if (queryInCols(eng, query)) {
 					resultQuery = addEngineToNLS(eng, query);
 				}
 				if (resultQuery != null) {
-					HashMap<String, Object> frames = new HashMap<String, Object>();
-					frames.put("app_id", eng);
-					frames.put("query_struct", resultQuery);
-					returnList.add(frames);
+					HashMap<String, Object> pixels = new HashMap<String, Object>();
+					String appName = Utility.getEngine(eng).getEngineName();
+					pixels.put("app_id", eng);
+					pixels.put("app_name", appName);
+					finalPixel = buildPixelFromQs(resultQuery, eng);
+					finalPixel += "Panel ( 0 ) | SetPanelLabel(\"" + appName + ": " + query + "\");";
+					pixels.put("pixel", finalPixel);
+					pixels.put("layout", "Grid");
+					returnList.add(pixels);
 				}
 			}
 			logger.info(stepCounter + ". Done");
@@ -137,19 +142,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				return noun;
 			}
-
-			// get the top query struct
-			// TODO: Decide better way to choose the query struct
-			logger.info(stepCounter + ". Returning Pixel to generate data frame");
-			SelectQueryStruct returnQs = ((HashMap<String, SelectQueryStruct>) returnList.get(0)).get("query_struct");
-			String returnAppId = ((HashMap<String, String>) returnList.get(0)).get("app_id");
-			finalPixel = buildPixelFromQs(returnQs, returnAppId);
-			finalPixel += "Panel ( 0 ) | SetPanelLabel(\"" + Utility.getEngine(returnAppId).getEngineName() + ": " + query + "\");";
-			logger.info(stepCounter + ". Done");
-			stepCounter++;
 		}
 
-		return new NounMetadata(finalPixel, PixelDataType.CONST_STRING, PixelOperationType.UNEXECUTED_PIXELS);
+		return new NounMetadata(returnList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.UNEXECUTED_PIXELS);
 	}
 
 	////////////////////////////////////////////////////////////
@@ -612,8 +607,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		psb.append("AddPanel ( 0 ) ;");
 		psb.append(
 				"Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;");
-		psb.append(
-				"Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
+		psb.append("Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
 		psb.append(
 				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" );");
 		String frameName = "FRAME_" + Utility.getRandomString(5);
