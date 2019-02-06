@@ -630,12 +630,22 @@ public class PixelUnit {
 	
 	// Test pixel methods (overloaded)
 	protected void testPixel(String pixel, String expectedJson) throws IOException {
-		testPixel(pixel, expectedJson, false, new ArrayList<String>(), false);
+		testPixel(pixel, expectedJson, false, new ArrayList<String>(), false, false, false);
 	}
 
-	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder) throws IOException {
+	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable) throws IOException {
 		Object result = compareResult(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
-		assertThat(result, is(equalTo(new HashMap<>())));
+		assumeThat(result, is(not(equalTo(null))));
+		assumeThat(result, is(instanceOf(HashMap.class)));
+		@SuppressWarnings("unchecked")
+		HashMap<String, Object> resultMap = (HashMap<String, Object>) result;
+		if (ignoreAddedDictionary) {
+			resultMap.remove("dictionary_item_added");
+		}
+		if (ignoreAddedIterable) {
+			resultMap.remove("iterable_item_added");
+		}
+		assertThat(resultMap, is(equalTo(new HashMap<>())));
 	}
 	
 	// Compare result methods (overloaded)
@@ -680,7 +690,7 @@ public class PixelUnit {
 						
 			Hashtable<String, Object> results = runPy(script);		
 			Object result = results.get(ddiffCommand);
-			
+
 			// Make sure there is no difference, ignoring order
 			LOGGER.debug("EXPECTED: " + expectedJson);
 			LOGGER.debug("ACTUAL:   " + actualJson);
@@ -703,7 +713,7 @@ public class PixelUnit {
 	}
 	
 	protected static String formatString(String string) throws IOException {
-		Pattern textPattern = Pattern.compile(TEXT_REGEX); // TODO >>>timb: move this out of format string... and put it in compare
+		Pattern textPattern = Pattern.compile(TEXT_REGEX);
 		Matcher textMatcher = textPattern.matcher(string);
 		if (textMatcher.matches()) {
 			String file = textMatcher.group(1);

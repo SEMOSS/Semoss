@@ -1,2 +1,2 @@
-name,pixel,expected_json,compare_all,exclude_paths,ignore_order,clean_test_databases
-version,Version();,"{""datetime"":""1000-01-01_01:01:01"",""version"":""1.0.0-SNAPSHOT""}",FALSE,"root['datetime'],root['version']",TRUE,
+name,pixel,expected_json,compare_all,exclude_paths,ignore_order,ignore_added_dictionary,ignore_added_iterable,clean_test_databases
+version,Version();,"{""datetime"":""1000-01-01_01:01:01"",""version"":""1.0.0-SNAPSHOT""}",FALSE,"root['datetime'],root['version']",TRUE,FALSE,FALSE,
