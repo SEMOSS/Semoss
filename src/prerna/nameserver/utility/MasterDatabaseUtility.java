@@ -6,8 +6,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -168,7 +170,7 @@ public class MasterDatabaseUtility {
 		}
 		return logicalNames;
 	}
-	
+
 	/**
 	 * Get a list of arrays containing [table, column, type] for a given database
 	 * @param engineId
@@ -204,6 +206,88 @@ public class MasterDatabaseUtility {
 				data.add(new Object[]{table, column, type, pk});
 			}
 			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return data;
+	}
+	
+	/**
+	 * Get a list of arrays containing [table, column, type] for a given database
+	 * @param engineId
+	 * @return
+	 */
+	public static List<Object[]> getAllTablesAndColumns(Collection<String> engineIds) {
+		String engineFilters = makeListToString(engineIds);
+		
+		String query = "select distinct ec.engine, c.conceptualname as column, c2.conceptualname as table, ec.property_type as type, ec.pk as pk "
+				+ "from engineconcept ec, engineconcept ec2, concept c, concept c2 "
+				+ "where "
+				// if no filters defined, get for all engines
+				+ ( engineFilters.equals("()") ? "" : "ec.engine in " + engineFilters + " " )
+				+ "and ec.localconceptid = c.localconceptid "
+				+ "and ec.parentphysicalid = ec2.physicalnameid "
+				+ "and ec2.localconceptid = c2.localconceptid "
+				+ "order by table, pk desc, column, type";
+
+		List<Object[]> data = new Vector<Object[]>();
+		
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String appId = rs.getString(1);
+				String column = rs.getString(2);
+				String table = rs.getString(3);
+				String type = rs.getString(4);
+				if(type.equals("DOUBLE") || type.equals("INT")) {
+					type = "NUMBER";
+				}
+				boolean pk = rs.getBoolean(5);
+				
+				data.add(new Object[]{appId, table, column, type, pk});
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return data;
+	}
+	
+	public static List<String[]> getRelationships(Collection<String> engineIds) {
+		String engineFilters = makeListToString(engineIds);
+		
+		String query = "select distinct er.engine, er.sourceproperty, er.targetproperty, er.relationname "
+				+ "from enginerelation er "
+				// if no filters defined, get for all engines
+				+ ( engineFilters.equals("()") ? "" : "where er.engine in " + engineFilters );
+		
+		List<String[]> data = new Vector<String[]>();
+
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String appId = rs.getString(1);
+				String source = rs.getString(2);
+				String target = rs.getString(3);
+				String rel = rs.getString(4);
+				
+				data.add(new String[]{appId, source, target, rel});
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -891,14 +975,15 @@ public class MasterDatabaseUtility {
 		return returnHash;
 	}
 	
-	private static String makeListToString(List<String> filterList) {
+	private static String makeListToString(Collection<String> filterList) {
 		StringBuilder conceptString = new StringBuilder("(");
-		if(filterList != null) {
-			for(int i = 0; i < filterList.size(); i++) {
-				if(i > 0) {
-					conceptString.append(",");
-				}
-				conceptString.append("'" + filterList.get(i) + "'");
+		if(filterList != null && !filterList.isEmpty()) {
+			Iterator<String> iterator = filterList.iterator();
+			if(iterator.hasNext()) {
+				conceptString.append("'" + iterator.next() + "'");
+			}
+			while(iterator.hasNext()) {
+				conceptString.append(", '" + iterator.next() + "'");
 			}
 		}
 		conceptString.append(")");
