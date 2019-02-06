@@ -22,15 +22,19 @@ public class PixelUnitTestsUser extends PixelUnit {
 	private boolean compareAll;
 	private List<String> excludePaths;
 	private boolean ignoreOrder;
+	private boolean ignoreAddedDictionary;
+	private boolean ignoreAddedIterable;
 	private List<String> cleanTestDatabases;
 	
-	public PixelUnitTestsUser(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, List<String> cleanTestDatabases) {
+	public PixelUnitTestsUser(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases) {
 		this.name = name;
 		this.pixel = pixel;
 		this.expectedJson = expectedJson;
 		this.compareAll = compareAll;
 		this.excludePaths = excludePaths;
 		this.ignoreOrder = ignoreOrder;
+		this.ignoreAddedDictionary = ignoreAddedDictionary;
+		this.ignoreAddedIterable = ignoreAddedIterable;
 		this.cleanTestDatabases = cleanTestDatabases;
 	}
 		
@@ -41,7 +45,7 @@ public class PixelUnitTestsUser extends PixelUnit {
 	
 	@Test
 	public void runTest() throws IOException {
-		PixelUnitTests.runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, cleanTestDatabases);
+		PixelUnitTests.runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases);
 	}
 
 }
