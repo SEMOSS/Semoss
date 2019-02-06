@@ -1,14 +1,14 @@
 ###############################################################################
 # General Semoss Packages
 ###############################################################################
+install.packages("Rserve", dependencies=TRUE)
+install.packages("rJava", dependencies=TRUE)
 install.packages("splitstackshape", dependencies=TRUE)
 install.packages("data.table", dependencies=TRUE)
 install.packages("reshape2", dependencies=TRUE)
 install.packages("stringr", dependencies=TRUE)
 install.packages("lubridate", dependencies=TRUE)
 install.packages("dplyr", dependencies=TRUE)
-#install.packages("Rserve", dependencies=TRUE)
-#install.packages("rJava", dependencies=TRUE)
 
 ###############################################################################
 # Clean Routines
@@ -25,7 +25,7 @@ install.packages("parallel", dependencies=TRUE)
 install.packages("tm", dependencies=TRUE)
 install.packages("cluster", dependencies=TRUE)
 #install.packages("stringdist", dependencies=TRUE)
-#install.packages("data.table", dependencies=TRUE)
+
 
 ###############################################################################
 # Recommendations
