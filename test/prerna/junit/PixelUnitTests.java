@@ -31,15 +31,19 @@ public class PixelUnitTests extends PixelUnit {
 	private boolean compareAll;
 	private List<String> excludePaths;
 	private boolean ignoreOrder;
+	private boolean ignoreAddedDictionary;
+	private boolean ignoreAddedIterable;
 	private List<String> cleanTestDatabases;
 	
-	public PixelUnitTests(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, List<String> cleanTestDatabases) {
+	public PixelUnitTests(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases) {
 		this.name = name;
 		this.pixel = pixel;
 		this.expectedJson = expectedJson;
 		this.compareAll = compareAll;
 		this.excludePaths = excludePaths;
 		this.ignoreOrder = ignoreOrder;
+		this.ignoreAddedDictionary = ignoreAddedDictionary;
+		this.ignoreAddedIterable = ignoreAddedIterable;
 		this.cleanTestDatabases = cleanTestDatabases;
 	}
 		
@@ -59,7 +63,9 @@ public class PixelUnitTests extends PixelUnit {
 						Boolean.parseBoolean(row[3]), // compare all
 						parseListFromString(row[4]), // exclude paths 
 						Boolean.parseBoolean(row[5]), // ignore order
-						parseListFromString(row[6]) // clean test databases
+						Boolean.parseBoolean(row[6]), // ignore added dictionary
+						Boolean.parseBoolean(row[7]), // ignore added iterable
+						parseListFromString(row[8]) // clean test databases
 					}).collect(Collectors.toList());
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
@@ -74,15 +80,15 @@ public class PixelUnitTests extends PixelUnit {
 	
 	@Test
 	public void runTest() throws IOException {
-		runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, cleanTestDatabases);
+		runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases);
 	}
 	
-	public static void runTest(PixelUnit testRunner, String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, List<String> cleanTestDatabases) throws IOException {
+	public static void runTest(PixelUnit testRunner, String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases) throws IOException {
 		LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 		LOGGER.info("RUNNING TEST: " + name);
 		LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		try {
-			testRunner.testPixel(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
+			testRunner.testPixel(pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable);
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
 			throw e;
