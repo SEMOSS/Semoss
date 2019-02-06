@@ -26,7 +26,7 @@ nliapp_mgr<-function(txt,db,joins=data.frame()){
 			df$processed<-"no"
 			cur_db<-db[db$AppID==apps[i],]
 			if(nrow(joins)!=0){
-				cur_joins<-joins[joins$AppID==apps[i],1:4]
+				cur_joins<-joins[levels(joins$AppID)==levels(apps)[i],1:4]
 			}else{
 				cur_joins<-joins
 			}
