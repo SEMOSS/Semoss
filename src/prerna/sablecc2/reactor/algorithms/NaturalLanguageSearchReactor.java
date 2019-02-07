@@ -185,6 +185,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String rJoinBy2 = "c(";
 
 		int numRels = relationships.size();
+		int firstRel = 0;
 		for(int i = 0; i < numRels; i++) {
 			String[] entry = relationships.get(i);
 			String appId = entry[0];
@@ -196,8 +197,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				String sourceColumn = relSplit[1];
 				String targetTable = relSplit[2];
 				String targetColumn = relSplit[3];
-
-				if(i == 0) {
+				
+				//check by firstRel, not index of for loop
+				//loop increments even if relSplit.length != 4
+				//whereas firstRel only increases if something is added to frame
+				if(firstRel == 0) {
 					rAppIDs_join += "'" + appId + "'";
 					rTbl1 += "'" + sourceTable + "'" ;
 					rTbl2 += "'" + targetTable + "'" ;
@@ -217,6 +221,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					rTableNames += ",'" + sourceTable + "'" ;
 					rColNames += ",'" + sourceColumn + "'" ;
 				}
+				//no longer adding the first row to this data frame, increment..
+				firstRel++;
 			}
 		}
 
