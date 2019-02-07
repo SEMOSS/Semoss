@@ -31,7 +31,7 @@ public class MyAppsReactor extends AbstractReactor {
 		// now we want to add most exeucted insights
 		for(Map<String, Object> app : appInfo) {
 			String appId = app.get("app_id").toString();
-			app.putAll(SecurityQueryUtils.getTopExecutedInsightsForEngine(appId, 10));
+//			app.putAll(SecurityQueryUtils.getTopExecutedInsightsForEngine(appId, 10));
 			SemossDate lmDate = SecurityQueryUtils.getLastExecutedInsightInApp(appId);
 			// could be null when there are no insights in an app
 			if(lmDate != null) {

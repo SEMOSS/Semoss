@@ -49,13 +49,13 @@ public class AppInfoReactor extends AbstractReactor {
 		
 		// we filtered to a single app
 		Map<String, Object> appInfo = baseInfo.get(0);
-		Map<String, List<String>> additionalMeta = SecurityQueryUtils.getAggregateEngineMetadata(appId);
-
-		// combine into return object
-		if(additionalMeta.containsKey("description")) {
-			appInfo.put("app_description", additionalMeta.get("description").get(0));
-		}
-		appInfo.put("app_tags", additionalMeta.get("tags"));
+//		Map<String, List<String>> additionalMeta = SecurityQueryUtils.getAggregateEngineMetadata(appId);
+//
+//		// combine into return object
+//		if(additionalMeta.containsKey("description")) {
+//			appInfo.put("app_description", additionalMeta.get("description").get(0));
+//		}
+//		appInfo.put("app_tags", additionalMeta.get("tags"));
 		return new NounMetadata(appInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INFO);
 	}
 
