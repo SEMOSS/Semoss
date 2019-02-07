@@ -8,7 +8,7 @@ build_pixel_single_select<-function(select_part2,req_tbls,cur_db){
 		n<-length(select_part2)
 		for(i in 1:n){
 			clmn<-select_part2[i]
-			tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+			tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 			if(length(tbls)>0){
 				tbl<-tbls[1]
 				pixel_single_select<-rbindlist(list(pixel_single_select,list("select",tbl,clmn,"","","","","")))
@@ -25,7 +25,7 @@ build_pixel_group<-function(group_part,req_tbls,cur_db){
 		n<-length(group_part)
 		for(i in 1:n){
 			clmn<-group_part[i]
-			tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+			tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 			if(length(tbls)>0){
 				tbl<-tbls[1]
 				pixel_single_select<-rbindlist(list(pixel_single_select,list("group",tbl,clmn,"","","","","")))
@@ -48,7 +48,7 @@ build_pixel_aggr_select<-function(select_part1,req_tbls,cur_db){
 				pos2<-unlist(gregexpr(pattern="[)]",x[1]))
 				aggr<-trim(substr(x[1],1,pos1-1))
 				clmn<-trim(substr(x[1],pos1+1,pos2-1))
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_aggr_select<-rbindlist(list(pixel_aggr_select,list("select",tbl,clmn,aggr,alias,"","","")))
@@ -108,7 +108,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					pos2<-unlist(gregexpr(pattern="[)]",value))
 					aggr2<-trim(substr(value,1,pos1-1))
 					clmn2<-trim(substr(value,pos1+1,pos2-1))
-					tbls<-cur_db[cur_db$Column == clmn2 & cur_db$Table %in% req_tbls,"Table"]
+					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
 					}else{
@@ -119,7 +119,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbl2<-value
 					clmn2<-""
 				}
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
@@ -142,7 +142,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					pos2<-unlist(gregexpr(pattern="[)]",value))
 					aggr2<-trim(substr(value,1,pos1-1))
 					clmn2<-trim(substr(value,pos1+1,pos2-1))
-					tbls<-cur_db[cur_db$Column == clmn2 & cur_db$Table %in% req_tbls,"Table"]
+					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
 					}else{
@@ -153,7 +153,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbl2<-value
 					clmn2<-""
 				}
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
@@ -176,7 +176,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					pos2<-unlist(gregexpr(pattern="[)]",value))
 					aggr2<-trim(substr(value,1,pos1-1))
 					clmn2<-trim(substr(value,pos1+1,pos2-1))
-					tbls<-cur_db[cur_db$Column == clmn2 & cur_db$Table %in% req_tbls,"Table"]
+					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
 					}else{
@@ -187,7 +187,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbl2<-value
 					clmn2<-""
 				}
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
@@ -210,7 +210,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					pos2<-unlist(gregexpr(pattern="[)]",value))
 					aggr2<-trim(substr(value,1,pos1-1))
 					clmn2<-trim(substr(value,pos1+1,pos2-1))
-					tbls<-cur_db[cur_db$Column == clmn2 & cur_db$Table %in% req_tbls,"Table"]
+					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
 					}else{
@@ -221,7 +221,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbl2<-value
 					clmn2<-""
 				}
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
@@ -247,7 +247,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					clmn2<-trim(substr(value,pos1[1]+1,pos2[length(pos2)]-1))
 					# here is the actual column to validate
 					clmn_val<-trim(substr(value,pos1[length(pos1)]+1,pos2[1]-1))
-					tbls<-cur_db[cur_db$Column == clmn_val & cur_db$Table %in% req_tbls,"Table"]
+					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn_val) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
 					}else{
@@ -258,7 +258,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbl2<-value
 					clmn2<-""
 				}
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
@@ -281,7 +281,7 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				oper<-"between"
 				x<-unlist(strsplit(where_part[i],"between"))
 				clmn<-trim(x[1])
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					if(length(unlist(strsplit(x[2],"and")))==2){
@@ -297,7 +297,7 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],">="))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
@@ -308,7 +308,7 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],"<="))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
@@ -319,7 +319,7 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],">"))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
@@ -330,7 +330,7 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],"<"))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
@@ -341,7 +341,7 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],"="))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
-				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
+				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
 					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
