@@ -7,7 +7,10 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
@@ -39,6 +42,10 @@ public class QueryUpdateReactor extends AbstractQueryStructReactor {
 			QueryColumnSelector colS = new QueryColumnSelector(col);
 			columns.add(colS);
 			if(val instanceof List) {
+				if(((List) val).size() > 1) {
+					NounMetadata n = new NounMetadata("Can only specify one value to update to", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+					throw new SemossPixelException(n);
+				}
 				Object val0 = ((List) val).get(0);
 				if(val0 instanceof NounMetadata) {
 					values.add( ((NounMetadata) val0).getValue() );
