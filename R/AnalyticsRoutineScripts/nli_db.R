@@ -667,6 +667,7 @@ optimize_joins<-function(cols,joins,cur_db){
 		# if all columns in a single table
 		joins<-joins[0,]
 		joins<-rbindlist(list(joins,list(tbls[1],tbls[1],"","")))
+		colnames(joins)<-c("tbl1","tbl2","joinby1","joinby2")
 	}else{
 		# remove unneeded leaves
 		repeat{
