@@ -15,9 +15,9 @@ nliapp_mgr<-function(txt,db,joins=data.frame()){
 	chunks<-get_chunks(df)
 	
 	# get columns used in the request
-	cols<-df[df$itemtype == "column","item"]
+	cols<-tolower(as.character(df[df$itemtype == "column","item"]))
 	# get potential appids used in the request
-	apps<-unique(db[db$Column %in% cols,"AppID"])
+	apps<-unique(db[tolower(db$Column) %in% cols,"AppID"])
 	N<-length(apps)
 	r<-data.table(Response=character(),AppID=character(),Statement=character())
 	p<-data.table(appid=character(),part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
@@ -26,7 +26,7 @@ nliapp_mgr<-function(txt,db,joins=data.frame()){
 			df$processed<-"no"
 			cur_db<-db[db$AppID==apps[i],]
 			if(nrow(joins)!=0){
-				cur_joins<-joins[levels(joins$AppID)==levels(apps)[i],1:4]
+				cur_joins<-joins[joins$AppID==apps[i],1:4]
 			}else{
 				cur_joins<-joins
 			}
@@ -42,6 +42,7 @@ nliapp_mgr<-function(txt,db,joins=data.frame()){
 			}else{
 				sql<-out[[1]]
 				response<-"Error"
+				next
 			}
 			
 			# process prepositions
@@ -90,6 +91,7 @@ nliapp_mgr<-function(txt,db,joins=data.frame()){
 				}else{
 					sql<-out[[1]]
 					response<-"Error"
+					next
 				}	
 			}else{
 				pixel_single_select<-build_pixel_single_select(select_part2,request_tbls,cur_db)
@@ -598,9 +600,9 @@ db_match<-function(db,token,type="Column"){
 map_dbitems<-function(df,db,pos="ALL"){
 	df$item<-""
 	df$itemtype<-""
-	if(pos=="ALL")
+	if(pos=="ALL"){
 		ind<-df$token_id
-	else{
+	}else{
 		ind<-df[substr(df$xpos,1,2)=="NN","token_id"]
 	}
 	n<-length(ind)
@@ -669,9 +671,9 @@ optimize_joins<-function(cols,joins,cur_db){
 		# remove unneeded leaves
 		repeat{
 			tbls_freq<-count(c(joins$tbl1,joins$tbl2))
-			tbls_todrop<-tbls_freq[tbls_freq$freq==1 & !(tbls_freq$x %in% tbls),"x"]
+			tbls_todrop<-tbls_freq[tbls_freq$freq==1 & !(tolower(tbls_freq$x) %in% tolower(tbls)),"x"]
 			if(length(tbls_todrop)>0){
-				joins<-joins[!(joins$tbl1 %in% tbls_todrop) & !(joins$tbl2 %in% tbls_todrop),]
+				joins<-joins[!(tolower(joins$tbl1) %in% tolower(tbls_todrop)) & !(tolower(joins$tbl2) %in% tolower(tbls_todrop)),]
 			}else{
 				break
 			}
@@ -689,8 +691,8 @@ verify_joins<-function(cols,joins,cur_db){
 	g_mst<-mst(g)
 	# verifu that all required columns accessible
 	tbls<-vertex_attr(g_mst)$name
-	tbls_cols<-as.character(cur_db[cur_db$Table %in% tbls,"Column"])
-	if(all(cols %in% tbls_cols)){
+	tbls_cols<-as.character(cur_db[tolower(cur_db$Table) %in% tolower(tbls),"Column"])
+	if(all(tolower(cols) %in% tolower(tbls_cols))){
 		myList[[2]]<-joins
 	}else{
 		myList[[1]]<-"Rephrase the request: could not join all required tables"
@@ -715,10 +717,10 @@ build_join_clause<-function(joins){
 			id<-0
 			clause<-as.character(joins[1,"tbl1"])
 			from_joins<-rbindlist(list(from_joins,list(clause,"","","")))
-			while(nrow(joins[(joins$tbl1 %in% tbls | joins$tbl2 %in% tbls & joins$id != id) & joins$processed == "no",])>0){
-				cur_rec<-joins[(joins$tbl1 %in% tbls | joins$tbl2 %in% tbls & joins$id != id)  & joins$processed == "no",][1,]
-				if(length(tbls[cur_rec$tbl1 %in% tbls])>0){
-					if(length(tbls[cur_rec$tbl2 %in% tbls])>0){
+			while(nrow(joins[(tolower(joins$tbl1) %in% tolower(tbls) | tolower(joins$tbl2) %in% tolower(tbls) & joins$id != id) & joins$processed == "no",])>0){
+				cur_rec<-joins[(tolower(joins$tbl1) %in% tolower(tbls) | tolower(joins$tbl2) %in% tolower(tbls) & joins$id != id)  & joins$processed == "no",][1,]
+				if(length(tbls[tolower(cur_rec$tbl1) %in% tolower(tbls)])>0){
+					if(length(tbls[tolower(cur_rec$tbl2) %in% tolower(tbls)])>0){
 						clause<-paste0(clause, "on ",cur_rec$tbl1,".",cur_rec$joinby1,"=",cur_rec$tbl2,".",cur_rec$joinby2)
 						from_joins<-rbindlist(list(from_joins,list(cur_rec$tbl1,cur_rec$tbl2,cur_rec$joinby1,cur_rec$joinby2)))
 					}else{
@@ -744,12 +746,6 @@ build_join_clause<-function(joins){
 join_clause_mgr<-function(cols,cur_db,joins){
 	
 	myList<-list()
-	if(nrow(joins)!=0){
-		joins$tbl1<-as.character(joins$tbl1)
-		joins$tbl2<-as.character(joins$tbl2)
-	}else{
-		joins<-build_joins(cur_db)
-	}
 	joins<-optimize_joins(cols,joins,cur_db)
 	if(nrow(joins)>0){
 		out<-verify_joins(cols,joins,cur_db)

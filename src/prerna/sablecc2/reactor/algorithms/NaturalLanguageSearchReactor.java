@@ -236,18 +236,16 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		rJoinBy1 += ")";
 		rJoinBy2 += ")";
 		
-		rsb.append(rTempTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ");");
+		rsb.append(rTempTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ", stringsAsFactors = FALSE);");
 		if(numRels == 0) {
 			rsb.append(result + " <- nliapp_mgr(\"" + query + "\"," + rTempTable + ");\n");
 		} else {
 			// Create data frame from above join vectors
-			rsb.append(rJoinTable + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDs_join + " );");
+			rsb.append(rJoinTable + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDs_join + ", stringsAsFactors = FALSE);");
 			rsb.append(result + " <- nliapp_mgr(\"" + query + "\"," + rTempTable + "," + rJoinTable + ");");
 		}
 		this.rJavaTranslator.runR(rsb.toString());
 
-		System.out.println(rsb.toString());
-		
 		// get back the data
 		String[] headerOrdering = new String[]{"appid", "part", "item1", "item2", "item3", "item4", "item5", "item6", "item7" };
 		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(result, headerOrdering);
