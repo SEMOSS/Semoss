@@ -8,6 +8,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
 public class QueryUpdateReactor extends AbstractQueryStructReactor {
@@ -37,7 +38,20 @@ public class QueryUpdateReactor extends AbstractQueryStructReactor {
 			
 			QueryColumnSelector colS = new QueryColumnSelector(col);
 			columns.add(colS);
-			values.add(val);
+			if(val instanceof List) {
+				Object val0 = ((List) val).get(0);
+				if(val0 instanceof NounMetadata) {
+					values.add( ((NounMetadata) val0).getValue() );
+				} else {
+					values.add(val0);
+				}
+			} else {
+				if(val instanceof NounMetadata) {
+					values.add( ((NounMetadata) val).getValue() );
+				} else {
+					values.add(val);
+				}
+			}
 		}
 		
 		qs.setSelectors(columns);
