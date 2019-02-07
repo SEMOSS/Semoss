@@ -205,7 +205,14 @@ public class QueryInsertReactor extends AbstractReactor {
 				}
 				
 				// set the value into the current row
-				row[i] = thisValue;
+				// if this is an array of more than 1 value
+				// then it is a list of noun metadatas 
+				// and we need to get the value
+				if(thisValue instanceof NounMetadata) {
+					row[i] = ((NounMetadata)thisValue).getValue();
+				} else {
+					row[i] = thisValue;
+				}
 			}
 			combinations.add(row);
 			
