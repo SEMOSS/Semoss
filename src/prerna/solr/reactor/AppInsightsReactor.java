@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -54,15 +55,15 @@ public class AppInsightsReactor extends AbstractReactor {
 		List<Map<String, Object>> results = null;
 		if (eFilters != null) {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				results = SecurityQueryUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, limit,offset);
+				results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, limit,offset);
 			} else {
-				results = SecurityQueryUtils.searchInsights(eFilters, searchTerm, limit, offset);
+				results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, limit, offset);
 			}
 		} else {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				results = SecurityQueryUtils.searchUserInsightDataByName(this.insight.getUser(), searchTerm, limit, offset);
+				results = SecurityInsightUtils.searchUserInsightDataByName(this.insight.getUser(), searchTerm, limit, offset);
 			} else {
-				results = SecurityQueryUtils.searchAllInsightDataByName(searchTerm, limit, offset);
+				results = SecurityInsightUtils.searchAllInsightDataByName(searchTerm, limit, offset);
 			}
 		}
 		
