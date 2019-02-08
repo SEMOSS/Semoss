@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -39,7 +39,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			String insightId = split[1];
 			
 			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityQueryUtils.userCanEditInsight(this.insight.getUser(), appId, insightId)) {
+				if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, insightId)) {
 					throw new IllegalArgumentException("User does not have permission to edit this insight");
 				}
 			}
