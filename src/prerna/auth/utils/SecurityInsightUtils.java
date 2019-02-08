@@ -22,9 +22,31 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static String getUserInsightPermission(User user, String engineId, String insightId) {
 		String userFilters = getUserFilters(user);
 
-		// else query the database
+		// query the database
 		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
 				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null && val instanceof Number) {
+					return AccessPermission.getPermissionValueById( ((Number) val).intValue() );
+				}
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+		
+		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
+			return AccessPermission.READ_ONLY.getPermission();
+		}
+		
+		return null;
+	}
+	
+	private static String getUserInsightPermission(String singleUserId, String engineId, String insightId) {
+		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID=' " + singleUserId + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			if(wrapper.hasNext()) {
@@ -162,7 +184,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static boolean addInsightUser(User user, String newUserId, String engineId, String insightId, String permission) {
+	public static void addInsightUser(User user, String newUserId, String engineId, String insightId, String permission) {
 		if(!userCanEditInsight(user, engineId, insightId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
 		}
@@ -179,26 +201,46 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			e.printStackTrace();
 			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
 		}
-		
-		return true;
 	}
 	
 	/**
 	 * 
 	 * @param user
-	 * @param editedUserId
+	 * @param existingUserId
 	 * @param engineId
 	 * @param insightId
-	 * @param permission
+	 * @param newPermission
 	 * @return
 	 */
-	public static boolean editInsightUser(User user, String editedUserId, String engineId, String insightId, String permission) {
+	public static void editInsightUserPermission(User user, String existingUserId, String engineId, String insightId, String newPermission) {
+		// make sure user can edit the insight
 		if(!userCanEditInsight(user, engineId, insightId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
 		}
 		
+		// get the current permission
+		String existingUserPermission = getUserInsightPermission(existingUserId, engineId, insightId);
+		if(existingUserPermission == null) {
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
+		}
+		// only another owner can modify the permission of another owner
+		if(AccessPermission.OWNER == AccessPermission.getPermissionByValue(existingUserPermission)) {
+			
 		
-		return false;
+		}
+		
+		String query = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=" + AccessPermission.getIdByPermission(newPermission)
+				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "', "
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
+				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';"
+				;
+
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+		}
 	}
 	
 	/**
@@ -458,5 +500,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
 	}
+
+
 	
 }
