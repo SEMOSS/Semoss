@@ -3,12 +3,45 @@ package prerna.auth.utils;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.AccessPermission;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class SecurityInsightUtils extends AbstractSecurityUtils {
 
+	/**
+	 * Get what permission the user has for a given insight
+	 * @param userId
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
+	public static String getUserInsightPermission(User user, String engineId, String insightId) {
+		String userFilters = getUserFilters(user);
+
+		// else query the database
+		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val != null && val instanceof Number) {
+					return AccessPermission.getPermissionValueById( ((Number) val).intValue() );
+				}
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+		
+		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
+			return AccessPermission.READ_ONLY.getPermission();
+		}
+		
+		return null;
+	}
+	
 	/**
 	 * Determine if the user can edit the insight
 	 * User must be database owner OR be given explicit permissions on the insight
