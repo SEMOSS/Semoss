@@ -65,6 +65,19 @@ public enum AccessPermission {
 			String permId = perm.id + "";
 			if(permId.equalsIgnoreCase(id)) {
 				ep = perm;
+				break;
+			}
+		}
+		
+		return ep.getPermission();
+	}
+	
+	public static String getPermissionValueById(int id) {
+		AccessPermission ep = AccessPermission.READ_ONLY;
+		for(AccessPermission perm : AccessPermission.values()) {
+			if(perm.id == id) {
+				ep = perm;
+				break;
 			}
 		}
 		
