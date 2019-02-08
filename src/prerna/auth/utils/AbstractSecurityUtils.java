@@ -588,6 +588,13 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
+	static String escapeRegexCharacters(String s) {
+		s = s.trim();
+		s = s.replace("(", "\\(");
+		s = s.replace(")", "\\)");
+		return s;
+	}
+	
 	static String validEmail(String email){
 		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
 			return  email + " is not a valid email address. ";
