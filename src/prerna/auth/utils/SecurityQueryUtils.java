@@ -441,44 +441,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 	
-	/**
-	 * Determine if the user can edit the insight
-	 * User must be database owner OR be given explicit permissions on the insight
-	 * @param userId
-	 * @param engineId
-	 * @param insightId
-	 * @return
-	 */
-	public static boolean userCanEditInsight(User user, String engineId, String insightId) {
-		String userFilters = getUserFilters(user);
-
-		// if user is owner
-		// they can do whatever they want
-		if(userIsOwner(userFilters, engineId)) {
-			return true;
-		}
-		
-		// else query the database
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		try {
-			while(wrapper.hasNext()) {
-				Object val = wrapper.next().getValues()[0];
-				if(val == null) {
-					return false;
-				}
-				int permission = ((Number) val).intValue();
-				if(AccessPermission.isOwner(permission)) {
-					return true;
-				}
-			}
-		} finally {
-			wrapper.cleanUp();
-		}		
-		return false;
-	}
-	
 	public static boolean insightIsGlobal(String engineId, String insightId) {
 		String query = "SELECT DISTINCT INSIGHT.GLOBAL FROM INSIGHT  "
 				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND INSIGHT.GLOBAL=TRUE";
@@ -495,8 +457,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 	
-
-
 	/**
 	 * Return top executed insights for engine as a map
 	 * TODO: THIS IS A WEIRD FORMAT BUT CURRENTLY WHAT FE IS EXEPCTING....

@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -43,7 +44,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanEditInsight(this.insight.getUser(), appId, existingId)) {
+			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, existingId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have permission to edit this insight");
 			}
 		} else {
