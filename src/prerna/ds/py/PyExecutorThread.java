@@ -51,7 +51,7 @@ public class PyExecutorThread extends Thread {
 						    		response.put(thisCommand, thisResponse);
 						    	}catch (Exception ex) {
 						    		jep.eval(thisCommand);
-						    		//response.put(thisCommand, "");
+						    		response.put(thisCommand, "");
 						    	}
 								daLock.notify();
 								
