@@ -1,10 +1,12 @@
 package prerna.auth.utils;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.User;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
@@ -80,6 +82,44 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return false;
 	}
 	
+	/**
+	 * Determine if the user can edit the insight
+	 * User must be database owner OR be given explicit permissions on the insight
+	 * @param userId
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
+	public static boolean userCanEditInsight(User user, String engineId, String insightId) {
+		String userFilters = getUserFilters(user);
+
+		// if user is owner
+		// they can do whatever they want
+		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+			return true;
+		}
+		
+		// else query the database
+		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val == null) {
+					return false;
+				}
+				int permission = ((Number) val).intValue();
+				if(AccessPermission.isOwner(permission)) {
+					return true;
+				}
+			}
+		} finally {
+			wrapper.cleanUp();
+		}		
+		return false;
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
@@ -98,11 +138,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getInsightUsers(User user, String appId, String insightId) throws IllegalAccessException {
 		String userFilter = getUserFilters(user);
-		String query = "SELECT USER.ID AS ID, "
-				+ "USER.NAME AS NAME, "
-				+ "USERINSIGHTPERMISSION.PERMISSION AS PERMISSION "
+		String query = "SELECT USER.ID AS id, "
+				+ "USER.NAME AS name, "
+				+ "PERMISSION.NAME AS permission "
 				+ "FROM USER "
-				+ "JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
+				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
+				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID)"
 				+ "WHERE USER.ID IN " + userFilter 
 				+ " AND USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
 				+ " AND USERINSIGHTPERMISSION.INSIGHTID='" + insightId + "'"
@@ -112,7 +153,71 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param newUserId
+	 * @param engineId
+	 * @param insightId
+	 * @param permission
+	 * @return
+	 */
+	public static boolean addInsightUser(User user, String newUserId, String engineId, String insightId, String permission) {
+		if(!userCanEditInsight(user, engineId, insightId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
+		}
+		
+		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) VALUES('"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', "
+				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
+				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + ", "
+				+ RdbmsQueryBuilder.escapeForSQLStatement(permission) + ");";
+
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+		}
+		
+		return true;
+	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param editedUserId
+	 * @param engineId
+	 * @param insightId
+	 * @param permission
+	 * @return
+	 */
+	public static boolean editInsightUser(User user, String editedUserId, String engineId, String insightId, String permission) {
+		if(!userCanEditInsight(user, engineId, insightId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
+		}
+		
+		
+		return false;
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param editedUserId
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
+	public static boolean removeInsightUser(User user, String editedUserId, String engineId, String insightId) {
+		if(!userCanEditInsight(user, engineId, insightId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
+		}
+		
+		
+		
+		return false;
+	}
 	
 	
 	///////////////////////////////////////////////////////////////////////////////////
