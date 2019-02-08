@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.InsightCacheUtility;
@@ -23,7 +24,7 @@ public class DeleteInsightCacheReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanEditInsight(this.insight.getUser(), appId, rdbmsId)) {
+			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, rdbmsId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have permission to edit this insight");
 			}
 		} else {
