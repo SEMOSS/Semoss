@@ -308,14 +308,39 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @return
 	 */
-	public static boolean removeInsightUser(User user, String editedUserId, String engineId, String insightId) {
-		if(!userCanEditInsight(user, engineId, insightId)) {
+	public static void removeInsightUser(User user, String existingUserId, String engineId, String insightId) {
+		// make sure user can edit the insight
+		int userPermissionLvl = getMaxUserInsightPermission(user, engineId, insightId);
+		if(!AccessPermission.isEditor(userPermissionLvl)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
 		}
 		
+		// make sure we are trying to edit a permission that exists
+		Integer existingUserPermission = getUserInsightPermission(existingUserId, engineId, insightId);
+		if(existingUserPermission == null) {
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
+		}
 		
+		// if i am not an owner
+		// then i need to check if i can remove this users permission
+		if(!AccessPermission.isOwner(userPermissionLvl)) {
+			// not an owner, check if trying to edit an owner or an editor/reader
+			// get the current permission
+			if(AccessPermission.OWNER.getId() == existingUserPermission) {
+				throw new IllegalArgumentException("The user doesn't have the high enough permissions to modify this users insight permission.");
+			}
+		}
 		
-		return false;
+		String query = "DELETE FROM USERINSIGHTPERMISSION WHERE "
+				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "' "
+				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+		}
 	}
 	
 	
