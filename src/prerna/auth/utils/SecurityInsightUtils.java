@@ -44,15 +44,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return null;
 	}
 	
-	private static String getUserInsightPermission(String singleUserId, String engineId, String insightId) {
+	private static Integer getUserInsightPermission(String singleUserId, String engineId, String insightId) {
 		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID=' " + singleUserId + "'";
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + singleUserId + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			if(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if(val != null && val instanceof Number) {
-					return AccessPermission.getPermissionValueById( ((Number) val).intValue() );
+					return ((Number) val).intValue();
 				}
 			}
 		} finally {
@@ -60,7 +60,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		
 		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
-			return AccessPermission.READ_ONLY.getPermission();
+			return AccessPermission.READ_ONLY.getId();
 		}
 		
 		return null;
@@ -132,7 +132,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					return false;
 				}
 				int permission = ((Number) val).intValue();
-				if(AccessPermission.isOwner(permission)) {
+				if(AccessPermission.isEditor(permission)) {
 					return true;
 				}
 			}
@@ -141,6 +141,44 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}		
 		return false;
 	}
+	
+	/**
+	 * Determine if the user can edit the insight
+	 * User must be database owner OR be given explicit permissions on the insight
+	 * @param userId
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
+	public static int getMaxUserInsightPermission(User user, String engineId, String insightId) {
+		String userFilters = getUserFilters(user);
+
+		// if user is owner of the app
+		// they can do whatever they want
+		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+			// owner of engine is owner of all the insights
+			return AccessPermission.OWNER.getId();
+		}
+		
+		// else query the database
+		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters + " ORDER BY PERMISSION";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val == null) {
+					return AccessPermission.READ_ONLY.getId();
+				}
+				int permission = ((Number) val).intValue();
+				return permission;
+			}
+		} finally {
+			wrapper.cleanUp();
+		}		
+		return AccessPermission.READ_ONLY.getId();
+	}
+
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
@@ -159,15 +197,17 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static List<Map<String, Object>> getInsightUsers(User user, String appId, String insightId) throws IllegalAccessException {
-		String userFilter = getUserFilters(user);
-		String query = "SELECT USER.ID AS id, "
-				+ "USER.NAME AS name, "
-				+ "PERMISSION.NAME AS permission "
+		if(!userCanViewInsight(user, appId, insightId)) {
+			throw new IllegalArgumentException("The user does not have access to view this insight");
+		}
+		
+		String query = "SELECT USER.ID AS \"id\", "
+				+ "USER.NAME AS \"name\", "
+				+ "PERMISSION.NAME AS \"permission\" "
 				+ "FROM USER "
 				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
-				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID)"
-				+ "WHERE USER.ID IN " + userFilter 
-				+ " AND USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
+				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID) "
+				+ "WHERE USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
 				+ " AND USERINSIGHTPERMISSION.INSIGHTID='" + insightId + "'"
 				;
 		
@@ -189,10 +229,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
 		}
 		
+		// make sure user doesn't already exist for this insight
+		if(getUserInsightPermission(newUserId, engineId, insightId) != null) {
+			// that means there is already a value
+			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
+		}
+		
 		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) VALUES('"
-				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', "
-				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
-				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + ", "
+				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
 				+ RdbmsQueryBuilder.escapeForSQLStatement(permission) + ");";
 
 		try {
@@ -214,27 +260,38 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void editInsightUserPermission(User user, String existingUserId, String engineId, String insightId, String newPermission) {
 		// make sure user can edit the insight
-		if(!userCanEditInsight(user, engineId, insightId)) {
+		int userPermissionLvl = getMaxUserInsightPermission(user, engineId, insightId);
+		if(!AccessPermission.isEditor(userPermissionLvl)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
 		}
 		
-		// get the current permission
-		String existingUserPermission = getUserInsightPermission(existingUserId, engineId, insightId);
+		// make sure we are trying to edit a permission that exists
+		Integer existingUserPermission = getUserInsightPermission(existingUserId, engineId, insightId);
 		if(existingUserPermission == null) {
 			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
 		}
-		// only another owner can modify the permission of another owner
-		if(AccessPermission.OWNER == AccessPermission.getPermissionByValue(existingUserPermission)) {
-			
 		
+		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		
+		// if i am not an owner
+		// then i need to check if i can edit this users permission
+		if(!AccessPermission.isOwner(userPermissionLvl)) {
+			// not an owner, check if trying to edit an owner or an editor/reader
+			// get the current permission
+			if(AccessPermission.OWNER.getId() == existingUserPermission) {
+				throw new IllegalArgumentException("The user doesn't have the high enough permissions to modify this users insight permission.");
+			}
+			
+			// also, cannot give some owner permission if i am just an editor
+			if(AccessPermission.OWNER.getId() == newPermissionLvl) {
+				throw new IllegalArgumentException("Cannot give owner level access to this insight since you are not currently an owner.");
+			}
 		}
 		
-		String query = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=" + AccessPermission.getIdByPermission(newPermission)
-				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "', "
-				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
-				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';"
-				;
-
+		String query = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=" + newPermissionLvl
+				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "' "
+				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
