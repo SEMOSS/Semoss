@@ -1260,7 +1260,42 @@ public class MasterDatabaseUtility {
 			closeStreams(stmt, rs);
 		}
 		return conceptsList;
-	}	
+	}
+	
+	/**
+	 * Execute a query to get the table name for a column
+	 * @param engineId
+	 * @param column
+	 * @return
+	 */
+	public static String getTableForColumn(String engineId, String column) {
+		// select ec.physicalname from engineconcept as ec inner join engineconcept ec2 on ec.physicalnameid=ec2.parentphysicalid where ec.engine='acd7bdc8-67a0-4fa7-8b30-7c39f5c0fc62' and ec2.physicalname='MOVIE_DATA' and ec2.pk = false;
+		String query = "select ec.physicalname "
+				+ "from engineconcept as ec "
+				+ "inner join engineconcept ec2 on ec.physicalnameid=ec2.parentphysicalid "
+				+ "where ec2.pk = false "
+				+ "and ec.engine='" + engineId + "' "
+				+ "and ec2.physicalname='" + column + "'";
+		
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while(rs.next()) {
+				String parentName = rs.getString(1);
+				return parentName;
+			}
+		} catch(SQLException ex) {
+			ex.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return null;
+	}
 	
 	public static String getBasicDataType(String engineId, String conceptualName, String parentConceptualName) {
 		String query = null;
