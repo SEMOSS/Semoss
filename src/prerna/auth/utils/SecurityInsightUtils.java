@@ -77,14 +77,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static boolean userCanViewInsight(User user, String engineId, String insightId) {
 		String userFilters = getUserFilters(user);
 
-		// if user is owner
-		// they can do whatever they want
-		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
 			return true;
 		}
 		
-		//TODO: add this back when we have the UI to set insights to be not global
-		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
+		// if user is owner
+		// they can do whatever they want
+		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
 			return true;
 		}
 		
@@ -143,6 +142,44 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Determine if the user is an owner of an insight
+	 * User must be database owner OR be given explicit permissions on the insight
+	 * @param userId
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
+	public static boolean userIsInsightOwner(User user, String engineId, String insightId) {
+		String userFilters = getUserFilters(user);
+
+		// if user is owner of app
+		// they can do whatever they want
+		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+			return true;
+		}
+		
+		// else query the database
+		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			while(wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if(val == null) {
+					return false;
+				}
+				int permission = ((Number) val).intValue();
+				if(AccessPermission.isOwner(permission)) {
+					return true;
+				}
+			}
+		} finally {
+			wrapper.cleanUp();
+		}		
+		return false;
+	}
+	
+	/**
 	 * Determine if the user can edit the insight
 	 * User must be database owner OR be given explicit permissions on the insight
 	 * @param userId
@@ -179,6 +216,28 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return AccessPermission.READ_ONLY.getId();
 	}
 
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Modify insight details
+	 */
+	
+	public static void setInsightGlobalWithinApp(User user, String appId, String insightId, boolean isPublic) {
+		if(!userIsInsightOwner(user, appId, insightId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
+		}
+		
+		String query = "UPDATE INSIGHT SET GLOBAL=" + isPublic + " WHERE ENGINEID ='" + appId + "' AND INSIGHTID='" + insightId + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured setting this insight global");
+		}
+	}
+	
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
