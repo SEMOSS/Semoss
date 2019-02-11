@@ -15,6 +15,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -299,7 +301,16 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				String selectProperty = row[3].toString();
 				boolean agg = !row[4].toString().isEmpty();
 				
-				IQuerySelector selector = new QueryColumnSelector(selectConcept + "__" + selectProperty);
+				IQuerySelector selector = null;
+				// if it is a table
+				// we do not know the correct primary key
+				// so we exec a query to determine if we should use the current selectedProperty
+				// or keep it as PRIM_KEY_PLACEHOLDER
+				if(MasterDatabaseUtility.getTableForColumn(currAppId, selectProperty) == null) {
+					selector = new QueryColumnSelector(selectConcept);
+				} else {
+					selector = new QueryColumnSelector(selectConcept + "__" + selectProperty);
+				}
 				if(agg) {
 					QueryFunctionSelector fSelector = new QueryFunctionSelector();
 					fSelector.setFunction(row[4].toString());
@@ -330,10 +341,21 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				Object whereValue = row[5];
 				Object whereValue2 = row[6];
 				
-				NounMetadata lhs = new NounMetadata(new QueryColumnSelector(whereTable + "__" + whereCol), PixelDataType.COLUMN);
+				// if it is a table
+				// we do not know the correct primary key
+				// so we exec a query to determine if we should use the current selectedProperty
+				// or keep it as PRIM_KEY_PLACEHOLDER
+				IQuerySelector selector = null;
+				if(MasterDatabaseUtility.getTableForColumn(currAppId, whereCol) == null) {
+					selector = new QueryColumnSelector(whereTable);
+				} else {
+					selector = new QueryColumnSelector(whereTable + "__" + whereCol);
+				}
+				NounMetadata lhs = new NounMetadata(selector, PixelDataType.COLUMN);
 				
 				// let us address the portion when we have another column
-				if(!whereValue2.toString().isEmpty()) {
+				// so whereValue2 is empty and comparator is not between
+				if(!whereValue2.toString().isEmpty() && !comparator.equals("between")) {
 					// my lhs is another column
 					NounMetadata rhs = new NounMetadata(new QueryColumnSelector(whereValue + "__" + whereValue2), PixelDataType.COLUMN);
 					// add this filter
@@ -537,34 +559,67 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 
 		// bring in the filters
-		// TODO: Make this work for Having filters
-		List<Map<String, Object>> filters = qs.getExplicitFilters().getFormatedFilters();
-		filters.addAll(qs.getHavingFilters().getFormatedFilters());
+		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		if (!filters.isEmpty()) {
-			separator = "";
-			psb.append("Filter ( ");
-			System.out.println("");
-			for (Map<String, Object> filter : filters) {
-				String filterString = (String) filter.get("filterStr");
-				String[] filterPieces = filterString.split(" ");
-				String colName = filterPieces[0];
-				String operator = filterPieces[1];
-				String val = filterPieces[2];
-				psb.append(separator);
-				separator = " ) | Filter ( ";
-				psb.append(colName);
-				if (operator.equals("=") && !StringUtils.isNumber(val)) {
-					operator = " == ";
-					psb.append(operator);
-					psb.append("[\"" + val + "\"] ");
+			for (IQueryFilter f : filters) {
+				// start a new filter
+				psb.append("Filter ( ");
+				
+				// assume we only have simple
+				SimpleQueryFilter simpleF = (SimpleQueryFilter) f;
+				// left hand side is always a column
+				NounMetadata lhs = simpleF.getLComparison();
+				psb.append(lhs.getValue() + "");
+				if(simpleF.getComparator().equals("=")) {
+					psb.append(" == ");
 				} else {
-					operator = " " + operator + " ";
-					psb.append(operator);
-					psb.append(" " + val + " ");
+					psb.append(" ").append(simpleF.getComparator()).append(" ");
 				}
+				NounMetadata rhs = simpleF.getRComparison();
+				PixelDataType rhsType = rhs.getNounType();
+				if(rhsType == PixelDataType.COLUMN) {
+					psb.append(rhs.getValue() + "");
+				} else if(rhsType == PixelDataType.CONST_STRING) {
+					Object val = rhs.getValue();
+					if(val instanceof List) {
+						List<String> vList = (List<String>) val;
+						int size = vList.size();
+						psb.append("[");
+						for(int i = 0; i < size; i++) {
+							if(i == 0) {
+								psb.append("\"").append(vList.get(i)).append("\"");
 
+							} else {
+								psb.append(",\"").append(vList.get(i)).append("\"");
+							}
+						}
+						psb.append("]");
+					} else { 
+						psb.append("\"" + rhs.getValue() + "\"");
+					}
+				} else {
+					Object val = rhs.getValue();
+					if(val instanceof List) {
+						List<String> vList = (List<String>) val;
+						int size = vList.size();
+						psb.append("[");
+						for(int i = 0; i < size; i++) {
+							if(i == 0) {
+								psb.append(vList.get(i));
+
+							} else {
+								psb.append(", ").append(vList.get(i));
+							}
+						}
+						psb.append("]");
+					} else { 
+						psb.append(rhs.getValue() + "");
+					}
+				}
+				
+				// close this filter
+				psb.append(") | ");
 			}
-			psb.append(") | ");
 		}
 
 		// bring in the relations
