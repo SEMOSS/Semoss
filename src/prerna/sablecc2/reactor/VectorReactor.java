@@ -15,6 +15,7 @@ public class VectorReactor extends AbstractReactor implements JavaExecutable {
 			NounMetadata noun = curRow.getNoun(i);
 			list.add(noun);
 		}
+	
 		return new NounMetadata(list, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 	}
 

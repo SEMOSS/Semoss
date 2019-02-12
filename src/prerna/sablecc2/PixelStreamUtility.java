@@ -236,16 +236,14 @@ public class PixelStreamUtility {
 			// we need to loop through a set of noun meta datas to output
 			List<NounMetadata> codeOutputs = (List<NounMetadata>) noun.getValue();
 			int numOutputs = codeOutputs.size();
-			if(numOutputs > 0) {
-				ps.print("\"output\":[");
-				for(int i = 0; i < numOutputs; i++) {
-					if(i > 0) {
-						ps.print(",");
-					}
-					processNounMetadata(in, ps, gson, codeOutputs.get(i), null, null);
+			ps.print("\"output\":[");
+			for(int i = 0; i < numOutputs; i++) {
+				if(i > 0) {
+					ps.print(",");
 				}
-				ps.print("]");
+				processNounMetadata(in, ps, gson, codeOutputs.get(i), null, null);
 			}
+			ps.print("]");
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
 
