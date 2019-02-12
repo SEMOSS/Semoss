@@ -19,9 +19,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @return
 	 */
-	public static String getUserInsightPermission(User user, String engineId, String insightId) {
+	public static String getActualUserInsightPermission(User user, String engineId, String insightId) {
 		String userFilters = getUserFilters(user);
 
+		// if user is owner
+		// they can do whatever they want
+		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+			return AccessPermission.OWNER.getPermission();
+		}
+		
 		// query the database
 		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
 				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
@@ -57,10 +63,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 		} finally {
 			wrapper.cleanUp();
-		}
-		
-		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
-			return AccessPermission.READ_ONLY.getId();
 		}
 		
 		return null;
