@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.AccessPermission;
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
@@ -300,7 +301,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', '"
 				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
-				+ RdbmsQueryBuilder.escapeForSQLStatement(permission) + ");";
+				+ AccessPermission.getIdByPermission(permission) + ");";
 
 		try {
 			securityDb.insertData(query);
