@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.algorithms;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,16 +8,15 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
-import org.h2.util.StringUtils;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.GenRowStruct;
@@ -124,12 +122,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		logger.info(stepCounter + ". Generating pixel return from results");
 		List<Map<String, String>> returnPixels = generatePixels(retData, query);
 		logger.info(stepCounter + ". Done");
-		
-		// if no results were found, return error message
-		if (returnPixels.isEmpty()) {
-			NounMetadata noun = new NounMetadata("Natural Language Search provided no results", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-			return noun;
-		}
 
 		return new NounMetadata(returnPixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
@@ -356,7 +348,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// let us address the portion when we have another column
 				// so whereValue2 is empty and comparator is not between
 				if(!whereValue2.toString().isEmpty() && !comparator.equals("between")) {
-					// my lhs is another column
+					// my rhs is another column
 					NounMetadata rhs = new NounMetadata(new QueryColumnSelector(whereValue + "__" + whereValue2), PixelDataType.COLUMN);
 					// add this filter
 					SimpleQueryFilter filter = new SimpleQueryFilter(lhs, comparator, rhs);
@@ -403,73 +395,125 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				
 			} 
 			else if(part.equalsIgnoreCase("having")) {
-//				
-//				String havingCol = row[3].toString();
-//				String havingAgg = row[4].toString();
-//				String comparator = row[5].toString();
-//				Object havingValue = row[6];
-//				Object havingValue2 = row[7];
-//				String havingValueAgg = row[8].toString();
-//
-//				// Check the Type of the operator and build filter
-//				// NOTE -- It can only be compared to another number or string
-//				if (!havingValueAgg.isEmpty()) {
-//					// the aggregate is being compared to another aggregate
-//
-//					// this is what happens on the min and max -- does this functionality exist?
-//
-//					return null;
-//				} else {
-//					List<IQuerySelector> selectors = qs.getSelectors();
-//					// transform aggregate to the semoss syntax
-//					switch (havingAgg) {
-//					case "avg":
-//						havingAgg = "Average";
-//						break;
-//					case "sum":
-//						havingAgg = "Sum";
-//						break;
-//					case "min":
-//						havingAgg = "Min";
-//						break;
-//					case "max":
-//						havingAgg = "Max";
-//						break;
-//					case "count":
-//						havingAgg = "UniqueCount";
-//						break;
-//					}
-//					for (IQuerySelector sel : selectors) {
-//						// get the selector that has the correct aggregate from the having clause
-//						if (sel.toString().contains(havingAgg) && sel.toString().contains(havingCol)) {
-//							if (havingOperator.equals("=")) {
-//								if (StringUtils.isNumber(havingValue) || StringUtils.isNumber(havingValue2)) {
-//									havingType = PixelDataType.CONST_DECIMAL;
-//								}
-//								qs.addHavingFilter(new SimpleQueryFilter(new NounMetadata(sel, PixelDataType.COLUMN),
-//										havingOperator, (new NounMetadata(havingValue, havingType))));
-//							} else if (havingOperator.equals("<") || havingOperator.equals(">")) {
-//								havingType = PixelDataType.CONST_DECIMAL;
-//								qs.addHavingFilter(new SimpleQueryFilter(new NounMetadata(sel, PixelDataType.COLUMN),
-//										havingOperator, (new NounMetadata(havingValue, havingType))));
-//							} else if (havingOperator.equals("between")) {
-//								havingType = PixelDataType.CONST_DECIMAL;
-//								qs.addHavingFilter(new SimpleQueryFilter(new NounMetadata(sel, PixelDataType.COLUMN),
-//										">", (new NounMetadata(havingValue, havingType))));
-//								qs.addHavingFilter(new SimpleQueryFilter(new NounMetadata(sel, PixelDataType.COLUMN),
-//										"<", (new NounMetadata(havingValue2, havingType))));
-//							}
-//						}
-//					}
-//				}
-			} else if(part.equalsIgnoreCase("group")) {
+				String havingTable = row[2].toString();
+				String havingCol = row[3].toString();
+				String havingAgg = row[4].toString();
+				String comparator = row[5].toString();
+				// if having value 2 is empty
+				// having value is a scalar
+				// if having value 2 is not empty
+				// that means having value is a table name
+				// and having value 2 is a column name
+				// and having value agg is the aggregate function
+				
+				Object havingValue = row[6];
+				Object havingValue2 = row[7];
+				Object havingValueAgg = row[8];
+				
+				// if it is a table
+				// we do not know the correct primary key
+				// so we exec a query to determine if we should use the current selectedProperty
+				// or keep it as PRIM_KEY_PLACEHOLDER
+				IQuerySelector selector = null;
+				if(MasterDatabaseUtility.getTableForColumn(currAppId, havingCol) == null) {
+					selector = new QueryColumnSelector(havingTable);
+				} else {
+					selector = new QueryColumnSelector(havingTable + "__" + havingCol);
+				}
+				QueryFunctionSelector fSelector = new QueryFunctionSelector();
+				fSelector.setFunction(havingAgg);
+				fSelector.addInnerSelector(selector);
+				// add the selector
+				curQs.addSelector(fSelector);
+				
+				//add lhs of having
+				NounMetadata lhs = new NounMetadata(fSelector, PixelDataType.COLUMN);
+				
+				// add rhs of having
+				// let us first address the portion when we have another aggregate
+				if(!havingValueAgg.toString().isEmpty()) {
+					// THIS DOESN'T WORK VERY WELL... COMPLICATED QUERY THAT REQUIRES A SUBQUERY
+					if(havingValueAgg.toString().equalsIgnoreCase("max")) {
+						// add an order + limit
+						curQs.setLimit(1);
+						QueryColumnOrderBySelector orderBy = new QueryColumnOrderBySelector(havingAgg + "(" + havingTable + "__" + havingCol + ")");
+						orderBy.setSortDir(QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
+						curQs.addOrderBy(orderBy);
+					} else if(havingValueAgg.toString().equalsIgnoreCase("min")) {
+						// add an order + limit
+						curQs.setLimit(1);
+						QueryColumnOrderBySelector orderBy = new QueryColumnOrderBySelector(havingAgg + "(" + havingTable + "__" + havingCol + ")");
+						curQs.addOrderBy(orderBy);
+					}
+					
+//					// my rhs is another column agg
+//					QueryFunctionSelector fSelectorR = new QueryFunctionSelector();
+//					fSelectorR.setFunction(havingValueAgg.toString());
+//					fSelectorR.addInnerSelector(new QueryColumnSelector(havingValue2.toString()));
+//					
+//					// add this filter
+//					NounMetadata rhs = new NounMetadata(fSelectorR, PixelDataType.COLUMN);
+//					SimpleQueryFilter filter = new SimpleQueryFilter(lhs, comparator, rhs);
+//					curQs.addHavingFilter(filter);
+				} else {
+					// we have to consider the comparators
+					// so i can do the correct types
+					if(comparator.contains(">") || comparator.contains("<")) {
+						// it must numeric
+						NounMetadata rhs = new NounMetadata(havingValue, PixelDataType.CONST_DECIMAL);
+						
+						// add this filter
+						SimpleQueryFilter filter = new SimpleQueryFilter(lhs, comparator, rhs);
+						curQs.addHavingFilter(filter);
+						
+					} else if(comparator.equals("between")) {
+						// still numeric
+						// but i need 2 filters
+						
+						// add the lower bound filter
+						NounMetadata rhs = new NounMetadata(havingValue, PixelDataType.CONST_DECIMAL);
+						// add this filter
+						SimpleQueryFilter filter = new SimpleQueryFilter(lhs, ">", rhs);
+						curQs.addHavingFilter(filter);
+						
+						// add the upper bound filter
+						rhs = new NounMetadata(havingValue2, PixelDataType.CONST_DECIMAL);
+						// add this filter
+						filter = new SimpleQueryFilter(lhs, "<", rhs);
+						curQs.addHavingFilter(filter);
+						
+					} else {
+						// this must be an equals or not equals...
+						
+						PixelDataType type = PixelDataType.CONST_STRING;
+						if(havingValue instanceof Number) {
+							type = PixelDataType.CONST_DECIMAL;
+						}
+						
+						NounMetadata rhs = new NounMetadata(havingValue, type);
+						// add this filter
+						SimpleQueryFilter filter = new SimpleQueryFilter(lhs, comparator, rhs);
+						curQs.addHavingFilter(filter);
+						
+					}
+				}
+
+			} else if (part.equalsIgnoreCase("group")) {
 				String groupConcept = row[2].toString();
 				String groupProperty = row[3].toString();
-				curQs.addGroupBy(groupConcept, groupProperty);
-			} 
-			
+				// if it is a table
+				// we do not know the correct primary key
+				// so we exec a query to determine if we should use the current selectedProperty
+				// or keep it as PRIM_KEY_PLACEHOLDER
+				if (MasterDatabaseUtility.getTableForColumn(currAppId, groupProperty) == null) {
+					curQs.addGroupBy(groupConcept, null);
+				} else {
+					curQs.addGroupBy(groupConcept, groupProperty);
+				}
+			}
+
 		}
-		
+
 		List<Map<String, String>> retMap = new Vector<Map<String, String>>();
 		for(SelectQueryStruct qs : qsList) {
 			Map<String, String> map = new HashMap<String, String>();
@@ -502,11 +546,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		StringBuilder psb = new StringBuilder();
 		// run default pixels setting up panel
 		psb.append("AddPanel ( 0 ) ;");
-		psb.append(
-				"Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;");
+		psb.append("Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;");
 		psb.append("Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
-		psb.append(
-				"Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" );");
+		psb.append("Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" );");
 		String frameName = "FRAME_" + Utility.getRandomString(5);
 		psb.append("CreateFrame ( GRID ) .as ( [ '" + frameName + "' ] );");
 
@@ -514,50 +556,43 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		psb.append("Database ( database = [ \"" + appId + "\" ] ) | ");
 
 		// pull the correct columns
+		Map<String, String> qsToAlias = new HashMap<String, String>();
 		List<IQuerySelector> selectors = qs.getSelectors();
+		StringBuilder aliasStringBuilder = new StringBuilder();
+		aliasStringBuilder.append(".as ( [ ");
 		psb.append("Select ( ");
 		String separator = "";
+		
+		//loop through the selectors and store their name and alias
 		for (IQuerySelector sel : selectors) {
 			String selToAdd = sel.toString();
-			psb.append(separator);
-			separator = " , ";
-			psb.append(selToAdd);
-		}
-		psb.append(" ) ");
-
-		// alias the columns
-		psb.append(".as ( [ ");
-		separator = "";
-		boolean agg = false;
-		List<String> groupedCols = new ArrayList<String>();
-		for (IQuerySelector sel : selectors) {
 			String selAliasToAdd = sel.getAlias();
 			psb.append(separator);
+			aliasStringBuilder.append(separator);
 			separator = " , ";
-			psb.append(selAliasToAdd);
-			if (selAliasToAdd.contains("Average") || selAliasToAdd.contains("Sum") || selAliasToAdd.contains("Count")
-					|| selAliasToAdd.contains("Min") || selAliasToAdd.contains("Max")
-					|| selAliasToAdd.contains("UniqueCount")) {
-				agg = true;
-			} else {
-				// prep for if we have to do a group
-				groupedCols.add(sel.toString());
-			}
+			psb.append(selToAdd);
+			aliasStringBuilder.append(selAliasToAdd);
+			// track list in case we need it
+			qsToAlias.put(sel.getQueryStructName().toUpperCase(), selAliasToAdd);
 		}
-		psb.append(" ] ) | ");
+		aliasStringBuilder.append(" ] ) | ");
+		psb.append(" ) ");
+		psb.append(aliasStringBuilder);
 
-		// if needing aggregate, create the group bys
-		if (agg) {
+		// bring in the group bys
+		List<QueryColumnSelector> groupList = qs.getGroupBy();
+		// loop through the groups and store their name and alias
+		if (!groupList.isEmpty()) {
 			psb.append("Group ( ");
 			separator = "";
-			for (String col : groupedCols) {
+			for (IQuerySelector group : groupList) {
 				psb.append(separator);
 				separator = " , ";
-				psb.append(col);
+				psb.append(group.toString());
 			}
 			psb.append(" ) | ");
 		}
-
+		
 		// bring in the filters
 		List<IQueryFilter> filters = qs.getCombinedFilters().getFilters();
 		if (!filters.isEmpty()) {
@@ -588,7 +623,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						for(int i = 0; i < size; i++) {
 							if(i == 0) {
 								psb.append("\"").append(vList.get(i)).append("\"");
-
 							} else {
 								psb.append(",\"").append(vList.get(i)).append("\"");
 							}
@@ -621,7 +655,76 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				psb.append(") | ");
 			}
 		}
+		
+		// bring in the having filters
+		List<IQueryFilter> havingFilters = qs.getHavingFilters().getFilters();
+		if (!havingFilters.isEmpty()) {
+			// start a new filter
+			for (IQueryFilter f : havingFilters) {
+				psb.append("Having ( ");
+				
+				// assume we only have simple
+				SimpleQueryFilter simpleF = (SimpleQueryFilter) f;
+				
+				// left hand side is always an aggregate column
+				NounMetadata lhs = simpleF.getLComparison();
+				psb.append(lhs.getValue() + "");
+				
+				if(simpleF.getComparator().equals("=")) {
+					psb.append(" == ");
+				} else {
+					psb.append(" ").append(simpleF.getComparator()).append(" ");
+				}
+				
+				// right hand side can be many things
+				NounMetadata rhs = simpleF.getRComparison();
+				PixelDataType rhsType = rhs.getNounType();
+				if(rhsType == PixelDataType.COLUMN) {
+					psb.append(rhs.getValue() + "");
+				} else if(rhsType == PixelDataType.CONST_STRING) {
+					Object val = rhs.getValue();
+					if(val instanceof List) {
+						List<String> vList = (List<String>) val;
+						int size = vList.size();
+						psb.append("[");
+						for(int i = 0; i < size; i++) {
+							if(i == 0) {
+								psb.append("\"").append(vList.get(i)).append("\"");
 
+							} else {
+								psb.append(",\"").append(vList.get(i)).append("\"");
+							}
+						}
+						psb.append("]");
+					} else { 
+						psb.append("\"" + rhs.getValue() + "\"");
+					}
+				} else {
+					// it is a number
+					Object val = rhs.getValue();
+					if(val instanceof List) {
+						List<String> vList = (List<String>) val;
+						int size = vList.size();
+						psb.append("[");
+						for(int i = 0; i < size; i++) {
+							if(i == 0) {
+								psb.append(vList.get(i));
+
+							} else {
+								psb.append(", ").append(vList.get(i));
+							}
+						}
+						psb.append("]");
+					} else { 
+						psb.append(rhs.getValue() + "");
+					}
+				}
+				
+				// close this filter
+				psb.append(") | ");
+			}
+		}
+		
 		// bring in the relations
 		Set<String[]> relations = qs.getRelations();
 		if (!relations.isEmpty()) {
@@ -639,14 +742,37 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			}
 			psb.append(") | ");
 		}
-
+		
+		List<QueryColumnOrderBySelector> orderBys = qs.getOrderBy();
+		if(orderBys != null && !orderBys.isEmpty()) {
+			StringBuilder b = new StringBuilder();
+			StringBuilder b2 = new StringBuilder();
+			int i = 0;
+			for(QueryColumnOrderBySelector orderBy : orderBys) {
+				if(i > 0) {
+					b.append(", ");
+					b2.append(", ");
+				}
+				if(qsToAlias.containsKey(orderBy.getQueryStructName().toUpperCase())) {
+					b.append(qsToAlias.get(orderBy.getQueryStructName().toUpperCase()));
+				} else {
+					b.append(orderBy.getQueryStructName());
+				}
+				b2.append(orderBy.getSortDirString());
+				i++;
+			}
+			psb.append("Order(columns=[").append(b.toString()).append("], sort=[").append(b2.toString()).append("]) | ");
+		}
+		
+		if(qs.getLimit() > 0) {
+			psb.append("Limit(").append(qs.getLimit()).append(") | ");
+		}
+		
 		// final import statement
 		psb.append("Import ( frame = [ " + frameName + " ] ) ;");
-
 		// now that we have the data, visualize in grid
 		psb.append("Panel ( 0 ) | SetPanelView ( \"visualization\" );");
-		psb.append(
-				"Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 ) ;");
+		psb.append("Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );");
 
 		return psb.toString();
 	}
