@@ -14,6 +14,9 @@ public class OpContains extends OpBasic {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
+		if(values.length < 2) {
+			return new NounMetadata(false, PixelDataType.BOOLEAN);
+		}
 		Object[] list = null;
 		if(values[0] instanceof Object[]) {
 			list = (Object[]) values[0];
