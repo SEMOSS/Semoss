@@ -41,6 +41,10 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String physicalPropUri = engine.getPhysicalUriFromConceptualUri(column, concept);
+		if(physicalPropUri == null) {
+			throw new IllegalArgumentException("Cannot find property in existing metadata to remove");
+		}
+		
 		
 		// remove everything downstream of the property
 		{
