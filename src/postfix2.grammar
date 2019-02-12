@@ -180,7 +180,12 @@ Productions
  formula = l_par expr r_par;
  
  // need to allow a list of expressions
- list = l_par master_expr other_expr+ r_par;
+ list = 
+	{empty} no_values_list 
+	| {filled} values_list
+	;
+ no_values_list = l_par r_par;
+ values_list = l_par master_expr other_expr+ r_par;
  other_expr = comma master_expr;
  
  // operation is how is how we define PKSL functions (reactors)
