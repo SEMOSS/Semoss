@@ -381,7 +381,25 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAList(AList node)
+    public void caseAEmptyList(AEmptyList node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAFilledList(AFilledList node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANoValuesList(ANoValuesList node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAValuesList(AValuesList node)
     {
         defaultCase(node);
     }

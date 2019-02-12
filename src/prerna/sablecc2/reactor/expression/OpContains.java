@@ -14,7 +14,12 @@ public class OpContains extends OpBasic {
 
 	@Override
 	protected NounMetadata evaluate(Object[] values) {
-		Object[] list = (Object[]) values[0];
+		Object[] list = null;
+		if(values[0] instanceof Object[]) {
+			list = (Object[]) values[0];
+		} else {
+			list = new Object[]{values[0]};
+		}
 		Object value = values[1];
 		int length = list.length;
 		boolean contains = false;

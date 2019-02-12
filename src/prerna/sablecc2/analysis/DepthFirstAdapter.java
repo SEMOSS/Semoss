@@ -1271,20 +1271,87 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outAFormula(node);
     }
 
-    public void inAList(AList node)
+    public void inAEmptyList(AEmptyList node)
     {
         defaultIn(node);
     }
 
-    public void outAList(AList node)
+    public void outAEmptyList(AEmptyList node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAList(AList node)
+    public void caseAEmptyList(AEmptyList node)
     {
-        inAList(node);
+        inAEmptyList(node);
+        if(node.getNoValuesList() != null)
+        {
+            node.getNoValuesList().apply(this);
+        }
+        outAEmptyList(node);
+    }
+
+    public void inAFilledList(AFilledList node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAFilledList(AFilledList node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAFilledList(AFilledList node)
+    {
+        inAFilledList(node);
+        if(node.getValuesList() != null)
+        {
+            node.getValuesList().apply(this);
+        }
+        outAFilledList(node);
+    }
+
+    public void inANoValuesList(ANoValuesList node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANoValuesList(ANoValuesList node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANoValuesList(ANoValuesList node)
+    {
+        inANoValuesList(node);
+        if(node.getLPar() != null)
+        {
+            node.getLPar().apply(this);
+        }
+        if(node.getRPar() != null)
+        {
+            node.getRPar().apply(this);
+        }
+        outANoValuesList(node);
+    }
+
+    public void inAValuesList(AValuesList node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAValuesList(AValuesList node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAValuesList(AValuesList node)
+    {
+        inAValuesList(node);
         if(node.getLPar() != null)
         {
             node.getLPar().apply(this);
@@ -1304,7 +1371,7 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getRPar().apply(this);
         }
-        outAList(node);
+        outAValuesList(node);
     }
 
     public void inAOtherExpr(AOtherExpr node)

@@ -40,7 +40,7 @@ import prerna.sablecc2.node.AHelpExpr;
 import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AImplicitRel;
 import prerna.sablecc2.node.AJavaOp;
-import prerna.sablecc2.node.AList;
+import prerna.sablecc2.node.AListRegTerm;
 import prerna.sablecc2.node.AMainCommentRoutine;
 import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapList;
@@ -976,21 +976,18 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAList(AList node)
-    {
-        defaultIn(node);
-        IReactor opReactor = new VectorReactor();
-        opReactor.setName("Vector");
-        opReactor.setPixel("Vector", node.toString().trim());
-        initReactor(opReactor);
-        
+    public void inAListRegTerm(AListRegTerm node) {
+    	 defaultIn(node);
+         IReactor opReactor = new VectorReactor();
+         opReactor.setName("Vector");
+         opReactor.setPixel("Vector", node.toString().trim());
+         initReactor(opReactor);
     }
-
+    
     @Override
-    public void outAList(AList node)
-    {
-    	deInitReactor();
+    public void outAListRegTerm(AListRegTerm node) {
         defaultOut(node);
+    	deInitReactor();
     }
     
     @Override
