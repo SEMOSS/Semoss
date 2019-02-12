@@ -45,7 +45,6 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 			throw new IllegalArgumentException("Cannot find property in existing metadata to remove");
 		}
 		
-		
 		// remove everything downstream of the property
 		{
 			String query = "select ?s ?p ?o where "
