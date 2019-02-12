@@ -63,7 +63,10 @@ public interface Analysis extends Switch
     void caseACsvRegTerm(ACsvRegTerm node);
     void caseANullRegTerm(ANullRegTerm node);
     void caseAFormula(AFormula node);
-    void caseAList(AList node);
+    void caseAEmptyList(AEmptyList node);
+    void caseAFilledList(AFilledList node);
+    void caseANoValuesList(ANoValuesList node);
+    void caseAValuesList(AValuesList node);
     void caseAOtherExpr(AOtherExpr node);
     void caseAOperation(AOperation node);
     void caseANounOpInput(ANounOpInput node);

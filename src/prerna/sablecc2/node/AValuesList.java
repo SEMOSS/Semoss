@@ -6,19 +6,19 @@ import java.util.*;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AList extends PList
+public final class AValuesList extends PValuesList
 {
     private TLPar _lPar_;
     private PMasterExpr _masterExpr_;
     private final LinkedList<POtherExpr> _otherExpr_ = new LinkedList<POtherExpr>();
     private TRPar _rPar_;
 
-    public AList()
+    public AValuesList()
     {
         // Constructor
     }
 
-    public AList(
+    public AValuesList(
         @SuppressWarnings("hiding") TLPar _lPar_,
         @SuppressWarnings("hiding") PMasterExpr _masterExpr_,
         @SuppressWarnings("hiding") List<?> _otherExpr_,
@@ -38,7 +38,7 @@ public final class AList extends PList
     @Override
     public Object clone()
     {
-        return new AList(
+        return new AValuesList(
             cloneNode(this._lPar_),
             cloneNode(this._masterExpr_),
             cloneList(this._otherExpr_),
@@ -48,7 +48,7 @@ public final class AList extends PList
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAList(this);
+        ((Analysis) sw).caseAValuesList(this);
     }
 
     public TLPar getLPar()
