@@ -87,8 +87,9 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 			}
 		}
 		
-		// now repeat for the node itself
+		boolean hasTriple = false;
 		
+		// now repeat for the node itself
 		// remove everything downstream of the node
 		{
 			String query = "select ?s ?p ?o where "
@@ -99,6 +100,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		
 			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 			while(it.hasNext()) {
+				hasTriple = true;
 				IHeadersDataRow headerRows = it.next();
 				Object[] raw = headerRows.getRawValues();
 				String s = raw[0].toString();
@@ -119,6 +121,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		
 			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 			while(it.hasNext()) {
+				hasTriple = true;
 				IHeadersDataRow headerRows = it.next();
 				Object[] raw = headerRows.getRawValues();
 				String s = raw[0].toString();
@@ -127,6 +130,10 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 				boolean bool = !objectIsLiteral(p);
 				owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, bool});
 			}
+		}
+		
+		if(!hasTriple) {
+			throw new IllegalArgumentException("Cannot find concept in existing metadata to remove");
 		}
 		
 		try {
