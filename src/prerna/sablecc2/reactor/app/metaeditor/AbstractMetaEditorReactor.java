@@ -45,6 +45,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		literalPreds.add(OWLER.BASE_URI + OWLER.DEFAULT_PROP_CLASS + "/UNIQUE");
 	}
 	
+	protected static final String CONCEPTUAL_NAME = "conceptual";
 	protected static final String TABLES_FILTER = ReactorKeysEnum.TABLES.getKey();
 	protected static final String STORE_VALUES_FRAME = "store";
 
