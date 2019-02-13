@@ -8,6 +8,8 @@ import java.util.Properties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.algorithm.api.ITableDataFrame;
+//import prerna.cluster.util.PullCloudAppReactor;
+import prerna.cluster.util.PushAppsReactor;
 import prerna.comments.AddInsightCommentReactor;
 import prerna.comments.DeleteInsightCommentReactor;
 import prerna.comments.GetInsightCommentsReactor;
@@ -95,6 +97,7 @@ import prerna.sablecc2.reactor.app.upload.rdf.RdfCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdf.RdfLoaderSheetUploadReactor;
 import prerna.sablecc2.reactor.cluster.CleanUpAppsReactor;
 import prerna.sablecc2.reactor.cluster.OpenAppReactor;
+//import prerna.sablecc2.reactor.cluster.SyncRedisReactor;
 import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
 import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.sablecc2.reactor.export.AsTaskReactor;
@@ -514,7 +517,7 @@ public class ReactorFactory {
 		reactorHash.put("RdfCsvUpload", RdfCsvUploadReactor.class);
 		reactorHash.put("RdfLoaderSheetUpload", RdfLoaderSheetUploadReactor.class);
 		reactorHash.put("TinkerCsvUpload", TinkerCsvUploadReactor.class);
-
+			
 		// external graph engine
 		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
 		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);
@@ -879,12 +882,18 @@ public class ReactorFactory {
 		reactorHash.put("ModifyInsightComment", ModifyInsightCommentReactor.class);
 		reactorHash.put("GetInsightComments", GetInsightCommentsReactor.class);
 		
-		// Cluster
+		// Clusters
 		reactorHash.put("OpenApp", OpenAppReactor.class);
 		reactorHash.put("UpdateApp", UpdateAppReactor.class);
 		reactorHash.put("CleanUpApps", CleanUpAppsReactor.class);
 		reactorHash.put("Version", VersionReactor.class);
+		//reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
+		//reactorHash.put("SyncRedis", SyncRedisReactor.class);
+		reactorHash.put("PushApps", PushAppsReactor.class);
+
 		
+		
+
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
 		reactorHash.put("UnscheduleJob", UnscheduleJobReactor.class);
