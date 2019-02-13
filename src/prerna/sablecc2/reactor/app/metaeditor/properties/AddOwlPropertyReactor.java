@@ -18,7 +18,8 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 
 	public AddOwlPropertyReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
-				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey()
+				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), 
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), CONCEPTUAL_NAME
 			};
 	}
 	
@@ -44,7 +45,15 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 			throw new IllegalArgumentException("Must define the data type for the concept being added to the app metadata");
 		}
 		String additionalDataType = this.keyValue.get(this.keysToGet[4]);
-
+		String conceptual = this.keyValue.get(this.keysToGet[5]);
+		if(conceptual != null) {
+			conceptual = conceptual.trim();
+			if(!conceptual.matches("^[a-zA-Z0-9-_]+$")) {
+				throw new IllegalArgumentException("Conceptual name must contain only letters, numbers, and underscores");
+			}
+			conceptual = conceptual.replaceAll("_{2,}", "_");
+		}
+		
 		IEngine engine = Utility.getEngine(appId);
 		// make sure the concept exists
 		String conceptPhysicalUri = null;

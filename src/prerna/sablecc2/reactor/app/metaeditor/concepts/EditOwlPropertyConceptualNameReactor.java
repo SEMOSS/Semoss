@@ -40,6 +40,7 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 			throw new IllegalArgumentException("Must define the new conceptual name");
 		}
 		// make sure it conforms
+		newConceptualName = newConceptualName.trim();
 		if(!newConceptualName.matches("^[a-zA-Z0-9-_]+$")) {
 			throw new IllegalArgumentException("Conceptual name must contain only letters, numbers, and underscores");
 		}
