@@ -397,7 +397,7 @@ public class MetaHelper implements IExplorable {
 		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		// if it is empty, either the URI is bad or it is already the physical URI
 		if(queryReturn.isEmpty()) {
-			return null;
+			return conceptualURI;
 		}
 		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
 		return queryReturn.get(0);
