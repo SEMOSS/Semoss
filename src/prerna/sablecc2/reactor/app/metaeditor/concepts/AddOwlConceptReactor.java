@@ -17,7 +17,8 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 
 	public AddOwlConceptReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
-				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey()
+				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), 
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), CONCEPTUAL_NAME
 			};
 	}
 	
@@ -45,6 +46,16 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		if(dataType == null || dataType.isEmpty()) {
 			throw new IllegalArgumentException("Must define the data type for the concept being added to the app metadata");
 		}
+		// TODO: need to account for this on concepts!!!!
+		String additionalDataType = this.keyValue.get(this.keysToGet[4]);
+		String conceptual = this.keyValue.get(this.keysToGet[5]);
+		if(conceptual != null) {
+			conceptual = conceptual.trim();
+			if(!conceptual.matches("^[a-zA-Z0-9-_]+$")) {
+				throw new IllegalArgumentException("Conceptual name must contain only letters, numbers, and underscores");
+			}
+			conceptual = conceptual.replaceAll("_{2,}", "_");
+		}
 
 		Vector<String> concepts = engine.getConcepts(false);
 		for(String conceptUri : concepts) {
@@ -56,7 +67,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		}
 
 		OWLER owler = getOWLER(appId);
-		owler.addConcept(concept, column, dataType);
+		owler.addConcept(concept, column, OWLER.BASE_URI, dataType, conceptual);
 
 		try {
 			owler.export();
