@@ -143,7 +143,7 @@ public class OWLER {
 	 * 								The return is only used in RDF databases where the instance URI must be linked
 	 * 								to the meta URI
 	 */	
-	public String addConcept(String tableName, String colName, String baseURI, String dataType) {
+	public String addConcept(String tableName, String colName, String baseURI, String dataType, String conceptual) {
 		// since the column name is sometimes null or empty,
 		// need to construct the key in a similar manner to how the subject is created
 		String key = tableName + colName;
@@ -215,12 +215,19 @@ public class OWLER {
 			// if it contains any of the special characters that are not allowed in PKQL
 			// the conceptual name is the clean version of the name ... for now
 			String conceptualRelationship = baseRelation + "/" + CONCEPTUAL_RELATION_NAME;
-			String conceptualNode = Utility.cleanVariableString(tableName);
+			String conceptualNode = conceptual;
+			if(conceptualNode == null) {
+				conceptualNode = Utility.cleanVariableString(tableName);
+			}
 			conceptualNames.add(conceptualNode);
 			String conceptualSubject = baseNodeURI + "/" + conceptualNode;
 			engine.addToBaseEngine(subject, conceptualRelationship, conceptualSubject);
 		}
 		return conceptHash.get(key);
+	}
+	
+	public String addConcept(String tableName, String colName, String baseURI, String dataType) {
+		return addConcept(tableName, colName, baseURI, dataType, null);
 	}
 
 	/**
@@ -491,8 +498,7 @@ public class OWLER {
 	 * @return						Returns the physical URI for the node
 	 * 								TODO: RDF databases end up constructing the prop URI regardless.. need them to take this return
 	 */
-	public String addProp(String tableName, String colName, String propertyCol, String dataType, String adtlDataType)
-	{
+	public String addProp(String tableName, String colName, String propertyCol, String dataType, String adtlDataType, String conceptual) {
 		// since RDF uses this multiple times, don't create it each time and just store it in a hash to send back
 		if(!propHash.containsKey(tableName + "%" + propertyCol)) {
 			// TODO: this always assumes the baseURI for the property is the default semoss uri
@@ -515,11 +521,6 @@ public class OWLER {
 				// just add the property col 
 				property += propertyCol;
 			}
-			
-			// get the conceptual name
-			// always has the parent name so we only require properties to be unique 
-			// on a given concept and not throughout the entire db
-			String conceptualPropertyName = Utility.cleanVariableString(propertyCol) + "/" +  Utility.cleanVariableString(tableName);
 			
 			// now lets start to add the triples
 			// lets add the triples pertaining to those numbered above
@@ -547,6 +548,15 @@ public class OWLER {
 			// if it contains any of the special characters that are not allowed in PKQL
 			// the conceptual property name is the clean version of the property name ... for now
 			String conceptualRelationship = baseRelation +  "/" + CONCEPTUAL_RELATION_NAME;
+			
+			// get the conceptual name
+			// always has the parent name so we only require properties to be unique 
+			// on a given concept and not throughout the entire db
+			String conceptualProp = conceptual;
+			if(conceptualProp == null) {
+				conceptualProp = Utility.cleanVariableString(propertyCol);
+			}
+			String conceptualPropertyName = conceptualProp + "/" +  Utility.cleanVariableString(tableName);
 			String conceptualProperty = basePropURI + "/" + conceptualPropertyName;
 			engine.addToBaseEngine(property, conceptualRelationship, conceptualProperty);
 			
@@ -555,6 +565,10 @@ public class OWLER {
 		}
 		
 		return propHash.get(tableName + "%" + propertyCol);
+	}
+
+	public String addProp(String tableName, String colName, String propertyCol, String dataType, String adtlDataType) {
+		return addProp(tableName, colName, propertyCol, dataType, adtlDataType, null);
 	}
 		
 	/**
