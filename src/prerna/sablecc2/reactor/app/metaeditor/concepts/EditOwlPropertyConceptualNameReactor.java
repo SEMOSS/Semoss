@@ -39,6 +39,12 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		if(newConceptualName == null || newConceptualName.isEmpty()) {
 			throw new IllegalArgumentException("Must define the new conceptual name");
 		}
+		// make sure it conforms
+		if(!newConceptualName.matches("^[a-zA-Z0-9-_]+$")) {
+			throw new IllegalArgumentException("Conceptual name must contain only letters, numbers, and underscores");
+		}
+		newConceptualName = newConceptualName.replaceAll("_{2,}", "_");
+		
 		String newConceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + newConceptualName + "/" + concept;
 
 		IEngine engine = Utility.getEngine(appId);
