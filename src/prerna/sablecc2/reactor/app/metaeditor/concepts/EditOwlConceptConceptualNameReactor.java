@@ -48,15 +48,15 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
 		// make sure this name isn't currently present in the engine
-		if(engine.getPhysicalUriFromConceptualUri(newConceptualURI) != null) {
-			throw new IllegalArgumentException("This conceptual name already exists");
-		}
+//		if(engine.getPhysicalUriFromConceptualUri(newConceptualURI) != null) {
+//			throw new IllegalArgumentException("This conceptual name already exists");
+//		}
 		
 		String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
 		String conceptPhysicalURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
-		if(conceptPhysicalURI == null) {
-			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
-		}
+//		if(conceptPhysicalURI == null) {
+//			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
+//		}
 		
 		String conceptualRel = OWLER.SEMOSS_URI + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
 		// remove the current relationship
