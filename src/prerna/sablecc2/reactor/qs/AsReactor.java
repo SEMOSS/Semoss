@@ -15,7 +15,7 @@ public class AsReactor extends AbstractQueryStructReactor {
 		// replace the as Name
 		// the as name could come in as an array too
 		// for now I will go with the name
-		List<String> aliasInput = curRow.getAllColumns();
+		List<String> aliasInput = curRow.getAllStrValues();
 
 		if(this.parentReactor != null && aliasInput != null && !aliasInput.isEmpty()) {
 			int size = aliasInput.size();
