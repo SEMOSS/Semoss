@@ -916,7 +916,7 @@ public class UploadUtilities {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = "Explore an instance of a selected node type";
 		String layout = "Graph";
-		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\ExploreInstanceDefaultWidget.json";
+		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
 		File exploreF = new File(exploreLoc);
 		if(exploreF.exists()) {
 			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
@@ -945,7 +945,7 @@ public class UploadUtilities {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = "What are the modifications made to specific column(s)?";
 		String layout = "Bar";
-		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\AuditModificationView.json";
+		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditModificationView.json";
 		File jsonFile = new File(jsonLoc);
 		if (jsonFile.exists()) {
 			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
@@ -974,7 +974,7 @@ public class UploadUtilities {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = "What are the modifications made to the specific column(s) made over time?";
 		String layout = "Line";
-		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\AuditTimelineView.json";
+		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditTimelineView.json";
 		File jsonFile = new File(jsonLoc);
 		if (jsonFile.exists()) {
 			String newPixel = "AddPanel(0); Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
