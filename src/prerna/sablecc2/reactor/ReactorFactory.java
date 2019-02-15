@@ -118,7 +118,9 @@ import prerna.sablecc2.reactor.export.ToTsvReactor;
 import prerna.sablecc2.reactor.export.ToTxtReactor;
 import prerna.sablecc2.reactor.expression.IfError;
 import prerna.sablecc2.reactor.expression.OpAbsolute;
+import prerna.sablecc2.reactor.expression.OpArrayLength;
 import prerna.sablecc2.reactor.expression.OpAsString;
+import prerna.sablecc2.reactor.expression.OpConcat;
 import prerna.sablecc2.reactor.expression.OpContains;
 import prerna.sablecc2.reactor.expression.OpIsEmpty;
 import prerna.sablecc2.reactor.expression.OpLarge;
@@ -1074,7 +1076,11 @@ public class ReactorFactory {
 		expressionHash.put("NOTEMPTY", OpNotEmpty.class);
 		expressionHash.put("ISEMPTY", OpIsEmpty.class);
 		expressionHash.put("ASSTRING", OpAsString.class);
+		expressionHash.put("CONCAT", OpConcat.class);
+		
+		// none excel functions
 		expressionHash.put("CONTAINS", OpContains.class);
+		expressionHash.put("ARRAYLENGTH", OpArrayLength.class);
 	}
 
 	/**

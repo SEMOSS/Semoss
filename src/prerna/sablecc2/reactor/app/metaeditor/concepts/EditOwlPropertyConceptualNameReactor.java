@@ -57,7 +57,9 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 //		}
 		
 		String conceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept;
-		String propertyPhysicalURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
+		String parentConcepturalURI = "http://semoss.org/ontologies/Concept/" + concept;
+		String parentPhysicalURI = engine.getPhysicalUriFromConceptualUri(parentConcepturalURI);
+		String propertyPhysicalURI = engine.getPhysicalUriFromConceptualUri(conceptualURI, parentPhysicalURI);
 //		if(propertyPhysicalURI == null) {
 //			throw new IllegalArgumentException("Could not find the property. Please define the property first before modifying the conceptual name");
 //		}
