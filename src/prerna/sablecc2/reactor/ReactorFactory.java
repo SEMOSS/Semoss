@@ -1001,6 +1001,7 @@ public class ReactorFactory {
 		rFrameHash.put("SplitUnpivot", prerna.sablecc2.reactor.frame.r.SplitUnpivotReactor.class);
 		rFrameHash.put("ToLowerCase", prerna.sablecc2.reactor.frame.r.ToLowerCaseReactor.class);
 		rFrameHash.put("ToUpperCase", prerna.sablecc2.reactor.frame.r.ToUpperCaseReactor.class);
+		rFrameHash.put("ToProperCase", prerna.sablecc2.reactor.frame.r.ToProperCaseReactor.class);
 		rFrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.r.TrimReactor.class);
 		rFrameHash.put("Transpose", prerna.sablecc2.reactor.frame.r.TransposeReactor.class);
 		rFrameHash.put("Unpivot", prerna.sablecc2.reactor.frame.r.UnpivotReactor.class);
