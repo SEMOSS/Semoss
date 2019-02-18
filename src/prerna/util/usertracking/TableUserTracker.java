@@ -373,14 +373,11 @@ public class TableUserTracker implements IUserTracker {
 				String dataType = selector.getDataType();
 				String table = name;
 				String column = AbstractQuerySelector.PRIM_KEY_PLACEHOLDER;
-				Long uniqueCount = null;
 
 				if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 					// TODO: this is assuming only 1 math inside due to FE limitation
 					name = ((QueryFunctionSelector) selector).getInnerSelector().get(0).getQueryStructName() + "";
-					uniqueCount = getUniqueValueCount(engineId, name, column);
-				} else {
-					uniqueCount = getUniqueValueCount(engineId, table, column);
+					table = name;
 				}
 				
 				if(name.contains("__")) {
@@ -397,6 +394,7 @@ public class TableUserTracker implements IUserTracker {
 					}
 				}
 				
+				Long uniqueCount = getUniqueValueCount(engineId, table, column);
 				
 				Object[] row = new Object[15];
 				row[0] = id;
@@ -777,13 +775,18 @@ public class TableUserTracker implements IUserTracker {
 				physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(column, table);
 			}
 			
-			String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
-					+ "{ BIND(<" + physicalUri + "> AS ?concept)"
-					+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
-			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
-			while (it.hasNext()) {
-				Object[] row = it.next().getValues();
-				return Long.parseLong(row[1].toString());
+			try {
+				String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
+						+ "{ BIND(<" + physicalUri + "> AS ?concept)"
+						+ "{?concept <http://semoss.org/ontologies/Relation/Contains/UNIQUE> ?unique}}";
+				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, uniqueValQuery);
+				while (it.hasNext()) {
+					Object[] row = it.next().getValues();
+					return Long.parseLong(row[1].toString());
+				}
+			} catch(Exception e) {
+				// will just print the error message but return null as the count
+				e.printStackTrace();
 			}
 		}
 		
