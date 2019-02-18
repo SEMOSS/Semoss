@@ -552,8 +552,9 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	public Vector<String> getConcepts() {
-		if(owlHelper == null)
+		if(owlHelper == null) {
 			return null;
+		}
 		return owlHelper.getConcepts();
 	}
 	
@@ -577,8 +578,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * 									conceptual names or physical names
 	 * @return							List containing the property URIs for the given concept
 	 */
-	public List<String> getProperties4Concept(String concept, Boolean conceptualNames) {
-		return owlHelper.getProperties4Concept(concept, conceptualNames);
+	public List<String> getProperties4Concept(String conceptPhysicalUri, Boolean conceptualNames) {
+		return owlHelper.getProperties4Concept(conceptPhysicalUri, conceptualNames);
 	}
 	
 	/**
@@ -588,13 +589,13 @@ public abstract class AbstractEngine implements IEngine {
 	 * @return						Return the physical URI 					
 	 */
 	@Override
-	public String getPhysicalUriFromConceptualUri(String conceptualURI) {
-		return owlHelper.getPhysicalUriFromConceptualUri(conceptualURI);
+	public String getConceptPhysicalUriFromConceptualUri(String conceptualURI) {
+		return owlHelper.getConceptPhysicalUriFromConceptualUri(conceptualURI);
 	}
 	
 	@Override
-	public String getPhysicalUriFromConceptualUri(String propertyName, String paretName) {
-		return owlHelper.getPhysicalUriFromConceptualUri(propertyName, paretName);
+	public String getPropertyPhysicalUriFromConceptualUri(String conceptualURI, String parentConceptualUri) {
+		return owlHelper.getPropertyPhysicalUriFromConceptualUri(conceptualURI, parentConceptualUri);
 	}
 	
 	@Override

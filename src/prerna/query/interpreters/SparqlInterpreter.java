@@ -38,10 +38,6 @@ import prerna.util.Utility;
 
 public class SparqlInterpreter extends AbstractQueryInterpreter {
 
-	private static final String SEMOSS_CONCEPT_PREFIX = "http://semoss.org/ontologies/Concept";
-	private static final String SEMOSS_PROPERTY_PREFIX = "http://semoss.org/ontologies/Relation/Contains";
-	private static final String SEMOSS_RELATION_PREFIX = "http://semoss.org/ontologies/Relation";
-	
 	// string containing the return variable section of the query
 	private StringBuilder selectors;
 	// keep track of the selectors that are added
@@ -211,15 +207,15 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		 * THIS SECTION IS SO WE PROCESS THE COLUMNS THAT ARE NEEDED AND MAKE SURE
 		 * THEY ARE DEFINED WITHIN THE WHERE CLAUSE
 		 */
-		String cleanVarName = Utility.cleanVariableString(concept);
-		
+		String conceptCleanVarName = Utility.cleanVariableString(concept);
+		String cleanVarName = conceptCleanVarName;
 		// add the node to the where statement
-		addNodeSelectorTriple(cleanVarName, concept);
+		addNodeSelectorTriple(conceptCleanVarName, concept);
 		// and the property if it is a prop
 		if(!property.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 			// make unique based on property
 			cleanVarName += "__" + Utility.cleanVariableString(property);
-			addNodePropertySelectorTriple(cleanVarName, property, concept);
+			addNodePropertySelectorTriple(cleanVarName, property, concept, conceptCleanVarName);
 		}
 		this.selectorAlias.put(cleanVarName, alias);
 		return "?" + cleanVarName;
@@ -264,7 +260,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	 */
 	private String addNodeSelectorTriple(String nodeVarName, String concept) {
 		if(!this.addedSelectors.containsKey(nodeVarName)) {
-			String nodeUri = engine.getPhysicalUriFromConceptualUri(SEMOSS_CONCEPT_PREFIX + "/" + concept);
+			String nodeUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
 			// add the pattern around the concept
 			this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(RDF.TYPE).append("> <").append(nodeUri).append(">}");
 			this.addedSelectors.put(nodeVarName, nodeUri);
@@ -278,16 +274,16 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	 * @param property
 	 * @param nodeVarName
 	 */
-	private String addNodePropertySelectorTriple(String propVarName, String property, String nodeVarName) {
+	private String addNodePropertySelectorTriple(String propVarName, String property, String concept, String conceptVarName) {
 		if(!this.addedSelectors.containsKey(propVarName)) {
-			String propUri = engine.getPhysicalUriFromConceptualUri(SEMOSS_PROPERTY_PREFIX + "/" + property);
+			String propUri = engine.getPropertyPhysicalUriFromConceptualUri(property, concept);
 			// add the pattern around the property
 			// if filtered and not to a null
 			// no need for optional
 			if(this.qsFilteredColumns.contains(propVarName) && !this.qsFilteredColumnsToNull.contains(propVarName)) {
-				this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+				this.selectorWhereClause.append("{?").append(conceptVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
 			} else {
-				this.selectorWhereClause.append("OPTIONAL{?").append(nodeVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+				this.selectorWhereClause.append("OPTIONAL{?").append(conceptVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
 			}
 			this.addedSelectors.put(propVarName, propUri);
 		}
@@ -306,13 +302,13 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 
 	private void addJoin(String fromNode, String joinType, String toNode) {
 		String fromNodeVarName = Utility.cleanVariableString(fromNode);
-		String fromURI = this.engine.getPhysicalUriFromConceptualUri(SEMOSS_CONCEPT_PREFIX + "/" + fromNode);
+		String fromURI = this.engine.getConceptPhysicalUriFromConceptualUri(fromNode);
 		String toNodeVarName = Utility.cleanVariableString(toNode);
-		String toURI = this.engine.getPhysicalUriFromConceptualUri(SEMOSS_CONCEPT_PREFIX + "/" + toNode);
+		String toURI = this.engine.getConceptPhysicalUriFromConceptualUri(toNode);
 		
 		// need to figure out what the predicate is from the owl
 		// also need to determine the direction of the relationship -- if it is forward or backward
-		String query = "SELECT ?relationship WHERE { {<" + fromURI + "> ?relationship <" + toURI + "> } filter(?relationship != <" + SEMOSS_RELATION_PREFIX + ">) } ORDER BY DESC(?relationship)";
+		String query = "SELECT ?relationship WHERE { {<" + fromURI + "> ?relationship <" + toURI + "> } filter(?relationship != <http://semoss.org/ontologies/Relation>) } ORDER BY DESC(?relationship)";
 		TupleQueryResult res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
 		String predURI = " unable to get pred from owl for " + fromURI + " and " + toURI;
 		try {
