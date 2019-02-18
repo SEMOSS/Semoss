@@ -394,9 +394,7 @@ public class AuditDatabase {
 		}
 
 		// we dont have it.. so query for it
-		String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualName;
-		String uri = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
-
+		String uri = this.engine.getConceptPhysicalUriFromConceptualUri(conceptualName);
 		// since we also have the URI, just store it
 		String colName = Utility.getClassName(uri);
 		String tableName = Utility.getInstanceName(uri);

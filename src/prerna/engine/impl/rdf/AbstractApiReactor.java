@@ -168,7 +168,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 									String eType = null;
 									if(selectors.contains(toColumn)) {
 										// we have a concept
-										String physicalUri = engine.getPhysicalUriFromConceptualUri(toColumn);
+										String physicalUri = engine.getConceptPhysicalUriFromConceptualUri(toColumn);
 										eType = engine.getDataTypes(physicalUri);
 									} else {
 										// we have a property
@@ -180,7 +180,7 @@ public abstract class AbstractApiReactor extends AbstractReactor{
 													// add the filter as the parent__child
 													// so the interpreter adds it correctly
 													toColumn = selector;
-													String physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/" + selectorComp[1] + "/" + selectorComp[0]);
+													String physicalUri = engine.getConceptPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Relation/Contains/" + selectorComp[1] + "/" + selectorComp[0]);
 													eType = engine.getDataTypes(physicalUri);
 													break;
 												}

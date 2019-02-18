@@ -105,7 +105,7 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 	 */
 	private String getPrim(IEngine engine, String tableName) {
 		if(!tableToPrim.containsKey(tableName)) {
-			tableToPrim.put(tableName, Utility.getClassName(engine.getPhysicalUriFromConceptualUri(OWLER.BASE_URI + OWLER.DEFAULT_NODE_CLASS + "/" + tableName)));
+			tableToPrim.put(tableName, Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(tableName)));
 		}
 		return tableToPrim.get(tableName);
 	}

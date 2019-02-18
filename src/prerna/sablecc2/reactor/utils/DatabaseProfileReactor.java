@@ -129,8 +129,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		// column name
 		if (primKey.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 			// we dont have it.. so query for it
-			String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
-			String tableURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
+			String tableURI = engine.getConceptPhysicalUriFromConceptualUri(concept);
 			// since we also have the URI, just store the primary key as well
 			// will most likely be used
 			primKey = Utility.getClassName(tableURI);

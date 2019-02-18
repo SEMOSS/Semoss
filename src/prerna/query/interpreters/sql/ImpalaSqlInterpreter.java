@@ -138,7 +138,8 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 			// we are selecting all the columns
 			String table = froms.get(0)[0];
 			if(engine != null && !engine.isBasic()) {
-				if( (engine.getConcepts(false).size() == 1) && (engine.getProperties4Concept(table, false).size() + 1) == selectorList.size()) {
+				String physicalUri = engine.getConceptPhysicalUriFromConceptualUri(table);
+				if( (engine.getConcepts(false).size() == 1) && (engine.getProperties4Concept(physicalUri, false).size() + 1) == selectorList.size()) {
 					// plus one is for the concept itself
 					// no distinct needed
 					query.append(selectors);
@@ -1120,7 +1121,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 	 * @param conceptualTableName
 	 * @return
 	 */
-	private String getPhysicalTableNameFromConceptualName(String conceptualTableName) {
+	protected String getPhysicalTableNameFromConceptualName(String conceptualTableName) {
 		// if engine present
 		// get the appropriate physical storage name for the table
 		if(engine != null && !engine.isBasic()) {
@@ -1128,21 +1129,19 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 			if(conceptualConceptToPhysicalMap.containsKey(conceptualTableName)) {
 				return conceptualConceptToPhysicalMap.get(conceptualTableName);
 			}
-
+			
 			// we dont have it.. so query for it
-			String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualTableName;
-			String tableURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
-
+			String tableURI = this.engine.getConceptPhysicalUriFromConceptualUri(conceptualTableName);
 			// table name is the instance name of the URI
 			String tableName = Utility.getInstanceName(tableURI);
-
+			
 			// since we also have the URI, just store the primary key as well if we haven't already
 			if(!primaryKeyCache.containsKey(conceptualTableName)) {
 				// will most likely be used
 				String primKey = Utility.getClassName(tableURI);
 				primaryKeyCache.put(conceptualTableName, primKey);
 			}
-
+			
 			// store the physical name as well in case we get it later
 			conceptualConceptToPhysicalMap.put(conceptualTableName, tableName);
 			return tableName;
@@ -1151,37 +1150,30 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 			return conceptualTableName;
 		}
 	}
-
+	
 	/**
 	 * Get the physical name for a property
 	 * @param columnConceptualName					The conceptual name of the property
 	 * @return										The physical name of the property
 	 */
-	private String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
+	protected String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
 		if(engine != null && !engine.isBasic()) {
 			// if we already have it, just grab from hash
-			if(conceptualPropertyToPhysicalMap.containsKey(columnConceptualName)) {
-				return conceptualPropertyToPhysicalMap.get(columnConceptualName);
+			if(conceptualPropertyToPhysicalMap.containsKey(tableConceptualName+columnConceptualName)) {
+				return conceptualPropertyToPhysicalMap.get(tableConceptualName+columnConceptualName);
 			}
-
-			String tablePhysicalName = getPhysicalTableNameFromConceptualName(tableConceptualName);
-
 			// we don't have it... so query for it
-			String propertyConceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + columnConceptualName + "/" + tablePhysicalName;
-			String colURI = this.engine.getPhysicalUriFromConceptualUri(propertyConceptualURI);
-			String colName = null;
-
+			String colURI = this.engine.getPropertyPhysicalUriFromConceptualUri(columnConceptualName, tableConceptualName);
 			// the class is the name of the column
-			colName = Utility.getClassName(colURI);
-
-			conceptualPropertyToPhysicalMap.put(columnConceptualName, colName);
+			String colName = Utility.getClassName(colURI);
+			conceptualPropertyToPhysicalMap.put(tableConceptualName+columnConceptualName, colName);
 			return colName;
 		} else {
 			// no engine is defined, just return the value
 			return columnConceptualName;
 		}
 	}
-
+	
 	/**
 	 * Get the primary key from the conceptual table name
 	 * @param table						The conceptual table name
@@ -1193,9 +1185,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		}
 		else if (engine != null && !engine.isBasic()) {
 			// we dont have it.. so query for it
-			String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualTableName;
-			String tableURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
-
+			String tableURI = this.engine.getConceptPhysicalUriFromConceptualUri(conceptualTableName);
 			// since we also have the URI, just store the primary key as well
 			// will most likely be used
 			String primKey = Utility.getClassName(tableURI);
@@ -1335,8 +1325,8 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 			String fromConceptual = "http://semoss.org/ontologies/Concept/" + fromString;
 			String toConceptual = "http://semoss.org/ontologies/Concept/" + toString;
 
-			fromURI = this.engine.getPhysicalUriFromConceptualUri(fromConceptual);
-			toURI = this.engine.getPhysicalUriFromConceptualUri(toConceptual);
+			fromURI = this.engine.getConceptPhysicalUriFromConceptualUri(fromConceptual);
+			toURI = this.engine.getConceptPhysicalUriFromConceptualUri(toConceptual);
 
 			// need to figure out what the predicate is from the owl
 			// also need to determine the direction of the relationship -- if it is forward or backward
