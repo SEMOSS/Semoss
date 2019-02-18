@@ -314,13 +314,11 @@ public class MetaHelper implements IExplorable {
 	 * @return List of key URIs
 	 */
 	public List<String> getKeys4Concept(String concept, Boolean conceptualNames) {
-		
 		// get the physical URI for the concept
-		String conceptPhysical = getPhysicalUriFromConceptualUri(concept);
+		String conceptPhysical = getConceptPhysicalUriFromConceptualUri(concept);
 		
 		String query = null;
 		if (conceptualNames) {
-			// TODO test for conceptual names
 			query = "SELECT DISTINCT ?keyConceptual WHERE { "
 					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
 					+ "BIND(<" + Constants.META_KEY + "> AS ?keyPredicate) "
@@ -341,16 +339,13 @@ public class MetaHelper implements IExplorable {
 	}
 	
 	@Override
-	public List<String> getProperties4Concept(String concept, Boolean conceptualNames) {
-		// get the physical URI for the concept
-		String conceptPhysical = getPhysicalUriFromConceptualUri(concept);
-		
+	public List<String> getProperties4Concept(String conceptPhysicalUri, Boolean conceptualNames) {
 		String query = null;
 		// instead of getting the URIs in a set format and having to do a conversion afterwards
 		// just have the query get the values directly
 		if(conceptualNames) {
 			query = "SELECT DISTINCT ?propertyConceptual WHERE { "
-					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
+					+ "BIND(<" + conceptPhysicalUri + "> AS ?concept) "
 					+ "BIND(<http://www.w3.org/2002/07/owl#DatatypeProperty> AS ?propPredicate) "
 					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
 					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
@@ -360,7 +355,7 @@ public class MetaHelper implements IExplorable {
 					+ "}";
 		} else {
 			query = "SELECT DISTINCT ?property WHERE { "
-					+ "BIND(<" + conceptPhysical + "> AS ?concept) "
+					+ "BIND(<" + conceptPhysicalUri + "> AS ?concept) "
 					+ "BIND(<http://www.w3.org/2002/07/owl#DatatypeProperty> AS ?propPredicate) "
 					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
 					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
@@ -373,7 +368,7 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public String getPhysicalUriFromConceptualUri(String conceptualURI) {
+	public String getConceptPhysicalUriFromConceptualUri(String conceptualURI) {
 		// the URI is not valid if it doesn't start with http://
 		// if it is not valid, assume only the last part of the URI was passed and create the URI
 		// the URI is not valid if it doesn't start with http://
@@ -385,41 +380,35 @@ public class MetaHelper implements IExplorable {
 		// this query needs to take into account if the conceptual URI is a concept or a property
 		String query = "SELECT DISTINCT ?uri WHERE { "
 				+ "BIND(<" + conceptualURI + "> AS ?conceptual) "
-				+ "{"
-					+ "{?uri <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
-					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
-				+ "} UNION {"
-					+ "{?uri <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
-					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
-				+ "}"
+				+ "{?uri <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
+				+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
 				+ "}";
 
 		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		// if it is empty, either the URI is bad or it is already the physical URI
 		if(queryReturn.isEmpty()) {
-			return conceptualURI;
+			return null;
 		}
 		// there should only be one return in the vector since conceptual URIs are a one-to-one match with the physical URIs
 		return queryReturn.get(0);
 	}
 	
 	@Override
-	public String getPhysicalUriFromConceptualUri(String propertyName, String parentName) {
-		String conceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + propertyName;
-		if(parentName != null && !parentName.isEmpty()) {
-			conceptualURI += "/" + parentName;
+	public String getPropertyPhysicalUriFromConceptualUri(String conceptualURI, String parentConceptualUri) {
+		if(!conceptualURI.startsWith("http://")) {
+			conceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + conceptualURI;
+			if(parentConceptualUri.startsWith("http://")) {
+				conceptualURI += "/" + Utility.getInstanceName(parentConceptualUri);
+			} else {
+				conceptualURI += "/" + parentConceptualUri;
+			}
 		}
 		
 		// this query needs to take into account if the conceptual URI is a concept or a property
 		String query = "SELECT DISTINCT ?uri WHERE { "
 				+ "BIND(<" + conceptualURI + "> AS ?conceptual) "
-				+ "{"
-					+ "{?uri <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
-					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
-				+ "} UNION {"
-					+ "{?uri <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
-					+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
-				+ "}"
+				+ "{?uri <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains> } "
+				+ "{?uri <http://semoss.org/ontologies/Relation/Conceptual> ?conceptual } "
 				+ "}";
 
 		Vector<String> queryReturn = Utility.getVectorOfReturn(query, baseDataEngine, true);

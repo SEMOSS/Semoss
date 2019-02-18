@@ -373,10 +373,14 @@ public class TableUserTracker implements IUserTracker {
 				String dataType = selector.getDataType();
 				String table = name;
 				String column = AbstractQuerySelector.PRIM_KEY_PLACEHOLDER;
+				Long uniqueCount = null;
 
 				if (selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 					// TODO: this is assuming only 1 math inside due to FE limitation
 					name = ((QueryFunctionSelector) selector).getInnerSelector().get(0).getQueryStructName() + "";
+					uniqueCount = getUniqueValueCount(engineId, name, column);
+				} else {
+					uniqueCount = getUniqueValueCount(engineId, table, column);
 				}
 				
 				if(name.contains("__")) {
@@ -393,7 +397,6 @@ public class TableUserTracker implements IUserTracker {
 					}
 				}
 				
-				Long uniqueCount = getUniqueValueCount(engineId, table, column);
 				
 				Object[] row = new Object[15];
 				row[0] = id;
@@ -765,16 +768,14 @@ public class TableUserTracker implements IUserTracker {
 			RDFFileSesameEngine owlEngine = ((AbstractEngine) engine).getBaseDataEngine();
 			
 			// are we dealing with a concept or a property
-			String conceptualUri = null;
+			String physicalUri = null;
 			if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 				// table
-				conceptualUri = "http://semoss.org/ontologies/Concept/" + table;
+				physicalUri = engine.getConceptPhysicalUriFromConceptualUri(table);
 			} else {
 				// property
-				conceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + column + "/" + table;
+				physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(column, table);
 			}
-			
-			String physicalUri = engine.getPhysicalUriFromConceptualUri(conceptualUri);
 			
 			String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "
 					+ "{ BIND(<" + physicalUri + "> AS ?concept)"

@@ -105,8 +105,8 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 			if(isRdbms) {
 				// the relation has the startC and endC
 				// what I really need is the primary key for the tables
-				startC = Utility.getClassName(engine.getPhysicalUriFromConceptualUri(OWLER.BASE_URI + OWLER.DEFAULT_NODE_CLASS + "/" + startT));
-				endC = Utility.getClassName(engine.getPhysicalUriFromConceptualUri(OWLER.BASE_URI + OWLER.DEFAULT_NODE_CLASS + "/" + endT));
+				startC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(startT));
+				endC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(endT));
 			}
 			
 			// add the relationship

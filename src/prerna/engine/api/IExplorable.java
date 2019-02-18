@@ -113,7 +113,7 @@ public interface IExplorable {
 	 * 									conceptual names or physical names
 	 * @return							List containing the property URIs for the given concept
 	 */
-	List<String> getProperties4Concept(String concept, Boolean conceptualNames);
+	List<String> getProperties4Concept(String conceptPhysicalUri, Boolean conceptualNames);
 
 	// executes a query on the ontology engine
 	// REFAC: Change this to engine
@@ -132,7 +132,10 @@ public interface IExplorable {
 	 * @return						Return the physical URI 					
 	 */
 	// REFAC: Change this to engine - this should be local master
-	String getPhysicalUriFromConceptualUri(String conceptualURI);
+	String getConceptPhysicalUriFromConceptualUri(String conceptualURI);
+	
+	// REFAC: Change this to engine - this should be local master
+	String getPropertyPhysicalUriFromConceptualUri(String conceptualURI, String parentConceptualUri);
 	
 	/**
 	 * Get the conceptual URI from the physical URI
@@ -176,9 +179,6 @@ public interface IExplorable {
 	
 	// REFAC: Change this to engine - this should be local master
 	Map<String, Object[]> getMetamodel();
-
-	// REFAC: Change this to engine - this should be local master
-	String getPhysicalUriFromConceptualUri(String propertyName, String parentName);
 
 	Set<String> getLogicalNames(String physicalURI);
 
