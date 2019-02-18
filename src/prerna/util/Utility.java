@@ -104,7 +104,6 @@ import com.ibm.icu.text.DecimalFormat;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.AZClient;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
@@ -2504,7 +2503,6 @@ public class Utility {
 	 * 
 	 * Use this method to get the engine when the engine hasn't been loaded
 	 */
-	@Deprecated
 	public static IEngine getEngine(String engineId) {
 		return getEngine(engineId, true);
 	}
@@ -2516,7 +2514,6 @@ public class Utility {
 	 * 
 	 * Use this method to get the engine when the engine hasn't been loaded
 	 */
-	@Deprecated
 	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
 		IEngine engine = null;
 

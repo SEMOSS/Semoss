@@ -258,9 +258,7 @@ public class QueryInsertReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getPrimKey(IEngine engine, String tableName) {
-		String conceptualURI = "http://semoss.org/ontologies/Concept/" + tableName;
-		String tableURI = engine.getPhysicalUriFromConceptualUri(conceptualURI);
-		
+		String tableURI = engine.getConceptPhysicalUriFromConceptualUri(tableName);
 		// since we also have the URI, just store the primary key as well
 		// will most likely be used
 		return Utility.getClassName(tableURI);

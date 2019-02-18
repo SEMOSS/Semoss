@@ -90,7 +90,8 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			qs.setEngine(engine);
 			qs.addSelector(new QueryColumnSelector(conceptualName));
 			
-			List<String> properties = engine.getProperties4Concept(concept, true);
+			String physicalConceptUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
+			List<String> properties = engine.getProperties4Concept(physicalConceptUri, true);
 			List<Integer> positionsToRemove = new Vector<Integer>();
 			for(int i = 0; i < properties.size(); i++) {
 				String property = properties.get(i);
@@ -341,7 +342,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	}
 
 	public static String getPhysicalColumnHeader(IEngine engine, String conceptualName) {
-		String physicalNodeUri = engine.getPhysicalUriFromConceptualUri(conceptualName);
+		String physicalNodeUri = engine.getConceptPhysicalUriFromConceptualUri(conceptualName);
 		String physicalNodeName = Utility.getInstanceName(physicalNodeUri);
 		return physicalNodeName;
 	}

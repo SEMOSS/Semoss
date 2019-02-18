@@ -34,7 +34,7 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		setOwlerValues(engine, owler);
 		if(prop == null || prop.isEmpty()) {
-			String physicalUri = engine.getPhysicalUriFromConceptualUri("http://semoss.org/ontologies/Concept/" + concept);
+			String physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
 			owler.addConceptLogicalNames(concept, Utility.getClassName(physicalUri), logicalNames);
 		} else {
 			owler.addPropLogicalNames(concept, prop, logicalNames);

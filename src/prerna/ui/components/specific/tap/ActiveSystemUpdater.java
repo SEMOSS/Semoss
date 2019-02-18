@@ -53,6 +53,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.ConstantsTAP;
 import prerna.util.DIHelper;
+import prerna.util.OWLER;
 import prerna.util.Utility;
 
 /**
@@ -113,6 +114,8 @@ public class ActiveSystemUpdater {
 		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
 		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
 		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
+		existingEngine.addStatement(new Object[]{activeSystemURI, OWLER.BASE_URI + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME, activeSystemURI, true});
+
 		RepositoryConnection exportRC = existingEngine.getRc();
 		
 		FileWriter fWrite = null;
