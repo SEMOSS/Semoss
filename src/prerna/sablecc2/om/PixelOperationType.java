@@ -57,6 +57,7 @@ public enum PixelOperationType {
 	APP_INFO,
 	APP_USERS,
 	APP_INSIGHTS,
+	USER_INFO,
 	
 	// forms calls that change the db
 	ALTER_DATABASE,
