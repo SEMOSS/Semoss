@@ -40,7 +40,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		// and then everything related to this node
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-		String conceptPhysical = engine.getPhysicalUriFromConceptualUri(concept);
+		String conceptPhysical = engine.getConceptPhysicalUriFromConceptualUri(concept);
 		List<String> properties = engine.getProperties4Concept(conceptPhysical, false);
 		StringBuilder bindings = new StringBuilder();
 		for(String prop : properties) {
