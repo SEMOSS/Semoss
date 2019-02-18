@@ -362,6 +362,7 @@ import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
+import prerna.sablecc2.reactor.utils.GetUserInfoReactor;
 import prerna.sablecc2.reactor.utils.GetWebTableHeader;
 import prerna.sablecc2.reactor.utils.GetWebTableNum;
 import prerna.sablecc2.reactor.utils.HelpReactor;
@@ -496,6 +497,7 @@ public class ReactorFactory {
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
 		reactorHash.put("WidgetT", WidgetTrackingReactor.class);
+		reactorHash.put("GetUserInfo", GetUserInfoReactor.class);
 		
 		// Database uploading utils
 		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);
