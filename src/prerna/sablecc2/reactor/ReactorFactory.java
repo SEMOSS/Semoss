@@ -131,6 +131,8 @@ import prerna.sablecc2.reactor.expression.OpMean;
 import prerna.sablecc2.reactor.expression.OpMedian;
 import prerna.sablecc2.reactor.expression.OpMin;
 import prerna.sablecc2.reactor.expression.OpNotEmpty;
+import prerna.sablecc2.reactor.expression.OpPaste;
+import prerna.sablecc2.reactor.expression.OpPaste0;
 import prerna.sablecc2.reactor.expression.OpPower;
 import prerna.sablecc2.reactor.expression.OpRound;
 import prerna.sablecc2.reactor.expression.OpSmall;
@@ -1081,6 +1083,8 @@ public class ReactorFactory {
 		expressionHash.put("CONCAT", OpConcat.class);
 		
 		// none excel functions
+		expressionHash.put("PASTE0", OpPaste0.class);
+		expressionHash.put("PASTE", OpPaste.class);
 		expressionHash.put("CONTAINS", OpContains.class);
 		expressionHash.put("ARRAYLENGTH", OpArrayLength.class);
 	}
