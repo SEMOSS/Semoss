@@ -2,7 +2,6 @@ package prerna.query.interpreters.sql;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,15 +48,15 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected static HeadersException headerExec = HeadersException.getInstance();
 	
 	// this keeps the table aliases
-	protected Hashtable<String, String> aliases = new Hashtable<String, String>();
+	protected HashMap<String, String> aliases = new HashMap<String, String>();
 	
 	// keep track of processed tables used to ensure we don't re-add tables into the from string
-	protected Hashtable<String, String> tablesProcessed = new Hashtable<String, String>();
+	protected HashMap<String, String> tablesProcessed = new HashMap<String, String>();
 	
 	// we will keep track of the conceptual names to physical names so we don't re-query the owl multiple times
-	protected transient Hashtable<String, String> conceptualConceptToPhysicalMap = new Hashtable<String, String>();
+	protected transient Map<String, String> conceptualConceptToPhysicalMap = new HashMap<String, String>();
 	// need to also keep track of the properties
-	protected transient Hashtable<String, String> conceptualPropertyToPhysicalMap = new Hashtable<String, String>();
+	protected transient Map<String, String> conceptualPropertyToPhysicalMap = new HashMap<String, String>();
 	// need to keep track of the primary key for tables
 	protected transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
 
@@ -139,7 +138,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// we are selecting all the columns
 			String table = froms.get(0)[0];
 			if(engine != null && !engine.isBasic()) {
-				if( (engine.getConcepts(false).size() == 1) && (engine.getProperties4Concept(table, false).size() + 1) == selectorList.size()) {
+				String physicalUri = engine.getConceptPhysicalUriFromConceptualUri(table);
+				if( (engine.getConcepts(false).size() == 1) && (engine.getProperties4Concept(physicalUri, false).size() + 1) == selectorList.size()) {
 					// plus one is for the concept itself
 					// no distinct needed
 					query.append(selectors);
@@ -1047,14 +1047,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			if(conceptualConceptToPhysicalMap.containsKey(conceptualTableName)) {
 				return conceptualConceptToPhysicalMap.get(conceptualTableName);
 			}
-			
 			// we dont have it.. so query for it
-			String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualTableName;
-			String tableURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
-			
+			String tableURI = this.engine.getConceptPhysicalUriFromConceptualUri(conceptualTableName);
 			// table name is the instance name of the URI
 			String tableName = Utility.getInstanceName(tableURI);
-			
+
 			// since we also have the URI, just store the primary key as well if we haven't already
 			if(!primaryKeyCache.containsKey(conceptualTableName)) {
 				// will most likely be used
@@ -1079,21 +1076,22 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
 		if(engine != null && !engine.isBasic()) {
 			// if we already have it, just grab from hash
-			if(conceptualPropertyToPhysicalMap.containsKey(columnConceptualName)) {
-				return conceptualPropertyToPhysicalMap.get(columnConceptualName);
+			if(conceptualPropertyToPhysicalMap.containsKey(tableConceptualName+columnConceptualName)) {
+				return conceptualPropertyToPhysicalMap.get(tableConceptualName+columnConceptualName);
 			}
 			
-			String tablePhysicalName = getPhysicalTableNameFromConceptualName(tableConceptualName);
-			
 			// we don't have it... so query for it
-			String propertyConceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + columnConceptualName + "/" + tablePhysicalName;
-			String colURI = this.engine.getPhysicalUriFromConceptualUri(propertyConceptualURI);
-			String colName = null;
-			
+			String colURI = this.engine.getPropertyPhysicalUriFromConceptualUri(columnConceptualName, tableConceptualName);
+			// if the user has defined a column 
+			// but its not actually part of the OWL 
+			// this is annoying since we do this for the _FK columns
+			// in the addJoins in the NoOuterJoin class
+			if(colURI == null) {
+				return columnConceptualName;
+			}
 			// the class is the name of the column
-			colName = Utility.getClassName(colURI);
-			
-			conceptualPropertyToPhysicalMap.put(columnConceptualName, colName);
+			String colName = Utility.getClassName(colURI);
+			conceptualPropertyToPhysicalMap.put(tableConceptualName+columnConceptualName, colName);
 			return colName;
 		} else {
 			// no engine is defined, just return the value
@@ -1112,9 +1110,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		else if (engine != null && !engine.isBasic()) {
 			// we dont have it.. so query for it
-			String conceptualURI = "http://semoss.org/ontologies/Concept/" + conceptualTableName;
-			String tableURI = this.engine.getPhysicalUriFromConceptualUri(conceptualURI);
-			
+			String tableURI = this.engine.getConceptPhysicalUriFromConceptualUri(conceptualTableName);
 			// since we also have the URI, just store the primary key as well
 			// will most likely be used
 			String primKey = Utility.getClassName(tableURI);
@@ -1252,8 +1248,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String fromConceptual = "http://semoss.org/ontologies/Concept/" + fromString;
 			String toConceptual = "http://semoss.org/ontologies/Concept/" + toString;
 			
-			fromURI = this.engine.getPhysicalUriFromConceptualUri(fromConceptual);
-			toURI = this.engine.getPhysicalUriFromConceptualUri(toConceptual);
+			fromURI = this.engine.getConceptPhysicalUriFromConceptualUri(fromConceptual);
+			toURI = this.engine.getConceptPhysicalUriFromConceptualUri(toConceptual);
 
 			// need to figure out what the predicate is from the owl
 			// also need to determine the direction of the relationship -- if it is forward or backward
