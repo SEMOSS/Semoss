@@ -53,11 +53,6 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
-		// make sure this name isn't currently present in the engine
-		if(engine.getConceptPhysicalUriFromConceptualUri(concept) != null) {
-			throw new IllegalArgumentException("This conceptual name already exists");
-		}
-		
 		String conceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept;
 		String parentConcepturalURI = "http://semoss.org/ontologies/Concept/" + concept;
 		String parentPhysicalURI = engine.getConceptPhysicalUriFromConceptualUri(parentConcepturalURI);
