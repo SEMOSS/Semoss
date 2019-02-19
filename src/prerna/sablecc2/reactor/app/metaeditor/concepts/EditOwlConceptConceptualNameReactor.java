@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.app.metaeditor.concepts;
 
-import java.io.IOException;
+import java.util.List;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -60,6 +60,23 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 		}
 		
 		String conceptualRel = OWLER.SEMOSS_URI + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
+		
+		// okay, not only do i need to change this concept
+		// but i have to change all the properties conceptual
+		List<String> properties = engine.getProperties4Concept(conceptPhysicalURI, false);
+		for(String propertyPhysicalUri : properties) {
+			String propertyConceptualUri = engine.getConceptualUriFromPhysicalUri(propertyPhysicalUri);
+			
+			String propConceptualName = Utility.getClassName(propertyConceptualUri);
+			String newPropertyConceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + propConceptualName + "/" + newConceptualName;
+			
+			// remove the current relationship
+			owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalUri, conceptualRel, propertyConceptualUri, true});
+			// add the new relationship
+			owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalUri, conceptualRel, newPropertyConceptualUri, true});
+		}
+		
+		// now update the actual concept
 		// remove the current relationship
 		owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{conceptPhysicalURI, conceptualRel, conceptualURI, true});
 		// add the new relationship
