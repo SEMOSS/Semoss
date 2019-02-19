@@ -51,11 +51,12 @@ generateDescriptionFrame<-function(uniqueValues){
   numUnique = length(uniqueValues);
   for(i in 1:numUnique) {
     cleanValue <- splitCamelCase(uniqueValues[i]);
-    values <- tryCatch({
-      find_item(cleanValue);
-    }, finally = {
-      values <- c();
-    });
+    values <- c();
+    if(cleanValue != "") {
+      values <- tryCatch({
+        find_item(cleanValue);
+      });
+    }
     if(length(values) == 0) {
       # wiki returned nothing, try google
       googleResults <- searchGoogle(cleanValue);
