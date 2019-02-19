@@ -55,13 +55,15 @@ import prerna.sablecc2.reactor.app.metaeditor.OwlMetamodelReactor;
 import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.AddOwlConceptReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.EditOwlConceptConceptualNameReactor;
-import prerna.sablecc2.reactor.app.metaeditor.concepts.EditOwlPropertyConceptualNameReactor;
+import prerna.sablecc2.reactor.app.metaeditor.concepts.EditOwlConceptDataTypeReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.AddOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.AddOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.RemoveOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.RemoveOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.properties.AddOwlPropertyReactor;
+import prerna.sablecc2.reactor.app.metaeditor.properties.EditOwlPropertyConceptualNameReactor;
+import prerna.sablecc2.reactor.app.metaeditor.properties.EditOwlPropertyDataTypeReactor;
 import prerna.sablecc2.reactor.app.metaeditor.properties.RemoveOwlPropertyReactor;
 import prerna.sablecc2.reactor.app.metaeditor.relationships.AddBulkOwlRelationshipsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.relationships.AddOwlRelationshipReactor;
@@ -682,6 +684,8 @@ public class ReactorFactory {
 		// conceptual names + logical names + descriptions
 		reactorHash.put("EditOwlConceptConceptualName", EditOwlConceptConceptualNameReactor.class);
 		reactorHash.put("EditOwlPropertyConceptualName", EditOwlPropertyConceptualNameReactor.class);
+		reactorHash.put("EditOwlConceptDataType", EditOwlConceptDataTypeReactor.class);
+		reactorHash.put("EditOwlPropertyDataType", EditOwlPropertyDataTypeReactor.class);
 		reactorHash.put("AddOwlLogicalNames", AddOwlLogicalNamesReactor.class);
 		reactorHash.put("RemoveOwlLogicalNames", RemoveOwlLogicalNamesReactor.class);
 		reactorHash.put("GetOwlLogicalNames", GetOwlLogicalNamesReactor.class);
