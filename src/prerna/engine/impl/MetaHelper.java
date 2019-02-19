@@ -22,8 +22,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IExplorable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.ISelectStatement;
-import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
@@ -422,16 +420,11 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public String getDataTypes(String uri) {
-//			String cleanUri = getTransformedNodeName(uri, false);
-		String cleanUri = uri;
-		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + cleanUri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} }";
-			
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
-		String[] names = wrapper.getPhysicalVariables();
+		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + uri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} }";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
 		String type = null;
 		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			type = ss.getVar(names[0]).toString();
+			type = wrapper.next().getValues()[0].toString();
 		}
 		
 		return type;
@@ -439,29 +432,21 @@ public class MetaHelper implements IExplorable {
 
 	@Override
 	public Map<String, String> getDataTypes(String... uris) {
-		Map<String, String> retMap = new Hashtable<String, String>();
-		String bindings = "";
+		StringBuilder bindBuilder = new StringBuilder();
 		for(String uri : uris) {
-//			String cleanUri = getTransformedNodeName(uri, false);
-			String cleanUri = uri;
-			bindings += "(<" + cleanUri + ">)";	
+			bindBuilder.append("(<").append(uri).append(">)");	
 		}
-		String query = null;
+		String query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} } ";
+		String bindings = bindBuilder.toString();
 		if(!bindings.isEmpty()) {
-			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} } BINDINGS ?NODE {" + bindings + "}";
-			
-		} else {
-			// if no bindings, return everything
-			query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} }";
+			query += "BINDINGS ?NODE {" + bindings + "}";
 		}
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
-		String[] names = wrapper.getPhysicalVariables();
+		Map<String, String> retMap = new Hashtable<String, String>();
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
 		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String node = ss.getRawVar(names[0]).toString();
-			String type = ss.getVar(names[1]).toString();
-			
-//			retMap.put(getTransformedNodeName(node, true), type);
+			Object[] row = wrapper.next().getValues();
+			String node = row[0].toString();
+			String type = row[1].toString();
 			retMap.put(node, type);
 		}
 		
