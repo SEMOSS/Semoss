@@ -14,10 +14,10 @@ splitCamelCase<-function(a){
 }
 
 getGoogleSearchUrl <- function(searchTerm, domain = '.com', quotes=TRUE) {
-  searchTerm <- gsub(' ', '%20', searchTerm);
   if(quotes) {
-    searchTerm <- paste('%22', searchTerm, '%22', sep='');
+    searchTerm <- paste("\"", searchTerm, "\"", sep='');
   }
+  searchTerm <- URLencode(searchTerm);
   searchURL <- paste('http://www.google', domain, '/search?q=', searchTerm, sep='');
   return(searchURL)
 }
