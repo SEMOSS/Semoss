@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app.metaeditor.concepts;
+package prerna.sablecc2.reactor.app.metaeditor.properties;
 
 import java.util.List;
 
@@ -81,6 +81,15 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, conceptualRel, conceptualURI, true});
 		// add the new relationship
 		owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, conceptualRel, newConceptualURI, true});
+		
+		try {
+			owlEngine.exportDB();
+		} catch (Exception e) {
+			e.printStackTrace();
+			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to commit modifications", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			return noun;
+		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully edited concept name from " + property + " to " + newConceptualName, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
