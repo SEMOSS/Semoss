@@ -67,7 +67,7 @@ generateDescriptionFrame<-function(allTables, allColumns, sampleInstances){
         cleanInstance <- gsub("[\r\n]", "", cleanInstance);
         cleanInstance <- gsub("\\s+", " ", cleanInstance);
         values <- c();
-        if(cleanValue != "") {
+        if(cleanInstance != "") {
           values <- tryCatch({
             find_item(cleanInstance);
           });
