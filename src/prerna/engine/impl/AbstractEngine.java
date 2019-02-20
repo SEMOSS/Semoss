@@ -922,8 +922,8 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	@Override
-	public String getDescriptions(String physicalURI) {
-		return this.owlHelper.getDescriptions(physicalURI);
+	public String getDescription(String physicalURI) {
+		return this.owlHelper.getDescription(physicalURI);
 	}
 	
 	public String getParentOfProperty(String prop) {

@@ -59,6 +59,8 @@ import prerna.sablecc2.reactor.app.metaeditor.concepts.EditOwlConceptDataTypeRea
 import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.AddOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.AddOwlLogicalNamesReactor;
+import prerna.sablecc2.reactor.app.metaeditor.meta.EditOwlDescriptionReactor;
+import prerna.sablecc2.reactor.app.metaeditor.meta.EditOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.RemoveOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.meta.RemoveOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.metaeditor.properties.AddOwlPropertyReactor;
@@ -689,11 +691,13 @@ public class ReactorFactory {
 		reactorHash.put("EditOwlPropertyDataType", EditOwlPropertyDataTypeReactor.class);
 		// logical names
 		reactorHash.put("AddOwlLogicalNames", AddOwlLogicalNamesReactor.class);
+		reactorHash.put("EditOwlLogicalNames", EditOwlLogicalNamesReactor.class);
 		reactorHash.put("RemoveOwlLogicalNames", RemoveOwlLogicalNamesReactor.class);
 		reactorHash.put("GetOwlLogicalNames", GetOwlLogicalNamesReactor.class);
 		reactorHash.put("PredictOwlLogicalNames", PredictOwlLogicalNamesReactor.class);
 		// descriptions
 		reactorHash.put("AddOwlDescription", AddOwlDescriptionReactor.class);
+		reactorHash.put("EditOwlDescription", EditOwlDescriptionReactor.class);
 		reactorHash.put("RemoveOwlDescription", RemoveOwlDescriptionReactor.class);
 		reactorHash.put("GetOwlDescriptions", GetOwlDescriptionsReactor.class);
 		reactorHash.put("PredictOwlDescription", PredictOwlDescriptionsReactor.class);
