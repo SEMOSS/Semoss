@@ -215,6 +215,18 @@ public class AddToMasterDB {
 					}
 				}
 			}
+			// add the description
+			String desc = helper.getDescriptions(conceptPhysicalUri);
+			if(desc != null && !desc.trim().isEmpty()) {
+				colNames = new String[]{"LocalConceptID", "Key", "Value"};
+				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+				desc = desc.trim();
+				if(desc.length() > 20_000) {
+					desc = desc.substring(0, 19_996) + "...";
+				}
+				insertValues = new String[]{conceptGuid, "description", desc};
+				insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+			}
 		} else {
 			// we need to create a new one
 			conceptGuid = UUID.randomUUID().toString();
