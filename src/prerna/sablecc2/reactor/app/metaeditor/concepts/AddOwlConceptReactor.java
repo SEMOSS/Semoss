@@ -1,10 +1,12 @@
 package prerna.sablecc2.reactor.app.metaeditor.concepts;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -18,7 +20,8 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 	public AddOwlConceptReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), 
-				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), CONCEPTUAL_NAME
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), CONCEPTUAL_NAME, 
+				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()
 			};
 	}
 	
@@ -46,6 +49,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		if(dataType == null || dataType.isEmpty()) {
 			throw new IllegalArgumentException("Must define the data type for the concept being added to the app metadata");
 		}
+		
 		// TODO: need to account for this on concepts!!!!
 		String additionalDataType = this.keyValue.get(this.keysToGet[4]);
 		String conceptual = this.keyValue.get(this.keysToGet[5]);
@@ -67,8 +71,17 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		}
 
 		OWLER owler = getOWLER(appId);
-		owler.addConcept(concept, column, OWLER.BASE_URI, dataType, conceptual);
+		String physicalUri = owler.addConcept(concept, column, OWLER.BASE_URI, dataType, conceptual);
 
+		// now add the description (checks done in method)
+		String description = this.keyValue.get(this.keysToGet[6]);
+		owler.addConceptDescription(physicalUri, description);
+		// add the logical names (additional checks done in method)
+		List<String> logicalNames = getLogicalNames();
+		if(!logicalNames.isEmpty()) {
+			owler.addConceptLogicalNames(physicalUri, logicalNames.toArray(new String[]{}));
+		}
+		
 		try {
 			owler.export();
 		} catch (IOException e) {
@@ -82,5 +95,23 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added new concept", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
+	}
+	
+	/**
+	 * Get the logical names
+	 * @return
+	 */
+	private List<String> getLogicalNames() {
+		Vector<String> logicalNames = new Vector<String>();
+		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[2]);
+		if (instanceGrs != null && !instanceGrs.isEmpty()) {
+			for (int i = 0; i < instanceGrs.size(); i++) {
+				String name = (String) instanceGrs.get(i);
+				if (name.length() > 0) {
+					logicalNames.add(name);
+				}
+			}
+		}
+		return logicalNames;
 	}
 }

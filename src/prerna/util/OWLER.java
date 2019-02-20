@@ -682,6 +682,16 @@ public class OWLER {
 		}
 	}
 	
+	public void addConceptLogicalNames(String physicalUri, String...logicalNames) {
+		if(logicalNames != null) {
+			for(String lName : logicalNames) {
+				if(lName != null && !lName.isEmpty()) {
+					this.engine.addToBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
+				}
+			}
+		}
+	}
+	
 	public void deleteConceptLogicalNames(String table, String column, String... logicalNames) {
 		String conceptUri = addConcept(table, column, null);
 		
@@ -702,6 +712,16 @@ public class OWLER {
 		}
 	}
 	
+	public void addPropLogicalNames(String physicalUri, String...logicalNames) {
+		if(logicalNames != null) {
+			for(String lName : logicalNames) {
+				if(lName != null && !lName.isEmpty()) {
+					this.engine.addToBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
+				}
+			}
+		}
+	}
+	
 	public void deletePropLogicalNames(String table, String column, String... logicalNames) {
 		String propUri = addProp(table, column, null);
 		
@@ -718,45 +738,51 @@ public class OWLER {
 	 * @param column
 	 * @param logicalNames
 	 */
-	public void addConceptDescription(String table, String column, String...description) {
+	public void addConceptDescription(String table, String column, String description) {
+		String physicalUri = addConcept(table, column, null);
+		
+		if(description != null && !description.trim().isEmpty()) {
+			description = description.replaceAll("[^\\p{ASCII}]", "");
+			this.engine.addToBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
+		}
+	}
+	
+	public void addConceptDescription(String physicalUri, String description) {
+		if(description != null && !description.trim().isEmpty()) {
+			description = description.replaceAll("[^\\p{ASCII}]", "");
+			this.engine.addToBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
+		}
+	}
+	
+	public void deleteConceptDescription(String table, String column, String description) {
 		String conceptUri = addConcept(table, column, null);
 		
-		if(description != null) {
-			for(String desc : description) {
-				desc = desc.replaceAll("[^\\p{ASCII}]", "");
-				this.engine.addToBaseEngine(new Object[]{conceptUri, RDFS.COMMENT.toString(), desc, false});
-			}
+		if(description != null && !description.trim().isEmpty()) {
+			this.engine.removeFromBaseEngine(new Object[]{conceptUri, RDFS.COMMENT.toString(), description, false});
 		}
 	}
 	
-	public void deleteConceptDescription(String table, String column, String... description) {
-		String conceptUri = addConcept(table, column, null);
-		
-		if(description != null) {
-			for(String desc : description) {
-				this.engine.removeFromBaseEngine(new Object[]{conceptUri, RDFS.COMMENT.toString(), desc, false});
-			}
-		}
-	}
-	
-	public void addPropDescription(String table, String column, String...description) {
+	public void addPropDescription(String table, String column, String description) {
 		String propUri = addProp(table, column, null);
 		
-		if(description != null) {
-			for(String desc : description) {
-				desc = desc.replaceAll("[^\\p{ASCII}]", "");
-				this.engine.addToBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), desc, false});
-			}
+		if(description != null && !description.trim().isEmpty()) {
+			description = description.replaceAll("[^\\p{ASCII}]", "");
+			this.engine.addToBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), description, false});
 		}
 	}
 	
-	public void deletePropDescription(String table, String column, String... description) {
+	public void addPropDescription(String physicalUri, String description) {
+		if(description != null && !description.trim().isEmpty()) {
+			description = description.replaceAll("[^\\p{ASCII}]", "");
+			this.engine.addToBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
+		}
+	}
+	
+	public void deletePropDescription(String table, String column, String description) {
 		String propUri = addProp(table, column, null);
 		
-		if(description != null) {
-			for(String desc : description) {
-				this.engine.removeFromBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), desc, false});
-			}
+		if(description != null && !description.trim().isEmpty()) {
+			this.engine.removeFromBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), description, false});
 		}
 	}
 	
