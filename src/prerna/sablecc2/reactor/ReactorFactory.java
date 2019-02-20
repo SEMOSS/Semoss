@@ -681,16 +681,18 @@ public class ReactorFactory {
 		reactorHash.put("AddOwlRelationship", AddOwlRelationshipReactor.class);
 		reactorHash.put("AddBulkOwlRelationships", AddBulkOwlRelationshipsReactor.class);
 		reactorHash.put("RemoveOwlRelationship", RemoveOwlRelationshipReactor.class);
-		// conceptual names + logical names + descriptions
+		// conceptual names 
 		reactorHash.put("EditOwlConceptConceptualName", EditOwlConceptConceptualNameReactor.class);
 		reactorHash.put("EditOwlPropertyConceptualName", EditOwlPropertyConceptualNameReactor.class);
+		// data types
 		reactorHash.put("EditOwlConceptDataType", EditOwlConceptDataTypeReactor.class);
 		reactorHash.put("EditOwlPropertyDataType", EditOwlPropertyDataTypeReactor.class);
+		// logical names
 		reactorHash.put("AddOwlLogicalNames", AddOwlLogicalNamesReactor.class);
 		reactorHash.put("RemoveOwlLogicalNames", RemoveOwlLogicalNamesReactor.class);
 		reactorHash.put("GetOwlLogicalNames", GetOwlLogicalNamesReactor.class);
 		reactorHash.put("PredictOwlLogicalNames", PredictOwlLogicalNamesReactor.class);
-
+		// descriptions
 		reactorHash.put("AddOwlDescription", AddOwlDescriptionReactor.class);
 		reactorHash.put("RemoveOwlDescription", RemoveOwlDescriptionReactor.class);
 		reactorHash.put("GetOwlDescriptions", GetOwlDescriptionsReactor.class);

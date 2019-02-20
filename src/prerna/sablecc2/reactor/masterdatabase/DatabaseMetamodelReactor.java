@@ -45,7 +45,10 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 		if(options.contains("logicalnames")) {
 			metamodelObject.put("logicalNames", MasterDatabaseUtility.getEngineLogicalNames(engineId));
 		}
-		
+		// add descriptions
+		if(options.contains("descriptions")) {
+			metamodelObject.put("descriptions", MasterDatabaseUtility.getEngineDescriptions(engineId));
+		}
 		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);
 	}
 	

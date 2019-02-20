@@ -2,7 +2,6 @@ package prerna.engine.impl;
 
 import java.io.StringWriter;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -589,17 +588,16 @@ public class MetaHelper implements IExplorable {
 	}
 	
 	@Override
-	public Set<String> getDescriptions(String physicalURI) {
+	public String getDescriptions(String physicalURI) {
 		String query = "SELECT DISTINCT ?description WHERE { "
 				+ "BIND(<" + physicalURI + "> AS ?uri) "
 				+ "{?uri <" + RDFS.COMMENT.toString() + "> ?description } "
 				+ "}";
 
-		Set<String> logicals = new HashSet<String>();
 		IRawSelectWrapper manager = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query);
 		while(manager.hasNext()) {
-			logicals.add(manager.next().getValues()[0].toString());
+			return manager.next().getValues()[0].toString();
 		}
-		return logicals;
+		return null;
 	}
 }
