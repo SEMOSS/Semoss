@@ -1534,6 +1534,70 @@ public class MasterDatabaseUtility {
 		return logicalNames;
 	}
 	
+	public static Map<String, List<String>> getEngineLogicalNames(String engineId) {
+		// select ec2.physicalname as parentPhysical, ec.physicalname as physicalname, c.conceptualname as conceptualname, c.logicalname as logicalname, ec.pk as isPrim from engineconcept ec inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid inner join concept c on ec.localconceptid=c.localconceptid where ec.engine='89850ba1-bafe-45a5-84ef-df8e21669267' order by isprim desc;		
+		
+		Map<String, List<String>> engineLogicalNames = new HashMap<String, List<String>>();
+		Map<String, String> parentPhysicalToConceptual = new HashMap<String, String>();
+
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection masterConn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			String query = "select ec2.physicalname as parentPhysical, "
+					+ "ec.physicalname as physicalname, "
+					+ "c.conceptualname as conceptualname, "
+					+ "c.logicalname as logicalname, "
+					+ "ec.pk as isPrim "
+					+ "from engineconcept ec "
+					+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
+					+ "inner join concept c on ec.localconceptid=c.localconceptid "
+					+ "where ec.engine='"+ engineId + "' order by isprim desc;";
+			
+			stmt = masterConn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				String parentPhysical = rs.getString(1);
+				String physicalName = rs.getString(1);
+				String conceptualName = rs.getString(3);
+				String logicalName = rs.getString(4);
+				boolean isPk = rs.getBoolean(5);
+
+				String uniqueName = conceptualName;
+				
+				if(isPk) {
+					// store so we can use it to create the proper unique name
+					// for the properties
+					parentPhysicalToConceptual.put(physicalName, conceptualName);
+				} else {
+					// since we order by isPrim
+					// we already have the 
+					// parent physical to conceptual mapping
+					uniqueName = parentPhysicalToConceptual.get(parentPhysical) + "__" + conceptualName;
+				}
+				
+				List<String> logicalNames = null;
+				if(engineLogicalNames.containsKey(uniqueName)) {
+					logicalNames = engineLogicalNames.get(uniqueName);
+				} else {
+					logicalNames = new Vector<String>();
+					// store in the map
+					engineLogicalNames.put(uniqueName, logicalNames);
+				}
+				// add the new value
+				logicalNames.add(logicalName);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return engineLogicalNames;
+	}
+	
 	/**
 	 * Get the properties for a given concept
 	 * @param conceptName
