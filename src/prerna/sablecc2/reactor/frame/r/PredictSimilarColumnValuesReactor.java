@@ -21,7 +21,7 @@ public class PredictSimilarColumnValuesReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder").replace("\\", "/");
 
 		// check if packages are installed
 		String[] packages = { "stringdist" };
@@ -29,8 +29,7 @@ public class PredictSimilarColumnValuesReactor extends AbstractRFrameReactor {
 
 		StringBuilder rsb = new StringBuilder();
 		// source script
-		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; ";
-		bestMatchScript = bestMatchScript.replace("\\", "/");
+		String bestMatchScript = "source(\"" + baseFolder + "/R/Recommendations/advanced_federation_blend.r\") ; ";
 		rsb.append(bestMatchScript);
 
 		// get single column input
@@ -42,18 +41,12 @@ public class PredictSimilarColumnValuesReactor extends AbstractRFrameReactor {
 		// run script
 		rsb.append(col1 + "<- as.character(" + frameName + "$" + column + ");");
 		rsb.append(matchesTable + " <- self_match(" + col1 + ");");
-
-		// add a unique combined col1 == col2, remove extra columns,
-		rsb.append(matchesTable + "$distance <- as.numeric(" + matchesTable + "$dist);");
-		rsb.append(matchesTable + "<-" + matchesTable + "[,c(\"col1\",\"col2\",\"distance\")]; ");
 		rsb.append(matchesTable + "<-" + matchesTable + "[order(unique(" + matchesTable + ")$distance),] ;");
-		rsb.append(RSyntaxHelper.asDataTable(matchesTable, matchesTable));
+//		rsb.append(RSyntaxHelper.asDataTable(matchesTable, matchesTable));
 		
 		// garbage collection
 		rsb.append("rm(" + col1 + ")");
 		this.rJavaTranslator.runR(rsb.toString());
-
-
 
 		RDataTable returnTable = createFrameFromVariable(matchesTable);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
