@@ -555,7 +555,7 @@ public class MasterDatabaseUtility {
 		return returnData;
 	}
 
-	public static Map<String, Object> getMetamodelRDBMS(String engineId) {
+	public static Map<String, Object> getMetamodelRDBMS(String engineId, boolean includeDataTypes) {
 		// this needs to be moved to the name server
 		// and this needs to be based on local master database
 		// need this to be a simple OWL data
@@ -582,10 +582,18 @@ public class MasterDatabaseUtility {
 		Map<String, String> additionalDataTypes = new HashMap<String, String>();
 		
 		try {
-			String nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property, ec.original_type, ec.property_type, ec.additional_type "
+			String nodeQuery = "";
+			if(includeDataTypes) {
+				nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property, ec.original_type, ec.property_type, ec.additional_type "
 					+ "from engineconcept ec, concept c "
 					 + "where ec.engine='" + engineId + "' "
 					 + "and c.localconceptid=ec.localconceptid order by ec.property";
+			} else {
+				nodeQuery = "select c.conceptualname, ec.physicalname, ec.localconceptid, ec.physicalnameid, ec.parentphysicalid, ec.property "
+						+ "from engineconcept ec, concept c "
+						 + "where ec.engine='" + engineId + "' "
+						 + "and c.localconceptid=ec.localconceptid order by ec.property";
+			}
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(nodeQuery);
 			while(rs.next()) {
@@ -593,10 +601,6 @@ public class MasterDatabaseUtility {
 				String physicalName = rs.getString(2);
 				String physicalId = rs.getString(4);
 				String parentPhysicalId = rs.getString(5); 
-				
-				String origType = rs.getString(7);
-				String cleanType = rs.getString(8);
-				String additionalType = rs.getString(9);
 				
 				// sets the physical id to conceptual name
 				idHash.put(physicalId, conceptualName);
@@ -615,29 +619,29 @@ public class MasterDatabaseUtility {
 					nodeHash.put(conceptualName, node);
 				}
 				
+				String uniqueName = conceptName;
+				
 				if(!conceptName.equalsIgnoreCase(parentName)) {
 					// store the property
 					node.addProperty(conceptName);
+					// update the unique name in case we need to include data types
+					uniqueName = parentName + "__" + conceptName;					
+				} else {
+					// store the key
+					node.addKey(conceptName);
+				}
+				
+				if(includeDataTypes) {
+					String origType = rs.getString(7);
+					String cleanType = rs.getString(8);
+					String additionalType = rs.getString(9);
 					
-					// store the types
-					String uniqueName = parentName + "__" + conceptName;
 					if(origType.contains("TYPE:")) {
 						origType = origType.replace("TYPE:", "");
 					}
 					physicalDataTypes.put(uniqueName, origType);
 					dataTypes.put(uniqueName, cleanType);
 					additionalDataTypes.put(uniqueName, additionalType);
-				} else {
-					// store the key
-					node.addKey(conceptName);
-					
-					// store the types for the concept
-					if(origType.contains("TYPE:")) {
-						origType = origType.replace("TYPE:", "");
-					}
-					physicalDataTypes.put(conceptName, origType);
-					dataTypes.put(conceptName, cleanType);
-					additionalDataTypes.put(conceptName, additionalType);
 				}
 			}
 		} catch(SQLException ex) {
@@ -697,9 +701,11 @@ public class MasterDatabaseUtility {
 		
 		finalHash.put("nodes", nodeHash.values().toArray());
 		finalHash.put("edges", edgeHash.values().toArray());
-		finalHash.put("physicalTypes", physicalDataTypes);
-		finalHash.put("dataTypes", dataTypes);
-		finalHash.put("additionalDataTypes", additionalDataTypes);
+		if(includeDataTypes) {
+			finalHash.put("physicalTypes", physicalDataTypes);
+			finalHash.put("dataTypes", dataTypes);
+			finalHash.put("additionalDataTypes", additionalDataTypes);
+		}
 		return finalHash;
 	}
 	
