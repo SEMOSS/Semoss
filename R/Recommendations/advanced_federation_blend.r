@@ -89,8 +89,10 @@ curate<-function(col,link){
 }
 
 self_match<-function(col,ignoreCase=TRUE,method="jw",p=0.1){
+	library(data.table)
 	library(stringdist)
-	c<-unique(col)
+	c<-as.data.table(table(col))
+	c<-c$col[order(-c$N)]
 	if(ignoreCase){
 		d<-stringdistmatrix(tolower(c),tolower(c),method=method,p=p)
 	} else{
@@ -99,13 +101,12 @@ self_match<-function(col,ignoreCase=TRUE,method="jw",p=0.1){
 	n<-nrow(d)
 	x<-d[lower.tri(d)]
 	x<-round(x,4)
-	y<-matrix(c,nrow=nrow(d),ncol=ncol(d))
-	y<-y[lower.tri(y)]
-	z<-t(matrix(c,nrow=nrow(d),ncol=ncol(d)))
-	z<-z[lower.tri(z)]
-	r<-as.data.frame(cbind(y,z,x))
-	r[,3] <- as.numeric(as.character(r[,3]))
-	names(r)<-c("col1","col2","dist")
+	values_matrix<-matrix(c,nrow=nrow(d),ncol=ncol(d))
+	y<-values_matrix[lower.tri(values_matrix)]
+	values_matrix<-t(values_matrix)
+	z<-values_matrix[lower.tri(values_matrix)]
+	r<-as.data.table(cbind(z,y,x))
+	names(r)<-c("col1","col2","distance")
 	gc()
 	return(r)
 }	
