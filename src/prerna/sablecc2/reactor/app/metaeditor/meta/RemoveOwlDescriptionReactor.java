@@ -28,18 +28,16 @@ public class RemoveOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		String prop = this.keyValue.get(this.keysToGet[2]);
 		String description = this.keyValue.get(this.keysToGet[3]);
 		
-		OWLER owler = getOWLER(appId);
-		// set all the existing values into the OWLER
-		// so that its state is updated
 		IEngine engine = Utility.getEngine(appId);
-		setOwlerValues(engine, owler);
+		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
-			String physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
-			owler.deleteConceptDescription(concept, Utility.getClassName(physicalUri), description);
+			physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
 		} else {
-			owler.deletePropDescription(concept, prop, description);
+			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(concept, prop);
 		}
-		owler.commit();
+		
+		OWLER owler = new OWLER(engine);
+		owler.deleteDescription(physicalUri, description);
 		
 		try {
 			owler.export();

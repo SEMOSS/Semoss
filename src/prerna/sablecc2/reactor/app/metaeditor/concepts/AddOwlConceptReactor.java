@@ -75,11 +75,11 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 
 		// now add the description (checks done in method)
 		String description = this.keyValue.get(this.keysToGet[6]);
-		owler.addConceptDescription(physicalUri, description);
+		owler.addDescription(physicalUri, description);
 		// add the logical names (additional checks done in method)
 		List<String> logicalNames = getLogicalNames();
 		if(!logicalNames.isEmpty()) {
-			owler.addConceptLogicalNames(physicalUri, logicalNames.toArray(new String[]{}));
+			owler.addLogicalNames(physicalUri, logicalNames.toArray(new String[]{}));
 		}
 		
 		try {
