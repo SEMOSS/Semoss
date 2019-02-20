@@ -103,7 +103,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 	 */
 	private List<String> getLogicalNames() {
 		Vector<String> logicalNames = new Vector<String>();
-		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[2]);
+		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[7]);
 		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			for (int i = 0; i < instanceGrs.size(); i++) {
 				String name = (String) instanceGrs.get(i);
