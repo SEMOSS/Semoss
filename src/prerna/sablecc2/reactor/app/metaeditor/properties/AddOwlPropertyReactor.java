@@ -6,6 +6,7 @@ import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -19,7 +20,8 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 	public AddOwlPropertyReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
 				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), 
-				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), CONCEPTUAL_NAME
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey(), CONCEPTUAL_NAME,
+				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()
 			};
 	}
 	
@@ -89,8 +91,17 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 		if(engine.getEngineType() == ENGINE_TYPE.RDBMS || engine.getEngineType() == ENGINE_TYPE.IMPALA) {
 			colName = Utility.getClassName(conceptPhysicalUri);
 		}
-		owler.addProp(tableName, colName, column, dataType, additionalDataType);
+		String physicalUri = owler.addProp(tableName, colName, column, dataType, additionalDataType);
 
+		// now add the description (checks done in method)
+		String description = this.keyValue.get(this.keysToGet[6]);
+		owler.addPropDescription(physicalUri, description);
+		// add the logical names (additional checks done in method)
+		List<String> logicalNames = getLogicalNames();
+		if(!logicalNames.isEmpty()) {
+			owler.addPropLogicalNames(physicalUri, logicalNames.toArray(new String[]{}));
+		}
+		
 		try {
 			owler.export();
 		} catch (IOException e) {
@@ -104,5 +115,23 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(new NounMetadata("Successfully added new property", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
+	}
+	
+	/**
+	 * Get the logical names
+	 * @return
+	 */
+	private List<String> getLogicalNames() {
+		Vector<String> logicalNames = new Vector<String>();
+		GenRowStruct instanceGrs = this.store.getNoun(keysToGet[7]);
+		if (instanceGrs != null && !instanceGrs.isEmpty()) {
+			for (int i = 0; i < instanceGrs.size(); i++) {
+				String name = (String) instanceGrs.get(i);
+				if (name.length() > 0) {
+					logicalNames.add(name);
+				}
+			}
+		}
+		return logicalNames;
 	}
 }
