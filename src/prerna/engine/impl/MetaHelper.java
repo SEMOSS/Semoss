@@ -588,7 +588,7 @@ public class MetaHelper implements IExplorable {
 	}
 	
 	@Override
-	public String getDescriptions(String physicalURI) {
+	public String getDescription(String physicalURI) {
 		String query = "SELECT DISTINCT ?description WHERE { "
 				+ "BIND(<" + physicalURI + "> AS ?uri) "
 				+ "{?uri <" + RDFS.COMMENT.toString() + "> ?description } "
