@@ -922,7 +922,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	@Override
-	public Set<String> getDescriptions(String physicalURI) {
+	public String getDescriptions(String physicalURI) {
 		return this.owlHelper.getDescriptions(physicalURI);
 	}
 	

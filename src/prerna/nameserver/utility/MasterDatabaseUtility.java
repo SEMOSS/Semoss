@@ -81,7 +81,8 @@ public class MasterDatabaseUtility {
 		colNames = new String[] {Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
 		types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types));
-		
+		executeSql(conn, "CREATE INDEX IF NOT EXISTS CONCEPTMETADATA_KEY_INDEX ON CONCEPTMETADATA (KEY);");
+
 		// x-ray config
 		colNames = new String[]{"filename", "config" };
 		types = new String[]{"varchar(800)", "varchar(20000)" };
@@ -1596,6 +1597,62 @@ public class MasterDatabaseUtility {
 		}
 		
 		return engineLogicalNames;
+	}
+	
+	public static Map<String, String> getEngineDescriptions(String engineId) {
+		// select ec2.physicalname as parentPhysical, ec.localconceptid, ec.physicalname as physicalname, c.conceptualname as conceptualname, cmd.value as description, ec.pk as isPrim from engineconcept ec inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid inner join concept c on ec.localconceptid=c.localconceptid inner join conceptmetadata cmd on ec.localconceptid=cmd.localconceptid where ec.engine='89850ba1-bafe-45a5-84ef-df8e21669267' order by isprim desc;
+		
+		Map<String, String> engineDescriptions = new HashMap<String, String>();
+		Map<String, String> parentPhysicalToConceptual = new HashMap<String, String>();
+
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection masterConn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			String query = "select ec2.physicalname as parentPhysical, "
+					+ "ec.physicalname as physicalname, "
+					+ "c.conceptualname as conceptualname, "
+					+ "cmd.value as description, "
+					+ "ec.pk as isPrim "
+					+ "from engineconcept ec "
+					+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
+					+ "inner join concept c on ec.localconceptid=c.localconceptid "
+					+ "inner join conceptmetadata cmd on ec.localconceptid=cmd.localconceptid "
+					+ "where ec.engine='"+ engineId + "' order by isprim desc;";
+			
+			stmt = masterConn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				String parentPhysical = rs.getString(1);
+				String physicalName = rs.getString(1);
+				String conceptualName = rs.getString(3);
+				String description = rs.getString(4);
+				boolean isPk = rs.getBoolean(5);
+
+				String uniqueName = conceptualName;
+				
+				if(isPk) {
+					// store so we can use it to create the proper unique name
+					// for the properties
+					parentPhysicalToConceptual.put(physicalName, conceptualName);
+				} else {
+					// since we order by isPrim
+					// we already have the 
+					// parent physical to conceptual mapping
+					uniqueName = parentPhysicalToConceptual.get(parentPhysical) + "__" + conceptualName;
+				}
+				
+				engineDescriptions.put(uniqueName, description);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return engineDescriptions;
 	}
 	
 	/**

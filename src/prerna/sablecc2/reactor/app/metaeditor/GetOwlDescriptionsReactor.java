@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
-import java.util.Set;
+import java.util.List;
+import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.GenRowStruct;
@@ -33,9 +34,10 @@ public class GetOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(prop, concept);
 		}
 		
-		Set<String> descriptions = engine.getDescriptions(physicalUri);
-		
-		NounMetadata noun = new NounMetadata(descriptions, PixelDataType.CONST_STRING, PixelOperationType.ENTITY_DESCRIPTIONS);
+		String description = engine.getDescriptions(physicalUri);
+		List<String> desList = new Vector<String>();
+		desList.add(description);
+		NounMetadata noun = new NounMetadata(desList, PixelDataType.CONST_STRING, PixelOperationType.ENTITY_DESCRIPTIONS);
 		return noun;
 	}
 
