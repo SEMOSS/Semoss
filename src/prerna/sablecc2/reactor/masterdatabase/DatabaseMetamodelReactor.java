@@ -41,7 +41,10 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 		
 		boolean includeDataTypes = options.contains("datatype");
 		Map<String, Object> metamodelObject = MasterDatabaseUtility.getMetamodelRDBMS(engineId, includeDataTypes);
-		
+		// add logical names
+		if(options.contains("logicalnames")) {
+			metamodelObject.put("logicalNames", MasterDatabaseUtility.getEngineLogicalNames(engineId));
+		}
 		
 		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);
 	}
