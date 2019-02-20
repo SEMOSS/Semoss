@@ -39,7 +39,7 @@ public class DatabaseMetamodelReactor extends AbstractReactor {
 			}
 		}
 		
-		boolean includeDataTypes = options.contains("dataType");
+		boolean includeDataTypes = options.contains("dataTypes");
 		Map<String, Object> metamodelObject = MasterDatabaseUtility.getMetamodelRDBMS(engineId, includeDataTypes);
 		// add logical names
 		if(options.contains("logicalnames")) {
