@@ -2679,7 +2679,7 @@ public class Translation extends DepthFirstAdapter {
 		// get the engine
 		String engineName = node.getEngineName().toString().trim();
 		// get the metamodel for the engine
-		runner.setReturnData(MasterDatabaseUtility.getMetamodelRDBMS(engineName));
+		runner.setReturnData(MasterDatabaseUtility.getMetamodelRDBMS(engineName, true));
 		runner.setStatus(PKQLRunner.STATUS.SUCCESS);
 	}
 
