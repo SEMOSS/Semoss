@@ -216,7 +216,7 @@ public class AddToMasterDB {
 				}
 			}
 			// add the description
-			String desc = helper.getDescriptions(conceptPhysicalUri);
+			String desc = helper.getDescription(conceptPhysicalUri);
 			if(desc != null && !desc.trim().isEmpty()) {
 				colNames = new String[]{"LocalConceptID", "Key", "Value"};
 				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};

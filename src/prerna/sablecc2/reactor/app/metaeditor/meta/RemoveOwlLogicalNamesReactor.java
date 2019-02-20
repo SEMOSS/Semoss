@@ -29,18 +29,16 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		String prop = getProperty();
 		String[] logicalNames = getLogicalNames();
 		
-		OWLER owler = getOWLER(appId);
-		// set all the existing values into the OWLER
-		// so that its state is updated
 		IEngine engine = Utility.getEngine(appId);
-		setOwlerValues(engine, owler);
+		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
-			String physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
-			owler.deleteConceptLogicalNames(concept, Utility.getClassName(physicalUri), logicalNames);
+			physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
 		} else {
-			owler.deletePropLogicalNames(concept, prop, logicalNames);
+			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(concept, prop);
 		}
-		owler.commit();
+		
+		OWLER owler = new OWLER(engine);
+		owler.deleteLogicalNames(physicalUri, logicalNames);
 		
 		try {
 			owler.export();

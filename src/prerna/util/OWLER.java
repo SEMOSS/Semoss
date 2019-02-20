@@ -1,6 +1,7 @@
 package prerna.util;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -68,6 +69,17 @@ public class OWLER {
 
 		engine.addToBaseEngine(baseSubject, predicate, RDFS.CLASS.stringValue());
 		engine.addToBaseEngine(baseRelation, predicate, RDF.PROPERTY.stringValue());
+	}
+	
+	/**
+	 * Constructor for the class when we are adding to an existing OWL file
+	 * @param existingEngine		The engine we are adding to
+	 * @param fileName				The location of the OWL file
+	 */
+	public OWLER(IEngine existingEngine) {
+		this.owlPath = existingEngine.getOWL();
+		this.type = existingEngine.getEngineType();
+		engine = new BaseDatabaseCreator(existingEngine, owlPath);
 	}
 	
 	/**
@@ -667,22 +679,11 @@ public class OWLER {
 	/////////////////// ADD LOGICAL NAMES AND DESCRIPTIONS INTO THE OWL /////////////////////////////////
 
 	/**
-	 * This assumes the table/column already exists
-	 * @param table
-	 * @param column
+	 * Add logical names to a physical uri
+	 * @param physicalUri
 	 * @param logicalNames
 	 */
-	public void addConceptLogicalNames(String table, String column, String...logicalNames) {
-		String conceptUri = addConcept(table, column, null);
-		
-		if(logicalNames != null) {
-			for(String lName : logicalNames) {
-				this.engine.addToBaseEngine(new Object[]{conceptUri, OWL.sameAs.toString(), lName, false});
-			}
-		}
-	}
-	
-	public void addConceptLogicalNames(String physicalUri, String...logicalNames) {
+	public void addLogicalNames(String physicalUri, String... logicalNames) {
 		if(logicalNames != null) {
 			for(String lName : logicalNames) {
 				if(lName != null && !lName.isEmpty()) {
@@ -692,97 +693,67 @@ public class OWLER {
 		}
 	}
 	
-	public void deleteConceptLogicalNames(String table, String column, String... logicalNames) {
-		String conceptUri = addConcept(table, column, null);
-		
-		if(logicalNames != null) {
-			for(String lName : logicalNames) {
-				this.engine.removeFromBaseEngine(new Object[]{conceptUri, OWL.sameAs.toString(), lName, false});
-			}
-		}
-	}
-	
-	public void addPropLogicalNames(String table, String column, String...logicalNames) {
-		String propUri = addProp(table, column, null);
-		
-		if(logicalNames != null) {
-			for(String lName : logicalNames) {
-				this.engine.addToBaseEngine(new Object[]{propUri, OWL.sameAs.toString(), lName, false});
-			}
-		}
-	}
-	
-	public void addPropLogicalNames(String physicalUri, String...logicalNames) {
+	public void addLogicalNames(String physicalUri, Collection<String> logicalNames) {
 		if(logicalNames != null) {
 			for(String lName : logicalNames) {
 				if(lName != null && !lName.isEmpty()) {
 					this.engine.addToBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
 				}
-			}
-		}
-	}
-	
-	public void deletePropLogicalNames(String table, String column, String... logicalNames) {
-		String propUri = addProp(table, column, null);
-		
-		if(logicalNames != null) {
-			for(String lName : logicalNames) {
-				this.engine.removeFromBaseEngine(new Object[]{propUri, OWL.sameAs.toString(), lName, false});
 			}
 		}
 	}
 	
 	/**
-	 * This assumes the table/column already exists
-	 * @param table
-	 * @param column
+	 * Remove logical names from a physical uri
+	 * @param physicalUri
 	 * @param logicalNames
 	 */
-	public void addConceptDescription(String table, String column, String description) {
-		String physicalUri = addConcept(table, column, null);
-		
+	public void deleteLogicalNames(String physicalUri, String... logicalNames) {
+		if(logicalNames != null) {
+			for(String lName : logicalNames) {
+				if(lName != null && !lName.isEmpty()) {
+					this.engine.removeFromBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Remove logical names from a physical uri
+	 * @param physicalUri
+	 * @param logicalNames
+	 */
+	public void deleteLogicalNames(String physicalUri, Collection<String> logicalNames) {
+		if(logicalNames != null) {
+			for(String lName : logicalNames) {
+				if(lName != null && !lName.isEmpty()) {
+					this.engine.removeFromBaseEngine(new Object[]{physicalUri, OWL.sameAs.toString(), lName, false});
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Add descriptions to a physical uri
+	 * @param physicalUri
+	 * @param description
+	 */
+	public void addDescription(String physicalUri, String description) {
 		if(description != null && !description.trim().isEmpty()) {
 			description = description.replaceAll("[^\\p{ASCII}]", "");
 			this.engine.addToBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
 		}
 	}
 	
-	public void addConceptDescription(String physicalUri, String description) {
+	/**
+	 * Remove descriptions to a physical uri
+	 * @param physicalUri
+	 * @param description
+	 */
+	public void deleteDescription(String physicalUri, String description) {
 		if(description != null && !description.trim().isEmpty()) {
 			description = description.replaceAll("[^\\p{ASCII}]", "");
-			this.engine.addToBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
-		}
-	}
-	
-	public void deleteConceptDescription(String table, String column, String description) {
-		String conceptUri = addConcept(table, column, null);
-		
-		if(description != null && !description.trim().isEmpty()) {
-			this.engine.removeFromBaseEngine(new Object[]{conceptUri, RDFS.COMMENT.toString(), description, false});
-		}
-	}
-	
-	public void addPropDescription(String table, String column, String description) {
-		String propUri = addProp(table, column, null);
-		
-		if(description != null && !description.trim().isEmpty()) {
-			description = description.replaceAll("[^\\p{ASCII}]", "");
-			this.engine.addToBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), description, false});
-		}
-	}
-	
-	public void addPropDescription(String physicalUri, String description) {
-		if(description != null && !description.trim().isEmpty()) {
-			description = description.replaceAll("[^\\p{ASCII}]", "");
-			this.engine.addToBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
-		}
-	}
-	
-	public void deletePropDescription(String table, String column, String description) {
-		String propUri = addProp(table, column, null);
-		
-		if(description != null && !description.trim().isEmpty()) {
-			this.engine.removeFromBaseEngine(new Object[]{propUri, RDFS.COMMENT.toString(), description, false});
+			this.engine.removeFromBaseEngine(new Object[]{physicalUri, RDFS.COMMENT.toString(), description, false});
 		}
 	}
 	

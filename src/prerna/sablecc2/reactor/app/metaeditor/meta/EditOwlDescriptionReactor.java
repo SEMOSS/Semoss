@@ -11,9 +11,9 @@ import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 
-public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
+public class EditOwlDescriptionReactor extends AbstractMetaEditorReactor {
 
-	public AddOwlDescriptionReactor() {
+	public EditOwlDescriptionReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DESCRIPTION.getKey()};
 	}
 	
@@ -36,9 +36,12 @@ public class AddOwlDescriptionReactor extends AbstractMetaEditorReactor {
 			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(concept, prop);
 		}
 		
+		// get the existing value if present
+		String existingDescription = engine.getDescription(physicalUri);
+		
 		OWLER owler = new OWLER(engine);
+		owler.deleteDescription(physicalUri, existingDescription);
 		owler.addDescription(physicalUri, description);
-
 		try {
 			owler.export();
 		} catch (IOException e) {
