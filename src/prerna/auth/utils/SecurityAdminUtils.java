@@ -196,6 +196,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
+	 * 
+	 * @param appId
+	 * @return
+	 */
+	public List<Map<String, Object>> getAppInsights(String appId) {
+		String query = "SELECT INSIGHTID AS \"app_insight_id\", "
+				+ "INSIGHTNAME as \"name\", "
+				+ "GLOBAL as \"insight_global\", "
+				+ "EXECUTIONCOUNT as \"exec_count\", "
+				+ "CREATEDON  as \"created_on\", "
+				+ "LASTMODIFIEDON as \"last_modified_on\", "
+				+ "CACHEABLE as \"cacheable\" "
+				+ "FROM INSIGHT "
+				+ "WHERE ENGINEID='" + appId + "'"
+				;
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
 	 * Retrieve the list of users for a given insight
 	 * @param appId
 	 * @param insightId

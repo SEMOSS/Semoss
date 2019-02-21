@@ -47,8 +47,6 @@ public class DeleteInsightReactor extends AbstractReactor {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		int size = grs.size();
 		for (int i = 0; i < size; i++) {
-			// id is passed in from solr id where it is defined as engine_id
-			// so I need to split it
 			String insightId = grs.get(i).toString();
 			if(AbstractSecurityUtils.securityEnabled()) {
 				if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, insightId)) {
