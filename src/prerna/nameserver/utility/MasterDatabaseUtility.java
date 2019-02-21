@@ -1586,7 +1586,7 @@ public class MasterDatabaseUtility {
 		ResultSet rs = null;
 
 		try {
-			String query = "select ec2.physicalname as parentPhysical, "
+			String query = "select distinct ec2.physicalname as parentPhysical, "
 					+ "ec.physicalname as physicalname, "
 					+ "c.conceptualname as conceptualname, "
 					+ "cmd.value as logicalname, "
@@ -1651,7 +1651,7 @@ public class MasterDatabaseUtility {
 		ResultSet rs = null;
 
 		try {
-			String query = "select ec2.physicalname as parentPhysical, "
+			String query = "select distinct ec2.physicalname as parentPhysical, "
 					+ "ec.physicalname as physicalname, "
 					+ "c.conceptualname as conceptualname, "
 					+ "cmd.value as description, "
