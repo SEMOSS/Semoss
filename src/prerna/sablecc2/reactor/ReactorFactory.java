@@ -216,7 +216,6 @@ import prerna.sablecc2.reactor.insights.save.UpdateInsightReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaDescriptionReactor;
-import prerna.sablecc2.reactor.masterdatabase.AddMetaLinkReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
@@ -229,7 +228,6 @@ import prerna.sablecc2.reactor.masterdatabase.DatabaseTableStructureReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaDescriptionReactor;
-import prerna.sablecc2.reactor.masterdatabase.GetMetaLinkReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaTagReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToLogicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
@@ -720,9 +718,6 @@ public class ReactorFactory {
 		reactorHash.put("AddMetaTags", AddMetaTagReactor.class);
 		reactorHash.put("GetMetaTags", GetMetaTagReactor.class);
 		reactorHash.put("DeleteMetaTags", DeleteMetaTagsReactor.class);
-		// concept link metadata
-		reactorHash.put("AddMetaLinks", AddMetaLinkReactor.class);
-		reactorHash.put("GetMetaLinks", GetMetaLinkReactor.class);
 
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);

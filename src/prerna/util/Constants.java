@@ -555,10 +555,9 @@ public class Constants {
 	// Concept Metadata Table
 	public static final String CONCEPT_METADATA_TABLE = "CONCEPTMETADATA";
 	public static final String KEY = "KEY";	
-	public static final String LOCAL_CONCEPT_ID = "LOCALCONCEPTID";
+	public static final String PHYSICAL_NAME_ID = "PHYSICALNAMEID";
 	public static final String DESCRIPTION = "description";
 	public static final String TAG = "tag";
-	public static final String LINK = "link";
 	
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";
