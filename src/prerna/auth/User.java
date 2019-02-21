@@ -10,14 +10,12 @@ import java.util.Vector;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.om.AbstractValueObject;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 
 public class User extends AbstractValueObject {
 	
 	// name of this user in the SEMOSS system if there is one
 	
 	// need to have an access token store
-	private transient AbstractRJavaTranslator rJavaTranslator;
 	private RConnection rConn; 
 	
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
@@ -89,13 +87,6 @@ public class User extends AbstractValueObject {
 		return !this.loggedInProfiles.isEmpty();
 	}
 
-	public AbstractRJavaTranslator getrJavaTranslator() {
-		return rJavaTranslator;
-	}
-
-	public void setrJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
-		this.rJavaTranslator = rJavaTranslator;
-	}
 	public RConnection getRConn() {
 		return rConn;
 	}
