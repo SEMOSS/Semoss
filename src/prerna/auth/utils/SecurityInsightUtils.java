@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.AccessPermission;
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
@@ -51,7 +50,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return null;
 	}
 	
-	private static Integer getUserInsightPermission(String singleUserId, String engineId, String insightId) {
+	static Integer getUserInsightPermission(String singleUserId, String engineId, String insightId) {
 		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
 				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + singleUserId + "'";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
