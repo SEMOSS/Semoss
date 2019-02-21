@@ -237,7 +237,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	public void setInsight(Insight insight) {
 		this.insight = insight;
 		this.env = "a" + Utility.makeAlphaNumeric(insight.getInsightId());
-		initREnv();
 	}
 
 	/**

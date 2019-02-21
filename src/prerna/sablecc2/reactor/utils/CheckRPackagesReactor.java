@@ -35,8 +35,6 @@ public class CheckRPackagesReactor extends AbstractReactor {
 			}
 		} catch(Exception e){
 			logger.info(e.getMessage());
-			logger.info(e.getMessage());
-			logger.info(e.getMessage());
 			returnMap.put("RInstalled", false);
 			returnMap.put("R", new String[0]);
 		}
