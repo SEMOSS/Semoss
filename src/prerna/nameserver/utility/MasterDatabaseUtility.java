@@ -78,7 +78,8 @@ public class MasterDatabaseUtility {
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("kvstore", colNames, types));
 
 		// concept metadata
-		colNames = new String[] {Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
+		updateMetadataTable(engine);
+		colNames = new String[] {Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE };
 		types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 		executeSql(conn, "CREATE INDEX IF NOT EXISTS CONCEPTMETADATA_KEY_INDEX ON CONCEPTMETADATA (KEY);");
@@ -87,6 +88,44 @@ public class MasterDatabaseUtility {
 		colNames = new String[]{"filename", "config" };
 		types = new String[]{"varchar(800)", "varchar(20000)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("xrayconfigs", colNames, types));
+	}
+	
+	@Deprecated
+	private static void updateMetadataTable(RDBMSNativeEngine engine) {
+		boolean tableExists = false;
+		ResultSet rs = null;
+		try {
+			rs = engine.getConnectionMetadata().getTables(null, null, "CONCEPTMETADATA", null);
+			if (rs.next()) {
+				tableExists = true;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if(rs != null) {
+					rs.close();
+				}
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if(tableExists) {
+			// first let us drop the tables we do not require
+			try {
+				engine.removeData("ALTER TABLE CONCEPTMETADATA DROP COLUMN IF EXISTS LOCALCONCEPTID;");
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			// let us add the new column with default value of true
+			try {
+				engine.insertData("ALTER TABLE CONCEPTMETADATA ADD COLUMN IF NOT EXISTS PHYSICALNAMEID VARCHAR(800);");
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			engine.commit();
+		}
 	}
 	
 	private static void executeSql(Connection conn, String sql) throws SQLException {
@@ -1550,12 +1589,13 @@ public class MasterDatabaseUtility {
 			String query = "select ec2.physicalname as parentPhysical, "
 					+ "ec.physicalname as physicalname, "
 					+ "c.conceptualname as conceptualname, "
-					+ "c.logicalname as logicalname, "
+					+ "cmd.value as logicalname, "
 					+ "ec.pk as isPrim "
 					+ "from engineconcept ec "
 					+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
 					+ "inner join concept c on ec.localconceptid=c.localconceptid "
-					+ "where ec.engine='"+ engineId + "' order by isprim desc;";
+					+ "inner join conceptmetadata cmd on ec.physicalnameid=cmd.physicalnameid "
+					+ "where ec.engine='"+ engineId + "' and cmd.key='logical' order by isprim desc;";
 			
 			stmt = masterConn.createStatement();
 			rs = stmt.executeQuery(query);
@@ -1565,7 +1605,7 @@ public class MasterDatabaseUtility {
 				String conceptualName = rs.getString(3);
 				String logicalName = rs.getString(4);
 				boolean isPk = rs.getBoolean(5);
-
+				
 				String uniqueName = conceptualName;
 				
 				if(isPk) {
@@ -1619,8 +1659,8 @@ public class MasterDatabaseUtility {
 					+ "from engineconcept ec "
 					+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
 					+ "inner join concept c on ec.localconceptid=c.localconceptid "
-					+ "inner join conceptmetadata cmd on ec.localconceptid=cmd.localconceptid "
-					+ "where ec.engine='"+ engineId + "' order by isprim desc;";
+					+ "inner join conceptmetadata cmd on ec.physicalnameid=cmd.physicalnameid "
+					+ "where ec.engine='"+ engineId + "' and cmd.key='description' order by isprim desc;";
 			
 			stmt = masterConn.createStatement();
 			rs = stmt.executeQuery(query);
@@ -1791,6 +1831,35 @@ public class MasterDatabaseUtility {
 		return localConceptID;
 	}
 	
+	public static String getPhysicalConceptId(String engineId, String conceptualName) {
+		// SELECT engineconcept.physicalnameid FROM engineconcept INNER JOIN concept ON concept.localconceptid=engineconcept.localconceptid WHERE engineconcept.engine='' AND concept.conceptualname='Title'
+		String physicalNameId = null;
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT engineconcept.physicalnameid "
+					+ "FROM engineconcept "
+					+ "INNER JOIN concept ON concept.localconceptid=engineconcept.localconceptid "
+					+ "WHERE engineconcept.engine='" + engineId + "' "
+					+ "AND concept.conceptualname='" + conceptualName + "';";
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				physicalNameId = rs.getString(1);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		if (physicalNameId == null) {
+			throw new IllegalArgumentException("Unable to get physical name id for " + engineId + " " + conceptualName);
+		}
+		return physicalNameId;
+	}
+	
 	/**
 	 * Get concept metadata value for a key
 	 * 
@@ -1834,7 +1903,7 @@ public class MasterDatabaseUtility {
 		int count = 0;
 		try {
 			String deleteQuery = "DELETE FROM " + Constants.CONCEPT_METADATA_TABLE + " WHERE "
-					+ Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' and " + Constants.KEY + " = \'" + key
+					+ Constants.PHYSICAL_NAME_ID + " = \'" + localConceptID + "\' and " + Constants.KEY + " = \'" + key
 					+ "\';";
 			stmt = conn.createStatement();
 			count = stmt.executeUpdate(deleteQuery);
@@ -1852,14 +1921,14 @@ public class MasterDatabaseUtility {
 
 	public static boolean deleteMetaValue(String engineName, String concept, String key, String value) {
 		boolean deleted = false;
-		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName, concept);
+		String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineName, concept);
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		Statement stmt = null;
 		int count = 0;
 		try {
 			String deleteQuery = "DELETE FROM " + Constants.CONCEPT_METADATA_TABLE + " WHERE "
-					+ Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' and " + Constants.KEY + " = \'" + key
+					+ Constants.PHYSICAL_NAME_ID + " = \'" + localConceptID + "\' and " + Constants.KEY + " = \'" + key
 					+ "\' and " + Constants.VALUE + " = \'" + value + "\';";
 			stmt = conn.createStatement();
 			count = stmt.executeUpdate(deleteQuery);

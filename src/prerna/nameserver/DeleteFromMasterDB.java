@@ -46,13 +46,25 @@ public class DeleteFromMasterDB {
 		try {
 			RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			Connection conn = engine.makeConnection();
-
+			Statement stmt = null;
+			
+			String metaDelete = "delete from conceptmetadata where physicalnameid in (select physicalnameid from engineconcept where engine ='" + engineName +"')";
 			String relationDelete = "delete from enginerelation where engine ='" + engineName +"'";
 			String conceptDelete = "delete from engineconcept where engine ='" + engineName +"'";
 			String engineDelete = "delete from engine where id ='" + engineName +"'";
 			String kvDelete = "delete from kvstore where k like '%" + engineName + "%PHYSICAL'";
 
-			Statement stmt = null;
+			// delete metadata
+			try {
+				stmt = conn.createStatement();
+				stmt.execute(metaDelete.toString());
+			} catch(Exception e) {
+				// ignore
+			} finally {
+				if(stmt != null) {
+					stmt.close();
+				}
+			}
 			
 			// delete relation
 			try {
