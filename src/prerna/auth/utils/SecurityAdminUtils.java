@@ -10,8 +10,11 @@ import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.InsightAdministrator;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Utility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
@@ -214,6 +217,27 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		return flushRsToMap(wrapper);
+	}
+	
+	/**
+	 * 
+	 * @param appId
+	 * @param insightIds
+	 * @throws Exception 
+	 */
+	public void deleteAppInsights(String appId, List<String> insightIds) throws Exception {
+		IEngine engine = Utility.getEngine(appId);
+		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+	
+		// delete from insights database
+		admin.dropInsight(insightIds);
+
+		// delete from the security database
+		String insightFilters = createFilter(insightIds);
+		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilters + " AND ENGINEID='" + appId + "';";
+		query += "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID " + insightFilters + " AND ENGINEID='" + appId + "'";
+		securityDb.insertData(query);
+		securityDb.commit();
 	}
 	
 	/**
