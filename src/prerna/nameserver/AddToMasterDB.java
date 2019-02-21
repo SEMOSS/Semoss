@@ -193,7 +193,8 @@ public class AddToMasterDB {
 		// so grab the conceptual name
 		String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
 		String conceptualName = Utility.getInstanceName(conceptConceptualUri);
-		
+		// grab the logical names
+		Set<String> logicals = helper.getLogicalNames(conceptPhysicalUri);
 		// and check if it is already there or not
 		String conceptGuid = null;
 		if(this.conceptIdHash.containsKey(conceptualName + "_CONCEPTUAL")) {
@@ -203,7 +204,6 @@ public class AddToMasterDB {
 			
 			Set<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualName);
 			// add new logicals
-			Set<String> logicals = helper.getLogicalNames(conceptPhysicalUri);
 			if(!logicals.isEmpty()) {
 				colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
 				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
@@ -214,18 +214,6 @@ public class AddToMasterDB {
 						insertQuery("Concept", colNames, types, insertValues);
 					}
 				}
-			}
-			// add the description
-			String desc = helper.getDescription(conceptPhysicalUri);
-			if(desc != null && !desc.trim().isEmpty()) {
-				colNames = new String[]{"LocalConceptID", "Key", "Value"};
-				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-				desc = desc.trim();
-				if(desc.length() > 20_000) {
-					desc = desc.substring(0, 19_996) + "...";
-				}
-				insertValues = new String[]{conceptGuid, "description", desc};
-				insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
 			}
 		} else {
 			// we need to create a new one
@@ -242,7 +230,6 @@ public class AddToMasterDB {
 			insertQuery("Concept", colNames, types, insertValues);
 			
 			// also add all the logical names
-			Set<String> logicals = helper.getLogicalNames(conceptPhysicalUri);
 			for(String logical : logicals) {
 				insertValues = new String[]{conceptGuid, conceptualName, logical, "NewDomain", ""};
 				insertQuery("Concept", colNames, types, insertValues);
@@ -271,6 +258,31 @@ public class AddToMasterDB {
 		
 		// store it in the hash, we will need this for the engine relationships
 		this.conceptIdHash.put(engineName + "_" + conceptPhysicalInstance + "_PHYSICAL", engineConceptGuid);
+		
+		{
+			// add the logical to the physical name id
+			if(!logicals.isEmpty()) {
+				colNames = new String[]{"PhysicalNameID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+			
+				for(String logical : logicals) {
+					insertValues = new String[]{engineConceptGuid, "logical", logical};
+					insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+				}
+			}
+			// add the description to the physical name id
+			String desc = helper.getDescription(conceptPhysicalUri);
+			if(desc != null && !desc.trim().isEmpty()) {
+				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
+				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+				desc = desc.trim();
+				if(desc.length() > 20_000) {
+					desc = desc.substring(0, 19_996) + "...";
+				}
+				insertValues = new String[]{engineConceptGuid, "description", desc};
+				insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+			}
+		}
 		
 		// now we need to add the properties for this concept + engine
 		List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
@@ -307,7 +319,9 @@ public class AddToMasterDB {
 		String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(propertyPhysicalUri);
 		// property conceptual uris are always /Column/Table
 		String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
-		
+		// grab the logical names 
+		Set<String> logicals = helper.getLogicalNames(propertyPhysicalUri);
+
 		// and check if it is already there or not
 		String propertyGuid = null;
 		if(this.conceptIdHash.containsKey(propertyConceptualName)) {
@@ -317,7 +331,6 @@ public class AddToMasterDB {
 			
 			Set<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(propertyConceptualName);
 			// add new logicals
-			Set<String> logicals = helper.getLogicalNames(propertyPhysicalUri);
 			if(!logicals.isEmpty()) {
 				colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
 				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
@@ -344,7 +357,6 @@ public class AddToMasterDB {
 			insertQuery("Concept", colNames, types, insertValues);
 			
 			// also add all the logical names
-			Set<String> logicals = helper.getLogicalNames(propertyPhysicalUri);
 			for(String logical : logicals) {
 				insertValues = new String[]{propertyGuid, propertyConceptualName, logical, "NewDomain", ""};
 				insertQuery("Concept", colNames, types, insertValues);
@@ -378,6 +390,31 @@ public class AddToMasterDB {
 		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)","varchar(800)"};
 		String [] conceptInstanceData = {engineId, propertyPhysicalInstance, parentEngineConceptGuid, enginePropertyGuid, propertyGuid, "FALSE", "TRUE", dataTypes[0], dataTypes[1], adtlDataType};
 		insertQuery("EngineConcept", colNames, types, conceptInstanceData);
+		
+		{
+			// add the logical to the physical name id
+			if(!logicals.isEmpty()) {
+				colNames = new String[]{"PhysicalNameID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+			
+				for(String logical : logicals) {
+					insertValues = new String[]{enginePropertyGuid, "logical", logical};
+					insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+				}
+			}
+			// add the description to the physical name id
+			String desc = helper.getDescription(propertyPhysicalUri);
+			if(desc != null && !desc.trim().isEmpty()) {
+				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
+				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+				desc = desc.trim();
+				if(desc.length() > 20_000) {
+					desc = desc.substring(0, 19_996) + "...";
+				}
+				insertValues = new String[]{enginePropertyGuid, "description", desc};
+				insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+			}
+		}
 	}
 	
 	/**
@@ -617,10 +654,10 @@ public class AddToMasterDB {
 	public boolean addMetadata(String engineId, String concept, String key, String value) {
 		boolean valid = false;
 		String tableName = Constants.CONCEPT_METADATA_TABLE;
-		String[] colNames = new String[] { Constants.LOCAL_CONCEPT_ID, Constants.KEY, Constants.VALUE };
+		String[] colNames = new String[] { Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE };
 		String[] types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 
-		String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineId, concept);
+		String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineId, concept);
 		try {
 			IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 			getConnection(localMaster);
@@ -635,7 +672,7 @@ public class AddToMasterDB {
 			} // update
 			else {
 				String update = "UPDATE " + Constants.CONCEPT_METADATA_TABLE + " SET " + Constants.VALUE + " = \'"
-						+ value + "\' WHERE " + Constants.LOCAL_CONCEPT_ID + " = \'" + localConceptID + "\' and "
+						+ value + "\' WHERE " + Constants.PHYSICAL_NAME_ID + " = \'" + localConceptID + "\' and "
 						+ Constants.KEY + " = \'" + key + "\'";
 				int validInsert = conn.createStatement().executeUpdate(update + ";");
 				if (validInsert > 0) {
