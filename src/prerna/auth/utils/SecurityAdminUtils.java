@@ -1,10 +1,12 @@
 package prerna.auth.utils;
 
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -182,5 +184,136 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		securityDb.commit();
 		return true;
 	}
+	
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
 
+	/*
+	 * METHODS FOR INSIGHT AUTHORIZATION THAT ARE AT THE ADMIN LEVEL
+	 */
+	
+	/**
+	 * Retrieve the list of users for a given insight
+	 * @param appId
+	 * @param insightId
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public List<Map<String, Object>> getInsightUsers(String appId, String insightId) throws IllegalAccessException {
+		String query = "SELECT USER.ID AS \"id\", "
+				+ "USER.NAME AS \"name\", "
+				+ "PERMISSION.NAME AS \"permission\" "
+				+ "FROM USER "
+				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
+				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID) "
+				+ "WHERE USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
+				+ " AND USERINSIGHTPERMISSION.INSIGHTID='" + insightId + "'"
+				;
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
+	 * 
+	 * @param newUserId
+	 * @param engineId
+	 * @param insightId
+	 * @param permission
+	 * @return
+	 */
+	public void addInsightUser(String newUserId, String engineId, String insightId, String permission) {
+		// make sure user doesn't already exist for this insight
+		if(SecurityInsightUtils.getUserInsightPermission(newUserId, engineId, insightId) != null) {
+			// that means there is already a value
+			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
+		}
+		
+		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) VALUES('"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "', "
+				+ AccessPermission.getIdByPermission(permission) + ");";
+
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+		}
+	}
+	
+	/**
+	 * 
+	 * @param existingUserId
+	 * @param engineId
+	 * @param insightId
+	 * @param newPermission
+	 * @return
+	 */
+	public void editInsightUserPermission(String existingUserId, String engineId, String insightId, String newPermission) {
+		// make sure we are trying to edit a permission that exists
+		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, engineId, insightId);
+		if(existingUserPermission == null) {
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
+		}
+		
+		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		
+		String query = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=" + newPermissionLvl
+				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "' "
+				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+		}
+	}
+	
+	/**
+	 * 
+	 * @param editedUserId
+	 * @param engineId
+	 * @param insightId
+	 * @return
+	 */
+	public void removeInsightUser(String existingUserId, String engineId, String insightId) {
+		// make sure we are trying to edit a permission that exists
+		Integer existingUserPermission = SecurityInsightUtils.getUserInsightPermission(existingUserId, engineId, insightId);
+		if(existingUserPermission == null) {
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the insight");
+		}
+		
+		String query = "DELETE FROM USERINSIGHTPERMISSION WHERE "
+				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "' "
+				+ "AND INSIGHTID='" + RdbmsQueryBuilder.escapeForSQLStatement(insightId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+		}
+	}
+	
+	/**
+	 * 	
+	 * @param appId
+	 * @param insightId
+	 * @param isPublic
+	 */
+	public void setInsightGlobalWithinApp(String appId, String insightId, boolean isPublic) {
+		String query = "UPDATE INSIGHT SET GLOBAL=" + isPublic + " WHERE ENGINEID ='" + appId + "' AND INSIGHTID='" + insightId + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured setting this insight global");
+		}
+	}
 }
