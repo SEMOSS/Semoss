@@ -262,9 +262,8 @@ public class AddToMasterDB {
 		{
 			// add the logical to the physical name id
 			if(!logicals.isEmpty()) {
-				colNames = new String[]{"PhysicalNameID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-			
+				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
+				types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 				for(String logical : logicals) {
 					insertValues = new String[]{engineConceptGuid, "logical", logical};
 					insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
@@ -274,7 +273,7 @@ public class AddToMasterDB {
 			String desc = helper.getDescription(conceptPhysicalUri);
 			if(desc != null && !desc.trim().isEmpty()) {
 				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
-				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+				types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 				desc = desc.trim();
 				if(desc.length() > 20_000) {
 					desc = desc.substring(0, 19_996) + "...";
@@ -394,9 +393,8 @@ public class AddToMasterDB {
 		{
 			// add the logical to the physical name id
 			if(!logicals.isEmpty()) {
-				colNames = new String[]{"PhysicalNameID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
-				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-			
+				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
+				types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };			
 				for(String logical : logicals) {
 					insertValues = new String[]{enginePropertyGuid, "logical", logical};
 					insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
@@ -406,7 +404,7 @@ public class AddToMasterDB {
 			String desc = helper.getDescription(propertyPhysicalUri);
 			if(desc != null && !desc.trim().isEmpty()) {
 				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
-				types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+				types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 				desc = desc.trim();
 				if(desc.length() > 20_000) {
 					desc = desc.substring(0, 19_996) + "...";
