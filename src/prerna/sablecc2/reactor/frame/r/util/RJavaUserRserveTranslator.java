@@ -4,30 +4,98 @@ import java.util.List;
 import java.util.Map;
 
 import org.rosuda.REngine.Rserve.RConnection;
+import org.rosuda.REngine.Rserve.RserveException;
+
+import prerna.engine.impl.r.RUserRserve;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
-
+	
+	RConnection rcon;
+	
 	@Override
 	public void initREnv() {
-		// TODO Auto-generated method stub
-		
+		try {
+			rcon.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + "<- new.env();}");
+		} catch (RserveException e) {
+			throw new IllegalArgumentException("Failed to establish R environment.");
+		}
 	}
 
 	@Override
 	public void startR() {
-		// TODO Auto-generated method stub
+		if (this.insight != null && this.insight.getUser() != null) {
+			logger.info("User found for R");
+			if (this.insight.getUser().getRConn() != null) {
+				logger.info("R connection found for user");
+				rcon = this.insight.getUser().getRConn();
+			} else {
+				logger.info("Establishing R connection for user");
+				establishNewRConnection();
+				this.insight.getUser().setRConn(rcon);
+			}
+		} else {
+			logger.warn("User not found for R");
+			establishNewRConnection();
+		}
+	}
+	
+	private void establishNewRConnection() {
+		try {
+			rcon = RUserRserve.createConnection();
+			
+			// load all the libraries
+			// split stack shape
+			rcon.eval("library(splitstackshape);");
+			logger.info("Loaded packages splitstackshape");
+			
+			// data table
+			rcon.eval("library(data.table);");
+			logger.info("Loaded packages data.table");
+			
+			// reshape2
+			rcon.eval("library(reshape2);");
+			logger.info("Loaded packages reshape2");
+			
+			// stringr
+			rcon.eval("library(stringr)");
+			logger.info("Loaded packages stringr");
+			
+			// lubridate
+			rcon.eval("library(lubridate);");
+			logger.info("Loaded packages lubridate");
+			
+			// dplyr
+			rcon.eval("library(dplyr);");
+			logger.info("Loaded packages dplyr");
+			
+			// initialize the r environment
+			initREnv();
+			setMemoryLimit();
+		} catch (Exception e) {
+			throw new IllegalArgumentException("ERROR ::: Could not find connection.\nPlease make sure Rserve is running and the following libraries are installed:\n"
+							+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr", e);
+		}
 	}
 
 	@Override
 	public Object executeR(String rScript) {
-		// TODO Auto-generated method stub
+		try {
+			logger.info("Running R: " + rScript);
+			return rcon.eval(rScript);
+		} catch (Exception e) {
+			logger.warn(e);
+		}
 		return null;
 	}
 
 	@Override
 	public void executeEmptyR(String rScript) {
-		// TODO Auto-generated method stub
-		
+		try {
+			logger.info("Running R: " + rScript);
+			rcon.voidEval(rScript);
+		} catch (Exception e) {
+			logger.warn(e);
+		}
 	}
 
 	@Override
