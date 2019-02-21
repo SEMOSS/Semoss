@@ -204,7 +204,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getAppInsights(String appId) {
-		String query = "SELECT INSIGHTID AS \"app_insight_id\", "
+		String query = "SELECT ENGINEID AS \"app_id\", "
+				+ "INSIGHTID AS \"app_insight_id\", "
 				+ "INSIGHTNAME as \"name\", "
 				+ "GLOBAL as \"insight_global\", "
 				+ "EXECUTIONCOUNT as \"exec_count\", "
