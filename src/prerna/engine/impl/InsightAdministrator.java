@@ -1,6 +1,8 @@
 package prerna.engine.impl;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -167,6 +169,18 @@ public class InsightAdministrator {
 	}
 	
 	/**
+	 * Drop specific insights from the insight
+	 * @param insightIDs
+	 * @throws Exception 
+	 */
+	public void dropInsight(Collection<String> insightIDs) throws Exception {		
+		String idsString = createString(insightIDs);
+		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
+		LOGGER.info("Running drop query :::: " + deleteQuery);
+		insightEngine.removeData(deleteQuery);
+	}
+	
+	/**
 	 * Genereate the sql portion that uses a set of insight ids
 	 * @param ids
 	 * @return
@@ -179,6 +193,19 @@ public class InsightAdministrator {
 		idsString = idsString.substring(0, idsString.length() - 2) + ")";
 		
 		return idsString;
+	}
+	
+	private String createString(Collection<String> ids) {
+		StringBuilder b = new StringBuilder("(");
+		Iterator<String> iterator = ids.iterator();
+		if(iterator.hasNext()) {
+			b.append("'").append(iterator.next()).append("'");
+		}
+		while(iterator.hasNext()) {
+			b.append(", '").append(iterator.next()).append("'");
+		}
+		b.append(")");
+		return b.toString();
 	}
 	
 	public static String getArraySqlSyntax(String[] pixelRecipeToSave) {
