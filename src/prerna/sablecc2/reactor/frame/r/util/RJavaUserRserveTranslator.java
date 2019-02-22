@@ -1,9 +1,21 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
@@ -12,6 +24,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.impl.r.RUserRserve;
+import prerna.util.ArrayUtilityMethods;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	
@@ -103,12 +116,31 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		}
 	}
 
+	private synchronized boolean heartBeat(){
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		Future<Boolean> future = executor.submit(new Callable<Boolean>() {
+		    @Override
+		    public Boolean call() throws Exception {
+		        return isHealthy();
+		    }
+		});
+
+		boolean isHealthy = false;
+		try {
+			isHealthy = future.get(3L, TimeUnit.SECONDS);
+		} catch (TimeoutException | InterruptedException | ExecutionException e) {
+			executor.shutdownNow();
+		    isHealthy = false;
+		}
+
+		return isHealthy;
+	}
 	private boolean isHealthy() {
 		boolean isHealthy = false; // Healthy skepticism
 		try {
 			Object heartBeat = rcon.eval("1+2");
 			if (heartBeat instanceof org.rosuda.REngine.REXP) {
-				if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3.0) {
+				if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
 					logger.info("R health check passed");
 					isHealthy = true;
 				}
@@ -136,7 +168,12 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	public Object executeR(String rScript) {
 		try {
 			logger.info("Running R: " + rScript);
+			if(heartBeat()){
 			return rcon.eval(rScript);
+			} 
+			else{
+				throw new RserveException(rcon, rScript);
+			}
 		} catch (RserveException e) {
 			String message = handleRException(e);
 			throw new IllegalArgumentException(message);
@@ -147,7 +184,12 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	public void executeEmptyR(String rScript) {
 		try {
 			logger.info("Running R: " + rScript);
-			rcon.voidEval(rScript);
+			if(heartBeat()){
+			 rcon.voidEval(rScript);
+			} 
+			else{
+				throw new RserveException(rcon, rScript);
+			}
 		} catch (RserveException e) {
 			String message = handleRException(e);
 			throw new IllegalArgumentException(message);
@@ -155,57 +197,113 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	}
 
 	@Override
-	public String getString(String script) {
-		// TODO Auto-generated method stub
-		return null;
+	public String getString(String rScript) {
+		try {
+			logger.info("Running R: " + rScript);
+			return rcon.eval(rScript).asString();
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	@Override
-	public String[] getStringArray(String script) {
-		// TODO Auto-generated method stub
-		return null;
+	public String[] getStringArray(String rScript) {
+		try {
+			logger.info("Running R: " + rScript);
+			return rcon.eval(rScript).asStrings();
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	@Override
-	public int getInt(String script) {
-		// TODO Auto-generated method stub
-		return 0;
+	public int getInt(String rScript) {
+		int number = 0;
+		try {
+			logger.info("Running R: " + rScript);
+			number = rcon.eval(rScript).asInteger();
+			return number;
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	@Override
 	public int[] getIntArray(String rScript) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			logger.info("Running R: " + rScript);
+			return rcon.eval(rScript).asIntegers();
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	@Override
 	public double getDouble(String rScript) {
-		// TODO Auto-generated method stub
-		return 0;
+		double number = 0;
+		try {
+			logger.info("Running R: " + rScript);
+			number = rcon.eval(rScript).asDouble();
+			return number;
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	@Override
 	public double[] getDoubleArray(String rScript) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			logger.info("Running R: " + rScript);
+			return rcon.eval(rScript).asDoubles();
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	@Override
 	public double[][] getDoubleMatrix(String rScript) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			logger.info("Running R: " + rScript);
+			return rcon.eval(rScript).asDoubleMatrix();
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	@Override
 	public boolean getBoolean(String rScript) {
-		// TODO Auto-generated method stub
+		// 1 = TRUE, 0 = FALSE
+
+		try {
+			logger.info("Running R: " + rScript);
+			REXP val = rcon.eval(rScript);
+			if(val != null) {
+				return (val.asInteger() == 1);
+			}
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 		return false;
+
 	}
 
 	@Override
 	public Object getFactor(String rScript) {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			logger.info("Running R: " + rScript);
+			return rcon.eval(rScript).asFactor();
+		} catch(RserveException | REXPMismatchException e){
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	@Override
@@ -234,14 +332,114 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
-		// TODO Auto-generated method stub
+		try {
+			double[] breaks;
+			Map<String, Object> histJ = (Map<String, Object>) (rcon.eval(script).asNativeJavaObject());
+			if (histJ.get("breaks") instanceof int[]){
+				int[] breaksInt = (int[]) histJ.get("breaks");
+				breaks = Arrays.stream(breaksInt).asDoubleStream().toArray();
+			} else { 
+			breaks = (double[]) histJ.get("breaks");
+			}
+			int[] counts = (int[]) histJ.get("counts");
+			
+			Map<String, Object> retMap = new HashMap<String, Object>();
+			retMap.put("breaks", breaks);
+			retMap.put("counts", counts);
+			return retMap;
+		} catch (RserveException e) {
+			e.printStackTrace();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
 		return null;
 	}
 
 	@Override
 	public Map<String, Object> flushFrameAsTable(String framename, String[] colNames) {
-		// TODO Auto-generated method stub
-		return null;
+List<Object[]> dataMatrix = new ArrayList<Object[]>();
+		
+		int numCols = colNames.length;
+		for (int i = 0; i < numCols; i++) {
+			String script = framename + "$" + colNames[i];
+			REXP val = (REXP) executeR(script);
+
+			if (val.isNumeric()) {
+				// for a double array
+				try {
+					double[] rows = val.asDoubles();
+					int numRows = rows.length;
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, numRows, numCols);
+					}
+					for (int j = 0; j < numRows; j++) {
+						dataMatrix.get(j)[i] = rows[j];
+					}
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+				//in case values cannot be doubles
+				try {
+					int[] rows = val.asIntegers();
+					int numRows = rows.length;
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, numRows, numCols);
+					}
+					for (int j = 0; j < numRows; j++) {
+						dataMatrix.get(j)[i] = rows[j];
+					}
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+				//in case values cannot be put into an array
+				//for an integer
+				try {
+					int row = val.asInteger();
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, 1, numCols);
+					}
+					dataMatrix.get(0)[i] = row;
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+
+			} else {
+				// for a string array
+				try {
+					String[] rows = val.asStrings();
+					int numRows = rows.length;
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, numRows, numCols);
+					}
+					for (int j = 0; j < numRows; j++) {
+						dataMatrix.get(j)[i] = rows[j];
+					}
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+				//for a string
+				try {
+					String row = val.asString();
+					if (dataMatrix.isEmpty()) {
+						initEmptyMatrix(dataMatrix, 1, numCols);
+					}
+					dataMatrix.get(0)[i] = row;
+					continue;
+				} catch (REXPMismatchException rme) {
+					rme.printStackTrace();
+				}
+			}
+		}
+		
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		retMap.put("headers", colNames);
+		retMap.put("data", dataMatrix);
+		
+		return retMap;
 	}
 
 	@Override
@@ -252,9 +450,186 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 
 	@Override
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
-		// TODO Auto-generated method stub
-		return null;
+		REXP rs = (REXP) executeR(rScript);
+		Object result = null;
+		try {
+			result = rs.asNativeJavaObject();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		if(result instanceof Map) {
+			return processMapReturn((Map<String, Object>) result, headerOrdering);
+		} else if(result instanceof List) {
+			String[] returnNames = null;
+			try {
+				Object namesAttr = rs.getAttribute("names").asNativeJavaObject();
+				if(namesAttr instanceof String[]) {
+					returnNames = (String[]) namesAttr;
+				} else {
+					// assume it is single string
+					returnNames = new String[]{namesAttr.toString()};
+				}
+			} catch (REXPMismatchException e) {
+				e.printStackTrace();
+			}
+			return processListReturn((List) result, headerOrdering, returnNames);
+		} else {
+			throw new IllegalArgumentException("Unknown data type returned from R");
+		}
 	}
+	
+	private List<Object[]> processMapReturn(Map<String, Object> result,  String[] headerOrdering) {
+		List<Object[]> retArr = new Vector<Object[]>(500);
+		int numColumns = headerOrdering.length;
+		for(int idx = 0; idx < numColumns; idx++) {
+			Object val = result.get(headerOrdering[idx]);
+
+			if(val instanceof Object[]) {
+				Object[] data = (Object[]) val;
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[idx] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[idx] = data[i];
+					}
+				}
+			} else if(val instanceof double[]) {
+				double[] data = (double[]) val;
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[idx] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[idx] = data[i];
+					}
+				}
+			} else if(val instanceof int[]) {
+				int[] data = (int[]) val;
+				if(retArr.size() == 0) {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = new Object[numColumns];
+						values[idx] = data[i];
+						retArr.add(values);
+					}
+				} else {
+					for(int i = 0; i < data.length; i++) {
+						Object[] values = retArr.get(i);
+						values[idx] = data[i];
+					}
+				}
+			} else if (val instanceof String) {
+				String data = (String) val;
+				if (retArr.size() == 0) {
+					Object[] values = new Object[numColumns];
+					values[idx] = data;
+					retArr.add(values);
+				} else {
+					Object[] values = retArr.get(0);
+					values[idx] = data;
+				}
+			} else if (val instanceof Double) {
+				Double data = (Double) val;
+				if (retArr.size() == 0) {
+					Object [] values = new Object[numColumns];
+					values[idx] = data;
+					retArr.add(values);
+				} else {
+					Object[] values = retArr.get(0);
+					values [idx] = data;
+				}	
+			} else if (val instanceof Integer){
+				Integer data = (Integer) val;
+				if (retArr.size() == 0) {
+					Object [] values = new Object [numColumns];
+					values[idx] = data;
+					retArr.add(values);
+				} else {
+					Object [] values = retArr.get(0);
+					values [idx] = data;
+				}
+			} else {
+				logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
+			}
+		}
+		return retArr;
+	}
+	
+	private List<Object[]> processListReturn(List<Object[]> result, String[] headerOrdering, String[] returnNames) {
+		List<Object[]> retArr = new Vector<Object[]>(500);
+
+		// match the returns based on index
+		int numHeaders = headerOrdering.length;
+		int[] headerIndex = new int[numHeaders];
+		for(int i = 0; i < numHeaders; i++) {
+			headerIndex[i] = ArrayUtilityMethods.arrayContainsValueAtIndex(returnNames, headerOrdering[i]);
+		}
+		
+		for(int i = 0; i < numHeaders; i++) {
+			// grab the right column index
+			int columnIndex = headerIndex[i];
+			// each column comes back as an array
+			// need to first initize my return matrix
+			Object col = result.get(columnIndex);
+			if(col instanceof Object[]) {
+				Object[] columnResults = (Object[]) col;
+				int numResults = columnResults.length;
+				if(retArr.size() == 0) {
+					for(int j = 0; j < numResults; j++) {
+						Object[] values = new Object[numHeaders];
+						values[i] = columnResults[j];
+						retArr.add(values);
+					}
+				} else {
+					for(int j = 0; j < numResults; j++) {
+						Object[] values = retArr.get(j);
+						values[i] = columnResults[j];
+					}
+				}
+			} else if(col instanceof double[]) {
+				double[] columnResults = (double[]) col;
+				int numResults = columnResults.length;
+				if(retArr.size() == 0) {
+					for(int j = 0; j < numResults; j++) {
+						Object[] values = new Object[numHeaders];
+						values[i] = columnResults[j];
+						retArr.add(values);
+					}
+				} else {
+					for(int j = 0; j < numResults; j++) {
+						Object[] values = retArr.get(j);
+						values[i] = columnResults[j];
+					}
+				}
+			} else if(col instanceof int[]) {
+				int[] columnResults = (int[]) col;
+				int numResults = columnResults.length;
+				if(retArr.size() == 0) {
+					for(int j = 0; j < numResults; j++) {
+						Object[] values = new Object[numHeaders];
+						values[i] = columnResults[j];
+						retArr.add(values);
+					}
+				} else {
+					for(int j = 0; j < numResults; j++) {
+						Object[] values = retArr.get(j);
+						values[i] = columnResults[j];
+					}
+				}
+			}
+		}
+		
+		return retArr;
+	}
+	
 	
 
 }
