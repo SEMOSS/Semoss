@@ -1,11 +1,16 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.engine.impl.r.RUserRserve;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
@@ -23,20 +28,35 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 
 	@Override
 	public void startR() {
-		if (this.insight != null && this.insight.getUser() != null) {
-			logger.info("User found for R");
-			if (this.insight.getUser().getRConn() != null) {
-				logger.info("R connection found for user");
-				rcon = this.insight.getUser().getRConn();
-			} else {
-				logger.info("Establishing R connection for user");
-				establishNewRConnection();
-				this.insight.getUser().setRConn(rcon);
-			}
+		if (rConnIsDefined()) {
+			logger.info("Using existing R connection for user " + getUserInfo());
+			rcon = this.insight.getUser().getRConn();
 		} else {
-			logger.warn("User not found for R");
+			logger.info("Establishing new R connection for user " + getUserInfo());
 			establishNewRConnection();
 		}
+	}
+	
+	private String getUserInfo() {
+		if (userIsDefined()) {
+			List<String> userNames = new ArrayList<>();
+			User user = this.insight.getUser();
+			for (AuthProvider provider : user.getLogins()) {
+				AccessToken token = user.getAccessToken(provider);
+				userNames.add(token.getName());
+			}
+			return String.join(";", userNames);
+		} else {
+			return "anonymous";
+		}
+	}
+	
+	private boolean userIsDefined() {
+		return this.insight != null && this.insight.getUser() != null;
+	}
+	
+	private boolean rConnIsDefined() {
+		return userIsDefined() && this.insight.getUser().getRConn() != null;
 	}
 	
 	private void establishNewRConnection() {
@@ -65,27 +85,62 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 			logger.info("Loaded packages lubridate");
 			
 			// dplyr
-			rcon.eval("library(dplyr);");
-			logger.info("Loaded packages dplyr");
+			// TODO >>>timb: RUSER - uncomment this
+			// rcon.eval("library(dplyr);");
+			// logger.info("Loaded packages dplyr");
 			
 			// initialize the r environment
 			initREnv();
 			setMemoryLimit();
+			
+			// Set the R connection on the user object
+			if (userIsDefined()) {
+				this.insight.getUser().setRConn(rcon);
+			}
 		} catch (Exception e) {
 			throw new IllegalArgumentException("ERROR ::: Could not find connection.\nPlease make sure Rserve is running and the following libraries are installed:\n"
 							+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr", e);
 		}
 	}
 
+	private boolean isHealthy() {
+		boolean isHealthy = false; // Healthy skepticism
+		try {
+			Object heartBeat = rcon.eval("1+2");
+			if (heartBeat instanceof org.rosuda.REngine.REXP) {
+				if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3.0) {
+					logger.info("R health check passed");
+					isHealthy = true;
+				}
+			}
+		} catch (RserveException | REXPMismatchException e) {
+			logger.warn("R health check failed", e);
+		}
+		return isHealthy;
+	}
+	
+	private String handleRException(Exception e) {
+		String message;
+		if (isHealthy()) {
+			logger.warn("Script failed but R is healthy", e);
+			message = "R is working properly, but an error occurred running the script.";
+		} else {
+			logger.info("R health check failed; attempting to establish a new R connection", e);
+			establishNewRConnection();
+			message = "R was not working properly but has succesfully recovered; however, your data in R has been lost.";
+		}
+		return message;
+	}
+	
 	@Override
 	public Object executeR(String rScript) {
 		try {
 			logger.info("Running R: " + rScript);
 			return rcon.eval(rScript);
-		} catch (Exception e) {
-			logger.warn(e);
+		} catch (RserveException e) {
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
 		}
-		return null;
 	}
 
 	@Override
@@ -93,8 +148,9 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		try {
 			logger.info("Running R: " + rScript);
 			rcon.voidEval(rScript);
-		} catch (Exception e) {
-			logger.warn(e);
+		} catch (RserveException e) {
+			String message = handleRException(e);
+			throw new IllegalArgumentException(message);
 		}
 	}
 
