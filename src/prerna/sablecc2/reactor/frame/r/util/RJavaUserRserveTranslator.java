@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import java.time.Duration;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -116,12 +116,12 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		}
 	}
 
-	private synchronized boolean heartBeat(){
+	private synchronized boolean isHealthy(){
 		ExecutorService executor = Executors.newSingleThreadExecutor();
 		Future<Boolean> future = executor.submit(new Callable<Boolean>() {
 		    @Override
 		    public Boolean call() throws Exception {
-		        return isHealthy();
+		        return heartBeat();
 		    }
 		});
 
@@ -135,201 +135,169 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 
 		return isHealthy;
 	}
-	private boolean isHealthy() {
-		boolean isHealthy = false; // Healthy skepticism
+	private boolean heartBeat() {
+		boolean beating = false; // Healthy skepticism
 		try {
 			Object heartBeat = rcon.eval("1+2");
 			if (heartBeat instanceof org.rosuda.REngine.REXP) {
 				if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
 					logger.info("R health check passed");
-					isHealthy = true;
+					beating = true;
 				}
 			}
 		} catch (RserveException | REXPMismatchException e) {
 			logger.warn("R health check failed", e);
 		}
-		return isHealthy;
+		return beating;
 	}
-	
-	private String handleRException(Exception e) {
-		String message;
-		if (isHealthy()) {
-			logger.warn("Script failed but R is healthy", e);
-			message = "R is working properly, but an error occurred running the script.";
-		} else {
-			logger.info("R health check failed; attempting to establish a new R connection", e);
-			establishNewRConnection();
-			message = "R was not working properly but has succesfully recovered; however, your data in R has been lost.";
-		}
-		return message;
-	}
-	
+		
 	@Override
 	public Object executeR(String rScript) {
-		try {
-			logger.info("Running R: " + rScript);
-			if(heartBeat()){
-			return rcon.eval(rScript);
-			} 
-			else{
-				throw new RserveException(rcon, rScript);
+		return rconEval(rScript);
+	}
+	
+	public REXP rconEval(String rScript) {
+		if (isHealthy()){
+			try {
+				logger.info("Running R: " + rScript);
+				return rcon.eval(rScript);
+			} catch (RserveException e) {
+				throw new IllegalArgumentException("Failed to run R script.", e);
 			}
-		} catch (RserveException e) {
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+		} else {
+			establishNewRConnection();
+			throw new IllegalArgumentException("R was not working properly but has succesfully recovered; however, your data in R has been lost.");
 		}
 	}
-
+	
 	@Override
 	public void executeEmptyR(String rScript) {
-		try {
-			logger.info("Running R: " + rScript);
-			if(heartBeat()){
-			 rcon.voidEval(rScript);
-			} 
-			else{
-				throw new RserveException(rcon, rScript);
+		if (isHealthy()){
+			try {
+				logger.info("Running R: " + rScript);
+				rcon.voidEval(rScript);
+			} catch (RserveException e) {
+				throw new IllegalArgumentException("Failed to run R script.", e);
 			}
-		} catch (RserveException e) {
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+		} else {
+			establishNewRConnection();
+			throw new IllegalArgumentException("R was not working properly but has succesfully recovered; however, your data in R has been lost.");
 		}
 	}
-
+	
 	@Override
 	public String getString(String rScript) {
 		try {
-			logger.info("Running R: " + rScript);
-			return rcon.eval(rScript).asString();
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asString();
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to a string.");
 		}
 	}
 
 	@Override
 	public String[] getStringArray(String rScript) {
 		try {
-			logger.info("Running R: " + rScript);
-			return rcon.eval(rScript).asStrings();
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asStrings();
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to a string array.");
 		}
 	}
 
 	@Override
 	public int getInt(String rScript) {
-		int number = 0;
 		try {
-			logger.info("Running R: " + rScript);
-			number = rcon.eval(rScript).asInteger();
-			return number;
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asInteger();
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to an integer.");
 		}
 	}
 
 	@Override
 	public int[] getIntArray(String rScript) {
 		try {
-			logger.info("Running R: " + rScript);
-			return rcon.eval(rScript).asIntegers();
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asIntegers();
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to an integer array.");
 		}
 	}
 
 	@Override
 	public double getDouble(String rScript) {
-		double number = 0;
 		try {
-			logger.info("Running R: " + rScript);
-			number = rcon.eval(rScript).asDouble();
-			return number;
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asDouble();
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to a double.");
 		}
 	}
 
 	@Override
 	public double[] getDoubleArray(String rScript) {
 		try {
-			logger.info("Running R: " + rScript);
-			return rcon.eval(rScript).asDoubles();
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asDoubles();
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to a double array.");
 		}
 	}
 
 	@Override
 	public double[][] getDoubleMatrix(String rScript) {
 		try {
-			logger.info("Running R: " + rScript);
-			return rcon.eval(rScript).asDoubleMatrix();
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asDoubleMatrix();
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to a double matrix.");
 		}
 	}
 
 	@Override
 	public boolean getBoolean(String rScript) {
-		// 1 = TRUE, 0 = FALSE
-
 		try {
-			logger.info("Running R: " + rScript);
-			REXP val = rcon.eval(rScript);
-			if(val != null) {
-				return (val.asInteger() == 1);
-			}
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asInteger() == 1;
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to a inter.");
 		}
-		return false;
-
 	}
 
 	@Override
 	public Object getFactor(String rScript) {
 		try {
-			logger.info("Running R: " + rScript);
-			return rcon.eval(rScript).asFactor();
-		} catch(RserveException | REXPMismatchException e){
-			String message = handleRException(e);
-			throw new IllegalArgumentException(message);
+			return rconEval(rScript).asFactor();
+		} catch (REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to a factor.");
 		}
 	}
 
 	@Override
 	public void setConnection(RConnection connection) {
-		// TODO Auto-generated method stub
-		
+		rcon = connection;
+		if (userIsDefined()) {
+			this.insight.getUser().setRConn(rcon);
+		}
 	}
 
 	@Override
 	public void setPort(String port) {
-		// TODO Auto-generated method stub
-		
+		// This is not necessary as port is hard coded to 6311
 	}
 
 	@Override
 	public void endR() {
-		// TODO Auto-generated method stub
-		
+		try {
+			RUserRserve.stopRServe();
+		} catch (IOException e) {
+			logger.warn("Unable to shut down R.", e);
+		}
 	}
 
 	@Override
 	public void stopRProcess() {
-		// TODO Auto-generated method stub
-		
+		try {
+			rcon.detach();
+		} catch (RserveException e) {
+			logger.warn("Unable to stop R process.", e);
+		}
 	}
 
+	// TODO >>>timb: RUSER - review these	
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
 		try {
@@ -444,8 +412,35 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 
 	@Override
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
-		// TODO Auto-generated method stub
-		return null;
+		REXP rs = (REXP) executeR(rScript);
+		Object[] retArray = null;
+		Object result = null;
+		try {
+			result = rs.asNativeJavaObject();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		if(result instanceof Map) {
+			retArray =  processMapReturn((Map<String, Object>) result, headerOrdering).get(0);
+		} else if(result instanceof List) {
+			String[] returnNames = null;
+			try {
+				Object namesAttr = rs.getAttribute("names").asNativeJavaObject();
+				if(namesAttr instanceof String[]) {
+					returnNames = (String[]) namesAttr;
+				} else {
+					// assume it is single string
+					returnNames = new String[]{namesAttr.toString()};
+				}
+			} catch (REXPMismatchException e) {
+				e.printStackTrace();
+			}
+			retArray = (Object[]) processListReturn((List) result, headerOrdering, returnNames).get(0);
+		} else {
+			throw new IllegalArgumentException("Unknown data type returned from R");
+		}
+		
+		return retArray;
 	}
 
 	@Override
