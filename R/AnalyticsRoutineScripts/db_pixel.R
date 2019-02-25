@@ -297,10 +297,15 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],">="))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
+				parsed_value<-parse_aggr(cur_db,req_tbls,value)
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
-					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					if(length(parsed_value) == 3){
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
+					}else{
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					}
 				}
 			}else if(length(unlist(strsplit(where_part[i],"<=")))==2){
 				# handle <=
@@ -308,10 +313,15 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],"<="))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
+				parsed_value<-parse_aggr(cur_db,req_tbls,value)
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
-					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					if(length(parsed_value) == 3){
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
+					}else{
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					}
 				}
 			}else if(length(unlist(strsplit(where_part[i],">")))==2){
 				# handle >
@@ -319,10 +329,15 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],">"))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
+				parsed_value<-parse_aggr(cur_db,req_tbls,value)
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
-					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					if(length(parsed_value) == 3){
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
+					}else{
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					}
 				}
 			}else if(length(unlist(strsplit(where_part[i],"<")))==2){
 				# handle <
@@ -330,10 +345,15 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],"<"))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
+				parsed_value<-parse_aggr(cur_db,req_tbls,value)
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
-					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					if(length(parsed_value) == 3){
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
+					}else{
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					}
 				}
 			}else if(length(unlist(strsplit(where_part[i],"=")))==2){
 				# handle =
@@ -341,16 +361,40 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				x<-unlist(strsplit(where_part[i],"="))
 				clmn<-trim(x[1])
 				value<-trim(x[2])
+				parsed_value<-parse_aggr(cur_db,req_tbls,value)
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
-					pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
+					if(length(parsed_value) == 3){
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
+					}else{
+						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],"","","")))
+					}
 				}
 			}
 		}
 	}
 	gc()
 	return(pixel_where)
+}
+
+parse_aggr<-function(cur_db,req_tbls,item){
+	parsed_value<-vector()
+	pos1<-unlist(gregexpr(pattern="[(]",item))
+	if(pos1>0){
+		pos2<-unlist(gregexpr(pattern="[)]",item))
+		aggr<-trim(substr(item,1,pos1-1))
+		clmn<-trim(substr(item,pos1+1,pos2-1))
+		# Validate table
+		tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
+		if(length(tbls)>0){
+			tbl<-tbls[1]
+			parsed_value<-c(tbl,clmn,aggr)
+		}
+	}else{
+		parsed_value<-item
+	}
+	return(parsed_value)
 }
 
 build_pixel_from<-function(from_joins){
