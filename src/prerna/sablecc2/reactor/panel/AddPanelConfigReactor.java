@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.panel;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,13 @@ public class AddPanelConfigReactor extends AbstractInsightPanelReactor {
 			insightPanel.setPanelLabel(mapInput.get(LABEL).toString());
 		}
 		Map<String, Object> config = (Map<String, Object>) mapInput.get(CONFIG);
+		// default config if not passed in
+		if (config == null) {
+			config = new HashMap<String, Object>();
+		}
+		if (!config.containsKey("labelOverride")) {
+			config.put("labelOverride", false);
+		}  
 		// merge the map options
 		insightPanel.addConfig(config);
 		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_CONFIG);
