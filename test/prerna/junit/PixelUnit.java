@@ -196,6 +196,15 @@ public class PixelUnit {
 			DIHelper.getInstance().setCoreProp(coreProps);
 		}
 		
+		// Just in case, manually override R_CONNECTION_JRI to be true for testing purposes
+		// Warn if this was not the case to begin with
+		if (!Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI))) {
+			LOGGER.warn("R must be functional for local testing.");
+			Properties coreProps = DIHelper.getInstance().getCoreProp();
+			coreProps.setProperty(Constants.R_CONNECTION_JRI, "true");
+			DIHelper.getInstance().setCoreProp(coreProps);
+		}
+		
 		// Turn tracking off while testing
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.T_ON))) {
 			LOGGER.info("Setting tracking off during unit tests.");
