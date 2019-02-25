@@ -179,6 +179,10 @@ install.packages("randomForest", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 #install.packages("dplyr", dependencies=TRUE)
 
+# Numerical Similarity
+install.packages("nueralnet", dependencies=TRUE)
+#install.packages("data.table", dependencies=TRUE)
+
 # LSA Column
 #install.packages("LSAfun", dependencies=TRUE)
 #install.packages("text2vec", dependencies=TRUE)

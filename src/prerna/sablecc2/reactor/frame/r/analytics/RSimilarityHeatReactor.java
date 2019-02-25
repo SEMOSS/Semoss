@@ -16,7 +16,7 @@ import prerna.util.Utility;
 public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 
 	public RSimilarityHeatReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
 	}
 
 	@Override
@@ -30,14 +30,16 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		String frameName = frame.getName();
 		String instanceCol = this.keyValue.get(this.keysToGet[0]);
 		List<String> comparisonColumn = getComparisonColumns();
+		boolean override = overrideFrame();
 		
 		// create R syntax to get similarity heat value
 		StringBuilder rsb = new StringBuilder();
-		String tempFrame = Utility.getRandomString(8);
+		String tempFrame = "SimHeatFrame" + Utility.getRandomString(8);
 		List<String> temp = getComparisonColumns();
 		temp.add(instanceCol);
 		// make frame with only used columns
 		rsb.append(RSyntaxHelper.getFrameSubset(tempFrame, frameName, temp.toArray()));
+		rsb.append(tempFrame + "<-unique(" + tempFrame + ");");
 		String mergeBy = RSyntaxHelper.createStringRColVec(comparisonColumn.toArray());
 		// combine with self
 		rsb.append(tempFrame + " <- merge(" + tempFrame + "," + tempFrame + ", by=" + mergeBy + ", all.x = TRUE, all.y = FALSE, allow.cartesian = TRUE);");
@@ -49,18 +51,29 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, instanceCol + ".x", instanceCol + "_1"));
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, instanceCol + ".y", instanceCol + "_2"));
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, "freq", "Heat"));
-		rsb.append(RSyntaxHelper.asDataTable(frameName, tempFrame));
-		rsb.append("rm(" + tempFrame + ")");
+		rsb.append(RSyntaxHelper.asDataTable(tempFrame, tempFrame));
+		if (override) {
+			rsb.append(RSyntaxHelper.asDataTable(frameName, tempFrame));
+			rsb.append("rm(" + tempFrame + ")");
+			tempFrame = frameName;
+		}
 		this.rJavaTranslator.runR(rsb.toString());
-		recreateMetadata(frameName);
-
-		// now return this object
-		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-		noun.addAdditionalReturn(
+		// create new R DataTable from results
+		RDataTable returnTable = createFrameFromVariable(tempFrame);
+		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
+		retNoun.addAdditionalReturn(
 				new NounMetadata("You've successfully completed running similarity heat and generated a new frame", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
-		return noun;
+		// replace existing frame
+		if (override) {
+			this.insight.setDataMaker(returnTable);
+			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+					PixelOperationType.FRAME_HEADERS_CHANGE);
+		}
+
+		return retNoun;
 	}
+		
 	
 	private List<String> getComparisonColumns() {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
@@ -78,5 +91,14 @@ public class RSimilarityHeatReactor extends AbstractRFrameReactor {
 			}
 		}
 		return columns;
+	}
+	
+	private boolean overrideFrame() {
+		GenRowStruct overrideGrs = this.store.getNoun(ReactorKeysEnum.OVERRIDE.getKey());
+		if(overrideGrs != null && !overrideGrs.isEmpty()) {
+			return (boolean) overrideGrs.get(0);
+		}
+		// default is to override
+		return true;
 	}
 }
