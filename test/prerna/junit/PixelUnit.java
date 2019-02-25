@@ -235,25 +235,21 @@ public class PixelUnit {
 	
 	private static void unloadDatabases() {
 				
-		@SuppressWarnings("deprecation")
 		IEngine formBuilder = Utility.getEngine(AbstractFormBuilder.FORM_BUILDER_ENGINE_NAME);
 		if(formBuilder != null) {
 			formBuilder.closeDB();
 		}
 		
-		@SuppressWarnings("deprecation")
 		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		if(localMaster != null) {
 			localMaster.closeDB();
 		}
 		
-		@SuppressWarnings("deprecation")
 		IEngine security = Utility.getEngine(Constants.SECURITY_DB);
 		if(security != null) {
 			security.closeDB();
 		}
 		
-		@SuppressWarnings("deprecation")
 		IEngine themes = Utility.getEngine(Constants.THEMING_DB);
 		if(themes != null) {
 			themes.closeDB();
@@ -314,8 +310,7 @@ public class PixelUnit {
 			// First must catalog the db in order to call the getEngine
 			SMSSWebWatcher.catalogDB(alias + "__" + appId + ".smss", BASE_DB_DIRECTORY);
 			
-			@SuppressWarnings("deprecation")
-			IEngine engine = Utility.getEngine(appId);
+				IEngine engine = Utility.getEngine(appId);
 			
 			// If a full-fledged engine, then delete the entire app
 			if (engine != null) {
@@ -340,7 +335,6 @@ public class PixelUnit {
 		aliasToAppId.put(alias, appId);	
 		
 		// Save the original state of the database
-		@SuppressWarnings("deprecation")
 		IEngine engine = Utility.getEngine(appId);
 		if (isRelationalDatabase(engine)) {
 			exportDatabaseToXml(alias);
@@ -352,7 +346,6 @@ public class PixelUnit {
 		if (appId != null) {
 			
 			// If relational, delete the corresponding xml file
-			@SuppressWarnings("deprecation")
 			IEngine engine = Utility.getEngine(appId);
 			if (isRelationalDatabase(engine)) {
 				Path xmlFile = getXMLFileForAlias(alias);
@@ -503,11 +496,10 @@ public class PixelUnit {
 		for (Entry<String, String> entry : aliasToAppId.entrySet()) {
 			String alias = entry.getKey();
 			String appId = entry.getValue();
-			String pixel = "GetDatabaseMetamodel(database=[\"" + appId + "\"]);";
+			String pixel = "GetDatabaseMetamodel(database=[\"" + appId + "\"], options=[\"datatypes\"]);";
 			try {
 				String expectedJson = FileUtils.readFileToString(Paths.get(TEST_DATA_DIRECTORY, alias + METAMODEL_EXTENSION).toFile());
-				Object result = compareResult(pixel, expectedJson, false, new ArrayList<String>(), true);
-				assumeThat(result, is(equalTo(new HashMap<>())));
+				testPixel(pixel, expectedJson, false, new ArrayList<String>(), true, true, false, true);
 			} catch (IOException e) {
 				LOGGER.error("Error: ", e);
 				assumeNoException(e);
@@ -567,7 +559,6 @@ public class PixelUnit {
 	//////////////////////////////
 	
 	// https://www.marcphilipp.de/blog/2012/03/13/database-tests-with-dbunit-part-1/
-	@SuppressWarnings("deprecation")
 	private void cleanTestDatabases() {
 		for (String alias : cleanTestDatabases) {
 			String appId = aliasToAppId.get(alias);
@@ -634,6 +625,10 @@ public class PixelUnit {
 	}
 
 	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable) throws IOException {
+		testPixel(pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, false);
+	}
+	
+	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, boolean assume) throws IOException {
 		Object result = compareResult(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
 		assumeThat(result, is(not(equalTo(null))));
 		assumeThat(result, is(instanceOf(HashMap.class)));
@@ -645,7 +640,11 @@ public class PixelUnit {
 		if (ignoreAddedIterable) {
 			resultMap.remove("iterable_item_added");
 		}
-		assertThat(resultMap, is(equalTo(new HashMap<>())));
+		if (assume) {
+			assumeThat(resultMap, is(equalTo(new HashMap<>())));
+		} else {
+			assertThat(resultMap, is(equalTo(new HashMap<>())));
+		}
 	}
 	
 	// Compare result methods (overloaded)
