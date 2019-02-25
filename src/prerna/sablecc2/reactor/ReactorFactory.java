@@ -184,6 +184,7 @@ import prerna.sablecc2.reactor.frame.r.analytics.RGenerateDescriptionColumnReact
 import prerna.sablecc2.reactor.frame.r.analytics.RLOFAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RMatrixRegressionReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RNumericalCorrelationReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RNumericalSimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.ROutlierAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RRandomForestAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RRandomForestResultsReactor;
@@ -1025,22 +1026,24 @@ public class ReactorFactory {
 		rFrameHash.put("GetRuleTypes", prerna.sablecc2.reactor.frame.r.rules.GetRuleTypesReactor.class);
 		
 		// algorithms
-		rFrameHash.put("RunNumericalCorrelation", RNumericalCorrelationReactor.class);
-		rFrameHash.put("RunClustering", RClusteringAlgorithmReactor.class);
+		rFrameHash.put("RunAssociatedLearning", RAprioriReactor.class);
 		rFrameHash.put("RunClassification", RClassificationAlgorithmReactor.class);
+		rFrameHash.put("RunClustering", RClusteringAlgorithmReactor.class);
+		rFrameHash.put("RunDescriptionGenerator", RGenerateDescriptionColumnReactor.class);
+		rFrameHash.put("RunDocCosSimilarity", RDocumentCosineSimilarityReactor.class);
+		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
+		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
+		rFrameHash.put("RunNumericalCorrelation", RNumericalCorrelationReactor.class);
+		rFrameHash.put("RunNumericalSimilarity", RNumericalSimilarityAlgorithmReactor.class);
+		rFrameHash.put("RunOutlier", ROutlierAlgorithmReactor.class);
 		rFrameHash.put("RunRandomForest", RRandomForestAlgorithmReactor.class);
 		rFrameHash.put("GetRFResults", RRandomForestResultsReactor.class);
-		rFrameHash.put("RunAssociatedLearning", RAprioriReactor.class);
-		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
 		rFrameHash.put("RunSimilarity", RSimilarityAlgorithmReactor.class);
 		rFrameHash.put("RunSimilarityHeat", RSimilarityHeatReactor.class);
-		rFrameHash.put("RunOutlier", ROutlierAlgorithmReactor.class);
-		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
 		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.PredictSimilarColumnValuesReactor.class);
 		rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
 		rFrameHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
-		rFrameHash.put("RunDocCosSimilarity", RDocumentCosineSimilarityReactor.class);
-		rFrameHash.put("RunDescriptionGenerator", RGenerateDescriptionColumnReactor.class);
+
 		
 	}
 
