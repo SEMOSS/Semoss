@@ -29,6 +29,7 @@ import prerna.util.ArrayUtilityMethods;
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	
 	RConnection rcon;
+	private Object rMonitor = new Object();
 	
 	@Override
 	public void initREnv() {
@@ -160,7 +161,9 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		if (isHealthy()){
 			try {
 				logger.info("Running R: " + rScript);
-				return rcon.eval(rScript);
+				synchronized (rMonitor) {
+					return rcon.eval(rScript);
+				}
 			} catch (RserveException e) {
 				throw new IllegalArgumentException("Failed to run R script.", e);
 			}
@@ -175,7 +178,9 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		if (isHealthy()){
 			try {
 				logger.info("Running R: " + rScript);
-				rcon.voidEval(rScript);
+				synchronized (rMonitor) {
+					rcon.voidEval(rScript);
+				}
 			} catch (RserveException e) {
 				throw new IllegalArgumentException("Failed to run R script.", e);
 			}
