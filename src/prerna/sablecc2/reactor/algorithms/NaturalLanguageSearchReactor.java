@@ -79,8 +79,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String wd = "wd" + Utility.getRandomString(5);
 		sb.append(wd + "<- getwd();");
 		sb.append( ("setwd(\"" + baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts\");").replace("\\", "/") );
-		sb.append("source(\"nli_db.r\");");
-		sb.append("source(\"db_pixel.r\");");
+		sb.append("source(\"nli_db.R\");");
+		sb.append("source(\"db_pixel.R\");");
 		sb.append("library(udpipe);");
 		this.rJavaTranslator.runR(sb.toString());
 		logger.info(stepCounter + ". Done");
@@ -332,6 +332,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// and where value 2 is a column name
 				Object whereValue = row[5];
 				Object whereValue2 = row[6];
+				Object whereValueAgg = row[7];
 				
 				// if it is a table
 				// we do not know the correct primary key
@@ -345,9 +346,29 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				}
 				NounMetadata lhs = new NounMetadata(selector, PixelDataType.COLUMN);
 				
-				// let us address the portion when we have another column
-				// so whereValue2 is empty and comparator is not between
-				if(!whereValue2.toString().isEmpty() && !comparator.equals("between")) {
+				
+				if(!whereValueAgg.toString().isEmpty()) {
+					// let us address the portion when we have a 
+					// min or max on another column
+					// so WhereValueAgg is min/max
+					// WhereValue is Table and WhereValue2 is Column
+					
+					QueryFunctionSelector fSelector = new QueryFunctionSelector();
+					fSelector.setFunction(whereValueAgg.toString());
+					fSelector.addInnerSelector(new QueryColumnSelector(whereValue + "__" + whereValue2));
+					// add the selector
+					curQs.addSelector(fSelector);
+					
+					//add rhs of where
+					NounMetadata rhs = new NounMetadata(fSelector, PixelDataType.COLUMN);
+					SimpleQueryFilter filter = new SimpleQueryFilter(lhs, comparator, rhs);
+					curQs.addExplicitFilter(filter);
+					
+					
+				}else if(!whereValue2.toString().isEmpty() && !comparator.equals("between")) {
+					// let us address the portion when we have another column
+					// so whereValue2 is empty and comparator is not between
+					
 					// my rhs is another column
 					NounMetadata rhs = new NounMetadata(new QueryColumnSelector(whereValue + "__" + whereValue2), PixelDataType.COLUMN);
 					// add this filter
@@ -378,9 +399,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						// add this filter
 						filter = new SimpleQueryFilter(lhs, "<", rhs);
 						curQs.addExplicitFilter(filter);
-					} else {
-						// this must be an equals or not equals...
-						
+					} else {						
 						PixelDataType type = PixelDataType.CONST_STRING;
 						if(whereValue instanceof Number) {
 							type = PixelDataType.CONST_DECIMAL;

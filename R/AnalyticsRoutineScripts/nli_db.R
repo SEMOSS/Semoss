@@ -6,9 +6,17 @@ nliapp_mgr<-function(txt,db,joins=data.frame()){
 	library(igraph)
 	
 	# db includes: Column, Table and AppID columns
-	df<-parse_question(txt)
+	df1<-parse_question(txt)
 	# map nouns to db items
+	df1<-map_dbitems(df1,db)
+	# Convert dbitems to lower case to avoid pos confusion
+	mytxt<-dbitems_tolower(txt,df1)
+	df<-parse_question(mytxt)
 	df<-map_dbitems(df,db)
+	# restore original tokens though though keep the correct parsing pos
+	df$sentence<-df1$sentence
+	df$token<-df1$token
+	df$lemma<-df1$lemma
 	# to handle column names that are not words of English language
 	df<-refine_parsing(df)
 	#get pos groups
@@ -204,7 +212,7 @@ build_sql<-function(select_part1,select_part2,where_part,group_part,having_part,
 
 
 analyze_noun<-function(df){
-	clmns<-df[substr(df$xpos,1,2)=="NN" & df$itemtype=="column" & df$processed=="no","item"]
+	clmns<-df[substr(df$xpos,1,2)=="NN" & df$itemtype=="column" & df$processed=="no","token"]
 	return(clmns)
 }
 
@@ -367,12 +375,12 @@ analyze_prep<-function(df,chunks){
 						}
 					}else{
 						#grouping
-						group_clause[length(group_clause)+1]<-parent_rec$item
+						group_clause[length(group_clause)+1]<-parent_rec$token
 						df[parent_rec$token_id,"processed"]<-"yes"
 						df[cur_rec$token_id,"processed"]<-"yes"
 						oper_rec<-df[df$head_token_id==parent_rec$token_id & df$token_id!=cur_rec$token_id & df$processed=="no" & df$itemtype == "column",]
 						if(nrow(oper_rec)>0){
-							group_clause<-c(group_clause,oper_rec$item)
+							group_clause<-c(group_clause,oper_rec$token)
 							df[oper_rec$token_id,"processed"]<-"yes"
 						}
 					}
@@ -407,7 +415,7 @@ analyze_adj<-function(df,chunks){
 			parent_rec<-get_parent(df,cur_rec,"column")
 			if(nrow(parent_rec)>0){
 				if(tolower(parent_rec$itemtype)=="column" & parent_rec$processed=="no"){
-					column<-parent_rec$item
+					column<-parent_rec$token
 					if(parent_rec$dep_rel=="obj"){
 						oper<-""
 						if(token %in% c("best","greatest","highest")){
@@ -430,7 +438,7 @@ analyze_adj<-function(df,chunks){
 							}
 							if(nchar(oper1)>0){
 								column<-paste0(oper1,"(",column,")")
-								having_clause[length(where_clause)+1]<-paste0(column,"=",oper,"(",column,")")
+								having_clause[length(having_clause)+1]<-paste0(column,"=",oper,"(",column,")")
 								df[parent_rec$token_id,"processed"]<-"yes"
 								df[cur_rec$token_id,"processed"]<-"yes"
 								df[sibling_rec$token_id,"processed"]<-"yes"
@@ -438,7 +446,8 @@ analyze_adj<-function(df,chunks){
 						}else{
 							# grouping (having clause)
 							if(oper %in% c("max","min")){
-								having_clause[length(where_clause)+1]<-paste0(column,"=",oper,"(",column,")")
+								#having_clause[length(where_clause)+1]<-paste0(column,"=",oper,"(",column,")")
+								where_clause[length(where_clause)+1]<-paste0(column,"=",oper,"(",column,")")
 								df[parent_rec$token_id,"processed"]<-"yes"
 								df[cur_rec$token_id,"processed"]<-"yes"
 							}else if(oper %in% c("sum","avg")){
@@ -622,6 +631,17 @@ map_dbitems<-function(df,db,pos="ALL"){
 	}
 	gc()
 	return(df)
+}
+
+dbitems_tolower<-function(txt,df){
+	words<-unlist(strsplit(txt," "))
+	dbitems<-df[df$itemtype %in% c("column","table"),"token"]
+	ind<-which(words %in% dbitems)
+	if(length(ind)>0){
+		words[ind]<-tolower(words[ind])
+	}
+	mytxt<-paste(words,collapse=" ")
+	return(mytxt)
 }
 
 refine_parsing<-function(df){
