@@ -297,40 +297,37 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		}
 	}
 
-	// TODO >>>timb: RUSER - review these	
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
 		try {
 			double[] breaks;
-			Map<String, Object> histJ = (Map<String, Object>) (rcon.eval(script).asNativeJavaObject());
-			if (histJ.get("breaks") instanceof int[]){
+			@SuppressWarnings("unchecked")
+			Map<String, Object> histJ = (Map<String, Object>) (rconEval(script).asNativeJavaObject());
+			if (histJ.get("breaks") instanceof int[]) {
 				int[] breaksInt = (int[]) histJ.get("breaks");
 				breaks = Arrays.stream(breaksInt).asDoubleStream().toArray();
-			} else { 
-			breaks = (double[]) histJ.get("breaks");
+			} else {
+				breaks = (double[]) histJ.get("breaks");
 			}
 			int[] counts = (int[]) histJ.get("counts");
-			
+
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("breaks", breaks);
 			retMap.put("counts", counts);
 			return retMap;
-		} catch (RserveException e) {
-			e.printStackTrace();
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			throw new IllegalArgumentException("R did not evaluate to the proper data type.", e);
 		}
-		return null;
 	}
 
 	@Override
 	public Map<String, Object> flushFrameAsTable(String framename, String[] colNames) {
-List<Object[]> dataMatrix = new ArrayList<Object[]>();
-		
+		List<Object[]> dataMatrix = new ArrayList<Object[]>();
+
 		int numCols = colNames.length;
 		for (int i = 0; i < numCols; i++) {
 			String script = framename + "$" + colNames[i];
-			REXP val = (REXP) executeR(script);
+			REXP val = rconEval(script);
 
 			if (val.isNumeric()) {
 				// for a double array
@@ -344,10 +341,10 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 						dataMatrix.get(j)[i] = rows[j];
 					}
 					continue;
-				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+				} catch (REXPMismatchException e) {
+					logger.debug(e);
 				}
-				//in case values cannot be doubles
+				// in case values cannot be doubles
 				try {
 					int[] rows = val.asIntegers();
 					int numRows = rows.length;
@@ -358,11 +355,11 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 						dataMatrix.get(j)[i] = rows[j];
 					}
 					continue;
-				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+				} catch (REXPMismatchException e) {
+					logger.debug(e);
 				}
-				//in case values cannot be put into an array
-				//for an integer
+				// in case values cannot be put into an array
+				// for an integer
 				try {
 					int row = val.asInteger();
 					if (dataMatrix.isEmpty()) {
@@ -370,8 +367,8 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 					}
 					dataMatrix.get(0)[i] = row;
 					continue;
-				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+				} catch (REXPMismatchException e) {
+					logger.debug(e);
 				}
 
 			} else {
@@ -386,10 +383,10 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 						dataMatrix.get(j)[i] = rows[j];
 					}
 					continue;
-				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+				} catch (REXPMismatchException e) {
+					logger.debug(e);
 				}
-				//for a string
+				// for a string
 				try {
 					String row = val.asString();
 					if (dataMatrix.isEmpty()) {
@@ -397,28 +394,29 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 					}
 					dataMatrix.get(0)[i] = row;
 					continue;
-				} catch (REXPMismatchException rme) {
-					rme.printStackTrace();
+				} catch (REXPMismatchException e) {
+					logger.debug(e);
 				}
 			}
 		}
-		
+
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		retMap.put("headers", colNames);
 		retMap.put("data", dataMatrix);
-		
+
 		return retMap;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
-		REXP rs = (REXP) executeR(rScript);
+		REXP rs = rconEval(rScript);
 		Object[] retArray = null;
 		Object result = null;
 		try {
 			result = rs.asNativeJavaObject();
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			throw new IllegalArgumentException("R did not evaluate to the proper data type.", e);
 		}
 		if(result instanceof Map) {
 			retArray =  processMapReturn((Map<String, Object>) result, headerOrdering).get(0);
@@ -433,9 +431,9 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 					returnNames = new String[]{namesAttr.toString()};
 				}
 			} catch (REXPMismatchException e) {
-				e.printStackTrace();
+				throw new IllegalArgumentException("R did not evaluate to the proper data type.", e);
 			}
-			retArray = (Object[]) processListReturn((List) result, headerOrdering, returnNames).get(0);
+			retArray = (Object[]) processListReturn((List<Object[]>) result, headerOrdering, returnNames).get(0);
 		} else {
 			throw new IllegalArgumentException("Unknown data type returned from R");
 		}
@@ -443,14 +441,15 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 		return retArray;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
-		REXP rs = (REXP) executeR(rScript);
+		REXP rs = rconEval(rScript);
 		Object result = null;
 		try {
 			result = rs.asNativeJavaObject();
 		} catch (REXPMismatchException e) {
-			e.printStackTrace();
+			throw new IllegalArgumentException("R did not evaluate to the proper data type.", e);
 		}
 		if(result instanceof Map) {
 			return processMapReturn((Map<String, Object>) result, headerOrdering);
@@ -465,9 +464,9 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 					returnNames = new String[]{namesAttr.toString()};
 				}
 			} catch (REXPMismatchException e) {
-				e.printStackTrace();
+				throw new IllegalArgumentException("R did not evaluate to the proper data type.", e);
 			}
-			return processListReturn((List) result, headerOrdering, returnNames);
+			return processListReturn((List<Object[]>) result, headerOrdering, returnNames);
 		} else {
 			throw new IllegalArgumentException("Unknown data type returned from R");
 		}
@@ -552,7 +551,7 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 					values [idx] = data;
 				}
 			} else {
-				logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
+				throw new IllegalArgumentException("Could not identify the return type for this iterator.");
 			}
 		}
 		return retArr;
@@ -584,7 +583,7 @@ List<Object[]> dataMatrix = new ArrayList<Object[]>();
 						retArr.add(values);
 					}
 				} else {
-					for(int j = 0; j < numResults; j++) {
+					for(int j = 0; j < numResults; j++) {       
 						Object[] values = retArr.get(j);
 						values[i] = columnResults[j];
 					}
