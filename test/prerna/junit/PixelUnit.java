@@ -54,6 +54,7 @@ import org.quartz.SchedulerException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -762,7 +763,7 @@ public class PixelUnit {
 			String jsonString = new String(output.toByteArray(), TEXT_ENCODING);
 			JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
 			JsonArray pixelReturns = jsonObject.get("pixelReturn").getAsJsonArray();
-			JsonObject pixelOutput = pixelReturns.get(pixelReturns.size() - 1).getAsJsonObject().get("output").getAsJsonObject();
+			JsonElement pixelOutput = pixelReturns.get(pixelReturns.size() - 1).getAsJsonObject().get("output");
 			String pixelJson = pixelOutput.toString();
 			return pixelJson;
 		}
