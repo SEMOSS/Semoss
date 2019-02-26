@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
@@ -44,6 +45,14 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator) {
+		this.builder = new RFrameBuilder(rJavaTranslator);
+		this.frameName = getName();
+	}
+	
+	public RDataTable(User user) {
+		Insight insight= new Insight();
+		insight.setUser(user);
+		AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(insight, this.logger);
 		this.builder = new RFrameBuilder(rJavaTranslator);
 		this.frameName = getName();
 	}
