@@ -271,6 +271,15 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		}
 	}
 
+	public RConnection getConnection() {
+		if (userIsDefined()) {
+			return this.insight.getUser().getRConn();
+		}
+			else{
+				return null;
+			}
+	}
+	
 	@Override
 	public void setConnection(RConnection connection) {
 		rcon = connection;
@@ -628,7 +637,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		
 		return retArr;
 	}
-	
+
+
 	
 
 }

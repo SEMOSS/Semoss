@@ -23,7 +23,9 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.r.RDataTable;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.InsightCacheUtility;
@@ -375,6 +377,10 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				if(frame instanceof PandasFrame) {
 					((PandasFrame)frame).setJep(insight.getPy());
 				}
+				else if(ClusterUtil.SEMOSS_USER_RSERVE && frame instanceof RDataTable) {
+					frame = new RDataTable(insight.getUser());
+				}
+				
 				frame.open(cf);
 				
 				NounMetadata fNoun = new NounMetadata(frame, PixelDataType.FRAME);

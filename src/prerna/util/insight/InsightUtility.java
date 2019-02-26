@@ -9,6 +9,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.cluster.util.ClusterUtil;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc2.om.InMemStore;
@@ -46,6 +47,9 @@ public class InsightUtility {
 			}
 		}
 		newInsight.setPy(origInsight.getPy());
+		if(ClusterUtil.SEMOSS_USER_RSERVE && origInsight.getUser() != null){
+		newInsight.setUser(origInsight.getUser());
+		}
 	}
 	
 	/**
