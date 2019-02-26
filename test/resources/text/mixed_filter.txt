@@ -144,7 +144,7 @@
       ]
    },
    {
-      "pixelExpression":"Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;",
+      "pixelExpression":"Panel ( 0 ) | AddPanelConfig ( config = [ { \"labelOverride\" : false , \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;",
       "isMeta":false,
       "output":{
          "panelId":"0",
