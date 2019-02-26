@@ -318,9 +318,9 @@ public class PixelUnit {
 			
 			// First must catalog the db in order to call the getEngine
 			SMSSWebWatcher.catalogDB(alias + "__" + appId + ".smss", BASE_DB_DIRECTORY);
-			
-				IEngine engine = Utility.getEngine(appId);
-			
+
+			IEngine engine = Utility.getEngine(appId);
+
 			// If a full-fledged engine, then delete the entire app
 			if (engine != null) {
 				deleteApp(appId);
