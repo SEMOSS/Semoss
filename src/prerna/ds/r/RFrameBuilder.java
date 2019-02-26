@@ -11,12 +11,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.cluster.util.ClusterUtil;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
@@ -31,6 +33,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaRserveTranslator;
+import prerna.sablecc2.reactor.frame.r.util.RJavaUserRserveTranslator;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -502,6 +505,8 @@ public class RFrameBuilder {
 	protected RConnection getConnection() {
 		if(this.rJavaTranslator instanceof RJavaRserveTranslator) {
 			return ((RJavaRserveTranslator) this.rJavaTranslator).getConnection();
+		} else if(this.rJavaTranslator instanceof RJavaUserRserveTranslator){
+			return ((RJavaUserRserveTranslator) this.rJavaTranslator).getConnection();
 		}
 		return null;
 	}
