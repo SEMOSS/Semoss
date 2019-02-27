@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.h2.H2Frame;
@@ -43,7 +44,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		String engineId = this.keyValue.get(this.keysToGet[1]);
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {

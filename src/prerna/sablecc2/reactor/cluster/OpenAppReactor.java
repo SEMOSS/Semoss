@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
@@ -40,7 +40,7 @@ public class OpenAppReactor extends AbstractReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			// make sure valid id for user
-			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), appId)) {
+			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), appId)) {
 				// you dont have access
 				throw new IllegalArgumentException("App does not exist or user does not have access to database");
 			}
