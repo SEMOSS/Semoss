@@ -100,6 +100,8 @@ import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.usertracking.IUserTracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class LazyTranslation extends DepthFirstAdapter {
 
@@ -166,6 +168,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         	try {
         		e.apply(this);
         	} catch(SemossPixelException ex) {
+        		trackError(e.toString(), ex);
         		ex.printStackTrace();
         		// if we want to continue the thread of execution
         		// nothing special
@@ -182,11 +185,24 @@ public class LazyTranslation extends DepthFirstAdapter {
         			throw ex;
         		}
         	} catch(Exception ex) {
+        		trackError(e.toString(), ex);
         		ex.printStackTrace();
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}
         }
+	}
+	
+	/**
+	 * Track the error
+	 * @param pixel
+	 * @param ex
+	 */
+	private void trackError(String pixel, Exception ex) {
+		IUserTracker tracker = UserTrackerFactory.getInstance();
+		if(tracker.isActive()) {
+//			tracker.trackError(this.insight, pixel, false, ex);
+		}
 	}
 
 	@Override
