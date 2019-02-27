@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
@@ -54,6 +55,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	public NounMetadata execute() {
 		this.task = getTask();
 		buildTask();
+		ClusterUtil.reactorPushApp(getEngineId());
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
