@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
@@ -55,7 +56,7 @@ public class AppMetaExtractor extends AbstractRFrameReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {

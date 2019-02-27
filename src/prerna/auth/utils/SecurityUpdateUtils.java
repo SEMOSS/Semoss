@@ -1089,7 +1089,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean setDbGlobal(User user, String engineId, boolean isPublic) {
-		if(!SecurityQueryUtils.userIsOwner(user, engineId)) {
+		if(!SecurityAppUtils.userIsOwner(user, engineId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
 		}
 		
@@ -1107,7 +1107,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws SQLException 
 	 */
 	public static void setDbVisibility(User user, String engineId, boolean visibility) throws SQLException {
-		if(!SecurityQueryUtils.userCanViewEngine(user, engineId)) {
+		if(!SecurityAppUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("The user doesn't have the permission to modify his visibility of this app.");
 		}
 		String userFilters = getUserFilters(user);

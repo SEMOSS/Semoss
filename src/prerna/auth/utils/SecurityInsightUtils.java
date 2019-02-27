@@ -24,7 +24,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
 			return AccessPermission.OWNER.getPermission();
 		}
 		
@@ -85,7 +85,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
 			return true;
 		}
 		
@@ -118,7 +118,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
 			return true;
 		}
 		
@@ -156,7 +156,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// if user is owner of app
 		// they can do whatever they want
-		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
 			return true;
 		}
 		
@@ -194,7 +194,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// if user is owner of the app
 		// they can do whatever they want
-		if(SecurityQueryUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
 			// owner of engine is owner of all the insights
 			return AccessPermission.OWNER.getId();
 		}

@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -74,7 +75,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 			if (security) {
 				// check if input is alias since we are adding ot existing
 				appIdOrName = SecurityQueryUtils.testUserEngineIdForAlias(user, appIdOrName);
-				if (!SecurityQueryUtils.userCanEditEngine(user, appIdOrName)) {
+				if (!SecurityAppUtils.userCanEditEngine(user, appIdOrName)) {
 					NounMetadata noun = new NounMetadata("User does not have sufficient priviledges to create or update an app", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 					SemossPixelException err = new SemossPixelException(noun);
 					err.setContinueThreadOfExecution(false);

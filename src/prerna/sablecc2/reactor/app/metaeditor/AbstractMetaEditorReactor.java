@@ -13,6 +13,7 @@ import org.semarglproject.vocab.RDFS;
 import com.hp.hpl.jena.vocabulary.OWL;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
@@ -55,12 +56,12 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
 			if(edit) {
 				// need edit permission
-				if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), testId)) {
+				if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
 				}
 			} else {
 				// just need read access
-				if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), testId)) {
+				if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), testId)) {
 					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
 				}
 			}
