@@ -26,6 +26,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.util.usertracking.IUserTracker;
+import prerna.util.usertracking.UserTrackerFactory;
 
 public class PixelRunner {
 
@@ -59,6 +61,9 @@ public class PixelRunner {
 				throw e;
 			}
 		} catch (ParserException | LexerException | IOException e) {
+			// we only need to catch invalid syntax here
+			// other exceptions are caught in lazy translation
+			trackInvalidSyntaxError(expression, e);
 			e.printStackTrace();
 			String eMessage = e.getMessage();
 			if(eMessage.startsWith("[")) {
@@ -78,6 +83,18 @@ public class PixelRunner {
 			PixelPlanner planner = translation.getPlanner();
 			planner.dropGraph();
 			planner.getVarStore().remove("$RESULT");
+		}
+	}
+	
+	/**
+	 * Track the error
+	 * @param pixel
+	 * @param ex
+	 */
+	private void trackInvalidSyntaxError(String pixel, Exception ex) {
+		IUserTracker tracker = UserTrackerFactory.getInstance();
+		if(tracker.isActive()) {
+//			tracker.trackError(this.insight, pixel, true, ex);
 		}
 	}
 	
