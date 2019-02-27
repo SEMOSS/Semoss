@@ -9,7 +9,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -41,7 +41,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// security
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the app");
 			}
 		}

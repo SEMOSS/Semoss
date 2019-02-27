@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
@@ -67,7 +68,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		String engineId = getEngineId();
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have edit access to the app");
 			}
 		} else {

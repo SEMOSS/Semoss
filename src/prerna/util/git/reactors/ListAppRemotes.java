@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -41,7 +42,7 @@ public class ListAppRemotes extends AbstractReactor {
 		// if you are the owner
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 			appName = SecurityQueryUtils.getEngineAliasForId(appId);
