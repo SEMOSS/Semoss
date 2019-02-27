@@ -65,5 +65,14 @@ public interface IUserTracker {
 	 * @param values
 	 */
 	void trackUserWidgetMods(List<Object[]> rows);
+	
+	/**
+	 * Track errors that occur during execution
+	 * @param in
+	 * @param pixel
+	 * @param invalidSyntax
+	 * @param ex
+	 */
+	void trackError(Insight in, String pixel, boolean invalidSyntax, Exception ex);
 
 }
