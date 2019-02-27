@@ -5,6 +5,7 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
@@ -33,7 +34,7 @@ public class SyncAppWithLocalMasterReactor extends AbstractReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanEditEngine(this.insight.getUser(), appId)) {
+			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
 			}
 		} else {

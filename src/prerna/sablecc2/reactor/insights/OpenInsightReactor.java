@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.JsonSyntaxException;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -69,7 +70,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
 			// TODO>>>timb: switch this back once we have insight level security
 //			if(!SecurityQueryUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
-			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), appId)) {
+			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("User does not have access to this insight");
 			}
 		} else {
