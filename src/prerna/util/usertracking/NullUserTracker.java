@@ -63,6 +63,12 @@ public class NullUserTracker implements IUserTracker {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public void trackError(Insight in, String pixel, boolean invalidSyntax, Exception ex) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 	@Override
 	public boolean isActive() {
