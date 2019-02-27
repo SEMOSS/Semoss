@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.qs.source;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.AbstractQueryStruct;
@@ -22,7 +23,7 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {

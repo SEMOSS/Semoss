@@ -9,7 +9,7 @@ import java.util.Vector;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.date.SemossDate;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -60,7 +60,7 @@ public class QueryInsertReactor extends AbstractReactor {
 				
 				// If security is enabled, then check that the user can edit the engine
 				if (AbstractSecurityUtils.securityEnabled()) {
-					if(!SecurityQueryUtils.userCanEditEngine(user, engine.getEngineId())) {
+					if(!SecurityAppUtils.userCanEditEngine(user, engine.getEngineId())) {
 						throw new IllegalArgumentException("User does not have permission to insert query for this app");
 					}
 				}
