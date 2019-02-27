@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -48,7 +49,7 @@ public class InitAppRepo extends GitBaseReactor {
 		// if you are the owner
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userIsOwner(this.insight.getUser(), appId)) {
+			if(!SecurityAppUtils.userIsOwner(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 			}
 			appName = SecurityQueryUtils.getEngineAliasForId(appId);

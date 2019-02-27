@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
@@ -32,7 +33,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		String appId = appGrs.get(0).toString();
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), appId)) {
+			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to database");
 			}
 		} else {

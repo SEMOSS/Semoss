@@ -6,6 +6,7 @@ import java.util.Vector;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -40,7 +41,7 @@ public class DeleteAppReactor extends AbstractReactor {
 				appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
 				boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 				if(!isAdmin) {
-					boolean isOwner = SecurityQueryUtils.userIsOwner(user, appId);
+					boolean isOwner = SecurityAppUtils.userIsOwner(user, appId);
 					if(!isOwner) {
 						throw new IllegalArgumentException("App " + appId + " does not exist or user does not have permissions to database");
 					}

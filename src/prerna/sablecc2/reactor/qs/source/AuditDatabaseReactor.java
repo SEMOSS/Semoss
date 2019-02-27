@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.h2.H2Frame;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -45,7 +46,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		// we may have the alias
 		if (AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if (!SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), appId)) {
+			if (!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException(
 						"Database " + appId + " does not exist or user does not have access to database");
 			}

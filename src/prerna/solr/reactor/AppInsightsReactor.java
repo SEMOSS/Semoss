@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -35,7 +36,7 @@ public class AppInsightsReactor extends AbstractReactor {
 				String engineFilter = engineFilterGrs.get(i).toString();
 				if (AbstractSecurityUtils.securityEnabled()) {
 					engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
-					if (SecurityQueryUtils.userCanViewEngine(this.insight.getUser(), engineFilter)) {
+					if (SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineFilter)) {
 						eFilters.add(engineFilter);
 					} else {
 						// store warnings
