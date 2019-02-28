@@ -16,7 +16,8 @@
          },
          "config":{
             "type":"STANDARD",
-            "opacity":100
+            "opacity":100,
+            "labelOverride":false
          },
          "ornaments":{
 
@@ -144,7 +145,7 @@
       ]
    },
    {
-      "pixelExpression":"Panel ( 0 ) | AddPanelConfig ( config = [ { \"labelOverride\" : false , \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;",
+      "pixelExpression":"Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;",
       "isMeta":false,
       "output":{
          "panelId":"0",
@@ -160,7 +161,8 @@
          },
          "config":{
             "type":"STANDARD",
-            "opacity":100
+            "opacity":100,
+            "labelOverride":false
          },
          "ornaments":{
 
@@ -451,7 +453,7 @@
                   "Mother"
                ],
                [
-                  "Alejandro_González_Iñárritu",
+                  "Alejandro_Gonz?lez_I??rritu",
                   "Drama",
                   2.5E7,
                   "Y",
@@ -511,7 +513,7 @@
                   "The_Descendants"
                ],
                [
-                  "Alfonso_Cuarón",
+                  "Alfonso_Cuar?n",
                   "Thriller-Horror",
                   1.0E8,
                   "Y",
@@ -523,7 +525,7 @@
                   "Gravity"
                ],
                [
-                  "Alfonso_Cuarón",
+                  "Alfonso_Cuar?n",
                   "Comedy-Musical",
                   0.0,
                   "N",
@@ -2047,7 +2049,7 @@
                   "Dirty_Dancing:_Havana_Nights"
                ],
                [
-                  "Gábor_Csupó",
+                  "G?bor_Csup?",
                   "Action-Adventure",
                   0.0,
                   "N",
@@ -2335,7 +2337,7 @@
                   "Dragonball_Evolution"
                ],
                [
-                  "Jan_Sv?rák",
+                  "Jan_Sv?r?k",
                   "Drama",
                   0.0,
                   "N",
@@ -3055,7 +3057,7 @@
                   "Ultraviolet"
                ],
                [
-                  "Lasse_Hallström",
+                  "Lasse_Hallstr?m",
                   "Drama",
                   1.45E7,
                   "N",
@@ -3067,7 +3069,7 @@
                   "Salmon_Fishing_in_the_Yemen"
                ],
                [
-                  "Lasse_Hallström",
+                  "Lasse_Hallstr?m",
                   "Drama",
                   2.4E7,
                   "Y",
@@ -3079,7 +3081,7 @@
                   "The_Cider_House_Rules"
                ],
                [
-                  "Lasse_Hallström",
+                  "Lasse_Hallstr?m",
                   "Action-Adventure",
                   2.5E7,
                   "Y",
@@ -6031,7 +6033,7 @@
                   "Grosse_Pointe_Blank"
                ],
                [
-                  "Gábor_Csupó",
+                  "G?bor_Csup?",
                   "Action-Adventure",
                   0.0,
                   "N",
