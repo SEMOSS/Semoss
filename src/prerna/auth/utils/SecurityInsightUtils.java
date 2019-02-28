@@ -189,7 +189,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 * @return
 	 */
-	public static int getMaxUserInsightPermission(User user, String engineId, String insightId) {
+	static int getMaxUserInsightPermission(User user, String engineId, String insightId) {
 		String userFilters = getUserFilters(user);
 
 		// if user is owner of the app
@@ -287,7 +287,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void addInsightUser(User user, String newUserId, String engineId, String insightId, String permission) {
 		if(!userCanEditInsight(user, engineId, insightId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
+			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
 		// make sure user doesn't already exist for this insight
@@ -323,7 +323,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, engineId, insightId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
+			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
@@ -357,7 +357,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occured updating the user permissions for this insight");
 		}
 	}
 	
@@ -373,7 +373,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, engineId, insightId);
 		if(!AccessPermission.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to modify the insight permissions.");
+			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
 		}
 		
 		// make sure we are trying to edit a permission that exists
@@ -400,7 +400,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException("An error occured adding user permissions for this insight");
+			throw new IllegalArgumentException("An error occured removing the user permissions for this insight");
 		}
 	}
 	
