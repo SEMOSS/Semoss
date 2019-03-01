@@ -185,7 +185,7 @@ import prerna.sablecc2.reactor.frame.r.analytics.RLOFAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RMatrixRegressionReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RNumericalColumnSimilarityReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RNumericalCorrelationReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RNumericalSimilarityAlgorithmReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RNumericalModelAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.ROutlierAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RRandomForestAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RRandomForestResultsReactor;
@@ -1036,7 +1036,7 @@ public class ReactorFactory {
 		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
 		rFrameHash.put("RunNumericalColumnSimilarity ", RNumericalColumnSimilarityReactor.class);
 		rFrameHash.put("RunNumericalCorrelation", RNumericalCorrelationReactor.class);
-		rFrameHash.put("RunNumericalSimilarity", RNumericalSimilarityAlgorithmReactor.class);
+		rFrameHash.put("RunNumericalModel", RNumericalModelAlgorithmReactor.class);
 		rFrameHash.put("RunOutlier", ROutlierAlgorithmReactor.class);
 		rFrameHash.put("RunRandomForest", RRandomForestAlgorithmReactor.class);
 		rFrameHash.put("GetRFResults", RRandomForestResultsReactor.class);
