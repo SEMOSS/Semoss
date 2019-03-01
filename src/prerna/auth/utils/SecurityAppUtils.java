@@ -322,6 +322,17 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			e.printStackTrace();
 			throw new IllegalArgumentException("An error occured removing the user permissions for this app");
 		}
+		
+		// need to also delete all insight permissions for this app
+		query = "DELETE FROM USERINSIGHTPERMISSION WHERE "
+				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured removing the user permissions for the insights of this app");
+		}
 	}
 	
 }
