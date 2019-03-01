@@ -48,14 +48,15 @@ public class PanelCloneReactor extends AbstractInsightPanelReactor {
 		// see if it is in the curRow
 		// if it was passed directly in as a variable
 		// try if it is a string, int, or double
-		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
-		if(strNouns != null && !strNouns.isEmpty()) {
-			if(strNouns.size() == 2) {
-				return strNouns.get(1).getValue().toString();
+		List<String> strValues = this.curRow.getAllStrValues();
+		if(strValues != null && !strValues.isEmpty()) {
+			if(strValues.size() == 2) {
+				return strValues.get(1);
 			}
-			return strNouns.get(0).getValue().toString();
+			return strValues.get(0);
 		}
-		strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
+		
+		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
 		if(strNouns != null && !strNouns.isEmpty()) {
 			if(strNouns.size() == 2) {
 				return strNouns.get(1).getValue().toString();
