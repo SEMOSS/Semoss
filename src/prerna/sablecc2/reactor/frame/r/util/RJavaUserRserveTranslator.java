@@ -29,7 +29,7 @@ import prerna.util.ArrayUtilityMethods;
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	
 	private RConnection rcon;
-	private Object anonymousMonitor = new Object();
+	private static Object anonymousMonitor = new Object();
 	
 	@Override
 	public void initREnv() {
