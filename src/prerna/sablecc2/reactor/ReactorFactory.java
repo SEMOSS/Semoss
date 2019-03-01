@@ -183,6 +183,7 @@ import prerna.sablecc2.reactor.frame.r.analytics.RDocumentCosineSimilarityReacto
 import prerna.sablecc2.reactor.frame.r.analytics.RGenerateDescriptionColumnReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RLOFAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RMatrixRegressionReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RNumericalColumnSimilarityReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RNumericalCorrelationReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.RNumericalSimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.frame.r.analytics.ROutlierAlgorithmReactor;
@@ -1033,6 +1034,7 @@ public class ReactorFactory {
 		rFrameHash.put("RunDocCosSimilarity", RDocumentCosineSimilarityReactor.class);
 		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
 		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
+		rFrameHash.put("RunNumericalColumnSimilarity ", RNumericalColumnSimilarityReactor.class);
 		rFrameHash.put("RunNumericalCorrelation", RNumericalCorrelationReactor.class);
 		rFrameHash.put("RunNumericalSimilarity", RNumericalSimilarityAlgorithmReactor.class);
 		rFrameHash.put("RunOutlier", ROutlierAlgorithmReactor.class);
