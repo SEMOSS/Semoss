@@ -1082,24 +1082,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	
 	/**
-	 * Set if the database is public to all users on this instance
-	 * @param user
-	 * @param engineId
-	 * @param isPublic
-	 * @return
-	 */
-	public static boolean setDbGlobal(User user, String engineId, boolean isPublic) {
-		if(!SecurityAppUtils.userIsOwner(user, engineId)) {
-			throw new IllegalArgumentException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
-		}
-		
-		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + engineId + "';";
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
-		return true;
-	}
-	
-	/**
 	 * Change the user visibility (show/hide) for a database. Without removing its permissions.
 	 * @param user
 	 * @param engineId
