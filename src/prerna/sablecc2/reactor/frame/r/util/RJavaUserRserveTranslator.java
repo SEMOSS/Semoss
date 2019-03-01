@@ -28,8 +28,8 @@ import prerna.util.ArrayUtilityMethods;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	
-	RConnection rcon;
-	private Object rMonitor = new Object();
+	private RConnection rcon;
+	private Object anonymousMonitor = new Object();
 	
 	@Override
 	public void initREnv() {
@@ -72,7 +72,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	private boolean rConnIsDefined() {
 		return userIsDefined() && this.insight.getUser().getRConn() != null;
 	}
-	
+		
 	private void establishNewRConnection() {
 		try {
 			rcon = RUserRserve.createConnection();
@@ -161,7 +161,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		if (isHealthy()){
 			try {
 				logger.info("Running R: " + rScript);
-				synchronized (rMonitor) {
+				Object monitor = userIsDefined() ? this.insight.getUser() : anonymousMonitor;
+				synchronized (monitor) {
 					return rcon.eval(rScript);
 				}
 			} catch (RserveException e) {
@@ -178,7 +179,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		if (isHealthy()){
 			try {
 				logger.info("Running R: " + rScript);
-				synchronized (rMonitor) {
+				Object monitor = userIsDefined() ? this.insight.getUser() : anonymousMonitor;
+				synchronized (monitor) {
 					rcon.voidEval(rScript);
 				}
 			} catch (RserveException e) {
