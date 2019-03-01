@@ -15,15 +15,15 @@ import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.Utility;
 
-public class RNumericalSimilarityAlgorithmReactor extends AbstractRFrameReactor {
+public class RNumericalModelAlgorithmReactor extends AbstractRFrameReactor {
 
-	private static final String CLASS_NAME = RNumericalSimilarityAlgorithmReactor.class.getName();
+	private static final String CLASS_NAME = RNumericalModelAlgorithmReactor.class.getName();
 
 	/**
 	 * RunNumericalSimilarity(column = ["age"], panel=["0"]);
 	 */
 
-	public RNumericalSimilarityAlgorithmReactor() {
+	public RNumericalModelAlgorithmReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey() };
 	}
 
@@ -114,7 +114,7 @@ public class RNumericalSimilarityAlgorithmReactor extends AbstractRFrameReactor 
 		StringBuilder rsb = new StringBuilder();
 
 		// source the r script that will run the numerical correlation routine
-		String NumSimScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\NumericalSimilarity.R";
+		String NumSimScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\NumericalModel.R";
 		NumSimScriptFilePath = NumSimScriptFilePath.replace("\\", "/");
 		rsb.append("source(\"" + NumSimScriptFilePath + "\");\n");
 
