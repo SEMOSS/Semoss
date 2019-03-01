@@ -1,6 +1,8 @@
 package prerna.auth.utils;
 
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.User;
@@ -200,6 +202,32 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * Query for app users
 	 */
 	
+	/**
+	 * Retrieve the list of users for a given insight
+	 * @param user
+	 * @param appId
+	 * @param insightId
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static List<Map<String, Object>> getAppUsers(User user, String appId) throws IllegalAccessException {
+		if(!userCanViewEngine(user, appId)) {
+			throw new IllegalArgumentException("The user does not have access to view this app");
+		}
+		
+		String query = "SELECT USER.ID AS \"id\", "
+				+ "USER.NAME AS \"name\", "
+				+ "PERMISSION.NAME AS \"permission\" "
+				+ "FROM USER "
+				+ "INNER JOIN ENGINEPERMISSION ON (USER.ID = ENGINEPERMISSION.USERID) "
+				+ "INNER JOIN PERMISSION ON (ENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
+				+ "WHERE ENGINEPERMISSION.ENGINEID='" + appId + "';"
+				;
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushRsToMap(wrapper);
+	}
+	
 	
 	/**
 	 * 
@@ -333,6 +361,24 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 			e.printStackTrace();
 			throw new IllegalArgumentException("An error occured removing the user permissions for the insights of this app");
 		}
+	}
+	
+	/**
+	 * Set if the database is public to all users on this instance
+	 * @param user
+	 * @param engineId
+	 * @param isPublic
+	 * @return
+	 */
+	public static boolean setAppGlobal(User user, String appId, boolean isPublic) {
+		if(!SecurityAppUtils.userIsOwner(user, appId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to set this database as global. Only the owner or an admin can perform this action.");
+		}
+		
+		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + appId + "';";
+		securityDb.execUpdateAndRetrieveStatement(query, true);
+		securityDb.commit();
+		return true;
 	}
 	
 }
