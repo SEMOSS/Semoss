@@ -179,7 +179,7 @@ install.packages("randomForest", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 #install.packages("dplyr", dependencies=TRUE)
 
-# Numerical Similarity
+# Numerical Model
 install.packages("nueralnet", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 
