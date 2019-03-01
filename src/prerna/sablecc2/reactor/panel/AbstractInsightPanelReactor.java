@@ -26,6 +26,9 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 			} else if(nounType == PixelDataType.PANEL_CLONE_MAP) {
 				Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
 				return cloneMap.get("clone");
+			} else if(nounType == PixelDataType.COLUMN || nounType == PixelDataType.CONST_STRING) {
+				String panelId = noun.getValue().toString();
+				return this.insight.getInsightPanel(panelId);
 			}
 		}
 		
@@ -41,6 +44,17 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 		List<NounMetadata> panelNouns = this.curRow.getNounsOfType(PixelDataType.PANEL);
 		if(panelNouns != null && !panelNouns.isEmpty()) {
 			return (InsightPanel) panelNouns.get(0).getValue();
+		}
+		
+		// see if string or column passed in
+		List<String> strInputs = this.curRow.getAllStrValues();
+		if(strInputs != null && !strInputs.isEmpty()) {
+			for(String panelId : strInputs) {
+				InsightPanel panel = this.insight.getInsightPanel(panelId);
+				if(panel != null) {
+					return panel;
+				}
+			}
 		}
 		
 		// see if a clone map was passed
