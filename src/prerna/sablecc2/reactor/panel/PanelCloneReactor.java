@@ -50,14 +50,16 @@ public class PanelCloneReactor extends AbstractInsightPanelReactor {
 		// try if it is a string, int, or double
 		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
 		if(strNouns != null && !strNouns.isEmpty()) {
+			if(strNouns.size() == 2) {
+				return strNouns.get(1).getValue().toString();
+			}
 			return strNouns.get(0).getValue().toString();
 		}
 		strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
 		if(strNouns != null && !strNouns.isEmpty()) {
-			return strNouns.get(0).getValue().toString();
-		}
-		strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_DECIMAL);
-		if(strNouns != null && !strNouns.isEmpty()) {
+			if(strNouns.size() == 2) {
+				return strNouns.get(1).getValue().toString();
+			}
 			return strNouns.get(0).getValue().toString();
 		}
 		

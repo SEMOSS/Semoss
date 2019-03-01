@@ -56,6 +56,10 @@ public abstract class AbstractInsightPanelReactor extends AbstractReactor {
 				}
 			}
 		}
+		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
+		if(strNouns != null && !strNouns.isEmpty()) {
+			return this.insight.getInsightPanel(strNouns.get(0).getValue().toString());
+		}
 		
 		// see if a clone map was passed
 		genericReactorGrs = this.store.getNoun(PixelDataType.PANEL_CLONE_MAP.toString());
