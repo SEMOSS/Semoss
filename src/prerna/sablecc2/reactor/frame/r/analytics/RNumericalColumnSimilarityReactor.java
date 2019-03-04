@@ -6,6 +6,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -116,7 +117,7 @@ public class RNumericalColumnSimilarityReactor extends AbstractRFrameReactor {
 		// so throw a notification to the user to let them know
 		// currently though, we dont expose this to the UI, so this will never be hit
 		
-		if(!significance.equals("0.1") || !significance.equals("0.05") || !significance.equals("0.02") || !significance.equals("0.01") ) {
+		if(!significance.equals("0.1") && !significance.equals("0.05") && !significance.equals("0.02") && !significance.equals("0.01") ) {
 			noun.addAdditionalReturn(new NounMetadata("Significance level was reset to 0.05", PixelDataType.CONST_STRING,
 					PixelOperationType.WARNING));
 		}
@@ -143,15 +144,9 @@ public class RNumericalColumnSimilarityReactor extends AbstractRFrameReactor {
 		rsb.append("setwd(\"" + NumSimScriptFilePath + "\");\n");
 		
 		// creating the frame of just the columns listed
-		rsb.append(resultFrame + " <- " + frameName + "[,c(");
-		String sep = "";
-		for (String head : retHeaders) {
-			rsb.append(sep);
-			sep = " ,";
-			rsb.append(" \"" + head + "\"");
-		}
-		rsb.append(" )];\n");
-		
+		rsb.append(resultFrame + " <- " + frameName + "[,");
+		String colVector = RSyntaxHelper.createStringRColVec(retHeaders);
+		rsb.append(colVector).append("];\n");
 		
 		// get random subset of column data
 		rsb.append("if(nrow(" + resultFrame + ") > " + sampleSize + ") {");
