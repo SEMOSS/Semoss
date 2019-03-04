@@ -374,14 +374,24 @@ analyze_prep<-function(df,chunks){
 							}
 						}
 					}else{
-						#grouping
-						group_clause[length(group_clause)+1]<-parent_rec$token
-						df[parent_rec$token_id,"processed"]<-"yes"
-						df[cur_rec$token_id,"processed"]<-"yes"
-						oper_rec<-df[df$head_token_id==parent_rec$token_id & df$token_id!=cur_rec$token_id & df$processed=="no" & df$itemtype == "column",]
-						if(nrow(oper_rec)>0){
-							group_clause<-c(group_clause,oper_rec$token)
-							df[oper_rec$token_id,"processed"]<-"yes"
+						sibling_rec<-df[df$head_token_id==parent_rec$head_token_id & substr(df$xpos,1,2)=="NN" & df$token_id!=parent_rec$token_id & df$dep_rel == "appos" & df$processed=="no",]
+						if(nrow(sibling_rec)>0){
+							# where clause
+							oper<-" = "
+							where_clause[length(where_clause)+1]<-paste0(parent_rec$token,oper,sibling_rec$token)
+							df[parent_rec$token_id,"processed"]<-"yes"
+							df[sibling_rec$token_id,"processed"]<-"yes"
+							df[cur_rec$token_id,"processed"]<-"yes"	
+						}else{
+							#grouping
+							group_clause[length(group_clause)+1]<-parent_rec$token
+							df[parent_rec$token_id,"processed"]<-"yes"
+							df[cur_rec$token_id,"processed"]<-"yes"
+							oper_rec<-df[df$head_token_id==parent_rec$token_id & df$token_id!=cur_rec$token_id & df$processed=="no" & df$itemtype == "column",]
+							if(nrow(oper_rec)>0){
+								group_clause<-c(group_clause,oper_rec$token)
+								df[oper_rec$token_id,"processed"]<-"yes"
+							}
 						}
 					}
 				}
@@ -561,7 +571,7 @@ extract_subtree<-function(df,ind,excl=c("NN","JJ","RB","CD","IN")){
 }
 
 parse_question<-function(txt){
-	STOPWORDS<-c("a","the","here","there","it","he","she","they","is","are","which","what")
+	STOPWORDS<-c("a","the","here","there","it","he","she","they","is","are","which","what","who")
 	FILE_MODEL<-"english-ud-2.0-170801.udpipe"
 	
 	words<-unlist(strsplit(txt," "))
