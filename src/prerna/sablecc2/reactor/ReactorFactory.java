@@ -1034,7 +1034,7 @@ public class ReactorFactory {
 		rFrameHash.put("RunDocCosSimilarity", RDocumentCosineSimilarityReactor.class);
 		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
 		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
-		rFrameHash.put("RunNumericalColumnSimilarity ", RNumericalColumnSimilarityReactor.class);
+		rFrameHash.put("RunNumericalColumnSimilarity", RNumericalColumnSimilarityReactor.class);
 		rFrameHash.put("RunNumericalCorrelation", RNumericalCorrelationReactor.class);
 		rFrameHash.put("RunNumericalModel", RNumericalModelAlgorithmReactor.class);
 		rFrameHash.put("RunOutlier", ROutlierAlgorithmReactor.class);
