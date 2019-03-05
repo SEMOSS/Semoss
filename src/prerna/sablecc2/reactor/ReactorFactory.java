@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import prerna.algorithm.api.ITableDataFrame;
 //import prerna.cluster.util.PullCloudAppReactor;
 import prerna.cluster.util.PushAppsReactor;
@@ -361,6 +359,10 @@ import prerna.sablecc2.reactor.test.LSASpaceColumnLearnedReactor;
 import prerna.sablecc2.reactor.test.RunLSILearnedReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
 import prerna.sablecc2.reactor.utils.BackupAppReactor;
+import prerna.sablecc2.reactor.utils.BitlyAddReactor;
+import prerna.sablecc2.reactor.utils.BitlyDeleteReactor;
+import prerna.sablecc2.reactor.utils.BitlyQReactor;
+import prerna.sablecc2.reactor.utils.BitlyUpdateReactor;
 import prerna.sablecc2.reactor.utils.CheckRPackagesReactor;
 import prerna.sablecc2.reactor.utils.CheckRecommendOptimizationReactor;
 import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
@@ -416,6 +418,8 @@ import prerna.util.usertracking.reactors.WidgetTrackingReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VisualizationRecommendationReactor;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -962,6 +966,13 @@ public class ReactorFactory {
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
 		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
+		
+		// bitly
+		reactorHash.put("badd", BitlyAddReactor.class);
+		reactorHash.put("bupd", BitlyUpdateReactor.class);
+		reactorHash.put("bdel", BitlyDeleteReactor.class);
+		reactorHash.put("bq", BitlyQReactor.class);
+		
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
