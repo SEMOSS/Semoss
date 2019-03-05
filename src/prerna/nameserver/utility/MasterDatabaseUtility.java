@@ -88,6 +88,14 @@ public class MasterDatabaseUtility {
 		colNames = new String[]{"filename", "config" };
 		types = new String[]{"varchar(800)", "varchar(20000)" };
 		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("xrayconfigs", colNames, types));
+		
+		// bitly
+		colNames = new String[]{"fancy", "embed"};
+		types = new String[]{"varchar(800)", "varchar(20000)" };
+		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("BITLY", colNames, types));
+		
+		//System.out.println(">>>> Added BITLY <<<<");
+		
 	}
 	
 	@Deprecated
