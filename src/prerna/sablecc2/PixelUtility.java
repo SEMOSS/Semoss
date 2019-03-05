@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -222,6 +224,18 @@ public class PixelUtility {
 			return translation.hasParam();
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
+			String eMessage = e.getMessage();
+			if(eMessage.startsWith("[")) {
+				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
+				Matcher matcher = pattern.matcher(eMessage);
+				if(matcher.find()) {
+					String location = matcher.group(0);
+					location = location.substring(1, location.length()-1);
+					int findIndex = Integer.parseInt(location.split(",")[1]);
+					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
+				}
+			}
+			LOGGER.info(eMessage);
 		}
 		return false;
 	}
@@ -267,6 +281,18 @@ public class PixelUtility {
 			return translation.isDashboard();
 		} catch (ParserException | LexerException | IOException e) {
 			e.printStackTrace();
+			String eMessage = e.getMessage();
+			if(eMessage.startsWith("[")) {
+				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
+				Matcher matcher = pattern.matcher(eMessage);
+				if(matcher.find()) {
+					String location = matcher.group(0);
+					location = location.substring(1, location.length()-1);
+					int findIndex = Integer.parseInt(location.split(",")[1]);
+					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
+				}
+			}
+			LOGGER.info(eMessage);
 		}
 		return false;
 	}
