@@ -66,7 +66,6 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.rdfxml.RDFXMLWriter;
-import org.openrdf.rio.rdfxml.util.RDFXMLPrettyWriter;
 import org.openrdf.sail.SailConnection;
 import org.openrdf.sail.SailException;
 import org.openrdf.sail.inferencer.fc.ForwardChainingRDFSInferencer;
@@ -544,7 +543,7 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	public void exportDB(Writer writer) throws Exception {
 		System.err.println("Exporting database");
 		try{
-			rc.export(new RDFXMLPrettyWriter(writer));
+			rc.export(new RDFXMLWriter(writer));
 		} finally {
 			if(writer != null) {
 				try{
