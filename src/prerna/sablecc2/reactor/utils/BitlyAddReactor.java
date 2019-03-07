@@ -7,6 +7,7 @@ import java.sql.Statement;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
@@ -24,7 +25,7 @@ public class BitlyAddReactor extends AbstractReactor {
 		organizeKeys();
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
-		
+		String errorMessage = "";
 		
 		try {
 			// check to see if such a fancy name exists
@@ -35,7 +36,7 @@ public class BitlyAddReactor extends AbstractReactor {
 			
 			if(rs.next())
 			{
-				System.out.println("Name Exists !! - please check again");
+				errorMessage = "Name " + this.keyValue.get("fancy") + " already exists. Please enter a new name.";
 			}
 			else
 			{
@@ -46,6 +47,12 @@ public class BitlyAddReactor extends AbstractReactor {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return new NounMetadata("Added " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING);
+		
+		if(errorMessage.isEmpty()) {
+			return new NounMetadata("Added " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING);
+		} else {
+			System.out.println(errorMessage);
+			return new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+		}
 	}
 }
