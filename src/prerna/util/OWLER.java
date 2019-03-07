@@ -668,7 +668,7 @@ public class OWLER {
 		
 		this.engine.commit();
 		try {
-			this.engine.exportBaseEng(true);
+			this.engine.exportBaseEng(false);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
