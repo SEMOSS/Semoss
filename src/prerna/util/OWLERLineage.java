@@ -16,6 +16,7 @@ import prerna.poi.main.BaseDatabaseCreator;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 
+@Deprecated
 public class OWLERLineage {
 
 	// predefined URIs
