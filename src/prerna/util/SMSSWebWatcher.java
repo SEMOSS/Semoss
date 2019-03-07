@@ -42,6 +42,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.OwlPrettyPrintFixer;
 import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -89,6 +90,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			Properties prop = new Properties();
 			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
 			prop.load(fileIn);
+			
+			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD
+			OwlPrettyPrintFixer.fixOwl(prop);
+			
 			engineId = prop.getProperty(Constants.ENGINE);
 			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
 				LOGGER.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
@@ -125,6 +130,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			Properties prop = new Properties();
 			fileIn = new FileInputStream(folderToWatch + "/"  +  newFile);
 			prop.load(fileIn);
+			
+			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD
+			OwlPrettyPrintFixer.fixOwl(prop);
+			
 			engineId = prop.getProperty(Constants.ENGINE);
 			
 			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
