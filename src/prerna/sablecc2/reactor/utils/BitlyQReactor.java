@@ -7,6 +7,7 @@ import java.sql.Statement;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
@@ -25,7 +26,7 @@ public class BitlyQReactor extends AbstractReactor {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
 		
-		String embed = "No URL Found for " + this.keyValue.get("fancy");
+		String embed = "";
 		
 		try {
 			// check to see if such a fancy name exists
@@ -34,14 +35,18 @@ public class BitlyQReactor extends AbstractReactor {
 			ResultSet rs = stmt.executeQuery(query);
 			// if there is a has next not sure what
 			
-			if(rs.next())
-			{
-				embed = this.keyValue.get("fancy") + " <>" + rs.getString(1);
+			if(rs.next())	{
+				embed = Utility.decodeURIComponent(rs.getString(1));
 			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return new NounMetadata(embed, PixelDataType.CONST_STRING);
+		
+		if(!embed.isEmpty()) {
+			return new NounMetadata(embed, PixelDataType.CONST_STRING);
+		} else {
+			return new NounMetadata("No URL Found for " + this.keyValue.get("fancy"), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+		}
 	}
 }
