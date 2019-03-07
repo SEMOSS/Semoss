@@ -1082,7 +1082,7 @@ public class UploadUtilities {
 		rfse.openFile(owl.getOwlPath(), null, null);
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
-		Vector<String> conceptsList = helper.getConcepts(true);
+		Vector<String> conceptsList = helper.getConcepts(false);
 		Map<String, Map<String, SemossDataType>> existingMetaModel = new HashMap<>();
 		for (String conceptPhysicalUri : conceptsList) {
 			Map<String, SemossDataType> propMap = new HashMap<>();
