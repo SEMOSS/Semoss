@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import prerna.algorithm.api.ITableDataFrame;
 //import prerna.cluster.util.PullCloudAppReactor;
 import prerna.cluster.util.PushAppsReactor;
@@ -192,6 +194,7 @@ import prerna.sablecc2.reactor.frame.r.analytics.RSimilarityHeatReactor;
 import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
 import prerna.sablecc2.reactor.frame.r.graph.GraphLayoutReactor;
 import prerna.sablecc2.reactor.frame.r.graph.NodeDetailsReactor;
+import prerna.sablecc2.reactor.frame.r.util.RSourceReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
@@ -418,8 +421,6 @@ import prerna.util.usertracking.reactors.WidgetTrackingReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VisualizationRecommendationReactor;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -947,6 +948,7 @@ public class ReactorFactory {
 		reactorHash.put("CodeExec", CodeExecReactor.class);
 		reactorHash.put("Py", PyReactor.class);
 		reactorHash.put("R", RReactor.class);
+		reactorHash.put("RSource", RSourceReactor.class);
 		reactorHash.put("Java", JavaReactor.class);
 		
 		// Pixel Recipe Parsing / Manipulation
