@@ -14,13 +14,13 @@ public class OwlPrettyPrintFixer {
 
 	@Deprecated
 	public static void fixOwl(Properties prop) {
-		String owlFile = SmssUtilities.getOwlFile(prop).getAbsolutePath();
-		if(new File(owlFile).exists()) {
+		File owlFile = SmssUtilities.getOwlFile(prop);
+		if(owlFile != null && owlFile.exists()) {
 			String conceptualRel = OWLER.SEMOSS_URI + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
 			
 			// owl is stored as RDF/XML file
 			RDFFileSesameEngine rfse = new RDFFileSesameEngine();
-			rfse.openFile(owlFile, null, null);
+			rfse.openFile(owlFile.getAbsolutePath(), null, null);
 	
 			String query = "select ?s ?p ?o where {"
 					+ "bind(<http://www.w3.org/2002/07/owl#Conceptual> as ?p)"
