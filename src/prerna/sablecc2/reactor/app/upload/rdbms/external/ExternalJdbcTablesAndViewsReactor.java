@@ -24,10 +24,10 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 	private static final String CLASS_NAME = ExternalJdbcTablesAndViewsReactor.class.getName();
 	
 	public ExternalJdbcTablesAndViewsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(), 
-				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), 
-				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey(),
-				ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), 
+				ReactorKeysEnum.HOST.getKey(), ReactorKeysEnum.PORT.getKey(), 
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
+				ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey()};
 	}
 
 	@Override
@@ -36,17 +36,19 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		
 		organizeKeys();
 		String driver = this.keyValue.get(this.keysToGet[0]);
-		String host = this.keyValue.get(this.keysToGet[1]);
-		String port = this.keyValue.get(this.keysToGet[2]);
-		String username = this.keyValue.get(this.keysToGet[3]);
-		String password = this.keyValue.get(this.keysToGet[4]);
-		String schema = this.keyValue.get(this.keysToGet[5]);
-		String additionalProperties = this.keyValue.get(this.keysToGet[6]);
+		String connectionUrl = this.keyValue.get(this.keysToGet[1]);
+		String host = this.keyValue.get(this.keysToGet[2]);
+		String port = this.keyValue.get(this.keysToGet[3]);
+		String username = this.keyValue.get(this.keysToGet[4]);
+		String password = this.keyValue.get(this.keysToGet[5]);
+		String schema = this.keyValue.get(this.keysToGet[6]);
+		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
 
-		String connectionUrl = null;;
 		Connection con = null;
 		try {
-			connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);
+			if(connectionUrl == null || connectionUrl.trim().isEmpty()) {
+				connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);
+			}
 			con = RdbmsConnectionHelper.buildConnection(connectionUrl, username, password, driver);
 		} catch (SQLException e) {
 			String driverError = e.getMessage();
