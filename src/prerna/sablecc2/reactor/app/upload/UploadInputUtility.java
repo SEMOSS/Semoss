@@ -240,7 +240,7 @@ public class UploadInputUtility {
 		return metamodel;
 	}
 
-	private static Map<String, Object> getMetamodel(NounStore store) {
+	public static Map<String, Object> getMetamodel(NounStore store) {
 		GenRowStruct grs = store.getNoun(METAMODEL);
 		if (grs == null || grs.isEmpty()) {
 			return null;
