@@ -1,12 +1,10 @@
-package prerna.sablecc2.reactor.frame;
+package prerna.sablecc2.reactor.frame.filtermodel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -14,8 +12,6 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -28,9 +24,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 
-public class FrameFilterModelReactor extends AbstractFilterReactor {
+public class FrameFilterModelVisibleValueReactor extends AbstractFilterReactor {
 
-	/*
+	/**
 	 * This reactor has many inputs
 	 * 
 	 * 1) columnName <- required
@@ -38,9 +34,12 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 	 * 3) limit <- optional
 	 * 4) offset <- optional
 	 * 5) panel <- optional
+	 * 
+	 * This reactor returns the visible values for a column
+	 * i.e. these would be values that are checked in a drop down selection
 	 */
 	
-	public FrameFilterModelReactor() {
+	public FrameFilterModelVisibleValueReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey() };
 	}
@@ -113,90 +112,17 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 			baseFilters.addFilters(wFilter);
 		}
 		
-		// filter values are the values that the user has filtered
-		// i.e. these are the values that are unchecked in the drop selection
-		
-		// unfilter values are the values that are currently visible
-		// i.e. these are the values that have a checkmark in the drop selection
-		
 		// figure out the visible values
-		List<Object> unFilterValues = new ArrayList<Object>();
+		List<Object> frameValues = new ArrayList<Object>();
 		// this is just the values of the column given the current filters
 		qs.setExplicitFilters(baseFilters);
 		// now run and flush out the values
 		Iterator<IHeadersDataRow> unFilterValuesIt = dataframe.query(qs);
 		while (unFilterValuesIt.hasNext()) {
-			unFilterValues.add(unFilterValuesIt.next().getValues()[0]);
+			frameValues.add(unFilterValuesIt.next().getValues()[0]);
 		}
-		retMap.put("unfilterValues", unFilterValues);
+		retMap.put("unfilterValues", frameValues);
 		
-		// if the current filters doesn't use the column
-		// there is no values that are unchecked to select
-		// i.e. nothing is done that is filtered that the user can undo for this column
-		List<Object> filterValues = new ArrayList<Object>();
-		if (columnFiltered(baseFilters, tableCol)) {
-
-			boolean validExistingFilters = true;
-			// if we did add a word filter, we only want to execute if there is another filter present
-			if (filterWord != null && !filterWord.trim().isEmpty()) {
-				if (baseFilters.size() == 1) {
-					validExistingFilters = false;
-				}
-			}
-
-			if(validExistingFilters) {
-				// to get the values that the user has filtered out
-				// we need create the inverse of the filters
-				// if they touch the column we care about
-				GenRowFilters inverseFilters = new GenRowFilters();
-				List<IQueryFilter> baseFiltersList = baseFilters.getFilters();
-				for (IQueryFilter filter : baseFiltersList) {
-					// check if it is a simple or complex filter
-					if (filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-						if (filter.containsColumn(tableCol)) {
-							// reverse the comparator
-							SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
-							fCopy.reverseComparator();
-
-							if(fCopy.getComparator() == "!=" && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
-								// include a show of null
-								// so we need to add this fCopy with a null find
-								NounMetadata nullLComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
-								List<Object> nullList = new Vector<Object>();
-								nullList.add(null);
-								NounMetadata nullRComparison = new NounMetadata(nullList, PixelDataType.CONST_STRING);
-								SimpleQueryFilter nullFilter = new SimpleQueryFilter(nullLComparison, "==", nullRComparison);
-								
-								OrQueryFilter orFilter = new OrQueryFilter(fCopy, nullFilter);
-								inverseFilters.addFilters(orFilter);
-							} else {
-								inverseFilters.addFilters(fCopy);
-							}
-						} else {
-							// just add it to the filters
-							inverseFilters.addFilters(filter.copy());
-						}
-					}
-					// okay, this is hard to figure out if it is not simple
-					// so just add it
-					else {
-						inverseFilters.addFilters(filter.copy());
-					}
-				}
-
-				// to get the filtered values
-				// run with the inverse filters of the current column
-				qs.setExplicitFilters(inverseFilters);
-				
-				// flush out the values
-				Iterator<IHeadersDataRow> filterValuesIt = dataframe.query(qs);
-				while (filterValuesIt.hasNext()) {
-					filterValues.add(filterValuesIt.next().getValues()[0]);
-				}
-			}
-		}
-		retMap.put("filterValues", filterValues);
-
 		// for numerical, also add the min/max
 		String alias = selector.getAlias();
 		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
@@ -237,18 +163,5 @@ public class FrameFilterModelReactor extends AbstractFilterReactor {
 		}
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FILTER_MODEL);
-	}
-
-	private boolean columnFiltered(GenRowFilters filters, String columnName) {
-		Set<String> filteredCols = filters.getAllFilteredColumns();
-		if (filteredCols.contains(columnName)) {
-			return true;
-		}
-		if (columnName.contains("__")) {
-			if (filteredCols.contains(columnName.split("__")[1])) {
-				return true;
-			}
-		}
-		return false;
 	}
 }
