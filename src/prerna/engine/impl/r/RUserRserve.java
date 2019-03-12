@@ -32,7 +32,7 @@ public class RUserRserve {
 		}
 	}
 	
-	private static void startRServe() throws IOException {
+	private static void startRServe() throws Exception {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
 		File output = new File(baseFolder + FS + "Rserve.output.log");
@@ -44,30 +44,26 @@ public class RUserRserve {
 		} else {
 			pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", PORT + "");
 		}
-
 		pb.redirectOutput(output);
 		pb.redirectError(error);
 		Process process = pb.start();
-		try {
-			process.waitFor(3, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		process.waitFor(7, TimeUnit.SECONDS);
 		started = true;
 	}
 
-	public static void stopRServe() throws IOException {
+	public static void stopRServe() throws Exception {
 		ProcessBuilder pb;
 		if (SystemUtils.IS_OS_WINDOWS) {
 			pb = new ProcessBuilder(rBin, "-e", "library(Rserve);library(RSclient);rsc<-RSconnect(port=" + PORT + ");RSshutdown(rsc)", "--vanilla");
 		} else {
 			pb = new ProcessBuilder("pkill", "Rserve");
 		}
-		pb.start();
+		Process process = pb.start();
+		process.waitFor(7, TimeUnit.SECONDS);
 		started = false;
 	}
 	
-	public synchronized static RConnection createConnection() {
+	public synchronized static RConnection createConnection() throws Exception {
 		RConnection rcon;
 		try {
 			rcon = new RConnection(HOST, PORT);
@@ -76,7 +72,14 @@ public class RUserRserve {
 			// try to start again and see if that works
 			try {
 				if (!started) {
-					startRServe();
+					try {
+						startRServe();
+					} catch (Exception e) {
+						
+						// If some sort of issue occurs, then try stopping then starting
+						stopRServe();
+						startRServe();
+					}
 				} else {
 					stopRServe();
 					startRServe();

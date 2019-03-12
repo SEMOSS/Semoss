@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -316,7 +315,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	public void endR() {
 		try {
 			RUserRserve.stopRServe();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.warn("Unable to shut down R.", e);
 		}
 	}
