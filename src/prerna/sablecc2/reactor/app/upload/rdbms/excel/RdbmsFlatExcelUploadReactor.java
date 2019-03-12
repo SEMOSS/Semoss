@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -104,6 +105,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		Map<String, Map<String, Map<String, String>>> dataTypesMap = getDataTypeMap();
 		Map<String, Map<String, Map<String, String>>> newHeaders = getNewHeaders();
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
+		Map<String, Map<String, Map<String, String>>> metaDescriptions = getMetaDescriptions();
+		Map<String, Map<String, Map<String, List<String>>>> metaLogicalNames = getMetaLogicalNames();
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		final boolean replace = UploadInputUtility.getReplace(this.store);
 
@@ -140,7 +143,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		logger.info("Done loading excel file");
 
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
-		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, replace);
+		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, 
+				metaDescriptions, metaLogicalNames, clean, replace);
 		this.helper.clear();
 		owler.export();
 		this.engine.setOWL(owlFile.getPath());
@@ -276,6 +280,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		Map<String, Map<String, Map<String, String>>> dataTypesMap = getDataTypeMap();
 		Map<String, Map<String, Map<String, String>>> newHeaders = getNewHeaders();
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
+		Map<String, Map<String, Map<String, String>>> metaDescriptions = getMetaDescriptions();
+		Map<String, Map<String, Map<String, List<String>>>> metaLogicalNames = getMetaLogicalNames();
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		final boolean replace = UploadInputUtility.getReplace(this.store);
 
@@ -297,7 +303,8 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		 */
 
 		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
-		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, clean, replace);
+		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, 
+				metaDescriptions, metaLogicalNames, clean, replace);
 		owler.export();
 		this.engine.setOWL(this.engine.getOWL());
 		logger.info(stepCounter + ". Complete");
@@ -335,9 +342,12 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 	 * @param helper
 	 * @param dataTypesMap
 	 * @param additionalDataTypeMap
+	 * @param newHeaders
+	 * @param metaDescriptions
+	 * @param metaLogicalNames
 	 * @param clean
-	 * @param logger
-	 * @throws Exception 
+	 * @param replace
+	 * @throws Exception
 	 */
 	private void processExcelSheets(
 			IEngine engine, 
@@ -346,10 +356,12 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
 			Map<String, Map<String, Map<String, String>>> additionalDataTypeMap,
 			Map<String, Map<String, Map<String, String>>> newHeaders,
+			Map<String, Map<String, Map<String, String>>> metaDescriptions,
+			Map<String, Map<String, Map<String, List<String>>>> metaLogicalNames,
 			boolean clean,
 			boolean replace) throws Exception {
 		// user hasn't defined the data types
-		// that means i am going ot assume that i should 
+		// that means i am going to assume that i should 
 		// load everything
 		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
 			// need to calculate all the ranges
@@ -365,7 +377,6 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 					List<ExcelRange> ranges = eBlock.getRanges();
 					for (ExcelRange eRange : ranges) {
 						String range = eRange.getRangeSyntax();
-
 						boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
 
 						ExcelQueryStruct qs = new ExcelQueryStruct();
@@ -373,8 +384,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 						qs.setSheetRange(range);
 						// sheetIterator will calculate the types if necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-						processSheet(engine, owler, sheetIterator, singleRange, clean, replace);
-
+						processSheet(engine, owler, sheetIterator, singleRange, clean, replace, null, null);
 					}
 				}
 			}
@@ -382,9 +392,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 			// only load the things that are defined
 			for (String sheet : dataTypesMap.keySet()) {
 				Map<String, Map<String, String>> rangeMaps = dataTypesMap.get(sheet);
+				Map<String, Map<String, String>> rangeDescription = metaDescriptions == null ? null : metaDescriptions.get(sheet);
+				Map<String, Map<String, List<String>>> rangeLogicalNames = metaLogicalNames == null ? null : metaLogicalNames.get(sheet);
 				boolean singleRange = (rangeMaps.keySet().size() == 1);
 				for (String range : rangeMaps.keySet()) {
-
 					ExcelQueryStruct qs = new ExcelQueryStruct();
 					qs.setSheetName(sheet);
 					qs.setSheetRange(range);
@@ -401,9 +412,10 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 							qs.setNewHeaderNames(aNewHeadersMap.get(range));
 						}
 					}
-
+					Map<String, String> descriptions = rangeDescription == null ? null : rangeDescription.get(range);
+					Map<String, List<String>> logicalNames = rangeLogicalNames == null ? null : rangeLogicalNames.get(range);
 					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-					processSheet(engine, owler, sheetIterator, singleRange, clean, replace);
+					processSheet(engine, owler, sheetIterator, singleRange, clean, replace, descriptions, logicalNames);
 				}
 			}
 		}
@@ -421,7 +433,9 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws Exception 
 	 */
-	private void processSheet(IEngine engine, OWLER owler, ExcelSheetFileIterator helper, boolean singleRange, boolean clean, boolean replace) throws Exception {
+	private void processSheet(IEngine engine, OWLER owler, ExcelSheetFileIterator helper, 
+			boolean singleRange, boolean clean, boolean replace, 
+			Map<String, String> descriptions, Map<String, List<String>> logicalNames) throws Exception {
 		logger.info("Start parsing sheet metadata");
 		// even if types are not defined
 		// the qs will end up calculating everything for unknown types
@@ -458,6 +472,7 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 		RdbmsUploadReactorUtility.addIndex(engine, tableName, uniqueRowId);
 
 		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
+		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, descriptions, logicalNames);
 	}
 
 	private void bulkInsertSheet(IEngine engine, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
@@ -663,6 +678,42 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 
 		return new Object[] { headers, types, additionalTypes };
 	}
+	
+	/**
+	 * 
+	 * @param owler
+	 * @param tableName
+	 * @param headers
+	 * @param descriptions
+	 * @param logicalNames
+	 */
+	private void insertOwlMetadata(OWLER owler, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+		// NOTE ::: We require the OWL to be loaded with the concepts and properties
+		// to get the proper physical URLs
+		
+		Hashtable<String, String> propHash = owler.getPropHash();
+
+		// we have already loaded everything into a single table
+		// so we will grab all the properties for that table
+		for(int i = 0; i < headers.length; i++) {
+			String property = headers[i];
+			String propertyPhysicaluri = propHash.get(tableName + "%" + property);
+			if(propertyPhysicaluri == null) {
+				System.err.println("Error with adding owl metadata on upload");
+				continue;
+			}
+			
+			// adding metadata to property physical uri
+			if(descriptions != null && descriptions.containsKey(property)) {
+				String desc = descriptions.get(property);
+				owler.addDescription(propertyPhysicaluri, desc);
+			}
+			
+			if(logicalNames != null && logicalNames.containsKey(property)) {
+				owler.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
+			}
+		}
+	}
 
 
 	///////////////////////////////////////////////////////
@@ -693,6 +744,22 @@ public class RdbmsFlatExcelUploadReactor extends AbstractUploadFileReactor {
 			return null;
 		}
 		return (Map<String, Map<String, Map<String, String>>>) grs.get(0);
+	}
+	
+	public Map<String, Map<String, Map<String, String>>> getMetaDescriptions() {
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.DESCRIPTION_MAP);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, Map<String, Map<String, String>>>) grs.get(0);
+	}
+	
+	public Map<String, Map<String, Map<String, List<String>>>> getMetaLogicalNames() {
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.LOGICAL_NAMES_MAP);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, Map<String, Map<String, List<String>>>>) grs.get(0);
 	}
 
 	///////////////////////////////////////////////////////////////////

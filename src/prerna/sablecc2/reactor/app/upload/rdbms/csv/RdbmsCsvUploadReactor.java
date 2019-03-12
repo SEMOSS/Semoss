@@ -159,6 +159,9 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		 * Back to normal app flow
 		 */
 		logger.info(stepCounter + ". Commit app metadata...");
+		// add the owl metadata
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
 		this.engine.setOWL(owler.getOwlPath());
@@ -254,6 +257,9 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		 */
 
 		logger.warn(stepCounter + ". Committing app metadata....");
+		// add the owl metadata
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
 		logger.info(stepCounter + ". Complete...");
