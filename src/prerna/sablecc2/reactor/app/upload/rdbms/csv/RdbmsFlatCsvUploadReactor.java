@@ -166,6 +166,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Start generating engine metadata");
 		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
 		RdbmsUploadReactorUtility.generateTableMetadata(owler, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
+		UploadUtilities.insertFlatOwlMetadata(owler, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
 		this.engine.setOWL(owlFile.getPath());
@@ -251,6 +252,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 			logger.info(stepCounter + ". Start generating engine metadata...");
 			OWLER owler = new OWLER(this.engine, this.engine.getOWL());
 			RdbmsUploadReactorUtility.generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes, additionalTypes);
+			UploadUtilities.insertFlatOwlMetadata(owler, tableToInsertInto, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 			owler.commit();
 			owler.export();
 			this.engine.setOWL(this.engine.getOWL());
@@ -495,7 +497,7 @@ public class RdbmsFlatCsvUploadReactor extends AbstractUploadFileReactor {
 
 		return existingTableNameToInsert;
 	}
-
+	
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////

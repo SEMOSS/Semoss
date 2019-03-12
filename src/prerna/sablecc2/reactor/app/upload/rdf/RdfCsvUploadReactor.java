@@ -99,6 +99,9 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Commit app metadata...");
 		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
+		// add the owl metadata
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
 
@@ -158,6 +161,9 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.warn(stepCounter + ". Committing app metadata....");
 		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
+		// add the owl metadata
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
 		// commit the created engine
