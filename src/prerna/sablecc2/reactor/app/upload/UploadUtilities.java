@@ -755,6 +755,87 @@ public class UploadUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 
+		File f = new File(host);
+		if(f.exists()) {
+			// custom logic for files!
+			FileWriter writer = null;
+			BufferedWriter bufferedWriter = null;
+			try {
+				writer = new FileWriter(appTempSmss);
+				bufferedWriter = new BufferedWriter(writer);
+				writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
+				String dbDriver = RdbmsConnectionHelper.getDriver(dbType);
+				bufferedWriter.write(Constants.RDBMS_TYPE + "\t" + dbType + "\n");
+				bufferedWriter.write(Constants.DRIVER + "\t" + dbDriver + "\n");
+				bufferedWriter.write(Constants.USERNAME + "\t" + username + "\n");
+				bufferedWriter.write(Constants.PASSWORD + "\t" + password + "\n");
+				String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(dbType, host, port, schema, additionalParams);
+				
+				// we have a file that we want to parameterize!
+				// write a parameterized version of the connection url 
+				// when it loads this will be replaced based on the local machine and work
+				String fileBasePath = f.getParent();
+				connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+				if(connectionUrl.contains("\\")) {
+					connectionUrl = connectionUrl.replace("\\", "\\\\");
+				}
+				bufferedWriter.write(Constants.CONNECTION_URL + "\t" + connectionUrl + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new IOException("Could not generate temporary smss file for app");
+			} finally {
+				try {
+					if (bufferedWriter != null) {
+						bufferedWriter.close();
+					}
+					if (writer != null) {
+						writer.close();
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		} else {
+			// we have a normal JDBC url
+			// create the connection url
+			// and use the default method
+			String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(dbType, host, port, schema, additionalParams);
+			createTemporaryExternalRdbmsSmss(appId, appName, owlFile, engineClassName, dbType, connectionUrl, username, password);
+		}
+		return appTempSmss;
+	}
+	
+
+	/**
+	 * Create a temporary smss file for an external rdbms engine
+	 * @param appId
+	 * @param appName
+	 * @param owlFile
+	 * @param engineClassName
+	 * @param dbType
+	 * @param connectionUrl
+	 * @param username
+	 * @param password
+	 * @return
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	public static File createTemporaryExternalRdbmsSmss(String appId, String appName, File owlFile,
+			String engineClassName, String dbType, String connectionUrl, String username, String password) throws IOException, SQLException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempSmssLoc);
+		if (appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 		try {
@@ -766,17 +847,7 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.DRIVER + "\t" + dbDriver + "\n");
 			bufferedWriter.write(Constants.USERNAME + "\t" + username + "\n");
 			bufferedWriter.write(Constants.PASSWORD + "\t" + password + "\n");
-			String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(dbType, host, port, schema, additionalParams);
-			
-			// do we have a file that we want to parameterize?
-			File f = new File(host);
-			if(f.exists()) {
-				// we want to write a parameterized version of the connection url
-				// the engine when it loads this will fix it so connection url will still work
-				String fileBasePath = f.getParent();
-				connectionUrl = connectionUrl.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
-			}
-			
+
 			if(connectionUrl.contains("\\")) {
 				connectionUrl = connectionUrl.replace("\\", "\\\\");
 			}
