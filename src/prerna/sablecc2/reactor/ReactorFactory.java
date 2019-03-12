@@ -151,7 +151,6 @@ import prerna.sablecc2.reactor.federation.AdvancedFederationGetBestMatch;
 import prerna.sablecc2.reactor.frame.CreateFrameReactor;
 import prerna.sablecc2.reactor.frame.CurrentFrameReactor;
 import prerna.sablecc2.reactor.frame.FrameDuplicatesReactor;
-import prerna.sablecc2.reactor.frame.FrameFilterModelReactor;
 import prerna.sablecc2.reactor.frame.FrameHeaderExistsReactor;
 import prerna.sablecc2.reactor.frame.FrameTypeReactor;
 import prerna.sablecc2.reactor.frame.GetFrameHeaderMetadataReactor;
@@ -164,6 +163,10 @@ import prerna.sablecc2.reactor.frame.filter.RemoveFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.ReplaceFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
+import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelFilteredValuesReactor;
+import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelNumericRangeReactor;
+import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelReactor;
+import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelVisibleValueReactor;
 import prerna.sablecc2.reactor.frame.graph.ConnectedNodesReactor;
 import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingGroupsReactor;
 import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingNodesReactor;
@@ -812,10 +815,14 @@ public class ReactorFactory {
 		reactorHash.put("DeleteFrameFilter", DeleteFrameFilterReactor.class);
 		reactorHash.put("UnfilterFrame", UnfilterFrameReactor.class);
 		reactorHash.put("InsightMetamodel", InsightMetamodelReactor.class);
-		reactorHash.put("FrameFilterModel", FrameFilterModelReactor.class);
 		reactorHash.put("HasDuplicates", FrameDuplicatesReactor.class);
 		reactorHash.put("CurrentFrame", CurrentFrameReactor.class);
 		reactorHash.put("SetCurrentFrame", SetCurrentFrameReactor.class);
+		// filter model
+		reactorHash.put("FrameFilterModel", FrameFilterModelReactor.class);
+		reactorHash.put("FrameFilterModelFilteredValues", FrameFilterModelFilteredValuesReactor.class);
+		reactorHash.put("FrameFilterModelVisibleValue", FrameFilterModelVisibleValueReactor.class);
+		reactorHash.put("FrameFilterModelNumericRange", FrameFilterModelNumericRangeReactor.class);
 
 		// Algorithm Reactors
 		reactorHash.put("rAlg", GenericRReactor.class);
