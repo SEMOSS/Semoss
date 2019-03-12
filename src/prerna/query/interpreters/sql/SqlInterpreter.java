@@ -306,7 +306,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		// keep track of all the processed columns
 		if(notEmbeddedColumn) {
 			this.retTableToCols.putIfAbsent(table, new Vector<String>());
-			this.retTableToCols.get(table).add(colName);
+			this.retTableToCols.get(table).add(physicalColName);
 		}
 		
 		// if its an illegal char
