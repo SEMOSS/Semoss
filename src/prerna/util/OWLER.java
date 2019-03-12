@@ -786,52 +786,52 @@ public class OWLER {
 	
 	/////////////////// END ADDITIONAL METHODS TO INSERT INTO THE OWL /////////////////////////////////
 
-	public static String constructConceptPhysicalUri(String table, String column, IEngine.ENGINE_TYPE eType) {
-		return constructConceptPhysicalUri(BASE_URI, table, column, eType);
-	}
-	
-	public static String constructConceptPhysicalUri(String baseUri, String table, String column, IEngine.ENGINE_TYPE eType) {
-		String baseNodeURI = baseUri + DEFAULT_NODE_CLASS;
-		String subject = baseNodeURI + "/";
-		
-		// if it is an RDBMS engine, we need to account when the table name and column name are not the same
-		if(eType.equals(IEngine.ENGINE_TYPE.RDBMS)) {
-			// if the column is null or empty, assume table name and col name are the same
-			if(column == null || column.isEmpty()) {
-				subject += table + "/" + table;
-			} else {
-				// they might be the same, might be diff, don't matter
-				// create it appropriately
-				subject += column + "/" + table;
-			}
-		} else {
-			// here, it must be RDF
-			// just add the table name since that is supposed to hold the concept name
-			subject += table;
-		}
-		return subject;
-	}
-	
-	public static String constructPropertyPhysicalUri(String table, String column, IEngine.ENGINE_TYPE eType) {
-		return constructPropertyPhysicalUri(BASE_URI, table, column, eType);
-	}
-	
-	public static String constructPropertyPhysicalUri(String baseUri, String table, String column, IEngine.ENGINE_TYPE eType) {
-		String basePropURI = SEMOSS_URI + DEFAULT_PROP_CLASS;
-		String subject = basePropURI + "/";
-		
-		// if it is an RDBMS engine
-		// create the uri appropriately 
-		if(eType.equals(IEngine.ENGINE_TYPE.RDBMS)) {
-			// add the column and then the table
-			subject += column + "/" + table;
-		} else {
-			// here, it must be RDF
-			// just add the column name
-			subject += column;
-		}
-		return subject;
-	}
+//	public static String constructConceptPhysicalUri(String table, String column, IEngine.ENGINE_TYPE eType) {
+//		return constructConceptPhysicalUri(BASE_URI, table, column, eType);
+//	}
+//	
+//	public static String constructConceptPhysicalUri(String baseUri, String table, String column, IEngine.ENGINE_TYPE eType) {
+//		String baseNodeURI = baseUri + DEFAULT_NODE_CLASS;
+//		String subject = baseNodeURI + "/";
+//		
+//		// if it is an RDBMS engine, we need to account when the table name and column name are not the same
+//		if(eType.equals(IEngine.ENGINE_TYPE.RDBMS)) {
+//			// if the column is null or empty, assume table name and col name are the same
+//			if(column == null || column.isEmpty()) {
+//				subject += table + "/" + table;
+//			} else {
+//				// they might be the same, might be diff, don't matter
+//				// create it appropriately
+//				subject += column + "/" + table;
+//			}
+//		} else {
+//			// here, it must be RDF
+//			// just add the table name since that is supposed to hold the concept name
+//			subject += table;
+//		}
+//		return subject;
+//	}
+//	
+//	public static String constructPropertyPhysicalUri(String table, String column, IEngine.ENGINE_TYPE eType) {
+//		return constructPropertyPhysicalUri(BASE_URI, table, column, eType);
+//	}
+//	
+//	public static String constructPropertyPhysicalUri(String baseUri, String table, String column, IEngine.ENGINE_TYPE eType) {
+//		String basePropURI = SEMOSS_URI + DEFAULT_PROP_CLASS;
+//		String subject = basePropURI + "/";
+//		
+//		// if it is an RDBMS engine
+//		// create the uri appropriately 
+//		if(eType.equals(IEngine.ENGINE_TYPE.RDBMS)) {
+//			// add the column and then the table
+//			subject += column + "/" + table;
+//		} else {
+//			// here, it must be RDF
+//			// just add the column name
+//			subject += column;
+//		}
+//		return subject;
+//	}
 	
 	///////////////// GETTERS ///////////////////////
 	

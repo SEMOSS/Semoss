@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -185,6 +186,100 @@ public class UploadUtilities {
 		String baseDirectory = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		return new File(baseDirectory).toURI().relativize(owlFile.toURI()).getPath();
 	}
+	
+	/**
+	 * 
+	 * @param owler
+	 * @param nodeProps
+	 * @param descriptions
+	 * @param logicalNames
+	 */
+	public static void insertOwlMetadataToGraphicalEngine(OWLER owler, Map<String, List<String>> nodeProps, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+		// NOTE ::: We require the OWL to be loaded with the concepts and properties
+		// to get the proper physical URLs
+		
+		Hashtable<String, String> conceptHash = owler.getConceptHash();
+		Hashtable<String, String> propHash = owler.getPropHash();
+		// take the node props
+		// so we know what is a concept
+		// and what is a property
+		for(String table : nodeProps.keySet()) {
+			// this is just to grab the concept
+			String tablePhysicalUri = conceptHash.get(table);
+			if(tablePhysicalUri == null) {
+				System.err.println("Error with adding owl metadata on upload");
+				continue;
+			}
+			
+			// adding metadata to table physical uri
+			if(descriptions != null && descriptions.containsKey(table)) {
+				String desc = descriptions.get(table);
+				owler.addDescription(tablePhysicalUri, desc);
+			}
+			
+			if(logicalNames != null && logicalNames.containsKey(table)) {
+				owler.addLogicalNames(tablePhysicalUri, logicalNames.get(table));
+			}
+			
+			List<String> properties = nodeProps.get(table);
+			if(!properties.isEmpty()) {
+				for(int i = 0; i < properties.size(); i++) {
+					String property = properties.get(i);
+					String propertyPhysicaluri = propHash.get(table + "%" + property);
+					if(propertyPhysicaluri == null) {
+						System.err.println("Error with adding owl metadata on upload");
+						continue;
+					}
+					
+					// adding metadata to property physical uri
+					if(descriptions != null && descriptions.containsKey(property)) {
+						String desc = descriptions.get(property);
+						owler.addDescription(propertyPhysicaluri, desc);
+					}
+					
+					if(logicalNames != null && logicalNames.containsKey(property)) {
+						owler.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param owler
+	 * @param tableName
+	 * @param headers
+	 * @param descriptions
+	 * @param logicalNames
+	 */
+	public static void insertFlatOwlMetadata(OWLER owler, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+		// NOTE ::: We require the OWL to be loaded with the concepts and properties
+		// to get the proper physical URLs
+		
+		Hashtable<String, String> propHash = owler.getPropHash();
+
+		// we have already loaded everything into a single table
+		// so we will grab all the properties for that table
+		for(int i = 0; i < headers.length; i++) {
+			String property = headers[i];
+			String propertyPhysicaluri = propHash.get(tableName + "%" + property);
+			if(propertyPhysicaluri == null) {
+				System.err.println("Error with adding owl metadata on upload");
+				continue;
+			}
+			
+			// adding metadata to property physical uri
+			if(descriptions != null && descriptions.containsKey(property)) {
+				String desc = descriptions.get(property);
+				owler.addDescription(propertyPhysicaluri, desc);
+			}
+			
+			if(logicalNames != null && logicalNames.containsKey(property)) {
+				owler.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
+			}
+		}
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -248,26 +343,6 @@ public class UploadUtilities {
 			// most important piece
 			// the connection url
 			bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL().replace('\\', '/') + "\n");
-			
-//			if(queryUtil.getDatabaseType().equals(SQLQueryUtil.DB_TYPE.H2_DB)) {
-//				if(fileName == null) {
-//					bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");
-//				} else {
-//					bufferedWriter.write("USE_FILE" + "\ttrue\n");
-//					fileName = fileName.replace(baseFolder, "@BaseFolder@");
-//					fileName = fileName.replace(dbname, SmssUtilities.ENGINE_REPLACEMENT);
-//					// strip the stupid ;
-//					fileName = fileName.replace(";", "");
-//					bufferedWriter.write("DATA_FILE" + "\t" + fileName+"\n");
-//					bufferedWriter.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL2() + "\n");
-//				}
-//			} else {
-//				bufferedWriter.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
-//			}
-//			bufferedWriter.write(Constants.USE_OUTER_JOINS + "\t" + queryUtil.getDefaultOuterJoins()+ "\n");
-//			//commenting out this item below by default
-//			bufferedWriter.write("# " + Constants.USE_CONNECTION_POOLING + "\t" + queryUtil.getDefaultConnectionPooling());
-		
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IOException("Could not generate temporary smss file for app");

@@ -1586,7 +1586,7 @@ public class MasterDatabaseUtility {
 		// select ec2.physicalname as parentPhysical, ec.physicalname as physicalname, c.conceptualname as conceptualname, c.logicalname as logicalname, ec.pk as isPrim from engineconcept ec inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid inner join concept c on ec.localconceptid=c.localconceptid where ec.engine='89850ba1-bafe-45a5-84ef-df8e21669267' order by isprim desc;		
 		
 		Map<String, List<String>> engineLogicalNames = new HashMap<String, List<String>>();
-		Map<String, String> parentPhysicalToConceptual = new HashMap<String, String>();
+		Map<String, String> parentPhysicalToConceptual = getParentPhysicalToConceptual(engineId);
 
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection masterConn = engine.makeConnection();
@@ -1595,7 +1595,6 @@ public class MasterDatabaseUtility {
 
 		try {
 			String query = "select distinct ec2.physicalname as parentPhysical, "
-					+ "ec.physicalname as physicalname, "
 					+ "c.conceptualname as conceptualname, "
 					+ "cmd.value as logicalname, "
 					+ "ec.pk as isPrim "
@@ -1603,27 +1602,18 @@ public class MasterDatabaseUtility {
 					+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
 					+ "inner join concept c on ec.localconceptid=c.localconceptid "
 					+ "inner join conceptmetadata cmd on ec.physicalnameid=cmd.physicalnameid "
-					+ "where ec.engine='"+ engineId + "' and cmd.key='logical' order by isprim desc;";
+					+ "where ec.engine='"+ engineId + "' and cmd.key='logical'";
 			
 			stmt = masterConn.createStatement();
 			rs = stmt.executeQuery(query);
 			while (rs.next()) {
 				String parentPhysical = rs.getString(1);
-				String physicalName = rs.getString(1);
-				String conceptualName = rs.getString(3);
-				String logicalName = rs.getString(4);
-				boolean isPk = rs.getBoolean(5);
+				String conceptualName = rs.getString(2);
+				String logicalName = rs.getString(3);
+				boolean isPk = rs.getBoolean(4);
 				
 				String uniqueName = conceptualName;
-				
-				if(isPk) {
-					// store so we can use it to create the proper unique name
-					// for the properties
-					parentPhysicalToConceptual.put(physicalName, conceptualName);
-				} else {
-					// since we order by isPrim
-					// we already have the 
-					// parent physical to conceptual mapping
+				if(!isPk) {
 					uniqueName = parentPhysicalToConceptual.get(parentPhysical) + "__" + conceptualName;
 				}
 				
@@ -1651,7 +1641,7 @@ public class MasterDatabaseUtility {
 		// select ec2.physicalname as parentPhysical, ec.localconceptid, ec.physicalname as physicalname, c.conceptualname as conceptualname, cmd.value as description, ec.pk as isPrim from engineconcept ec inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid inner join concept c on ec.localconceptid=c.localconceptid inner join conceptmetadata cmd on ec.localconceptid=cmd.localconceptid where ec.engine='89850ba1-bafe-45a5-84ef-df8e21669267' order by isprim desc;
 		
 		Map<String, String> engineDescriptions = new HashMap<String, String>();
-		Map<String, String> parentPhysicalToConceptual = new HashMap<String, String>();
+		Map<String, String> parentPhysicalToConceptual = getParentPhysicalToConceptual(engineId);
 
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection masterConn = engine.makeConnection();
@@ -1660,7 +1650,6 @@ public class MasterDatabaseUtility {
 
 		try {
 			String query = "select distinct ec2.physicalname as parentPhysical, "
-					+ "ec.physicalname as physicalname, "
 					+ "c.conceptualname as conceptualname, "
 					+ "cmd.value as description, "
 					+ "ec.pk as isPrim "
@@ -1668,27 +1657,18 @@ public class MasterDatabaseUtility {
 					+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
 					+ "inner join concept c on ec.localconceptid=c.localconceptid "
 					+ "inner join conceptmetadata cmd on ec.physicalnameid=cmd.physicalnameid "
-					+ "where ec.engine='"+ engineId + "' and cmd.key='description' order by isprim desc;";
+					+ "where ec.engine='"+ engineId + "' and cmd.key='description'";
 			
 			stmt = masterConn.createStatement();
 			rs = stmt.executeQuery(query);
 			while (rs.next()) {
 				String parentPhysical = rs.getString(1);
-				String physicalName = rs.getString(1);
-				String conceptualName = rs.getString(3);
-				String description = rs.getString(4);
-				boolean isPk = rs.getBoolean(5);
+				String conceptualName = rs.getString(2);
+				String description = rs.getString(3);
+				boolean isPk = rs.getBoolean(4);
 
 				String uniqueName = conceptualName;
-				
-				if(isPk) {
-					// store so we can use it to create the proper unique name
-					// for the properties
-					parentPhysicalToConceptual.put(physicalName, conceptualName);
-				} else {
-					// since we order by isPrim
-					// we already have the 
-					// parent physical to conceptual mapping
+				if(!isPk) {
 					uniqueName = parentPhysicalToConceptual.get(parentPhysical) + "__" + conceptualName;
 				}
 				
@@ -1701,6 +1681,38 @@ public class MasterDatabaseUtility {
 		}
 		
 		return engineDescriptions;
+	}
+	
+	private static Map<String, String> getParentPhysicalToConceptual(String engineId) {
+		// select distinct ec.physicalname, c.conceptualname from engineconcept ec inner join concept c on ec.localconceptid=c.localconceptid where ec.pk=true and ec.engine='ffa65a5d-f8e1-4d66-a1da-2d87a27b343b';
+		
+		Map<String, String> parentPhysicalToConceptual = new HashMap<String, String>();
+		
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection masterConn = engine.makeConnection();
+		Statement stmt = null;
+		ResultSet rs = null;
+
+		try {
+			String query = "select distinct ec.physicalname, c.conceptualname "
+					+ "from engineconcept ec "
+					+ "inner join concept c on ec.localconceptid=c.localconceptid "
+					+ "where ec.pk=true and ec.engine='" + engineId + "';";
+			
+			stmt = masterConn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				String physical = rs.getString(1);
+				String conceptual = rs.getString(2);
+				parentPhysicalToConceptual.put(physical, conceptual);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return parentPhysicalToConceptual;
 	}
 	
 	/**
