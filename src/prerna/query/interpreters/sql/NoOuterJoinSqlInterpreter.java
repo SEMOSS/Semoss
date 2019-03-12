@@ -390,7 +390,7 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		if (notEmbeddedColumn) {
 			// keep track of all the processed columns
 			this.retTableToCols.putIfAbsent(table, new Vector<String>());
-			this.retTableToCols.get(table).add(colName);
+			this.retTableToCols.get(table).add(physicalColName);
 		}
 		
 		// need to perform this check 
