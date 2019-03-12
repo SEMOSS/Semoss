@@ -112,6 +112,9 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Commit app metadata...");
+		// add the owl metadata
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
 		this.engine.setOWL(owler.getOwlPath());
@@ -178,6 +181,9 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.warn(stepCounter + ". Committing app metadata....");
+		// add the owl metadata
+		UploadUtilities.insertOwlMetadataToGraphicalEngine(owler, (Map<String, List<String>>) metamodelProps.get(Constants.NODE_PROP), 
+				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owler.commit();
 		owler.export();
 		logger.info(stepCounter + ". Complete");
