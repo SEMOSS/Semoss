@@ -99,9 +99,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 			logger.info("Loaded packages lubridate");
 			
 			// dplyr
-			// TODO >>>timb: RUSER - uncomment this
-			// rcon.eval("library(dplyr);");
-			// logger.info("Loaded packages dplyr");
+			rcon.eval("library(dplyr);");
+			logger.info("Loaded packages dplyr");
 			
 			// initialize the r environment
 			initREnv();
@@ -117,37 +116,30 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 		}
 	}
 
-	private synchronized boolean isHealthy(){
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Future<Boolean> future = executor.submit(new Callable<Boolean>() {
-		    @Override
-		    public Boolean call() throws Exception {
-		        return heartBeat();
-		    }
-		});
-
-		boolean isHealthy = false;
-		try {
-			isHealthy = future.get(3L, TimeUnit.SECONDS);
-		} catch (TimeoutException | InterruptedException | ExecutionException e) {
-			executor.shutdownNow();
-		    isHealthy = false;
-		}
-
-		return isHealthy;
-	}
-	private boolean heartBeat() {
+	private boolean isHealthy() {
 		boolean beating = false; // Healthy skepticism
-		try {
-			Object heartBeat = rcon.eval("1+2");
-			if (heartBeat instanceof org.rosuda.REngine.REXP) {
+		
+		Object monitor = userIsDefined() ? this.insight.getUser() : anonymousMonitor;
+		synchronized (monitor) {
+			ExecutorService executor = Executors.newSingleThreadExecutor();
+			Future<REXP> future = executor.submit(new Callable<REXP>() {
+				@Override
+				public REXP call() throws Exception {
+					return rcon.eval("1+2");
+				}
+			});
+
+			try {
+				REXP heartBeat = future.get(3L, TimeUnit.SECONDS);
 				if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
 					logger.info("R health check passed");
 					beating = true;
 				}
+			} catch (Exception e) {
+				logger.warn("R health check failed", e);
+			} finally {
+				executor.shutdownNow();
 			}
-		} catch (RserveException | REXPMismatchException e) {
-			logger.warn("R health check failed", e);
 		}
 		return beating;
 	}
@@ -158,33 +150,58 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator{
 	}
 	
 	public REXP rconEval(String rScript) {
-		if (isHealthy()){
-			try {
-				logger.info("Running R: " + rScript);
-				Object monitor = userIsDefined() ? this.insight.getUser() : anonymousMonitor;
-				synchronized (monitor) {
-					return rcon.eval(rScript);
+		if (isHealthy()) {
+			logger.info("Running R: " + rScript);
+			Object monitor = userIsDefined() ? this.insight.getUser() : anonymousMonitor;
+			synchronized (monitor) {
+				ExecutorService executor = Executors.newSingleThreadExecutor();
+				Future<REXP> future = executor.submit(new Callable<REXP>() {
+					@Override
+					public REXP call() throws Exception {
+						return rcon.eval(rScript);
+					}
+				});
+
+				try {
+					return future.get(180L, TimeUnit.SECONDS);
+				} catch (TimeoutException | InterruptedException e) {
+					throw new IllegalArgumentException("Timout occured when running R script.", e);
+				} catch (ExecutionException e) {
+					throw new IllegalArgumentException("Failed to run R script.", e);
+				} finally {
+					executor.shutdownNow();
 				}
-			} catch (RserveException e) {
-				throw new IllegalArgumentException("Failed to run R script.", e);
 			}
 		} else {
 			establishNewRConnection();
 			throw new IllegalArgumentException("R was not working properly but has succesfully recovered; however, your data in R has been lost.");
 		}
 	}
-	
+
 	@Override
 	public void executeEmptyR(String rScript) {
 		if (isHealthy()){
-			try {
-				logger.info("Running R: " + rScript);
-				Object monitor = userIsDefined() ? this.insight.getUser() : anonymousMonitor;
-				synchronized (monitor) {
-					rcon.voidEval(rScript);
+			logger.info("Running R: " + rScript);
+			Object monitor = userIsDefined() ? this.insight.getUser() : anonymousMonitor;
+			synchronized (monitor) {
+				ExecutorService executor = Executors.newSingleThreadExecutor();
+				Future<Void> future = executor.submit(new Callable<Void>() {
+					@Override
+					public Void call() throws Exception {
+						rcon.voidEval(rScript);
+						return null;
+					}
+				});
+
+				try {
+					future.get(180L, TimeUnit.SECONDS);
+				} catch (TimeoutException | InterruptedException e) {
+					throw new IllegalArgumentException("Timout occured when running R script.", e);
+				} catch (ExecutionException e) {
+					throw new IllegalArgumentException("Failed to run R script.", e);
+				} finally {
+					executor.shutdownNow();
 				}
-			} catch (RserveException e) {
-				throw new IllegalArgumentException("Failed to run R script.", e);
 			}
 		} else {
 			establishNewRConnection();
