@@ -506,6 +506,9 @@ public class Constants {
 	// how much R memory to allocate
 	public static final String R_MEM_LIMIT = "R_MEM_LIMIT";
 	
+	// max file transfer size
+	public static final String FILE_TRANSFER_LIMIT = "FILE_TRANSFER_LIMIT";
+	
 	// is this server running locally
 	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
 	
