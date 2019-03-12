@@ -40,7 +40,11 @@ public class UploadInputUtility {
 	public static final String DATA_TYPE_MAP = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
 	public static final String ADDITIONAL_DATA_TYPES = ReactorKeysEnum.ADDITIONAL_DATA_TYPES.getKey();
 	public static final String NEW_HEADERS = ReactorKeysEnum.NEW_HEADER_NAMES.getKey();
-
+	
+	// additional metadata fields on OWL
+	public static final String DESCRIPTION_MAP = "descriptionMap";
+	public static final String LOGICAL_NAMES_MAP = "logicalNamesMap";
+	
 	// defaults
 	public static final int START_ROW_INT = 2;
 	public static final int END_ROW_INT = 2_000_000_000;
@@ -147,6 +151,22 @@ public class UploadInputUtility {
 		return (Map<String, String>) grs.get(0);
 	}
 
+	public static Map<String, String> getCsvDescriptions(NounStore store) {
+		GenRowStruct grs = store.getNoun(DESCRIPTION_MAP);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, String>) grs.get(0);
+	}
+	
+	public static Map<String, List<String>> getCsvLogicalNames(NounStore store) {
+		GenRowStruct grs = store.getNoun(LOGICAL_NAMES_MAP);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, List<String>>) grs.get(0);
+	}
+	
 	/**
 	 * Figure out the end row count from the csv file
 	 * 
@@ -161,6 +181,22 @@ public class UploadInputUtility {
 			}
 		}
 		return false;
+	}
+	
+	public Map<String, String> getDescriptionMap(NounStore store) {
+		GenRowStruct grs = store.getNoun(DESCRIPTION_MAP);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, String>) grs.get(0);
+	}
+	
+	public Map<String, List<String>> getLogicalNamesMap(NounStore store) {
+		GenRowStruct grs = store.getNoun(LOGICAL_NAMES_MAP);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, List<String>>) grs.get(0);
 	}
 
 	//////////////////////////////////////////////////////////
