@@ -24,7 +24,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 
-public class FrameFilterModelVisibleValueReactor extends AbstractFilterReactor {
+public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor {
 
 	/**
 	 * This reactor has many inputs
@@ -39,7 +39,7 @@ public class FrameFilterModelVisibleValueReactor extends AbstractFilterReactor {
 	 * i.e. these would be values that are checked in a drop down selection
 	 */
 	
-	public FrameFilterModelVisibleValueReactor() {
+	public FrameFilterModelVisibleValuesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey() };
 	}

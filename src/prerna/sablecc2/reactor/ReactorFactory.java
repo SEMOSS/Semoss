@@ -166,7 +166,7 @@ import prerna.sablecc2.reactor.frame.filter.UnfilterFrameReactor;
 import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelFilteredValuesReactor;
 import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelNumericRangeReactor;
 import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelReactor;
-import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelVisibleValueReactor;
+import prerna.sablecc2.reactor.frame.filtermodel.FrameFilterModelVisibleValuesReactor;
 import prerna.sablecc2.reactor.frame.graph.ConnectedNodesReactor;
 import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingGroupsReactor;
 import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingNodesReactor;
@@ -821,7 +821,7 @@ public class ReactorFactory {
 		// filter model
 		reactorHash.put("FrameFilterModel", FrameFilterModelReactor.class);
 		reactorHash.put("FrameFilterModelFilteredValues", FrameFilterModelFilteredValuesReactor.class);
-		reactorHash.put("FrameFilterModelVisibleValue", FrameFilterModelVisibleValueReactor.class);
+		reactorHash.put("FrameFilterModelVisibleValues", FrameFilterModelVisibleValuesReactor.class);
 		reactorHash.put("FrameFilterModelNumericRange", FrameFilterModelNumericRangeReactor.class);
 
 		// Algorithm Reactors
