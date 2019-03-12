@@ -30,10 +30,10 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	public static final String RELATIONS_KEY = "relationships";
 	
 	public ExternalJdbcSchemaReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(), 
-				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), 
-				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey(),
-				ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
+		this.keysToGet = new String[]{ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), 
+				ReactorKeysEnum.HOST.getKey(), ReactorKeysEnum.PORT.getKey(), 
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
+				ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
 				ReactorKeysEnum.FILTERS.getKey()};
 	}
 
@@ -43,20 +43,24 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		
 		organizeKeys();
 		String driver = getStringInput(0);
-		String host = getStringInput(1);
-		String port = getStringInput(2);
-		String username = getStringInput(3);
-		String password = getStringInput(4);
-		String schema = getStringInput(5);
-		String additionalProperties = getStringInput(6);
+		String connectionUrl = getStringInput(1);
+		String host = getStringInput(2);
+		String port = getStringInput(3);
+		String username = getStringInput(4);
+		String password = getStringInput(5);
+		String schema = getStringInput(6);
+		String additionalProperties = getStringInput(7);
 	
 		List<String> tableAndViewFilters = getFilters();
 		boolean hasFilters = !tableAndViewFilters.isEmpty();
 		
-		String connectionUrl = null;;
 		Connection con = null;
 		try {
-			connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);
+			// user did not input the full url but the portions for us to construct it
+			// user has passed in the portions for us to construct the URL
+			if(connectionUrl == null || connectionUrl.trim().isEmpty()) {
+				connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);
+			}
 			con = RdbmsConnectionHelper.buildConnection(connectionUrl, username, password, driver);
 		} catch (SQLException e) {
 			String driverError = e.getMessage();
@@ -271,7 +275,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	private List<String> getFilters() {
 		List<String> filterValues = new Vector<String>();
 		
-		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[7]);
+		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[8]);
 		if(valueGrs != null && !valueGrs.isEmpty()) {
 			int length = valueGrs.size();
 			for(int i = 0; i < length; i++) {

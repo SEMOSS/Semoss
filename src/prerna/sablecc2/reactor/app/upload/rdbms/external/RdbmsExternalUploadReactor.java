@@ -25,7 +25,6 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -58,10 +57,10 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	protected transient boolean error = false;
 	
 	public RdbmsExternalUploadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
-				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.METAMODEL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), 
+				ReactorKeysEnum.HOST.getKey(), ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), 
+				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
+				UploadInputUtility.APP, UploadInputUtility.METAMODEL };
 	}
 
 	@Override
@@ -149,12 +148,13 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 		// information for connection details
 		String dbType = this.keyValue.get(this.keysToGet[0]);
-		String host = this.keyValue.get(this.keysToGet[1]);
-		String port = this.keyValue.get(this.keysToGet[2]);
-		String username = this.keyValue.get(this.keysToGet[3]);
-		String password = this.keyValue.get(this.keysToGet[4]);
-		String schema = this.keyValue.get(this.keysToGet[5]);
-		String additionalProperties = this.keyValue.get(this.keysToGet[6]);
+		String connectionUrl = this.keyValue.get(this.keysToGet[1]);
+		String host = this.keyValue.get(this.keysToGet[2]);
+		String port = this.keyValue.get(this.keysToGet[3]);
+		String username = this.keyValue.get(this.keysToGet[4]);
+		String password = this.keyValue.get(this.keysToGet[5]);
+		String schema = this.keyValue.get(this.keysToGet[6]);
+		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
 		
 		// if the host is a file
 		// we should move it into the appFolder directory
@@ -172,7 +172,10 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 		
 		// the logical metamodel for the upload
-		Map<String, Object> externalMetamodel = getMetamodel();
+		Map<String, Object> externalMetamodel = UploadInputUtility.getMetamodel(this.store);
+		if(externalMetamodel == null) {
+			throw new IllegalArgumentException("Must define the metamodel portions we are uploading");
+		}
 		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
 		List<Map<String, Object>> relationships = (List<Map<String, Object>>) externalMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
 		logger.info(stepCounter + ". Create properties file for database...");
@@ -183,7 +186,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			engineClassName = ImpalaEngine.class.getName();
 			engine = new ImpalaEngine();
 		}
-		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile, engineClassName, dbType, host, port, schema, username, password, additionalProperties);
+		if(connectionUrl == null || connectionUrl.trim().isEmpty()) {
+			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile, engineClassName, dbType, host, port, schema, username, password, additionalProperties);
+		} else {
+			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile, engineClassName, dbType, connectionUrl, username, password);
+		}
 		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -235,11 +242,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Process app metadata to allow for traversing across apps	");
-		try {
-			UploadUtilities.updateMetadata(this.appId);
-		} catch (Exception e1) {
-			e1.printStackTrace();
-		}
+		UploadUtilities.updateMetadata(this.appId);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}
@@ -323,14 +326,6 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			String predicate = subject + "." + joinColumns[0] + "." + object + "." + joinColumns[1];
 			owler.addRelation(subject, nodesAndPrimKeys.get(subject), object, nodesAndPrimKeys.get(object), predicate);
 		}
-	}
-	
-	private Map<String, Object> getMetamodel() {
-		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.METAMODEL.getKey());
-		if (grs == null || grs.isEmpty()) {
-			return null;
-		}
-		return (Map<String, Object>) grs.get(0);
 	}
 
 }
