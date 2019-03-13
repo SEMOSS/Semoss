@@ -23,8 +23,31 @@ public class RSingleton {
 		
 	}
 	
-	public static void startRServe(int port)
-	{
+	/**
+	 * Get the connection and build if doesn't exist
+	 * @return
+	 */
+	public static RConnection getConnection() {
+		if(rcon == null) {
+			int port = getPortForRserve();
+			return getConnection("127.0.0.1", port);
+		}
+		return rcon;
+	}
+	
+	public static RConnection getConnection(int port) {
+		return getConnection("127.0.0.1", port);		
+	}
+	
+	/**
+	 * Get the rconn object as is. This maybe null
+	 * @return
+	 */
+	public static RConnection getRCon() {
+		return rcon;
+	}
+	
+	public static void startRServe(int port) {
 		try {
 			String rHome = System.getenv("R_HOME");
 			System.out.println("RHome is ... " + rHome);
@@ -66,13 +89,11 @@ public class RSingleton {
 		}
 	}
 	
-	public static void stopRServe()
-	{
+	public static void stopRServe() {
 		stopRServe(port);
 	}
 	
-	public static void stopRServe(int port)
-	{
+	public static void stopRServe(int port) {
 		try {
 			String rHome = System.getenv("R_HOME");
 			
@@ -94,22 +115,8 @@ public class RSingleton {
 		}
 		
 	}
+	
 
-	
-	public static RConnection getConnection() {
-		
-		
-		if(rcon == null) {
-			int port = getPortForRserve();
-			
-			return getConnection("127.0.0.1", port);
-		}
-		return rcon;
-	}
-	
-	public static RConnection getConnection(int port) {
-		return getConnection("127.0.0.1", port);		
-	}
 	
 	public static RConnection getConnection(String host, int port) {
 		
