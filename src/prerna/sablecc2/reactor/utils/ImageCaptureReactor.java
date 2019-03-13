@@ -209,7 +209,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 			driver.get(url);
 		}
 		if(sessionId != null) {
-			Cookie name = new Cookie("JSESSIONID", sessionId, "/");
+			Cookie name = new Cookie(DIHelper.getInstance().getLocalProp(Constants.SESSION_ID_KEY).toString(), sessionId, "/");
 			driver.manage().addCookie(name);
 		}
 		driver.navigate().to(url);
