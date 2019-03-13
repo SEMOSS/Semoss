@@ -75,6 +75,30 @@ public class AWSClient extends CloudClient{
 		}
 	}
 
+	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
+		IEngine engine = Utility.getEngine(appId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+
+		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String aliasAppId = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		String awsRCloneConfig = null;
+
+		try {
+			awsRCloneConfig = createRcloneConfig(appId);
+			engine.closeDB();
+			System.out.println("Pulling insights database for" + appFolder + " from remote=" + appId);
+			runRcloneProcess(awsRCloneConfig, "rclone", "sync", awsRCloneConfig + ":" + aws_bucket+"/"+appId+"/insights_database.mv.db", appFolder);
+
+		}  finally {
+			if (awsRCloneConfig != null) {
+				deleteRcloneConfig(awsRCloneConfig);
+			}
+		}
+	}
+
 
 	@Override
 	public void pushApp(String appId) throws IOException, InterruptedException {
@@ -267,7 +291,7 @@ public class AWSClient extends CloudClient{
 		}
 	}
 
-	
+
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////// Static Util Methods ////////////////////////////////////
@@ -278,6 +302,7 @@ public class AWSClient extends CloudClient{
 		runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "env_auth","true","region",aws_region);
 		return rcloneConfig;
 	}
+
 
 
 }
