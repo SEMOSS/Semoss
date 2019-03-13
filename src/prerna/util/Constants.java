@@ -463,6 +463,7 @@ public class Constants {
 	public static final String SECURITY_ENABLED = "security-enabled";
 	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
 	public static final String SESSION_USER = "semoss_user";
+	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
 	public static final String ANONYMOUS_USER_ID = "-1";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
 	
