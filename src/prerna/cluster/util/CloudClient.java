@@ -55,7 +55,8 @@ public abstract class CloudClient {
 
 	public abstract void deleteContainer(String containerId) throws IOException, InterruptedException; 
 
-
+	public abstract void syncInsightsDB(String appId) throws IOException, InterruptedException;
+	
 	protected static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
 		try {
@@ -124,5 +125,6 @@ public abstract class CloudClient {
 			return lines;
 		}
 	}
+
 }
 

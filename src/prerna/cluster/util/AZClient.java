@@ -198,6 +198,9 @@ public class AZClient extends CloudClient {
 		createServiceClient();
 	}
 	
+
+
+	
 	public void quarantineContainer(String containerName)
 	{
 		// take this out in terms of listing
@@ -246,6 +249,59 @@ public class AZClient extends CloudClient {
 //			System.out.println(container);
 //		}
 	}
+	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
+		IEngine engine = Utility.getEngine(appId, false);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+		String appRcloneConfig = null;
+		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String aliasAppId = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		try {
+			appRcloneConfig = createRcloneConfig(appId);
+				engine.closeDB();
+				System.out.println("Pulling insights database for" + appFolder + " from remote=" + appId);
+				runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/insights_database.mv.db", appFolder);
+				//List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "pull", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
+		}  finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+		}
+	}
+	
+	// This is the sync the whole app. It shouldn't be used yet. Only the insights DB should be sync actively 
+	
+//	public  Boolean syncApp(String appId) throws IOException, InterruptedException{
+//		Boolean sync = false;
+//		IEngine engine = Utility.getEngine(appId, false);
+//		if (engine == null) {
+//			throw new IllegalArgumentException("App not found...");
+//		}
+//		String appRcloneConfig = null;
+//		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+//		String aliasAppId = alias + "__" + appId;
+//		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+//		try {
+//			appRcloneConfig = createRcloneConfig(appId);
+//				engine.closeDB();
+//				System.out.println("Checking from app path" + appFolder + " to remote=" + appId);
+//				List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "check", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
+//				for(String s:results){
+//				System.out.println("Result String: " + s);
+//				}
+//				if(results.get(0).contains("ERROR")){
+//					sync=true;
+//				}
+//		}  finally {
+//			if (appRcloneConfig != null) {
+//				deleteRcloneConfig(appRcloneConfig);
+//			}
+//		}
+//
+//		return sync;
+//	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////// Push ////////////////////////////////////////////

@@ -59,6 +59,20 @@ public class ClusterUtil {
 		}
 
 	}
+	
+	public static void reactorPullApp(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().pullApp(appId);
+			} catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to pull app to cloud storage", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
 
 	public static void reactorPushApp(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
@@ -73,6 +87,22 @@ public class ClusterUtil {
 			}
 		}
 	}
+	
+	public static void reactorSyncInsightsDB(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+			 CloudClient.getClient().syncInsightsDB(appId);
+			} catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+		return;
+	}
+
 
 	public static void reactorUpdateApp(String appId) {
 		if (ClusterUtil.IS_CLUSTER) {
