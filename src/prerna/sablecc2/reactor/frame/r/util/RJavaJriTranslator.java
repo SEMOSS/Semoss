@@ -25,7 +25,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	Rengine engine;
 
 	/**
-	 * Constructor only accesssible through the package
+	 * Constructor only accessible through the package
 	 * Please use the insight object or the RJavaTranslatorFactory
 	 * to get the correct instance
 	 */
@@ -164,7 +164,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			}
 		}
 		this.engine = retEngine;
-		initREnv();
+//		initREnv();
 	}
 	
 	@Override
@@ -548,7 +548,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void initREnv() {
 		if(engine != null) {
-//			engine.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
+			engine.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
 		}
 	}
 
