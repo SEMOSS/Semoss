@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
@@ -21,6 +24,8 @@ import prerna.util.ArrayUtilityMethods;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
+	private static ConcurrentMap<String, ReentrantLock> genEngineLock = new ConcurrentHashMap<String, ReentrantLock>();
+	
 	RConnection retCon;
 	String port;
 
@@ -31,6 +36,19 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	 */
 	RJavaRserveTranslator() {
 
+	}
+	
+	/**
+	 * Create a new engine if it doesn't exist
+	 * @return
+	 */
+	private static synchronized RConnection generateConnection() {
+		return RSingleton.getConnection();
+	}
+	
+	private static synchronized ReentrantLock getConnectionLock(String id) {
+		genEngineLock.putIfAbsent(id, new ReentrantLock());
+		return genEngineLock.get(id);
 	}
 
 	/**
@@ -51,67 +69,112 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		}
 		
 		if(this.retCon == null) {
-			logger.info("R Connection has not been defined yet...");
+			this.retCon = RSingleton.getRCon();
+			if(this.retCon == null) {
+				logger.info("R Connection has not been defined yet...");
+			}
 		} else {
 			logger.info("Retrieving existing R Connection...");
 		}
 		
 		if (this.retCon == null) {
 			try {
-				logger.info("Starting R Connection... ");
-				this.retCon = RSingleton.getConnection();
-				logger.info("Successfully created R Connection... ");
-				
-//				port = Utility.findOpenPort();
-//				logger.info("Starting it on port.. " + port);
-//				// need to find a way to get a common name
-//				masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
-//				retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
-				
-				// load all the libraries
-				retCon.eval("library(splitstackshape);");
-				logger.info("Loaded packages splitstackshape");
-				// data table
-				retCon.eval("library(data.table);");
-				logger.info("Loaded packages data.table");
-				// reshape2
-				retCon.eval("library(reshape2);");
-				logger.info("Loaded packages reshape2");
-				// stringr
-				retCon.eval("library(stringr)");
-				logger.info("Loaded packages stringr");
-				// lubridate
-				retCon.eval("library(lubridate);");
-				logger.info("Loaded packages lubridate");
-				// dplyr
-				retCon.eval("library(dplyr);");
-				logger.info("Loaded packages dplyr");
-				
-				if(this.insight != null) {
-					this.insight.getVarStore().put(AbstractBaseRClass.R_CONN, new NounMetadata(retCon, PixelDataType.R_CONNECTION));
-					this.insight.getVarStore().put(AbstractBaseRClass.R_PORT, new NounMetadata(port, PixelDataType.CONST_STRING));
+				ReentrantLock lock = getConnectionLock("genId");
+				lock.lock();
+				try {
+					if(this.retCon == null) {
+						logger.info("Starting R Connection... ");
+						this.retCon = generateConnection();
+						logger.info("Successfully created R Connection... ");
+	
+						// port = Utility.findOpenPort();
+						// logger.info("Starting it on port.. " + port);
+						// // need to find a way to get a common name
+						// masterCon.eval("library(Rserve); Rserve(port = " + port + ")");
+						// retCon = new RConnection("127.0.0.1", Integer.parseInt(port));
+	
+						// load all the libraries
+						retCon.eval("library(splitstackshape);");
+						logger.info("Loaded packages splitstackshape");
+						// data table
+						retCon.eval("library(data.table);");
+						logger.info("Loaded packages data.table");
+						// reshape2
+						retCon.eval("library(reshape2);");
+						logger.info("Loaded packages reshape2");
+						// stringr
+						retCon.eval("library(stringr)");
+						logger.info("Loaded packages stringr");
+						// lubridate
+						retCon.eval("library(lubridate);");
+						logger.info("Loaded packages lubridate");
+						// dplyr
+						retCon.eval("library(dplyr);");
+						logger.info("Loaded packages dplyr");
+	
+						if(this.insight != null) {
+							this.insight.getVarStore().put(AbstractBaseRClass.R_CONN, new NounMetadata(retCon, PixelDataType.R_CONNECTION));
+							this.insight.getVarStore().put(AbstractBaseRClass.R_PORT, new NounMetadata(port, PixelDataType.CONST_STRING));
+						}
+	
+						// initialize the r environment
+//						initREnv();
+						setMemoryLimit();
+					}
+				} catch (Exception e) {
+					System.out.println(
+							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
+									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
+					e.printStackTrace();
+					throw new IllegalArgumentException(
+							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
+									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
+				} finally {
+					lock.unlock();
 				}
-				
-				// initialize the r environment
-				initREnv();
-				setMemoryLimit();
-			} catch (Exception e) {
-				System.out.println(
-						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
-								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
+			} catch(Exception e) {
 				e.printStackTrace();
-				throw new IllegalArgumentException(
-						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
-								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
 			}
 		}
 	}
 
+	/**
+	 * Run r synchronized
+	 * @param rScript
+	 * @return
+	 * @throws RserveException 
+	 */
+	private synchronized REXP evalRSync(String rScript) throws RserveException {
+		ReentrantLock lock = getConnectionLock("execR");
+		lock.lock();
+		try {
+			return retCon.eval(rScript);
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	/**
+	 * Run r synchronized void
+	 * @param rScript
+	 * @return
+	 * @throws RserveException 
+	 */
+	private synchronized void voidEvalRSync(String rScript) throws RserveException {
+		ReentrantLock lock = getConnectionLock("execR");
+		lock.lock();
+		try {
+			retCon.voidEval(rScript);
+		} finally {
+			lock.unlock();
+		}
+	}
+	
 	@Override
-	public Object executeR(String rScript) {
+	public synchronized Object executeR(String rScript) {
 		try {
 			System.out.println("executeR: " + rScript);
-			return retCon.eval(rScript);
+			return evalRSync(rScript);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -119,10 +182,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	}
 	
 	@Override
-	public void executeEmptyR(String rScript) {
+	public synchronized void executeEmptyR(String rScript) {
 		try {
 			System.out.println("executeR: " + rScript);
-			retCon.voidEval(rScript);
+			voidEvalRSync(rScript);
 		} catch (RserveException e) {
 			e.printStackTrace();
 		}
@@ -131,7 +194,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public String getString(String script) {
 		try {
-			return retCon.eval(script).asString();
+			return evalRSync(script).asString();
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
@@ -143,7 +206,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public String[] getStringArray(String script) {
 		try {
-			return retCon.eval(script).asStrings();
+			return evalRSync(script).asStrings();
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
@@ -160,7 +223,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public String[] getColumnTypes(String frameName) {
 		String script = "sapply(" + frameName + ", class);";
 		try {
-			REXP val = retCon.eval(script);
+			REXP val = evalRSync(script);
 			try {
 				 return val.asStrings();
 			} catch (REXPMismatchException e) {
@@ -205,7 +268,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public int getInt(String script) {
 		int number = 0;
 		try {
-			number = retCon.eval(script).asInteger();
+			number = evalRSync(script).asInteger();
 			return number;
 		} catch (RserveException e) {
 			e.printStackTrace();
@@ -218,7 +281,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public int[] getIntArray(String script) {
 		try {
-			return retCon.eval(script).asIntegers();
+			return evalRSync(script).asIntegers();
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
@@ -231,7 +294,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public double getDouble(String script) {
 		double number = 0;
 		try {
-			number = retCon.eval(script).asDouble();
+			number = evalRSync(script).asDouble();
 			return number;
 		} catch (RserveException e) {
 			e.printStackTrace();
@@ -244,7 +307,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double[] getDoubleArray(String script) {
 		try {
-			return retCon.eval(script).asDoubles();
+			return evalRSync(script).asDoubles();
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
@@ -256,7 +319,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double[][] getDoubleMatrix(String script) {
 		try {
-			return retCon.eval(script).asDoubleMatrix();
+			return evalRSync(script).asDoubleMatrix();
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
@@ -268,7 +331,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Object getFactor(String script) {
 		try {
-			return retCon.eval(script).asFactor();
+			return evalRSync(script).asFactor();
 		} catch (RserveException e) {
 			e.printStackTrace();
 		} catch (REXPMismatchException e) {
@@ -281,7 +344,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public boolean getBoolean(String script) {
 		// 1 = TRUE, 0 = FALSE
 		try {
-			REXP val = retCon.eval(script);
+			REXP val = evalRSync(script);
 			if(val != null) {
 				return (val.asInteger() == 1);
 			}
@@ -297,7 +360,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
 		try {
 			double[] breaks;
-			Map<String, Object> histJ = (Map<String, Object>) (retCon.eval(script).asNativeJavaObject());
+			Map<String, Object> histJ = (Map<String, Object>) (evalRSync(script).asNativeJavaObject());
 			if (histJ.get("breaks") instanceof int[]){
 				int[] breaksInt = (int[]) histJ.get("breaks");
 				breaks = Arrays.stream(breaksInt).asDoubleStream().toArray();
@@ -661,7 +724,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public void initREnv() {
 		try {
 			if(this.retCon != null) {
-				this.retCon.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + "<- new.env();}");
+				this.evalRSync("if(!exists(\"" + this.env + "\")) {" + this.env  + "<- new.env();}");
 			}
 		} catch (RserveException e) {
 			e.printStackTrace();
