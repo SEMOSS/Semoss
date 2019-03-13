@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -62,6 +63,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			// this is always encoded before it gets here
 			recipeToSave = decodeRecipe(recipeToSave);
 		}
+		
+		//Pull the insights db again incase someone just saved something 
+		ClusterUtil.reactorSyncInsightsDB(appId);
 
 		// get the new insight id
 		String newInsightId = UUID.randomUUID().toString();
