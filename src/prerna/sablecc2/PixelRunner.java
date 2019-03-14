@@ -94,7 +94,7 @@ public class PixelRunner {
 	private void trackInvalidSyntaxError(String pixel, Exception ex) {
 		IUserTracker tracker = UserTrackerFactory.getInstance();
 		if(tracker.isActive()) {
-//			tracker.trackError(this.insight, pixel, true, ex);
+			tracker.trackError(this.insight, pixel, "INVALID_SYNTAX", "INVALID_SYNTAX", false, ex);
 		}
 	}
 	
