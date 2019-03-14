@@ -73,6 +73,6 @@ public interface IUserTracker {
 	 * @param invalidSyntax
 	 * @param ex
 	 */
-	void trackError(Insight in, String pixel, boolean invalidSyntax, Exception ex);
+	void trackError(Insight in, String pixel, String reactorName, String parentReactorName, boolean meta, Exception ex);
 
 }

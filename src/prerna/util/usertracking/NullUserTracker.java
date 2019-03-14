@@ -65,7 +65,7 @@ public class NullUserTracker implements IUserTracker {
 	}
 
 	@Override
-	public void trackError(Insight in, String pixel, boolean invalidSyntax, Exception ex) {
+	public void trackError(Insight in, String pixel, String reactorName, String parentReactorName, boolean meta, Exception ex) {
 		// TODO Auto-generated method stub
 		
 	}
