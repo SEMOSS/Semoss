@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -71,12 +70,19 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String newInsightId = UUID.randomUUID().toString();
 		// get an updated recipe if there are files used
 		// and save the files in the correct location
-		recipeToSave = saveFilesInInsight(recipeToSave, appId, newInsightId);
-		
-		if(params != null && !params.isEmpty()) {
-			recipeToSave = getParamRecipe(recipeToSave, params, insightName);
+		try {
+			recipeToSave = saveFilesInInsight(recipeToSave, appId, newInsightId);
+		} catch(Exception e) {
+			throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage());
 		}
-		
+		if(params != null && !params.isEmpty()) {
+			try {
+				recipeToSave = getParamRecipe(recipeToSave, params, insightName);
+			} catch(Exception e) {
+				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage());
+			}
+		}
+
 		IEngine engine = Utility.getEngine(appId);
 		if(engine == null) {
 			// we may have the alias

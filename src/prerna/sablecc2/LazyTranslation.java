@@ -168,7 +168,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         	try {
         		e.apply(this);
         	} catch(SemossPixelException ex) {
-        		trackError(e.toString(), ex);
+        		trackError(e.toString(), this.isMeta, ex);
         		ex.printStackTrace();
         		// if we want to continue the thread of execution
         		// nothing special
@@ -185,7 +185,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         			throw ex;
         		}
         	} catch(Exception ex) {
-        		trackError(e.toString(), ex);
+        		trackError(e.toString(), this.isMeta, ex);
         		ex.printStackTrace();
         		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
@@ -198,10 +198,19 @@ public class LazyTranslation extends DepthFirstAdapter {
 	 * @param pixel
 	 * @param ex
 	 */
-	private void trackError(String pixel, Exception ex) {
+	private void trackError(String pixel, boolean meta, Exception ex) {
 		IUserTracker tracker = UserTrackerFactory.getInstance();
 		if(tracker.isActive()) {
-//			tracker.trackError(this.insight, pixel, false, ex);
+			String curReactorName = null;
+			String parentReactorName = null;
+			if(this.curReactor != null) {
+				curReactorName = this.curReactor.getClass().getName();
+				IReactor parentReactor = this.curReactor.getParentReactor();
+				if(parentReactor != null) {
+					parentReactorName = parentReactor.getClass().getName();
+				}
+			}
+			tracker.trackError(this.insight, pixel, curReactorName, parentReactorName, meta, ex);
 		}
 	}
 
