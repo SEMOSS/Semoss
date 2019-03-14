@@ -31,11 +31,13 @@ import prerna.sablecc2.reactor.algorithms.GenericRReactor;
 import prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
 import prerna.sablecc2.reactor.algorithms.MultiClusteringAlgorithmReactor;
+import prerna.sablecc2.reactor.algorithms.NLSQueryHelperReactor;
 import prerna.sablecc2.reactor.algorithms.NaturalLanguageSearchReactor;
 import prerna.sablecc2.reactor.algorithms.NumericalCorrelationReactor;
 import prerna.sablecc2.reactor.algorithms.OutlierAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.RatioAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.SimilarityAlgorithmReactor;
+import prerna.sablecc2.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.sablecc2.reactor.algorithms.WekaAprioriReactor;
 import prerna.sablecc2.reactor.algorithms.WekaClassificationReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetCSVSchemaReactor;
@@ -931,6 +933,8 @@ public class ReactorFactory {
 		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationReactor.class);
 		reactorHash.put("VizRecommendations", VisualizationRecommendationReactor.class);
 		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
+		reactorHash.put("UpdateNLPHistory", UpdateNLPHistoryReactor.class);
+		reactorHash.put("NLSQueryHelper", NLSQueryHelperReactor.class);
 		
 		// Dates
 		reactorHash.put("Date", DateReactor.class);
