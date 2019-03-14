@@ -1,0 +1,33 @@
+Which movie Title produced by Studio Paramount
+Who is Director of Title Titanic
+What is Genre of Title Avatar
+Who is Director in Genre Drama and in Studio Dreamworks
+What is average movie Revenue_Domestic for Studio Paramount
+Which movie Title produced by Director Steven_Spielberg
+Which movie Genre produced by Director Steven_Spielberg
+What is average movie Revenue_International for Paramount Studio
+What is total movie Revenue_Domestic and total MovieBudget by Studio Genre and Director
+Which movie Title produced by Studio Dreamworks and by Genre Drama
+Which Title has MovieBudget less than 10000000
+Which Title has MovieBudget greater than 100000000
+Select Title that has Revenue_Domestic greater than 100000000
+Which movie Title has Revenue_Domestic not less than 50000000
+Which movie Title has Revenue_Domestic between 100000000 and 500000000
+Select Title with Revenue_International greater than 100000000 and released by Studio WB
+which movies Title has best Revenue_Domestic
+which movies Title has worst Revenue_Domestic
+What is total movie Revenue_Domestic by Studio
+What is total movie Revenue_Domestic by Director
+What is average movie Revenue_Domestic by Genre
+What is total movie Revenue_Domestic for Studio Universal by Genre
+What is total movie Revenue_Domestic and total MovieBudget by Studio
+What is total MovieBudget by Studio Genre and Director
+Which movie Director has the total Revenue_Domestic greater than 500000000
+Which Genre has average MovieBudget greater than 30000000
+Which Studio has total movie Revenue_Domestic greater than 500000000
+Which movie Director has highest total Revenue_Domestic in Studio Paramount
+Which movie Director has lowest total Revenue_Domestic in Studio Paramount
+How many movie Title with Revenue_Domestic greater than 100000000
+How many Title delivered by Studio Paramount
+How many Director in Genre Drama and in Studio Dreamworks
+How many Title delivered by Director Steven_Spielberg
