@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -796,21 +797,48 @@ public class TableUserTracker implements IUserTracker {
 	}
 
 	@Override
-	public void trackError(Insight in, String pixel, boolean invalidSyntax, Exception ex) {
-//		List<Object[]> rows = new Vector<Object[]>();
-//		
-//		String id = UUID.randomUUID().toString();
-//		String[] insightDetails = getInsightDetailsString(in);
-//		String sessionId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0] + "");
-//		String insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1] + "");
-//		String userId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[2] + "");
-//		String time = insightDetails[3];
-//		
-//		String errorMessage = ex.getMessage();
-//		String stackTrace = ExceptionUtils.getStackTrace(ex);
-//		
-//		System.out.println(errorMessage);
-//		System.out.println(stackTrace);
+	public void trackError(Insight in, String pixel, String reactorName, String parentReactorName, boolean meta, Exception ex) {
+		List<Object[]> rows = new Vector<Object[]>();
+		
+		String id = UUID.randomUUID().toString();
+		String[] insightDetails = getInsightDetailsString(in);
+		String sessionId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[0] + "");
+		String insightId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[1] + "");
+		String userId = RdbmsQueryBuilder.escapeForSQLStatement(insightDetails[2] + "");
+		String time = insightDetails[3];
+		
+		Object[] row = new Object[14];
+		row[0] = id;
+		// error type
+		row[1] = ex.getClass().getName();
+		// error message
+		row[2] = ex.getMessage();
+		// stack track
+		row[3] = ExceptionUtils.getStackTrace(ex);
+		// activity type
+		row[4] = reactorName;
+		// subtype
+		row[5] = parentReactorName;
+		// trigger
+		row[6] = null;
+		// saved insight
+		row[7] = in.getRdbmsId() != null;
+		// pixel
+		row[8] = pixel;
+		// session id
+		row[9] = sessionId;
+		// insight id
+		row[10] = insightId;
+		// user id
+		row[11] = userId;
+		// time
+		row[12] = time;
+		// meta
+		row[13] = meta;
+
+		// add to list
+		rows.add(row);
+		sendTrackRequest("error", rows);
 	}
 	
 	@Override
