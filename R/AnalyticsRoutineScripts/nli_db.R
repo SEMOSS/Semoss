@@ -436,7 +436,23 @@ analyze_adj<-function(df,chunks){
 							oper<-"sum"
 						}else if(token %in% c("average")){
 							oper<-"avg"
-						}
+						}else if(oper_token=="greater"){
+							if(oper_rec$token_id==1){
+								oper<-" > "
+							}else if(df[as.integer(oper_rec$token_id)-1,"token"] %in% c("no","not")){
+								oper<-" <= "
+							}else{
+								oper<-" > "
+							}
+						}else if(oper_token=="smaller"){
+							if(oper_rec$token_id==1){
+								oper<-" < "
+							}else if(df[as.integer(oper_rec$token_id)-1,"token"] %in% c("no","not")){
+								oper<-" >= "
+							}else{
+								oper<-" < "
+							}
+						}			
 						sibling_rec<-df[df$head_token_id==parent_rec$token_id & df$token_id != cur_rec$token_id & df$xpos=="JJ" & df$processed=="no",]
 						if(nrow(sibling_rec)>0){
 							token1<-sibling_rec[1,"token"]
@@ -447,11 +463,17 @@ analyze_adj<-function(df,chunks){
 								oper1<-"avg"
 							}
 							if(nchar(oper1)>0){
-								column<-paste0(oper1,"(",column,")")
-								having_clause[length(having_clause)+1]<-paste0(column,"=",oper,"(",column,")")
-								df[parent_rec$token_id,"processed"]<-"yes"
-								df[cur_rec$token_id,"processed"]<-"yes"
-								df[sibling_rec$token_id,"processed"]<-"yes"
+								child_rec<-df[df$head_token_id==cur_rec$token_id & df$token_id != cur_rec$token_id & df$xpos=="CD" & df$processed=="no",]
+								if(nrow(child_rec)>0){
+									column<-paste0(oper1,"(",column,")")
+									having_clause[length(having_clause)+1]<-paste0(column,oper,child_rec$token[1])
+								}else{
+									column<-paste0(oper1,"(",column,")")
+									having_clause[length(having_clause)+1]<-paste0(column,"=",oper,"(",column,")")
+									df[parent_rec$token_id,"processed"]<-"yes"
+									df[cur_rec$token_id,"processed"]<-"yes"
+									df[sibling_rec$token_id,"processed"]<-"yes"
+								}
 							}
 						}else{
 							# grouping (having clause)
