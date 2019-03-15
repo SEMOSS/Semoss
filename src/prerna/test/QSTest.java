@@ -20,6 +20,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.ibm.icu.util.StringTokenizer;
+
+import prerna.ds.py.PyExecutorThread;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
@@ -27,14 +30,10 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.sablecc2.reactor.frame.py.PyExecutorThread;
 import prerna.util.AbstractFileWatcher;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.google.common.io.Files;
-import com.ibm.icu.util.StringTokenizer;
 
 public class QSTest {
 
