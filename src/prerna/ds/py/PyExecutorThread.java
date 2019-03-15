@@ -110,7 +110,8 @@ public class PyExecutorThread extends Thread {
 
 				// add the include path
 				aJepConfig.addIncludePaths(pyBase);
-				aJepConfig.addIncludePaths("c:/python/python36/Lib/site-packages");
+				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
+				aJepConfig.addIncludePaths(sitepackages);
 				
 
 				
