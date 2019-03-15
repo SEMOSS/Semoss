@@ -24,28 +24,29 @@ public class JepTest implements Runnable {
 		
 		JepTest j1 = new JepTest();
 		j1.threadName = "Thread 1";
-		Thread t1 = new Thread(j1);
-		JepTest j2 = new JepTest();
-		j2.threadName = "Thread 2";
-		Thread t2 = new Thread(j2);
-		Thread t3 = new Thread(new JepTest());
-		Thread t4 = new Thread(new JepTest());
-		
-		Jep jep = new Jep(false);
-	    jep.eval("import pandas as pd");
-	    jep.eval("\npath = r'C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv'");
-	    
-	    jep.eval("\nda = pd.read_csv(path)");
-	    String data = (String)jep.getValue("\nda.head(3)");
-	    pdFrame = jep.getValue("da");
-		
-	    j1.pdFrame = pdFrame;
-	    j2.pdFrame = pdFrame;
-		t1.start();
-		//Thread.sleep(3000);
-		//t2.start();
-		//t3.start();
-		//t4.start();
+		j1.run();
+//		Thread t1 = new Thread(j1);
+//		JepTest j2 = new JepTest();
+//		j2.threadName = "Thread 2";
+//		Thread t2 = new Thread(j2);
+//		Thread t3 = new Thread(new JepTest());
+//		Thread t4 = new Thread(new JepTest());
+//		
+//		Jep jep = new Jep(false);
+//	    jep.eval("import pandas as pd");
+//	    jep.eval("\npath = r'C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv'");
+//	    
+//	    jep.eval("\nda = pd.read_csv(path)");
+//	    String data = (String)jep.getValue("\nda.head(3)");
+//	    pdFrame = jep.getValue("da");
+//		
+//	    j1.pdFrame = pdFrame;
+//	    j2.pdFrame = pdFrame;
+//		t1.start();
+//		//Thread.sleep(3000);
+//		//t2.start();
+//		//t3.start();
+//		//t4.start();
 		
 	}
 
@@ -71,12 +72,14 @@ public class JepTest implements Runnable {
 		PyExecutorThread py = new PyExecutorThread();
 		Object monitor = py.getMonitor();
 		Thread pyThread = new Thread(py);
+	
 		pyThread.start();
 		
+		System.out.println("Starting up.. ");
 		try {
+			System.out.println(threadName + "  Enter Next Command: ");
 			while((data = br.readLine()) != null)
 			{
-				System.out.println(threadName + "  Enter Next Command: ");
 				if(!data.equalsIgnoreCase("stop"))
 				{
 					py.command = new String[]{data};
@@ -84,9 +87,9 @@ public class JepTest implements Runnable {
 					{
 						monitor.notify();
 						
-						monitor.wait();
+						monitor.wait(3000);
 						Object newData = py.response.get(data);
-						noodleData(newData);
+						//noodleData(newData);
 						System.out.println("Got data.. " + newData);
 						
 					}
@@ -100,6 +103,7 @@ public class JepTest implements Runnable {
 						monitor.notify();					
 					}
 				}
+				System.out.println(threadName + "  Enter Next Command: ");
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
