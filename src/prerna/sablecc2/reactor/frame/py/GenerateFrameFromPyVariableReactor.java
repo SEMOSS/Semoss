@@ -50,6 +50,9 @@ public class GenerateFrameFromPyVariableReactor extends AbstractFrameReactor {
 		PandasFrame pf = new PandasFrame(varName);
 		pf.setJep(this.insight.getPy());
 		
+		String makeWrapper = varName+"w = PyFrame.makefm(" + varName +")";
+		runScript(makeWrapper);
+
 		ImportUtility.parsePyTableColumnsAndTypesToFlatTable(pf, colNames, colTypes, varName);
 		pf.setDataTypeMap(pf.getMetaData().getHeaderToTypeMap());
 
