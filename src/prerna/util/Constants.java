@@ -573,4 +573,8 @@ public class Constants {
 	public static final String DATA_TYPES = "dataTypes";
 	public static final String START_ROW = "startRow";
 	public static final String END_ROW = "endRow";
+	
+	// python
+	public static final String PY_BASE_FOLDER = "PY";
+
 }

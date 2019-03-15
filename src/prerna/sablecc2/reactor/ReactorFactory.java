@@ -175,6 +175,7 @@ import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingNodesReactor;
 import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
+import prerna.sablecc2.reactor.frame.py.ToUpperCaseReactor;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
@@ -1086,6 +1087,31 @@ public class ReactorFactory {
 	
 	private static void populatePandasFrameHash(Map<String, Class> pandasFrameHash) {
 		// TODO Auto-generated method stub
+		pandasFrameHash.put("ToUpper", prerna.sablecc2.reactor.frame.py.ToUpperCaseReactor.class); 
+		pandasFrameHash.put("ReplaceColumnValue", prerna.sablecc2.reactor.frame.py.ReplaceColumnValueReactor.class);
+		pandasFrameHash.put("ToLowerCase", prerna.sablecc2.reactor.frame.py.ToLowerCaseReactor.class);
+		pandasFrameHash.put("RenameColumn", prerna.sablecc2.reactor.frame.py.RenameColumnReactor.class);
+		pandasFrameHash.put("Pivot", prerna.sablecc2.reactor.frame.py.PivotReactor.class);
+		pandasFrameHash.put("ChangeColumnType", prerna.sablecc2.reactor.frame.py.ChangeColumnTypeReactor.class);
+		//rFrameHash.put("ToProperCase", prerna.sablecc2.reactor.frame.r.ToProperCaseReactor.class);
+		pandasFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.py.DropRowsReactor.class);
+		pandasFrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.py.DropColumnReactor.class);
+		pandasFrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.py.DuplicateColumnReactor.class);
+		pandasFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.py.ExtractAlphaCharsReactor.class);
+		pandasFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.py.ExtractNumbersReactor.class);
+		pandasFrameHash.put("CountIf", prerna.sablecc2.reactor.frame.py.CountIfReactor.class);
+		pandasFrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.py.SplitColumnReactor.class);
+		pandasFrameHash.put("UpdateRowValues", prerna.sablecc2.reactor.frame.py.UpdateRowValuesWhereColumnContainsValueReactor.class);
+		pandasFrameHash.put("SplitUnpivot", prerna.sablecc2.reactor.frame.py.SplitUnpivotReactor.class);
+		pandasFrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.py.TrimReactor.class);
+		pandasFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.py.PredictSimilarColumnValuesReactor.class);
+		
+		// frame stats
+		pandasFrameHash.put("ColumnCount", prerna.sablecc2.reactor.frame.py.ColumnCountReactor.class);
+		pandasFrameHash.put("Histogram", prerna.sablecc2.reactor.frame.py.ColumnCountReactor.class);
+		pandasFrameHash.put("DescriptiveStats", prerna.sablecc2.reactor.frame.py.DescriptiveStatsReactor.class);
+		//rFrameHash.put("SummaryStats", prerna.sablecc2.reactor.frame.r.SummaryStatsReactor.class); // need to see who uses this ?
+		//rFrameHash.put("Histogram", prerna.sablecc2.reactor.frame.r.HistogramReactor.class);
 
 	}
 
@@ -1185,8 +1211,8 @@ public class ReactorFactory {
 						reactor = (IReactor) nativeFrameHash.get(reactorId).newInstance();
 					}
 				} else if(frame instanceof PandasFrame) {
-					if (nativeFrameHash.containsKey(reactorId)) {
-						reactor = (IReactor) nativeFrameHash.get(reactorId).newInstance();
+					if (pandasFrameHash.containsKey(reactorId)) {
+						reactor = (IReactor) pandasFrameHash.get(reactorId).newInstance();
 				}
 				}
 
