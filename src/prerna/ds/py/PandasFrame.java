@@ -72,10 +72,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 			tableName = "PYFRAME_" + UUID.randomUUID().toString().replace("-", "_");
 		}
 		this.frameName = tableName;
+
+
 	}
 	
 	public void setJep(PyExecutorThread py) {
 		this.py = py;
+	}
+
+	public PyExecutorThread getJep() {
+		return this.py ;
 	}
 	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
@@ -114,6 +120,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
 			// execute the script
 			runScript(importS, loadS);
+			
+			// create the wrapper
+			// it is just the frame name with w on it
+			//String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
+			//runScript(makeWrapper);
 
 			// delete the generated file
 			newFile.delete();
@@ -125,6 +136,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(!isEmpty(tableName)) {
 			adjustDataTypes(tableName);
 		}
+		
+		String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
+		runScript(makeWrapper);
+
 	}
 	
 	/**
@@ -375,6 +390,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		return retObject;
 	}
+	
+	
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
@@ -466,6 +483,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// if the user has created others, nothing can be done
 		logger.info("Removing variable " + this.frameName);
 		runScript("del " + this.frameName);
+		// this should take the variable name and kill it
+		// if the user has created others, nothing can be done
+		
+		//logger.info("Removing variable " + tableName + " with GC ");
+		//runScript("del " + tableName);
+		runScript("gc.collect()");
+		
 	}
 	
 	@Override
@@ -480,6 +504,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// also save the meta details
 		this.saveMeta(cf, folderDir, frameName);
 		return cf;
+	}
+	
+	private void makeDefaultImports()
+	{
+		
 	}
 	
 	@Override

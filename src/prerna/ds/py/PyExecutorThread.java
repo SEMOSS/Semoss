@@ -2,11 +2,15 @@ package prerna.ds.py;
 
 import java.util.Hashtable;
 
+import jep.Jep;
+import jep.JepConfig;
+import jep.JepException;
+
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import jep.Jep;
-import jep.JepException;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class PyExecutorThread extends Thread {
 
@@ -85,7 +89,51 @@ public class PyExecutorThread extends Thread {
 	public Jep getJep() {
 		try {
 			if(this.jep == null) {
-				jep = new Jep(false);
+				
+				//https://github.com/ninia/jep/issues/140
+				JepConfig aJepConfig = new JepConfig();
+				aJepConfig.addSharedModules("pandas");		
+				aJepConfig.addSharedModules("numpy");
+				aJepConfig.addSharedModules("sys");
+				aJepConfig.addSharedModules("fuzzywuzzy");
+				aJepConfig.addSharedModules("string");
+				aJepConfig.addSharedModules("random");
+				aJepConfig.addSharedModules("datetime");
+				aJepConfig.addSharedModules("annoy");
+				
+				
+				// add the sys.path to python libraries for semoss
+				String pyBase = null;
+				pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+				//pyBase = "c:/users/pkapaleeswaran/workspacej3/SemossWeb/py";
+				pyBase = pyBase.replaceAll("\\\\", "/");
+
+				// add the include path
+				aJepConfig.addIncludePaths(pyBase);
+				aJepConfig.addIncludePaths("c:/python/python36/Lib/site-packages");
+				
+
+				
+				jep = new Jep(aJepConfig);
+
+				jep.eval("import numpy as np");
+				jep.eval("import pandas as pd");
+				jep.eval("import gc as gc");
+				jep.eval("import sys");
+				jep.eval("from fuzzywuzzy import fuzz");
+				jep.eval("import pandas as pd");
+				jep.eval("import string");
+				jep.eval("import random");
+				jep.eval("import datetime");
+				jep.eval("from annoy import AnnoyIndex");
+				jep.eval("import numpy");
+				jep.eval("import sys");
+				System.err.println("Adding Syspath " + pyBase);				
+				jep.eval("sys.path.append('" + pyBase + "')" );
+
+				System.out.println(jep.getValue("sys.path"));
+				
+				jep.eval("from clean import PyFrame");
 			}
 		} catch (JepException e) {
 			e.printStackTrace();
