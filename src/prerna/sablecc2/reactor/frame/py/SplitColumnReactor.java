@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.py;
 import java.util.ArrayList;
 import java.util.List;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -15,7 +16,7 @@ import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class SplitColumnReactor extends AbstractFrameReactor {
+public class SplitColumnReactor extends AbstractFramePyReactor {
 
 	/**
 	 * This reactor splits columns based on a separator
@@ -58,7 +59,7 @@ public class SplitColumnReactor extends AbstractFrameReactor {
 			}
 
 			// evaluate the r script
-			frame.runScript(table + ".split('" + column + "', '" + separator + "')");
+			frame.runScript(frame.getName() + " = " + table + ".split('" + column + "', '" + separator + "')");
 
 		}
 
@@ -70,7 +71,9 @@ public class SplitColumnReactor extends AbstractFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// column header data is changing so we must recreate metadata
-		recreateMetadata(frame);
+		frame = (PandasFrame)recreateMetadata(frame);
+		
+		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	
@@ -139,65 +142,5 @@ public class SplitColumnReactor extends AbstractFrameReactor {
 		}
 	}
 	
-	
-	//////////////////////// Recreation methods //////////////////////////////
-	
-	
-	
-	private void recreateMetadata(PandasFrame frame)
-	{
-		
-		String frameName = frame.getName();
-
-		String[] colNames = getColumns(frame);
-		
-		// I bet this is being done for pixel.. I will keep the same
-		frame.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
-		colNames = getColumns(frame);
-		
-		String[] colTypes = getColumnTypes(frame);
-
-		if(colNames == null || colTypes == null) {
-			throw new IllegalArgumentException("Please make sure the variable " + frameName + " exists and can be a valid data.table object");
-		}
-		
-		// create the pandas frame
-		// and set up teverything else
-		
-
-		ImportUtility.parsePyTableColumnsAndTypesToFlatTable(frame, colNames, colTypes, frameName);
-
-	}
-
-	
-	public String [] getColumns(PandasFrame frame)
-	{
-		
-		String frameName = frame.getName();
-		// get jep thread and get the names
-		ArrayList <String> val = (ArrayList<String>)frame.runScript("list(" + frameName + ")");
-		String [] retString = new String[val.size()];
-		
-		val.toArray(retString);
-		
-		return retString;
-		
-		
-	}
-	
-	public String [] getColumnTypes(PandasFrame frame)
-	{
-		String frameName = frame.getName();
-		
-		// get jep thread and get the names
-		ArrayList <String> val = (ArrayList<String>)frame.runScript(PandasSyntaxHelper.getTypes(frameName));
-		String [] retString = new String[val.size()];
-		
-		val.toArray(retString);
-		
-		return retString;
-	}
-
-
 	
 }

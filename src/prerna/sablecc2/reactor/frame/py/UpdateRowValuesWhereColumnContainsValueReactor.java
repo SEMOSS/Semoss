@@ -83,7 +83,7 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractFram
 
 		// execute the r scripts
 		if (pyFilterBuilder.length() > 0) {
-			String script = table + "[" + pyFilterBuilder.toString() + ", "+ updateCol +"] = " + value ;
+			String script = table + ".loc[" + pyFilterBuilder.toString() + ", '"+ updateCol +"'] = " + value ;
 			frame.runScript(script);
 		}
 		
