@@ -43,7 +43,7 @@ public class HeadersException {
 		try {
 			String prohibitedHeadersStr = DIHelper.getInstance().getProperty(Constants.PROBHIBITED_HEADERS);
 			// the string is semicolon delimited
-			String[] words = prohibitedHeadersStr.split(";");
+			String[] words = prohibitedHeadersStr.split(",");
 			for(String word : words) {
 				// keep everything upper case for simplicity in comparisons
 				prohibitedHeaders.add(word.toUpperCase());

@@ -293,6 +293,7 @@ public class RDBMSEngineCreationHelper {
 	 * @return
 	 */
 	public static String cleanTableName(String s) {
+		
 		s = s.trim();
 		s = s.replaceAll(" ", "_");
 		s = s.replaceAll("[^a-zA-Z0-9\\_]", ""); // matches anything that is not alphanumeric or underscore
@@ -304,6 +305,10 @@ public class RDBMSEngineCreationHelper {
 		if(Character.isDigit(s.charAt(0))) {
 			s = "_" + s;
 		}
+		HeadersException check = HeadersException.getInstance();
+		if(check.isIllegalHeader(s)) {
+			s = check.appendNumOntoHeader(s);
+			}
 		
 		return s;
 	}
