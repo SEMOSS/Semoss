@@ -17,24 +17,23 @@ import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class SplitUnpivotReactor extends AbstractFrameReactor {
+public class SplitUnpivotReactor extends AbstractFramePyReactor {
 
 	/**
-	 * This reactor splits columns based on a separator
-	 * The split values will be combined into a single column
-	 * The inputs to the reactor are: 
-	 * 1) the columns to split "columns"
-	 * 2) the delimiters "delimiters" 
+	 * This reactor splits columns based on a separator The split values will be
+	 * combined into a single column The inputs to the reactor are: 1) the
+	 * columns to split "columns" 2) the delimiters "delimiters"
 	 */
-	
+
 	public SplitUnpivotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(),
+				ReactorKeysEnum.DELIMITER.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		// use init to initialize rJavaTranslator object that will be used later
-		
+
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 
@@ -79,26 +78,29 @@ public class SplitUnpivotReactor extends AbstractFrameReactor {
 
 			// split_unpivot(column, delimiter)
 			// build the script to execute
-			frame.runScript(table + "w.split_unpivot('" + column + "', '" + delimiter +"')");
+			frame.runScript(table + " = " + table + "w.split_unpivot('"
+					+ column + "', '" + delimiter + "')");
 		}
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"SplitUnpivot", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
+				this.insight,
+				frame,
+				"SplitUnpivot",
+				AnalyticsTrackerHelper
+						.getHashInputs(this.store, this.keysToGet));
 
 		// column header data is changing so we must recreate metadata
-		recreateMetadata(frame);
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		frame = (PandasFrame)recreateMetadata(frame);
+		return new NounMetadata(frame, PixelDataType.FRAME,
+				PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
+	// ////////////////////////////////////////////////////////////////////
+	// ////////////////////////////////////////////////////////////////////
+	// /////////////////////// GET PIXEL INPUT ////////////////////////////
+	// ////////////////////////////////////////////////////////////////////
+	// ////////////////////////////////////////////////////////////////////
 
 	private List<String> getDelimiters() {
 		// inputs are passed based on a key
@@ -137,63 +139,5 @@ public class SplitUnpivotReactor extends AbstractFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define columns");
 	}
-	
-////////////////////////Recreation methods //////////////////////////////
-	
-	
-	
-private void recreateMetadata(PandasFrame frame)
-{
-
-String frameName = frame.getName();
-
-String[] colNames = getColumns(frame);
-
-// I bet this is being done for pixel.. I will keep the same
-frame.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
-colNames = getColumns(frame);
-
-String[] colTypes = getColumnTypes(frame);
-
-if(colNames == null || colTypes == null) {
-throw new IllegalArgumentException("Please make sure the variable " + frameName + " exists and can be a valid data.table object");
-}
-
-// create the pandas frame
-// and set up teverything else
-
-
-ImportUtility.parsePyTableColumnsAndTypesToFlatTable(frame, colNames, colTypes, frameName);
-
-}
-
-
-public String [] getColumns(PandasFrame frame)
-{
-
-String frameName = frame.getName();
-// get jep thread and get the names
-ArrayList <String> val = (ArrayList<String>)frame.runScript("list(" + frameName + ")");
-String [] retString = new String[val.size()];
-
-val.toArray(retString);
-
-return retString;
-
-
-}
-
-public String [] getColumnTypes(PandasFrame frame)
-{
-String frameName = frame.getName();
-
-// get jep thread and get the names
-ArrayList <String> val = (ArrayList<String>)frame.runScript(PandasSyntaxHelper.getTypes(frameName));
-String [] retString = new String[val.size()];
-
-val.toArray(retString);
-
-return retString;
-}
 
 }

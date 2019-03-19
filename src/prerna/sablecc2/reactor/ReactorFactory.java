@@ -1105,6 +1105,8 @@ public class ReactorFactory {
 		pandasFrameHash.put("SplitUnpivot", prerna.sablecc2.reactor.frame.py.SplitUnpivotReactor.class);
 		pandasFrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.py.TrimReactor.class);
 		pandasFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.py.PredictSimilarColumnValuesReactor.class);
+		pandasFrameHash.put("Collapse", prerna.sablecc2.reactor.frame.py.CollapseReactor.class);
+		pandasFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.py.JoinColumnsReactor.class);
 		
 		// frame stats
 		pandasFrameHash.put("ColumnCount", prerna.sablecc2.reactor.frame.py.ColumnCountReactor.class);
