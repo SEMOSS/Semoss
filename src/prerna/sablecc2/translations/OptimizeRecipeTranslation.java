@@ -561,7 +561,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
         	// we passed all our checks
         	// save to load this cached panel at the beginning
-            cacheRecipe.add("CachedPanel(\"" + orderedPanelId + "\");");
+            cacheRecipe.add("CachedPanel(" + orderedPanelId + ");");
             addedPanels.add(orderedPanelId);
         }
         
@@ -577,8 +577,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				
 				boolean addAndRemoveOrigPanel = !addedPanels.contains(origPanelId);
 				if(addAndRemoveOrigPanel) {
-					cacheRecipe.add("AddPanel(\"" + origPanelId + "\");");
-					cacheRecipe.add("Panel(\"" + origPanelId + "\")|SetPanelView(\"visualization\");");
+					cacheRecipe.add("AddPanel(" + origPanelId + ");");
+					cacheRecipe.add("Panel(" + origPanelId + ")|SetPanelView(\"visualization\");");
 					Integer origTask = cloneToOrigTask.get(thisCachedPanelId);
 					String origExpression = expressionMap.get(origTask);
 					cacheRecipe.add(origExpression);
@@ -586,11 +586,11 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				keepExpression = keepExpression.replace("Clone (", "CachedPanelClone (");
 				cacheRecipe.add(keepExpression);
 				if(addAndRemoveOrigPanel) {
-					cacheRecipe.add("ClosePanel(\"" + origPanelId + "\");");
+					cacheRecipe.add("ClosePanel(" + origPanelId + ");");
 				}
 				// after we do the clone
 				// it is save to now load the cached panel details
-            	cacheRecipe.add("CachedPanel(\"" + thisCachedPanelId + "\");");
+            	cacheRecipe.add("CachedPanel(" + thisCachedPanelId + ");");
 			} else {
 				cacheRecipe.add(keepExpression);
 			}
