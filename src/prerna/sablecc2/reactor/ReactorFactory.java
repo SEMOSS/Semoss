@@ -103,8 +103,10 @@ import prerna.sablecc2.reactor.app.upload.rdf.RdfCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdf.RdfLoaderSheetUploadReactor;
 import prerna.sablecc2.reactor.cluster.CleanUpAppsReactor;
 import prerna.sablecc2.reactor.cluster.OpenAppReactor;
+import prerna.sablecc2.reactor.cluster.PullUserSpaceReactor;
 //import prerna.sablecc2.reactor.cluster.SyncRedisReactor;
 import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
+import prerna.sablecc2.reactor.cluster.UploadUserFileReactor;
 import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.sablecc2.reactor.export.AsTaskReactor;
 import prerna.sablecc2.reactor.export.CollectAllReactor;
@@ -918,8 +920,9 @@ public class ReactorFactory {
 		//reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		//reactorHash.put("SyncRedis", SyncRedisReactor.class);
 		reactorHash.put("PushApps", PushAppsReactor.class);
+		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
+		reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
 
-		
 		
 
 		// Scheduler
