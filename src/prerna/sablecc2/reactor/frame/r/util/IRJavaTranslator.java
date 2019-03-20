@@ -37,6 +37,13 @@ public interface IRJavaTranslator {
 	void executeEmptyR(String rScript);
 	
 	/**
+	 * Cancel the execution of the currently running R script. Different from
+	 * stopRProcess in that the R service still runs. Similar to stop in R Studio.
+	 * @return cancelled
+	 */
+	boolean cancelExecution();
+	
+	/**
 	 * Run a combination of r scripts
 	 * @param rScript
 	 */
