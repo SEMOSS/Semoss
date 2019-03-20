@@ -139,9 +139,11 @@ public enum PixelOperationType {
 	
 	// Cluster
 	OPEN_APP,
+	USER_UPLOAD,
 	UPDATE_APP,
 	CLEANUP_APPS,
 	VERSION,
+	SYNC_APPS,
 	
 	// RECIPE COMMENTS
 	RECIPE_COMMENT,
