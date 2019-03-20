@@ -142,7 +142,15 @@ class PyFrame:
 		column = frame[col_name]
 		frame[col_name] = column.str.lower()
 		this.cache['data'] = frame
-		
+	
+	def title(this, col_name, inplace=True):
+		if not inplace:
+			this.makeCopy()
+		frame = this.cache['data']
+		column = frame[col_name]
+		frame[col_name] = column.str.title()
+		this.cache['data'] = frame
+	
 	def concat(this, col1, col2, newcol, glue='_', inplace=True):
 		if not inplace:
 			this.makeCopy()
