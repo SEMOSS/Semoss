@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
+
 import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
@@ -64,6 +66,8 @@ public class CSVFileHelper {
 	private int maxColumns = 1_000_000;
 	private int maxCharsPerColumn = 1_000_000;
 	
+	private Logger logger = null;
+
 	/**
 	 * Parse the new file passed
 	 * @param fileLocation		The String location of the fileName
@@ -285,6 +289,10 @@ public class CSVFileHelper {
 			String col = newUniqueCSVHeaders.get(colIndex);
 			parseColumns(new String[]{col});
 
+			if(logger != null) {
+				logger.info("Predicting data types for column = " + col);
+			}
+			
 			int rowCounter = 0;
 			int emptyCounter = 0;
 			SemossDataType type = null;
@@ -497,6 +505,14 @@ public class CSVFileHelper {
 	 */
 	public String[] getFileOriginalHeaders() {
 		return this.allCsvHeaders;
+	}
+	
+	/**
+	 * Set the logger
+	 * @param logger
+	 */
+	public void setLogger(Logger logger) {
+		this.logger = logger;
 	}
 	
 	/**
