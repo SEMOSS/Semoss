@@ -44,21 +44,26 @@ public class CreateExternalGraphDBReactor extends AbstractCreateExternalGraphRea
 			throw exception;
 		}
 		
-		// move the file over to the correct location
-		// and then update the host value
-		String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
-		File updatedFileLoc =  new File(newLocation);
-		try {
-			FileUtils.copyFile(this.file, updatedFileLoc);
-			this.file = updatedFileLoc;
-		} catch (IOException e) {
-			throw new IOException("Unable to relocate uploaded file to correct app folder");
-		}
-		
 		this.tinkerDriver = TINKER_DRIVER.NEO4J;
 		if (this.filePath.contains(".")) {
 			String fileExtension = FilenameUtils.getExtension(this.filePath);
 			this.tinkerDriver = TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
+		}
+		
+		// neo4j is an entire directory and not a file
+		// so ignore this case for now
+		// FE does not even allow a passing of the file
+		if(this.tinkerDriver != TINKER_DRIVER.NEO4J) {
+			// move the file over to the correct location
+			// and then update the host value
+			String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(this.file.getAbsolutePath());
+			File updatedFileLoc =  new File(newLocation);
+			try {
+				FileUtils.copyFile(this.file, updatedFileLoc);
+				this.file = updatedFileLoc;
+			} catch (IOException e) {
+				throw new IOException("Unable to relocate uploaded file to correct app folder");
+			}
 		}
 	}
 
