@@ -1,12 +1,17 @@
 package prerna.engine.impl.r;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXP;
@@ -19,12 +24,14 @@ public class RUserRserve {
 	
 	private static final String FS = System.getProperty("file.separator");
 	
-	private static final int PORT = 6311;
 	private static final String HOST = "127.0.0.1";
 	private static final String R_HOME_KEY = "R_HOME";
 	
-	private static String rBin;
+	private static final int PORT_MAX = 65535;
 	
+	private static int port = 6311;
+	private static String rBin;
+		
 	// Get the R binary location
 	static {
 		String rHome = System.getenv(R_HOME_KEY).replace("\\", FS);
@@ -33,52 +40,6 @@ public class RUserRserve {
 		} else {
 			rBin = rHome + FS + "bin" + FS + "R";
 			if (SystemUtils.IS_OS_WINDOWS) rBin = rBin.replace(FS, "\\\\");
-		}
-	}
-	
-	private static void startRserve() throws Exception {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
-		File output = new File(baseFolder + FS + "Rserve.output.log");
-		File error = new File(baseFolder + FS + "Rserve.error.log");
-
-		ProcessBuilder pb;
-		if (SystemUtils.IS_OS_WINDOWS) {
-			pb = new ProcessBuilder(rBin, "-e", "library(Rserve);Rserve(FALSE," + PORT
-					+ ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)",
-					"--vanilla");
-		} else {
-			pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", PORT + "");
-		}
-		pb.redirectOutput(output);
-		pb.redirectError(error);
-		Process process = pb.start();
-		process.waitFor(7L, TimeUnit.SECONDS);
-	}
-
-	public static void stopRserve() throws Exception {
-		ProcessBuilder pb;
-		if (SystemUtils.IS_OS_WINDOWS) {
-			pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
-		} else {
-			pb = new ProcessBuilder("pkill", "Rserve");
-		}
-		Process process = pb.start();
-		process.waitFor(7L, TimeUnit.SECONDS);
-	}
-		
-	private static RConnection getConnection() throws Exception {
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		try {
-			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
-				@Override
-				public RConnection call() throws Exception {
-					return new RConnection(HOST, PORT);
-				}
-			});
-			return future.get(3L, TimeUnit.SECONDS); 
-		} finally {
-			executor.shutdownNow();
 		}
 	}
 		
@@ -112,6 +73,69 @@ public class RUserRserve {
 		return rcon;
 	}
 	
+	private static void setPort() {
+		while (!isPortAvailable(port)) {
+			port++;
+			if (port > PORT_MAX) throw new IllegalArgumentException("No more ports are available."); 
+		}
+	}
+	
+	private static boolean isPortAvailable(int port) {
+		try (ServerSocket s = new ServerSocket(port)) {
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
+	}
+	
+	private static RConnection getConnection() throws Exception {
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		try {
+			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
+				@Override
+				public RConnection call() throws Exception {
+					
+					
+					return new RConnection(HOST, port);
+				}
+			});
+			return future.get(3L, TimeUnit.SECONDS); 
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+	
+	private static void startRserve() throws Exception {
+		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+
+		File output = new File(baseFolder + FS + "Rserve.output.log");
+		File error = new File(baseFolder + FS + "Rserve.error.log");
+
+		ProcessBuilder pb;
+		if (SystemUtils.IS_OS_WINDOWS) {
+			pb = new ProcessBuilder(rBin, "-e", "library(Rserve);Rserve(FALSE," + port
+					+ ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)",
+					"--vanilla");
+		} else {
+			pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
+		}
+		pb.redirectOutput(output);
+		pb.redirectError(error);
+		Process process = pb.start();
+		process.waitFor(7L, TimeUnit.SECONDS);
+	}
+
+	public static void stopRserve() throws Exception {
+		ProcessBuilder pb;
+		if (SystemUtils.IS_OS_WINDOWS) {
+			pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
+		} else {
+			pb = new ProcessBuilder("pkill", "Rserve");
+		}
+		Process process = pb.start();
+		process.waitFor(7L, TimeUnit.SECONDS);
+	}
+		
 	public static boolean isHealthy(RConnection rcon) {
 		return isHealthy(rcon, null);
 	}
@@ -142,7 +166,7 @@ public class RUserRserve {
 		return beating;
 	}
 
-	public static void main(String[] args) {
+	public static void main0(String[] args) { // TODO >>>timb: R - remove this main method when done
 		User user0 = new User();
 		System.out.println("user0: " + user0.toString());
 		User user1 = new User();
@@ -160,6 +184,30 @@ public class RUserRserve {
 		userRefB.setRConnCancelled(false);
 		System.out.println("userRefB b: " + userRefB.getRConnCancelled());
 		System.out.println("user1 b: " + user1.getRConnCancelled());
+	}
+	
+	public static void main(String[] args) throws Exception { // TODO >>>timb: R - remove this main method when done
+		port = 6311;
+		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
+		startRserve();
+		Thread.sleep(3000);
+		ProcessBuilder pb = new ProcessBuilder("netstat", "-ano");
+		String tempFile = "C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\temp_safe_to_delete_me.txt";
+		pb.redirectOutput(new File(tempFile));
+		Process process = pb.start();
+		process.waitFor(7L, TimeUnit.SECONDS);
+		List<String> lines = FileUtils.readLines(new File(tempFile), "UTF-8");
+		List<String> filteredLines0 = lines.stream().filter(l -> l.contains(":" + port)).collect(Collectors.toList());
+		filteredLines0.stream().forEach(System.out::println);
+		List<String> filteredLines = lines.stream().filter(l -> l.contains(":" + port)).map(l -> l.trim().split("\\s+")[4]).collect(Collectors.toList());
+		filteredLines.stream().forEach(System.out::println); // TODO >>>timb: R - remove the file in finally block
+		for (String pid : filteredLines) {
+			ProcessBuilder pb2 = new ProcessBuilder("taskkill", "/PID", pid, "/F").inheritIO();
+			Process process2 = pb2.start();
+			process2.waitFor(7L, TimeUnit.SECONDS);
+		}
+		// TODO >>>timb: R - test on mac / linux
+		
 	}
 	
 }
