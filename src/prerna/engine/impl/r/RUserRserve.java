@@ -185,8 +185,29 @@ public class RUserRserve {
 		System.out.println("userRefB b: " + userRefB.getRConnCancelled());
 		System.out.println("user1 b: " + user1.getRConnCancelled());
 	}
+		
+	public static void main(String[] args) throws Exception {
+		port = 6311;
+		DIHelper.getInstance().loadCoreProp("/Users/semoss/Documents/workspace/Semoss/RDF_Map.prop");
+		startRserve();
+		Thread.sleep(3000);
+		ProcessBuilder pb = new ProcessBuilder("lsof", "-t", "-i:" + port);
+		String tempFile = "/Users/semoss/Documents/workspace/Semoss/temp_safe_to_delete_me.txt";
+		pb.redirectOutput(new File(tempFile));
+		Process process = pb.start();
+		process.waitFor(7L, TimeUnit.SECONDS);
+		List<String> lines = FileUtils.readLines(new File(tempFile), "UTF-8");
+		lines.stream().forEach(System.out::println);
+		// TODO >>>timb: R - remove the file in finally block
+		for (String pid : lines) {
+			ProcessBuilder pb2 = new ProcessBuilder("kill", "-9", pid).inheritIO();
+			Process process2 = pb2.start();
+			process2.waitFor(7L, TimeUnit.SECONDS);
+		}
+		System.out.println("done");
+	}
 	
-	public static void main(String[] args) throws Exception { // TODO >>>timb: R - remove this main method when done
+	public static void main1(String[] args) throws Exception { // TODO >>>timb: R - remove this main method when done
 		port = 6311;
 		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
 		startRserve();
