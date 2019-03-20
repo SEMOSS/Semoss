@@ -37,6 +37,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	// gets all the commands in one fell swoop
 	List <String> commands = new ArrayList<String>();
 	
+	PandasFrame prevFrame = null;
+	
 	private PyExecutorThread py = null;
 	PandasInterpreter interp = new PandasInterpreter();
 	
@@ -395,6 +397,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
+		this.metaData.getHeaderToTypeMap();
 		interp.setDataTableName(this.frameName);
 		interp.setDataTypeMap(dataTypeMap);
 		interp.setQueryStruct(qs);
@@ -553,6 +556,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public void processDataMakerComponent(DataMakerComponent component) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	// set the previous frame
+	public void setPrevFrame(PandasFrame frame)
+	{
+		this.prevFrame = prevFrame;
+	}
+	
+	public PandasFrame getPrevFrame()
+	{
+		return this.prevFrame;
 	}
 
 }
