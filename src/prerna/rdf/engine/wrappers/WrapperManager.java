@@ -66,6 +66,7 @@ public class WrapperManager {
 		return manager;
 	}
 
+	// TODO >>>timb: REST - here add another engine type REMOTE or REST
 	public IRawSelectWrapper getRawWrapper(IEngine engine, SelectQueryStruct qs) {
 		IRawSelectWrapper returnWrapper = null;
 		boolean genQueryString = true;
@@ -127,7 +128,7 @@ public class WrapperManager {
 			break;
 		}
 		case REMOTE_SEMOSS : {
-			
+			// TODO >>>timb: REST - either replace with rest remote or remove this
 		}
 		default: {
 			//TODO: build iterator
@@ -151,6 +152,7 @@ public class WrapperManager {
 		return returnWrapper;
 	}
 
+	// TODO >>>timb: REST - here add another engine type REMOTE or REST
 	public IRawSelectWrapper getRawWrapper(IEngine engine, String query) {
 		IRawSelectWrapper returnWrapper = null;
 		switch(engine.getEngineType()) {
@@ -187,6 +189,7 @@ public class WrapperManager {
 			break;
 		}
 		case REMOTE_SEMOSS : {
+			// TODO >>>timb: REST - either replace with rest remote or remove this
 			//TODO: build iterator
 			break;
 		}
