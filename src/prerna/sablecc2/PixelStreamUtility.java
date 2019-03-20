@@ -230,7 +230,7 @@ public class PixelStreamUtility {
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
 
-		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST || nounT == PixelDataType.VECTOR) {
+		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST) {
 			// code is a tough one to process
 			// since many operations could have been performed
 			// we need to loop through a set of noun meta datas to output
@@ -247,6 +247,23 @@ public class PixelStreamUtility {
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));
 
+		} else if(nounT == PixelDataType.VECTOR) {
+			List<Object> codeOutputs = (List<Object>) noun.getValue();
+			int numOutputs = codeOutputs.size();
+			ps.print("\"output\":[");
+			for(int i = 0; i < numOutputs; i++) {
+				if(i > 0) {
+					ps.print(",");
+				}
+				if(codeOutputs.get(i) instanceof NounMetadata) {
+					processNounMetadata(in, ps, gson, (NounMetadata) codeOutputs.get(i), null, null);
+				} else {
+					ps.print(gson.toJson(codeOutputs.get(i)));
+				}
+			}
+			ps.print("]");
+			ps.print(",\"operationType\":");
+			ps.print(gson.toJson(noun.getOpType()));
 		} else if(nounT == PixelDataType.TASK) {
 			// if we have a task
 			// we gotta iterate through it to return the data
