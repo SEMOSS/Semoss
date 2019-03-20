@@ -16,6 +16,9 @@ public class ImportOptions {
 	
 	private Hashtable<ImportOptions.IMPORT_OPTIONS , Object> thisMap = new Hashtable<ImportOptions.IMPORT_OPTIONS , Object>();
 	
+	/*
+	 * Keep the enums all caps for consistency
+	 */
 	public enum IMPORT_METHOD {CREATE_NEW, ADD_TO_EXISTING, CONNECT_TO_EXISTING_RDBMS}; // OVERRIDE
 	public enum IMPORT_TYPE {CSV, NLP, EXCEL_POI, EXCEL, OCR, CSV_FLAT_LOAD, EXCEL_FLAT_UPLOAD, EXTERNAL_RDBMS};
 	public enum DB_TYPE {RDF, RDBMS, TINKER, SOLR};
