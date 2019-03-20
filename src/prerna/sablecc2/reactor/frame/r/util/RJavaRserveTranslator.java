@@ -190,6 +190,12 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			e.printStackTrace();
 		}
 	}
+	
+	@Override
+	public boolean cancelExecution() {
+		// TODO >>>timb: R - need to complete cancel exec
+		return false;
+	}
 
 	@Override
 	public String getString(String script) {
