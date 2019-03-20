@@ -8,8 +8,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.SystemUtils;
+import org.apache.log4j.Logger;
+import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 
+import prerna.auth.User;
 import prerna.util.DIHelper;
 
 public class RUserRserve {
@@ -73,7 +76,7 @@ public class RUserRserve {
 					return new RConnection(HOST, PORT);
 				}
 			});
-			return future.get(7L, TimeUnit.SECONDS); 
+			return future.get(3L, TimeUnit.SECONDS); 
 		} finally {
 			executor.shutdownNow();
 		}
@@ -85,12 +88,14 @@ public class RUserRserve {
 			
 			// Try establishing a connection to an existing Rserve
 			rcon = getConnection();
+			if (!isHealthy(rcon)) throw new IllegalArgumentException("The retrieved R connection failed a basic health check.");
 		} catch (Exception e0) {
 			try {
 				
 				// If that doesn't work, try starting Rserve
 				startRserve();
 				rcon = getConnection();
+				if (!isHealthy(rcon)) throw new IllegalArgumentException("The retrieved R connection failed a basic health check.");
 			} catch (Exception e1) {
 				try {
 					
@@ -98,6 +103,7 @@ public class RUserRserve {
 					stopRserve();
 					startRserve();
 					rcon = getConnection();
+					if (!isHealthy(rcon)) throw new IllegalArgumentException("The retrieved R connection failed a basic health check.");
 				} catch (Exception e3) {
 					throw new IllegalArgumentException("Unable to establish R connection.", e3);
 				}
@@ -105,5 +111,55 @@ public class RUserRserve {
 		}
 		return rcon;
 	}
+	
+	public static boolean isHealthy(RConnection rcon) {
+		return isHealthy(rcon, null);
+	}
+	
+	public static boolean isHealthy(RConnection rcon, Logger logger) {
+		boolean beating = false; // Healthy skepticism
+		
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		Future<REXP> future = executor.submit(new Callable<REXP>() {
+			@Override
+			public REXP call() throws Exception {
+				return rcon.eval("1+2");
+			}
+		});
 
+		try {
+			REXP heartBeat = future.get(3L, TimeUnit.SECONDS);
+			if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
+				if (logger != null) logger.info("R health check passed");
+				beating = true;
+			}
+		} catch (Exception e) {
+			if (logger != null) logger.warn("R health check failed", e);
+		} finally {
+			executor.shutdownNow();
+		}
+	
+		return beating;
+	}
+
+	public static void main(String[] args) {
+		User user0 = new User();
+		System.out.println("user0: " + user0.toString());
+		User user1 = new User();
+		System.out.println("user1: " + user1.toString());
+		
+		User userRefA = user0;
+		System.out.println("userRefA: " + userRefA.toString());
+		User userRefB = user1;
+		System.out.println("userRefB: " + userRefB.toString());
+		
+		userRefA.setRConnCancelled(true);
+		System.out.println("userRefA b: " + userRefA.getRConnCancelled());
+		System.out.println("user0 b: " + user0.getRConnCancelled());
+
+		userRefB.setRConnCancelled(false);
+		System.out.println("userRefB b: " + userRefB.getRConnCancelled());
+		System.out.println("user1 b: " + user1.getRConnCancelled());
+	}
+	
 }
