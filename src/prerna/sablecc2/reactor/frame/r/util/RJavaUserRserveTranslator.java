@@ -39,7 +39,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	private static final boolean ENABLE_RECOVERY = true; // TODO >>>timb: R - eventually make this configurable
 	
 	private RConnection anonymousRcon;
-	private String rDataFile;
+	private String rDataFile; // TODO >>>timb: R - move this to the user object?
 	
 	private static Object anonymousMonitor = new Object();
 	
@@ -87,10 +87,12 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	}
 	
 	private boolean userIsDefined() {
+		logger.info("User is " + this.insight.getUser().toString()); // TODO >>>timb: R - remove this debug log
 		return this.insight != null && this.insight.getUser() != null;
 	}
 	
 	private boolean rConnIsDefined() {
+		logger.info("RConn is " + this.insight.getUser().getRConn()); // TODO >>>timb: R - remove this debug log
 		return userIsDefined() && this.insight.getUser().getRConn() != null;
 	}
 		
@@ -126,6 +128,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			// Set the R connection on the user object
 			if (userIsDefined()) {
 				this.insight.getUser().setRConn(rcon);
+				logger.info("Set user object " + this.insight.getUser().toString()); // TODO >>>timb: R - remove this debug log
 			} else {
 				anonymousRcon = rcon;
 			}
@@ -149,29 +152,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	}
 
 	private boolean isHealthy() {
-		boolean beating = false; // Healthy skepticism
-		
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Future<REXP> future = executor.submit(new Callable<REXP>() {
-			@Override
-			public REXP call() throws Exception {
-				return rcon().eval("1+2");
-			}
-		});
-
-		try {
-			REXP heartBeat = future.get(3L, TimeUnit.SECONDS);
-			if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
-				logger.info("R health check passed");
-				beating = true;
-			}
-		} catch (Exception e) {
-			logger.warn("R health check failed", e);
-		} finally {
-			executor.shutdownNow();
-		}
-	
-		return beating;
+		return RUserRserve.isHealthy(rcon(), logger);
 	}
 		
 	@Override
