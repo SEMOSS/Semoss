@@ -8,6 +8,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+// TODO >>>timb: REST - either replace with rest remote or remove this
 public class RemoteSemossEngine extends AbstractEngine {
 
 	private String remoteAddress;
