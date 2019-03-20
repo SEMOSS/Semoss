@@ -73,8 +73,10 @@ class PyFrame:
 		for x in actual_col:
 			for y in predicted_col:
 				ratio = fuzz.ratio(x,y)
-				data = [x,y,ratio]
-				result.append(data)
+				ratio = 1 - (ratio / 100)
+				if(ratio != 0):
+					data = [x,y,ratio]
+					result.append(data)
 		result = pd.DataFrame(result)
 		return result
 		
@@ -110,6 +112,7 @@ class PyFrame:
 		for len in splitcol:
 			frame[col_name + '_' + str(len)] = splitcol[len]
 		this.cache['data'] = frame
+		return frame
 
 		
 	def replace_val(this, col_name, old_value, new_value, regx=True, inplace=True):
@@ -275,8 +278,7 @@ class PyFrame:
 			this.makeCopy()
 		frame = frame.rename(index = str, columns={col_name : new_col_name})
 		this.cache['data'] = frame
-		
-	
+		return frame
 	
 		
 	def countif(this, col_name, str_to_count, new_col='assign', inplace=True):
@@ -356,3 +358,27 @@ class PyFrame:
 		sum = frame[col_name].sum()
 		median = frame[col_name].median()
 		return [sum,median]
+
+	def collapse(this, group_col, agg_col, delim:object='', other_cols='assign'):
+		frame = this.cache['data']
+		res_frame = frame.groupby(group_col)[agg_col].apply(lambda x: delim.join(x)).reset_index()
+		res_frame = res_frame.rename(columns={agg_col:'Collapsed_' + agg_col})
+		#res_frame = pd.DataFrame(res_frame.index, res_frame.values).reset_index()
+		#res_frame.columns = ['COLLAPSE_' + agg_col, group_col]
+		#df.columns = ['COLLAPSE' + agg_col, group_col]
+		if other_cols != 'assign':
+			merger = frame[other_cols]
+			print(merger.columns)
+			print(res_frame.columns)
+			print(group_col)
+			res_frame = pd.DataFrame(res_frame).merge(merger, on=group_col)
+		return res_frame
+		
+	def join(this, input_col, new_col, delim=''):
+		frame = this.cache['data']
+		
+		frame[new_col] = frame[input_col].apply(lambda x: delim.join(x), axis=1)
+		return frame
+	
+
+		
