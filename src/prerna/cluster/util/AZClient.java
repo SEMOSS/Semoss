@@ -39,17 +39,17 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 
 public class AZClient extends CloudClient {
-	
+
 	// this is a singleton
-	
+
 	// does some basic ops
 	// get the SAS URL for a given container - boolean create or not
 	// Delete the container
-		
+
 	private static final String PROVIDER = "azureblob";
 	private static final String SMSS_POSTFIX = "-smss";
 	private static final String FILE_SEPARATOR = System.getProperty("file.separator");
-	
+
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
 	public static final String AZ_NAME = "AZ_NAME";
 	public static final String AZ_KEY = "AZ_KEY";
@@ -57,9 +57,9 @@ public class AZClient extends CloudClient {
 	public static final String AZ_URI = "AZ_URI";
 	public static final String STORAGE = "STORAGE"; // says if this is local / cluster
 	public static final String KEY_HOME = "KEY_HOME"; // this is where the various keys are cycled
-	
+
 	public String azKeyRoot = "/khome";
-	
+
 	static AZClient client = null;
 	static String rcloneConfigFolder = null;
 
@@ -70,12 +70,14 @@ public class AZClient extends CloudClient {
 	String blobURI = null;
 	String sasURL = null;
 	String dbFolder = null;
-	
+	String userSpace= null;
+
+
 	protected AZClient()
 	{
-		
+
 	}
-	
+
 	// create an instance
 	// Also needs to be synchronized so multiple calls don't try to init at the same time
 	public static synchronized AZClient getInstance()
@@ -87,19 +89,20 @@ public class AZClient extends CloudClient {
 		}
 		return client;
 	}
-	
+
 	// initialize
 	public void init()
 	{
 		rcloneConfigFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "rcloneConfig";		
 		new File(rcloneConfigFolder).mkdir();
-		
+
 		// if the zookeeper is defined.. find from zookeeper what the key is
 		// and register for the key change
 		// if not.. the storage key is sitting some place pick it up and get it
 		String storage = DIHelper.getInstance().getProperty(STORAGE);
 		dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "db";
-		
+		userSpace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "users";
+
 		Map <String, String> env = System.getenv();
 		if(env.containsKey(KEY_HOME))
 			azKeyRoot = env.get(KEY_HOME);
@@ -107,7 +110,7 @@ public class AZClient extends CloudClient {
 		if(env.containsKey(KEY_HOME.toUpperCase()))
 			azKeyRoot = env.get(KEY_HOME.toUpperCase());
 
-		
+
 		if(storage == null || storage.equalsIgnoreCase("LOCAL"))
 		{
 			// dont bother with anything
@@ -124,20 +127,20 @@ public class AZClient extends CloudClient {
 			// need the zk piece here
 			ZKClient client = ZKClient.getInstance();
 			connectionString = client.getNodeData(azKeyRoot, client.zk);
-			
+
 			// if SAS_URL it should starts with SAS_URL=			
 			if(connectionString.startsWith("SAS_URL="))
 				sasURL = connectionString.replace("SAS_URL=", "");
-			
+
 			AZStorageListener azList = new AZStorageListener();
-			
+
 			client.watchEvent(azKeyRoot, EventType.NodeDataChanged, azList);
-			
+
 		}
 
 		createServiceClient();
 	}
-	
+
 	public void createServiceClient()
 	{
 		try {
@@ -149,8 +152,8 @@ public class AZClient extends CloudClient {
 			else
 			{
 				CloudStorageAccount account = CloudStorageAccount.parse(connectionString);
-	            serviceClient = account.createCloudBlobClient();
-	            
+				serviceClient = account.createCloudBlobClient();
+
 			}
 		} catch (URISyntaxException e) {
 			// TODO Auto-generated catch block
@@ -160,9 +163,9 @@ public class AZClient extends CloudClient {
 			e.printStackTrace();
 		}
 	}
-	
-	
-	
+
+
+
 	// get SAS URL for a container
 	public String getSAS(String containerName)
 	{
@@ -172,7 +175,7 @@ public class AZClient extends CloudClient {
 			CloudBlobContainer container = serviceClient.getContainerReference(containerName);
 			container.createIfNotExists();
 			retString = container.getUri() + "?" + container.generateSharedAccessSignature(getSASConstraints(), null); 
-			
+
 		} catch (URISyntaxException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -183,10 +186,10 @@ public class AZClient extends CloudClient {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		return retString;
 	}
-	
+
 	// swaps the key
 	public void swapKey(String key)
 	{
@@ -197,57 +200,57 @@ public class AZClient extends CloudClient {
 			connectionString = key;
 		createServiceClient();
 	}
-	
 
 
-	
+
+
 	public void quarantineContainer(String containerName)
 	{
 		// take this out in terms of listing
-		
+
 	}
-	
+
 	public SharedAccessBlobPolicy getSASConstraints()
 	{
 		SharedAccessBlobPolicy sasConstraints = null;
-			
-        sasConstraints = new SharedAccessBlobPolicy();
-        
-        // get the current time + 24 hours or some
-        
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.MINUTE, +3);
-        Date date = calendar.getTime();
-        
-        sasConstraints.setSharedAccessExpiryTime(date);
-        
-        EnumSet <SharedAccessBlobPermissions> permSet = EnumSet.noneOf(SharedAccessBlobPermissions.class);
-        
-        // I need to read the database to find if this guy is allowed etc. but for now
-        permSet.add(SharedAccessBlobPermissions.LIST);
-        permSet.add(SharedAccessBlobPermissions.WRITE);
-        permSet.add(SharedAccessBlobPermissions.CREATE);
-        permSet.add(SharedAccessBlobPermissions.READ);
-        permSet.add(SharedAccessBlobPermissions.DELETE);
-        permSet.add(SharedAccessBlobPermissions.ADD);
-        
-        sasConstraints.setPermissions(permSet);
-        
-        return sasConstraints;
+
+		sasConstraints = new SharedAccessBlobPolicy();
+
+		// get the current time + 24 hours or some
+
+		Calendar calendar = Calendar.getInstance();
+		calendar.add(Calendar.MINUTE, +3);
+		Date date = calendar.getTime();
+
+		sasConstraints.setSharedAccessExpiryTime(date);
+
+		EnumSet <SharedAccessBlobPermissions> permSet = EnumSet.noneOf(SharedAccessBlobPermissions.class);
+
+		// I need to read the database to find if this guy is allowed etc. but for now
+		permSet.add(SharedAccessBlobPermissions.LIST);
+		permSet.add(SharedAccessBlobPermissions.WRITE);
+		permSet.add(SharedAccessBlobPermissions.CREATE);
+		permSet.add(SharedAccessBlobPermissions.READ);
+		permSet.add(SharedAccessBlobPermissions.DELETE);
+		permSet.add(SharedAccessBlobPermissions.ADD);
+
+		sasConstraints.setPermissions(permSet);
+
+		return sasConstraints;
 
 	}
-	
+
 	public static void main(String[] args) throws IOException, InterruptedException {
 		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
-//		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
-//		System.out.println(AZClient.getInstance().getSAS("timb"));
-//		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
-//		AZClient.getInstance().pushApp(appId);
-//		AZClient.getInstance().pullApp(appId);
-//		List<String> containers = AZClient.getInstance().listAllBlobContainers();
-//		for(String container : containers) {
-//			System.out.println(container);
-//		}
+		//		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
+		//		System.out.println(AZClient.getInstance().getSAS("timb"));
+		//		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
+		//		AZClient.getInstance().pushApp(appId);
+		//		AZClient.getInstance().pullApp(appId);
+		//		List<String> containers = AZClient.getInstance().listAllBlobContainers();
+		//		for(String container : containers) {
+		//			System.out.println(container);
+		//		}
 	}
 	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
 		IEngine engine = Utility.getEngine(appId, false);
@@ -260,58 +263,58 @@ public class AZClient extends CloudClient {
 		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
-				engine.closeDB();
-				System.out.println("Pulling insights database for" + appFolder + " from remote=" + appId);
-				runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/insights_database.mv.db", appFolder);
-				//List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "pull", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
+			engine.closeDB();
+			System.out.println("Pulling insights database for" + appFolder + " from remote=" + appId);
+			runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/insights_database.mv.db", appFolder);
+			//List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "pull", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
 		}  finally {
 			if (appRcloneConfig != null) {
 				deleteRcloneConfig(appRcloneConfig);
 			}
 		}
 	}
-	
+
 	// This is the sync the whole app. It shouldn't be used yet. Only the insights DB should be sync actively 
-	
-//	public  Boolean syncApp(String appId) throws IOException, InterruptedException{
-//		Boolean sync = false;
-//		IEngine engine = Utility.getEngine(appId, false);
-//		if (engine == null) {
-//			throw new IllegalArgumentException("App not found...");
-//		}
-//		String appRcloneConfig = null;
-//		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
-//		String aliasAppId = alias + "__" + appId;
-//		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
-//		try {
-//			appRcloneConfig = createRcloneConfig(appId);
-//				engine.closeDB();
-//				System.out.println("Checking from app path" + appFolder + " to remote=" + appId);
-//				List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "check", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
-//				for(String s:results){
-//				System.out.println("Result String: " + s);
-//				}
-//				if(results.get(0).contains("ERROR")){
-//					sync=true;
-//				}
-//		}  finally {
-//			if (appRcloneConfig != null) {
-//				deleteRcloneConfig(appRcloneConfig);
-//			}
-//		}
-//
-//		return sync;
-//	}
+
+	//	public  Boolean syncApp(String appId) throws IOException, InterruptedException{
+	//		Boolean sync = false;
+	//		IEngine engine = Utility.getEngine(appId, false);
+	//		if (engine == null) {
+	//			throw new IllegalArgumentException("App not found...");
+	//		}
+	//		String appRcloneConfig = null;
+	//		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+	//		String aliasAppId = alias + "__" + appId;
+	//		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+	//		try {
+	//			appRcloneConfig = createRcloneConfig(appId);
+	//				engine.closeDB();
+	//				System.out.println("Checking from app path" + appFolder + " to remote=" + appId);
+	//				List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "check", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
+	//				for(String s:results){
+	//				System.out.println("Result String: " + s);
+	//				}
+	//				if(results.get(0).contains("ERROR")){
+	//					sync=true;
+	//				}
+	//		}  finally {
+	//			if (appRcloneConfig != null) {
+	//				deleteRcloneConfig(appRcloneConfig);
+	//			}
+	//		}
+	//
+	//		return sync;
+	//	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////// Push ////////////////////////////////////////////
-	
+
 	public void pushApp(String appId) throws IOException, InterruptedException {
 		IEngine engine = Utility.getEngine(appId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
-		
+
 		// We need to push the folder alias__appId and the file alias__appId.smss
 		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
 		String aliasAppId = alias + "__" + appId;
@@ -326,27 +329,27 @@ public class AZClient extends CloudClient {
 			appRcloneConfig = createRcloneConfig(appId);
 			String smssContainer = appId + SMSS_POSTFIX;
 			smssRCloneConfig = createRcloneConfig(smssContainer);
-			
+
 			// Some temp files needed for the transfer
 			File temp = null;
 			File copy = null;
-			
+
 			// Close the database, so that we can push without file locks (also ensures that the db doesn't change mid push)
 			try {
 				engine.closeDB();
-				
+
 				// Push the app folder
 				System.out.println("Pushing from source=" + appFolder + " to remote=" + appId);
 				runRcloneProcess(appRcloneConfig, "rclone", "sync", appFolder, appRcloneConfig + ":");
 				System.out.println("Done pushing from source=" + appFolder + " to remote=" + appId);
-				
+
 				// Move the smss to an empty temp directory (otherwise will push all items in the db folder)
 				String tempFolder = Utility.getRandomString(10);
 				temp = new File(dbFolder + FILE_SEPARATOR + tempFolder);
 				temp.mkdir();
 				copy = new File(temp.getPath() + FILE_SEPARATOR + smss);
 				Files.copy(new File(smssFile), copy);
-				
+
 				// Push the smss
 				System.out.println("Pushing from source=" + smssFile + " to remote=" + smssContainer);
 				runRcloneProcess(smssRCloneConfig, "rclone", "sync", temp.getPath(), smssRCloneConfig + ":");
@@ -358,7 +361,7 @@ public class AZClient extends CloudClient {
 				if (temp != null) {
 					temp.delete();
 				}
-				
+
 				// Re-open the database
 				DIHelper.getInstance().removeLocalProperty(appId);
 				Utility.getEngine(appId, false);
@@ -372,14 +375,36 @@ public class AZClient extends CloudClient {
 			}
 		}
 	}
-	
+
+	public void pushUser(String userId) throws IOException, InterruptedException{
+		String validID=cleanID(userId);
+
+		String userRcloneConfig = null;
+		try{
+			userRcloneConfig = createRcloneConfig(ClusterUtil.USER_CONTAINER);
+			System.out.println("Pushing from source user=" + validID + " to remote");
+
+			File userFolder = new File(userSpace + FILE_SEPARATOR + validID);
+			if(userFolder.exists()){
+				runRcloneProcess(userRcloneConfig, "rclone", "sync", userFolder.getPath(),userRcloneConfig + ":" + ClusterUtil.USER_CONTAINER + "/" + validID);
+			}
+			else{
+				throw new IllegalArgumentException("User does a user folder at local location: " + userFolder.getAbsolutePath() );
+			}
+		} finally {
+			if (userRcloneConfig != null) {
+				deleteRcloneConfig(userRcloneConfig);
+			}
+		}
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////// Pull ////////////////////////////////////////////
-	
+
 	public void pullApp(String appId) throws IOException, InterruptedException {
 		pullApp(appId, true);
 	}
-	
+
 	protected void pullApp(String appId, boolean newApp) throws IOException, InterruptedException {
 		IEngine engine = null;
 		if (!newApp) {
@@ -388,16 +413,16 @@ public class AZClient extends CloudClient {
 				throw new IllegalArgumentException("App not found...");
 			}
 		}
-		
+
 		String smssContainer = appId + SMSS_POSTFIX;
-		
+
 		// Start with the sas token
 		String appRcloneConfig = null;
 		String smssRcloneConfig = null;
 		try {
 			appRcloneConfig = createRcloneConfig(appId);
 			smssRcloneConfig = createRcloneConfig(smssContainer);
-			
+
 			// List the smss directory to get the alias + app id
 			List<String> results = runRcloneProcess(smssRcloneConfig, "rclone", "lsf", smssRcloneConfig + ":");
 			String smss = null;
@@ -410,16 +435,16 @@ public class AZClient extends CloudClient {
 			if (smss == null) {
 				throw new IOException("Failed to pull app for appid=" + appId);
 			}
-			
+
 			// We need to pull the folder alias__appId and the file alias__appId.smss
 			String aliasAppId = smss.replaceAll(".smss", "");
-			
+
 			// Close the database (if an existing app), so that we can pull without file locks
 			try {
 				if (!newApp) {
 					engine.closeDB();
 				}
-								
+
 				// Make the app directory (if it doesn't already exist)
 				File appFolder = new File(dbFolder + FILE_SEPARATOR + aliasAppId);
 				appFolder.mkdir(); 
@@ -431,7 +456,7 @@ public class AZClient extends CloudClient {
 
 				// Now pull the smss
 				System.out.println("Pulling from remote=" + smssContainer + " to target=" + dbFolder);
-				
+
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE DB FOLDER
 				runRcloneProcess(smssRcloneConfig, "rclone", "copy", smssRcloneConfig + ":", dbFolder);
 				System.out.println("Done pulling from remote=" + smssContainer + " to target=" + dbFolder);
@@ -441,7 +466,7 @@ public class AZClient extends CloudClient {
 					SMSSWebWatcher.catalogDB(smss, dbFolder);
 				}
 			} finally {
-				
+
 				// Re-open the database (if an existing app)
 				if (!newApp) {
 					DIHelper.getInstance().removeLocalProperty(appId);
@@ -457,82 +482,143 @@ public class AZClient extends CloudClient {
 			}
 		}
 	}
-	
-	//////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////// Update///////////////////////////////////////////
-	
-	// TODO >>>timb: pixel to update app so that neel can add refresh button or something
-	// TODO >>>timb: still need to test this method
-	public void updateApp(String appId) throws IOException, InterruptedException {
-		if (Utility.getEngine(appId, true) == null) {
-			throw new IllegalArgumentException("App needs to be defined in order to update...");
+
+	public List<String> getUsers() throws IOException, InterruptedException{
+		List<String> users = new ArrayList<String>();
+		String userRcloneConfig = null;
+		try{
+			userRcloneConfig = createRcloneConfig(ClusterUtil.USER_CONTAINER);
+			users = runRcloneProcess(userRcloneConfig, "rclone", "lsf", userRcloneConfig+":"+ClusterUtil.USER_CONTAINER);
+		}finally {
+			if (userRcloneConfig != null) {
+				deleteRcloneConfig(userRcloneConfig);
+			}
 		}
-		pullApp(appId, false);
+		return users;
 	}
-	
-	//////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////// Delete //////////////////////////////////////////
-	
-	// TODO >>>timb: test out delete functionality
-	public void deleteApp(String appId) throws IOException, InterruptedException {
-		String rcloneConfig = Utility.getRandomString(10);
-		try {
-			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-			System.out.println("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
-			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId);
-			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
-			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId);
-			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
-			System.out.println("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
-		} finally {
-			deleteRcloneConfig(rcloneConfig);
-		}
-	}
-	
-	//////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////// Cleanup//////////////////////////////////////////	
-	public List<String> listAllBlobContainers() throws IOException, InterruptedException {
-		String rcloneConfig = Utility.getRandomString(10);
-		List<String> allContainers = new ArrayList<>();
-		try {
-			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-			List<String> results = runRcloneProcess(rcloneConfig, "rclone", "lsf", rcloneConfig + ":");
-			for (String result : results) {
-				allContainers.add(result);
+
+	public void pullUser(String userId) throws IOException, InterruptedException{
+		//String validID=validateString(userId);
+		String validID=cleanID(userId);
+
+		String userRcloneConfig = null;
+		try{
+			userRcloneConfig = createRcloneConfig(ClusterUtil.USER_CONTAINER);
+			List<String> users = runRcloneProcess(userRcloneConfig, "rclone", "lsf", userRcloneConfig+":"+ClusterUtil.USER_CONTAINER);
+
+			// Make the user's directory (if it doesn't already exist)
+			File userFolder = new File(userSpace + FILE_SEPARATOR + validID);
+			userFolder.mkdir(); 
+			if(users.contains(validID)){
+				runRcloneProcess(userRcloneConfig, "rclone", "sync", userRcloneConfig + ":" + ClusterUtil.USER_CONTAINER + "/" + validID, userFolder.getPath());
+			} else{
+				System.out.println("User does not have a storage account tied to id: " + validID + ". Making a container for user.");
+				createUser(userId);
+				pushUser(userId);
+				//runRcloneProcess(userRcloneConfig, "rclone", "sync", userRcloneConfig + ":" + ClusterUtil.USER_CONTAINER + "/" + validID, userFolder.getPath());
 			}
 		} finally {
-			deleteRcloneConfig(rcloneConfig);
-		}
-		return allContainers;
-	}
-	
-	public void deleteContainer(String containerId) throws IOException, InterruptedException {
-		String rcloneConfig = Utility.getRandomString(10);
-		try {
-			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
-			System.out.println("Deleting container=" + containerId);
-			runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + containerId);
-			runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + containerId);
-			System.out.println("Done deleting container=" + containerId);
-		} finally {
-			deleteRcloneConfig(rcloneConfig);
+			if (userRcloneConfig != null) {
+				deleteRcloneConfig(userRcloneConfig);
+			}
 		}
 	}
-	
-	
-	//////////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////// Static Util Methods ////////////////////////////////////
-	
-	private static String createRcloneConfig(String container) throws IOException, InterruptedException {
-		System.out.println("Generating SAS for container=" + container);
-		String sasUrl = client.getSAS(container);
-		String rcloneConfig = Utility.getRandomString(10);
-		runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
-		return rcloneConfig;
+
+	public void createUser(String userId) throws IOException, InterruptedException{
+		String validID=cleanID(userId);
+		String userRcloneConfig = null;
+		try{
+			userRcloneConfig = createRcloneConfig(ClusterUtil.USER_CONTAINER);
+			File userFolder = new File(userSpace + FILE_SEPARATOR + validID);
+			userFolder.mkdir();
+			File semossConfigFolder = new File(userFolder.getAbsolutePath()+FILE_SEPARATOR+"semossConfig");
+			File semossConfig = new File(semossConfigFolder+FILE_SEPARATOR+"semossConfig.txt");
+			semossConfig.getParentFile().mkdirs();
+			semossConfig.createNewFile();
+		}finally {
+			if (userRcloneConfig != null) {
+				deleteRcloneConfig(userRcloneConfig);
+			}
+		}
+		return;
 	}
-	
-	/*
-	
+
+
+		//////////////////////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////// Update///////////////////////////////////////////
+
+		// TODO >>>timb: pixel to update app so that neel can add refresh button or something
+		// TODO >>>timb: still need to test this method
+		public void updateApp(String appId) throws IOException, InterruptedException {
+			if (Utility.getEngine(appId, true) == null) {
+				throw new IllegalArgumentException("App needs to be defined in order to update...");
+			}
+			pullApp(appId, false);
+		}
+
+		//////////////////////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////// Delete //////////////////////////////////////////
+
+		// TODO >>>timb: test out delete functionality
+		public void deleteApp(String appId) throws IOException, InterruptedException {
+			String rcloneConfig = Utility.getRandomString(10);
+			try {
+				runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+				System.out.println("Deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId);
+				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId);
+				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + appId + SMSS_POSTFIX);
+				System.out.println("Done deleting container=" + appId + ", " + appId + SMSS_POSTFIX);
+			} finally {
+				deleteRcloneConfig(rcloneConfig);
+			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////// Cleanup//////////////////////////////////////////	
+		public List<String> listAllBlobContainers() throws IOException, InterruptedException {
+			String rcloneConfig = Utility.getRandomString(10);
+			List<String> allContainers = new ArrayList<>();
+			try {
+				runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+				List<String> results = runRcloneProcess(rcloneConfig, "rclone", "lsf", rcloneConfig + ":");
+				for (String result : results) {
+					allContainers.add(result);
+				}
+			} finally {
+				deleteRcloneConfig(rcloneConfig);
+			}
+			return allContainers;
+		}
+
+		public void deleteContainer(String containerId) throws IOException, InterruptedException {
+			String rcloneConfig = Utility.getRandomString(10);
+			try {
+				runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "account", name, "key", key);
+				System.out.println("Deleting container=" + containerId);
+				runRcloneProcess(rcloneConfig, "rclone", "delete", rcloneConfig + ":" + containerId);
+				runRcloneProcess(rcloneConfig, "rclone", "rmdir", rcloneConfig + ":" + containerId);
+				System.out.println("Done deleting container=" + containerId);
+			} finally {
+				deleteRcloneConfig(rcloneConfig);
+			}
+		}
+
+
+		//////////////////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////// Static Util Methods ////////////////////////////////////
+
+		private static String createRcloneConfig(String container) throws IOException, InterruptedException {
+			System.out.println("Generating SAS for container=" + container);
+			String sasUrl = client.getSAS(container);
+			String rcloneConfig = Utility.getRandomString(10);
+			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
+			return rcloneConfig;
+		}
+
+		/*
+
 	private static void deleteRcloneConfig(String rcloneConfig) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
 		try {
@@ -541,7 +627,7 @@ public class AZClient extends CloudClient {
 			new File(configPath).delete();
 		}
 	}
-	
+
 	private static List<String> runRcloneProcess(String rcloneConfig, String... command) throws IOException, InterruptedException {
 		String configPath = getConfigPath(rcloneConfig);
 		List<String> commandList = new ArrayList<>();
@@ -551,11 +637,11 @@ public class AZClient extends CloudClient {
 		String[] newCommand = commandList.toArray(new String[] {});
 		return runAnyProcess(newCommand);	
 	}
-	
+
 	private static String getConfigPath(String rcloneConfig) {
 		return rcloneConfigFolder + FILE_SEPARATOR + rcloneConfig + ".conf";
 	}
-	
+
 	private static List<String> runAnyProcess(String... command) throws IOException, InterruptedException {
 		Process p = null;
 		try {
@@ -574,15 +660,15 @@ public class AZClient extends CloudClient {
 			}
 		}
 	}
-	
+
 	private static List<String> streamOutput(InputStream stream) throws IOException {
 		return stream(stream, false);
 	}
-	
+
 	private static List<String> streamError(InputStream stream) throws IOException {
 		return stream(stream, true);
 	}
-	
+
 	private static List<String> stream(InputStream stream, boolean error) throws IOException {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
 			List<String> lines = reader.lines().collect(Collectors.toList());
@@ -596,6 +682,6 @@ public class AZClient extends CloudClient {
 			return lines;
 		}
 	}
-	*/
-		
-}
+		 */
+
+	}

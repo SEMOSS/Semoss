@@ -13,6 +13,8 @@ public class ClusterUtil {
 	// Env vars used in clustered deployments
 	// TODO >>>timb: make sure that everything cluster related starts with this,
 	// also introduces tracibility
+	
+	public static final String USER_CONTAINER = "semossusers";
 	private static final String IS_CLUSTER_KEY = "SEMOSS_IS_CLUSTER";
 	public static final boolean IS_CLUSTER = System.getenv().containsKey(IS_CLUSTER_KEY)
 			? Boolean.parseBoolean(System.getenv(IS_CLUSTER_KEY))
