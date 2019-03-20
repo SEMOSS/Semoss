@@ -185,6 +185,12 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	public void executeEmptyR(String rScript) {
 		engine.eval(encapsulateForEnv(rScript), false);
 	}
+	
+	@Override
+	public boolean cancelExecution() {
+		// TODO >>>timb: R - need to complete cancel exec		
+		return false;
+	}
 
 	@Override
 	public String getString(String script) {

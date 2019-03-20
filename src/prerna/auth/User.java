@@ -17,6 +17,7 @@ public class User extends AbstractValueObject {
 	
 	// need to have an access token store
 	private RConnection rConn; 
+	private volatile boolean rConnCancelled = false;
 	
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
 	List<AuthProvider> loggedInProfiles = new ArrayList<AuthProvider>();
@@ -94,6 +95,14 @@ public class User extends AbstractValueObject {
 	public void setRConn(RConnection rCon) {
 		this.rConn = rCon;
 	}	
+	
+	public void setRConnCancelled(boolean rConnCancelled) {
+		this.rConnCancelled = rConnCancelled;
+	}
+	
+	public boolean getRConnCancelled() {
+		return rConnCancelled;
+	}
 	
 	// add the insight instance id
 	public void addInsight(String id, InsightToken token)

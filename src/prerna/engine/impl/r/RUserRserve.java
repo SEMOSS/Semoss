@@ -1,12 +1,14 @@
 package prerna.engine.impl.r;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.SystemUtils;
 import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.util.DIHelper;
 
@@ -18,7 +20,6 @@ public class RUserRserve {
 	private static final String HOST = "127.0.0.1";
 	private static final String R_HOME_KEY = "R_HOME";
 	
-	private static volatile boolean started = false;
 	private static String rBin;
 	
 	// Get the R binary location
@@ -32,61 +33,74 @@ public class RUserRserve {
 		}
 	}
 	
-	private static void startRServe() throws Exception {
+	private static void startRserve() throws Exception {
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
 		File output = new File(baseFolder + FS + "Rserve.output.log");
 		File error = new File(baseFolder + FS + "Rserve.error.log");
-		
+
 		ProcessBuilder pb;
 		if (SystemUtils.IS_OS_WINDOWS) {
-			pb = new ProcessBuilder(rBin, "-e", "library(Rserve);Rserve(FALSE," + PORT + ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)", "--vanilla");
+			pb = new ProcessBuilder(rBin, "-e", "library(Rserve);Rserve(FALSE," + PORT
+					+ ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)",
+					"--vanilla");
 		} else {
 			pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", PORT + "");
 		}
 		pb.redirectOutput(output);
 		pb.redirectError(error);
 		Process process = pb.start();
-		process.waitFor(7, TimeUnit.SECONDS);
-		started = true;
+		process.waitFor(7L, TimeUnit.SECONDS);
 	}
 
-	public static void stopRServe() throws Exception {
+	public static void stopRserve() throws Exception {
 		ProcessBuilder pb;
 		if (SystemUtils.IS_OS_WINDOWS) {
-			pb = new ProcessBuilder(rBin, "-e", "library(Rserve);library(RSclient);rsc<-RSconnect(port=" + PORT + ");RSshutdown(rsc)", "--vanilla");
+			pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
 		} else {
 			pb = new ProcessBuilder("pkill", "Rserve");
 		}
 		Process process = pb.start();
-		process.waitFor(7, TimeUnit.SECONDS);
-		started = false;
+		process.waitFor(7L, TimeUnit.SECONDS);
 	}
-	
-	public synchronized static RConnection createConnection() throws Exception {
+		
+	private static RConnection getConnection() throws Exception {
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		try {
+			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
+				@Override
+				public RConnection call() throws Exception {
+					return new RConnection(HOST, PORT);
+				}
+			});
+			return future.get(7L, TimeUnit.SECONDS); 
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+		
+	public synchronized static RConnection createConnection() {
 		RConnection rcon;
 		try {
-			rcon = new RConnection(HOST, PORT);
-		} catch (RserveException e0) {
-						
-			// try to start again and see if that works
+			
+			// Try establishing a connection to an existing Rserve
+			rcon = getConnection();
+		} catch (Exception e0) {
 			try {
-				if (!started) {
-					try {
-						startRServe();
-					} catch (Exception e) {
-						
-						// If some sort of issue occurs, then try stopping then starting
-						stopRServe();
-						startRServe();
-					}
-				} else {
-					stopRServe();
-					startRServe();
+				
+				// If that doesn't work, try starting Rserve
+				startRserve();
+				rcon = getConnection();
+			} catch (Exception e1) {
+				try {
+					
+					// If that doesn't work, try restarting Rserve
+					stopRserve();
+					startRserve();
+					rcon = getConnection();
+				} catch (Exception e3) {
+					throw new IllegalArgumentException("Unable to establish R connection.", e3);
 				}
-				rcon = new RConnection(HOST, PORT);
-			} catch (RserveException | IOException e1) {
-				throw new IllegalArgumentException("Unable to establish R connection.", e1);
 			}
 		}
 		return rcon;

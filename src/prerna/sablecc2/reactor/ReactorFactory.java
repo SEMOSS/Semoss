@@ -176,6 +176,7 @@ import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
 import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
+import prerna.sablecc2.reactor.frame.r.CancelRReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GetSemanticDescription;
@@ -959,6 +960,7 @@ public class ReactorFactory {
 		reactorHash.put("CodeExec", CodeExecReactor.class);
 		reactorHash.put("Py", PyReactor.class);
 		reactorHash.put("R", RReactor.class);
+		reactorHash.put("CancelR", CancelRReactor.class);
 		reactorHash.put("RSource", RSourceReactor.class);
 		reactorHash.put("Java", JavaReactor.class);
 		
