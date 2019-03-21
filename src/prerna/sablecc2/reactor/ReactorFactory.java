@@ -177,8 +177,8 @@ import prerna.sablecc2.reactor.frame.graph.FindPathsConnectingNodesReactor;
 import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
-import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
 import prerna.sablecc2.reactor.frame.r.CancelRReactor;
+import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GetSemanticDescription;
@@ -394,6 +394,7 @@ import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.sablecc2.reactor.workflow.InsightDatasourcesReactor;
 import prerna.sablecc2.reactor.workflow.ModifyInsightDatasourceReactor;
+import prerna.sablecc2.reactor.workspace.UserRootDirectoryReactor;
 import prerna.solr.reactor.AppInfoReactor;
 import prerna.solr.reactor.AppInsightsReactor;
 import prerna.solr.reactor.AppUsersReactors;
@@ -922,8 +923,8 @@ public class ReactorFactory {
 		reactorHash.put("PushApps", PushAppsReactor.class);
 		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
 		reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
-
-		
+		// User Space
+		reactorHash.put("UserDir", UserRootDirectoryReactor.class);
 
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);

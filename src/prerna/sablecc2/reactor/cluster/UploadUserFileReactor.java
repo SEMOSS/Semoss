@@ -22,6 +22,8 @@ import prerna.util.DIHelper;
 
 public class UploadUserFileReactor extends AbstractReactor {
 
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	public UploadUserFileReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
 	}
@@ -34,9 +36,8 @@ public class UploadUserFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input file path for the user file");
 		}
 		
-		String file_seperator = System.getProperty("file.separator");
 		File uploadedFile = new File(uploadedFilePath);
-		String userSpace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + file_seperator + "users";
+		String userSpace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "users";
 		// in case it doesn't exist for some reason
 		File userSpaceF = new File(userSpace);
 		if(!userSpaceF.exists()) {
@@ -61,11 +62,11 @@ public class UploadUserFileReactor extends AbstractReactor {
 			} else {
 				userSpaceId = "anonymous";
 			}
-			File userFolder = new File(userSpace + file_seperator + userSpaceId);
+			File userFolder = new File(userSpace + DIR_SEPARATOR + userSpaceId);
 			
 			//copy file into the directory from tmp upload space if it is valid. For now its just .R files
 			try {
-				FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + file_seperator + uploadedFile.getName()));
+				FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + DIR_SEPARATOR + uploadedFile.getName()));
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new IllegalArgumentException("Unable to copy file");
@@ -79,7 +80,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 			CloudClient.getClient();
 			userSpaceId = CloudClient.cleanID(userSpaceId);
 			//make the directory if it doesn't exist
-			File userFolder = new File(userSpace + file_seperator + userSpaceId);
+			File userFolder = new File(userSpace + DIR_SEPARATOR + userSpaceId);
 			if(!userFolder.exists()){
 				try {
 					CloudClient.getClient().pullUser(userSpaceId);
@@ -95,7 +96,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 	
 			//copy file into the directory from tmp upload space if it is valid. For now its just .R files
 			try {
-				FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + file_seperator + uploadedFile.getName()));
+				FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + DIR_SEPARATOR + uploadedFile.getName()));
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new IllegalArgumentException("Unable to copy file");
