@@ -145,6 +145,9 @@ public enum PixelOperationType {
 	VERSION,
 	SYNC_APPS,
 	
+	// User Space
+	USER_DIR,
+	
 	// RECIPE COMMENTS
 	RECIPE_COMMENT,
 	
