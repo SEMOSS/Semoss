@@ -309,8 +309,8 @@ public class SemossDate {
 
 		// this does a check for anything that 
 		// number, a slash, or a dash
-		// not exactly contians alpha, but most likely...
-		boolean containsAlpha = !input.matches("[0-9/-]+");
+		// not exactly contains alpha, but most likely...
+		boolean containsAlpha = !input.matches("[0-9/\\-]+");
 		
 		if(!containsAlpha && input.contains("/")) {
 			return testCombinations(input, datesWithSlash);
@@ -335,8 +335,8 @@ public class SemossDate {
 
 		// this does a check for anything that 
 		// number, a slash, or a dash
-		// not exactly contians alpha, but most likely...
-		boolean containsAlpha = !input.matches("[0-9/-:.\\s]+");
+		// not exactly contains alpha, but most likely...
+		boolean containsAlpha = !input.matches("[0-9/\\-:.\\s]+");
 		
 		if(!containsAlpha && input.contains("/")) {
 			return testCombinations(input, timeStampsWithSlash);
@@ -410,7 +410,12 @@ public class SemossDate {
 		
 		d = "2018/1/1 10:20:11";
 		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
+	
+		d = "2018-03-12";
+		System.out.println(SemossDate.genDateObj(d).testToString());
 		
+		d = "2018-03-12 10:20:11";
+		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
 	}
 
 }
