@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
@@ -121,7 +121,7 @@ public class RDBMSEngineCreationHelper {
 				viewPixel.append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
 				String id = admin.addInsight(insightName, layout, recipeArray);
-				SecurityUpdateUtils.addInsight(rdbmsEngine.getEngineId(), id, insightName, false, layout);
+				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), id, insightName, false, layout);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");

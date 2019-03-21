@@ -1,10 +1,12 @@
 package prerna.auth.utils;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import prerna.auth.AccessPermission;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
@@ -276,6 +278,170 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Adding Insight
+	 */
+
+	/**
+	 * 
+	 * @param engineId
+	 * @param insightId
+	 * @param insightName
+	 * @param global
+	 * @param layout
+	 */
+	public static void addInsight(String engineId, String insightId, String insightName, boolean global, String layout) {
+		LocalDateTime now = LocalDateTime.now();
+		String nowString = java.sql.Timestamp.valueOf(now).toString();
+		String insightQuery = "INSERT INTO INSIGHT (ENGINEID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE) "
+				+ "VALUES ('" + engineId + "', '" + insightId + "', '" + RdbmsQueryBuilder.escapeForSQLStatement(insightName) + "', " 
+				+ global + " ," + 0 + " ,'" + nowString + "' ,'" + nowString + "','" + layout + "', true)";
+		try {
+			securityDb.insertData(insightQuery);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 
+	 * @param user
+	 * @param engineId
+	 * @param insightId
+	 */
+	public static void addUserInsightCreator(User user, String engineId, String insightId) {
+		List<AuthProvider> logins = user.getLogins();
+		StringBuilder insightInsert = new StringBuilder();
+		for(AuthProvider login : logins) {
+			insightInsert.append("INSERT INTO USERINSIGHTPERMISSION (USERID, ENGINEID, INSIGHTID, PERMISSION) "
+					+ "VALUES ('" + user.getAccessToken(login).getId() + "', '" + engineId + "', '" + insightId + "', " + 1 + ");");
+		}
+		
+		try {
+			securityDb.insertData(insightInsert.toString());
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	// TODO >>>timb: push app here on create/update
+	/**
+	 * 
+ 	 * @param engineId
+	 * @param insightId
+	 * @param insightName
+	 * @param global
+	 * @param exCount
+	 * @param lastModified
+	 * @param layout
+	 */
+	public static void updateInsight(String engineId, String insightId, String insightName, boolean global, String layout) {
+		LocalDateTime now = LocalDateTime.now();
+		String nowString = java.sql.Timestamp.valueOf(now).toString();
+		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', GLOBAL=" + global + ", LASTMODIFIEDON='" + nowString 
+				+ "', LAYOUT='" + layout + "'  WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Update the insight name
+	 * @param engineId
+	 * @param insightId
+	 * @param insightName
+	 */
+	public static void updateInsightName(String engineId, String insightId, String insightName) {
+		LocalDateTime now = LocalDateTime.now();
+		String nowString = java.sql.Timestamp.valueOf(now).toString();
+		String query = "UPDATE INSIGHT SET INSIGHTNAME='" + insightName + "', LASTMODIFIEDON='" + nowString + "' "
+				+ "WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Update if an insight is cacheable
+	 * @param appId
+	 * @param existingId
+	 * @param cache
+	 */
+	public static void updateInsightCache(String engineId, String insightId, boolean cache) {
+		LocalDateTime now = LocalDateTime.now();
+		String nowString = java.sql.Timestamp.valueOf(now).toString();
+		String query = "UPDATE INSIGHT SET CACHEABLE=" + cache + ", LASTMODIFIEDON='" + nowString + "' "
+				+ "WHERE INSIGHTID = '" + insightId + "' AND ENGINEID='" + engineId + "'"; 
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param insightId
+	 */
+	public static void deleteInsight(String engineId, String insightId) {
+		String query = "DELETE FROM INSIGHT WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
+		query = "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 
+	 * @param engineId
+	 * @param insightId
+	 */
+	public static void deleteInsight(String engineId, String... insightId) {
+		String insightFilter = createFilter(insightId);
+		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilter + " AND ENGINEID='" + engineId + "'";
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND ENGINEID='" + engineId + "'";
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * 
 	 * @param user
