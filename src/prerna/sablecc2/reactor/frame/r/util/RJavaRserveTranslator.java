@@ -739,7 +739,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public void stopRProcess() {
-		// TODO Auto-generated method stub
-		
+		try {
+			this.retCon.detach();
+		} catch (RserveException e) {
+			logger.warn("Unable to stop R process.", e);
+		}
 	}
 }
