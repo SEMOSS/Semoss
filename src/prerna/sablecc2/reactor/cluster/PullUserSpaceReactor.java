@@ -13,10 +13,6 @@ import prerna.sablecc2.reactor.AbstractReactor;
 
 public class PullUserSpaceReactor extends AbstractReactor{
 
-	public PullUserSpaceReactor() {
-
-	}
-
 	@Override
 	public NounMetadata execute() {
 		if(ClusterUtil.IS_CLUSTER){
