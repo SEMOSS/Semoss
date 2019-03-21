@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -168,7 +169,7 @@ public class MosfetSyncHelper {
 		String[] pixelRecipeToSave = new String[]{recipe};
 		admin.addInsight(id, insightName, layout, pixelRecipeToSave, hidden);
 		
-		SecurityUpdateUtils.addInsight(engine.getEngineId(), id, insightName, false, layout);
+		SecurityInsightUtils.addInsight(engine.getEngineId(), id, insightName, false, layout);
 	}
 
 	private static void modifyInsightInEngineRdbms(String appId, String id, String insightName, String layout, String recipe, boolean hidden) {
@@ -178,7 +179,7 @@ public class MosfetSyncHelper {
 		String[] pixelRecipeToSave = new String[]{recipe};
 		admin.updateInsight(id, insightName, layout, pixelRecipeToSave, hidden);
 		
-		SecurityUpdateUtils.updateInsight(appId, id, insightName, false, layout);
+		SecurityInsightUtils.updateInsight(appId, id, insightName, false, layout);
 	}
 
 	private static void deleteInsightFromEngineRdbms(String engineId, String id) {
@@ -186,7 +187,7 @@ public class MosfetSyncHelper {
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		admin.dropInsight(id);
 		
-		SecurityUpdateUtils.deleteInsight(engineId, id);
+		SecurityInsightUtils.deleteInsight(engineId, id);
 	}
 
 	private static void outputError(Logger logger, String errorMessage) {
