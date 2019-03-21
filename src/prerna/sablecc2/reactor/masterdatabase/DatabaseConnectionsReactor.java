@@ -51,7 +51,7 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 					appliedAppFilters.add(engineId);
 				}
 			}
-		} else {
+		} else if(engineId != null) {
 			appliedAppFilters.add(engineId);
 		}
 		
