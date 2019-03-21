@@ -52,6 +52,7 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -1185,7 +1186,7 @@ public abstract class AbstractEngine implements IEngine {
 					// drop the old insight
 					oldId = it1.next().getValues()[0].toString();
 					admin.dropInsight(oldId);
-					SecurityUpdateUtils.deleteInsight(this.engineId, oldId);
+					SecurityInsightUtils.deleteInsight(this.engineId, oldId);
 				}
 			} catch(Exception e) {
 				// if we have a db that doesn't actually have this table (forms, local master, etc.)
@@ -1207,7 +1208,7 @@ public abstract class AbstractEngine implements IEngine {
 						insightIdToSave = oldId;
 					}
 					
-					SecurityUpdateUtils.addInsight(this.engineId, insightIdToSave, "Explore an instance of a selected node type", true, "Graph");
+					SecurityInsightUtils.addInsight(this.engineId, insightIdToSave, "Explore an instance of a selected node type", true, "Graph");
 				} else {
 					// right now, delete and re add it
 					// only need to to do this on the recipe

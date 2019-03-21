@@ -2,7 +2,7 @@ package prerna.poi.main;
 
 import java.util.Set;
 
-import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
@@ -43,7 +43,7 @@ public class RDFEngineCreationHelper {
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
 				String id = admin.addInsight(insightName, layout, recipeArray);
-				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
+				SecurityInsightUtils.addInsight(engineId, id, insightName, false, layout); 
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -94,7 +94,7 @@ public class RDFEngineCreationHelper {
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
 				String id = admin.addInsight(insightName, layout, recipeArray);
-				SecurityUpdateUtils.addInsight(engineId, id, insightName, false, layout); 
+				SecurityInsightUtils.addInsight(engineId, id, insightName, false, layout); 
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");

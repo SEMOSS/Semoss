@@ -94,8 +94,6 @@ public class RUserRserve {
 			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
 				@Override
 				public RConnection call() throws Exception {
-					
-					
 					return new RConnection(HOST, port);
 				}
 			});

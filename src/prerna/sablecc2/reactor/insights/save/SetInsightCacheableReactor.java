@@ -8,7 +8,6 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -56,7 +55,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 
 		logger.info("2) Updating insight in index");
-		SecurityUpdateUtils.updateInsightCache(appId, existingId, cache);
+		SecurityInsightUtils.updateInsightCache(appId, existingId, cache);
 		logger.info("2) Done");
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();

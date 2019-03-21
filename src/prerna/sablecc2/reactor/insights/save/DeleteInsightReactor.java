@@ -4,7 +4,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -62,7 +61,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 
-			SecurityUpdateUtils.deleteInsight(appId, insightId);
+			SecurityInsightUtils.deleteInsight(appId, insightId);
 		}
 		ClusterUtil.reactorPushApp(appId);
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_INSIGHT);

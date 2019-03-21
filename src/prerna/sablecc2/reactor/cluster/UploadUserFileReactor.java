@@ -7,6 +7,9 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -22,83 +25,94 @@ public class UploadUserFileReactor extends AbstractReactor {
 	public UploadUserFileReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		
 		organizeKeys();
-		String filePath = this.keyValue.get(this.keysToGet[0]);
-				
-		Map<String, Object> uploadUserData = new HashMap<String, Object>();
-
-		String userID = this.insight.getUserId();
-
-		
-		if(!ClusterUtil.IS_CLUSTER){
-			throw new IllegalArgumentException("SEMOSS is not in clustered mode");
-		}
-		
-		if(filePath == null || filePath.isEmpty()) {
-			throw new IllegalArgumentException("Must input file path");
-		}
-		if(userID == null || userID.isEmpty()) {
-			throw new IllegalArgumentException("Must have a user to push file");
+		String uploadedFilePath = this.keyValue.get(this.keysToGet[0]);
+		if(uploadedFilePath == null || uploadedFilePath.isEmpty()) {
+			throw new IllegalArgumentException("Must input file path for the user file");
 		}
 		
 		String file_seperator = System.getProperty("file.separator");
-		File file = new File(filePath);
+		File uploadedFile = new File(uploadedFilePath);
 		String userSpace = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + file_seperator + "users";
-
-		
-		CloudClient.getClient();
-		String validID = CloudClient.cleanID(userID);
-		
-		//make the directory if it doesn't exist
-		File userFolder = new File(userSpace + file_seperator + validID);
-		if(!userFolder.exists()){
-			try {
-				CloudClient.getClient().pullUser(userID);
-			} catch (IOException | InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+		// in case it doesn't exist for some reason
+		File userSpaceF = new File(userSpace);
+		if(!userSpaceF.exists()) {
+			userSpaceF.mkdir();
 		}
 		
-		//if user folder still doesn't exist, throw an exception 
-		
-		if(!userFolder.exists()){
-			throw new IllegalArgumentException("Unable to create user director for user: "+ userID);
-
-		}
-		
-		
+		String fileName = uploadedFile.getName().toLowerCase();
 		//copy file into the directory from tmp upload space if it is valid. For now its just .R files
-		if(file.getAbsolutePath().endsWith(".R") || file.getAbsolutePath().endsWith(".r") || file.getAbsolutePath().endsWith(".py")) {
+		if(!fileName.toLowerCase().endsWith(".r") || fileName.toLowerCase().endsWith(".py")) {
+			throw new IllegalArgumentException("File must be of type .r or .py");
+		}
+		
+		String userSpaceId = null;
+		
+		if(!ClusterUtil.IS_CLUSTER) {
+			// need to set this locally
+			if(AbstractSecurityUtils.securityEnabled()) {
+				User user = this.insight.getUser();
+				// TODO: figure out which user space to put you into
+				AuthProvider token = user.getLogins().get(0);
+				userSpaceId = token.toString() + "_" + user.getAccessToken(token).getId();
+			} else {
+				userSpaceId = "anonymous";
+			}
+			File userFolder = new File(userSpace + file_seperator + userSpaceId);
+			
+			//copy file into the directory from tmp upload space if it is valid. For now its just .R files
 			try {
-				FileUtils.copyFile(file, new File(userFolder+file_seperator+file.getName()));
+				FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + file_seperator + uploadedFile.getName()));
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 				throw new IllegalArgumentException("Unable to copy file");
 			}
-		} else{
-			throw new IllegalArgumentException("File must be of type .R, .r, or .py");
+			
+		} else {
+			User user = this.insight.getUser();
+			AuthProvider token = user.getLogins().get(0);
+			userSpaceId = token.toString() + "_" + user.getAccessToken(token).getId();
+			
+			CloudClient.getClient();
+			userSpaceId = CloudClient.cleanID(userSpaceId);
+			//make the directory if it doesn't exist
+			File userFolder = new File(userSpace + file_seperator + userSpaceId);
+			if(!userFolder.exists()){
+				try {
+					CloudClient.getClient().pullUser(userSpaceId);
+				} catch (IOException | InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+	
+			// if user folder still doesn't exist, throw an exception 
+			if(!userFolder.exists()){
+				throw new IllegalArgumentException("Unable to create user director for user: "+ user.getAccessToken(token).getId());
+			}
+	
+			//copy file into the directory from tmp upload space if it is valid. For now its just .R files
+			try {
+				FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + file_seperator + uploadedFile.getName()));
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new IllegalArgumentException("Unable to copy file");
+			}
+	
+			try {
+				CloudClient.getClient().pushUser(userSpaceId);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 		
-		try {
-			CloudClient.getClient().pushUser(userID);
-			uploadUserData.put("uploadedFile", filePath);
-			uploadUserData.put("pushedContainer", validID);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
-		
+		Map<String, Object> uploadUserData = new HashMap<String, Object>();
+		uploadUserData.put("uploadedFile", uploadedFilePath);
+		uploadUserData.put("pushedContainer", userSpaceId);
 		return new NounMetadata(uploadUserData, PixelDataType.MAP, PixelOperationType.USER_UPLOAD);
 	}
 
