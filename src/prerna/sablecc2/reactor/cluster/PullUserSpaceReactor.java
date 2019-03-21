@@ -1,5 +1,9 @@
 package prerna.sablecc2.reactor.cluster;
 
+import java.io.IOException;
+
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -16,16 +20,15 @@ public class PullUserSpaceReactor extends AbstractReactor{
 	@Override
 	public NounMetadata execute() {
 		if(!ClusterUtil.IS_CLUSTER){
-			String userID = this.insight.getUserId();
-			if(userID == null || userID.isEmpty()) {
-				throw new IllegalArgumentException("Must have a user id to pull user space");
-			}
+			User user = this.insight.getUser();
+			AuthProvider token = user.getLogins().get(0);
+			String userSpaceId = token.toString() + "_" + user.getAccessToken(token).getId();
 
 			CloudClient.getClient();
 			try {
 				// pull the user space based on the cloud client for storage
-				CloudClient.getClient().pullUser(userID);
-			} catch (Exception e) {
+				CloudClient.getClient().pullUser(userSpaceId);
+			} catch (IOException | InterruptedException e) {
 				e.printStackTrace();
 				throw new IllegalArgumentException("Error occurred pulling user space");
 			}
