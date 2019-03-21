@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -146,16 +146,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 */
 	private void registerInsightAndMetadata(String appId, String insightIdToSave, String insightName, String layout, String description, List<String> tags) {
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		String userId = this.insight.getUserId();
-		SecurityUpdateUtils.addInsight(appId, insightIdToSave, insightName, true, layout);
-		SecurityUpdateUtils.addUserInsightCreator(userId, appId, insightIdToSave);
+		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, layout);
+		SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, insightIdToSave);
 		// TODO: add the description + tags
 	}
 }

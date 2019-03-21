@@ -10,7 +10,6 @@ import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -140,8 +139,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		SecurityUpdateUtils.updateInsight(appId, existingRdbmsId, insightName, true, layout);
-		//TODO: update tags and stuff
+		SecurityInsightUtils.updateInsight(appId, existingRdbmsId, insightName, true, layout);
 	}
 	
 	/**

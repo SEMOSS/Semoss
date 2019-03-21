@@ -22,7 +22,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class RJavaRemoteRserveTranslator  extends RJavaRserveTranslator {
+public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 
 	RJavaRemoteRserveTranslator() {
 
@@ -114,7 +114,7 @@ public class RJavaRemoteRserveTranslator  extends RJavaRserveTranslator {
 		}
 	}
 
-	public void transferToServer( String client_file, String server_file ){
+	private void transferToServer( String client_file, String server_file ){
 		RConnection r = getRcon();
 		byte [] b = new byte[8192];
 		try{
@@ -139,7 +139,7 @@ public class RJavaRemoteRserveTranslator  extends RJavaRserveTranslator {
 		}
 	}
 
-	public void transfer_toclient( String client_file, String server_file ){
+	private void transferToClient( String client_file, String server_file ){
 		RConnection r = getRcon();
 		byte[] b = new byte[8192];
 		try{
@@ -258,7 +258,7 @@ public class RJavaRemoteRserveTranslator  extends RJavaRserveTranslator {
 				try {
 					String outputLocLocal = baseDir + Utility.getRandomString(15) + ".txt";
 
-					transfer_toclient(outputLocLocal,outputLoc);
+					transferToClient(outputLocLocal,outputLoc);
 					outputF = new File(outputLocLocal);
 					scriptOutput = FileUtils.readFileToString(outputF);
 				} catch (IOException e) {
