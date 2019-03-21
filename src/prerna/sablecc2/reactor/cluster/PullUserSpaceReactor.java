@@ -19,7 +19,7 @@ public class PullUserSpaceReactor extends AbstractReactor{
 
 	@Override
 	public NounMetadata execute() {
-		if(!ClusterUtil.IS_CLUSTER){
+		if(ClusterUtil.IS_CLUSTER){
 			User user = this.insight.getUser();
 			AuthProvider token = user.getLogins().get(0);
 			String userSpaceId = token.toString() + "_" + user.getAccessToken(token).getId();
