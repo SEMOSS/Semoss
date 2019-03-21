@@ -58,11 +58,13 @@ public class ImportUtility {
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			ITableDataFrame qsFrame = qs.getFrame();
 			if(qsFrame != null) {
+				qs.mergeImplicitFilters(qsFrame.getFrameFilters());
 				return qsFrame.query(qs);
 			} else {
+				qs.mergeImplicitFilters(frame.getFrameFilters());
 				return frame.query(qs);
 			}
-		} 
+		}
 		// frame with hard coded query
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY){
 			ITableDataFrame qsFrame = qs.getFrame();
