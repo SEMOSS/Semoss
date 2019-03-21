@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
@@ -76,7 +75,7 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 		
 		logger.info("2) Updating insight in index");
-		SecurityUpdateUtils.updateInsightName(appId, existingId, insightName);
+		SecurityInsightUtils.updateInsightName(appId, existingId, insightName);
 		logger.info("2) Done");
 		
 		logger.info("3) Update mosfet file for collaboration");
