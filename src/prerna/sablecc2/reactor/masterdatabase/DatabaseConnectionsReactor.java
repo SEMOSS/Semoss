@@ -51,6 +51,8 @@ public class DatabaseConnectionsReactor extends AbstractReactor {
 					appliedAppFilters.add(engineId);
 				}
 			}
+		} else {
+			appliedAppFilters.add(engineId);
 		}
 		
 		List<String> conceptualNames = getColumns();
