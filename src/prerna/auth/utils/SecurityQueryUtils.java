@@ -297,6 +297,29 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushToSetString(wrapper, false);
 	}
 	
+	
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Querying workspace and asset data
+	 */
+	public static String getWorkspaceEngineId(String type, String userId, String engineId) {
+		// TODO >>>timb: - WORKSPACE - DONE - get workspace
+		String query = "SELECT ENGINEID FROM WORKSPACEENGINE WHERE TYPE='" + type + "' AND USERID='" + userId +"'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushToString(wrapper);
+	}
+	
+	public static String getAssetsEngineId(String type, String userId, String engineId) {
+		// TODO >>>timb: - WORKSPACE - DONE - get assets
+		String query = "SELECT ENGINEID FROM ASSETSENGINE WHERE TYPE='" + type + "' AND USERID='" + userId +"'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		return flushToString(wrapper);
+	}
+	
+	
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
 
