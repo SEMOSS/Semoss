@@ -158,6 +158,21 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_VISIBILITY_INDEX ON ENGINEPERMISSION (VISIBILITY);");
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_ENGINEID_INDEX ON ENGINEPERMISSION (ENGINEID);");
 
+		// WORKSPACEENGINE
+		// TODO >>>timb: WORKSPACE - here are the sec queries for reference
+		colNames = new String[] {"type", "userid", "engineid"};
+		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("WORKSPACEENGINE", colNames, types));
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS WORKSPACEENGINE_TYPE_INDEX ON WORKSPACEENGINE (TYPE);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS WORKSPACEENGINE_USERID_INDEX ON WORKSPACEENGINE (USERID);");
+
+		// ASSETENGINE
+		colNames = new String[] {"type", "userid", "engineid"};
+		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ASSETENGINE", colNames, types));
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ASSETENGINE_TYPE_INDEX ON WORKSPACEENGINE (TYPE);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ASSETENGINE_USERID_INDEX ON WORKSPACEENGINE (USERID);");
+		
 		// INSIGHT
 		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)", "boolean" };
@@ -273,7 +288,7 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS (GROUPMEMBERSID) ON DELETE CASCADE;");
 			}
 		}
-		
+				
 //		// GROUPINSIGHTPERMISSION
 //		colNames = new String[] { "groupid", "engineid", "insightid" };
 //		types = new String[] { "integer", "integer", "varchar(255)" };
