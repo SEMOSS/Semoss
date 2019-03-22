@@ -3,7 +3,6 @@ package prerna.engine.impl;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -84,6 +83,41 @@ public class InsightAdministrator {
 	}
 	
 	/**
+	 * Insert a new insight into the engine
+	 * @param insightId
+	 * @param insightName
+	 * @param layout
+	 * @param pixelRecipeToSave
+	 */
+	public String addInsight(String insightId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden) {
+		LOGGER.info("Adding new question with insight id :::: " + insightId);
+		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
+		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
+		
+		StringBuilder insertQuery = new StringBuilder("INSERT INTO ").append(TABLE_NAME).append("(")
+				.append(QUESTION_ID_COL).append(",").append(QUESTION_NAME_COL).append(",")
+				.append(QUESTION_LAYOUT_COL).append(",").append(HIDDEN_INSIGHT_COL).append(",")
+				.append(CACHEABLE_COL).append(",").append(QUESTION_PKQL_COL).append(") VALUES ('")
+				.append(insightId).append("', ").append("'").append(insightName).append("', ")
+				.append("'").append(layout).append("', ").append(hidden).append(", true, ");
+		// loop through and add the recipe
+		// don't forget to escape each entry in the array
+		insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		insertQuery.append(");");
+		
+		// now run the query and commit
+		try {
+			this.insightEngine.insertData(insertQuery.toString());
+			this.insightEngine.commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		// return the new rdbms id
+		return insightId;
+	}
+	
+	/**
 	 * Update an existing insight
 	 * @param existingRdbmsId
 	 * @param insightName
@@ -99,6 +133,29 @@ public class InsightAdministrator {
 		LOGGER.info("Adding new question with name :::: " + insightName);
 		LOGGER.info("Adding new question with layout :::: " + layout);
 		LOGGER.info("Adding new question with recipe :::: " + Arrays.toString(pixelRecipeToSave));
+		
+		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
+		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
+		
+		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
+				.append(QUESTION_NAME_COL).append(" = '").append(insightName).append("', ")
+				.append(QUESTION_LAYOUT_COL).append(" = '").append(layout).append("', ")
+				.append(HIDDEN_INSIGHT_COL).append(" = '").append(hidden).append("', ")
+				.append(QUESTION_PKQL_COL).append("=");
+		updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		updateQuery.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
+		
+		// now run the query and commit
+		try {
+			this.insightEngine.insertData(updateQuery.toString());
+			this.insightEngine.commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void updateInsight(String existingRdbmsId, String insightName, String layout, Collection<String> pixelRecipeToSave, boolean hidden) {
+		LOGGER.info("Modifying insight id :::: " + existingRdbmsId);
 		
 		insightName = RdbmsQueryBuilder.escapeForSQLStatement(insightName);
 		layout = RdbmsQueryBuilder.escapeForSQLStatement(layout);
@@ -221,14 +278,14 @@ public class InsightAdministrator {
 		return sql.toString();
 	}
 	
-	public static String getArraySqlSyntax(List<String> pixelRecipeToSave) {
+	public static String getArraySqlSyntax(Collection<String> pixelRecipeToSave) {
 		StringBuilder sql = new StringBuilder("(");
-		int numPixels = pixelRecipeToSave.size();
-		for(int i = 0; i < numPixels; i++) {
-			sql.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(pixelRecipeToSave.get(i))).append("'");
-			if(i+1 != numPixels) {
-				sql.append(",");
-			}
+		Iterator<String> it = pixelRecipeToSave.iterator();
+		if(it.hasNext()) {
+			sql.append("'").append(RdbmsQueryBuilder.escapeForSQLStatement(it.next())).append("'");
+		}
+		while(it.hasNext()) {
+			sql.append(",'").append(RdbmsQueryBuilder.escapeForSQLStatement(it.next())).append("'");
 		}
 		sql.append(")");
 		return sql.toString();
