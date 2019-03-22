@@ -25,6 +25,7 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 	public NounMetadata execute() {
 		// create a new empty insight
 		Insight newInsight = new Insight();
+		newInsight.setCacheInWorkspace(true);
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 		InsightStore.getInstance().put(newInsight);
 		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());

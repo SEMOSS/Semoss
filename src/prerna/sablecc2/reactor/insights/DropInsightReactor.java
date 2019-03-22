@@ -14,6 +14,7 @@ public class DropInsightReactor extends AbstractInsightReactor{
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Drop insight with id = " + this.insight.getInsightId());
+		this.insight.dropWorkspaceCache();
 		return new NounMetadata(true, PixelDataType.DROP_INSIGHT, PixelOperationType.DROP_INSIGHT);
 	}
 }
