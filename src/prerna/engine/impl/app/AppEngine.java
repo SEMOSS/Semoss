@@ -4,6 +4,9 @@ import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -13,6 +16,8 @@ import prerna.util.Utility;
 
 public class AppEngine extends AbstractEngine {
 
+	private static final Logger LOGGER = LogManager.getLogger(AppEngine.class);
+	
 	/**
 	 * Overriding the default behavior
 	 * Do not need to do anything except load the insights database
@@ -74,8 +79,7 @@ public class AppEngine extends AbstractEngine {
 
 	@Override
 	public void insertData(String query) {
-		// TODO Auto-generated method stub
-		
+		LOGGER.info("There is no data to store for an AppEngine!");
 	}
 
 	@Override
@@ -86,13 +90,11 @@ public class AppEngine extends AbstractEngine {
 
 	@Override
 	public void removeData(String query) {
-		// TODO Auto-generated method stub
-		
+		LOGGER.info("There is no data to store for an AppEngine!");
 	}
 
 	@Override
 	public void commit() {
-		// TODO Auto-generated method stub
-		
+		LOGGER.info("There is no data to store for an AppEngine!");
 	}
 }

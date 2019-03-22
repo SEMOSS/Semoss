@@ -9,6 +9,7 @@ import java.util.Vector;
 
 import org.rosuda.REngine.Rserve.RConnection;
 
+import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.om.AbstractValueObject;
 
 public class User extends AbstractValueObject {
@@ -18,6 +19,10 @@ public class User extends AbstractValueObject {
 	// need to have an access token store
 	private RConnection rConn; 
 	private volatile boolean rConnCancelled = false;
+	
+	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<AuthProvider, String>();
+	private Map<AuthProvider, String> assetEngineMap = new HashMap<AuthProvider, String>();
+	private AuthProvider primaryLogin;
 	
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
 	List<AuthProvider> loggedInProfiles = new ArrayList<AuthProvider>();
@@ -87,6 +92,37 @@ public class User extends AbstractValueObject {
 	public boolean isLoggedIn() {
 		return !this.loggedInProfiles.isEmpty();
 	}
+	
+	////////////////////////////////////////////////////////////////////////
+	
+	public AuthProvider getPrimaryLogin() {
+		if(this.primaryLogin == null && isLoggedIn()) {
+			this.primaryLogin = this.loggedInProfiles.get(0);
+		}
+		return this.primaryLogin;
+	}
+	
+	public void setPrimaryLogin(AuthProvider primaryLogin) {
+		this.primaryLogin = primaryLogin;
+	}
+	
+	public String getWorkspaceEngineId(AuthProvider token) {
+		if(this.workspaceEngineMap.get(token) == null) {
+			String engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
+			this.workspaceEngineMap.put(token, engineId);
+		}
+		return this.workspaceEngineMap.get(token);
+	}
+	
+	public String getAssetEngineId(AuthProvider token) {
+		if(this.assetEngineMap.get(token) == null) {
+			String engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
+			this.assetEngineMap.put(token, engineId);
+		}
+		return this.assetEngineMap.get(token);
+	}
+
+	////////////////////////////////////////////////////////////////////////
 
 	public RConnection getRConn() {
 		return rConn;
