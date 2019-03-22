@@ -207,10 +207,12 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			// this is in case there is a clone that is coming up
 			POpInput input = node.getOpInput();
         	curPanelId = input.toString().trim();
+        	curPanelId = trimQuotes(curPanelId);
 		}
         else if (reactorId.equals("Clone")) {
 			POpInput closePanelInput = node.getOpInput();
 			String panel = closePanelInput.toString().trim();
+			panel = trimQuotes(panel);
 			addPanelForCurrentIndex(panel);
 			
 			// store the order of the creation
@@ -249,6 +251,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			// store order of panel creation
 			POpInput input = node.getOpInput();
         	String panel = input.toString().trim();
+			panel = trimQuotes(panel);
         	panelCreationOrder.add(panel);
 		}
         // need to account for auto tasks
@@ -561,7 +564,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
         	// we passed all our checks
         	// save to load this cached panel at the beginning
-            cacheRecipe.add("CachedPanel(" + orderedPanelId + ");");
+            cacheRecipe.add("CachedPanel(\"" + orderedPanelId + "\");");
             addedPanels.add(orderedPanelId);
         }
         
@@ -577,8 +580,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				
 				boolean addAndRemoveOrigPanel = !addedPanels.contains(origPanelId);
 				if(addAndRemoveOrigPanel) {
-					cacheRecipe.add("AddPanel(" + origPanelId + ");");
-					cacheRecipe.add("Panel(" + origPanelId + ")|SetPanelView(\"visualization\");");
+					cacheRecipe.add("AddPanel(\"" + origPanelId + "\");");
+					cacheRecipe.add("Panel(\"" + origPanelId + "\")|SetPanelView(\"visualization\");");
 					Integer origTask = cloneToOrigTask.get(thisCachedPanelId);
 					String origExpression = expressionMap.get(origTask);
 					cacheRecipe.add(origExpression);
@@ -586,11 +589,13 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				keepExpression = keepExpression.replace("Clone (", "CachedPanelClone (");
 				cacheRecipe.add(keepExpression);
 				if(addAndRemoveOrigPanel) {
-					cacheRecipe.add("ClosePanel(" + origPanelId + ");");
+					cacheRecipe.add("ClosePanel(\"" + origPanelId + "\");");
 				}
 				// after we do the clone
 				// it is save to now load the cached panel details
-            	cacheRecipe.add("CachedPanel(" + thisCachedPanelId + ");");
+            	cacheRecipe.add("CachedPanel(\"" + thisCachedPanelId + "\");");
+                // store the cached panel as an added panel which can now be cloned 
+            	addedPanels.add(thisCachedPanelId);
 			} else {
 				cacheRecipe.add(keepExpression);
 			}
@@ -622,6 +627,16 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		if (!optimizedRecipeIndicesToKeep.contains(index)) {
 			optimizedRecipeIndicesToKeep.add(index);
 		}
+	}
+	
+	private String trimQuotes(String input) {
+		if(input.startsWith("\"") || input.startsWith("'")) {
+			input = input.substring(1);
+    	}
+		if(input.endsWith("\"") || input.endsWith("'")) {
+			input = input.substring(0, input.length()-1);
+    	}
+		return input;
 	}
 
 	public static void main(String[] args) {
