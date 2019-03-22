@@ -44,11 +44,13 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.py.PyExecutorThread;
+import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
@@ -102,8 +104,10 @@ public class Insight {
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
 	private transient AbstractRJavaTranslator rJavaTranslator;
-	
 	private transient PyExecutorThread jepThread = null;
+	
+	private transient SaveInsightIntoWorkspace workspaceCacheThread = null;
+	private transient boolean cacheInWorkspace = false;
 	
 	/* 
 	 * TODO: find a better way of doing this
@@ -163,13 +167,6 @@ public class Insight {
 		this.pixelList = new Vector<String>();
 		this.taskStore = new TaskStore();
 		this.insightId = UUID.randomUUID().toString();
-		
-		// since we require the use of ids on the databases
-		// we will add the local alias to the global unique id
-//		Map<String, String> aliasToId = MasterDatabaseUtility.getEngineAliasToId();
-//		for(String alias : aliasToId.keySet()) {
-//			this.varStore.put(alias, new NounMetadata(aliasToId.get(alias), PixelDataType.CONST_STRING));
-//		}
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -186,10 +183,9 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	public synchronized PixelRunner runPixel(String pixelString) {
-		PixelRunner runner = getPixelRunner();
-		LOGGER.info("Running >>> " + pixelString);
-		runner.runPixel(pixelString, this);
-		return runner;
+		List<String> pixelList = new Vector<String>();
+		pixelList.add(pixelString);
+		return runPixel(pixelList);
 	}
 
 	public synchronized PixelRunner runPixel(List<String> pixelList) {
@@ -209,6 +205,15 @@ public class Insight {
 					if(!e.isContinueThreadOfExecution()) {
 						break;
 					}
+				} finally {
+					// TODO: uncomment for default user saving of workspace
+					// TODO: uncomment for default user saving of workspace
+					// TODO: uncomment for default user saving of workspace
+					// TODO: uncomment for default user saving of workspace
+					// TODO: uncomment for default user saving of workspace
+//					if(AbstractSecurityUtils.securityEnabled() && cacheInWorkspace) {
+//						getWorkspaceCacheThread().addToQueue(this.pixelList);
+//					}
 				}
 			}
 		}
@@ -238,6 +243,27 @@ public class Insight {
 	
 	public void addFileUsedInInsight(FileMeta fileMeta) {
 		this.filesUsedInInsight.add(fileMeta);
+	}
+	
+	private SaveInsightIntoWorkspace getWorkspaceCacheThread() {
+		if(this.workspaceCacheThread == null && this.user != null && this.user.isLoggedIn()) {
+			String worksapceId = this.user.getWorkspaceEngineId(this.user.getPrimaryLogin());
+			if(worksapceId != null) {
+				this.workspaceCacheThread = new SaveInsightIntoWorkspace(worksapceId, this.insightName);
+			}
+		}
+		return this.workspaceCacheThread;
+	}
+	
+	public void setCacheInWorkspace(boolean cacheInWorkspace) {
+		this.cacheInWorkspace = cacheInWorkspace;
+	}
+	
+	public void dropWorkspaceCache() {
+		if(this.workspaceCacheThread != null) {
+			this.workspaceCacheThread.killThread();
+			this.workspaceCacheThread.dropWorkspaceCache();
+		}
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
