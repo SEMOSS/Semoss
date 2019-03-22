@@ -77,46 +77,38 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		Workbook workbook = new XSSFWorkbook();
 		
 		// get a list of all the tables and properties
-		Vector<String> concepts = engine.getConcepts(true);
+		Vector<String> concepts = engine.getConcepts(false);
 
-		for(String concept : concepts) {
-			if(concept.equals("http://semoss.org/ontologies/Concept")) {
+		for(String conceptPhysicalUri : concepts) {
+			if(conceptPhysicalUri.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
 			}
-			String conceptualName = Utility.getInstanceName(concept);
+			String physicalConceptName = Utility.getInstanceName(conceptPhysicalUri);
+			String conceptConceptualUri = engine.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
+			if(conceptConceptualUri == null) {
+				// this is most likely because you have a weird subclass you added
+				// but didn't give it a proper conceptual name
+				// like ActiveSystem
+				continue;
+			}
+			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
 			
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 			qs.setEngine(engine);
 			qs.addSelector(new QueryColumnSelector(conceptualName));
 			
-			String physicalConceptUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
-			List<String> properties = engine.getProperties4Concept(physicalConceptUri, true);
-			List<Integer> positionsToRemove = new Vector<Integer>();
+			List<String> properties = engine.getProperties4Concept(conceptPhysicalUri, false);
 			for(int i = 0; i < properties.size(); i++) {
-				String property = properties.get(i);
-				// THIS IS BECAUSE THERE ARE OTHER ERRORS!!!
-				// Since RDF properties do not contain the table name
-				// The properties query can give me the same property name
-				// that appears on 2 different nodes
-				String conceptConceptual = Utility.getInstanceName(property);
-				if(!conceptConceptual.equals(conceptualName)) {
-					positionsToRemove.add(i);
-					continue;
-				}
-				String propertyConceptual = Utility.getClassName(property);
-				qs.addSelector(new QueryColumnSelector(conceptualName + "__" + propertyConceptual));
+				String propertyPhysicalUri = properties.get(i);
+				String propertyConceptualUri = engine.getConceptualUriFromPhysicalUri(propertyPhysicalUri);
+				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+				qs.addSelector(new QueryColumnSelector(conceptualName + "__" + propertyConceptualName));
 			}
-			
-			// loop through the end to start and remove indices
-			for(int i = positionsToRemove.size()-1; i >= 0; i--) {
-				properties.remove(positionsToRemove.get(i).intValue());
-			}
-			
 			
 			logger.info("Start node sheet for concept = " + conceptualName);
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			writeNodePropSheet(engine, workbook, iterator, conceptualName, properties);
+			writeNodePropSheet(engine, workbook, iterator, physicalConceptName, properties);
 			logger.info("Finsihed node sheet for concept = " + conceptualName);
 		}
 		
@@ -164,10 +156,10 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
 	
-	public static void writeNodePropSheet(IEngine engine, Workbook workbook, Iterator<IHeadersDataRow> it, String conceptualName, List<String> properties) {
+	public static void writeNodePropSheet(IEngine engine, Workbook workbook, Iterator<IHeadersDataRow> it, String physicalNodeName, List<String> properties) {
 		// write the information for the headers and construct the query
 		// so it outputs in the same order
-		String physicalNodeName = getPhysicalColumnHeader(engine, conceptualName);
+		boolean isRdbms = engine.getEngineType() == ENGINE_TYPE.IMPALA || engine.getEngineType() == ENGINE_TYPE.RDBMS;
 		Sheet sheet = workbook.createSheet(physicalNodeName + "_Props");
 				
 		// add row 1
@@ -178,7 +170,12 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			// add properties
 			for (int i = 0; i < properties.size(); i++) {
 				String prop = properties.get(i);
-				String physicalPropName = Utility.getClassName(prop);
+				String physicalPropName = null;
+				if(isRdbms) {
+					physicalPropName = Utility.getClassName(prop);
+				} else {
+					physicalPropName = Utility.getInstanceName(prop);
+				}
 				row.createCell(2 + i).setCellValue(physicalPropName);
 			}
 		}
