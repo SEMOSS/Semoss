@@ -228,6 +228,8 @@ import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaDescriptionReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
+import prerna.sablecc2.reactor.masterdatabase.AllConceptualNamesReactor;
+import prerna.sablecc2.reactor.masterdatabase.CLPModelReactor;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
 import prerna.sablecc2.reactor.masterdatabase.DatabaseConnectionsReactor;
@@ -723,6 +725,8 @@ public class ReactorFactory {
 		
 		reactorHash.put("SyncAppWithLocalMaster", SyncAppWithLocalMasterReactor.class);
 		reactorHash.put("QueryTranslator", DatabaseQueryTranslator.class);
+		reactorHash.put("AllConceptualNames", AllConceptualNamesReactor.class);
+		reactorHash.put("CLPModel", CLPModelReactor.class);
 		// logical name operations
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
@@ -734,7 +738,7 @@ public class ReactorFactory {
 		reactorHash.put("AddMetaTags", AddMetaTagReactor.class);
 		reactorHash.put("GetMetaTags", GetMetaTagReactor.class);
 		reactorHash.put("DeleteMetaTags", DeleteMetaTagsReactor.class);
-
+		
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);
 		reactorHash.put("Panel", PanelReactor.class);
