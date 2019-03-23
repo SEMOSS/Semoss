@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -2227,6 +2228,103 @@ public class MasterDatabaseUtility {
 		}
 		return map;
 	}
+	
+	public static Collection<String> getAllConceptualNames() {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		
+		List<String> results = new Vector<String>();
+
+		String query = "select distinct conceptualname, lower(conceptualname) as lname from concept order by lname";
+		ResultSet rs = null;
+		Statement stmt = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				results.add(rs.getString(1));
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return results;
+	}
+	
+	public static Collection<String> getAllConceptualNames(Collection<String> engineFilters) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		
+		List<String> results = new Vector<String>();
+
+		String query = "select distinct c.conceptualname, lower(c.conceptualname) as lname"
+				+ " from concept c"
+				+ " inner join engineconcept ec on c.localconceptid=ec.localconceptid"
+				+ " where ec.engine in " + makeListToString(engineFilters)
+				+ " order by lname";
+		ResultSet rs = null;
+		Statement stmt = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				results.add(rs.getString(1));
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return results;
+	}
+	
+	public static List<String[]> getConceptualToLogicalToPhysicalModel(List<String> conceptualNames, Collection<String> engineFilters) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		Connection conn = engine.makeConnection();
+		
+//		select c.conceptualname, c.logicalname, concat(ec2.physicalname, '__', ec.physicalname), e.enginename
+//		from concept c 
+//		inner join engineconcept ec on c.localconceptid=ec.localconceptid 
+//		inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid 
+//		inner join engine e on ec.engine=e.id 
+//		where ec2.pk=true and c.conceptualname='Title';
+		
+		List<String[]> results = new Vector<String[]>();
+
+		String query = "select c.conceptualname, c.logicalname, concat(ec2.physicalname, '__', ec.physicalname), e.enginename "
+				+ "from concept c "
+				+ "inner join engineconcept ec on c.localconceptid=ec.localconceptid "
+				+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
+				+ "inner join engine e on ec.engine=e.id "
+				+ "where ec2.pk=true and c.conceptualname in " + makeListToString(conceptualNames)
+				+ (engineFilters == null ? "" : " and ec.engine in " + makeListToString(engineFilters))
+				;
+		
+		ResultSet rs = null;
+		Statement stmt = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				String[] row = new String[4];
+				row[0] = rs.getString(1);
+				row[1] = rs.getString(2);
+				row[2] = rs.getString(3);
+				row[3] = rs.getString(4);
+				results.add(row);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			closeStreams(stmt, rs);
+		}
+		
+		return results;
+	}
+	
 	
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
