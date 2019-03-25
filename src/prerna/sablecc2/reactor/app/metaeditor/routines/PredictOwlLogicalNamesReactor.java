@@ -41,8 +41,9 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		// make sure R is good to go
 		Logger logger = getLogger(CLASS_NAME);
+
+		// make sure R is good to go
 //		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
 //		rJavaTranslator.startR(); 
 //		// check if packages are installed
