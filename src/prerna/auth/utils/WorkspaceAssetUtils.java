@@ -25,8 +25,8 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	
 	private static final String FS = System.getProperty("file.separator");
 	
-	private static final String WORKSPACE_APP_NAME = "Workspace";
-	private static final String ASSET_APP_NAME = "Asset";
+	public static final String WORKSPACE_APP_NAME = "Workspace";
+	public static final String ASSET_APP_NAME = "Asset";
 	
 	WorkspaceAssetUtils() {
 		super();
