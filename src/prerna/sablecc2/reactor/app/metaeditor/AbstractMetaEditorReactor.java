@@ -1,11 +1,18 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 import org.semarglproject.vocab.RDFS;
@@ -430,4 +437,95 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		return false;
 	}
 	
+	/**
+	 * Get the top n most occurring values
+	 * @param results
+	 * @return
+	 */
+	protected static List<String> getTopNResults(List<String> results, int n) {
+		// get the frequency
+		Map<String, Integer> freqMap = new HashMap<String, Integer>(); 
+		for(String value : results) { 
+			Integer freq = freqMap.get(value); 
+			freqMap.put(value, (freq == null) ? 1 : freq + 1); 
+		}
+
+		// now loop through and store the top N
+		boolean init = true;
+		String minValue = null;
+		int minFreq = 0;
+		Map<String, Integer> topN = new HashMap<String, Integer>(n);
+		for(String value : freqMap.keySet()) {
+			int freq = freqMap.get(value);
+			if(topN.keySet().size() < n) {
+				// we just add
+				topN.put(value, freq);
+				// keep track of lowest
+				if(init) {
+					minValue = value;
+					minFreq = freq;
+					init = false;
+				} else {
+					if(minFreq < freq) {
+						// this is a new low...
+						// even for you!
+						minFreq = freq;
+						minValue = value;
+					}
+				}
+			} else {
+				// we have the max # of positions filled
+				// need to do substitutions
+				if(freq > minFreq) {
+					// occurred more times
+					// going to sub you in
+					topN.remove(minValue);
+					topN.put(value, freq);
+					
+					// reset the values
+					// need to determine what the new lowest min is
+					String findNewMinValue = null;
+					int findNewMinFreq = 0;
+					for(String minV : topN.keySet()) {
+						int minF = topN.get(minV);
+						if(findNewMinFreq == 0 || minF < findNewMinFreq) {
+							findNewMinValue = minV;
+							findNewMinFreq = minF;
+						}
+					}
+					minFreq = findNewMinFreq;
+					minValue = findNewMinValue;
+				} else if(freq == minFreq) {
+					// let us compare to get the thing that has the least # of characters
+					if(minValue.length() > value.length()) {
+						// the new input has less words
+						// lets go with that instead
+						topN.remove(minValue);
+						topN.put(value, freq);
+						
+						// reset the values
+						// need to determine what the new lowest min is
+						String findNewMinValue = null;
+						int findNewMinFreq = 0;
+						for(String minV : topN.keySet()) {
+							int minF = topN.get(minV);
+							if(findNewMinFreq == 0 || minF < findNewMinFreq) {
+								findNewMinValue = minV;
+								findNewMinFreq = minF;
+							}
+						}
+						minFreq = findNewMinFreq;
+						minValue = findNewMinValue;
+					}
+				}
+			}
+		}
+		
+		List<String> sortedTopN = topN.entrySet().stream()
+			       .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+			       .map(p -> p.getKey())
+			       .collect(Collectors.toList());
+		
+		return sortedTopN;
+	}
 }
