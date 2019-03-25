@@ -33,7 +33,7 @@ public class EditOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		if(prop == null || prop.isEmpty()) {
 			physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
 		} else {
-			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(concept, prop);
+			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(prop, concept);
 		}
 		
 		// get the existing value if present

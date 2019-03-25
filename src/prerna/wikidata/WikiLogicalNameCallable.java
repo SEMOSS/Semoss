@@ -49,28 +49,38 @@ public class WikiLogicalNameCallable implements Callable<List<String>>  {
 		EntityDocument entity = wbdf.getEntityDocument(entityId);
 		if(entity instanceof ItemDocument) {
 			ItemDocument document = (ItemDocument) entity;
+			String documentLabel = null;
 			
 			// for logging
 			{
 				Map<String, MonolingualTextValue> labels = document.getLabels();
 				if(labels.get("en") != null) {
-					logger.info("Processing document = " + labels.get("en").getText());
+					documentLabel= labels.get("en").getText();
+					logger.info("Processing document = " + documentLabel);
 				}
 			}
 			
 			List<PropertyIdValue> pList = new Vector<PropertyIdValue>(5);
 			// instance of
+			// https://www.wikidata.org/wiki/Property:P31
 			pList.add(new PropertyIdValueImpl("P31", "http://www.wikidata.org/entity/"));
+			// occupation
+			// https://www.wikidata.org/wiki/Property:P106
 			pList.add(new PropertyIdValueImpl("P106", "http://www.wikidata.org/entity/"));
 			// subclass of
+			// https://www.wikidata.org/wiki/Property:P279
 			pList.add(new PropertyIdValueImpl("P279", "http://www.wikidata.org/entity/"));
 			// part of
+			// https://www.wikidata.org/wiki/Property:P361
 			pList.add(new PropertyIdValueImpl("P361", "http://www.wikidata.org/entity/"));
+			// commons category
+			// https://www.wikidata.org/wiki/Property:P373
 			pList.add(new PropertyIdValueImpl("P373", "http://www.wikidata.org/entity/"));
 
 			List<StatementGroup> statementGroups = document.getStatementGroups();
 			for(StatementGroup group : statementGroups) {
-				if(pList.contains(group.getProperty())) {
+				PropertyIdValue gProp = group.getProperty();
+				if(pList.contains(gProp)) {
 					List<Statement> stmts = group.getStatements();
 					for(Statement stmt : stmts) {
 						Claim claim = stmt.getClaim();
@@ -90,6 +100,11 @@ public class WikiLogicalNameCallable implements Callable<List<String>>  {
 									MonolingualTextValue labels = innerDocument.getLabels().get("en");
 									if(labels != null) {
 										logicalNames.add(labels.getText());
+									}
+									// if it is the sublcass
+									// also add the document label
+									if(gProp.equals(pList.get(2))) {
+										logicalNames.add(documentLabel);
 									}
 								}
 							} else {
