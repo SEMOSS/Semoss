@@ -106,7 +106,6 @@ import prerna.sablecc2.reactor.cluster.OpenAppReactor;
 import prerna.sablecc2.reactor.cluster.PullUserSpaceReactor;
 //import prerna.sablecc2.reactor.cluster.SyncRedisReactor;
 import prerna.sablecc2.reactor.cluster.UpdateAppReactor;
-import prerna.sablecc2.reactor.cluster.UploadUserFileReactor;
 import prerna.sablecc2.reactor.cluster.VersionReactor;
 import prerna.sablecc2.reactor.export.AsTaskReactor;
 import prerna.sablecc2.reactor.export.CollectAllReactor;
@@ -396,6 +395,9 @@ import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.sablecc2.reactor.workflow.InsightDatasourcesReactor;
 import prerna.sablecc2.reactor.workflow.ModifyInsightDatasourceReactor;
+import prerna.sablecc2.reactor.workspace.DeleteUserAssetReactor;
+import prerna.sablecc2.reactor.workspace.NewUserDirectoryReactor;
+import prerna.sablecc2.reactor.workspace.UploadUserFileReactor;
 import prerna.sablecc2.reactor.workspace.UserRootDirectoryReactor;
 import prerna.solr.reactor.AppInfoReactor;
 import prerna.solr.reactor.AppInsightsReactor;
@@ -925,10 +927,13 @@ public class ReactorFactory {
 		//reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		//reactorHash.put("SyncRedis", SyncRedisReactor.class);
 		reactorHash.put("PushApps", PushAppsReactor.class);
-		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
-		reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
+		//reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
+		
 		// User Space
+		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
 		reactorHash.put("UserDir", UserRootDirectoryReactor.class);
+		reactorHash.put("DeleteUserAsset", DeleteUserAssetReactor.class);
+		reactorHash.put("NewDir", NewUserDirectoryReactor.class);
 
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
