@@ -30,7 +30,11 @@ public class WikiDescriptionExtractor {
 		searchTerm = searchTerm.trim().replace("_", " ");
 		List<WbSearchEntitiesResult> searchResults = wbdf.searchEntities(searchTerm, new Long(10));
 		int numReturns = searchResults.size();
-		logger.info("Querying wikidata returned " + numReturns + " results");
+		if(numReturns == 0) {
+			logger.info("Found no results searching for " + searchTerm);
+			return descriptionList;
+		}
+		logger.info("Querying wikidata returned " + numReturns + " results for " + searchTerm);
 		List<Callable<String>> descriptionExtractors = new Vector<Callable<String>>();
 		for(int i = 0; i < searchResults.size(); i++) {
 			WbSearchEntitiesResult res = searchResults.get(i);
