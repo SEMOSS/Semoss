@@ -109,6 +109,14 @@ public class User extends AbstractValueObject {
 	public String getWorkspaceEngineId(AuthProvider token) {
 		if(this.workspaceEngineMap.get(token) == null) {
 			String engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
+			if (engineId == null) {
+				try {
+					WorkspaceAssetUtils.createUserWorkspaceApp(this, token);
+				} catch (Exception e) {
+					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
+					e.printStackTrace();
+				}
+			}
 			this.workspaceEngineMap.put(token, engineId);
 		}
 		return this.workspaceEngineMap.get(token);
@@ -117,6 +125,14 @@ public class User extends AbstractValueObject {
 	public String getAssetEngineId(AuthProvider token) {
 		if(this.assetEngineMap.get(token) == null) {
 			String engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
+			if (engineId == null) {
+				try {
+					WorkspaceAssetUtils.createUserAssetApp(this, token);
+				} catch (Exception e) {
+					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
+					e.printStackTrace();
+				}
+			}			
 			this.assetEngineMap.put(token, engineId);
 		}
 		return this.assetEngineMap.get(token);
