@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.app.metaeditor;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,9 +9,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 import org.semarglproject.vocab.RDFS;
@@ -31,6 +28,7 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -245,9 +243,17 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * @param limit
 	 * @return
 	 */
-	protected SelectQueryStruct getSingleColumnNonEmptyQs(String qsName, int limit) {
+	protected SelectQueryStruct getMostOccuringSingleColumnNonEmptyQs(String qsName, int limit) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(qsName));
+		QueryFunctionSelector cSelector = new QueryFunctionSelector();
+		cSelector.addInnerSelector(new QueryColumnSelector(qsName));
+		cSelector.setFunction("count");
+		qs.addSelector(cSelector);
+		// order
+		qs.addOrderBy(qsName, "desc");
+		// group
+		qs.addGroupBy(new QueryColumnSelector(qsName));
 		qs.setLimit(limit);
 		
 		{

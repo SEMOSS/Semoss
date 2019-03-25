@@ -43,6 +43,8 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
 
+		List<String> values = new Vector<String>();
+
 		// make sure R is good to go
 //		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
 //		rJavaTranslator.startR(); 
@@ -61,9 +63,11 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		SemossDataType dataType = null;
 		String qsName = null;
 		if(prop == null || prop.isEmpty()) {
+			values.add(concept);
 			qsName = concept;
 			dataType = SemossDataType.convertStringToDataType(MasterDatabaseUtility.getBasicDataType(appId, qsName, null));
 		} else {
+			values.add(prop);
 			qsName = concept + "__" + prop;
 			dataType = SemossDataType.convertStringToDataType(MasterDatabaseUtility.getBasicDataType(appId, prop, concept));
 		}
@@ -72,8 +76,7 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 			throw new SemossPixelException(new NounMetadata("Can only generate descriptions on string valued input", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		List<String> values = new Vector<String>();
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getSingleColumnNonEmptyQs(qsName, 5));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 5));
 		while(wrapper.hasNext()) {
 			Object value = wrapper.next().getValues()[0];
 			if(value == null || value.toString().isEmpty()) {
