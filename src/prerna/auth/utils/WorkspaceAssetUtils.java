@@ -1,7 +1,6 @@
 package prerna.auth.utils;
 
 import java.io.File;
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.UUID;
 
@@ -10,6 +9,8 @@ import org.apache.commons.io.FileUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.cluster.util.CloudClient;
+import prerna.cluster.util.ClusterUtil;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -83,7 +84,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	}
 	
 	// TODO >>>timb: WORKSPACE - DONE - look at GenerateEmptyAppReactor, use AppEngine
-	private static String createEmptyApp(AccessToken token, String appName) throws IOException {
+	private static String createEmptyApp(AccessToken token, String appName) throws Exception {
 		
 		// Create a new app id
 		String appId = UUID.randomUUID().toString();
@@ -128,6 +129,10 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		
 		// Even if no security, just add user as engine owner
 		SecurityUpdateUtils.addEngineOwner(appId, token.getId());
+		
+		if (ClusterUtil.IS_CLUSTER) {
+			CloudClient.getClient().pushApp(appId);
+		}
 		
 		return appId;
 	}
