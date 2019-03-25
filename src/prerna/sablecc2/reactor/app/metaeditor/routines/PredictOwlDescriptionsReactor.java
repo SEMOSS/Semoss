@@ -84,7 +84,7 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 		Set<String> logicalNames = engine.getLogicalNames(physicalUri);
 		values.addAll(logicalNames);
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getSingleColumnNonEmptyQs(qsName, 5));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 5));
 		while(wrapper.hasNext()) {
 			Object value = wrapper.next().getValues()[0];
 			if(value == null || value.toString().isEmpty()) {
