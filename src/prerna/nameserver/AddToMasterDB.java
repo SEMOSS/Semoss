@@ -210,7 +210,7 @@ public class AddToMasterDB {
 			
 				for(String logical : logicals) {
 					if(!curLogicals.contains(logical)) {
-						insertValues = new String[]{conceptGuid, conceptualName, logical, "NewDomain", ""};
+						insertValues = new String[]{conceptGuid, conceptualName, logical.toLowerCase(), "NewDomain", ""};
 						insertQuery("Concept", colNames, types, insertValues);
 					}
 				}
@@ -231,7 +231,7 @@ public class AddToMasterDB {
 			
 			// also add all the logical names
 			for(String logical : logicals) {
-				insertValues = new String[]{conceptGuid, conceptualName, logical, "NewDomain", ""};
+				insertValues = new String[]{conceptGuid, conceptualName, logical.toLowerCase(), "NewDomain", ""};
 				insertQuery("Concept", colNames, types, insertValues);
 			}
 		}
@@ -265,7 +265,7 @@ public class AddToMasterDB {
 				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
 				types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
 				for(String logical : logicals) {
-					insertValues = new String[]{engineConceptGuid, "logical", logical};
+					insertValues = new String[]{engineConceptGuid, "logical", logical.toLowerCase()};
 					insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
 				}
 			}
@@ -336,7 +336,7 @@ public class AddToMasterDB {
 			
 				for(String logical : logicals) {
 					if(!curLogicals.contains(logical)) {
-						insertValues = new String[]{propertyGuid, propertyConceptualName, logical, "NewDomain", ""};
+						insertValues = new String[]{propertyGuid, propertyConceptualName, logical.toLowerCase(), "NewDomain", ""};
 						insertQuery("Concept", colNames, types, insertValues);
 					}
 				}
@@ -357,7 +357,7 @@ public class AddToMasterDB {
 			
 			// also add all the logical names
 			for(String logical : logicals) {
-				insertValues = new String[]{propertyGuid, propertyConceptualName, logical, "NewDomain", ""};
+				insertValues = new String[]{propertyGuid, propertyConceptualName, logical.toLowerCase(), "NewDomain", ""};
 				insertQuery("Concept", colNames, types, insertValues);
 			}
 		}
@@ -396,7 +396,7 @@ public class AddToMasterDB {
 				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
 				types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };			
 				for(String logical : logicals) {
-					insertValues = new String[]{enginePropertyGuid, "logical", logical};
+					insertValues = new String[]{enginePropertyGuid, "logical", logical.toLowerCase()};
 					insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
 				}
 			}

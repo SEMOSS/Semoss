@@ -77,20 +77,20 @@ public class PredictOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(prop, concept);
 		}
 		
-		if(dataType != SemossDataType.STRING) {
-			throw new SemossPixelException(new NounMetadata("Can only generate descriptions on string valued input", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-		}
-		
 		Set<String> logicalNames = engine.getLogicalNames(physicalUri);
 		values.addAll(logicalNames);
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
-		while(wrapper.hasNext()) {
-			Object value = wrapper.next().getValues()[0];
-			if(value == null || value.toString().isEmpty()) {
-				continue;
+		if(dataType == SemossDataType.STRING) {
+			logger.info("Grabbing most popular instances to use for searching...");
+			IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
+			while(wrapper.hasNext()) {
+				Object value = wrapper.next().getValues()[0];
+				if(value == null || value.toString().isEmpty()) {
+					continue;
+				}
+				values.add(value.toString());
 			}
-			values.add(value.toString());
+			logger.info("Done grabbing must popular instances");
 		}
 		
 		List<String> descriptions = new Vector<String>();
