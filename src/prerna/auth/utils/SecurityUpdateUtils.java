@@ -480,41 +480,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			e.printStackTrace();
 		}
 	}
-	
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////
-	
-	/*
-	 * Workspace and asset engines
-	 */
-	
-	public static void registerWorkspaceEngine(String type, String userId, String engineId) {
-		// TODO >>>timb: - WORKSPACE - DONE - register workspace
-		String[] colNames = new String[] {"type", "userid", "engineid"};
-		String[] types = new String[] {"varchar(255)", "varchar(255)"};
-		String insertQuery = RdbmsQueryBuilder.makeInsert("WORKSPACEENGINE", colNames, types , new String[] {type, userId, engineId});
-		try {
-			securityDb.insertData(insertQuery);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public static void registerAssetsEngine(String type, String userId, String engineId) {
-		// TODO >>>timb: - WORKSPACE - DONE - register assets
-		String[] colNames = new String[] {"type", "userid", "engineid"};
-		String[] types = new String[] {"varchar(255)", "varchar(255)"};
-		String insertQuery = RdbmsQueryBuilder.makeInsert("ASSETSENGINE", colNames, types , new String[] {type, userId, engineId});
-		try {
-			securityDb.insertData(insertQuery);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-	
+
 	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
