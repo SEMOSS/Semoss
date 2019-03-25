@@ -78,7 +78,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		insight.setUser(user);
 		
 		// Run the pixel to import the data
-		PixelRunner returnData = insight.runPixel("GenerateEmptyAppReactor(app=[\" + appName + \"])");
+		PixelRunner returnData = insight.runPixel("GenerateEmptyAppReactor(app=[\"" + appName + "\"])");
 		
 		@SuppressWarnings("unchecked")
 		String appId = ((Map<String, String>) returnData.getResults().get(0).getValue()).get("app_id");
