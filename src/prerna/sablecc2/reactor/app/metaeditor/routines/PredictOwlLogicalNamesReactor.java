@@ -76,7 +76,7 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 			throw new SemossPixelException(new NounMetadata("Can only generate descriptions on string valued input", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 5));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getMostOccuringSingleColumnNonEmptyQs(qsName, 10));
 		while(wrapper.hasNext()) {
 			Object value = wrapper.next().getValues()[0];
 			if(value == null || value.toString().isEmpty()) {

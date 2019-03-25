@@ -249,9 +249,10 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		QueryFunctionSelector cSelector = new QueryFunctionSelector();
 		cSelector.addInnerSelector(new QueryColumnSelector(qsName));
 		cSelector.setFunction("count");
+		cSelector.setAlias("OccuranceCountForColumn");
 		qs.addSelector(cSelector);
 		// order
-		qs.addOrderBy(qsName, "desc");
+		qs.addOrderBy("OccuranceCountForColumn", "desc");
 		// group
 		qs.addGroupBy(new QueryColumnSelector(qsName));
 		qs.setLimit(limit);
