@@ -342,7 +342,18 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
+		deleteQuery = "DELETE FROM WORKSPACEENGINE WHERE ENGINEID='" + appId + "'";
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		deleteQuery = "DELETE FROM ASSETENGINE WHERE ENGINEID='" + appId + "'";
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 //		//TODO: add the other tables...
 		if(AbstractSecurityUtils.securityEnabled){
 			removeDb(appId);
