@@ -27,6 +27,7 @@ public class WikiDescriptionExtractor {
 		List<String> descriptionList = new Vector<String>();
 
 		WikibaseDataFetcher wbdf = WikibaseDataFetcher.getWikidataDataFetcher();
+		searchTerm = searchTerm.trim().replace("_", " ");
 		List<WbSearchEntitiesResult> searchResults = wbdf.searchEntities(searchTerm, new Long(10));
 		int numReturns = searchResults.size();
 		logger.info("Querying wikidata returned " + numReturns + " results");
