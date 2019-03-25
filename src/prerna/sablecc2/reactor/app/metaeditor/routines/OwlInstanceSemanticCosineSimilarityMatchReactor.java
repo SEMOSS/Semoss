@@ -93,7 +93,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 				columnNamesList.add(tablePrimCol);
 				
 				List<String> colValues = new Vector<String>();
-				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getSingleColumnNonEmptyQs(tableName, 5));
+				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getMostOccuringSingleColumnNonEmptyQs(tableName, 5));
 				try {
 					while(wrapper.hasNext()) {
 						colValues.add(wrapper.next().getValues()[0].toString());
@@ -115,7 +115,7 @@ public class OwlInstanceSemanticCosineSimilarityMatchReactor extends AbstractMet
 					columnNamesList.add(colName);
 				
 					List<String> colValues = new Vector<String>();
-					IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getSingleColumnNonEmptyQs(tableName + "__" + colName, 5));
+					IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getMostOccuringSingleColumnNonEmptyQs(tableName + "__" + colName, 5));
 					try {
 						while(wrapper.hasNext()) {
 							colValues.add(wrapper.next().getValues()[0].toString());
