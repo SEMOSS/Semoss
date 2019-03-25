@@ -48,13 +48,13 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add description", 
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", 
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully added descriptions",
+		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
