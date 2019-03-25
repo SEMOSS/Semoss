@@ -92,6 +92,8 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 				e.printStackTrace();
 			}
 		}
+		// return only the top 5 results
+		List<String> topLogicalNames = getTopNResults(logicalNames, 5);
 		
 //		StringBuilder script = new StringBuilder();
 //		// first source the file where we have the main method for running
@@ -111,7 +113,7 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 //
 //		String[] logicalNames = rJavaTranslator.getStringArray(logicalNamesVar);
 
-		NounMetadata noun = new NounMetadata(logicalNames, PixelDataType.CONST_STRING);
+		NounMetadata noun = new NounMetadata(topLogicalNames, PixelDataType.CONST_STRING);
 		noun.addAdditionalReturn(new NounMetadata("Predicted and logical names for review",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
