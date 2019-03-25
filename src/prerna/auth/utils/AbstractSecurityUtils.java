@@ -159,7 +159,7 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_ENGINEID_INDEX ON ENGINEPERMISSION (ENGINEID);");
 
 		// WORKSPACEENGINE
-		// TODO >>>timb: WORKSPACE - here are the sec queries for reference
+		// TODO >>>timb: WORKSPACE - DONE - here are the sec queries for reference
 		colNames = new String[] {"type", "userid", "engineid"};
 		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("WORKSPACEENGINE", colNames, types));
