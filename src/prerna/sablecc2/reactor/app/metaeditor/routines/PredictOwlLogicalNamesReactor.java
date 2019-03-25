@@ -6,7 +6,6 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -18,8 +17,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Utility;
+import prerna.wikidata.WikiLogicalNameExtractor;
 
 public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
@@ -44,11 +43,11 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		// make sure R is good to go
 		Logger logger = getLogger(CLASS_NAME);
-		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
-		rJavaTranslator.startR(); 
-		// check if packages are installed
-		String[] packages = { "WikidataR", "XML", "RCurl", "stringr"};
-		rJavaTranslator.checkPackages(packages);
+//		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
+//		rJavaTranslator.startR(); 
+//		// check if packages are installed
+//		String[] packages = { "WikidataR", "XML", "RCurl", "stringr"};
+//		rJavaTranslator.checkPackages(packages);
 		
 		String appId = getAppId();
 		// we may have an alias
@@ -75,49 +74,44 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		List<String> values = new Vector<String>();
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getSingleColumnNonEmptyQs(qsName, 5));
 		while(wrapper.hasNext()) {
-			values.add(wrapper.next().getValues()[0].toString());
+			Object value = wrapper.next().getValues()[0];
+			if(value == null || value.toString().isEmpty()) {
+				continue;
+			}
+			values.add(value.toString());
 		}
 		
-		StringBuilder script = new StringBuilder();
-		// first source the file where we have the main method for running
-		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlPredictLogicalNames.R"; 
-		rScriptPath = rScriptPath.replace("\\", "/");
-		script.append("source(\"" + rScriptPath + "\");");
+		List<String> logicalNames = new Vector<String>();
+		WikiLogicalNameExtractor extractor = new WikiLogicalNameExtractor();
+		extractor.setLogger(logger);
+		for(String value : values) {
+			try {
+				logicalNames.addAll(extractor.getLogicalNames(value));
+			} catch (Exception e) {
+				logger.info("ERROR ::: Could not process input = " + value);
+				e.printStackTrace();
+			}
+		}
 		
-		String logicalNamesVar = "logicalFrame_" + Utility.getRandomString(6);
-		String instanceVectorVar = "instanceValues_" + Utility.getRandomString(6);
-		script.append(instanceVectorVar).append(" <- ").append(RSyntaxHelper.createStringRColVec(values)).append(";");
-		script.append(logicalNamesVar).append(" <- predictLogicalNames(").append(instanceVectorVar).append(");");
-
-		// execute!
-		logger.info("Running script to auto generate logical names...");
-		rJavaTranslator.runR(script.toString());
-		logger.info("Finished running scripts!");
-
-		String[] logicalNames = rJavaTranslator.getStringArray(logicalNamesVar);
-
-//		OWLER owler = getOWLER(appId);
-//		for(String logical : logicalNames) {
-//			if(prop == null || prop.isEmpty()) {
-//				owler.addConceptDescription(concept, prop, logical);
-//			} else {
-//				owler.addPropDescription(concept, prop, logical);
-//			}
-//		}
-//		owler.commit();
+//		StringBuilder script = new StringBuilder();
+//		// first source the file where we have the main method for running
+//		String rScriptPath = getBaseFolder() + "\\R\\OwlMatchRoutines\\OwlPredictLogicalNames.R"; 
+//		rScriptPath = rScriptPath.replace("\\", "/");
+//		script.append("source(\"" + rScriptPath + "\");");
 //		
-//		try {
-//			owler.export();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-//			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", 
-//					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-//			return noun;
-//		}
-		
+//		String logicalNamesVar = "logicalFrame_" + Utility.getRandomString(6);
+//		String instanceVectorVar = "instanceValues_" + Utility.getRandomString(6);
+//		script.append(instanceVectorVar).append(" <- ").append(RSyntaxHelper.createStringRColVec(values)).append(";");
+//		script.append(logicalNamesVar).append(" <- predictLogicalNames(").append(instanceVectorVar).append(");");
+//
+//		// execute!
+//		logger.info("Running script to auto generate logical names...");
+//		rJavaTranslator.runR(script.toString());
+//		logger.info("Finished running scripts!");
+//
+//		String[] logicalNames = rJavaTranslator.getStringArray(logicalNamesVar);
+
 		NounMetadata noun = new NounMetadata(logicalNames, PixelDataType.CONST_STRING);
-//		noun.addAdditionalReturn(new NounMetadata("Predicted and stored logical names for review",
 		noun.addAdditionalReturn(new NounMetadata("Predicted and logical names for review",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
