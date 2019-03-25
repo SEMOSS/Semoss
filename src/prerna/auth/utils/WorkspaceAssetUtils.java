@@ -1,15 +1,21 @@
 package prerna.auth.utils;
 
 import java.sql.SQLException;
+import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.PixelRunner;
 
 public class WorkspaceAssetUtils extends AbstractSecurityUtils {
+	
+	private static final String WORKSPACE_APP_NAME = "Workspace";
+	private static final String ASSET_APP_NAME = "Asset";
 	
 	WorkspaceAssetUtils() {
 		super();
@@ -26,10 +32,9 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String createUserWorkspaceApp(AccessToken token) {
-		String appId = null;
-		// TODO >>>timb: WORKSPACE - look at GenerateEmptyAppReactor, use AppEngine
+		String appId = createEmptyApp(token, WORKSPACE_APP_NAME); 
 		registerUserWorkspaceApp(token, appId);
-		return null;
+		return appId;
 	}
 	
 	/**
@@ -48,10 +53,9 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String createUserAssetApp(AccessToken token) {
-		String appId = null;
-		// TODO >>>timb: WORKSPACE - look at GenerateEmptyAppReactor, use AppEngine
+		String appId = createEmptyApp(token, ASSET_APP_NAME); 
 		registerUserAssetApp(token, appId);
-		return null;
+		return appId;
 	}
 	
 	/**
@@ -62,6 +66,23 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 */
 	public static String createUserAssetApp(User user, AuthProvider token) {
 		return createUserAssetApp(user.getAccessToken(token));
+	}
+	
+	// TODO >>>timb: WORKSPACE - DONE - look at GenerateEmptyAppReactor, use AppEngine
+	private static String createEmptyApp(AccessToken token, String appName) {
+		
+		// Make sure the app is created with the proper access token
+		Insight insight = new Insight();
+		User user = new User();
+		user.setAccessToken(token);
+		insight.setUser(user);
+		
+		// Run the pixel to import the data
+		PixelRunner returnData = insight.runPixel("GenerateEmptyAppReactor(app=[\" + appName + \"])");
+		
+		@SuppressWarnings("unchecked")
+		String appId = ((Map<String, String>) returnData.getResults().get(0).getValue()).get("app_id");
+		return appId;
 	}
 	
 	
