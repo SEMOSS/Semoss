@@ -30,6 +30,10 @@ public class WikiLogicalNameExtractor {
 		searchTerm = searchTerm.trim().replace("_", " ");
 		List<WbSearchEntitiesResult> searchResults = wbdf.searchEntities(searchTerm, new Long(10));
 		int numReturns = searchResults.size();
+		if(numReturns == 0) {
+			logger.info("Found no results searching for " + searchTerm);
+			return logicalNames;
+		}
 		logger.info("Querying wikidata returned " + numReturns + " results for " + searchTerm);
 		List<Callable<List<String>>> logicalNamesExtractors = new Vector<Callable<List<String>>>();
 		for(int i = 0; i < searchResults.size(); i++) {
