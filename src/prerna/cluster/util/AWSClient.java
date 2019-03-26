@@ -303,23 +303,6 @@ public class AWSClient extends CloudClient{
 		return rcloneConfig;
 	}
 
-	@Override
-	public void pushUser(String userID) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void pullUser(String userID) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public List<String> getUsers() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 
 
