@@ -537,6 +537,6 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		if (grs == null || grs.isEmpty()) {
 			return TINKER_DRIVER.TG;
 		}
-		return TINKER_DRIVER.valueOf((String) grs.get(0));
+		return TINKER_DRIVER.valueOf(grs.get(0).toString().toUpperCase());
 	}
 }
