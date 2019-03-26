@@ -394,6 +394,7 @@ import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.sablecc2.reactor.workflow.InsightDatasourcesReactor;
 import prerna.sablecc2.reactor.workflow.ModifyInsightDatasourceReactor;
 import prerna.sablecc2.reactor.workspace.DeleteUserAssetReactor;
+import prerna.sablecc2.reactor.workspace.MoveUserAssetReactor;
 import prerna.sablecc2.reactor.workspace.NewUserDirectoryReactor;
 import prerna.sablecc2.reactor.workspace.UploadUserFileReactor;
 import prerna.sablecc2.reactor.workspace.UserRootDirectoryReactor;
@@ -932,6 +933,7 @@ public class ReactorFactory {
 		reactorHash.put("UserDir", UserRootDirectoryReactor.class);
 		reactorHash.put("DeleteUserAsset", DeleteUserAssetReactor.class);
 		reactorHash.put("NewDir", NewUserDirectoryReactor.class);
+		reactorHash.put("MoveUserAsset", MoveUserAssetReactor.class);
 
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
