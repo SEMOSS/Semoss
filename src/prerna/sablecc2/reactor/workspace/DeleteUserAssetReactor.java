@@ -9,6 +9,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
@@ -83,7 +84,7 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 		}
 		
 		//When i get appId
-		//ClusterUtil.reactorPushApp(appId);
+		ClusterUtil.reactorPushApp(assetEngineID);
 
 		
 		return new NounMetadata(deleted, PixelDataType.BOOLEAN, PixelOperationType.USER_DIR);
