@@ -23,7 +23,7 @@ public class NewUserDirectoryReactor extends AbstractReactor {
 
 
 	public NewUserDirectoryReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(),ReactorKeysEnum.FILE_NAME.getKey() };
+		this.keysToGet = new String[]{ReactorKeysEnum.RELATIVE_PATH.getKey(),ReactorKeysEnum.FILE_NAME.getKey() };
 	}
 
 	@Override
@@ -55,7 +55,8 @@ public class NewUserDirectoryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to find user asset app");
 		}
 
-		String userFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR + WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID ;
+		String userFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
+				WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID + DIR_SEPARATOR +  "version";
 
 		File relativeFolder = new File(userFolder + DIR_SEPARATOR + relativePath);
 		
@@ -68,7 +69,7 @@ public class NewUserDirectoryReactor extends AbstractReactor {
 			//made folder but now we need to add a hidden file for the cloud 
 			if(ClusterUtil.IS_CLUSTER){
 				
-				File hidden = new File(folderCreate+ DIR_SEPARATOR + "hidden.semoss");
+				File hidden = new File(folderCreate+ DIR_SEPARATOR + WorkspaceAssetUtils.HIDDEN_FILE);
 				
 				//override created boolean if its cloud to be at the hidden file level
 				try {
