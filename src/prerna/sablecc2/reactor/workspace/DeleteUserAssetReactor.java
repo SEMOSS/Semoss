@@ -26,18 +26,15 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 
 
 	public DeleteUserAssetReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(),ReactorKeysEnum.FILE_NAME.getKey() };
+		this.keysToGet = new String[]{ReactorKeysEnum.RELATIVE_PATH.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String relativePath = this.keyValue.get(this.keysToGet[0]);
+		String relativeFilePath = this.keyValue.get(this.keysToGet[0]);
 		
-		String fileName = this.keyValue.get(this.keysToGet[1]);
-
-		
-		if(relativePath == null || relativePath.isEmpty() || fileName == null || fileName.isEmpty()  ) {
+		if(relativeFilePath == null || relativeFilePath.isEmpty()  ) {
 			throw new IllegalArgumentException("Must input file path and file name to delete");
 		}
 		
@@ -57,23 +54,21 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to find user asset app");
 		}
 
-		String userFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR + WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID ;
+		String userFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
+				WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID + DIR_SEPARATOR + "version";
 
-		File relativeFolder = new File(userFolder + DIR_SEPARATOR + relativePath);
+		File relativeFile = new File(userFolder + DIR_SEPARATOR + relativeFilePath);
 		
-		//File to delete can be a folder so check for that
-		File toDelete = new File(relativeFolder + DIR_SEPARATOR + fileName);
 		
-		if(!toDelete.exists()){
+		if(!relativeFile.exists()){
 			throw new IllegalArgumentException("File/Folder does not exist that this location");
-
 		}
 		
-		
+		//File can be a folder so need to take that into account
 		Boolean deleted=false;
-		if(toDelete.isDirectory()){
+		if(relativeFile.isDirectory()){
 			try {
-				FileUtils.deleteDirectory(toDelete);
+				FileUtils.deleteDirectory(relativeFile);
 				deleted = true;
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -84,7 +79,7 @@ public class DeleteUserAssetReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 		} else{
-			deleted = toDelete.delete();
+			deleted = relativeFile.delete();
 		}
 		
 		//When i get appId
