@@ -27,6 +27,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	
 	public static final String WORKSPACE_APP_NAME = "Workspace";
 	public static final String ASSET_APP_NAME = "Asset";
+	public static final String HIDDEN_FILE = ".semoss";
 	
 	WorkspaceAssetUtils() {
 		super();
@@ -217,7 +218,12 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues()[0].toString();
+				 Object rs = wrapper.next().getValues()[0];
+				 if (rs == null){
+					 return null;
+				 }
+				return rs.toString();
+				//return wrapper.next().getValues()[0].toString();
 			}
 		} finally {
 			wrapper.cleanUp();
@@ -249,7 +255,12 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		try {
 			if (wrapper.hasNext()) {
-				return wrapper.next().getValues()[0].toString();
+				 Object rs = wrapper.next().getValues()[0];
+				 if (rs == null){
+					 return null;
+				 }
+				return rs.toString();
+				//return wrapper.next().getValues()[0].toString();
 			}
 		} finally {
 			wrapper.cleanUp();

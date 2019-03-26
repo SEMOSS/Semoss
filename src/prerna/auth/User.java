@@ -111,7 +111,7 @@ public class User extends AbstractValueObject {
 			String engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
 			if (engineId == null) {
 				try {
-					WorkspaceAssetUtils.createUserWorkspaceApp(this, token);
+					engineId = WorkspaceAssetUtils.createUserWorkspaceApp(this, token);
 				} catch (Exception e) {
 					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
 					e.printStackTrace();
@@ -127,7 +127,7 @@ public class User extends AbstractValueObject {
 			String engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
 			if (engineId == null) {
 				try {
-					WorkspaceAssetUtils.createUserAssetApp(this, token);
+					engineId = WorkspaceAssetUtils.createUserAssetApp(this, token);
 				} catch (Exception e) {
 					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
 					e.printStackTrace();

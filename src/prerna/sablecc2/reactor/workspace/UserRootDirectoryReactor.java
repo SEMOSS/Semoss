@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.workspace;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,7 +23,7 @@ public class UserRootDirectoryReactor extends AbstractReactor {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public UserRootDirectoryReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.RELATIVE_PATH.getKey()};
 	}
 	
 	
@@ -33,7 +34,7 @@ public class UserRootDirectoryReactor extends AbstractReactor {
 		String relativePath = this.keyValue.get(this.keysToGet[0]);
 		
 		Boolean isRoot = false;
-		if(relativePath == null || relativePath.isEmpty()) {
+		if(relativePath == null || relativePath.isEmpty() || relativePath.equals("/")) {
 			relativePath = "";
 			isRoot=true;
 		}
@@ -54,20 +55,36 @@ public class UserRootDirectoryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to find user asset app");
 		}
 
-		String userFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" + DIR_SEPARATOR + WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID ;
-
 		
+		//Base Asset Folder. Checking that is exists, otherwise error
+		String baseUserFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db" 
+		+ DIR_SEPARATOR + WorkspaceAssetUtils.ASSET_APP_NAME + "__" +  assetEngineID;
+
+		File baseUserFolder = new File(baseUserFolderPath);
+
+		//Where we are storing their information under version. Make the version folder if it doesn't exist.
+		String userFolderPath =  baseUserFolderPath + DIR_SEPARATOR + "version";
 		File userFolder = new File(userFolderPath);
-		if(!userFolder.isDirectory()){
-			throw new IllegalArgumentException("Folder does not exist");
+		Boolean newFolder = userFolder.mkdir();
+		if(newFolder){
+			File hidden = new File(userFolderPath + DIR_SEPARATOR + WorkspaceAssetUtils.HIDDEN_FILE);
+			try {
+				hidden.createNewFile();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+
+		//Navigate to the relative path from the version folder
+		userFolder = new File(userFolderPath + DIR_SEPARATOR + relativePath);
 		File[] userFiles = userFolder.listFiles();
 		int numFiles = userFiles.length;
 		
 		String[] fileNames = new String[numFiles];
 		boolean[] isDir = new boolean[numFiles];
 		for(int i = 0; i < numFiles; i++) {
-			if(userFiles[i].getName().equalsIgnoreCase("hidden.semoss")){
+			if(userFiles[i].getName().equalsIgnoreCase(WorkspaceAssetUtils.HIDDEN_FILE)){
 				continue;
 			}
 			fileNames[i] = userFiles[i].getName();
