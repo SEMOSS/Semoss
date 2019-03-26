@@ -15,20 +15,20 @@ public class PullUserSpaceReactor extends AbstractReactor{
 
 	@Override
 	public NounMetadata execute() {
-		if(ClusterUtil.IS_CLUSTER){
-			User user = this.insight.getUser();
-			AuthProvider token = user.getLogins().get(0);
-			String userSpaceId = token.toString() + "_" + user.getAccessToken(token).getId();
-
-			CloudClient.getClient();
-			try {
-				// pull the user space based on the cloud client for storage
-				CloudClient.getClient().pullUser(userSpaceId);
-			} catch (IOException | InterruptedException e) {
-				e.printStackTrace();
-				throw new IllegalArgumentException("Error occurred pulling user space");
-			}
-		}
+//		if(ClusterUtil.IS_CLUSTER){
+//			User user = this.insight.getUser();
+//			AuthProvider token = user.getLogins().get(0);
+//			String userSpaceId = token.toString() + "_" + user.getAccessToken(token).getId();
+//
+//			CloudClient.getClient();
+//			try {
+//				// pull the user space based on the cloud client for storage
+//				CloudClient.getClient().pullUser(userSpaceId);
+//			} catch (IOException | InterruptedException e) {
+//				e.printStackTrace();
+//				throw new IllegalArgumentException("Error occurred pulling user space");
+//			}
+//		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.USER_UPLOAD);
 	}
 
