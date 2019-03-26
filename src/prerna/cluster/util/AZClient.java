@@ -376,27 +376,7 @@ public class AZClient extends CloudClient {
 		}
 	}
 
-	public void pushUser(String userId) throws IOException, InterruptedException{
-		String validID=cleanID(userId);
 
-		String userRcloneConfig = null;
-		try{
-			userRcloneConfig = createRcloneConfig(ClusterUtil.USER_CONTAINER);
-			System.out.println("Pushing from source user=" + validID + " to remote");
-
-			File userFolder = new File(userSpace + FILE_SEPARATOR + validID);
-			if(userFolder.exists()){
-				runRcloneProcess(userRcloneConfig, "rclone", "sync", userFolder.getPath(),userRcloneConfig + ":" + ClusterUtil.USER_CONTAINER + "/" + validID);
-			}
-			else{
-				throw new IllegalArgumentException("User does a user folder at local location: " + userFolder.getAbsolutePath() );
-			}
-		} finally {
-			if (userRcloneConfig != null) {
-				deleteRcloneConfig(userRcloneConfig);
-			}
-		}
-	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////// Pull ////////////////////////////////////////////
@@ -483,66 +463,7 @@ public class AZClient extends CloudClient {
 		}
 	}
 
-	public List<String> getUsers() throws IOException, InterruptedException{
-		List<String> users = new ArrayList<String>();
-		String userRcloneConfig = null;
-		try{
-			userRcloneConfig = createRcloneConfig(ClusterUtil.USER_CONTAINER);
-			users = runRcloneProcess(userRcloneConfig, "rclone", "lsf", userRcloneConfig+":"+ClusterUtil.USER_CONTAINER);
-		}finally {
-			if (userRcloneConfig != null) {
-				deleteRcloneConfig(userRcloneConfig);
-			}
-		}
-		return users;
-	}
-
-	public void pullUser(String userId) throws IOException, InterruptedException{
-		//String validID=validateString(userId);
-		String validID=cleanID(userId);
-
-		String userRcloneConfig = null;
-		try{
-			userRcloneConfig = createRcloneConfig(ClusterUtil.USER_CONTAINER);
-			List<String> users = runRcloneProcess(userRcloneConfig, "rclone", "lsf", userRcloneConfig+":"+ClusterUtil.USER_CONTAINER);
-
-			// Make the user's directory (if it doesn't already exist)
-			File userFolder = new File(userSpace + FILE_SEPARATOR + validID);
-			userFolder.mkdir(); 
-			if(users.contains(validID)){
-				runRcloneProcess(userRcloneConfig, "rclone", "sync", userRcloneConfig + ":" + ClusterUtil.USER_CONTAINER + "/" + validID, userFolder.getPath());
-			} else{
-				System.out.println("User does not have a storage account tied to id: " + validID + ". Making a container for user.");
-				createUser(userId);
-				pushUser(userId);
-				//runRcloneProcess(userRcloneConfig, "rclone", "sync", userRcloneConfig + ":" + ClusterUtil.USER_CONTAINER + "/" + validID, userFolder.getPath());
-			}
-		} finally {
-			if (userRcloneConfig != null) {
-				deleteRcloneConfig(userRcloneConfig);
-			}
-		}
-	}
-
-	public void createUser(String userId) throws IOException, InterruptedException{
-		String validID=cleanID(userId);
-		String userRcloneConfig = null;
-		try{
-			userRcloneConfig = createRcloneConfig(ClusterUtil.USER_CONTAINER);
-			File userFolder = new File(userSpace + FILE_SEPARATOR + validID);
-			userFolder.mkdir();
-			File semossConfigFolder = new File(userFolder.getAbsolutePath()+FILE_SEPARATOR+"semossConfig");
-			File semossConfig = new File(semossConfigFolder+FILE_SEPARATOR+"semossConfig.txt");
-			semossConfig.getParentFile().mkdirs();
-			semossConfig.createNewFile();
-		}finally {
-			if (userRcloneConfig != null) {
-				deleteRcloneConfig(userRcloneConfig);
-			}
-		}
-		return;
-	}
-
+	
 
 		//////////////////////////////////////////////////////////////////////////////////////////
 		//////////////////////////////////////// Update///////////////////////////////////////////
