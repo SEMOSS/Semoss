@@ -51,14 +51,6 @@ public abstract class CloudClient {
 
 	public abstract void deleteApp(String appId) throws IOException, InterruptedException;
 
-	public abstract void pushUser(String userID) throws IOException, InterruptedException;
-
-	public abstract void pullUser(String userID) throws IOException, InterruptedException;
-	
-	public abstract List<String> getUsers() throws IOException, InterruptedException;
-
-
-
 	public abstract List<String> listAllBlobContainers() throws IOException, InterruptedException; 
 
 	public abstract void deleteContainer(String containerId) throws IOException, InterruptedException; 
@@ -112,12 +104,6 @@ public abstract class CloudClient {
 		}
 	}
 	
-	public static String cleanID(String userID){
-		userID = userID.trim();
-		userID = userID.replaceAll(" ", "-");
-		userID = userID.replaceAll("[^a-zA-Z0-9\\_]", ""); // matches anything that is not alphanumeric or underscore
-		return userID;
-	}
 
 	protected static List<String> streamOutput(InputStream stream) throws IOException {
 		return stream(stream, false);
@@ -141,12 +127,6 @@ public abstract class CloudClient {
 		}
 	}
 
-	public static String cleanFileName(String name) {
-		name = name.trim();
-		name = name.replaceAll(" ", "-");
-
-		return null;
-	}
 
 }
 
