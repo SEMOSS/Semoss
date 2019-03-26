@@ -1,8 +1,12 @@
 package prerna.sablecc2.reactor.expression;
 
+import java.util.List;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
+import prerna.sablecc2.om.task.TaskUtility;
 
 public class OpPaste0 extends OpBasic {
 
@@ -24,7 +28,14 @@ public class OpPaste0 extends OpBasic {
 					}
 				}
 			} else {
-				builder.append(values[0].toString());
+				if(values[0] instanceof ITask) {
+					List<Object> taskData = TaskUtility.flushJobData((ITask) values[0]);
+					for(int j = 0; j < taskData.size(); j++) {
+						builder.append(taskData.get(j).toString());
+					}
+				} else {
+					builder.append(values[0].toString());
+				}			
 			}
 			for(int i = 1; i < values.length; i++) {
 				if(values[i] instanceof Object[]) {
@@ -36,7 +47,14 @@ public class OpPaste0 extends OpBasic {
 						}
 					}
 				} else {
-					builder.append(values[i].toString());
+					if(values[i] instanceof ITask) {
+						List<Object> taskData = TaskUtility.flushJobData((ITask) values[i] );
+						for(int j = 0; j < taskData.size(); j++) {
+							builder.append(taskData.get(j).toString());
+						}
+					} else {
+						builder.append(values[i].toString());
+					}
 				}
 			}
 		}
