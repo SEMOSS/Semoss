@@ -74,6 +74,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 		String userFolderPath =  baseUserFolderPath + DIR_SEPARATOR + "version";
 		File userFolder = new File(userFolderPath);
 		Boolean newFolder = userFolder.mkdir();
+		if (ClusterUtil.IS_CLUSTER){
 		if(newFolder){
 			File hidden = new File(userFolderPath + DIR_SEPARATOR + WorkspaceAssetUtils.HIDDEN_FILE);
 			try {
@@ -82,6 +83,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+		}
 		}
 
 		String fileName = uploadedFile.getName().toLowerCase();
@@ -93,15 +95,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 
 		try {
 			FileUtils.copyFile(uploadedFile, new File(userFolder.getAbsolutePath() + DIR_SEPARATOR + relativeFilePath + DIR_SEPARATOR + uploadedFile.getName()));
-			if(ClusterUtil.IS_CLUSTER) {
-				try {
-					CloudClient.getClient().pushApp(assetEngineID);
-				} catch (IOException e) {
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
+			ClusterUtil.reactorPushApp(assetEngineID);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Unable to copy file");
