@@ -88,7 +88,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 
 		String fileName = uploadedFile.getName().toLowerCase();
 		//copy file into the directory from tmp upload space if it is valid. For now its just .R files
-		if(!fileName.toLowerCase().endsWith(".r") || fileName.toLowerCase().endsWith(".py")) {
+		if(!fileName.toLowerCase().endsWith(".r") || !fileName.toLowerCase().endsWith(".py")) {
 			throw new IllegalArgumentException("File must be of type .r or .py");
 		}
 
@@ -104,7 +104,7 @@ public class UploadUserFileReactor extends AbstractReactor {
 
 		Map<String, Object> uploadUserData = new HashMap<String, Object>();
 		uploadUserData.put("uploadedFile", uploadedFilePath);
-		uploadUserData.put("pushedContainer", assetEngineID);
+		uploadUserData.put("app", assetEngineID);
 		return new NounMetadata(uploadUserData, PixelDataType.MAP, PixelOperationType.USER_UPLOAD);
 	}
 
