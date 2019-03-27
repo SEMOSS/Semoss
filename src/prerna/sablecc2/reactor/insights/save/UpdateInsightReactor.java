@@ -107,6 +107,10 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			storeImageFromPng(base64Image, existingId, engine.getEngineId(), engine.getEngineName());
 		}
 		
+		// update the workspace cache for the saved insight
+		this.insight.setEngineId(engine.getEngineId());
+		this.insight.setInsightName(insightName);
+		
 		ClusterUtil.reactorPushApp(appId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
