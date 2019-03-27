@@ -43,7 +43,8 @@ public class SplitColumnReactor extends AbstractFramePyReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 
 		// get table name
-		String table = frame.getName()+"w";
+		String table = frame.getName();
+		System.out.println("Table Name " + table);
 		
 		// get length of input to use when iterating through
 		int inputSize = cols.size();
@@ -59,7 +60,8 @@ public class SplitColumnReactor extends AbstractFramePyReactor {
 			}
 
 			// evaluate the r script
-			frame.runScript(frame.getName() + " = " + table + ".split('" + column + "', '" + separator + "')");
+			//frame.getName() + " = " + 
+			frame.runScript(table + ".split('" + column + "', '" + separator + "')");
 
 		}
 
@@ -71,7 +73,7 @@ public class SplitColumnReactor extends AbstractFramePyReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// column header data is changing so we must recreate metadata
-		frame = (PandasFrame)recreateMetadata(frame);
+		recreateMetadata(frame, false);
 		
 		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

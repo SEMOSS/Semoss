@@ -15,14 +15,18 @@ public abstract class AbstractFramePyReactor extends AbstractFrameReactor {
 	public abstract NounMetadata execute(); 
 	
 	
-	
-	protected ITableDataFrame recreateMetadata(PandasFrame frame)
+	protected ITableDataFrame recreateMetadata(PandasFrame frame, boolean override)
 	{
 		
 		String frameName = frame.getName();
-		
+		PandasFrame newFrame = frame; 
 		// I am just going to try to recreate the frame here
-		PandasFrame newFrame = new PandasFrame(frameName);
+		if(override)
+		{
+			newFrame = new PandasFrame(frameName);
+			String makeWrapper = frameName+"w = PyFrame.makefm(" + frameName +")";
+			newFrame.runScript(makeWrapper);
+		}
 		newFrame.setJep(frame.getJep());
 
 		String[] colNames = getColumns(newFrame);
@@ -43,15 +47,17 @@ public abstract class AbstractFramePyReactor extends AbstractFrameReactor {
 		ImportUtility.parsePyTableColumnsAndTypesToFlatTable(newFrame, colNames, colTypes, frameName);
 		newFrame.setDataTypeMap(newFrame.getMetaData().getHeaderToTypeMap());
 		
-		String makeWrapper = frameName+"w = PyFrame.makefm(" + frameName +")";
-		newFrame.runScript(makeWrapper);
-
-		
-		this.insight.setDataMaker(newFrame);
+		if(override)
+			this.insight.setDataMaker(newFrame);
 		newFrame.setPrevFrame(frame);
 
 		return newFrame;
-
+		
+	}
+	
+	protected ITableDataFrame recreateMetadata(PandasFrame frame)
+	{
+		return recreateMetadata(frame, true);
 	}
 	
 	public String [] getColumns(PandasFrame frame)
@@ -59,7 +65,7 @@ public abstract class AbstractFramePyReactor extends AbstractFrameReactor {
 		
 		String frameName = frame.getName();
 		// get jep thread and get the names
-		ArrayList <String> val = (ArrayList<String>)frame.runScript("list(" + frameName + ")");
+		ArrayList <String> val = (ArrayList<String>)frame.runScript("list(" + frameName + ".cache['data'])");
 		String [] retString = new String[val.size()];
 		
 		val.toArray(retString);
@@ -74,7 +80,7 @@ public abstract class AbstractFramePyReactor extends AbstractFrameReactor {
 		String frameName = frame.getName();
 		
 		// get jep thread and get the names
-		ArrayList <String> val = (ArrayList<String>)frame.runScript(PandasSyntaxHelper.getTypes(frameName));
+		ArrayList <String> val = (ArrayList<String>)frame.runScript(PandasSyntaxHelper.getTypes(frameName + ".cache['data']"));
 		String [] retString = new String[val.size()];
 		
 		val.toArray(retString);

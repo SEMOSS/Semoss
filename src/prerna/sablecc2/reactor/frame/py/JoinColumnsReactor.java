@@ -70,16 +70,16 @@ public class JoinColumnsReactor extends AbstractFramePyReactor {
 			}
 			
 			if(i > 0)
-				colList.append(".str.cat(" + table + "['").append(column).append("'], sep='" + separator + "')");
+				colList.append(".str.cat(" + table + ".cache['data']['").append(column).append("'], sep='" + separator + "')");
 			else
-				colList.append(table + "['").append(column).append("'").append("]");			
+				colList.append(table + ".cache['data']['").append(column).append("'").append("]");			
 		}
 		
 		// change it
-		frame.runScript(table + "['" + newColName + "'] = " + colList);
-		frame.runScript(table + "w.cache['data'] = " + table);
+		frame.runScript(table + ".cache['data']['" + newColName + "'] = " + colList);
+		//frame.runScript(table + "w.cache['data'] = " + table);
 		
-		frame = (PandasFrame)recreateMetadata(frame);
+		recreateMetadata(frame, false);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

@@ -44,7 +44,7 @@ public class ExtractAlphaCharsReactor extends AbstractFrameReactor {
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					try {
-						frame.runScript(table + "w.extract_alpha('" + column + "')");
+						frame.runScript(table + ".extract_alpha('" + column + "')");
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -61,7 +61,7 @@ public class ExtractAlphaCharsReactor extends AbstractFrameReactor {
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					String newColumn = getCleanNewColName(table, column + ALPHA_COLUMN_NAME);
-					frame.runScript(table + "w.extract_alpha('" + column + "',  '" + newColumn + "')");
+					frame.runScript(table + ".extract_alpha('" + column + "',  '" + newColumn + "')");
 					
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
