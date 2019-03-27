@@ -202,6 +202,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackInsightExecution(newInsight);
 		
+		// add to user workspace
+		newInsight.setCacheInWorkspace(true);
+		
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", runner);
