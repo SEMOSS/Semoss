@@ -211,8 +211,11 @@ public class Insight {
 					// TODO: uncomment for default user saving of workspace
 					// TODO: uncomment for default user saving of workspace
 					// TODO: uncomment for default user saving of workspace
-//					if(AbstractSecurityUtils.securityEnabled() && cacheInWorkspace) {
-//						getWorkspaceCacheThread().addToQueue(this.pixelList);
+//					if(AbstractSecurityUtils.securityEnabled() 
+//							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
+//						if(!runner.isMeta().isEmpty() && !runner.isMeta().get(runner.isMeta().size()-1)) {
+//							getWorkspaceCacheThread().addToQueue(this.pixelList);
+//						}
 //					}
 				}
 			}
@@ -257,6 +260,10 @@ public class Insight {
 	
 	public void setCacheInWorkspace(boolean cacheInWorkspace) {
 		this.cacheInWorkspace = cacheInWorkspace;
+	}
+	
+	public boolean isCacheInWorkspace() {
+		return this.cacheInWorkspace;
 	}
 	
 	public void dropWorkspaceCache() {
@@ -384,6 +391,9 @@ public class Insight {
 
 	public void setInsightName(String insightName) {
 		this.insightName = insightName;
+		if(this.workspaceCacheThread != null) {
+			this.workspaceCacheThread.setInsightName(insightName);
+		}
 	}
 	
 	public boolean isCacheable() {

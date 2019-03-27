@@ -117,6 +117,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			storeImageFromPng(base64Image, newRdbmsId, engine.getEngineId(), engine.getEngineName());
 		}
 		
+		// update the workspace cache for the saved insight
+		this.insight.setEngineId(engine.getEngineId());
+		this.insight.setRdbmsId(newRdbmsId);
+		this.insight.setInsightName(insightName);
+
+		ClusterUtil.reactorPushApp(appId);
+		
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("name", insightName);
 		returnMap.put("app_insight_id", newRdbmsId);
@@ -124,12 +131,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		returnMap.put("app_id", engine.getEngineId());
 		returnMap.put("recipe", recipeToSave);
 		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
-
-//		// track GA data
-//		UserTrackerFactory.getInstance().trackInsightExecution(this.insight, "saveinsight", appId, newRdbmsId, insightName);
-
-		ClusterUtil.reactorPushApp(appId);
-		
 		return noun;
 	}
 	

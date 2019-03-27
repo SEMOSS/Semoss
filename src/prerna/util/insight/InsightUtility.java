@@ -48,7 +48,7 @@ public class InsightUtility {
 		}
 		newInsight.setPy(origInsight.getPy());
 		if(ClusterUtil.SEMOSS_USER_RSERVE && origInsight.getUser() != null){
-		newInsight.setUser(origInsight.getUser());
+			newInsight.setUser(origInsight.getUser());
 		}
 	}
 	
