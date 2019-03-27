@@ -15,6 +15,11 @@ import prerna.util.Utility;
 
 public class SaveInsightIntoWorkspace {
 
+	/*
+	 * Class that uses a queue to save the most recent version of an insight 
+	 * into the user workspace app
+	 */
+	
 	private IEngine userWorkspaceEngine;
 	private InsightAdministrator insightAdmin;
 	private String workspaceSavedInsightId;
@@ -38,17 +43,33 @@ public class SaveInsightIntoWorkspace {
 		this.t.start();
 	}
 	
+	/**
+	 * Adds a new pixel into the queue that is running for this insight
+	 * @param pixelSteps
+	 */
 	public void addToQueue(List<String> pixelSteps) {
 		queue.add(pixelSteps);
 	}
 	
+	/**
+	 * Drop the insight from the workspace app
+	 */
 	public void dropWorkspaceCache() {
 		this.insightAdmin.dropInsight(this.workspaceSavedInsightId);
 		SecurityInsightUtils.deleteInsight(this.userWorkspaceEngine.getEngineId(), this.workspaceSavedInsightId);
 	}
 	
+	/**
+	 * Kill the thread running in the background that
+	 * is picking up new recipe steps being added to the queue
+	 */
 	public void killThread() {
 		this.cacher.kill();
+	}
+
+	public void setInsightName(String insightName) {
+		this.insightName = insightName;
+		this.cacher.setInsightName(insightName);
 	}
 }
 
@@ -114,5 +135,10 @@ class InsightCacher implements Runnable {
 		this.queue.clear();
 		// to force the queue to take
 		this.queue.add(new ArrayList<String>());
+	}
+	
+
+	public void setInsightName(String insightName) {
+		this.insightName = insightName;
 	}
 }
