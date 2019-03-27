@@ -34,7 +34,7 @@ public class DropColumnReactor extends AbstractFrameReactor {
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 
 		// get table name
-		String table = frame.getName() + "w";
+		String table = frame.getName();
 
 		// store the list of names being removed
 		List<String> remCols = new Vector<String>();

@@ -31,7 +31,8 @@ public class CountIfReactor extends AbstractFrameReactor {
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 		// get frame name
-		String table = frame.getName()+"w";
+		String table = frame.getName();
+		System.out.println("Table.. " + table);
 		// get inputs
 		String column = this.keyValue.get(this.keysToGet[0]);
 		if (column == null) {
