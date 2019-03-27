@@ -44,7 +44,7 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 			throw exception;
 		}
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.NEO4J;
-		if (fileName.contains(".")) {
+		if (new File(fileName).isFile() && fileName.contains(".")) {
 			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
 			tinkerDriver = TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
 		}
