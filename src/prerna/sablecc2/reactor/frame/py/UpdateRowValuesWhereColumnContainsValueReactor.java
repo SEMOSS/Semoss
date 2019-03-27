@@ -77,13 +77,13 @@ public class UpdateRowValuesWhereColumnContainsValueReactor extends AbstractFram
 		// use RInterpreter to create filter syntax
 		StringBuilder pyFilterBuilder = new StringBuilder();
 		PandasInterpreter pi = new PandasInterpreter();
-		pi.setDataTableName(table);
+		pi.setDataTableName(table + ".cache['data']");
 		pi.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
-		pi.addFilters(grf.getFilters(), table, pyFilterBuilder, true);
+		pi.addFilters(grf.getFilters(), table + ".cache['data']", pyFilterBuilder, true);
 
 		// execute the r scripts
 		if (pyFilterBuilder.length() > 0) {
-			String script = table + ".loc[" + pyFilterBuilder.toString() + ", '"+ updateCol +"'] = " + value ;
+			String script = table + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ updateCol +"'] = " + value ;
 			frame.runScript(script);
 		}
 		

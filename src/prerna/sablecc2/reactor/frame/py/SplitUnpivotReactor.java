@@ -39,6 +39,7 @@ public class SplitUnpivotReactor extends AbstractFramePyReactor {
 
 		// get table name
 		String table = frame.getName();
+		System.out.println("Table.. " + table);
 
 		// make a temporary table name
 		// we will reassign the table to this variable
@@ -78,7 +79,7 @@ public class SplitUnpivotReactor extends AbstractFramePyReactor {
 
 			// split_unpivot(column, delimiter)
 			// build the script to execute
-			frame.runScript(table + " = " + table + "w.split_unpivot('"
+			frame.runScript(table + ".split_unpivot('"
 					+ column + "', '" + delimiter + "')");
 		}
 
@@ -91,7 +92,7 @@ public class SplitUnpivotReactor extends AbstractFramePyReactor {
 						.getHashInputs(this.store, this.keysToGet));
 
 		// column header data is changing so we must recreate metadata
-		frame = (PandasFrame)recreateMetadata(frame);
+		recreateMetadata(frame, false);
 		return new NounMetadata(frame, PixelDataType.FRAME,
 				PixelOperationType.FRAME_DATA_CHANGE);
 	}

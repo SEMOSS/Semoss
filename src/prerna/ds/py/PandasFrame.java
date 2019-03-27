@@ -119,10 +119,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// generate the script
 			runScript(tableName + "=1");
 			String fileLocation = newFile.getAbsolutePath();
+
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
 			// execute the script
 			runScript(importS, loadS);
+			String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
+			runScript(makeWrapper);
 			
+			// replacing the name here
+			tableName = tableName + "w";
+			frameName = tableName;
 			// create the wrapper
 			// it is just the frame name with w on it
 			//String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
@@ -139,8 +145,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 			adjustDataTypes(tableName);
 		}
 		
-		String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
-		runScript(makeWrapper);
 
 	}
 	
@@ -183,8 +187,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// check against current
 		// if they are different change it
 		
-		String colScript = PandasSyntaxHelper.getColumns(tableName);
-		String typeScript = PandasSyntaxHelper.getTypes(tableName);
+		String colScript = PandasSyntaxHelper.getColumns(tableName + ".cache['data']");
+		String typeScript = PandasSyntaxHelper.getTypes(tableName + ".cache['data']");
 		
 		//run
 		
@@ -236,9 +240,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				{
 					String	typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
 					runScript(typeChanger);
-					
 				}
-				
 			}
 			else
 			{
@@ -369,8 +371,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	// get the types of headers
 	public Object [] getHeaderAndTypes() {
-		String colScript = PandasSyntaxHelper.getColumns(this.frameName);
-		String typeScript = PandasSyntaxHelper.getTypes(this.frameName);
+		String colScript = PandasSyntaxHelper.getColumns(this.frameName + ".cache['data']");
+		String typeScript = PandasSyntaxHelper.getTypes(this.frameName + ".cache['data']");
 		
 		Hashtable response = (Hashtable)runScript(colScript, typeScript);
 
@@ -398,7 +400,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		this.metaData.getHeaderToTypeMap();
-		interp.setDataTableName(this.frameName);
+		interp.setDataTableName(this.frameName + ".cache['data']");
 		interp.setDataTypeMap(dataTypeMap);
 		interp.setQueryStruct(qs);
 		String query = interp.composeQuery();
@@ -501,7 +503,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// save frame
 		String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".pkl";
 		cf.setFrameCacheLocation(frameFilePath);
-		String command = this.frameName + ".to_pickle(\"" + frameFilePath.replace("\\", "/") + "\")";
+		String command = this.frameName + ".cache['data'].to_pickle(\"" + frameFilePath.replace("\\", "/") + "\")";
 		runScript(command);
 		
 		// also save the meta details
@@ -519,7 +521,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// load the pandas library
 		runScript(PANDAS_IMPORT_STRING);
 		// load the frame
-		String command = this.frameName + "= " + PANDAS_IMPORT_VAR + ".read_pickle(\"" +  cf.getFrameCacheLocation().replace("\\", "/") + "\")";
+		String command = this.frameName + "= PyFrame.makefm(" + PANDAS_IMPORT_VAR + ".read_pickle(\"" +  cf.getFrameCacheLocation().replace("\\", "/") + "\")" + ")";
 		runScript(command);
 		// open the meta details
 		this.openCacheMeta(cf);
@@ -532,7 +534,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public boolean isEmpty(String tableName) {
-		String command = "\"" + tableName + "\" in vars() and len(" + tableName + ") <= 0";
+		String command = "\"" + tableName + "\" in vars() and len(" + tableName + ".cache['data']) <= 0";
 		Boolean isEmpty = (Boolean) runScript(command);
 		return isEmpty;
 	}
