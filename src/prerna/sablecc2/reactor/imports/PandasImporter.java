@@ -49,7 +49,8 @@ public class PandasImporter extends AbstractImporter {
 	
 	@Override
 	public void insertData() {
-		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName(), this.it);
+		// pre making the frame name
+		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName() + "w", this.it);
 		processInsertData();
 	}
 	

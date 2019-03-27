@@ -36,7 +36,7 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 
 		// get the wrapper name
 		// which is the framename with w in the end
-		String table = frame.getName() + "w";
+		String table = frame.getName();
 
 		// get inputs
 		List<String> columns = getColumns();

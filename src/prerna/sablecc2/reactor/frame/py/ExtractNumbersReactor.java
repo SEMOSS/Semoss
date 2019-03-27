@@ -30,6 +30,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		// get table name
 		String table = frame.getName();
+		System.out.println("table...  " +table);
 		// get columns to extract numeric characters
 		List<String> columns = getColumns();
 		// check if user want to override the column or create new columns
@@ -43,7 +44,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					try {
-						frame.runScript(table + "w.extract_num('" + column + "')");
+						frame.runScript(table + ".extract_num('" + column + "')");
 						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table,
 								SemossDataType.DOUBLE.toString());
 					} catch (Exception e) {
@@ -61,7 +62,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
-					frame.runScript(table + "w.extract_num('" + column + "',  '" + newColumn + "')");
+					frame.runScript(table + ".extract_num('" + column + "',  '" + newColumn + "')");
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
 					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.DOUBLE.toString());
