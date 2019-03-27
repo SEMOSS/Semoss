@@ -130,6 +130,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		
 		query.append(this.dataTableName)
+			//.append(".cache['data']")
 			//.append(".iloc[")
 			//.append(qs.getOffset() + ":" + (qs.getOffset() + qs.getLimit()) + "]")
 			//.append(0 + ":" + 500+ "]")
@@ -321,6 +322,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	public void setDataTableName(String dataTableName) {
+		//this.dataTableName = dataTableName;
 		this.dataTableName = dataTableName;
 	}
 	
