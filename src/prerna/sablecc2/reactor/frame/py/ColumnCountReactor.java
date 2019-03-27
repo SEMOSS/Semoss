@@ -48,7 +48,7 @@ public class ColumnCountReactor extends AbstractFrameReactor {
 		//get frame name
 		String table = frame.getName();
 
-		ArrayList output = (ArrayList)frame.runScript(table+"w.get_hist('" + column + "')");
+		ArrayList output = (ArrayList)frame.runScript(table+".get_hist('" + column + "')");
 
 		// create the object with the right size
 		// the length will be the same as the number of unique values in the column

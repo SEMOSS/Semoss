@@ -14,7 +14,7 @@ import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class DuplicateColumnReactor extends AbstractFrameReactor {
+public class DuplicateColumnReactor extends AbstractFramePyReactor {
 
 	/**
 	 * This reactor duplicates and existing column and adds it to the frame. The
@@ -56,7 +56,7 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		}
 
 		// run duplicate script
-		frame.runScript(table + "w.dupecol('" + srcCol + "', '" + newColName + "')");
+		frame.runScript(table + ".dupecol('" + srcCol + "', '" + newColName + "')");
 
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
@@ -79,19 +79,5 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		return retNoun;
 	}
 	
-	public String [] getColumns(PandasFrame frame)
-	{
-		
-		String frameName = frame.getName();
-		// get jep thread and get the names
-		ArrayList <String> val = (ArrayList<String>)frame.runScript("list(" + frameName + ")");
-		String [] retString = new String[val.size()];
-		
-		val.toArray(retString);
-		
-		return retString;
-		
-		
-	}
 
 }

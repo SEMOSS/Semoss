@@ -29,6 +29,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 		String table = frame.getName();
+		
 
 		// the first noun will be a query struct - the filter
 		SelectQueryStruct qs = getQueryStruct();
@@ -39,13 +40,13 @@ public class DropRowsReactor extends AbstractFrameReactor {
 		// use RInterpreter to create filter syntax
 		StringBuilder pyFilterBuilder = new StringBuilder();
 		PandasInterpreter pi = new PandasInterpreter();
-		pi.setDataTableName(table);
+		pi.setDataTableName(table + ".cache['data']");
 		pi.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
 		pi.addFilters(grf.getFilters(), table, pyFilterBuilder, true);
 
 		// execute the r script
 		// FRAME <- FRAME[!( FRAME$Director == "value"),]
-		String newScript = table + " =  " + table + "[~" + pyFilterBuilder.toString() + "]";
+		String newScript = table + ".cache['data'] =  " + table + ".cache['data'][~" + pyFilterBuilder.toString() + "]";
 		frame.runScript(newScript);
 
 		// NEW TRACKING

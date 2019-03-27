@@ -42,7 +42,7 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		String updatedColName = keyValue.get(this.keysToGet[1]);
 
 		// check that the frame isn't null
-		String table = frame.getName()+"w";
+		String table = frame.getName();
 		// check if new colName is valid
 		updatedColName = getCleanNewColName(table, updatedColName);
 		if (originalColName.contains("__")) {
@@ -58,7 +58,9 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		}
 		
 		String validNewHeader = getCleanNewHeader(table, updatedColName);
-		if (validNewHeader.equals("")) {
+		
+		if (validNewHeader.equals("")) 
+		{
 			throw new IllegalArgumentException("Provide valid new column name (no special characters)");
 		}
 		// script is of the form: wrapper.rename_col('Genre', 'Genre_new')"
@@ -108,9 +110,12 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 	
 	protected String [] getColumns(String frameName)
 	{
-		String colScript = PandasSyntaxHelper.getColumns(frameName);
+		String colScript = PandasSyntaxHelper.getColumns(frameName + ".cache['data']");
 		PandasFrame pyf = (PandasFrame)this.getFrame();
-		return (String [])((ArrayList)pyf.runScript(colScript)).toArray();
+		ArrayList <String> outArray = (ArrayList<String>)pyf.runScript(colScript);
+		String [] cols = new String[outArray.size()];
+		outArray.toArray(cols);
+		return cols;
 	}
 	
 	
