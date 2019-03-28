@@ -220,7 +220,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			Map<String, Object> propMap = (Map<String, Object>) nodes.get(concept);
 			// add properties
 			for (String prop : propMap.keySet()) {
-				if (!prop.equals(nodeType)) {
+				if (!prop.equals(nodeType) && !prop.equals(nodeName)) {
 					String propType = propMap.get(prop).toString();
 					owler.addProp(concept, prop, propType);
 				}
