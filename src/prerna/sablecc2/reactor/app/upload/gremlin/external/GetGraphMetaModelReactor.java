@@ -7,8 +7,6 @@ import java.util.HashMap;
 import org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.graphml.GraphMLIo;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
@@ -22,7 +20,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.GraphUtility;
-import prerna.util.MyGraphIoRegistry;
+import prerna.util.MyGraphIoMappingBuilder;
 
 public class GetGraphMetaModelReactor extends AbstractReactor {
 
@@ -51,7 +49,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 
 		HashMap<String, Object> retMap = new HashMap<String, Object>();
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.NEO4J;
-		if (fileName.contains(".")) {
+		if (new File(fileName).isFile() && fileName.contains(".")) {
 			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
 			tinkerDriver = TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
 		}
@@ -79,31 +77,27 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 				}
 				if (tinkerDriver == TINKER_DRIVER.TG) {
 					// user kyro to de-serialize the cached graph
-					Builder<GryoIo> builder = IoCore.gryo();
+					Builder<GryoIo> builder = GryoIo.build();
 					builder.graph(g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GryoIo yes = builder.create();
-					yes.readGraph(fileName);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GryoIo reader = builder.create();
+					reader.readGraph(fileName);
 				} else if (tinkerDriver == TINKER_DRIVER.JSON) {
 					// user kyro to de-serialize the cached graph
-					Builder<GraphSONIo> builder = IoCore.graphson();
+					Builder<GraphSONIo> builder = GraphSONIo.build();
 					builder.graph(g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GraphSONIo yes = builder.create();
-					yes.readGraph(fileName);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphSONIo reader = builder.create();
+					reader.readGraph(fileName);
 				} else if (tinkerDriver == TINKER_DRIVER.XML) {
-					Builder<GraphMLIo> builder = IoCore.graphml();
+					Builder<GraphMLIo> builder = GraphMLIo.build();
 					builder.graph(g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GraphMLIo yes = builder.create();
-					yes.readGraph(fileName);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphMLIo reader = builder.create();
+					reader.readGraph(fileName);
 				} else {
-
+					throw new IllegalArgumentException("Can only process .tg, .json, and .xml files");
 				}
-
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -114,7 +108,6 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 			try {
 				g.close();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
