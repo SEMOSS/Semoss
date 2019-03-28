@@ -16,8 +16,6 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.graphml.GraphMLIo;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
@@ -28,17 +26,16 @@ import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
-import prerna.util.MyGraphIoRegistry;
+import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.Utility;
 
 public class TinkerEngine extends AbstractEngine {
 
-	private static final Logger LOGGER = LogManager.getLogger(BigDataEngine.class.getName());
+	private static final Logger LOGGER = LogManager.getLogger(TinkerEngine.class.getName());
 
 	private Graph g = null;
 	private Map<String, String> typeMap = new HashMap<String, String>();
@@ -84,27 +81,24 @@ public class TinkerEngine extends AbstractEngine {
 			try {
 				if (tinkerDriver == TINKER_DRIVER.TG) {
 					// user kyro to de-serialize the cached graph
-					Builder<GryoIo> builder = IoCore.gryo();
-					builder.graph(this.g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GryoIo yes = builder.create();
-					yes.readGraph(fileLocation);
+					Builder<GryoIo> builder = GryoIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GryoIo reader = builder.create();
+					reader.readGraph(fileLocation);
 				} else if (tinkerDriver == TINKER_DRIVER.JSON) {
 					// user kyro to de-serialize the cached graph
-					Builder<GraphSONIo> builder = IoCore.graphson();
-					builder.graph(this.g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GraphSONIo yes = builder.create();
-					yes.readGraph(fileLocation);
+					Builder<GraphSONIo> builder = GraphSONIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphSONIo reader = builder.create();
+					reader.readGraph(fileLocation);
 				} else if (tinkerDriver == TINKER_DRIVER.XML) {
-					Builder<GraphMLIo> builder = IoCore.graphml();
-					builder.graph(this.g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GraphMLIo yes = builder.create();
-					yes.readGraph(fileLocation);
+					Builder<GraphMLIo> builder = GraphMLIo.build();
+					builder.graph(g);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphMLIo reader = builder.create();
+					reader.readGraph(fileLocation);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -165,28 +159,26 @@ public class TinkerEngine extends AbstractEngine {
 			long startTime = System.currentTimeMillis();
 			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
 			String fileLocation = SmssUtilities.getTinkerFile(prop).getAbsolutePath();
-
 			if (tinkerDriver == TINKER_DRIVER.TG) {
-				Builder<GryoIo> builder = IoCore.gryo();
+				// user kyro to de-serialize the cached graph
+				Builder<GryoIo> builder = GryoIo.build();
 				builder.graph(g);
-				IoRegistry kryo = new MyGraphIoRegistry();
-				builder.registry(kryo);
-				GryoIo yes = builder.create();
-				yes.writeGraph(fileLocation);
+				builder.onMapper(new MyGraphIoMappingBuilder());
+				GryoIo writer = builder.create();
+				writer.writeGraph(fileLocation);
 			} else if (tinkerDriver == TINKER_DRIVER.JSON) {
-				Builder<GraphSONIo> builder = IoCore.graphson();
+				// user kyro to de-serialize the cached graph
+				Builder<GraphSONIo> builder = GraphSONIo.build();
 				builder.graph(g);
-				IoRegistry kryo = new MyGraphIoRegistry();
-				builder.registry(kryo);
-				GraphSONIo yes = builder.create();
-				yes.writeGraph(fileLocation);
+				builder.onMapper(new MyGraphIoMappingBuilder());
+				GraphSONIo  writer = builder.create();
+				writer.writeGraph(fileLocation);
 			} else if (tinkerDriver == TINKER_DRIVER.XML) {
-				Builder<GraphMLIo> builder = IoCore.graphml();
+				Builder<GraphMLIo> builder = GraphMLIo.build();
 				builder.graph(g);
-				IoRegistry kryo = new MyGraphIoRegistry();
-				builder.registry(kryo);
-				GraphMLIo yes = builder.create();
-				yes.writeGraph(fileLocation);
+				builder.onMapper(new MyGraphIoMappingBuilder());
+				GraphMLIo  writer = builder.create();
+				writer.writeGraph(fileLocation);
 			} else if (tinkerDriver == TINKER_DRIVER.NEO4J) {
 				g.tx().commit();
 			}

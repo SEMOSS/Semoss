@@ -8,8 +8,6 @@ import java.util.List;
 import org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.graphml.GraphMLIo;
 import org.apache.tinkerpop.gremlin.structure.io.graphson.GraphSONIo;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
@@ -23,7 +21,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.GraphUtility;
-import prerna.util.MyGraphIoRegistry;
+import prerna.util.MyGraphIoMappingBuilder;
 
 public class GetGraphPropertiesReactor extends AbstractReactor {
 	
@@ -73,36 +71,30 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 				}
 				if (tinkerDriver == TINKER_DRIVER.TG) {
 					// user kyro to de-serialize the cached graph
-					Builder<GryoIo> builder = IoCore.gryo();
+					Builder<GryoIo> builder = GryoIo.build();
 					builder.graph(g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GryoIo yes = builder.create();
-					yes.readGraph(fileName);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GryoIo reader = builder.create();
+					reader.readGraph(fileName);
 				} else if (tinkerDriver == TINKER_DRIVER.JSON) {
 					// user kyro to de-serialize the cached graph
-					Builder<GraphSONIo> builder = IoCore.graphson();
+					Builder<GraphSONIo> builder = GraphSONIo.build();
 					builder.graph(g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GraphSONIo yes = builder.create();
-					yes.readGraph(fileName);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphSONIo reader = builder.create();
+					reader.readGraph(fileName);
 				} else if (tinkerDriver == TINKER_DRIVER.XML) {
-					Builder<GraphMLIo> builder = IoCore.graphml();
+					Builder<GraphMLIo> builder = GraphMLIo.build();
 					builder.graph(g);
-					IoRegistry kryo = new MyGraphIoRegistry();
-					builder.registry(kryo);
-					GraphMLIo yes = builder.create();
-					yes.readGraph(fileName);
+					builder.onMapper(new MyGraphIoMappingBuilder());
+					GraphMLIo reader = builder.create();
+					reader.readGraph(fileName);
 				} else {
-
+					throw new IllegalArgumentException("Can only process .tg, .json, and .xml files");
 				}
-
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-
-		
 		}
 		
 		// get graph properties
