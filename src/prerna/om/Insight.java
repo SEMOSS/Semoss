@@ -211,12 +211,12 @@ public class Insight {
 					// TODO: uncomment for default user saving of workspace
 					// TODO: uncomment for default user saving of workspace
 					// TODO: uncomment for default user saving of workspace
-//					if(AbstractSecurityUtils.securityEnabled() 
-//							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
-//						if(!runner.isMeta().isEmpty() && !runner.isMeta().get(runner.isMeta().size()-1)) {
-//							getWorkspaceCacheThread().addToQueue(this.pixelList);
-//						}
-//					}
+					if(AbstractSecurityUtils.securityEnabled() 
+							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
+						if(!runner.isMeta().isEmpty() && !runner.isMeta().get(runner.isMeta().size()-1)) {
+							getWorkspaceCacheThread().addToQueue(this.pixelList);
+						}
+					}
 				}
 			}
 		}
