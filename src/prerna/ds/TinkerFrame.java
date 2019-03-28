@@ -27,8 +27,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io.Builder;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
@@ -56,7 +54,7 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.MyGraphIoRegistry;
+import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.Utility;
 
 public class TinkerFrame extends AbstractTableDataFrame {
@@ -928,13 +926,12 @@ public class TinkerFrame extends AbstractTableDataFrame {
 
 		String frameFileName = folderDir + DIR_SEPARATOR + randFrameName + ".tg";
 		// save frame
-		Builder<GryoIo> builder = IoCore.gryo();
-		builder.graph(g);
-		IoRegistry kryo = new MyGraphIoRegistry();;
-		builder.registry(kryo);
-		GryoIo yes = builder.create();
+		Builder<GryoIo> builder = GryoIo.build();
+		builder.graph(this.g);
+		builder.onMapper(new MyGraphIoMappingBuilder());
+		GryoIo writer = builder.create();
 		try {
-			yes.writeGraph(frameFileName);
+			writer.writeGraph(frameFileName);
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IOException("Error occured attempting to cache graph frame");
@@ -950,12 +947,11 @@ public class TinkerFrame extends AbstractTableDataFrame {
 	public void open(CachePropFileFrameObject cf) {
 		// load the frame
 		try {
-			Builder<GryoIo> builder = IoCore.gryo();
+			Builder<GryoIo> builder = GryoIo.build();
 			builder.graph(this.g);
-			IoRegistry kryo = new MyGraphIoRegistry();
-			builder.registry(kryo);
-			GryoIo yes = builder.create();
-			yes.readGraph(cf.getFrameCacheLocation());
+			builder.onMapper(new MyGraphIoMappingBuilder());
+			GryoIo reader = builder.create();
+			reader.readGraph(cf.getFrameCacheLocation());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

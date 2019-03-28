@@ -45,6 +45,7 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
+import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -604,9 +605,12 @@ public class UploadUtilities {
 			
 			// tinker file location
 			// we will want to parameterize this
-			File f = new File(tinkerFilePath);
-			String fileBasePath = f.getParent();
-			tinkerFilePath = tinkerFilePath.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+			// if it is not a Neo4j as we do not move this onto the server yet
+			if(tinkerDriverType != ImportOptions.TINKER_DRIVER.NEO4J) {
+				File f = new File(tinkerFilePath);
+				String fileBasePath = f.getParent();
+				tinkerFilePath = tinkerFilePath.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+			}
 			if(tinkerFilePath.contains("\\")) {
 				tinkerFilePath = tinkerFilePath.replace("\\", "\\\\");
 			}
