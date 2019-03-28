@@ -629,7 +629,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>tinkergraph-gremlin</artifactId>
-			<version>3.2.4</version>
+			<version>3.4.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -640,7 +640,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-console</artifactId>
-			<version>3.2.4</version>
+			<version>3.4.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -651,7 +651,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-core</artifactId>
-			<version>3.2.4</version>
+			<version>3.4.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -662,7 +662,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-driver</artifactId>
-			<version>3.2.4</version>
+			<version>3.4.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -673,7 +673,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-groovy</artifactId>
-			<version>3.2.4</version>
+			<version>3.4.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -684,7 +684,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-shaded</artifactId>
-			<version>3.2.4</version>
+			<version>3.4.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1268,7 +1268,7 @@
 			</exclusions>
 		</dependency>
 		<!-- cleanup -->
-		<dependency>
+		<!-- dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-analyzers</artifactId>
 			<version>3.0.0</version>
@@ -1278,11 +1278,11 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency-->
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-core</artifactId>
-			<version>3.6.2</version>
+			<version>5.5.5</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1294,7 +1294,7 @@
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-analyzers-common</artifactId>
-			<version>7.4.0</version>
+			<version>5.5.5</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2322,13 +2322,13 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>neo4j-gremlin</artifactId>
-			<version>3.2.4</version>
+    		<version>3.4.1</version>
 		</dependency>
 		<!-- neo4j-tinkerpop-api-impl is NOT Apache 2 licensed - more information below -->
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-tinkerpop-api-impl</artifactId>
-			<version>0.3-2.3.2</version>
+			<version>0.9-3.4.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>

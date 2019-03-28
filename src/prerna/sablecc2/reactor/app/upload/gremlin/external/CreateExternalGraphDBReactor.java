@@ -45,7 +45,7 @@ public class CreateExternalGraphDBReactor extends AbstractCreateExternalGraphRea
 		}
 		
 		this.tinkerDriver = TINKER_DRIVER.NEO4J;
-		if (this.filePath.contains(".")) {
+		if (new File(this.filePath).isFile() && this.filePath.contains(".")) {
 			String fileExtension = FilenameUtils.getExtension(this.filePath);
 			this.tinkerDriver = TINKER_DRIVER.valueOf(fileExtension.toUpperCase());
 		}
