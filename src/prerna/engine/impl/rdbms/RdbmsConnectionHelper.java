@@ -4,6 +4,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -288,6 +289,56 @@ public class RdbmsConnectionHelper {
 		return schema;
 	}
 	
+	/**
+	 * Get tables result set for the given connection, metadata parser, and
+	 * catalog / schema filters. Must return a result set containing table_name
+	 * and table_type (with values 'TABLE' or 'VIEW').
+	 * 
+	 * @param con
+	 * @param meta
+	 * @param catalogFilter
+	 * @param schemaFilter
+	 * @param driver
+	 * @return
+	 * @throws SQLException
+	 */
+	public static ResultSet getTables(Connection con, DatabaseMetaData meta, String catalogFilter, String schemaFilter, String driver) throws SQLException {					
+		ResultSet tablesRs;
+		if (driver.equals("ORACLE")) {
+			String query = "SELECT TABLE_NAME AS \"table_name\", 'TABLE' AS \"table_type\"" + 
+					"FROM ALL_TABLES WHERE TABLESPACE_NAME = 'USERS'" +
+					"UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\" " + 
+					"FROM ALL_VIEWS WHERE ORIGIN_CON_ID > 1";
+			tablesRs = con.createStatement().executeQuery(query);
+		} else {
+			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
+		}
+		return tablesRs;
+	}
+	
+	/**
+	 * Get columns result set for the given metadata parser, table or view name,
+	 * and catalog / schema filters. Must return a result set containing
+	 * column_name and type_name.
+	 * 
+	 * @param meta
+	 * @param tableOrView
+	 * @param catalogFilter
+	 * @param schemaFilter
+	 * @param driver
+	 * @return
+	 * @throws SQLException
+	 */
+	public static ResultSet getColumns(DatabaseMetaData meta, String tableOrView, String catalogFilter, String schemaFilter, String driver) throws SQLException {
+		ResultSet columnsRs;
+		if (driver.equals("ORACLE")) {
+			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
+		} else {
+			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
+		}
+		return columnsRs;
+	}
+	
 	private static String predictSchemaFromUrl(String url) {
 		String schema = null;
 		
@@ -313,4 +364,5 @@ public class RdbmsConnectionHelper {
 		
 		return schema;
 	}
+	
 }
