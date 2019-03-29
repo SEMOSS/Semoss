@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyUtils;
+import prerna.sablecc.ReactorSecurityManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -15,6 +16,7 @@ import prerna.util.Utility;
 
 public class PyReactor extends AbstractReactor {
 	
+	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = PyReactor.class.getName();
 	
 	@Override
@@ -22,6 +24,9 @@ public class PyReactor extends AbstractReactor {
 		if(!PyUtils.pyEnabled()) {
 			throw new IllegalArgumentException("Python is not enabled to use the following command");
 		}
+		ReactorSecurityManager tempManager = new ReactorSecurityManager();
+		tempManager.addClass(CLASS_NAME);
+		System.setSecurityManager(tempManager);
 		
 		Logger logger = getLogger(CLASS_NAME);
 		PyExecutorThread pyThread = this.insight.getPy();
@@ -45,6 +50,11 @@ public class PyReactor extends AbstractReactor {
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
+		
+		// set back the original security manager
+		tempManager.removeClass(CLASS_NAME);
+		System.setSecurityManager(defaultManager);	
+		
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 	}
 
