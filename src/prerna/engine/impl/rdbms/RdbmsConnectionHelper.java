@@ -302,9 +302,9 @@ public class RdbmsConnectionHelper {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static ResultSet getTables(Connection con, DatabaseMetaData meta, String catalogFilter, String schemaFilter, String driver) throws SQLException {					
+	public static ResultSet getTables(Connection con, DatabaseMetaData meta, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {					
 		ResultSet tablesRs;
-		if (driver.equals("ORACLE")) {
+		if (driver == RdbmsTypeEnum.ORACLE) {
 			String query = "SELECT TABLE_NAME AS \"table_name\", 'TABLE' AS \"table_type\"" + 
 					"FROM ALL_TABLES WHERE TABLESPACE_NAME = 'USERS'" +
 					"UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\" " + 
@@ -329,9 +329,9 @@ public class RdbmsConnectionHelper {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static ResultSet getColumns(DatabaseMetaData meta, String tableOrView, String catalogFilter, String schemaFilter, String driver) throws SQLException {
+	public static ResultSet getColumns(DatabaseMetaData meta, String tableOrView, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {
 		ResultSet columnsRs;
-		if (driver.equals("ORACLE")) {
+		if (driver == RdbmsTypeEnum.ORACLE) {
 			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
 		} else {
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
