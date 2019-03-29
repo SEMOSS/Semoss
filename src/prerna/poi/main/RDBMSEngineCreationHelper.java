@@ -26,6 +26,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.OWLER;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class RDBMSEngineCreationHelper {
 
@@ -246,7 +247,13 @@ public class RDBMSEngineCreationHelper {
 		Map<String, Map<String, String>> tableColumnMap = new Hashtable<String, Map<String, String>>();
 
 		// get all the tables
-		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(meta, catalogFilter, schemaFilter, tablesToRetrieve); 
+		RdbmsTypeEnum driver;
+		if (rdbmsEngine instanceof RDBMSNativeEngine) {
+			driver = ((RDBMSNativeEngine) rdbmsEngine).getDbType();
+		} else {
+			driver = RdbmsTypeEnum.getEnumFromString(rdbmsEngine.getProperty("RDBMS_TYPE"));
+		}
+		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driver, tablesToRetrieve); 
 
 		try {
 			while (tableViewIterator.hasNext()) {
