@@ -21,6 +21,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	
@@ -89,7 +90,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		}
 		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl);
 
-		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(meta, catalogFilter, schemaFilter, tableAndViewFilters); 
+		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, RdbmsTypeEnum.getEnumFromString(driver), tableAndViewFilters); 
 		
 		final String TABLE_KEY = "table";
 		final String COLUMNS_KEY = "columns";
@@ -152,7 +153,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				try {
 					logger.info("....Processing columns");
 					
-					columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, driver);
+					columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, RdbmsTypeEnum.getEnumFromString(driver));
 					
 					while (columnsRs.next()) {
 						String cName = columnsRs.getString("column_name");
