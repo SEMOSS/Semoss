@@ -18,6 +18,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 	
@@ -79,7 +80,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		
 		ResultSet tablesRs;
 		try {
-			tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, driver);
+			tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, RdbmsTypeEnum.getEnumFromString(driver));
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}

@@ -2,16 +2,19 @@ package prerna.sablecc2.reactor.app.upload.rdbms.external;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Iterator;
 
+import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable {
 
@@ -28,10 +31,10 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 	 * @param schemaFilter
 	 * @param tableAndViewFilters
 	 */
-	public CustomTableAndViewIterator(DatabaseMetaData meta, String catalogFilter, String schemaFilter, Collection<String> tableAndViewFilters) {
+	public CustomTableAndViewIterator(Connection con, DatabaseMetaData meta, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver, Collection<String> tableAndViewFilters) {
 		if(tableAndViewFilters == null || tableAndViewFilters.isEmpty()) {
 			try {
-				this.tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
+				this.tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, driver);
 			} catch (SQLException e) {
 				throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
