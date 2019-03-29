@@ -4,6 +4,8 @@ import java.security.Permission;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.sablecc2.reactor.frame.py.PyReactor;
+import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 
@@ -13,6 +15,8 @@ public class ReactorSecurityManager extends SecurityManager {
 	static {
 		classNamesToIgnore.add(JavaReactor.class.getName());
 		classNamesToIgnore.add(AbstractBaseRClass.class.getName());
+		classNamesToIgnore.add(RReactor.class.getName());
+		classNamesToIgnore.add(PyReactor.class.getName());
 	}
 	
 	public ReactorSecurityManager() {
