@@ -79,7 +79,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		
 		ResultSet tablesRs;
 		try {
-			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
+			tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, driver);
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}

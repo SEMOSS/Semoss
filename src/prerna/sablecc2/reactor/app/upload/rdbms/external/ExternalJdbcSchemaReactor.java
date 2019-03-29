@@ -151,7 +151,8 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				ResultSet columnsRs = null;
 				try {
 					logger.info("....Processing columns");
-					columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
+					
+					columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, driver);
 					
 					while (columnsRs.next()) {
 						String cName = columnsRs.getString("column_name");
