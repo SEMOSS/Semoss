@@ -206,17 +206,12 @@ public class Insight {
 						break;
 					}
 				} finally {
-					// TODO: uncomment for default user saving of workspace
-					// TODO: uncomment for default user saving of workspace
-					// TODO: uncomment for default user saving of workspace
-					// TODO: uncomment for default user saving of workspace
-					// TODO: uncomment for default user saving of workspace
-//					if(AbstractSecurityUtils.securityEnabled() 
-//							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
-//						if(!runner.isMeta().isEmpty() && !runner.isMeta().get(runner.isMeta().size()-1)) {
-//							getWorkspaceCacheThread().addToQueue(this.pixelList);
-//						}
-//					}
+					if(SaveInsightIntoWorkspace.isCacheUserWorkspace() && AbstractSecurityUtils.securityEnabled() 
+							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
+						if(!runner.isMeta().isEmpty() && !runner.isMeta().get(runner.isMeta().size()-1)) {
+							getWorkspaceCacheThread().addToQueue(this.pixelList);
+						}
+					}
 				}
 			}
 		}
@@ -252,7 +247,8 @@ public class Insight {
 		if(this.workspaceCacheThread == null && this.user != null && this.user.isLoggedIn()) {
 			String worksapceId = this.user.getWorkspaceEngineId(this.user.getPrimaryLogin());
 			if(worksapceId != null) {
-				this.workspaceCacheThread = new SaveInsightIntoWorkspace(worksapceId, this.insightName);
+				boolean isCacheOfCache = worksapceId.equals(this.engineId);
+				this.workspaceCacheThread = new SaveInsightIntoWorkspace(worksapceId, this.rdbmsId, this.insightName, isCacheOfCache);
 			}
 		}
 		return this.workspaceCacheThread;
@@ -271,6 +267,7 @@ public class Insight {
 			this.workspaceCacheThread.killThread();
 			this.workspaceCacheThread.dropWorkspaceCache();
 		}
+		this.cacheInWorkspace = false;
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
