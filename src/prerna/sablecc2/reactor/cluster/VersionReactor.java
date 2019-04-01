@@ -16,12 +16,15 @@ import prerna.util.DIHelper;
 
 public class VersionReactor extends AbstractReactor {
 
+	private static Map<String, String> versionMap;
 	private static final String VER_PATH = DIHelper.getInstance().getProperty("BaseFolder") + System.getProperty("file.separator") + "ver.txt";
 	
 	@Override
 	public NounMetadata execute() {
-		Map<String, Object> versionData = new HashMap<String, Object>();
-		
+		return new NounMetadata(getVersionMap(), PixelDataType.MAP, PixelOperationType.VERSION);
+	}
+	
+	public static Map<String, String> getVersionMap() {
 		Properties props = new Properties();
 		try (InputStream in = new FileInputStream(VER_PATH)) {
 			props.load(in);
@@ -32,9 +35,13 @@ public class VersionReactor extends AbstractReactor {
 			throw err;
 		}
 		
-		versionData.put("version", props.getProperty("version"));
-		versionData.put("datetime", props.getProperty("datetime"));
-		return new NounMetadata(versionData, PixelDataType.MAP, PixelOperationType.VERSION);
+		if(versionMap == null) {
+			versionMap = new HashMap<String, String>();
+			versionMap.put("version", props.getProperty("version"));
+			versionMap.put("datetime", props.getProperty("datetime"));
+		}
+		
+		return versionMap;
 	}
 
 }
