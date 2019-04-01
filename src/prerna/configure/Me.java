@@ -48,12 +48,15 @@ public class Me {
 		String rLib = null;
 		String jriDll = null;
 		String rdll = null;
+		String pyHome = null;
+		String pyScripts = null;
+		String jepDll = null;
 		
 		if(args == null || args.length < 5) {
-			System.out.println("Usage: java prerna.configure.Me <semoss home dir> <r home> <r library> <Location to R Library dll/so> <Location to JRI library dll/so>");
+			System.out.println("Usage: java prerna.configure.Me <semoss home dir> <r home> <r library> <Location to R Library dll/so> <Location to JRI library dll/so> <py home> <py Scripts> <Location of jep dll>");
 			System.exit(0);
 		}
-		else if(args != null && args.length == 5){
+		else if(args != null && args.length == 8){
 			//System.out.println("CAUTION!!! MULTIPLE ARGUEMENTS BEING PASSED, MIGHT BE ERROR.. WILL TRY TO RUN WITH FIRST ARGUMENT\n"
 			//		+ "POSSIBLE ISSUE WITH SEMOSS HOME DIRECTORY HAVING SPACES...");
 			System.out.println("First argument passed into method is: " + args[0]);
@@ -62,6 +65,10 @@ public class Me {
 			rLib = args[2].replace("\\", "/");
 			rdll = args[3].replace("\\", "/");
 			jriDll = args[4].replace("\\", "/");
+			pyHome = args[5].replace("\\", "/");
+			pyScripts = args[6].replace("\\", "/");
+			jepDll = args[7].replace("\\", "/");
+
 		}
 		
 		System.out.println("Using home folder: " + homePath);
@@ -100,7 +107,7 @@ public class Me {
 		
 		cm.writeConfigureFile(homePath, port);
 		
-		cm.writePath(homePath, rHome, rdll, jriDll, rLib);
+		cm.writePath(homePath, rHome, rdll, jriDll, rLib, pyHome, pyScripts, jepDll);
 		
 		// write base env such as
 		// path
@@ -108,14 +115,14 @@ public class Me {
 		
 		// need to write classpath and home files
 		// need to change the loadpath on catalina to include the library path
-		cm.writeTomcatEnv(homePath, rdll, jriDll);		
+		cm.writeTomcatEnv(homePath, rdll, jriDll, pyHome, pyScripts, jepDll);		
 		
 		System.out.println("------------------------");
 		System.out.println("SEMOSS configured! Run startSEMOSS.bat and point your browser to http://localhost:" + port + "/SemossWeb/ to access SEMOSS!");
 		System.out.println("------------------------");
 	}
 	
-	public void writePath(String semossHome, String rHome, String rDll, String jriDll, String rLib)
+	public void writePath(String semossHome, String rHome, String rDll, String jriDll, String rLib, String pyHome, String pyScripts, String jepDll)
 	{
 		String fileName = semossHome + "/setPath.bat";
 		BufferedWriter bw = null;
@@ -126,15 +133,22 @@ public class Me {
 			path = path + ";" + rHome;
 			path = path + ";" + rDll;
 			path = path + ";" + jriDll;
+			path = path + ";" + pyHome;
+			path = path + ";" + pyScripts;
+			path = path + ";" + jepDll;
+
 			
 			String rHomePath = "\nset R_HOME=" + rHome;
 			String rlibPath = "\nset R_LIBS=" + rLib;
+			String pyHomePath = "\nset PYTHONHOME=" + pyHome;
 			bw.write("\necho Modifying classpath");
 			bw.write(path);
 			bw.write(rHomePath);
 			bw.write("\necho R_HOME IS %R_HOME%");
 			bw.write(rlibPath);
 			bw.write("\necho R_LIBS IS %R_LIBS%");
+			bw.write(pyHomePath);
+			bw.write("\necho PYTHONHOME IS %PYTHONHOME%");
 			bw.flush();
 		} catch(IOException e) {
 			e.printStackTrace();
@@ -149,7 +163,7 @@ public class Me {
 		}
 	}
 	
-	public void writeTomcatEnv(String semossHome, String rHome, String jriHome)
+	public void writeTomcatEnv(String semossHome, String rHome, String jriHome, String pyHome, String pyScripts, String jepDll)
 	{
 		//-Djava.library.path=C:\Users\pkapaleeswaran\Documents\R\win-library\3.1\rJava\jri\x64;"C:\Program Files\R\R-3.2.4revised\bin\x64"
 		String fileName = semossHome + "/../tomcat/bin/" + "setenv.bat";
@@ -157,11 +171,8 @@ public class Me {
 		try {
 			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
 			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
-			String prefix = "";
-			if (System.getenv().containsKey("PYTHON_HOME")) {
-				prefix += "\"%PYTHON_HOME%/\";\"%PYTHON_HOME%/Scripts/\";\"%PYTHON_HOME%/Lib/site-packages/jep\";";
-			}
-			String options = "-Djava.library.path=" + prefix + "\"" + rHome + "\";\"" + jriHome + "\"";
+
+			String options = "-Djava.library.path=\"" + rHome + "\";\"" + jriHome + "\";\"" + pyHome + "\";\"" + jepDll + "\";\"" + pyScripts + "\"" ;
 			// should we also set the memory here ?
 			// to get max memory ?
 			//options = options + " " + "-Xms256m -Xmx512m";
