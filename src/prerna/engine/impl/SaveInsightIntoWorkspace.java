@@ -7,14 +7,19 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightCacheUtility;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class SaveInsightIntoWorkspace {
 
+	private static Boolean SAVE_USER_WORKSPACE = null;
+	
 	/*
 	 * Class that uses a queue to save the most recent version of an insight 
 	 * into the user workspace app
@@ -29,15 +34,21 @@ public class SaveInsightIntoWorkspace {
 	private String insightName;
 	private Thread t;
 	
-	public SaveInsightIntoWorkspace(String userWorkspaceId, String insightName) {
+	public SaveInsightIntoWorkspace(String userWorkspaceId, String rdbmsId, String insightName, boolean created) {
 		this.userWorkspaceEngine = Utility.getEngine(userWorkspaceId);
 		this.insightAdmin = new InsightAdministrator(this.userWorkspaceEngine.getInsightDatabase());
-		this.workspaceSavedInsightId = UUID.randomUUID().toString();
-
+//		if(created) {
+//			this.workspaceSavedInsightId = rdbmsId;
+//		} else {
+			this.workspaceSavedInsightId = UUID.randomUUID().toString();
+//		}
 		this.queue = new ArrayBlockingQueue<List<String>>(50);
 		this.insightName = insightName;
 		
-		this.cacher = new InsightCacher(this.workspaceSavedInsightId, this.queue, this.userWorkspaceEngine, insightAdmin, this.insightName);
+		this.cacher = new InsightCacher(this.workspaceSavedInsightId, this.queue, 
+				this.userWorkspaceEngine, this.insightAdmin, 
+				this.insightName);
+//		this.cacher.setCreated(created);
 		
 		this.t = new Thread(this.cacher);
 		this.t.start();
@@ -71,6 +82,13 @@ public class SaveInsightIntoWorkspace {
 		this.insightName = insightName;
 		this.cacher.setInsightName(insightName);
 	}
+	
+	public static boolean isCacheUserWorkspace() {
+		if(SAVE_USER_WORKSPACE == null) {
+			SAVE_USER_WORKSPACE = Boolean.parseBoolean(DIHelper.getInstance().getProperty("USER_WORKSPACE"));
+		}
+		return SAVE_USER_WORKSPACE;
+	}
 }
 
 class InsightCacher implements Runnable {
@@ -97,7 +115,7 @@ class InsightCacher implements Runnable {
 		this.workspaceAppName = worksapceEngine.getEngineName();
 		this.insightAdmin = insightAdmin;
 		
-		this.insightName = (insightName == null || insightName.trim().isEmpty()) ? "UnsavedInsight" : insightName.trim();
+		setInsightName(insightName);
 	}
 
 	@Override
@@ -139,6 +157,19 @@ class InsightCacher implements Runnable {
 	
 
 	public void setInsightName(String insightName) {
-		this.insightName = insightName;
+		if(insightName == null || insightName.trim().isEmpty()) {
+			this.insightName = "Unsaved Insight";
+		} else {
+			this.insightName = insightName;
+			Pattern p = Pattern.compile(".*\\d{4}\\-\\d{2}\\-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\s(A|P)M");
+			Matcher m = p.matcher(this.insightName);
+			if(m.matches()) {
+				this.insightName = this.insightName.substring(0, this.insightName.length()-22).trim();
+			}
+		}
 	}
+	
+//	public void setCreated(boolean created) {
+//		this.created = created;
+//	}
 }
