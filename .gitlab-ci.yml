@@ -25,7 +25,7 @@ version_info_deploy:
       - $RELEASE == "TRUE"
   script:
     # Version information
-    - echo datetime=`date +%Y-%m-%d_%H:%M:%S` > ver.txt
+    - echo datetime=`date "+%Y-%m-%d %H:%M:%S"` > ver.txt
     - echo version=${VERSION}-SNAPSHOT >> ver.txt
     - cat ver.txt
   artifacts:
@@ -40,7 +40,7 @@ version_info_release:
     variables:
       - $RELEASE == "TRUE"
   script:
-    - echo datetime=`date +%Y-%m-%d_%H:%M:%S` > ver.txt
+    - echo datetime=`date "+%Y-%m-%d %H:%M:%S"` > ver.txt
     - echo version=${VERSION} >> ver.txt
     - cat ver.txt
   artifacts:
