@@ -165,14 +165,16 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("WORKSPACEENGINE", colNames, types));
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS WORKSPACEENGINE_TYPE_INDEX ON WORKSPACEENGINE (TYPE);");
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS WORKSPACEENGINE_USERID_INDEX ON WORKSPACEENGINE (USERID);");
-
+		securityDb.insertData("ALTER TABLE WORKSPACEENGINE MODIFY ENGINEID VARCHAR(255) NOT NULL;");
+		
 		// ASSETENGINE
 		colNames = new String[] {"type", "userid", "engineid"};
 		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ASSETENGINE", colNames, types));
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ASSETENGINE_TYPE_INDEX ON WORKSPACEENGINE (TYPE);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ASSETENGINE_USERID_INDEX ON WORKSPACEENGINE (USERID);");
-		
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ASSETENGINE_TYPE_INDEX ON ASSETENGINE (TYPE);");
+		securityDb.insertData("CREATE INDEX IF NOT EXISTS ASSETENGINE_USERID_INDEX ON ASSETENGINE (USERID);");
+		securityDb.insertData("ALTER TABLE ASSETENGINE MODIFY ENGINEID VARCHAR(255) NOT NULL;");
+
 		// INSIGHT
 		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)", "boolean" };
