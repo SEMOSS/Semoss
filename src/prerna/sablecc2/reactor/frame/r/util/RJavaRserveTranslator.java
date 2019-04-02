@@ -193,7 +193,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public boolean cancelExecution() {
-		// TODO >>>timb: R - need to complete cancel exec
+		// TODO >>>timb: R - need to complete cancel exec (later)
 		return false;
 	}
 
