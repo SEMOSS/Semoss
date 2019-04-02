@@ -93,7 +93,7 @@ public class RUserRserve {
 	////////////////////////////////////////
 	// Raw R connection
 	////////////////////////////////////////
-	// TODO >>>timb: R - should get rid of this
+	// TODO >>>timb: R - should get rid of this (later)
 	/**
 	 * Really want to get rid of this; should not be manipulating the rcon directly
 	 * outside of this class
@@ -289,7 +289,7 @@ public class RUserRserve {
 		}
 	}
 	
-	private void saveImage() throws RserveException { // TODO >>>timb: R - need to delete these files when done
+	private void saveImage() throws RserveException {
 		if (rDataFile == null) throw new IllegalArgumentException("Cannot save workspace image, as the RData file location is not defined.");
 		if (!new File(rDataFile).getParentFile().exists()) throw new IllegalArgumentException("Cannot save workspace image, as the RData file folder is not defined.");
 		synchronized (rconMonitor) {
@@ -360,7 +360,11 @@ public class RUserRserve {
 		}
 	}
 	
-	private void stopR() throws Exception {
+	/**
+	 * Stops just the user-specific R process.
+	 * @throws Exception
+	 */
+	public void stopR() throws Exception {
 		
 		// Need to allow this process to execute the below commands
 		SecurityManager priorManager = System.getSecurityManager();
@@ -379,7 +383,12 @@ public class RUserRserve {
 				
 				// Parse netstat output to get the PIDs of processes running on Rserve's port
 				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
-				List<String> pids = lines.stream().filter(l -> l.contains(":" + port)).map(l -> l.trim().split("\\s+")[4]).collect(Collectors.toList());
+				List<String> pids = lines.stream()
+						.filter(l -> l.contains("LISTENING")) // Only grab processes in LISTENING state
+						.map(l -> l.trim().split("\\s+")) // Trim the empty characters and split into rows
+						.filter(r -> r[1].contains(":" + port)) // Only use those that are listening on the right port 
+						.map(r -> r[4]) // Grab the pid
+						.collect(Collectors.toList());
 				for (String pid : pids) {
 					
 					// Go through and kill these processes
@@ -408,6 +417,33 @@ public class RUserRserve {
 			}
 		} finally {
 			tempFile.delete();
+			
+			// Restore the prior security manager
+			System.setSecurityManager(priorManager);
+		}
+	}
+	
+	/**
+	 * Stops all r processes.
+	 * @throws Exception
+	 */
+	public static void endR() throws Exception {
+		
+		// Need to allow this process to execute the below commands
+		SecurityManager priorManager = System.getSecurityManager();
+		System.setSecurityManager(null);
+		
+		// End
+		try {
+			ProcessBuilder pb;
+			if (SystemUtils.IS_OS_WINDOWS) {
+				pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
+			} else {
+				pb = new ProcessBuilder("pkill", "Rserve");
+			}
+			Process process = pb.start();
+			process.waitFor(7L, TimeUnit.SECONDS);
+		} finally {
 			
 			// Restore the prior security manager
 			System.setSecurityManager(priorManager);
