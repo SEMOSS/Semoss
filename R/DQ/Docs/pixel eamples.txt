@@ -1,0 +1,36 @@
+Pixel command is: RunDataQuality
+takes follow arguments:
+	-- rules = list of strings of rule identifiers
+	-- columns = list of strings of columns to run with the rule of the same array element
+	-- options = list of strings or lists depending on the rule.  for rules that don't take anything they still need a "" as a place holder.  Lists need to be of the format ("asdf", "qwer", "zxcv")
+	-- inputTable = name of a frame that we want the return values added to 
+
+Example 1: 1 rule, 1 column, regex identifier, no input table, set variable to input table name
+x = RunDataQuality(rules = ["ruleIdentifier1"], columns = ["columnToRunRuleID1On"], options = ["optionForRuleID1"], inputTable = [])
+	--- this will return a dataQualityTable_aycjCT, which can be put in the inputTable variable later
+	--- x = dataQualityTable_aycjCT
+	
+	
+Example 2: 2 rules, different columns, regex and list options, previous input table
+RunDataQuality(rules = ["ruleID1", "ruleID2"], columns = ["columnToRunRuleID1On", "columnToRunRuleID2On"], options = ["optionForRuleID1", ("item1", "item2", "etc")], inputTable = [x])
+	--- instead of x you could also just put dataQualityTable_aycjCT in there
+	
+Example 3: 2 of the same rule, different columns, no options needed, previous input table
+RunDataQuality(rules = ["ruleID1", "ruleID1"], columns = ["columnToRunRuleID1On", "columnToRunRuleIDOn"], options = ["", ""], inputTable = [dataQualityTable_aycjCT])
+
+
+
+
+
+HERE ARE A BUNCH OF VALID EXAMPLES
+
+x = RunDataQuality(rules = ["gender"], columns = ["gender"], options = ["mM/fF"], inputTable = []);
+RunDataQuality(rules = ["blanks"], columns = ["gender"], options = [""], inputTable = [x]);
+RunDataQuality(rules = ["blanks"], columns = ["gender"], options = [""], inputTable = [x]);
+RunDataQuality(rules = ["blanks","blanks"], columns = ["drug_manufacturer", "email"], options = ["",""], inputTable = [x]);
+RunDataQuality(rules = ["blanks", "blanks"], columns = ["prescription_processed_date", "drug"], options = ["",""], inputTable = [x]);
+RunDataQuality(rules = ["blanks", "blanks"], columns = ["prescription_processed_date", "drug"], options = ["",""], inputTable = [x]);
+RunDataQuality(rules = ["email"], columns = ["email"], options = ["xxxxx@xxxx.xxx"], inputTable = [x]);
+RunDataQuality(rules = ["findVals"], columns = ["drug_manufacturer"], options = [("Sanofi","AstraZeneca", "GlaxoSmithKline", "Abbott_Laboratories", "ABC_Pharamacy", "Oasis_Drug_Manufacturers")], inputTable = [x]);
+
+

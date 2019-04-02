@@ -1,0 +1,129 @@
+{
+    "rules" : [
+        {
+            "name": "Date Format Rule",
+            "ruleID": "date",
+            "ruleDescription": "Identifies incorrectly formatted date entries",
+            "option": true,
+            "optionType": "checklist",
+            "ruleOptions": [
+                {
+                    "displayName": "mm/dd/yyyy (11/27/1995)",
+                    "pixelName": "mm/dd/yyyy"
+                },
+                {
+                    "displayName": "month dd, yyyy (November 27, 1995)",
+                    "pixelName": "month dd, yyyy"
+                },
+                {
+                    "displayName": "day, month dd, yyyy (Monday, November 27, 1995)",
+                    "pixelName": "day, month dd, yyyy"
+                },
+                {
+                    "displayName": "mon dd, yyyy (Nov 27, 1995)",
+                    "pixelName": "mon dd, yyyy"
+                }
+            ]
+        },
+        {
+            "name": "Email Format Rule",
+            "ruleID": "email",
+            "ruleDescription": "Identifies incorrectly formatted email entries",
+            "option": true,
+            "optionType": "checklist",
+            "ruleOptions": [
+                {
+                    "displayName": "Valid emails with one (1) .xxx in the address",
+                    "pixelName": "xxxxx@xxxx.xxx"
+                },
+                {
+                    "displayName": "Valid emails with more than one .xxx in the address",
+                    "pixelName": "xxxxx@xxxx.xx.xx"
+                },
+                {
+                    "displayName": "Any valid email address",
+                    "pixelName": "xxxxx@xxxx.xxx(.xx)"
+                }
+            ]
+        },
+        {
+            "name": "Gender Format Rule",
+            "ruleID": "gender",
+            "ruleDescription": "Identifies incorrectly formatted gender entries",
+            "option": true,
+            "optionType": "checklist",
+            "ruleOptions": [
+                {
+                    "displayName": "Upper or lower case single character (m/M/f/F)",
+                    "pixelName": "mM/fF"
+                },
+                {
+                    "displayName": "Lower case since character (m/f)",
+                    "pixelName": "m/f"
+                },
+                {
+                    "displayName": "Upper case single character (M/F)",
+                    "pixelName": "M/F"
+                },
+                {
+                    "displayName": "Upper or lower case full gender (mMale/fFemale)",
+                    "pixelName": "mMale/fFemale"
+                },
+                {
+                    "displayName": "Lower case full gender (male/female)",
+                    "pixelName": "male/female"
+                },
+                {
+                    "displayName": "Upper case full gender (Male/Female)",
+                    "pixelName": "Male/Female"
+                }
+            ]
+        },      
+        {
+            "name": "Name Format Rule",
+            "ruleID": "name",
+            "ruleDescription": "Identifies incorrectly formatted name entries",
+            "option": true,
+            "optionType": "checklist",
+            "ruleOptions": [
+                {
+                    "displayName": "last, first (optional middle initial)",
+                    "pixelName": "last, first (m.)"
+                },
+                {
+                    "displayName": "First Last",
+                    "pixelName": "first last"
+                }
+            ]
+        },  
+        {
+            "name": "Check For Blanks",
+            "ruleID": "blanks",
+            "ruleDescription": "Identifies blank cells",
+            "option": false,
+            "optionType": false,
+            "ruleOptions": false
+        },  
+        {
+            "name": "Check For Duplicates",
+            "ruleID": "duplicates",
+            "ruleDescription": "Identifies all non-unique values",
+            "option": false,
+            "optionType": "n/a",
+            "ruleOptions": [
+                {
+                    "displayName": "n/a",
+                    "pixelName": ""
+                }
+            ]
+        },  
+        {
+            "name": "Validate Values",
+            "ruleID": "validate",
+            "ruleDescription": "Validates the data against an input list",
+            "option": true,
+            "optionType": "input",
+            "ruleOptions": false
+        }
+    ]
+}

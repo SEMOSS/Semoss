@@ -40,6 +40,8 @@ import prerna.sablecc2.reactor.algorithms.SimilarityAlgorithmReactor;
 import prerna.sablecc2.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.sablecc2.reactor.algorithms.WekaAprioriReactor;
 import prerna.sablecc2.reactor.algorithms.WekaClassificationReactor;
+import prerna.sablecc2.reactor.algorithms.dataquality.GetDataQualityRulesReactor;
+import prerna.sablecc2.reactor.algorithms.dataquality.RunDataQualityReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetCSVSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetExternalDBSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetLocalDBSchemaReactor;
@@ -1085,7 +1087,9 @@ public class ReactorFactory {
 		rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
 		rFrameHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
 
-		
+		// data quality rectors
+		rFrameHash.put("RunDataQuality",RunDataQualityReactor.class);
+		rFrameHash.put("GetDQRules", GetDataQualityRulesReactor.class);
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
