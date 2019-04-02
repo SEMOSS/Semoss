@@ -83,7 +83,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	private SailConnection sc = null;
 	private ValueFactory vf = null;
 	boolean connected = false;
-//	private InferenceEngine ie = null;
+	private InferenceEngine ie = null;
 
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
@@ -99,16 +99,18 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			String fileName = SmssUtilities.getSysTapJnl(prop).getAbsolutePath();
 			prop.put("com.bigdata.journal.AbstractJournal.file", fileName);
 			bdSail = new BigdataSail(prop);
-			// BigdataSail.Options.TRUTH_MAINTENANCE = "true";
 			BigdataSailRepository repo = new BigdataSailRepository(bdSail);
 			repo.initialize();
+			// need to grab the connection to get the inference engine
+			BigdataSailConnection rwConnection = bdSail.getConnection();
+			ie = rwConnection.getTripleStore().getInferenceEngine();
+			// close the connection since we use the rc/sc directly from sesame api
+			rwConnection.close();
+			
 			rc = repo.getUnisolatedConnection();
 			sc = rc.getSailConnection();
 			vf = bdSail.getValueFactory();
 			this.connected = true;
-			
-//			BigdataSailConnection rwConnection = bdSail.getReadWriteConnection();
-//			ie = rwConnection.getTripleStore().getInferenceEngine();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -179,7 +181,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			rc.begin();
 			up.execute();
 			
-//			ie.computeClosure(null);
+			ie.computeClosure(null);
 			sc.commit();
 			rc.commit();
 		} catch (Exception e) {
@@ -410,7 +412,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	public void infer()
 	{
 		try {
-//			ie.computeClosure(null);
+			ie.computeClosure(null);
 			sc.commit();
 		} catch (SailException e) {
 			e.printStackTrace();
