@@ -73,6 +73,7 @@ import prerna.util.DIHelper;
 
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 
 import edu.uci.ics.jung.algorithms.layout.FRLayout;
@@ -109,10 +110,11 @@ public class BigDataRDFTester {
 
 		//bdSail.
 		// new ForwardChainingRDFSInferencer(bdSail);
-		InferenceEngine ie = bdSail.getInferenceEngine();
+		BigdataSailConnection tripleStore = bdSail.getConnection();
+		InferenceEngine ie = tripleStore.getTripleStore().getInferenceEngine();
 		logger.info("ie forward chaining " + ie);
 		//logger.info("Truth " + bdSail.isTruthMaintenance());
-		logger.info("quad " + bdSail.isQuads());
+//		logger.info("quad " + bdSail.isQuads());
 		
 		// logger.info("ie forward chaining " + ie);
 
@@ -214,7 +216,8 @@ public class BigDataRDFTester {
 				sc.addStatement(city, RDFS.SUBCLASSOF, place);
 				sc.addStatement(beijing, RDF.TYPE, city);
 
-				InferenceEngine ie = bdSail.getInferenceEngine();
+				BigdataSailConnection tripleStore = bdSail.getConnection();
+				InferenceEngine ie = tripleStore.getTripleStore().getInferenceEngine();
 				ie.computeClosure(null);
 
 				sc.commit();
@@ -950,7 +953,8 @@ public class BigDataRDFTester {
 			rc.setAutoCommit(false);
 			up.execute();
 			//rc.commit();
-	        InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
+			BigdataSailConnection tripleStore = bdSail.getConnection();
+			InferenceEngine ie = tripleStore.getTripleStore().getInferenceEngine();
 	        ie.computeClosure(null);
 			sc.commit();
 			
