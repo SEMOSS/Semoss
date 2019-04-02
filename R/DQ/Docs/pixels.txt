@@ -1,0 +1,12 @@
+x = RunDataQuality(rules = ["blanks"], columns = ["gender"], options = [""], inputTable = []);
+RunDataQuality(rules = ["gender"], columns = ["gender"], options = ["mM/fF"], inputTable = [x]);
+RunDataQuality(rules = ["blanks"], columns = ["gender"], options = [""], inputTable = [x]);
+RunDataQuality(rules = ["blanks","blanks"], columns = ["drug_manufacturer", "email"], options = ["",""], inputTable = [x]);
+RunDataQuality(rules = ["blanks", "blanks"], columns = ["prescription_processed_date", "drug"], options = ["",""], inputTable = [x]);
+RunDataQuality(rules = ["blanks", "blanks"], columns = ["prescription_processed_date", "drug"], options = ["",""], inputTable = [x]);
+RunDataQuality(rules = ["email"], columns = ["email"], options = ["xxxxx@xxxx.xxx"], inputTable = [x]);
+RunDataQuality(rules = ["findVals"], columns = ["drug_manufacturer"], options = [("Sanofi","AstraZeneca", "GlaxoSmithKline", "Abbott_Laboratories", "ABC_Pharamacy", "Oasis_Drug_Manufacturers")], inputTable = [x]);
+
+
+
+Frame(x) | QueryAll() | AutoTaskOptions(panel=["0"], layout=["Grid"]) | Collect(-1)
