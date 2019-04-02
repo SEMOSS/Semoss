@@ -272,6 +272,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				e.printStackTrace();
 			}
 			connObj = engineConn;
+		} else {
+			// re-establish bad connections
+			try {
+				this.engineConn = connBuilder.build();
+				this.engineConnected = true;
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			connObj = engineConn;
 		}
 		if(this.dataSource != null){
 			try {
