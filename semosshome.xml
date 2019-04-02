@@ -34,6 +34,14 @@
       </includes>
     </fileSet>
     <fileSet>
+    	<directory>py</directory>
+        <outputDirectory>py</outputDirectory>
+    	<includes>
+    	  <include>analytics.py</include>
+    	  <include>clean.py</include>
+    	</includes>
+    </fileSet>
+    <fileSet>
       <directory>images</directory>
       <outputDirectory>images</outputDirectory>
     </fileSet>
