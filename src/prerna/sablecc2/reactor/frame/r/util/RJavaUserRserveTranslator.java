@@ -1,77 +1,66 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.impl.r.RUserRserve;
+import prerna.engine.impl.r.RUserRserveOld;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
+
+	private RUserRserve rcon;
 	
-	private static final long R_TIMEOUT = 7L;
-	private static final TimeUnit R_TIMEOUT_UNIT = TimeUnit.HOURS;
 	
-	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
-	private static final String R_DATA_EXT = ".RData";
-	private static final boolean ENABLE_RECOVERY = true; // TODO >>>timb: R - eventually make this configurable
-	
-	private RConnection anonymousRcon;
-	private String rDataFile; // TODO >>>timb: R - move this to the user object?
-	
-	private static Object anonymousMonitor = new Object();
-	
+	////////////////////////////////////////
+	// Starting R
+	////////////////////////////////////////
 	@Override
 	public void startR() {
-		synchronized (getMonitor()) {
+		
+		// Try to start R
+		try {
 			
-			// Define the RData file
-			if (userIsDefined()) {
-				rDataFile = R_FOLDER + getUserInfo() + R_DATA_EXT;
+			// First define the rcon 
+			if (rconIsDefined()) {
+				rcon = this.insight.getUser().getRcon();
 			} else {
-				rDataFile = R_FOLDER + "anonymous" + R_DATA_EXT;
+				if (userIsDefined()) {
+					this.insight.getUser().setRcon(new RUserRserve(getUserInfo()));
+					rcon = this.insight.getUser().getRcon();
+				} else {
+					rcon = new RUserRserve();
+				}
+				
+				// Then initialize
+				loadPackages();
+				initREnv();
+				setMemoryLimit();
 			}
-			
-			// Define the r connection
-			if (rConnIsDefined()) {
-				logger.info("Using existing R connection for user " + getUserInfo());
-			} else {
-				logger.info("Establishing new R connection for user " + getUserInfo());
-				establishNewRConnection();
-			}
-		}
-	}
-	
-	private RConnection rcon() {
-		if (rConnIsDefined()) {
-			return this.insight.getUser().getRConn();
-		} else {
-			return anonymousRcon;
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to start R.", e);
 		}
 	}
 
+	private boolean rconIsDefined() {
+		return userIsDefined() && this.insight.getUser().getRcon() != null;
+	}
+	
+	private boolean userIsDefined() {
+		return this.insight != null && this.insight.getUser() != null;
+	}
+	
 	private String getUserInfo() {
 		if (userIsDefined()) {
 			List<String> userNames = new ArrayList<>();
@@ -85,20 +74,9 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			return "anonymous";
 		}
 	}
-	
-	private boolean userIsDefined() {
-		logger.info("User is " + this.insight.getUser().toString()); // TODO >>>timb: R - remove this debug log
-		return this.insight != null && this.insight.getUser() != null;
-	}
-	
-	private boolean rConnIsDefined() {
-		logger.info("RConn is " + this.insight.getUser().getRConn()); // TODO >>>timb: R - remove this debug log
-		return userIsDefined() && this.insight.getUser().getRConn() != null;
-	}
 		
-	private void establishNewRConnection() {
+	private void loadPackages() {
 		try {
-			RConnection rcon = RUserRserve.createConnection();
 			
 			// load all the libraries
 			// split stack shape
@@ -124,160 +102,69 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			// dplyr
 //			rcon.eval("library(dplyr);");
 //			logger.info("Loaded packages dplyr");
-						
-			// Set the R connection on the user object
-			if (userIsDefined()) {
-				this.insight.getUser().setRConn(rcon);
-				logger.info("Set user object " + this.insight.getUser().toString()); // TODO >>>timb: R - remove this debug log
-			} else {
-				anonymousRcon = rcon;
-			}
 			
-			// initialize the r environment
-			initREnv();
-			setMemoryLimit();
 		} catch (Exception e) {
-			throw new IllegalArgumentException("ERROR ::: Could not find connection.\nPlease make sure Rserve is running and the following libraries are installed:\n"
-							+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr", e);
+			throw new IllegalArgumentException("Could not load R libraries.\n Please make sure the following libraries are installed:\n " +
+					"1)splitstackshape\n" +
+					"2)data.table\n" +
+					"3)reshape2\n" +
+					"4)stringr\n" +
+					"5)lubridate\n" +
+					"6)dplyr", e);
 		}
 	}
 	
 	@Override
 	public void initREnv() {
 		try {
-			rcon().eval("if(!exists(\"" + this.env + "\")) {" + this.env  + "<- new.env();}");
-		} catch (RserveException e) {
-			throw new IllegalArgumentException("Failed to establish R environment.");
+			rcon.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + "<- new.env();}");
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to initialize R environment.", e);
 		}
 	}
-
-	private boolean isHealthy() {
-		return RUserRserve.isHealthy(rcon(), logger);
-	}
-		
+	
+	
+	////////////////////////////////////////
+	// R evaluations
+	////////////////////////////////////////
 	@Override
 	public Object executeR(String rScript) {
-		return rconEval(rScript);
+		return rcon.eval(rScript);
 	}
 	
-	// TODO >>>timb: R - retest the sync stuff
-		
-	private REXP rconEval(String rScript) {
-		synchronized (getMonitor()) {
-			if (isHealthy()) {
-				logger.info("Running R: " + rScript);
-				ExecutorService executor = Executors.newSingleThreadExecutor(); // TODO >>>timb: R - need to refactor these execs
-				try {
-					Future<REXP> future = executor.submit(new Callable<REXP>() {
-						@Override
-						public REXP call() throws Exception {
-							if (ENABLE_RECOVERY) saveImage();
-							return rcon().eval(rScript);
-						}
-					});
-					try {
-						return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
-					} catch (TimeoutException | InterruptedException e) {
-						throw new IllegalArgumentException("Timout occured when running R script.", e);
-					} catch (ExecutionException e) {
-						throw new IllegalArgumentException("Failed to run R script.", e);
-					} catch (CancellationException e) {
-						throw new IllegalArgumentException("R script was cancelled.", e);
-					} finally {
-						logger.warn(future.isCancelled() + "<- WHETHER CANCELLED"); // TODO >>>timb: R - remove
-					}
-				} finally {
-					executor.shutdownNow();
-				}
-			} else {
-				establishNewRConnection();
-				throw new IllegalArgumentException("R was not working properly but has succesfully recovered; however, your data in R has been lost.");
-			}
-		}
-	}
-
 	@Override
 	public void executeEmptyR(String rScript) {
-		synchronized (getMonitor()) {
-			if (isHealthy()) {
-				logger.info("Running R: " + rScript);
-					ExecutorService executor = Executors.newSingleThreadExecutor();
-					try {
-						Future<Void> future = executor.submit(new Callable<Void>() {
-							@Override
-							public Void call() throws Exception {
-								if (ENABLE_RECOVERY) saveImage();
-								rcon().voidEval(rScript);
-								return null;
-							}
-						});
-						try {
-							future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
-						} catch (TimeoutException | InterruptedException e) {
-							throw new IllegalArgumentException("Timout occured when running R script.", e);
-						} catch (ExecutionException e) {
-							throw new IllegalArgumentException("Failed to run R script.", e);
-						} catch (CancellationException e) {
-							throw new IllegalArgumentException("R script was cancelled.", e);
-						}
-					} finally {
-						executor.shutdownNow();
-					}
-			} else {
-				establishNewRConnection();
-				throw new IllegalArgumentException("R was not working properly but has succesfully recovered; however, your data in R has been lost.");
-			}
-		}
+		rcon.voidEval(rScript);
 	}
 	
+	
+	////////////////////////////////////////
+	// Cancellation
+	////////////////////////////////////////
 	@Override
 	public boolean cancelExecution() {
-		logger.info("Cancelling R execution.");
-		boolean cancelled = false;
-		if (rcon() != null) {
-			try {
-				logger.info("Closing R connection.");
-//				this.insight.getUser().setRConnCancelled(true); TODO >>>:timb R - need 
-
-				if (rcon().close()) {
-					logger.info("Creating a new R connection.");
-					establishNewRConnection();
-					if (ENABLE_RECOVERY) {
-						logger.info("Loading session.");
-						loadImage(); // TODO >>>timb: R - if this works, go ahead and add to recovery
-					}
-					cancelled = true;
-				}
-
-			} catch (Exception e) {
-				logger.warn("Failed to cancel R execution.", e);
-			}
-		} else {
-			logger.warn("No R connections found; nothing to cancel.");
-		}
-		return cancelled;
-	}
-
-	private Object getMonitor() {
-		return userIsDefined() ? this.insight.getUser() : anonymousMonitor;
+		return false;
+		// TODO >>>timb: R - need to finish this logic
 	}
 	
-	private void saveImage() throws RserveException { // TODO >>>timb: R - need to delete these files when done
-		if (rDataFile == null) throw new IllegalArgumentException("Cannot save workspace image, as the RData file location is not defined.");
-		if (!new File(rDataFile).getParentFile().exists()) throw new IllegalArgumentException("Cannot save workspace image, as the RData file folder is not defined.");
-		rcon().voidEval("save.image(file = \""+ rDataFile + "\")");
+	
+	////////////////////////////////////////
+	// Raw R connection
+	////////////////////////////////////////
+	// TODO >>>timb: R - should get rid of this
+	@Deprecated
+	public RConnection getConnection() {
+		return rcon.getRConnection();
 	}
 	
-	private void loadImage() throws RserveException {
-		if (rDataFile == null) throw new IllegalArgumentException("Cannot load workspace image, as the RData file location is not defined.");
-		if (!new File(rDataFile).exists()) throw new IllegalArgumentException("Cannot load workspace image, as the RData file is not defined.");
-		rcon().voidEval("load(\"" + rDataFile + "\")");
-	}
 	
+	////////////////////////////////////////
+	// Data types
+	////////////////////////////////////////
 	@Override
 	public String getString(String rScript) {
 		try {
-			return rconEval(rScript).asString();
+			return rcon.eval(rScript).asString();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a string.");
 		}
@@ -286,7 +173,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public String[] getStringArray(String rScript) {
 		try {
-			return rconEval(rScript).asStrings();
+			return rcon.eval(rScript).asStrings();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a string array.");
 		}
@@ -295,7 +182,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public int getInt(String rScript) {
 		try {
-			return rconEval(rScript).asInteger();
+			return rcon.eval(rScript).asInteger();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to an integer.");
 		}
@@ -304,7 +191,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public int[] getIntArray(String rScript) {
 		try {
-			return rconEval(rScript).asIntegers();
+			return rcon.eval(rScript).asIntegers();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to an integer array.");
 		}
@@ -313,7 +200,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double getDouble(String rScript) {
 		try {
-			return rconEval(rScript).asDouble();
+			return rcon.eval(rScript).asDouble();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a double.");
 		}
@@ -322,7 +209,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double[] getDoubleArray(String rScript) {
 		try {
-			return rconEval(rScript).asDoubles();
+			return rcon.eval(rScript).asDoubles();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a double array.");
 		}
@@ -331,7 +218,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double[][] getDoubleMatrix(String rScript) {
 		try {
-			return rconEval(rScript).asDoubleMatrix();
+			return rcon.eval(rScript).asDoubleMatrix();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a double matrix.");
 		}
@@ -340,7 +227,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public boolean getBoolean(String rScript) {
 		try {
-			return rconEval(rScript).asInteger() == 1;
+			return rcon.eval(rScript).asInteger() == 1;
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a inter.");
 		}
@@ -349,38 +236,26 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Object getFactor(String rScript) {
 		try {
-			return rconEval(rScript).asFactor();
+			return rcon.eval(rScript).asFactor();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a factor.");
 		}
 	}
 
-	public RConnection getConnection() {
-		if (userIsDefined()) {
-			return this.insight.getUser().getRConn();
-		}
-			else{
-				return null;
-			}
-	}
-	
 	@Override
 	public void setConnection(RConnection connection) {
-		anonymousRcon = connection;
-		if (userIsDefined()) {
-			this.insight.getUser().setRConn(connection);
-		}
+		// This is not necessary as connection is allocated per user
 	}
 
 	@Override
 	public void setPort(String port) {
-		// This is not necessary as port is hard coded to 6311
+		// This is not necessary as port is allocated per user
 	}
 
 	@Override
 	public void endR() {
 		try {
-			RUserRserve.stopRserve();
+			RUserRserveOld.stopRserve();
 		} catch (Exception e) {
 			logger.warn("Unable to shut down R.", e);
 		}
@@ -389,8 +264,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void stopRProcess() {
 		try {
-			rcon().detach();
-		} catch (RserveException e) {
+			rcon.detach();
+		} catch (Exception e) {
 			logger.warn("Unable to stop R process.", e);
 		}
 	}
@@ -400,7 +275,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			double[] breaks;
 			@SuppressWarnings("unchecked")
-			Map<String, Object> histJ = (Map<String, Object>) (rconEval(script).asNativeJavaObject());
+			Map<String, Object> histJ = (Map<String, Object>) (rcon.eval(script).asNativeJavaObject());
 			if (histJ.get("breaks") instanceof int[]) {
 				int[] breaksInt = (int[]) histJ.get("breaks");
 				breaks = Arrays.stream(breaksInt).asDoubleStream().toArray();
@@ -425,7 +300,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		int numCols = colNames.length;
 		for (int i = 0; i < numCols; i++) {
 			String script = framename + "$" + colNames[i];
-			REXP val = rconEval(script);
+			REXP val = rcon.eval(script);
 
 			if (val.isNumeric()) {
 				// for a double array
@@ -508,7 +383,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
-		REXP rs = rconEval(rScript);
+		REXP rs = rcon.eval(rScript);
 		Object[] retArray = null;
 		Object result = null;
 		try {
@@ -542,7 +417,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@SuppressWarnings("unchecked")
 	@Override
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
-		REXP rs = rconEval(rScript);
+		REXP rs = rcon.eval(rScript);
 		Object result = null;
 		try {
 			result = rs.asNativeJavaObject();

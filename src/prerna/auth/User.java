@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import org.rosuda.REngine.Rserve.RConnection;
-
 import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.engine.impl.r.RRemoteRserve;
+import prerna.engine.impl.r.RUserRserve;
 import prerna.om.AbstractValueObject;
 
 public class User extends AbstractValueObject {
@@ -17,8 +17,8 @@ public class User extends AbstractValueObject {
 	// name of this user in the SEMOSS system if there is one
 	
 	// need to have an access token store
-	private RConnection rConn; 
-	private volatile boolean rConnCancelled = false;
+	private RUserRserve rcon; 
+	private RRemoteRserve rconRemote;
 	
 	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<AuthProvider, String>();
 	private Map<AuthProvider, String> assetEngineMap = new HashMap<AuthProvider, String>();
@@ -140,20 +140,20 @@ public class User extends AbstractValueObject {
 
 	////////////////////////////////////////////////////////////////////////
 
-	public RConnection getRConn() {
-		return rConn;
+	public RUserRserve getRcon() {
+		return rcon;
 	}
 
-	public void setRConn(RConnection rCon) {
-		this.rConn = rCon;
+	public void setRcon(RUserRserve rcon) {
+		this.rcon = rcon;
 	}	
 	
-	public void setRConnCancelled(boolean rConnCancelled) {
-		this.rConnCancelled = rConnCancelled;
+	public RRemoteRserve getRconRemote() {
+		return rconRemote; 
 	}
 	
-	public boolean getRConnCancelled() {
-		return rConnCancelled;
+	public void setRconRemote(RRemoteRserve rconRemote) {
+		this.rconRemote = rconRemote;
 	}
 	
 	// add the insight instance id
