@@ -42,8 +42,8 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 		}
 
 		if(this.insight.getUser() != null){
-			if(this.insight.getUser().getRConn() !=null){
-				retCon = this.insight.getUser().getRConn();
+			if(this.insight.getUser().getRcon() !=null){
+				retCon = this.insight.getUser().getRconRemote().getConnection();
 			}
 		}
 
@@ -58,11 +58,11 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 				logger.info("Starting R Connection... ");
 				if(this.insight!= null){
 					if(this.insight.getUser() != null){
-						if(this.insight.getUser().getRConn() == null){
+						if(this.insight.getUser().getRcon() == null){
 							RRemoteRserve rTemp = new RRemoteRserve();
-							this.insight.getUser().setRConn(rTemp.getConnection());
+							this.insight.getUser().setRconRemote(rTemp);
 						}
-						this.retCon = this.insight.getUser().getRConn();
+						this.retCon = this.insight.getUser().getRconRemote().getConnection();
 					}
 				}else{
 					RRemoteRserve rTemp = new RRemoteRserve();
@@ -322,16 +322,16 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 		//see if there is a user
 		if(this.insight.getUser() != null){
 			//is a r connection already there, return it
-			if(this.insight.getUser().getRConn() != null){
+			if(this.insight.getUser().getRcon() != null){
 				logger.info("Retrieving existing R Connection...");
-				rConTemp = this.insight.getUser().getRConn();
+				rConTemp = this.insight.getUser().getRconRemote().getConnection();
 			}
 			//else set it
 			else{
 				logger.info("R Connection has not been defined yet...");
 				logger.info("Starting R Connection... ");
 				RRemoteRserve rTemp = new RRemoteRserve();
-				this.insight.getUser().setRConn(rTemp.getConnection());
+				this.insight.getUser().setRconRemote(rTemp);
 			}
 		}
 		//maybe there is something in the insight
