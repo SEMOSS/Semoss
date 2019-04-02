@@ -15,7 +15,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.impl.r.RUserRserve;
-import prerna.engine.impl.r.RUserRserveOld;
 import prerna.util.ArrayUtilityMethods;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
@@ -33,7 +32,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			
 			// First define the rcon 
-			if (rconIsDefined()) {
+			if (userRconIsDefined()) {
 				rcon = this.insight.getUser().getRcon();
 			} else {
 				if (userIsDefined()) {
@@ -53,7 +52,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		}
 	}
 
-	private boolean rconIsDefined() {
+	private boolean userRconIsDefined() {
 		return userIsDefined() && this.insight.getUser().getRcon() != null;
 	}
 	
@@ -144,14 +143,14 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public boolean cancelExecution() {
 		return false;
-		// TODO >>>timb: R - need to finish this logic
+		// TODO >>>timb: R - need to complete cancellation here
 	}
 	
 	
 	////////////////////////////////////////
 	// Raw R connection
 	////////////////////////////////////////
-	// TODO >>>timb: R - should get rid of this
+	// TODO >>>timb: R - should get rid of this (later)
 	@Deprecated
 	public RConnection getConnection() {
 		return rcon.getRConnection();
@@ -253,11 +252,14 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	}
 
 	@Override
+	/**
+	 * Stops all r processes.
+	 */
 	public void endR() {
 		try {
-			RUserRserveOld.stopRserve();
+			RUserRserve.endR();
 		} catch (Exception e) {
-			logger.warn("Unable to shut down R.", e);
+			logger.warn("Unable to end R.", e);
 		}
 	}
 
