@@ -53,7 +53,6 @@ import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.TupleQuery;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.Update;
-import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.sail.SailRepositoryConnection;
 import org.openrdf.sail.SailConnection;
@@ -62,6 +61,7 @@ import org.openrdf.sail.SailException;
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 
@@ -83,7 +83,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	private SailConnection sc = null;
 	private ValueFactory vf = null;
 	boolean connected = false;
-	private InferenceEngine ie = null;
+//	private InferenceEngine ie = null;
 
 	/**
 	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
@@ -103,14 +103,13 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			BigdataSailRepository repo = new BigdataSailRepository(bdSail);
 			repo.initialize();
 			rc = repo.getUnisolatedConnection();
-			sc = ((SailRepositoryConnection) rc).getSailConnection();
+			sc = rc.getSailConnection();
 			vf = bdSail.getValueFactory();
 			this.connected = true;
-
-			ie = ((BigdataSail) bdSail).getInferenceEngine();	
-		}catch(RuntimeException ignored) {
-			ignored.printStackTrace();
-		} catch (RepositoryException e) {
+			
+//			BigdataSailConnection rwConnection = bdSail.getReadWriteConnection();
+//			ie = rwConnection.getTripleStore().getInferenceEngine();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -179,17 +178,12 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 			rc.setAutoCommit(false);
 			rc.begin();
 			up.execute();
-			InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
-			ie.computeClosure(null);
+			
+//			ie.computeClosure(null);
 			sc.commit();
 			rc.commit();
-		} catch (MalformedQueryException e) {
-			e.printStackTrace();
-		} catch (RepositoryException e){
-			e.printStackTrace();
-		} catch (UpdateExecutionException e) {
-			e.printStackTrace();
-		} catch (SailException e) {
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -416,7 +410,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	public void infer()
 	{
 		try {
-			ie.computeClosure(null);
+//			ie.computeClosure(null);
 			sc.commit();
 		} catch (SailException e) {
 			e.printStackTrace();
