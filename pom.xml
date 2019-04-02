@@ -338,6 +338,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.blazegraph/bigdata-runtime -->
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-runtime</artifactId>
@@ -350,7 +351,23 @@
 		    <version>2.1.4</version>
 		    <exclusions>
 				<exclusion>
-					<groupId>^((?!com\.blazegraph).)*</groupId>
+					<groupId>org.*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.fasterxml.*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.ibm.*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>commons-*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>javax.*</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
