@@ -59,6 +59,7 @@ import org.openrdf.sail.SailException;
 import com.bigdata.rdf.model.BigdataLiteralImpl;
 import com.bigdata.rdf.rules.InferenceEngine;
 import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSail.BigdataSailConnection;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
@@ -195,15 +196,18 @@ public class RemoteSparqlEngine extends AbstractEngine implements IEngine {
 			rc.setAutoCommit(false);
 			rc.begin();
 			up.execute();
-			//rc.commit();
-	        InferenceEngine ie = ((BigdataSail)bdSail).getInferenceEngine();
-	        ie.computeClosure(null);
+			
+			BigdataSailConnection tripleStore = bdSail.getConnection();
+			InferenceEngine ie = tripleStore.getTripleStore().getInferenceEngine();
+			ie.computeClosure(null);
 			rc.commit();
 		} catch (MalformedQueryException e) {
 			e.printStackTrace();
 		} catch (RepositoryException e){
 			e.printStackTrace();
 		} catch (UpdateExecutionException e) {
+			e.printStackTrace();
+		} catch (SailException e) {
 			e.printStackTrace();
 		}
 	}
