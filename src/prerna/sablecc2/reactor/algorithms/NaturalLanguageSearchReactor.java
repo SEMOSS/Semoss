@@ -122,6 +122,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		logger.info(stepCounter + ". Generating pixel return from results");
 		List<Map<String, String>> returnPixels = generatePixels(retData, query);
 		logger.info(stepCounter + ". Done");
+		
+		//reset working directory
+		this.rJavaTranslator.runR("setwd(\"" + wd + "\");");
 
 		return new NounMetadata(returnPixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
@@ -152,6 +155,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String rAppIds = "c(";
 		String rTableNames = "c(";
 		String rColNames = "c(";
+		String rColTypes = "c(";
 		
 		int colCount = allTableCols.size();
 		// create R vector of appid, tables, and columns
@@ -160,14 +164,17 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			String appId = entry[0].toString();
 			String table = entry[1].toString();
 			String column = entry[2].toString();
+			String dataType = entry[3].toString(); 
 			if(i == 0) {
 				rAppIds += "'" + appId + "'" ;
 				rTableNames += "'" + table + "'" ;
 				rColNames += "'" + column + "'" ;
+				rColTypes += "'" + dataType + "'";
 			} else {
 				rAppIds += ",'" + appId + "'" ;
 				rTableNames += ",'" + table + "'" ;
 				rColNames += ",'" + column + "'" ;
+				rColTypes += ",'" + dataType + "'" ;
 			}
 		}
 
@@ -177,6 +184,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String rTbl2 = "c(";
 		String rJoinBy1 = "c(";
 		String rJoinBy2 = "c(";
+
 
 		int numRels = relationships.size();
 		int firstRel = 0;
@@ -214,6 +222,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					rAppIds += ",'" + appId + "'" ;
 					rTableNames += ",'" + sourceTable + "'" ;
 					rColNames += ",'" + sourceColumn + "'" ;
+					rColTypes += ", 'STRING' ";
 				}
 				//no longer adding the first row to this data frame, increment..
 				firstRel++;
@@ -224,13 +233,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		rAppIds += ")";
 		rTableNames += ")";
 		rColNames += ")";
+		rColTypes += ")";
 		rAppIDs_join += ")";
 		rTbl1 += ")";
 		rTbl2 += ")";
 		rJoinBy1 += ")";
 		rJoinBy2 += ")";
 		
-		rsb.append(rTempTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ", stringsAsFactors = FALSE);");
+		rsb.append(rTempTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", stringsAsFactors = FALSE);");
 		if(numRels == 0) {
 			rsb.append(result + " <- nliapp_mgr(\"" + query + "\"," + rTempTable + ");\n");
 		} else {
