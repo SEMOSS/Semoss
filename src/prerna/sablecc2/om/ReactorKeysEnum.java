@@ -39,6 +39,7 @@ public enum ReactorKeysEnum {
 	DELIMITER("delimiter", 									"Delimiter to be used"),
 	DESCRIPTION("description", 								"A description"),
 	DRY_RUN("dryRun",										"Boolean whether to perform a dry run of the operation without impacting application state (default is true)"),
+	ENABLE("enable",										"Boolean whether to enable"),
 	EVENTS_KEY("events", 									"Events map input"),
 	EXISTING("existing", 									"Add to exisitng app"),
 	END_ROW("endRow", 									    "The ending row number to import from a file."),
