@@ -201,6 +201,7 @@ import prerna.sablecc2.reactor.frame.r.analytics.RSimilarityHeatReactor;
 import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
 import prerna.sablecc2.reactor.frame.r.graph.GraphLayoutReactor;
 import prerna.sablecc2.reactor.frame.r.graph.NodeDetailsReactor;
+import prerna.sablecc2.reactor.frame.r.util.REnableUserRecoveryReactor;
 import prerna.sablecc2.reactor.frame.r.util.RSourceReactor;
 import prerna.sablecc2.reactor.imports.ImportDataReactor;
 import prerna.sablecc2.reactor.imports.MergeDataReactor;
@@ -976,6 +977,7 @@ public class ReactorFactory {
 		reactorHash.put("Py", PyReactor.class);
 		reactorHash.put("R", RReactor.class);
 		reactorHash.put("CancelR", CancelRReactor.class);
+		reactorHash.put("REnableUserRecovery", REnableUserRecoveryReactor.class);
 		reactorHash.put("RSource", RSourceReactor.class);
 		reactorHash.put("Java", JavaReactor.class);
 		
