@@ -35,7 +35,7 @@ public class RUserRserve {
 	private static final String FS = System.getProperty("file.separator");
 	
 	// Recovery
-	private static final boolean ENABLE_RECOVERY = true;
+	private boolean recoveryEnabled = false;
 	private String rDataFile;
 	private static final String R_DATA_EXT = ".RData";
 
@@ -121,7 +121,7 @@ public class RUserRserve {
 				Future<REXP> future = executor.submit(new Callable<REXP>() {
 					@Override
 					public REXP call() throws Exception {
-						if (ENABLE_RECOVERY) saveImage();
+						if (recoveryEnabled) saveImage();
 						synchronized (rconMonitor) {
 							return rcon.eval(rScript);
 						}
@@ -166,7 +166,7 @@ public class RUserRserve {
 					Future<Void> future = executor.submit(new Callable<Void>() {
 						@Override
 						public Void call() throws Exception {
-							if (ENABLE_RECOVERY) saveImage();
+							if (recoveryEnabled) saveImage();
 							synchronized (rconMonitor) {
 								rcon.voidEval(rScript);
 							}
@@ -208,7 +208,7 @@ public class RUserRserve {
 					Future<RSession> future = executor.submit(new Callable<RSession>() {
 						@Override
 						public RSession call() throws Exception {
-							if (ENABLE_RECOVERY) saveImage();
+							if (recoveryEnabled) saveImage();
 							synchronized (rconMonitor) {
 								return rcon.detach();
 							}
@@ -251,7 +251,7 @@ public class RUserRserve {
 			
 			// If recovery is enabled, also try to reload the R data
 			message += "The connection has recovered; however, your R data has been lost.";
-			if (ENABLE_RECOVERY) {
+			if (recoveryEnabled) {
 				try {
 					loadImage();
 					exception = null;
@@ -304,7 +304,15 @@ public class RUserRserve {
 			rcon.voidEval("load(\"" + rDataFile + "\")");
 		}
 	}
-	 
+	
+	public boolean isRecoveryEnabled() {
+		return recoveryEnabled;
+	}
+
+	public void setRecoveryEnabled(boolean enableRecovery) {
+		this.recoveryEnabled = enableRecovery;
+	}
+		 
 	
 	////////////////////////////////////////
 	// Rserve connection
@@ -343,9 +351,9 @@ public class RUserRserve {
 
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder(rBin, "-e", "library(Rserve);Rserve(FALSE," + port
-						+ ",args='--vanilla');flush.console <- function(...) {return;};options(error=function() NULL)",
-						"--vanilla");
+				pb = new ProcessBuilder(rBin, "-e",
+						"library(Rserve);" +
+						"Rserve(FALSE," + port + ",args='--vanilla');");
 			} else {
 				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
 			}
