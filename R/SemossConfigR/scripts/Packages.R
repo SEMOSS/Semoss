@@ -218,3 +218,11 @@ install.packages("arules", dependencies=TRUE)
 
 #Natural Language Search
 install.packages("udpipe", dependencies=TRUE)
+install.packages("tokenizers", dependencies=TRUE)
+install.packages("openNLP", dependencies=TRUE)
+install.packages("openNLPmodels.en", dependencies=TRUE)
+#install.packages("data.table", dependencies=TRUE)
+#install.packages("stringr", dependencies=TRUE)
+#install.packages("stringdist", dependencies=TRUE)
+
+
