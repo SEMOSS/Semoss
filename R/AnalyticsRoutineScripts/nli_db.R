@@ -593,6 +593,7 @@ extract_subtree<-function(df,ind,excl=c("NN","JJ","RB","CD","IN")){
 }
 
 parse_question<-function(txt){
+	library(udpipe)
 	STOPWORDS<-c("a","the","here","there","it","he","she","they","is","are","which","what","who")
 	FILE_MODEL<-"english-ud-2.0-170801.udpipe"
 	
@@ -603,7 +604,15 @@ parse_question<-function(txt){
 	if(!exists("tagger")){
 		tagger <<- udpipe_load_model(FILE_MODEL)
 	}
-	doc <- udpipe_annotate(tagger, txt)
+	doc <- tryCatch({
+		udpipe_annotate(tagger, txt)
+	}, error = function(e) {
+		return(NULL)
+	})
+	if(is.null(doc)){
+		tagger <<- udpipe_load_model(FILE_MODEL)
+		doc <- udpipe_annotate(tagger, txt)
+	}
 	df<-as.data.frame(doc)
 	gc()
 	return(df[,4:12])
@@ -625,15 +634,19 @@ replace_words<-function(words){
 
 db_match<-function(db,token,type="Column"){
 	THRESHOLD<-0.9
-	
+	db_item<-vector()
+
 	db$Column<-as.character(db$Column)
 	db$Table<-as.character(db$Table)
 	matches<-stringsim(tolower(token),tolower(db[,type]),method='jw', p=0.1)
 	if(max(matches) >= THRESHOLD){
 		ind<-min(which(matches==max(matches)))
-		db_item<-db[ind,type]
+		db_item[1]<-db[ind,type]
+		if(type=="Column"){
+			db_item[2]<-db[ind,"Datatype"]
+		}
 	}else{
-		db_item<-""
+		db_item[1]<-""
 	}
 	return(db_item)
 }
@@ -641,6 +654,7 @@ db_match<-function(db,token,type="Column"){
 map_dbitems<-function(df,db,pos="ALL"){
 	df$item<-""
 	df$itemtype<-""
+	df$itemdatatype<-""
 	if(pos=="ALL"){
 		ind<-df$token_id
 	}else{
@@ -650,12 +664,13 @@ map_dbitems<-function(df,db,pos="ALL"){
 	for(i in 1:n){
 		token<-df[ind[i],"token"]
 		item<-db_match(db,token,"Column")
-		if(item!=""){
-			df[ind[i],"item"]<-item
+		if(item[1]!=""){
+			df[ind[i],"item"]<-item[1]
 			df[ind[i],"itemtype"]<-"column"
+			df[ind[i],"itemdatatype"]<-item[2]
 		}else{
 			item<-db_match(db,token,"Table")
-			if(item!=""){
+			if(item[1]!=""){
 				df[ind[i],"item"]<-item
 				df[ind[i],"itemtype"]<-"table"
 			}
