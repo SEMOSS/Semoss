@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
-import prerna.engine.impl.r.RUserRserve;
 import prerna.om.AbstractValueObject;
 
 public class User extends AbstractValueObject {
@@ -17,7 +17,7 @@ public class User extends AbstractValueObject {
 	// name of this user in the SEMOSS system if there is one
 	
 	// need to have an access token store
-	private RUserRserve rcon; 
+	private IRUserConnection rcon; 
 	private RRemoteRserve rconRemote;
 	
 	private Map<AuthProvider, String> workspaceEngineMap = new HashMap<AuthProvider, String>();
@@ -140,11 +140,11 @@ public class User extends AbstractValueObject {
 
 	////////////////////////////////////////////////////////////////////////
 
-	public RUserRserve getRcon() {
+	public IRUserConnection getRcon() {
 		return rcon;
 	}
 
-	public void setRcon(RUserRserve rcon) {
+	public void setRcon(IRUserConnection rcon) {
 		this.rcon = rcon;
 	}	
 	

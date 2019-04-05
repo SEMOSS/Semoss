@@ -393,6 +393,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override
 	public String runRAndReturnOutput(String script) {
+		// TODO >>>timb: R - Refactor this stuff and pull in error properly (later)
 		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		String baseDir = insightCacheLoc + "\\" + csvInsightCacheFolder + "\\";
