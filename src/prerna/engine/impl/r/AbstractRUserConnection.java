@@ -1,9 +1,6 @@
 package prerna.engine.impl.r;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -11,10 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXP;
@@ -26,36 +20,17 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class RUserRserve {
+public abstract class AbstractRUserConnection implements IRUserConnection {
 	
-	private static final Logger LOGGER = LogManager.getLogger(RUserRserve.class.getName());
+	protected static final Logger LOGGER = LogManager.getLogger(AbstractRUserConnection.class.getName());
 	
 	// File structure
 	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
-	private static final String FS = System.getProperty("file.separator");
 	
 	// Recovery
 	private boolean recoveryEnabled = false;
-	private String rDataFile;
+	private final String rDataFile;
 	private static final String R_DATA_EXT = ".RData";
-
-	// Host and port
-	private String host;
-	private static final String DEFAULT_HOST = "127.0.0.1";
-	private int port = 6311;
-	private static final int PORT_MAX = 65535;
-		
-	// R binary location
-	private static String rBin;
-	static {
-		String rHome = System.getenv("R_HOME").replace("\\", FS);
-		if (rHome == null || rHome.isEmpty()) {
-			rBin = "R"; // Just hope its in the path
-		} else {
-			rBin = rHome + FS + "bin" + FS + "R";
-			if (SystemUtils.IS_OS_WINDOWS) rBin = rBin.replace(FS, "\\\\");
-		}
-	}
 	
 	// R timeout
 	private static final long R_TIMEOUT = 7L;
@@ -69,38 +44,45 @@ public class RUserRserve {
 	////////////////////////////////////////
 	// Constructors, overloaded for defaults
 	////////////////////////////////////////
-	public RUserRserve(String rDataFileName, String host) {
+	public AbstractRUserConnection(String rDataFileName) {
 		this.rDataFile = R_FOLDER + rDataFileName + R_DATA_EXT;
-		this.host = host;
-		try {
-			setPort();
-			startR();
-			establishConnection();
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Failed to initialize R.", e);
-		}
 	}
 
-	public RUserRserve(String rDataFile) {
-		this(rDataFile, DEFAULT_HOST);
-	}
-
-	public RUserRserve() {
+	public AbstractRUserConnection() {
 		this(Utility.getRandomString(12));
 	}
+	
+	
+	////////////////////////////////////////
+	// Used to establish the rcon
+	////////////////////////////////////////
+	@Override
+	public void initializeConnection() throws Exception {
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		try {
+			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
+				@Override
+				public RConnection call() throws Exception {
+					return new RConnection(getHost(), getPort());
+				}
+			});
+			rcon = future.get(7L, TimeUnit.SECONDS); 
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+	
+	protected abstract String getHost();
+	
+	protected abstract int getPort();
 	
 	
 	////////////////////////////////////////
 	// Raw R connection
 	////////////////////////////////////////
 	// TODO >>>timb: R - should get rid of this (later)
-	/**
-	 * Really want to get rid of this; should not be manipulating the rcon directly
-	 * outside of this class
-	 * 
-	 * @return
-	 */
 	@Deprecated
+	@Override
 	public RConnection getRConnection() {
 		return rcon;
 	}
@@ -109,6 +91,7 @@ public class RUserRserve {
 	////////////////////////////////////////
 	// Mirroring RConnection methods
 	////////////////////////////////////////
+	@Override
 	public REXP eval(String rScript) {
 		return eval(rScript, true);
 	}
@@ -154,6 +137,7 @@ public class RUserRserve {
 		}
 	}
 	
+	@Override
 	public void voidEval(String rScript) {
 		voidEval(rScript, true);
 	}
@@ -200,6 +184,7 @@ public class RUserRserve {
 		}
 	}
 	
+	@Override
 	public RSession detach() {
 		if (isHealthy()) {
 			LOGGER.info("Detaching R.");
@@ -231,11 +216,17 @@ public class RUserRserve {
 	
 	
 	////////////////////////////////////////
+	// Stopping
+	////////////////////////////////////////
+	@Override
+	public abstract void stopR() throws Exception;
+	
+	
+	////////////////////////////////////////
 	// Cancellation
 	////////////////////////////////////////
-	public void cancelExecution() {
-		// TODO >>>timb: R - need to complete cancellation here (later)
-	}
+	@Override
+	public abstract void cancelExecution() throws Exception;
 	
 	
 	////////////////////////////////////////
@@ -268,26 +259,7 @@ public class RUserRserve {
 		return exception;
 	}
 	
-	private void recoverConnection() throws Exception {
-		
-		// Try to stop R
-		try {
-			stopR();
-		} catch (Exception e) {
-			
-			// If an error occurs stopping R, then grab a new port to run on
-			setPort();
-		}
-		
-		// Try to start R and establish a new connection to it
-		startR();
-		establishConnection();
-		
-		// Make sure R is healthy
-		if (!isHealthy()) {
-			throw new IllegalArgumentException("Basic R heath check failed after restarting R.");
-		}
-	}
+	protected abstract void recoverConnection() throws Exception;
 	
 	private void saveImage() throws RserveException {
 		if (rDataFile == null) throw new IllegalArgumentException("Cannot save workspace image, as the RData file location is not defined.");
@@ -304,165 +276,22 @@ public class RUserRserve {
 			rcon.voidEval("load(\"" + rDataFile + "\")");
 		}
 	}
-	
+
+	@Override
 	public boolean isRecoveryEnabled() {
 		return recoveryEnabled;
 	}
 
+	@Override
 	public void setRecoveryEnabled(boolean enableRecovery) {
 		this.recoveryEnabled = enableRecovery;
 	}
-		 
-	
-	////////////////////////////////////////
-	// Rserve connection
-	////////////////////////////////////////
-	private void establishConnection() throws Exception {
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		try {
-			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
-				@Override
-				public RConnection call() throws Exception {
-					return new RConnection(host, port);
-				}
-			});
-			rcon = future.get(7L, TimeUnit.SECONDS); 
-		} finally {
-			executor.shutdownNow();
-		}
-	}
-	
-	
-	////////////////////////////////////////
-	// Rserve process
-	////////////////////////////////////////
-	private void startR() throws Exception {
 		
-		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
-		
-		// Start
-		try {
-			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-
-			File output = new File(baseFolder + FS + "Rserve.output.log");
-			File error = new File(baseFolder + FS + "Rserve.error.log");
-
-			ProcessBuilder pb;
-			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder(rBin, "-e",
-						"library(Rserve);" +
-						"Rserve(FALSE," + port + ",args='--vanilla');");
-			} else {
-				pb = new ProcessBuilder(rBin, "CMD", "Rserve", "--vanilla", "--RS-port", port + "");
-			}
-			pb.redirectOutput(output);
-			pb.redirectError(error);
-			Process process = pb.start();
-			process.waitFor(7L, TimeUnit.SECONDS);
-		} finally {
-			
-			// Restore the prior security manager
-			System.setSecurityManager(priorManager);
-		}
-	}
-	
-	/**
-	 * Stops just the user-specific R process.
-	 * @throws Exception
-	 */
-	public void stopR() throws Exception {
-		
-		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
-		
-		// Stop
-		File tempFile = new File(R_FOLDER + Utility.getRandomString(12) + ".txt");
-		try {
-			if (SystemUtils.IS_OS_WINDOWS) {
-
-				// Dump the output of netstat to a file
-				ProcessBuilder pbNetstat = new ProcessBuilder("netstat", "-ano");
-				pbNetstat.redirectOutput(tempFile);
-				Process processNetstat = pbNetstat.start();
-				processNetstat.waitFor(7L, TimeUnit.SECONDS);
-				
-				// Parse netstat output to get the PIDs of processes running on Rserve's port
-				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
-				List<String> pids = lines.stream()
-						.filter(l -> l.contains("LISTENING")) // Only grab processes in LISTENING state
-						.map(l -> l.trim().split("\\s+")) // Trim the empty characters and split into rows
-						.filter(r -> r[1].contains(":" + port)) // Only use those that are listening on the right port 
-						.map(r -> r[4]) // Grab the pid
-						.collect(Collectors.toList());
-				for (String pid : pids) {
-					
-					// Go through and kill these processes
-					ProcessBuilder pbTaskkill = new ProcessBuilder("taskkill", "/PID", pid, "/F").inheritIO();
-					Process processTaskkill = pbTaskkill.start();
-					processTaskkill.waitFor(7L, TimeUnit.SECONDS);
-					LOGGER.info("Stopped Rserve running on port " + port + " with the pid " + pid + ".");
-				}
-
-			} else {
-					
-				// Dump the output of lsof to a file
-				ProcessBuilder pbLsof = new ProcessBuilder("lsof", "-t", "-i:" + port);
-				pbLsof.redirectOutput(tempFile);
-				Process processLsof = pbLsof.start();
-				processLsof.waitFor(7L, TimeUnit.SECONDS);
-				
-				// Parse lsof output to get the PIDs of processes (in this case each line is just the pid)
-				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
-				for (String pid : lines) {
-					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();
-					Process processKill = pbKill.start();
-					processKill.waitFor(7L, TimeUnit.SECONDS);
-					LOGGER.info("Stopped Rserve running on port " + port + " with the pid " + pid + ".");
-				}
-			}
-		} finally {
-			tempFile.delete();
-			
-			// Restore the prior security manager
-			System.setSecurityManager(priorManager);
-		}
-	}
-	
-	/**
-	 * Stops all r processes.
-	 * @throws Exception
-	 */
-	public static void endR() throws Exception {
-		
-		// Need to allow this process to execute the below commands
-		SecurityManager priorManager = System.getSecurityManager();
-		System.setSecurityManager(null);
-		
-		// End
-		try {
-			ProcessBuilder pb;
-			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
-			} else {
-				pb = new ProcessBuilder("pkill", "Rserve");
-			}
-			Process process = pb.start();
-			process.waitFor(7L, TimeUnit.SECONDS);
-		} finally {
-			
-			// Restore the prior security manager
-			System.setSecurityManager(priorManager);
-		}
-	}
-	
 	
 	////////////////////////////////////////
 	// Health check
 	////////////////////////////////////////
-	private boolean isHealthy() {
+	protected boolean isHealthy() {
 		boolean beating = false; // Healthy skepticism
 		
 		ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -489,23 +318,5 @@ public class RUserRserve {
 		return beating;
 	}
 	
-	
-	////////////////////////////////////////
-	// Port management
-	////////////////////////////////////////
-	private void setPort() {
-		while (!isPortAvailable(port)) {
-			port++;
-			if (port > PORT_MAX) throw new IllegalArgumentException("No more ports are available."); 
-		}
-	}
-	
-	private static boolean isPortAvailable(int port) {
-		try (ServerSocket s = new ServerSocket(port)) {
-			return true;
-		} catch (IOException e) {
-			return false;
-		}
-	}
 	
 }

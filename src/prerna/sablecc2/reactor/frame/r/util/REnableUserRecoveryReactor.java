@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
 import prerna.auth.User;
-import prerna.engine.impl.r.RUserRserve;
+import prerna.engine.impl.r.IRUserConnection;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -19,7 +19,7 @@ public class REnableUserRecoveryReactor extends AbstractReactor {
 		
 		User user = this.insight.getUser();
 		if (user == null) throw new IllegalArgumentException("User is not defined.");
-		RUserRserve rcon = user.getRcon();
+		IRUserConnection rcon = user.getRcon();
 		if (rcon == null) throw new IllegalArgumentException("The user's R connection is not defined.");
 		
 		String enableString = this.keyValue.get(this.keysToGet[0]);

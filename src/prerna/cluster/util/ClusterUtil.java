@@ -31,6 +31,11 @@ public class ClusterUtil {
 	public static final boolean SEMOSS_USER_RSERVE = System.getenv().containsKey(SEMOSS_USER_RSERVE_KEY)
 			? Boolean.parseBoolean(System.getenv(SEMOSS_USER_RSERVE_KEY))
 			: false;
+			
+	private static final String SEMOSS_R_USER_CONNECTION_TYPE_KEY = "SEMOSS_R_USER_CONNECTION_TYPE";
+	public static final String SEMOSS_R_USER_CONNECTION_TYPE = System.getenv().containsKey(SEMOSS_R_USER_CONNECTION_TYPE_KEY)
+			? System.getenv(SEMOSS_R_USER_CONNECTION_TYPE_KEY)
+			: "undefined";
 
 	private static final String LOAD_ENGINES_LOCALLY_KEY = "SEMOSS_LOAD_ENGINES_LOCALLY";
 	public static final boolean LOAD_ENGINES_LOCALLY = System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)
