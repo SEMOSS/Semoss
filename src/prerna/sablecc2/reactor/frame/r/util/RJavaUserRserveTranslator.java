@@ -14,12 +14,12 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.engine.impl.r.RUserRserve;
+import prerna.engine.impl.r.IRUserConnection;
 import prerna.util.ArrayUtilityMethods;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
-	private RUserRserve rcon;
+	private IRUserConnection rcon;
 	
 	
 	////////////////////////////////////////
@@ -32,17 +32,19 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			
 			// First define the rcon 
+			// TODO >>>timb: RCP - change from env to rdf for user
 			if (userRconIsDefined()) {
 				rcon = this.insight.getUser().getRcon();
 			} else {
 				if (userIsDefined()) {
-					this.insight.getUser().setRcon(new RUserRserve(getUserInfo()));
+					this.insight.getUser().setRcon(IRUserConnection.getRUserConnection(getUserInfo()));
 					rcon = this.insight.getUser().getRcon();
 				} else {
-					rcon = new RUserRserve();
+					rcon = IRUserConnection.getRUserConnection();
 				}
 				
 				// Then initialize
+				rcon.initializeConnection();
 				loadPackages();
 				initREnv();
 				setMemoryLimit();
@@ -143,7 +145,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public boolean cancelExecution() {
 		return false;
-		// TODO >>>timb: R - need to complete cancellation here
+		// TODO >>>timb: R - need to complete cancellation here (later)
 	}
 	
 	
@@ -257,7 +259,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	 */
 	public void endR() {
 		try {
-			RUserRserve.endR();
+			IRUserConnection.endR();
 		} catch (Exception e) {
 			logger.warn("Unable to end R.", e);
 		}
