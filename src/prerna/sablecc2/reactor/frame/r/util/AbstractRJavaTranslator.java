@@ -370,6 +370,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
     
 	@Override
 	public void runR(String script) {
+		// TODO >>>timb: R - refactor (later)
 		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		String baseDir = insightCacheLoc + "\\" + csvInsightCacheFolder + "\\";
@@ -393,56 +394,87 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override
 	public String runRAndReturnOutput(String script) {
-		// TODO >>>timb: R - Refactor this stuff and pull in error properly (later)
-		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		String baseDir = insightCacheLoc + "\\" + csvInsightCacheFolder + "\\";
-		String tempFileLocation = baseDir + Utility.getRandomString(15) + ".R";
-		tempFileLocation = tempFileLocation.replace("\\", "/");
-
-		String outputLoc = baseDir + Utility.getRandomString(15) + ".txt";
-		outputLoc = outputLoc.replace("\\", "/");
-		File outputF = new File(outputLoc);
-		try {
-			outputF.createNewFile();
-		} catch (IOException e) {
-			e.printStackTrace();
+		
+		// Clean the script
+		script = script.trim();
+		if(!script.endsWith(";")) {
+			script = script +";";
 		}
 		
-		String randomVariable = "con" + Utility.getRandomString(6);
-		File f = new File(tempFileLocation);
+		// Get temp folder and file locations
+		String rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
+		String scriptPath = rTemp + Utility.getRandomString(12) + ".R";
+		File scriptFile = new File(scriptPath);
+		String outputPath = rTemp + Utility.getRandomString(12) + ".txt";
+		File outputFile = new File(outputPath);
+		
+		// Wrap the script with our capture logic
+		String randomVariable = "con" + Utility.getRandomString(7);
+		script = randomVariable + "<- file(\"" + outputPath + "\"); " + 
+					"sink(" + randomVariable + ", append=TRUE, type=\"output\"); " +
+					"sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + 
+					script + " " + 
+					"sink();";
+		
+		// Try writing the script to a file
 		try {
-			script = script.trim();
-			if(!script.endsWith(";")) {
-				script = script +";";
-			}
-			script = randomVariable + "<- file(\"" + outputLoc + "\"); sink(" + randomVariable + ", append=TRUE, type=\"output\"); "
-					+ "sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + script + " sink();";
-			FileUtils.writeStringToFile(f, script);
-		} catch (IOException e1) {
-			System.out.println("Error in writing R script for execution!");
-			e1.printStackTrace();
-		}
-
-		String scriptOutput = null;
-		try {
-			String finalScript = "print(source(\"" + tempFileLocation + "\", print.eval=TRUE, local=TRUE)); ";
-			this.executeR(finalScript);
+			FileUtils.writeStringToFile(scriptFile, script);
+			String finalScript = "print(source(\"" + scriptPath + "\", print.eval=TRUE, local=TRUE)); ";
+			
+			// Try running the script, which saves the output to a file
+			RuntimeException error = null; // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
 			try {
-				scriptOutput = FileUtils.readFileToString(outputF);
-			} catch (IOException e) {
-				e.printStackTrace();
+				this.executeR(finalScript);
+			} catch (RuntimeException e) {
+				error = e; // Save the error so we can report it
 			}
+			
+			// Finally, read the output and return, or throw the appropriate error
+			try {
+				String output = FileUtils.readFileToString(outputFile).trim();
+				
+				// Error cases
+				if (output.startsWith("Error in eval(expr, envir, enclos) :")) {
+					throw new IllegalArgumentException(cleanErrorOutput(output));
+				} else if (error != null) {	
+					throw error;
+				}
+				
+				// Successful case
+				return output;
+			} catch (IOException e) {
+				
+				// If we have the detailed error, then throw it
+				if (error != null) {
+					throw error;
+				}
+				
+				// Otherwise throw a generic one
+				throw new IllegalArgumentException("Failed to run R script.");
+			} finally {
+				
+				// Cleanup
+				outputFile.delete();
+				this.executeEmptyR("rm(" + randomVariable + ")");
+				this.executeEmptyR("gc()"); // Garbage collection
+			}
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Error in writing R script for execution.", e);
 		} finally {
-			f.delete();
-			outputF.delete();
+			
+			// Cleanup
+			scriptFile.delete();
 		}
-		
-		// drop the random con variable
-		this.executeEmptyR("rm(" + randomVariable + ")");
-		this.executeEmptyR("gc()");
-		
-		// return the final output
-		return scriptOutput.trim();
+	}
+	
+	private static String cleanErrorOutput(String output) {
+		output = output.replaceAll("Error in eval\\(expr, envir, enclos\\) : ", "")
+				 .replaceAll("\r", "")
+				 .replaceAll("\n", " ");
+		int index = output.indexOf("In addition");
+		if (index != -1) {
+			output = output.substring(0, index);
+		}
+		return output.trim();
 	}
 }
