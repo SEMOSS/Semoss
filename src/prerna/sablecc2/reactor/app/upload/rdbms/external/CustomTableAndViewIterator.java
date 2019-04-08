@@ -19,7 +19,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable {
 
 	private ResultSet tablesRs;
-
+	private String[] tableKeys;
 	private boolean useDirectValues = false;
 	private Iterator<String> directValuesIterator;
 	
@@ -35,6 +35,7 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 		if(tableAndViewFilters == null || tableAndViewFilters.isEmpty()) {
 			try {
 				this.tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, driver);
+				this.tableKeys = RdbmsConnectionHelper.getTableKeys(driver);
 			} catch (SQLException e) {
 				throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
@@ -71,9 +72,9 @@ public class CustomTableAndViewIterator implements Iterator<String[]>, Closeable
 			tableType = "TABLE";
 		} else {
 			try {
-				tableOrViewName = this.tablesRs.getString("table_name");
-				tableType = this.tablesRs.getString("table_type");
-				tableSchema = this.tablesRs.getString("table_schem");
+				tableOrViewName = this.tablesRs.getString(this.tableKeys[0]);
+				tableType = this.tablesRs.getString(this.tableKeys[1]);
+				tableSchema = this.tablesRs.getString(this.tableKeys[2]);
 			} catch (SQLException e) {
 				throw new SemossPixelException(new NounMetadata("Unable to get tables from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}

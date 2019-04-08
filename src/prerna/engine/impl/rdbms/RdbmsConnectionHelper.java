@@ -320,6 +320,27 @@ public class RdbmsConnectionHelper {
 	}
 	
 	/**
+	 * Get the keys to grab from the result set from calling {@link #getTables}
+	 * First key is table name, second key is table type, the third is the table schema
+	 * @param driver
+	 * @return
+	 */
+	public static String[] getTableKeys(RdbmsTypeEnum driver) {
+		String[] arr = new String[3];
+		if(driver == RdbmsTypeEnum.SNOWFLAKE) {
+			arr[0] = "TABLE_NAME";
+			arr[1] = "TABLE_TYPE";
+			arr[2] = "TABLE_SCHEM";
+		} else {
+			arr[0] = "table_name";
+			arr[1] = "table_type";
+			arr[2] = "table_schem";
+		}
+		return arr;
+	}
+
+	
+	/**
 	 * Get columns result set for the given metadata parser, table or view name,
 	 * and catalog / schema filters. Must return a result set containing
 	 * column_name and type_name.
@@ -340,6 +361,24 @@ public class RdbmsConnectionHelper {
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 		}
 		return columnsRs;
+	}
+	
+	/**
+	 * Get the keys to grab from the result set from calling {@link #getColumns}
+	 * First key is column name, second key is column type
+	 * @param driver
+	 * @return
+	 */
+	public static String[] getColumnKeys(RdbmsTypeEnum driver) {
+		String[] arr = new String[2];
+		if(driver == RdbmsTypeEnum.SNOWFLAKE) {
+			arr[0] = "COLUMN_NAME";
+			arr[1] = "TYPE_NAME";
+		} else {
+			arr[0] = "column_name";
+			arr[1] = "type_name";
+		}
+		return arr;
 	}
 	
 	private static String predictSchemaFromUrl(String url) {
@@ -367,5 +406,6 @@ public class RdbmsConnectionHelper {
 		
 		return schema;
 	}
+	
 	
 }
