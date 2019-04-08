@@ -4,6 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -11,6 +15,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -39,9 +44,28 @@ public class RserveUtil {
 	private static final int PORT_MAX = 65535;
 	
 	
-	////////////////////////////////////////
-	// Start Rserve process
-	////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	// Connections
+	//////////////////////////////////////////////////////////////////////
+	public static RConnection connect(String host, int port) throws Exception {
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		try {
+			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
+				@Override
+				public RConnection call() throws Exception {
+					return new RConnection(host, port);
+				}
+			});
+			return future.get(7L, TimeUnit.SECONDS); 
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+	
+	
+	//////////////////////////////////////////////////////////////////////
+	// Start and stop
+	//////////////////////////////////////////////////////////////////////
 	public static void startR(int port) throws Exception {
 		
 		// Need to allow this process to execute the below commands
@@ -133,6 +157,10 @@ public class RserveUtil {
 		}
 	}
 	
+	
+	//////////////////////////////////////////////////////////////////////
+	// Ports
+	//////////////////////////////////////////////////////////////////////
 	public static int getOpenPort() {
 		int port = PORT_MIN;
 		while (!isPortAvailable(port)) {

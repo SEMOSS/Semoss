@@ -1,5 +1,7 @@
 package prerna.engine.impl.r;
 
+import org.apache.commons.lang.SystemUtils;
+
 public class RUserConnectionPooled extends AbstractRUserConnection {
 
 	private final RserveConnectionMeta rconMeta;
@@ -13,17 +15,21 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 		super();
 		this.rconMeta = RserveConnectionPool.getInstance().getConnection();
 	}
+			
+	@Override
+	public void initializeConnection() throws Exception {
+		if (SystemUtils.IS_OS_WINDOWS) { // On windows, we need to recycle the rcon
+			if (rconMeta.getRcon() != null) {
+				rcon = rconMeta.getRcon();
+			} else {
+				rcon = RserveUtil.connect(rconMeta.getHost(), rconMeta.getPort());
+				rconMeta.setRcon(rcon);
+			}
+		} else {
+			rcon = RserveUtil.connect(rconMeta.getHost(), rconMeta.getPort());
+		}
+	}
 	
-	@Override
-	protected String getHost() {
-		return rconMeta.getHost();
-	}
-
-	@Override
-	protected int getPort() {
-		return rconMeta.getPort();
-	}
-		
 	@Override
 	protected void recoverConnection() throws Exception {
 		RserveConnectionPool.getInstance().recoverConnection(rconMeta);
