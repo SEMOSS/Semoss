@@ -85,11 +85,19 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
+		String tableNameString = "table_name";
+		String tableTypeString = "table_type";
+
+		if(driver.toLowerCase().contains("snowflake")) {
+			tableNameString="TABLE_NAME";
+			tableTypeString="TABLE_TYPE";
+		}
+		
 		try {
 			while (tablesRs.next()) {
-				String table = tablesRs.getString("table_name");
+				String table = tablesRs.getString(tableNameString);
 				// this will be table or view
-				String tableType = tablesRs.getString("table_type").toUpperCase();
+				String tableType = tablesRs.getString(tableTypeString).toUpperCase();
 				if(tableType.toUpperCase().contains("TABLE")) {
 					logger.info("Found table = " + table);
 					tables.add(table);

@@ -130,8 +130,11 @@ public class RdbmsConnectionHelper {
 		else if (rdbmsType == RdbmsTypeEnum.SAP_HANA) {
 			connectionUrl = "jdbc:sap://HOST:PORT/?currentSchema=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
+		else if (rdbmsType == RdbmsTypeEnum.SNOWFLAKE) {
+			connectionUrl = "jdbc:snowflake://HOST:PORT/?db=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
 		else if (rdbmsType == RdbmsTypeEnum.SQLSERVER) {
-			connectionUrl = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl = "jdbc:sqlserver://HOST:PORT;database=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.TERADATA) {
 			connectionUrl = "jdbc:teradata://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
