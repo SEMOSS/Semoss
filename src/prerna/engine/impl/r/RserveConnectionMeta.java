@@ -17,5 +17,20 @@ public class RserveConnectionMeta {
 	public int getPort() {
 		return port;
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null) {
+			return false;
+		}
+		if (!RserveConnectionMeta.class.isAssignableFrom(obj.getClass())) {
+			return false;
+		}
+		RserveConnectionMeta other = (RserveConnectionMeta) obj;
+		if (other.getHost().equals(this.host) && other.getPort() == this.port) {
+			return true;
+		}
+		return false;
+	}
 		
 }
