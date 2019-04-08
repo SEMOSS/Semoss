@@ -20,6 +20,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	private SelectQueryStruct qs;
 
 	private String tempVarName;
+	private int totalNumRows;
 	private int numRows;
 
 	private String[] headers = null;
@@ -42,7 +43,8 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 		this.tempVarName = "temp" + Utility.getRandomString(6);
 		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
 		this.builder.evalR(tempVarQuery);
-		this.numRows = builder.getNumRows(this.tempVarName);
+		this.totalNumRows = builder.getNumRows(this.tempVarName);
+		this.numRows = this.totalNumRows;
 		
 		// need to account for limit and offset
 		long limit = qs.getLimit();
@@ -193,7 +195,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	}
 	
 	public int getNumRows() {
-		return this.numRows;
+		return this.totalNumRows;
 	}
 
 }
