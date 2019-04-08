@@ -37,15 +37,10 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 	}
 	
 	@Override
-	protected String getHost() {
-		return host;
+	public void initializeConnection() throws Exception {
+		rcon = RserveUtil.connect(host, port);
 	}
-
-	@Override
-	protected int getPort() {
-		return port;
-	}
-		
+	
 	@Override
 	protected void recoverConnection() throws Exception {
 		
