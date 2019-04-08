@@ -255,6 +255,10 @@ public class RDBMSEngineCreationHelper {
 		}
 		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driver, tablesToRetrieve); 
 
+		String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driver);
+		final String COLUMN_NAME_STR = columnKeys[0];
+		final String COLUMN_TYPE_STR = columnKeys[1];
+		
 		try {
 			while (tableViewIterator.hasNext()) {
 				String[] nextRow = tableViewIterator.next();
@@ -268,7 +272,7 @@ public class RDBMSEngineCreationHelper {
 				try {
 					keys = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
 					while(keys.next()) {
-						colDetails.put(keys.getString("column_name"), keys.getString("type_name"));
+						colDetails.put(keys.getString(COLUMN_NAME_STR), keys.getString(COLUMN_TYPE_STR));
 					}
 				} catch(SQLException e) {
 					e.printStackTrace();

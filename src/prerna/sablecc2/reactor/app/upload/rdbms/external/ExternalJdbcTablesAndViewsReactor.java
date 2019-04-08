@@ -77,27 +77,23 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			e1.printStackTrace();
 		}
 		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl);
-		
+		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
 		ResultSet tablesRs;
 		try {
-			tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, RdbmsTypeEnum.getEnumFromString(driver));
+			tablesRs = RdbmsConnectionHelper.getTables(con, meta, catalogFilter, schemaFilter, driverEnum);
 		} catch (SQLException e) {
 			throw new SemossPixelException(new NounMetadata("Unable to get tables and views from database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
-		String tableNameString = "table_name";
-		String tableTypeString = "table_type";
+		String[] tableKeys = RdbmsConnectionHelper.getTableKeys(driverEnum);
+		final String TABLE_NAME_STR = tableKeys[0];
+		final String TABLE_TYPE_STR = tableKeys[1];
 
-		if(driver.toLowerCase().contains("snowflake")) {
-			tableNameString="TABLE_NAME";
-			tableTypeString="TABLE_TYPE";
-		}
-		
 		try {
 			while (tablesRs.next()) {
-				String table = tablesRs.getString(tableNameString);
+				String table = tablesRs.getString(TABLE_NAME_STR);
 				// this will be table or view
-				String tableType = tablesRs.getString(tableTypeString).toUpperCase();
+				String tableType = tablesRs.getString(TABLE_TYPE_STR).toUpperCase();
 				if(tableType.toUpperCase().contains("TABLE")) {
 					logger.info("Found table = " + table);
 					tables.add(table);
