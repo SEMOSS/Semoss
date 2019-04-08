@@ -81,6 +81,7 @@ public class RserveConnectionPool implements IRserveConnectionPool {
 	@Override
 	public void recoverConnection(RserveConnectionMeta connection) throws Exception {
 		RserveUtil.stopR(connection.getPort());
+		connection.setRcon(null); // Now any connection is definitely invalid
 		RserveUtil.startR(connection.getPort());
 	}
 
