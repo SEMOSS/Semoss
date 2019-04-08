@@ -15,8 +15,9 @@ public enum RdbmsTypeEnum {
 	PHOENIX("PHOENIX", "org.apache.phoenix.jdbc.PhoenixDriver"),
 	POSTGRES("POSTGRES", "org.postgresql.Driver"),
 	SAP_HANA("SAP_HANA", "com.sap.db.jdbc.Driver"),
+	SNOWFLAKE("SNOWFLAKE","net.snowflake.client.jdbc.SnowflakeDriver"),
 	SQLSERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver"),
-	TERADATA("TERADATA", "com.teradata.jdbc.TeraDriver"),
+	TERADATA("TERADATA", "com.teradasta.jdbc.TeraDriver"),
 	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver"),
 	SQLITE("SQLITE", "org.sqlite.JDBC");
 	
