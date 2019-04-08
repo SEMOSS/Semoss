@@ -27,15 +27,20 @@ public class ClusterUtil {
 			? Boolean.parseBoolean(System.getenv(REMOTE_RSERVE_KEY))
 			: false;
 
-	private static final String SEMOSS_USER_RSERVE_KEY = "SEMOSS_USER_RSERVE";
-	public static final boolean SEMOSS_USER_RSERVE = System.getenv().containsKey(SEMOSS_USER_RSERVE_KEY)
-			? Boolean.parseBoolean(System.getenv(SEMOSS_USER_RSERVE_KEY))
+	private static final String IS_USER_RSERVE_KEY = "SEMOSS_IS_USER_RSERVE";
+	public static final boolean IS_USER_RSERVE = System.getenv().containsKey(IS_USER_RSERVE_KEY)
+			? Boolean.parseBoolean(System.getenv(IS_USER_RSERVE_KEY))
 			: false;
 			
-	private static final String SEMOSS_R_USER_CONNECTION_TYPE_KEY = "SEMOSS_R_USER_CONNECTION_TYPE";
-	public static final String SEMOSS_R_USER_CONNECTION_TYPE = System.getenv().containsKey(SEMOSS_R_USER_CONNECTION_TYPE_KEY)
-			? System.getenv(SEMOSS_R_USER_CONNECTION_TYPE_KEY)
+	private static final String R_USER_CONNECTION_TYPE_KEY = "SEMOSS_R_USER_CONNECTION_TYPE";
+	public static final String R_USER_CONNECTION_TYPE = System.getenv().containsKey(R_USER_CONNECTION_TYPE_KEY)
+			? System.getenv(R_USER_CONNECTION_TYPE_KEY)
 			: "undefined";
+			
+	private static final String RSERVE_CONNECTION_POOL_SIZE_KEY = "SEMOSS_RSERVE_CONNECTION_POOL_SIZE";
+	public static final int RSERVE_CONNECTION_POOL_SIZE = System.getenv().containsKey(RSERVE_CONNECTION_POOL_SIZE_KEY)
+			? Integer.parseInt(System.getenv(RSERVE_CONNECTION_POOL_SIZE_KEY))
+			: 12;
 
 	private static final String LOAD_ENGINES_LOCALLY_KEY = "SEMOSS_LOAD_ENGINES_LOCALLY";
 	public static final boolean LOAD_ENGINES_LOCALLY = System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)

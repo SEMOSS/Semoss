@@ -38,7 +38,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	// R connection
 	private Object rconMonitor = new Object();
-	private RConnection rcon;
+	protected RConnection rcon;
 	
 	
 	////////////////////////////////////////
@@ -51,30 +51,6 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	public AbstractRUserConnection() {
 		this(Utility.getRandomString(12));
 	}
-	
-	
-	////////////////////////////////////////
-	// Used to establish the rcon
-	////////////////////////////////////////
-	@Override
-	public void initializeConnection() throws Exception {
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		try {
-			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
-				@Override
-				public RConnection call() throws Exception {
-					return new RConnection(getHost(), getPort());
-				}
-			});
-			rcon = future.get(7L, TimeUnit.SECONDS); 
-		} finally {
-			executor.shutdownNow();
-		}
-	}
-	
-	protected abstract String getHost();
-	
-	protected abstract int getPort();
 	
 	
 	////////////////////////////////////////
