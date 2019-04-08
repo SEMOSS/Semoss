@@ -44,7 +44,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				
 				// Then initialize
 				rcon.initializeConnection();
-				loadPackages();
+				loadPackages(); // TODO >>>timb: R - uncomment this stuff
 				initREnv();
 				setMemoryLimit();
 			}
@@ -88,7 +88,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			logger.info("Loaded packages data.table");
 			
 			// reshape2
-			rcon.eval("library(reshape2);"); // TODO >>>timb: R - uncomment this stuff
+			rcon.eval("library(reshape2);");
 			logger.info("Loaded packages reshape2");
 			
 			// stringr

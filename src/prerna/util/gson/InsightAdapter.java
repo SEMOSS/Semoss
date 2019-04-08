@@ -377,7 +377,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				if(frame instanceof PandasFrame) {
 					((PandasFrame)frame).setJep(insight.getPy());
 				}
-				else if(ClusterUtil.SEMOSS_USER_RSERVE && frame instanceof RDataTable) {
+				else if(ClusterUtil.IS_USER_RSERVE && frame instanceof RDataTable) {
 					frame = new RDataTable(insight.getUser());
 				}
 				

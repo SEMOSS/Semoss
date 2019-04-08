@@ -76,8 +76,7 @@ public class RJavaTranslatorFactory {
 			
 			className = basePackage + "RJavaJriTranslator";
 			
-		}  else if (ClusterUtil.SEMOSS_USER_RSERVE) {
-			
+		} else if (ClusterUtil.IS_USER_RSERVE) {
 			className = basePackage + "RJavaUserRserveTranslator";
 			
 		} else if (Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))) {
