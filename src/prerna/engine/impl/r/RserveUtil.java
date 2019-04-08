@@ -135,7 +135,7 @@ public class RserveUtil {
 			} else {
 					
 				// Dump the output of lsof to a file
-				ProcessBuilder pbLsof = new ProcessBuilder("lsof", "-t", "-i:" + port);
+				ProcessBuilder pbLsof = new ProcessBuilder("lsof", "-t", "-i:" + port, "-sTCP:LISTEN");
 				pbLsof.redirectOutput(tempFile);
 				Process processLsof = pbLsof.start();
 				processLsof.waitFor(7L, TimeUnit.SECONDS);
