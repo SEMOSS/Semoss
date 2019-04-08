@@ -1,8 +1,18 @@
 package prerna.engine.impl.r;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 public class RserveConnectionPool implements IRserveConnectionPool {
 
 	private static final int MAX_POOL_SIZE = 12;
+
+	// TODO >>>timb: R - since this is running locally, do we need to specify the host at all? Can we just return a port for get connection? (later)
+	private static final String HOST = "127.0.0.1";
+
+	private Map<RserveConnectionMeta, Integer> pool = new ConcurrentHashMap<>();
+	
 	
 	//////////////////////////////////////////////////////////////////////
 	// Singleton implementation of IRserveConnectionPool
@@ -19,31 +29,65 @@ public class RserveConnectionPool implements IRserveConnectionPool {
 		
 	}
 	
+	
 	//////////////////////////////////////////////////////////////////////
 	// IRserveConnectionPool implementation
 	//////////////////////////////////////////////////////////////////////
 	@Override
 	public RserveConnectionMeta getConnection() {
-		// TODO >>>timb: RCP - Auto-generated method stub
-		return null;
+		
+		// Start a new Rserve if the pool is still less than the max size
+		if (pool.size() < MAX_POOL_SIZE) {
+			int port = RserveUtil.getOpenPort();
+			try {
+				RserveUtil.startR(port);
+				RserveConnectionMeta connection = new RserveConnectionMeta(HOST, port);
+				pool.put(connection, 1);
+				return connection;
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Failed to get connection.", e);
+			}
+		} else {
+			
+			// Otherwise, grab the least connection and increment by one
+			Map<RserveConnectionMeta, Integer> leastConnection = pool.entrySet().stream()
+					.sorted(Map.Entry.comparingByValue())
+					.limit(1)
+					.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+			RserveConnectionMeta connection = leastConnection.keySet().iterator().next();
+			pool.compute(connection, (k, v) -> v + 1);
+			return connection;
+		}
 	}
 
 	@Override
 	public void releaseConnection(RserveConnectionMeta connection) {
-		// TODO >>>timb: RCP - Auto-generated method stub
+		
+		// If there is only one connection on the process, then also stop this Rserve instance
+		if (pool.remove(connection, 1)) {
+			try {
+				RserveUtil.stopR(connection.getPort());
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Failed to release connection.", e);
+			}
+		} else {
+			
+			// Otherwise decrement the connection by one
+			pool.compute(connection, (k, v) -> v - 1);
+		}
 		
 	}
 
 	@Override
 	public void recoverConnection(RserveConnectionMeta connection) throws Exception {
-		// TODO >>>timb: RCP - Auto-generated method stub
-		
+		RserveUtil.stopR(connection.getPort());
+		RserveUtil.startR(connection.getPort());
 	}
 
 	@Override
 	public void shutdown() throws Exception {
-		// TODO Auto-generated method stub
-		
+		IRUserConnection.endR();
+		pool.clear();
 	}
 
 }

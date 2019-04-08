@@ -32,7 +32,6 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		try {
 			
 			// First define the rcon 
-			// TODO >>>timb: RCP - change from env to rdf for user
 			if (userRconIsDefined()) {
 				rcon = this.insight.getUser().getRcon();
 			} else {
@@ -89,7 +88,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			logger.info("Loaded packages data.table");
 			
 			// reshape2
-			rcon.eval("library(reshape2);");
+			rcon.eval("library(reshape2);"); // TODO >>>timb: R - uncomment this stuff
 			logger.info("Loaded packages reshape2");
 			
 			// stringr
@@ -101,8 +100,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			logger.info("Loaded packages lubridate");
 			
 			// dplyr
-//			rcon.eval("library(dplyr);");
-//			logger.info("Loaded packages dplyr");
+			rcon.eval("library(dplyr);");
+			logger.info("Loaded packages dplyr");
 			
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Could not load R libraries.\n Please make sure the following libraries are installed:\n " +
