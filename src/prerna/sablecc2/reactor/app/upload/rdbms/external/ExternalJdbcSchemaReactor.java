@@ -89,8 +89,9 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 			e1.printStackTrace();
 		}
 		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl);
+		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
 
-		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, RdbmsTypeEnum.getEnumFromString(driver), tableAndViewFilters); 
+		CustomTableAndViewIterator tableViewIterator = new CustomTableAndViewIterator(con, meta, catalogFilter, schemaFilter, driverEnum, tableAndViewFilters); 
 		
 		final String TABLE_KEY = "table";
 		final String COLUMNS_KEY = "columns";
@@ -102,6 +103,10 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 		final String FROM_TABLE_KEY = "fromTable";
 		final String FROM_COL_KEY = "fromCol";
 		
+		String[] columnKeys = RdbmsConnectionHelper.getColumnKeys(driverEnum);
+		final String COLUMN_NAME_STR = columnKeys[0];
+		final String COLUMN_TYPE_STR = columnKeys[1];
+
 		try {
 			while (tableViewIterator.hasNext()) {
 				String[] nextRow = tableViewIterator.next();
@@ -137,7 +142,7 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				try {
 					keys = meta.getPrimaryKeys(catalogFilter, schemaFilter, tableOrView);
 					while(keys.next()) {
-						primaryKeys.add(keys.getString("column_name"));
+						primaryKeys.add(keys.getString(COLUMN_NAME_STR));
 					}
 				} catch (SQLException e) {
 					e.printStackTrace();
@@ -153,12 +158,12 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 				try {
 					logger.info("....Processing columns");
 					
-					columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, RdbmsTypeEnum.getEnumFromString(driver));
+					columnsRs = RdbmsConnectionHelper.getColumns(meta, tableOrView, catalogFilter, schemaFilter, driverEnum);
 					
 					while (columnsRs.next()) {
-						String cName = columnsRs.getString("column_name");
+						String cName = columnsRs.getString(COLUMN_NAME_STR);
 						columnNames.add(cName);
-						columnTypes.add(columnsRs.getString("type_name"));
+						columnTypes.add(columnsRs.getString(COLUMN_TYPE_STR));
 						if(primaryKeys.contains(cName)) {
 							isPrimKeys.add(true);
 						} else {
