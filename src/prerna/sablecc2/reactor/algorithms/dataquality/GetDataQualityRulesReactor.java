@@ -18,12 +18,10 @@ public class GetDataQualityRulesReactor extends AbstractReactor{
 	public NounMetadata execute() {
 		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String fileLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP + "rule-defs.json";
-		System.out.println(fileLoc);
 		String fileString = IOUtils.stringFromFile(fileLoc);
 		Gson gson = new Gson();
 		Map<String, Object> rulesMap = gson.fromJson(fileString, Map.class);
 		NounMetadata noun = new NounMetadata(rulesMap, PixelDataType.MAP);
-
 		return noun;
 	}
 }
