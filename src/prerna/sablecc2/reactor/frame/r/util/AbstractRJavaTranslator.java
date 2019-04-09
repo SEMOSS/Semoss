@@ -469,6 +469,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	
 	private static String cleanErrorOutput(String output) {
 		output = output.replaceAll("Error in eval\\(expr, envir, enclos\\) : ", "")
+				 .replaceAll("Error in eval\\(ei, envir\\) : ", "")
 				 .replaceAll("\r", "")
 				 .replaceAll("\n", " ");
 		int index = output.indexOf("In addition");
