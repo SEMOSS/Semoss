@@ -16,37 +16,31 @@ genderRule <- function(dt, rule){
   ruleName <- c("Incorrect Gender Format")
   currCol <- rule$col
   currRule <- rule$rule
-  
   regex <- whatGenderRule(rule$options) #goes into options of the rule to pull out regex format desired
   
   tempArray <- dt[, get(rule$col)]
   totLength <- length(tempArray)
   tempTotErrs <- 0
   
-  logVecName <- paste(currCol,currRule,sep="_")
+  # logVecName <- paste(currCol,currRule,sep="_")
   
-  genderErrorArray <- character(totLength) #mirror array of column with valid/invalid if the cooresponding data point is valid or not
+  genderErrorArray <- character(totLength) # list of values to paint
+  # toColorVec <- vector()
   
-  for(j in 1:totLength){
-    if(grepl(regex, tempArray[j]) == FALSE){
-      genderErrorArray[j] <- 'invalid'
+  for(i in 1:totLength){
+    if(grepl(regex, tempArray[i]) == FALSE){
+      genderErrorArray[i] <- tempArray[i]
       tempTotErrs = tempTotErrs + 1
-    }
-    else if(is.na(tempArray[j])){
-      genderErrorArray[j] <- 'invalid'
-      tempTotErrs = tempTotErrs + 1
-    }
-    else{
-      genderErrorArray[j] <- 'valid'
     }
   }
-  logVector <- data.table(genderErrorArray)
-  names(logVector) <- c(logVecName)
+  
+  genderErrorArray <- genderErrorArray[!duplicated(genderErrorArray)]
+  
   totCorrect <- totLength - tempTotErrs
-  tempTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options)
-  names(tempTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description')
+  returnTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options, list(genderErrorArray))
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
 
-  return (list(tempTable, logVector))
+  return (returnTable)
 }
 
 whatGenderRule <- function(form){
