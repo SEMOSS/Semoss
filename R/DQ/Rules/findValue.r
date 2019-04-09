@@ -12,7 +12,6 @@ findValue <- function(dt, rule){
   
   ruleName <- c("Is In Column")
 
-  # numCols <- length(rule$cols)
   description = character()
 
   tempValFactor <- factor(rule$options)

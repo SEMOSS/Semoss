@@ -21,30 +21,35 @@ emailRule <- function(dt, rule) {
   totLength <- length(tempArray)
   tempTotErrs <- 0
   
-  logVecName <- paste(currCol,currRule,sep="_")
+  # logVecName <- paste(currCol,currRule,sep="_")
   
-  emailErrorArray <- character(totLength) #mirror array of column with valid/invalid if the cooresponding data point is valid or not
+  emailErrorArray <- character(totLength)  # list of values to paint
   
-  for(j in 1:totLength){
-    if(grepl(regex, tempArray[j]) == FALSE){
-      emailErrorArray[j] <- 'invalid'
+  for(i in 1:totLength){
+    if(grepl(regex, tempArray[i]) == FALSE){
+      # emailErrorArray[i] <- 'invalid'
+      emailErrorArray[i] <- tempArray[i]
       tempTotErrs = tempTotErrs + 1
     }
-    else if(is.na(tempArray[j])){
-      emailErrorArray[j] <- 'invalid'
-      tempTotErrs = tempTotErrs + 1
-    }
+    # else if(is.na(tempArray[i])){
+    #   # emailErrorArray[i] <- 'invalid'
+    #   tempTotErrs = tempTotErrs + 1
+    # }
     else{
-      emailErrorArray[j] <- 'valid'
+      # emailErrorArray[i] <- 'valid'
     }
   }
-  logVector <- data.table(emailErrorArray)
-  names(logVector) <- c(logVecName)
-  totCorrect <- totLength - tempTotErrs
-  tempTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options)
-  names(tempTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description')
   
-  return (list(tempTable, logVector))
+  emailErrorArray <- emailErrorArray[!duplicated(emailErrorArray)]
+  # toColor <- paste(unlist(emailErrorArray), collapse = ", ")
+  
+  totCorrect <- totLength - tempTotErrs
+  returnTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options, list(emailErrorArray))
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  
+  # return (list(tempTable, logVector))
+  return (returnTable)
+  
 }
 
 whatEmailRule <- function(form){

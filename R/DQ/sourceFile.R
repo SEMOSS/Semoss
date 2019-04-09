@@ -1,12 +1,13 @@
-source("C:/workspace/Semoss_Dev/R/DQ/missionControl.R")
 
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/isNull.r")
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/isUnique.r")
+sourceFiles <- function(base){
+  source(paste(base, "missionControl.R", sep = ""))
 
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/dateRule.r")
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/emailRule.r")
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/findValue.r")
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/genderRule.r")
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/nameRule.r")
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/PhoneNumRule.r")
-source("C:/workspace/Semoss_Dev/R/DQ/Rules/validator.r")
+  source(paste(base, "Rules/isNull.r", sep = ""))
+  source(paste(base, "Rules/isUnique.r", sep = ""))
+  source(paste(base, "Rules/dateRule.r", sep = ""))
+  source(paste(base, "Rules/emailRule.r", sep = ""))
+  source(paste(base, "Rules/findValue.r", sep = ""))
+  source(paste(base, "Rules/genderRule.r", sep = ""))
+  source(paste(base, "Rules/nameRule.r", sep = ""))
+  source(paste(base, "Rules/validator.r", sep = ""))
+}

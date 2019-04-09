@@ -16,22 +16,18 @@ duplicates <- function(dt, rule) {
   tempArray <- dt[, get(rule$col)]
   totLength <- length(tempArray)
   
-  logVecName <- paste(currCol,currRule,sep="_")
-  
   # Identify duplicates
   idx <- as.integer(duplicated(tempArray,incomparables=NA) | duplicated(tempArray, incomparables=NA,fromLast = TRUE))
 
+  tempArray <- tempArray[duplicated(tempArray)]
+  
   # Calculate values
   totErrs <- sum(idx, na.rm = TRUE)
   totCorrect <- totLength - totErrs - sum(is.na(tempArray))
   
-  # Construct table
-  idx[idx == 1] <- 'invalid'
-  idx[idx == 0] <- 'valid'
-  logVector <- data.table(idx)
-  names(logVector) <- c(logVecName)
-  tempTable <- data.table(rule$col, totErrs, totCorrect, totLength, ruleName, "N/A")
-  names(tempTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description')
-
-  return (list(tempTable, logVector))
+  returnTable <- data.table(currRule, totErrs, totCorrect, totLength, ruleName, rule$options, list(tempArray))
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  
+  # return (list(tempTable, logVector))
+  return (returnTable)
 }
