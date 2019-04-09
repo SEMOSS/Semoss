@@ -16,17 +16,18 @@ validator <- function(dt, rule){
   numValid <- sum(vec, na.rm = TRUE)
   numInvalid <- totLength - numValid
   
+  toColor <- character(totLength)
   vec <- as.integer(!vec)
-  vec[vec == 0] <- 'valid'
-  vec[vec == 1] <- 'invalid'
-
-  logVecName <- paste(currCol,currRule,sep="_")
-  logVector <- data.table(vec)
-  names(logVector) <- c(logVecName)
+  for(i in 1:totLength) {
+    if(vec[i] == 1) {
+      toColor[i] <- tempArray[i]
+    }
+  }
+  toColor <- toColor[!duplicated(toColor)]
   
   description <- paste(toValidateArray, collapse = ", ")
-  tempTable <- data.table(rule$col, numInvalid, numValid, totLength, ruleName, description)
-  names(tempTable) <- c('Columns', 'Errors', 'Valid', 'Total','Rules', 'Description')
+  returnTable <- data.table(currCol, numInvalid, numValid, totLength, ruleName, description, list(toColor))
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
   
-  return (list(tempTable, logVector))
+  return (returnTable)  
 }
