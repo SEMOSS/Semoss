@@ -44,8 +44,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				
 				// Then initialize
 				rcon.initializeConnection();
-				loadPackages(); // TODO >>>timb: R - uncomment this stuff
-				initREnv();
+				rcon.loadDefaultPackages();
+				initREnv(); // TODO>>>timb: R - why do we need these? They are not called in recover methods of the RUserConnection framework (later)
 				setMemoryLimit();
 			}
 		} catch (Exception e) {
@@ -72,45 +72,6 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			return String.join("-", userNames);
 		} else {
 			return "anonymous";
-		}
-	}
-		
-	private void loadPackages() {
-		try {
-			
-			// load all the libraries
-			// split stack shape
-			rcon.eval("library(splitstackshape);");
-			logger.info("Loaded packages splitstackshape");
-			
-			// data table
-			rcon.eval("library(data.table);");
-			logger.info("Loaded packages data.table");
-			
-			// reshape2
-			rcon.eval("library(reshape2);");
-			logger.info("Loaded packages reshape2");
-			
-			// stringr
-			rcon.eval("library(stringr)");
-			logger.info("Loaded packages stringr");
-			
-			// lubridate
-			rcon.eval("library(lubridate);");
-			logger.info("Loaded packages lubridate");
-			
-			// dplyr
-			rcon.eval("library(dplyr);");
-			logger.info("Loaded packages dplyr");
-			
-		} catch (Exception e) {
-			throw new IllegalArgumentException("Could not load R libraries.\n Please make sure the following libraries are installed:\n " +
-					"1)splitstackshape\n" +
-					"2)data.table\n" +
-					"3)reshape2\n" +
-					"4)stringr\n" +
-					"5)lubridate\n" +
-					"6)dplyr", e);
 		}
 	}
 	
