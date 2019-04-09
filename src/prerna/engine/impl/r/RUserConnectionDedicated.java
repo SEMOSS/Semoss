@@ -66,6 +66,7 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 	
 	@Override
 	public void stopR() throws Exception {
+		if (rcon != null) rcon.close();
 		RserveUtil.stopR(port);
 	}
 
