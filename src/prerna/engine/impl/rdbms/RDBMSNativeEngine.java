@@ -56,6 +56,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.H2SqlInterpreter;
 import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
 import prerna.query.interpreters.sql.PostgresSqlInterpreter;
+import prerna.query.interpreters.sql.SnowFlakeSqlInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -780,6 +781,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			return new MicrosoftSqlServerInterpreter(this);
 		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
 			return new PostgresSqlInterpreter(this);
+		} else if(dbType == RdbmsTypeEnum.SNOWFLAKE) {
+			return new SnowFlakeSqlInterpreter(this);
 		}
 		// defualt ansi sql 
 		return new SqlInterpreter(this);
