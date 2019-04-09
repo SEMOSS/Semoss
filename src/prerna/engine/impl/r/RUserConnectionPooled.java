@@ -44,6 +44,7 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	
 	@Override
 	public void stopR() throws Exception {
+		if (rcon != null) rcon.close();
 		RserveConnectionPool.getInstance().releaseConnection(rconMeta);
 	}
 
