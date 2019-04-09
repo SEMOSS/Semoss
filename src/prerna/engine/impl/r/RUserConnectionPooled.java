@@ -34,7 +34,8 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	protected void recoverConnection() throws Exception {
 		RserveConnectionPool.getInstance().recoverConnection(rconMeta);
 		initializeConnection();
-		
+		loadDefaultPackages();
+
 		// Make sure R is healthy
 		if (!isHealthy()) {
 			throw new IllegalArgumentException("Basic R heath check failed after restarting R.");

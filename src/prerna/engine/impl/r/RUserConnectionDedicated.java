@@ -56,7 +56,8 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 		// Try to start R and establish a new connection to it
 		RserveUtil.startR(port);
 		initializeConnection();
-		
+		loadDefaultPackages();
+
 		// Make sure R is healthy
 		if (!isHealthy()) {
 			throw new IllegalArgumentException("Basic R heath check failed after restarting R.");

@@ -35,6 +35,8 @@ public interface IRUserConnection {
 		}
 	}
 	
+	public void loadDefaultPackages() throws Exception;
+	
 	public void initializeConnection() throws Exception;
 
 	/**
