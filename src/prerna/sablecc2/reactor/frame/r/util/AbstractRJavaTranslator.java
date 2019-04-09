@@ -434,7 +434,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				String output = FileUtils.readFileToString(outputFile).trim();
 				
 				// Error cases
-				if (output.startsWith("Error in eval(expr, envir, enclos) :")) {
+				if (output.startsWith("Error in")) {
 					throw new IllegalArgumentException(cleanErrorOutput(output));
 				} else if (error != null) {	
 					throw error;
