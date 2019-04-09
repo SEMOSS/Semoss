@@ -23,18 +23,20 @@ isNull <- function(dt, rule){
   totLength <- length(tempArray)
   
   naArray <- is.na(tempArray)
-  naArray[naArray == 1] <- 'invalid'
-  naArray[naArray == 0] <- 'valid'
+  # naArray[naArray == TRUE] <- 'invalid'
+  # naArray[naArray == FALSE] <- 'valid'
   
-  logVecName <- paste(currCol,currRule,sep="_")
-  logVector <- data.table(naArray)
-  names(logVector) <- c(logVecName)
+  toColorVec <- c("", NA)
+  
+  # logVecName <- paste(currCol,currRule,sep="_")
+  # logVector <- data.table(naArray)
+  # names(logVector) <- c(logVecName)
 
   sumNAofCol <- sum(is.na(tempArray))
   sumCorrectofCol <- sum(!is.na(tempArray))
 
-  returnTable <- data.table(currCol, sumNAofCol, sumCorrectofCol, totLength, ruleName, "N/A")
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description')
+  returnTable <- data.table(currCol, sumNAofCol, sumCorrectofCol, totLength, ruleName, "N/A", list(toColorVec))
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
 
-  return (list(returnTable, logVector))
+  return (returnTable)
 }

@@ -16,7 +16,7 @@ missionControl <- function (dt, rulesList, resultsTable){
   
   dt[dt == ""] <- NA
   
-  tempResultsTable <- data.table(Columns=character(),Errors=integer(),Valid=integer(),Total=integer(),Rules=character(), Description=character())
+  tempResultsTable <- data.table(Columns=character(),Errors=integer(),Valid=integer(),Total=integer(),Rules=character(), Description=character(), toColor = list())
   
   numRules <- length(rulesList)
   
@@ -25,62 +25,37 @@ missionControl <- function (dt, rulesList, resultsTable){
     currCol = rulesList[[i]]$col
     
     if (currRule == "blanks") {
-      return <- isNull(dt, rulesList[[i]])
-      tempResultsTable <- return[[1]]
-      logVector <- return[[2]]
+      tempResultsTable <- isNull(dt, rulesList[[i]])
       resultsTable <- rbind(resultsTable, tempResultsTable)
-      dt <- cbind(dt, logVector)
     }
     # Check for incorrect gender format
     else if (currRule == "gender"){
-      return <- genderRule(dt, rulesList[[i]])
-      tempResultsTable <- return[[1]]
-      logVector <- return[[2]]
+      tempResultsTable <- genderRule(dt, rulesList[[i]])
       resultsTable <- rbind(resultsTable, tempResultsTable)
-      dt <- cbind(dt, logVector)
     }
     # Check for incorrect email format
     else if (currRule == "email"){
-      return <- emailRule(dt, rulesList[[i]])
-      tempResultsTable <- return[[1]]
-      logVector <- return[[2]]
+      tempResultsTable <- emailRule(dt, rulesList[[i]])
       resultsTable <- rbind(resultsTable, tempResultsTable)
-      dt <- cbind(dt, logVector)
     } 
     # Check for incorrect date format
     else if (currRule == "date"){ 
-      return <- dateRule(dt, rulesList[[i]])
-      tempResultsTable <- return[[1]]
-      logVector <- return[[2]]
+      tempResultsTable <- dateRule(dt, rulesList[[i]])
       resultsTable <- rbind(resultsTable, tempResultsTable)
-      dt <- cbind(dt, logVector)
     }
     # Check for duplicated entries
     else if (currRule == "duplicates"){
-      return <- duplicates(dt, rulesList[[i]])
-      tempResultsTable <- return[[1]]
-      logVector <- return[[2]]
+      tempResultsTable <- duplicates(dt, rulesList[[i]])
       resultsTable <- rbind(resultsTable, tempResultsTable)
-      dt <- cbind(dt, logVector)
     }
     # Check for incorrect name format
     else if(currRule == "name"){
-      return <- nameRule(dt, rulesList[[i]])
-      tempResultsTable <- return[[1]]
-      logVector <- return[[2]]
-      resultsTable <- rbind(resultsTable, tempResultsTable)
-      dt <- cbind(dt, logVector)
-    }
-    else if(currRule == "findVals"){
-      tempResultsTable <- findValue(dt, rulesList[[i]])
+      tempResultsTable <- nameRule(dt, rulesList[[i]])
       resultsTable <- rbind(resultsTable, tempResultsTable)
     }
     else if(currRule == "validate"){
-      return <- validator(dt, rulesList[[i]])
-      tempResultsTable <- return[[1]]
-      logVector <- return[[2]]
+      tempResultsTable <- validator(dt, rulesList[[i]])
       resultsTable <- rbind(resultsTable, tempResultsTable)
-      dt <- cbind(dt, logVector)
     }
     ##### ADD NEW RULES HERE #####
     ##### UNCOMMENT BELLOW AND FILL IN REQUIRED VALUES #####
