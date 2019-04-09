@@ -84,18 +84,20 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 			if(i + 1 != size){str.append(",");}
 		}
 		str.append(")");		
-		
+		System.out.println("WE ARE HERE");
 		////////  Variable that will be set to map of rules/ input of mission control //////
 		StringBuilder inputString = new StringBuilder();
 		String inputVariable = "inputRules_" + Utility.getRandomString(5);
 		inputString.append(inputVariable + " <- " + str + ";"); 
 		
 		// will call the script with all the source calls 
+		
 		StringBuilder rScript = new StringBuilder();
 		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		base = base.replace("\\", "/");
-		String fileLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP + "sourceFile.R";
-		rScript.append("source(\"" + fileLoc + "\");");
+		String dqDirLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP;
+		rScript.append("source(\"" + dqDirLoc + "sourceFile.R" + "\");");
+		rScript.append("sourceFiles(\"" + dqDirLoc + "\");");
 		
 		
 		String retRVariableName = null;
@@ -103,7 +105,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 			retRVariableName = inputTable.getName();
 		} else {
 			retRVariableName = "dataQualityTable_" + Utility.getRandomString(5);
-			rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character());");
+			rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), toColor = list());");
 		}
 		rScript.append(inputString.toString());
 		
@@ -121,7 +123,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		if(inputTable != null) {
 			return new NounMetadata(inputTable, PixelDataType.FRAME);
 		}
-		
+		System.out.println(rScript);
 		// make a new frame
 		RDataTable newFrame = createFrameFromVariable(retRVariableName);
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
