@@ -27,9 +27,15 @@ public class PraseSqlQueryForCount {
 			List<OrderByElement> orders = sb.getOrderByElements();
 			if(orders != null && !orders.isEmpty()) {
 				newQuery = newQuery.replaceAll("(?i)order\\s*by", "");
+				int counter = 0;
+				int size = orders.size();
 				for(OrderByElement order : orders) {
 					String orderExpression = toRegex(order.toString());
+					if(size > 1 && (counter + 1) < size) {
+						orderExpression += "\\s*,*";
+					}
 					newQuery = newQuery.replaceAll("(?i)" + orderExpression, "");
+					counter++;
 				}
 			}
 		}
