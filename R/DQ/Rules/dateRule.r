@@ -23,30 +23,35 @@ dateRule <- function(dt, rule) {
   totLength <- length(tempArray)
   tempTotErrs <- 0
   
-  logVecName <- paste(currCol,currRule,sep="_")
+  # logVecName <- paste(currCol,currRule,sep="_")
   
-  dateErrorArray <- character(totLength) #mirror array of column with valid/invalid if the cooresponding data point is valid or not
+  dateErrorArray <- character(totLength)  # list of values to paint
   
   for(i in 1:totLength){
     if(grepl(regex, tempArray[i]) == FALSE){
-      dateErrorArray[i] <- 'invalid'
+      # dateErrorArray[i] <- 'invalid'
+      dateErrorArray[i] <- tempArray[i]
       tempTotErrs = tempTotErrs + 1
     }
-    else if(is.na(tempArray[i])){
-      dateErrorArray[i] <- 'invalid'
-      tempTotErrs = tempTotErrs + 1
-    }
+    # else if(is.na(tempArray[i])){
+    #   # dateErrorArray[i] <- 'invalid'
+    #   tempTotErrs = tempTotErrs + 1
+    # }
     else{
-      dateErrorArray[i] <- 'valid'
+      # dateErrorArray[i] <- 'valid'
     }
   }
-  logVector <- data.table(dateErrorArray)
-  names(logVector) <- c(logVecName)
-  totCorrect <- totLength - tempTotErrs
-  tempTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options)
-  names(tempTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description')
+  # logVector <- data.table(dateErrorArray)
+  # names(logVector) <- c(logVecName)
+  dateErrorArray <- dateErrorArray[!duplicated(dateErrorArray)]
   
-  return (list(tempTable, logVector))
+  
+  totCorrect <- totLength - tempTotErrs
+  returnTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options, list(dateErrorArray))
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  
+  # return (list(tempTable, logVector))
+  return (returnTable)
 }
 
 whatDateRule <- function(form){

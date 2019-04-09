@@ -1,7 +1,7 @@
 {
     "rules" : [
         {
-            "name": "Date Format Rule",
+            "name": "Date Format",
             "ruleID": "date",
             "ruleDescription": "Identifies incorrectly formatted date entries",
             "option": true,
@@ -26,7 +26,7 @@
             ]
         },
         {
-            "name": "Email Format Rule",
+            "name": "Email Format",
             "ruleID": "email",
             "ruleDescription": "Identifies incorrectly formatted email entries",
             "option": true,
@@ -47,40 +47,7 @@
             ]
         },
         {
-            "name": "Gender Format Rule",
-            "ruleID": "gender",
-            "ruleDescription": "Identifies incorrectly formatted gender entries",
-            "option": true,
-            "optionType": "checklist",
-            "ruleOptions": [
-                {
-                    "displayName": "Upper or lower case single character (m/M/f/F)",
-                    "pixelName": "mM/fF"
-                },
-                {
-                    "displayName": "Lower case since character (m/f)",
-                    "pixelName": "m/f"
-                },
-                {
-                    "displayName": "Upper case single character (M/F)",
-                    "pixelName": "M/F"
-                },
-                {
-                    "displayName": "Upper or lower case full gender (mMale/fFemale)",
-                    "pixelName": "mMale/fFemale"
-                },
-                {
-                    "displayName": "Lower case full gender (male/female)",
-                    "pixelName": "male/female"
-                },
-                {
-                    "displayName": "Upper case full gender (Male/Female)",
-                    "pixelName": "Male/Female"
-                }
-            ]
-        },      
-        {
-            "name": "Name Format Rule",
+            "name": "Name Format",
             "ruleID": "name",
             "ruleDescription": "Identifies incorrectly formatted name entries",
             "option": true,
@@ -97,7 +64,7 @@
             ]
         },  
         {
-            "name": "Check For Blanks",
+            "name": "Blanks/Nulls/NAs",
             "ruleID": "blanks",
             "ruleDescription": "Identifies blank cells",
             "option": false,
@@ -105,7 +72,7 @@
             "ruleOptions": false
         },  
         {
-            "name": "Check For Duplicates",
+            "name": "Duplicates",
             "ruleID": "duplicates",
             "ruleDescription": "Identifies all non-unique values",
             "option": false,
