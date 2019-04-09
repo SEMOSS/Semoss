@@ -54,17 +54,6 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	
 	////////////////////////////////////////
-	// Raw R connection
-	////////////////////////////////////////
-	// TODO >>>timb: R - should get rid of this (later)
-	@Deprecated
-	@Override
-	public RConnection getRConnection() {
-		return rcon;
-	}
-	
-	
-	////////////////////////////////////////
 	// Mirroring RConnection methods
 	////////////////////////////////////////
 	@Override
@@ -187,6 +176,62 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				}
 		} else {			
 			throw recoveryStatus();
+		}
+	}
+	
+	
+	////////////////////////////////////////
+	// Raw R connection
+	////////////////////////////////////////
+	// TODO >>>timb: R - should get rid of this (later)
+	@Deprecated
+	@Override
+	public RConnection getRConnection() {
+		return rcon;
+	}
+	
+	
+	////////////////////////////////////////
+	// Package loading
+	////////////////////////////////////////
+	@Override
+	public void loadDefaultPackages() {
+		try {
+			
+			// load all the libraries
+			// split stack shape
+			synchronized (rconMonitor) {
+				rcon.eval("library(splitstackshape);");
+				LOGGER.info("Loaded packages splitstackshape");
+				
+				// data table
+				rcon.eval("library(data.table);");
+				LOGGER.info("Loaded packages data.table");
+				
+				// reshape2
+				rcon.eval("library(reshape2);");
+				LOGGER.info("Loaded packages reshape2");
+				
+				// stringr
+				rcon.eval("library(stringr)");
+				LOGGER.info("Loaded packages stringr");
+				
+				// lubridate
+				rcon.eval("library(lubridate);");
+				LOGGER.info("Loaded packages lubridate");
+				
+				// dplyr
+				rcon.eval("library(dplyr);");
+				LOGGER.info("Loaded packages dplyr");
+			}
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Could not load R libraries.\n Please make sure the following libraries are installed:\n " +
+					"1)splitstackshape\n" +
+					"2)data.table\n" +
+					"3)reshape2\n" +
+					"4)stringr\n" +
+					"5)lubridate\n" +
+					"6)dplyr", e);
 		}
 	}
 	
