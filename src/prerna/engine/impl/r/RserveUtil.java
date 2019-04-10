@@ -26,6 +26,7 @@ public class RserveUtil {
 	protected static final Logger LOGGER = LogManager.getLogger(RserveUtil.class.getName());
 	
 	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
+	private static final String R_DATA_EXT = ".RData";
 	private static final String FS = System.getProperty("file.separator");
 	
 	// R binary location
@@ -177,6 +178,22 @@ public class RserveUtil {
 	
 	
 	//////////////////////////////////////////////////////////////////////
+	// Recovery
+	//////////////////////////////////////////////////////////////////////
+	public static String getRDataFile(String rDataFileName) {
+		return R_FOLDER + rDataFileName + R_DATA_EXT;
+	}
+	
+	public static String getRDataFile(String rootDirectory, String rDataFileName) {
+		rootDirectory = rootDirectory.replace('\\', '/');
+		if (rootDirectory.endsWith("/")) {
+			rootDirectory = rootDirectory.substring(0, rootDirectory.length() - 1);
+		}
+		return rootDirectory.replace('\\', '/') + '/' + rDataFileName + R_DATA_EXT;
+	}
+	
+	
+	//////////////////////////////////////////////////////////////////////
 	// Ports
 	//////////////////////////////////////////////////////////////////////
 	public static int getOpenPort() {
@@ -195,5 +212,5 @@ public class RserveUtil {
 			return false;
 		}
 	}
-	
+		
 }

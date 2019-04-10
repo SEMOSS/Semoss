@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.frame.r.util;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,8 +15,12 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.impl.r.IRUserConnection;
+import prerna.engine.impl.r.RserveUtil;
 import prerna.util.ArrayUtilityMethods;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
@@ -36,7 +41,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				rcon = this.insight.getUser().getRcon();
 			} else {
 				if (userIsDefined()) {
-					this.insight.getUser().setRcon(IRUserConnection.getRUserConnection(getUserInfo()));
+					this.insight.getUser().setRcon(IRUserConnection.getRUserConnection(getRDataFile()));
 					rcon = this.insight.getUser().getRcon();
 				} else {
 					rcon = IRUserConnection.getRUserConnection();
@@ -62,16 +67,26 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	}
 	
 	private String getUserInfo() {
+		User user = this.insight.getUser();
+		AuthProvider primaryProvider = user.getPrimaryLogin();
+		AccessToken token = user.getAccessToken(primaryProvider);
+		String userInfo = primaryProvider.name() + "___" + token.getName().replaceAll(" ", "_");
+		return userInfo; 
+	}
+	
+	private String getRDataFile() {
 		if (userIsDefined()) {
-			List<String> userNames = new ArrayList<>();
-			User user = this.insight.getUser();
-			for (AuthProvider provider : user.getLogins()) {
-				AccessToken token = user.getAccessToken(provider);
-				userNames.add(token.getName());
+			if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USER_WORKSPACE))) {
+				String assetDirectory = WorkspaceAssetUtils.getUserAssetRootDirectory(this.insight.getUser(), this.insight.getUser().getPrimaryLogin());
+				if (assetDirectory != null && new File(assetDirectory).isDirectory()) {
+					String rDataDirectory = assetDirectory + "/" + "RData";
+					new File(rDataDirectory).mkdir();
+					return RserveUtil.getRDataFile(rDataDirectory, getUserInfo());
+				}
 			}
-			return String.join("-", userNames);
+			return RserveUtil.getRDataFile(getUserInfo());
 		} else {
-			return "anonymous";
+			return RserveUtil.getRDataFile("anonymous");
 		}
 	}
 	
