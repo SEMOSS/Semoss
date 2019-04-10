@@ -32,6 +32,7 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	
 	@Override
 	protected void recoverConnection() throws Exception {
+		if (rcon != null) rcon.close();
 		RserveConnectionPool.getInstance().recoverConnection(rconMeta);
 		initializeConnection();
 		loadDefaultPackages();
