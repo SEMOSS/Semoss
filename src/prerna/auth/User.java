@@ -82,6 +82,28 @@ public class User extends AbstractValueObject {
 	}
 	
 	/**
+	 * Drop the access token for a given provider
+	 * @param tokenKey		The name of the provider
+	 * @return				boolean if the provider was dropped
+	 */
+	public boolean dropAccessToken(AuthProvider tokenKey) {
+		// remove from token map
+		AccessToken token = accessTokens.remove(tokenKey);
+		// remove from profiles list
+		loggedInProfiles.remove(tokenKey);
+		// return false if the token actually wasn't found
+		if(token == null) {
+			return false;
+		}
+		
+		// recalculate the primary login
+		if(this.primaryLogin == tokenKey && !this.loggedInProfiles.isEmpty()) {
+			this.primaryLogin = this.loggedInProfiles.get(0);
+		}
+		return true;
+	}
+	
+	/**
 	 * Get the list of logged in profiles
 	 * @return
 	 */
@@ -138,6 +160,14 @@ public class User extends AbstractValueObject {
 		return this.assetEngineMap.get(token);
 	}
 
+	public Map<AuthProvider, String> getWorkspaceEngineMap() {
+		return this.workspaceEngineMap;
+	}
+	
+	public Map<AuthProvider, String> getAssetEngineMap() {
+		return this.assetEngineMap;
+	}
+	
 	////////////////////////////////////////////////////////////////////////
 
 	public IRUserConnection getRcon() {
