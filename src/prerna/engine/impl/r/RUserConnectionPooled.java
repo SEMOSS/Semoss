@@ -33,10 +33,15 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	@Override
 	protected void recoverConnection() throws Exception {
 		if (rcon != null) rcon.close();
-		RserveConnectionPool.getInstance().recoverConnection(rconMeta);
-		initializeConnection();
-		loadDefaultPackages();
-
+		try {
+			//Rcon has died. Try to recover on existing Rserve port before killing Rserve and restarting
+			initializeConnection();
+			loadDefaultPackages();
+		} catch (Exception e) {
+			RserveConnectionPool.getInstance().recoverConnection(rconMeta);
+			initializeConnection();
+			loadDefaultPackages();
+		}
 		// Make sure R is healthy
 		if (!isHealthy()) {
 			throw new IllegalArgumentException("Basic R heath check failed after restarting R.");
