@@ -1,6 +1,5 @@
 package prerna.engine.impl;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -12,8 +11,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.cluster.util.CloudClient;
-import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightCacheUtility;
 import prerna.util.Constants;
@@ -147,13 +144,14 @@ class InsightCacher implements Runnable {
 					created = true;
 				}
 				
-				if(ClusterUtil.IS_CLUSTER) {
-					try {
-						CloudClient.getClient().pushApp(this.workspaceAppId);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
+				// this has been moved to be performed on user logout/session invalidation
+//				if(ClusterUtil.IS_CLUSTER) {
+//					try {
+//						CloudClient.getClient().pushApp(this.workspaceAppId);
+//					} catch (IOException e) {
+//						e.printStackTrace();
+//					}
+//				}
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
