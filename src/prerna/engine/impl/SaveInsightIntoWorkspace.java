@@ -16,6 +16,7 @@ import prerna.cluster.util.CloudClient;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.om.InsightCacheUtility;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
@@ -88,7 +89,7 @@ public class SaveInsightIntoWorkspace {
 	
 	public static boolean isCacheUserWorkspace() {
 		if(SAVE_USER_WORKSPACE == null) {
-			SAVE_USER_WORKSPACE = Boolean.parseBoolean(DIHelper.getInstance().getProperty("USER_WORKSPACE"));
+			SAVE_USER_WORKSPACE = Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USER_WORKSPACE));
 		}
 		return SAVE_USER_WORKSPACE;
 	}
