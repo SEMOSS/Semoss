@@ -6,8 +6,8 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 
 	private final RserveConnectionMeta rconMeta;
 
-	public RUserConnectionPooled(String rDataFileName) {
-		super(rDataFileName);
+	public RUserConnectionPooled(String rDataFile) {
+		super(rDataFile);
 		this.rconMeta = RserveConnectionPool.getInstance().getConnection();
 	}
 
@@ -34,7 +34,8 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	protected void recoverConnection() throws Exception {
 		if (rcon != null) rcon.close();
 		try {
-			//Rcon has died. Try to recover on existing Rserve port before killing Rserve and restarting
+
+			// First try to reestablish the connection without restarting Rserve itself
 			initializeConnection();
 			loadDefaultPackages();
 		} catch (Exception e) {
@@ -42,6 +43,7 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 			initializeConnection();
 			loadDefaultPackages();
 		}
+		
 		// Make sure R is healthy
 		if (!isHealthy()) {
 			throw new IllegalArgumentException("Basic R heath check failed after restarting R.");

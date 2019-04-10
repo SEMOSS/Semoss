@@ -16,21 +16,15 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RSession;
 import org.rosuda.REngine.Rserve.RserveException;
 
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	protected static final Logger LOGGER = LogManager.getLogger(AbstractRUserConnection.class.getName());
 	
-	// File structure
-	private static final String R_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
-	
 	// Recovery
 	private boolean recoveryEnabled = false;
 	private final String rDataFile;
-	private static final String R_DATA_EXT = ".RData";
 	
 	// R timeout
 	private static final long R_TIMEOUT = 7L;
@@ -44,14 +38,14 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	////////////////////////////////////////
 	// Constructors, overloaded for defaults
 	////////////////////////////////////////
-	public AbstractRUserConnection(String rDataFileName) {
-		this.rDataFile = R_FOLDER + rDataFileName + R_DATA_EXT;
+	public AbstractRUserConnection(String rDataFile) {		
+		this.rDataFile = rDataFile; 		
 	}
 
 	public AbstractRUserConnection() {
-		this(Utility.getRandomString(12));
+		this(RserveUtil.getRDataFile(Utility.getRandomString(12)));
 	}
-	
+		
 	
 	////////////////////////////////////////
 	// Mirroring RConnection methods

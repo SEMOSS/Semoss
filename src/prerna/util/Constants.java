@@ -577,4 +577,6 @@ public class Constants {
 	// python
 	public static final String PY_BASE_FOLDER = "PY";
 
+	// Workspace
+	public static final String USER_WORKSPACE = "USER_WORKSPACE";
 }
