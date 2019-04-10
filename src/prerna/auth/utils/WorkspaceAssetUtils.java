@@ -278,4 +278,29 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		return getUserAssetApp(user.getAccessToken(provider));
 	}
 	
+	/**
+	 * See if the app is a workspace or asset app
+	 * @param appId
+	 * @return
+	 */
+	public static boolean isAssetOrWorkspaceApp(String appId) {
+		String query = "SELECT ENGINEID FROM WORKSPACEENGINE WHERE ENGINEID='" + appId + "'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			if (wrapper.hasNext()) {
+				return true;
+			} else {
+				wrapper.cleanUp();
+				query = "SELECT ENGINEID FROM ASSETENGINE WHERE ENGINEID='" + appId + "'";
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+				if (wrapper.hasNext()) {
+					return true;
+				}
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+		return false;
+	}
+	
 }
