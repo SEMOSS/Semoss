@@ -4,8 +4,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import prerna.cluster.util.ClusterUtil;
-
 public class RserveConnectionPool implements IRserveConnectionPool {
 
 	// TODO >>>timb: R - since this is running locally, do we need to specify the host at all? Can we just return a port for get connection? (later)
@@ -37,7 +35,7 @@ public class RserveConnectionPool implements IRserveConnectionPool {
 	public RserveConnectionMeta getConnection() {
 		
 		// Start a new Rserve if the pool is still less than the max size
-		if (pool.size() < ClusterUtil.RSERVE_CONNECTION_POOL_SIZE) {
+		if (pool.size() < RserveUtil.RSERVE_CONNECTION_POOL_SIZE) {
 			int port = RserveUtil.getOpenPort();
 			try {
 				RserveUtil.startR(port);

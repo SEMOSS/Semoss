@@ -7,13 +7,11 @@ import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RSession;
 
-import prerna.cluster.util.ClusterUtil;
-
 public interface IRUserConnection {
 
 	public static final String POOLED = "pooled";
 	public static final String DEDICATED = "dedicated";
-	public static final String TYPE = ClusterUtil.R_USER_CONNECTION_TYPE;
+	public static final String TYPE = RserveUtil.R_USER_CONNECTION_TYPE;
 	
 	public static IRUserConnection getRUserConnection(String rDataFile) {
 		if (TYPE.equals(POOLED)) {
