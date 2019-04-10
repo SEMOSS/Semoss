@@ -45,6 +45,24 @@ public class RserveUtil {
 	
 	
 	//////////////////////////////////////////////////////////////////////
+	// Rserve properties
+	//////////////////////////////////////////////////////////////////////
+	// TODO >>>timb: R - pull these from RDF map instead of the env vars
+	private static final String IS_USER_RSERVE_KEY = "IS_USER_RSERVE";
+	public static final boolean IS_USER_RSERVE = Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_USER_RSERVE_KEY));
+			
+	private static final String R_USER_CONNECTION_TYPE_KEY = "R_USER_CONNECTION_TYPE";
+	public static final String R_USER_CONNECTION_TYPE = DIHelper.getInstance().getProperty(R_USER_CONNECTION_TYPE_KEY) != null
+			? DIHelper.getInstance().getProperty(R_USER_CONNECTION_TYPE_KEY)
+			: "undefined";
+			
+	private static final String RSERVE_CONNECTION_POOL_SIZE_KEY = "RSERVE_CONNECTION_POOL_SIZE";
+	public static final int RSERVE_CONNECTION_POOL_SIZE = DIHelper.getInstance().getProperty(RSERVE_CONNECTION_POOL_SIZE_KEY) != null
+			? Integer.parseInt(DIHelper.getInstance().getProperty(RSERVE_CONNECTION_POOL_SIZE_KEY))
+			: 12;
+	
+			
+	//////////////////////////////////////////////////////////////////////
 	// Connections
 	//////////////////////////////////////////////////////////////////////
 	public static RConnection connect(String host, int port) throws Exception {
