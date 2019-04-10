@@ -195,6 +195,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 			String[] relSplit = rel.split("\\.");
 			if(relSplit.length == 4) {
+				// this is RDBMS
 				String sourceTable = relSplit[0];
 				String sourceColumn = relSplit[1];
 				String targetTable = relSplit[2];
@@ -223,6 +224,27 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					rTableNames += ",'" + sourceTable + "'" ;
 					rColNames += ",'" + sourceColumn + "'" ;
 					rColTypes += ", 'STRING' ";
+				}
+				//no longer adding the first row to this data frame, increment..
+				firstRel++;
+			} else {
+				// this is an RDF or Graph
+				String sourceTable = entry[1];
+				String sourceColumn = entry[1];
+				String targetTable = entry[2];
+				String targetColumn = entry[2];
+				if(firstRel == 0) {
+					rAppIDs_join += "'" + appId + "'";
+					rTbl1 += "'" + sourceTable + "'" ;
+					rTbl2 += "'" + targetTable + "'" ;
+					rJoinBy1 += "'" + sourceColumn + "'" ;
+					rJoinBy2 += "'" + targetColumn + "'" ;
+				} else {
+					rAppIDs_join += ",'" +  appId + "'" ;
+					rTbl1 += ",'" + sourceTable + "'" ;
+					rTbl2 += ",'" + targetTable + "'" ;
+					rJoinBy1 += ",'" + sourceColumn + "'" ;
+					rJoinBy2 += ",'" + targetColumn + "'" ;
 				}
 				//no longer adding the first row to this data frame, increment..
 				firstRel++;
