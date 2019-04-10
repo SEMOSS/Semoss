@@ -22,6 +22,7 @@ public class GetDataQualityRulesReactor extends AbstractReactor{
 		Gson gson = new Gson();
 		Map<String, Object> rulesMap = gson.fromJson(fileString, Map.class);
 		NounMetadata noun = new NounMetadata(rulesMap, PixelDataType.MAP);
+
 		return noun;
 	}
 }

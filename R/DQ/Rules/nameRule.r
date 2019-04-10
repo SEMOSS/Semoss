@@ -13,7 +13,7 @@ library(data.table)
 
 nameRule <- function(dt, rule){
   
-  ruleName <- c("Incorrect Name Format")
+  ruleName <- c("Name Format")
   currCol <- rule$col
   currRule <- rule$rule
   
@@ -33,14 +33,13 @@ nameRule <- function(dt, rule){
   }
   
   nameErrorArray <- nameErrorArray[!duplicated(nameErrorArray)]
-  
+  toPaint <- paste(nameErrorArray, collapse = "\", \"" )
+  toPaint <- paste0('\"', toPaint, '\"')
   totCorrect <- totLength - tempTotErrs
-  returnTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options, list(nameErrorArray))
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, rule$options, currRule, toPaint)
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
   
   return (returnTable)
-  
-
 }
 
 whatNameRule <- function(form){
