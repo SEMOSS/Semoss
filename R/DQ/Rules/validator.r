@@ -2,7 +2,7 @@ library(data.table)
 
 validator <- function(dt, rule){
   
-  ruleName <- c("Validator")
+  ruleName <- c("Validate Values")
   currCol <- rule$col
   currRule <- rule$rule
   
@@ -13,21 +13,22 @@ validator <- function(dt, rule){
   toValidate <- length(toValidateArray)
   
   vec <- (tempArray %in% toValidateArray)
-  numValid <- sum(vec, na.rm = TRUE)
-  numInvalid <- totLength - numValid
+  totCorrect <- sum(vec, na.rm = TRUE)
+  tempTotErrs <- totLength - totCorrect
   
-  toColor <- character(totLength)
+  toPaint <- character(totLength)
   vec <- as.integer(!vec)
   for(i in 1:totLength) {
     if(vec[i] == 1) {
-      toColor[i] <- tempArray[i]
+      toPaint[i] <- tempArray[i]
     }
   }
-  toColor <- toColor[!duplicated(toColor)]
-  
+  toPaint <- toPaint[!duplicated(toPaint)]
+  toPaint <- paste(toPaint, collapse = "\", \"" )
+  toPaint <- paste0('\"', toPaint, '\"')
   description <- paste(toValidateArray, collapse = ", ")
-  returnTable <- data.table(currCol, numInvalid, numValid, totLength, ruleName, description, list(toColor))
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, rule$options, currRule, toPaint)
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
   
   return (returnTable)  
 }

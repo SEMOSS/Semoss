@@ -20,14 +20,14 @@ duplicates <- function(dt, rule) {
   idx <- as.integer(duplicated(tempArray,incomparables=NA) | duplicated(tempArray, incomparables=NA,fromLast = TRUE))
 
   tempArray <- tempArray[duplicated(tempArray)]
-  
+  toPaint <- paste(tempArray, collapse = "\", \"" )
+  toPaint <- paste0('\"', toPaint, '\"')
   # Calculate values
   totErrs <- sum(idx, na.rm = TRUE)
   totCorrect <- totLength - totErrs - sum(is.na(tempArray))
   
-  returnTable <- data.table(currRule, totErrs, totCorrect, totLength, ruleName, rule$options, list(tempArray))
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, rule$options, currRule, toPaint)
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
   
-  # return (list(tempTable, logVector))
   return (returnTable)
 }
