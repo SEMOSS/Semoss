@@ -13,7 +13,7 @@ library(data.table)
 
 dateRule <- function(dt, rule) {
   
-  ruleName <- c("Incorrect Date Format")  
+  ruleName <- c("Date Format")  
   currCol <- rule$col
   currRule <- rule$rule
   
@@ -23,34 +23,20 @@ dateRule <- function(dt, rule) {
   totLength <- length(tempArray)
   tempTotErrs <- 0
   
-  # logVecName <- paste(currCol,currRule,sep="_")
-  
   dateErrorArray <- character(totLength)  # list of values to paint
-  
   for(i in 1:totLength){
     if(grepl(regex, tempArray[i]) == FALSE){
-      # dateErrorArray[i] <- 'invalid'
       dateErrorArray[i] <- tempArray[i]
       tempTotErrs = tempTotErrs + 1
     }
-    # else if(is.na(tempArray[i])){
-    #   # dateErrorArray[i] <- 'invalid'
-    #   tempTotErrs = tempTotErrs + 1
-    # }
-    else{
-      # dateErrorArray[i] <- 'valid'
-    }
   }
-  # logVector <- data.table(dateErrorArray)
-  # names(logVector) <- c(logVecName)
   dateErrorArray <- dateErrorArray[!duplicated(dateErrorArray)]
-  
-  
+  toPaint <- paste(dateErrorArray, collapse = "\", \"" )
+  toPaint <- paste0('\"', toPaint, '\"')
   totCorrect <- totLength - tempTotErrs
-  returnTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options, list(dateErrorArray))
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, rule$options, currRule, toPaint)
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
   
-  # return (list(tempTable, logVector))
   return (returnTable)
 }
 
