@@ -308,8 +308,8 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////
 	// Asset folder locations
 	//////////////////////////////////////////////////////////////////////
-	public static String getUserAssetRootDirectory(AccessToken token) {
-		String assetAppId = getUserAssetApp(token);
+	public static String getUserAssetRootDirectory(User user, AuthProvider provider) {
+		String assetAppId = user.getAssetEngineId(provider);
 		if (assetAppId != null) {
 			IEngine assetEngine = Utility.getEngine(assetAppId);
 			if (assetEngine != null) {
@@ -320,10 +320,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 			}
 		}
 		return null;
-	}
-	
-	public static String getUserAssetRootDirectory(User user, AuthProvider provider) {
-		return getUserAssetRootDirectory(user.getAccessToken(provider));
 	}
 
 }
