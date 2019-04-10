@@ -24,6 +24,12 @@ USE_PYTHON false
 
 USE_R true
 R_CONNECTION_JRI	true
+#JRI must be false in order to use user rserve
+IS_USER_RSERVE false
+#Options are pooled or dedicated
+R_USER_CONNECTION_TYPE pooled
+#Only relevant if set to pooled
+RSERVE_CONNECTION_POOL_SIZE 12
 R_MEM_LIMIT 4096
 FRAME_SIZE_LIMIT -1
 
