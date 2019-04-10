@@ -23,10 +23,10 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
-import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.om.InsightCacheUtility;
 import prerna.om.InsightPanel;
@@ -377,7 +377,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				if(frame instanceof PandasFrame) {
 					((PandasFrame)frame).setJep(insight.getPy());
 				}
-				else if(ClusterUtil.IS_USER_RSERVE && frame instanceof RDataTable) {
+				else if(RserveUtil.IS_USER_RSERVE && frame instanceof RDataTable) {
 					frame = new RDataTable(insight.getUser());
 				}
 				
