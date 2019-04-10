@@ -20,6 +20,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	
@@ -303,4 +304,26 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		return false;
 	}
 	
+	
+	//////////////////////////////////////////////////////////////////////
+	// Asset folder locations
+	//////////////////////////////////////////////////////////////////////
+	public static String getUserAssetRootDirectory(AccessToken token) {
+		String assetAppId = getUserAssetApp(token);
+		if (assetAppId != null) {
+			IEngine assetEngine = Utility.getEngine(assetAppId);
+			if (assetEngine != null) {
+				String assetAppName = assetEngine.getEngineName();
+				if (assetAppName != null) {
+					return DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FS + "db" + FS + assetAppName + "__" + assetAppId + FS + "version";
+				}
+			}
+		}
+		return null;
+	}
+	
+	public static String getUserAssetRootDirectory(User user, AuthProvider provider) {
+		return getUserAssetRootDirectory(user.getAccessToken(provider));
+	}
+
 }

@@ -9,14 +9,14 @@ public class RUserConnectionDedicated extends AbstractRUserConnection {
 	private static final int PORT_MAX = 65535;
 	
 	// TODO >>>timb: R - this constructor is never used, so the host is not really configurable right now (later)
-	public RUserConnectionDedicated(String rDataFileName, String host) {
-		super(rDataFileName);
+	public RUserConnectionDedicated(String rDataFile, String host) {
+		super(rDataFile);
 		this.host = host;
 		init();
 	}
 	
-	public RUserConnectionDedicated(String rDataFileName) {
-		super(rDataFileName);
+	public RUserConnectionDedicated(String rDataFile) {
+		super(rDataFile);
 		this.host = DEFAULT_HOST;
 		init();
 	}
