@@ -11,7 +11,7 @@
 
 emailRule <- function(dt, rule) {
 
-  ruleName <- c("Incorrect Email Format")
+  ruleName <- c("Email Format")
   currCol <- rule$col
   currRule <- rule$rule
   
@@ -21,35 +21,23 @@ emailRule <- function(dt, rule) {
   totLength <- length(tempArray)
   tempTotErrs <- 0
   
-  # logVecName <- paste(currCol,currRule,sep="_")
-  
   emailErrorArray <- character(totLength)  # list of values to paint
   
   for(i in 1:totLength){
     if(grepl(regex, tempArray[i]) == FALSE){
-      # emailErrorArray[i] <- 'invalid'
       emailErrorArray[i] <- tempArray[i]
       tempTotErrs = tempTotErrs + 1
-    }
-    # else if(is.na(tempArray[i])){
-    #   # emailErrorArray[i] <- 'invalid'
-    #   tempTotErrs = tempTotErrs + 1
-    # }
-    else{
-      # emailErrorArray[i] <- 'valid'
     }
   }
   
   emailErrorArray <- emailErrorArray[!duplicated(emailErrorArray)]
-  # toColor <- paste(unlist(emailErrorArray), collapse = ", ")
-  
+  toPaint <- paste(emailErrorArray, collapse = "\", \"" )
+  toPaint <- paste0('\"', toPaint, '\"')
   totCorrect <- totLength - tempTotErrs
-  returnTable <- data.table(currRule, tempTotErrs, totCorrect, totLength, ruleName, rule$options, list(emailErrorArray))
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, rule$options, currRule, toPaint)
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
   
-  # return (list(tempTable, logVector))
   return (returnTable)
-  
 }
 
 whatEmailRule <- function(form){

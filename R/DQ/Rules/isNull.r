@@ -15,7 +15,7 @@ library(data.table)
 ## dt: data table read in passed to function
 isNull <- function(dt, rule){
 
-  ruleName <- c("Null/Blank")
+  ruleName <- c("Blanks/Nulls/NAs")
   currCol <- rule$col
   currRule <- rule$rule
   
@@ -23,20 +23,14 @@ isNull <- function(dt, rule){
   totLength <- length(tempArray)
   
   naArray <- is.na(tempArray)
-  # naArray[naArray == TRUE] <- 'invalid'
-  # naArray[naArray == FALSE] <- 'valid'
   
-  toColorVec <- c("", NA)
-  
-  # logVecName <- paste(currCol,currRule,sep="_")
-  # logVector <- data.table(naArray)
-  # names(logVector) <- c(logVecName)
+  toPaint <- c("\"\", NA")
 
-  sumNAofCol <- sum(is.na(tempArray))
-  sumCorrectofCol <- sum(!is.na(tempArray))
+  tempTotErrs <- sum(is.na(tempArray))
+  totCorrect <- sum(!is.na(tempArray))
 
-  returnTable <- data.table(currCol, sumNAofCol, sumCorrectofCol, totLength, ruleName, "N/A", list(toColorVec))
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'toColor')
+  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, rule$options, currRule, toPaint)
+  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
 
   return (returnTable)
 }
