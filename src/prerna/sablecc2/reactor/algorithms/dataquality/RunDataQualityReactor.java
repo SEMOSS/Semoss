@@ -105,7 +105,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 			retRVariableName = inputTable.getName();
 		} else {
 			retRVariableName = "dataQualityTable_" + Utility.getRandomString(5);
-			rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), toColor = list());");
+			rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), ruleID = character(), toColor = character());");
 		}
 		rScript.append(inputString.toString());
 		
