@@ -10,8 +10,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.cluster.util.ClusterUtil;
 import prerna.ds.r.RDataTable;
+import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -76,7 +76,7 @@ public class RJavaTranslatorFactory {
 			
 			className = basePackage + "RJavaJriTranslator";
 			
-		} else if (ClusterUtil.IS_USER_RSERVE) {
+		} else if (RserveUtil.IS_USER_RSERVE) {
 			className = basePackage + "RJavaUserRserveTranslator";
 			
 		} else if (Boolean.parseBoolean(System.getenv("REMOTE_RSERVE"))) {
