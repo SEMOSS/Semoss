@@ -16,7 +16,7 @@ missionControl <- function (dt, rulesList, resultsTable){
   
   dt[dt == ""] <- NA
   
-  tempResultsTable <- data.table(Columns=character(),Errors=integer(),Valid=integer(),Total=integer(),Rules=character(), Description=character(), toColor = list())
+  tempResultsTable <- data.table(Columns=character(),Errors=integer(),Valid=integer(),Total=integer(),Rules=character(), Description=character(), ruleID = character(), toColor = character())
   
   numRules <- length(rulesList)
   
