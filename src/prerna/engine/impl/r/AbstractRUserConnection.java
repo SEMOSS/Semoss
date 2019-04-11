@@ -23,7 +23,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	protected static final Logger LOGGER = LogManager.getLogger(AbstractRUserConnection.class.getName());
 	
 	// Recovery
-	private boolean recoveryEnabled = false;
+	private boolean recoveryEnabled = RserveUtil.R_USER_RECOVERY_DEFAULT;
 	private final String rDataFile;
 	
 	// R timeout

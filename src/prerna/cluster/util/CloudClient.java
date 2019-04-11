@@ -86,21 +86,29 @@ public abstract class CloudClient {
 	}
 
 	protected static List<String> runAnyProcess(String... command) throws IOException, InterruptedException {
-		Process p = null;
+		
+		// Need to allow this process to execute the below commands
+		SecurityManager priorManager = System.getSecurityManager();
+		System.setSecurityManager(null);
 		try {
-			ProcessBuilder pb = new ProcessBuilder(command);
-			pb.directory(new File(System.getProperty("user.home")));
-			pb.redirectOutput(Redirect.PIPE);
-			pb.redirectError(Redirect.PIPE);
-			p = pb.start();
-			p.waitFor();
-			List<String> results = streamOutput(p.getInputStream());
-			streamError(p.getErrorStream());
-			return results;
-		} finally {
-			if (p != null) {
-				p.destroyForcibly();
+			Process p = null;
+			try {
+				ProcessBuilder pb = new ProcessBuilder(command);
+				pb.directory(new File(System.getProperty("user.home")));
+				pb.redirectOutput(Redirect.PIPE);
+				pb.redirectError(Redirect.PIPE);
+				p = pb.start();
+				p.waitFor();
+				List<String> results = streamOutput(p.getInputStream());
+				streamError(p.getErrorStream());
+				return results;
+			} finally {
+				if (p != null) {
+					p.destroyForcibly();
+				}
 			}
+		} finally {
+			System.setSecurityManager(priorManager);
 		}
 	}
 	
