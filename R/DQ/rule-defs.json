@@ -1,6 +1,14 @@
 {
     "rules" : [
         {
+            "name": "Blanks/Nulls/NAs",
+            "ruleID": "blanks",
+            "ruleDescription": "Identifies blank cells",
+            "option": false,
+            "optionType": false,
+            "ruleOptions": false
+        },  
+        {
             "name": "Date Format",
             "ruleID": "date",
             "ruleDescription": "Identifies incorrectly formatted date entries",
@@ -25,6 +33,19 @@
                 }
             ]
         },
+        {
+            "name": "Duplicates",
+            "ruleID": "duplicates",
+            "ruleDescription": "Identifies all non-unique values",
+            "option": false,
+            "optionType": "n/a",
+            "ruleOptions": [
+                {
+                    "displayName": "n/a",
+                    "pixelName": ""
+                }
+            ]
+        },  
         {
             "name": "Email Format",
             "ruleID": "email",
@@ -64,26 +85,13 @@
             ]
         },  
         {
-            "name": "Blanks/Nulls/NAs",
-            "ruleID": "blanks",
-            "ruleDescription": "Identifies blank cells",
-            "option": false,
-            "optionType": false,
+            "name": "Regex Input",
+            "ruleID": "regex",
+            "ruleDescription": "Input your own regex",
+            "option": true,
+            "optionType": "input",
             "ruleOptions": false
-        },  
-        {
-            "name": "Duplicates",
-            "ruleID": "duplicates",
-            "ruleDescription": "Identifies all non-unique values",
-            "option": false,
-            "optionType": "n/a",
-            "ruleOptions": [
-                {
-                    "displayName": "n/a",
-                    "pixelName": ""
-                }
-            ]
-        },  
+        },
         {
             "name": "Validate Values",
             "ruleID": "validate",
