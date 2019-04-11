@@ -54,6 +54,11 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				setMemoryLimit();
 			}
 		} catch (Exception e) {
+			
+			// If r fails to start, don't preserve the improperly loaded object
+			if (rcon != null) {
+				try {rcon.stopR();} catch (Exception ignore) {}
+			}
 			throw new IllegalArgumentException("Failed to start R.", e);
 		}
 	}
