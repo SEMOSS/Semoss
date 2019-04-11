@@ -50,13 +50,13 @@ public class SyncUserAppsThread implements Runnable {
 			User user = (User) session.getAttribute(Constants.SESSION_USER);
 			if(user != null) {
 				workspaceIds = user.getWorkspaceEngineMap().values();
-				assetIds = user.getWorkspaceEngineMap().values();
+				assetIds = user.getAssetEngineMap().values();
 			} else {
 				// grab the maps from the session
 				if(session.getAttribute(Constants.USER_WORKSPACE_IDS) != null) {
 					workspaceIds = ((Map<AuthProvider, String>) session.getAttribute(Constants.USER_WORKSPACE_IDS)).values();
 				}
-				if(session.getAttribute(Constants.USER_WORKSPACE_IDS) != null) {
+				if(session.getAttribute(Constants.USER_ASSET_IDS) != null) {
 					assetIds = ((Map<AuthProvider, String>) session.getAttribute(Constants.USER_ASSET_IDS)).values();
 				}
 			}
