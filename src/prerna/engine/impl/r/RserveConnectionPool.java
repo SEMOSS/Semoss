@@ -60,27 +60,33 @@ public class RserveConnectionPool implements IRserveConnectionPool {
 
 	@Override
 	public void releaseConnection(RserveConnectionMeta connection) {
-		
-		// If there is only one connection on the process, then also stop this Rserve instance
-		if (pool.remove(connection, 1)) {
-			try {
-				RserveUtil.stopR(connection.getPort());
-			} catch (Exception e) {
-				throw new IllegalArgumentException("Failed to release connection.", e);
-			}
-		} else {
+		try {
 			
-			// Otherwise decrement the connection by one
-			pool.compute(connection, (k, v) -> v - 1);
+			// If there is only one connection on the process, then also stop this Rserve instance
+			if (pool.remove(connection, 1)) {
+				try {
+					RserveUtil.stopR(connection.getPort());
+				} catch (Exception e) {
+					throw new IllegalArgumentException("Failed to release connection.", e);
+				}
+			} else {
+				
+				// Otherwise decrement the connection by one
+				pool.compute(connection, (k, v) -> v - 1);
+			}
+		} finally {
+			connection.setRcon(null);
 		}
-		
 	}
 
 	@Override
 	public void recoverConnection(RserveConnectionMeta connection) throws Exception {
-		RserveUtil.stopR(connection.getPort());
-		connection.setRcon(null); // Now any connection is definitely invalid
-		RserveUtil.startR(connection.getPort());
+		try { 
+			RserveUtil.stopR(connection.getPort());
+			RserveUtil.startR(connection.getPort());
+		} finally {
+			connection.setRcon(null);
+		}
 	}
 
 	@Override
