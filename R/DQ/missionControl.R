@@ -12,58 +12,58 @@
 # resultsTable: Table with the number of cells that break the rules, comply with the rules, 
 #         total number of cells and the rule it breaks
 
-missionControl <- function (dt, rulesList, resultsTable){
+missionControl <- function (dt, rule, resultsTable){
   
   dt[dt == ""] <- NA
   
   tempResultsTable <- data.table(Columns=character(),Errors=integer(),Valid=integer(),Total=integer(),Rules=character(), Description=character(), ruleID = character(), toColor = character())
   
-  numRules <- length(rulesList)
+  currRule = rule$rule
+  currCol = rule$col
   
-  for(i in 1:numRules){
-    currRule = rulesList[[i]]$rule
-    currCol = rulesList[[i]]$col
-    
-    if (currRule == "blanks") {
-      tempResultsTable <- isNull(dt, rulesList[[i]])
-      resultsTable <- rbind(resultsTable, tempResultsTable)
-    }
-    # Check for incorrect gender format
-    else if (currRule == "gender"){
-      tempResultsTable <- genderRule(dt, rulesList[[i]])
-      resultsTable <- rbind(resultsTable, tempResultsTable)
-    }
-    # Check for incorrect email format
-    else if (currRule == "email"){
-      tempResultsTable <- emailRule(dt, rulesList[[i]])
-      resultsTable <- rbind(resultsTable, tempResultsTable)
-    } 
-    # Check for incorrect date format
-    else if (currRule == "date"){ 
-      tempResultsTable <- dateRule(dt, rulesList[[i]])
-      resultsTable <- rbind(resultsTable, tempResultsTable)
-    }
-    # Check for duplicated entries
-    else if (currRule == "duplicates"){
-      tempResultsTable <- duplicates(dt, rulesList[[i]])
-      resultsTable <- rbind(resultsTable, tempResultsTable)
-    }
-    # Check for incorrect name format
-    else if(currRule == "name"){
-      tempResultsTable <- nameRule(dt, rulesList[[i]])
-      resultsTable <- rbind(resultsTable, tempResultsTable)
-    }
-    else if(currRule == "validate"){
-      tempResultsTable <- validator(dt, rulesList[[i]])
-      resultsTable <- rbind(resultsTable, tempResultsTable)
-    }
-    ##### ADD NEW RULES HERE #####
-    ##### UNCOMMENT BELLOW AND FILL IN REQUIRED VALUES #####
-    # else if (currRule == "YOUR_RULE_IDENTIFIER"){
-    #   tempResultsTable <- YOUR_RULE_FUNCTION_NAME(dt, rulesList[[i]])
-    #   resultsTable <- rbind(resultsTable, tempResultsTable)
-    # }
+  if (currRule == "blanks") {
+    tempResultsTable <- isNull(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
   }
+  # Check for incorrect gender format
+  else if (currRule == "gender"){
+    tempResultsTable <- genderRule(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
+  }
+  # Check for incorrect email format
+  else if (currRule == "email"){
+    tempResultsTable <- emailRule(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
+  } 
+  # Check for incorrect date format
+  else if (currRule == "date"){ 
+    tempResultsTable <- dateRule(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
+  }
+  # Check for duplicated entries
+  else if (currRule == "duplicates"){
+    tempResultsTable <- duplicates(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
+  }
+  # Check for incorrect name format
+  else if(currRule == "name"){
+    tempResultsTable <- nameRule(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
+  }
+  else if(currRule == "validate"){
+    tempResultsTable <- validator(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
+  }
+  else if(currRule == "regex"){
+    tempResultsTable <- regexInput(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
+  }
+  ##### ADD NEW RULES HERE #####
+  ##### UNCOMMENT BELLOW AND FILL IN REQUIRED VALUES #####
+  # else if (currRule == "YOUR_RULE_IDENTIFIER"){
+  #   tempResultsTable <- YOUR_RULE_FUNCTION_NAME(dt, rulesList[[i]])
+  #   resultsTable <- rbind(resultsTable, tempResultsTable)
+  # }
  
   return (list(dt, resultsTable))
 }

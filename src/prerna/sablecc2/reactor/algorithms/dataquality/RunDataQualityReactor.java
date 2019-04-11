@@ -20,9 +20,9 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 	private static final String DIR_SEP = System.getProperty("file.separator");
 
 	// Define rules because ReactorKeyEnum doesn't have default values for our purposes
-	private static final String RULE_KEY = "rules";
+	private static final String RULE_KEY = "rule";
+	private static final String COLUMNS_KEY = "column";
 	private static final String OPTIONS_KEY = "options";
-	private static final String COLUMNS_KEY = "columns";
 	private static final String INPUT_TABLE_KEY = "inputTable";
 
 	// This gets the basic format of the data. The information put in here will be in the format of the 
@@ -47,44 +47,39 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		RDataTable frame = (RDataTable) getFrame();
 		String rFrameVariable = frame.getName();
-		List<String> rulesList = getData(RULE_KEY);
-		List<String> columnsList = getData(COLUMNS_KEY);
-		List<List<String>> optionsList = getOptions();
+		String rule = getData(RULE_KEY);
+		String column = getData(COLUMNS_KEY);
+		List<String> optionsList = getOptions(OPTIONS_KEY);
 		RDataTable inputTable = getInputTable();
 		
-		////// build the list of maps that will be sent to mission control
 		StringBuilder str = new StringBuilder();
 		str.append("list(");
-		int size = rulesList.size();
-		for(int i = 0; i < size; i++) {
-			str.append("list(");
-			str.append("rule = \"").append(rulesList.get(i)).append("\"");
-			str.append(", col = \"").append(columnsList.get(i)).append("\"");
-			str.append(", options = ");
-			if (optionsList != null) {
-				List<String> optionsListTemp = optionsList.get(i);
-				int valSize = optionsListTemp.size();
-				if(valSize > 1){str.append("c(");} 
-				for(int j = 0; j < valSize; j++) {
-					if(optionsListTemp.get(j) != null && optionsListTemp.get(j) != ""){
-						str.append("\"").append(optionsListTemp.get(j)).append("\"");
-						if( (j+1) != valSize) {
-							str.append(",");
-						}
-					}
-					else{str.append("NULL");}
+		str.append("rule = \"").append(rule).append("\"");
+		str.append(", col = \"").append(column).append("\"");
+		str.append(", options = ");
+		if (!optionsList.isEmpty()) {
+			System.out.println("in if");
+			int optListSize = optionsList.size();
+//			if(optListSize > 1) {
+				str.append("c(");
+//			}
+			for(int i = 0; i < optListSize; i++) {
+				str.append("\"").append(optionsList.get(i)).append("\"");
+				if( (i + 1) != optListSize) {
+					str.append(",");
 				}
-				if(valSize > 1){str.append(")");} 
 			}
-			else {
-				str.append("NULL");
-			}
-			
-			str.append(")");
-			if(i + 1 != size){str.append(",");}
+//			if(optListSize > 1) {
+				str.append(")");
+//			} 
 		}
+		else {
+			System.out.println("in else");
+			str.append("NULL");
+		}
+
 		str.append(")");		
-		System.out.println("WE ARE HERE");
+		System.out.println("WE in HERE");
 		////////  Variable that will be set to map of rules/ input of mission control //////
 		StringBuilder inputString = new StringBuilder();
 		String inputVariable = "inputRules_" + Utility.getRandomString(5);
@@ -110,7 +105,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		rScript.append(inputString.toString());
 		
 		//create a return variable that holds the updated dt and the output data table so we can pass both back
-		String wholeReturn = "return" + Utility.getRandomString(5);
+		String wholeReturn = "return_" + Utility.getRandomString(5);
 		rScript.append(wholeReturn).append(" <- missionControl(" + rFrameVariable + ", " + inputVariable + ", " + retRVariableName + ");");
 		rScript.append(rFrameVariable).append(" <- " + wholeReturn + "[[1]];");
 		rScript.append(retRVariableName).append(" <-  " + wholeReturn + "[[2]];");
@@ -131,72 +126,35 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		return noun;
 	}
 
-	
-	
-	/*
-	 * Grabbing pixel inputs
-	 */
-	
-	/**
-	 * 
-	 * @return 
-	 */
-	private List<String> getData(String key) {
+	private List<String> getOptions(String key) {
 		// instantiate var ruleList as a list of strings 
-		List<String> inputList = new Vector<String>();
+		List<String> optionList = new Vector<String>();
 		// Class call to make grs to get the Noun of getRules
 		GenRowStruct grs = this.store.getNoun(key);
-		/*
-		 * Error Check for No Rule input
-		 */
+
 		if(grs == null || grs.isEmpty()) {
-			throw new IllegalArgumentException("Must define rules to run");
+			optionList.add("NULL");
+			return optionList;
 		}
 		// Assign size to the length of grs
 		int size = grs.size();
 		// Iterate through the rule and add the value to the list
 		for(int i = 0; i < size; i++) {
-			inputList.add(grs.get(i).toString());
+			optionList.add(grs.get(i).toString());
 		}
-		return inputList;
+		return optionList;
 	}
-		
-		/**
-		 * 
-		 * @return
-		 */
-	private List<List<String>> getOptions() {
-		// Instantiates attributesList as a List of List of Strings <- the columns wanted
-		List<List<String>> optionsList = new Vector<List<String>>();
-		// Create object grs and we get the values and store in grs
-		GenRowStruct grs = this.store.getNoun(OPTIONS_KEY);
+	
+	private String getData(String key) {
+		GenRowStruct grs = this.store.getNoun(key);
+
 		if(grs == null || grs.isEmpty()) {
-			return null;
+			throw new IllegalArgumentException("Missing Necessary Value to Run");
 		}
-		int size = grs.size();
-		for(int i = 0; i < size; i++) {
-			NounMetadata noun = grs.getNoun(i);
-			Object val = noun.getValue();
-			
-			List<String> row = new Vector<String>();
-			if(val instanceof List) {
-				int rowSize = ((List) val).size();
-				for(int j = 0; j < rowSize; j++) {
-					if(((List)val).get(j) instanceof NounMetadata){
-						row.add(((NounMetadata) ((List)val).get(j)).getValue().toString());
-					}
-					else{
-						row.add(((List) val).get(j).toString());
-					}
-				}
-			}
-			else {
-				row.add(val.toString());
-			}
-			optionsList.add(row);
-		}
-		return optionsList;	
+
+		return grs.get(0).toString();
 	}
+	
 	
 	private RDataTable getInputTable() {
 		GenRowStruct grs = this.store.getNoun(INPUT_TABLE_KEY);

@@ -29,7 +29,7 @@ isNull <- function(dt, rule){
   tempTotErrs <- sum(is.na(tempArray))
   totCorrect <- sum(!is.na(tempArray))
 
-  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, rule$options, currRule, toPaint)
+  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, "", currRule, toPaint)
   names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
 
   return (returnTable)
