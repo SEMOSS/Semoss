@@ -61,8 +61,11 @@ public class RserveUtil {
 	public static final int RSERVE_CONNECTION_POOL_SIZE = DIHelper.getInstance().getProperty(RSERVE_CONNECTION_POOL_SIZE_KEY) != null
 			? Integer.parseInt(DIHelper.getInstance().getProperty(RSERVE_CONNECTION_POOL_SIZE_KEY))
 			: 12;
-	
 			
+	private static final String R_USER_RECOVERY_DEFAULT_KEY = "R_USER_RECOVERY_DEFAULT";
+	public static final boolean R_USER_RECOVERY_DEFAULT = Boolean.parseBoolean(DIHelper.getInstance().getProperty(R_USER_RECOVERY_DEFAULT_KEY));
+	
+	
 	//////////////////////////////////////////////////////////////////////
 	// Connections
 	//////////////////////////////////////////////////////////////////////
