@@ -10,4 +10,5 @@ sourceFiles <- function(base){
   source(paste(base, "Rules/genderRule.r", sep = ""))
   source(paste(base, "Rules/nameRule.r", sep = ""))
   source(paste(base, "Rules/validator.r", sep = ""))
+  source(paste(base, "Rules/regexInput.R", sep = ""))
 }
