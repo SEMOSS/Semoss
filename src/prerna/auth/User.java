@@ -24,6 +24,9 @@ public class User extends AbstractValueObject {
 	private Map<AuthProvider, String> assetEngineMap = new HashMap<AuthProvider, String>();
 	private AuthProvider primaryLogin;
 	
+	private transient Object assetSyncObject = new Object();
+	private transient Object workspaceSyncObject = new Object();
+
 	Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
 	List<AuthProvider> loggedInProfiles = new ArrayList<AuthProvider>();
 	// keeps the secret for every insight
@@ -133,7 +136,12 @@ public class User extends AbstractValueObject {
 			String engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
 			if (engineId == null) {
 				try {
-					engineId = WorkspaceAssetUtils.createUserWorkspaceApp(this, token);
+					synchronized(workspaceSyncObject) {
+						engineId = WorkspaceAssetUtils.getUserWorkspaceApp(this, token);
+						if(engineId == null) {
+							engineId = WorkspaceAssetUtils.createUserWorkspaceApp(this, token);
+						}
+					}
 				} catch (Exception e) {
 					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
 					e.printStackTrace();
@@ -149,7 +157,12 @@ public class User extends AbstractValueObject {
 			String engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
 			if (engineId == null) {
 				try {
-					engineId = WorkspaceAssetUtils.createUserAssetApp(this, token);
+					synchronized(assetSyncObject) {
+						engineId = WorkspaceAssetUtils.getUserAssetApp(this, token);
+						if(engineId == null) {
+							engineId = WorkspaceAssetUtils.createUserAssetApp(this, token);
+						}
+					}
 				} catch (Exception e) {
 					// TODO >>>timb: WORKSPACE - How to deal with this exception properly?
 					e.printStackTrace();
