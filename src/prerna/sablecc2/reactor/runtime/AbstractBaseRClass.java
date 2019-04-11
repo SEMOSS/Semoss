@@ -212,7 +212,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			}
 		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
-		this.rJavaTranslator.executeEmptyR(frameName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
+		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(frameName, outputLocation, "\\t"));
 		File f = new File(outputLocation);
 		f.delete();
 		this.rJavaTranslator.executeEmptyR("setDT(" + frameName + ")");
