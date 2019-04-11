@@ -116,9 +116,14 @@ public class AdvancedFederationGetBestMatch extends AbstractRFrameReactor {
 
 		this.rJavaTranslator.runR(combineScript + matchesFrame + " <- as.data.table(" + matchesFrame + ");");
 
+		//convert col1/col2 from factor to list
+		String convertType = matchesFrame+"$col1<-as.character("+matchesFrame+"$col1);"+matchesFrame+"$col2<-as.character("+matchesFrame+"$col2);";
+		this.rJavaTranslator.runR(convertType);
+		
 		// remove all garbage 
 		this.rJavaTranslator.runR("rm(" + rCol1 + "," + rCol2 + ")");
 		
+	
 		RDataTable returnTable = createFrameFromVariable(matchesFrame);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 		
