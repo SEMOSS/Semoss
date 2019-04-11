@@ -57,7 +57,13 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			
 			// If r fails to start, don't preserve the improperly loaded object
 			if (rcon != null) {
-				try {rcon.stopR();} catch (Exception ignore) {}
+				try {
+					rcon.stopR();
+				} catch (Exception ignore) {
+					// Nothing to do here
+				} finally {
+					this.insight.getUser().setRcon(null);
+				}
 			}
 			throw new IllegalArgumentException("Failed to start R.", e);
 		}
