@@ -32,13 +32,14 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	
 	@Override
 	protected void recoverConnection() throws Exception {
-		if (rcon != null) rcon.close();
 		try {
+			if (rcon != null) rcon.close();
 
 			// First try to reestablish the connection without restarting Rserve itself
 			initializeConnection();
 			loadDefaultPackages();
 		} catch (Exception e) {
+			rcon = null;
 			RserveConnectionPool.getInstance().recoverConnection(rconMeta);
 			initializeConnection();
 			loadDefaultPackages();
@@ -52,8 +53,12 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 	
 	@Override
 	public void stopR() throws Exception {
-		if (rcon != null) rcon.close();
-		RserveConnectionPool.getInstance().releaseConnection(rconMeta);
+		try {
+			if (rcon != null) rcon.close();
+			RserveConnectionPool.getInstance().releaseConnection(rconMeta);
+		} finally {
+			rcon = null;
+		}
 	}
 
 	@Override
