@@ -63,10 +63,12 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				Future<REXP> future = executor.submit(new Callable<REXP>() {
 					@Override
 					public REXP call() throws Exception {
-						if (recoveryEnabled) saveImage();
+						REXP rexp;
 						synchronized (rconMonitor) {
-							return rcon.eval(rScript);
+							rexp = rcon.eval(rScript);
 						}
+						if (recoveryEnabled) saveImage(); // Save image after execution
+						return rexp;
 					}
 				});
 				try {
@@ -109,10 +111,10 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					Future<Void> future = executor.submit(new Callable<Void>() {
 						@Override
 						public Void call() throws Exception {
-							if (recoveryEnabled) saveImage();
 							synchronized (rconMonitor) {
 								rcon.voidEval(rScript);
 							}
+							if (recoveryEnabled) saveImage(); // Save image after execution
 							return null;
 						}
 					});
@@ -152,7 +154,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					Future<RSession> future = executor.submit(new Callable<RSession>() {
 						@Override
 						public RSession call() throws Exception {
-							if (recoveryEnabled) saveImage();
+							if (recoveryEnabled) saveImage(); // Save image before detaching
 							synchronized (rconMonitor) {
 								return rcon.detach();
 							}
@@ -191,32 +193,45 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	@Override
 	public void loadDefaultPackages() {
 		try {
-			
+
 			// load all the libraries
-			// split stack shape
-			synchronized (rconMonitor) {
-				rcon.eval("library(splitstackshape);");
-				LOGGER.info("Loaded packages splitstackshape");
-				
-				// data table
-				rcon.eval("library(data.table);");
-				LOGGER.info("Loaded packages data.table");
-				
-				// reshape2
-				rcon.eval("library(reshape2);");
-				LOGGER.info("Loaded packages reshape2");
-				
-				// stringr
-				rcon.eval("library(stringr)");
-				LOGGER.info("Loaded packages stringr");
-				
-				// lubridate
-				rcon.eval("library(lubridate);");
-				LOGGER.info("Loaded packages lubridate");
-				
-				// dplyr
-				rcon.eval("library(dplyr);");
-				LOGGER.info("Loaded packages dplyr");
+			ExecutorService executor = Executors.newSingleThreadExecutor();
+			try {
+				Future<Void> future = executor.submit(new Callable<Void>() {
+					@Override
+					public Void call() throws Exception {
+						synchronized (rconMonitor) {
+
+							// split stack shape
+							rcon.eval("library(splitstackshape);");
+							LOGGER.info("Loaded packages splitstackshape");
+
+							// data table
+							rcon.eval("library(data.table);");
+							LOGGER.info("Loaded packages data.table");
+
+							// reshape2
+							rcon.eval("library(reshape2);");
+							LOGGER.info("Loaded packages reshape2");
+
+							// stringr
+							rcon.eval("library(stringr)");
+							LOGGER.info("Loaded packages stringr");
+
+							// lubridate
+							rcon.eval("library(lubridate);");
+							LOGGER.info("Loaded packages lubridate");
+
+							// dplyr
+							rcon.eval("library(dplyr);");
+							LOGGER.info("Loaded packages dplyr");
+						}
+						return null;
+					}
+				});
+				future.get(3L, TimeUnit.SECONDS);
+			} finally {
+				executor.shutdownNow();
 			}
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Could not load R libraries.\n Please make sure the following libraries are installed:\n " +
@@ -310,16 +325,15 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 		boolean beating = false; // Healthy skepticism
 		
 		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Future<REXP> future = executor.submit(new Callable<REXP>() {
-			@Override
-			public REXP call() throws Exception {
-				synchronized (rconMonitor) {
-					return rcon.eval("1+2");
-				}
-			}
-		});
-
 		try {
+			Future<REXP> future = executor.submit(new Callable<REXP>() {
+				@Override
+				public REXP call() throws Exception {
+					synchronized (rconMonitor) {
+						return rcon.eval("1+2");
+					}
+				}
+			});
 			REXP heartBeat = future.get(3L, TimeUnit.SECONDS);
 			if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
 				beating = true;
