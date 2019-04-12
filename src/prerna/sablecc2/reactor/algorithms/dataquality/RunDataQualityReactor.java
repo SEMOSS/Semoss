@@ -52,6 +52,18 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		List<String> optionsList = getOptions(OPTIONS_KEY);
 		RDataTable inputTable = getInputTable();
 		
+		String retRVariableName = null;
+		if(inputTable != null) {
+			retRVariableName = inputTable.getName();
+		} else {
+			// did user define output table?
+			retRVariableName = getInputTableName();
+			// no, make one up
+			if(retRVariableName == null) {
+				retRVariableName = "dataQualityTable_" + Utility.getRandomString(5);
+			}
+		}
+		
 		StringBuilder str = new StringBuilder();
 		str.append("list(");
 		str.append("rule = \"").append(rule).append("\"");
@@ -94,13 +106,8 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		rScript.append("source(\"" + dqDirLoc + "sourceFile.R" + "\");");
 		rScript.append("sourceFiles(\"" + dqDirLoc + "\");");
 		
-		
-		String retRVariableName = null;
-		if(inputTable != null) {
-			retRVariableName = inputTable.getName();
-		} else {
-			retRVariableName = "dataQualityTable_" + Utility.getRandomString(5);
-			appendFrameGeneration(rScript, retRVariableName);
+		if(inputTable == null) {
+			rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), ruleID = character(), toColor = character());");
 		}
 		rScript.append(inputString.toString());
 		
@@ -155,30 +162,27 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		return grs.get(0).toString();
 	}
 	
-	
 	private RDataTable getInputTable() {
 		GenRowStruct grs = this.store.getNoun(INPUT_TABLE_KEY);
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
-		NounMetadata input = grs.getNoun(0);
-		if(input.getNounType() == PixelDataType.CONST_STRING) {
-			// we are making the frame here
-			RDataTable table = new RDataTable();
-			String retRVariableName = input.getValue().toString();
-			table.setName(retRVariableName);
-			
-			StringBuilder rScript = new StringBuilder();
-			appendFrameGeneration(rScript, retRVariableName);
-			this.rJavaTranslator.runR(rScript.toString());
-			// store as a varaible in the insight
-			this.insight.getVarStore().put(retRVariableName, new NounMetadata(table, PixelDataType.FRAME));
-			return table;
+		NounMetadata noun = grs.getNoun(0);
+		if(noun.getNounType() == PixelDataType.FRAME) {
+			return (RDataTable) grs.get(0);
 		}
-		return (RDataTable) input.getValue();
+		return null;
 	}
 	
-	private void appendFrameGeneration(StringBuilder rScript, String retRVariableName) {
-		rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), ruleID = character(), toColor = character());");
+	private String getInputTableName() {
+		GenRowStruct grs = this.store.getNoun(INPUT_TABLE_KEY);
+		if(grs == null || grs.isEmpty()) {
+			return null;
+		}
+		NounMetadata noun = grs.getNoun(0);
+		if(noun.getNounType() == PixelDataType.CONST_STRING) {
+			return grs.get(0).toString();
+		}
+		return null;
 	}
 }
