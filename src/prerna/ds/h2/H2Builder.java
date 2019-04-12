@@ -214,7 +214,7 @@ public class H2Builder {
 								ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 							}
 						} else {
-							SemossDate value = SemossDate.genDateObj(nextRow[colIndex] + "");
+							SemossDate value = SemossDate.genTimeStampDateObj(nextRow[colIndex] + "");
 							if (value != null) {
 								ps.setTimestamp(colIndex + 1, new java.sql.Timestamp(value.getDate().getTime()));
 							} else {
