@@ -100,7 +100,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 			retRVariableName = inputTable.getName();
 		} else {
 			retRVariableName = "dataQualityTable_" + Utility.getRandomString(5);
-			rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), ruleID = character(), toColor = character());");
+			appendFrameGeneration(rScript, retRVariableName);
 		}
 		rScript.append(inputString.toString());
 		
@@ -161,6 +161,22 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		if(grs == null || grs.isEmpty()) {
 			return null;
 		}
-		return (RDataTable) grs.get(0);
+		NounMetadata input = grs.getNoun(0);
+		if(input.getNounType() == PixelDataType.CONST_STRING) {
+			// we are making the frame here
+			RDataTable table = new RDataTable();
+			String retRVariableName = input.getValue().toString();
+			table.setName(retRVariableName);
+			
+			StringBuilder rScript = new StringBuilder();
+			appendFrameGeneration(rScript, retRVariableName);
+			this.rJavaTranslator.runR(rScript.toString());
+			return table;
+		}
+		return (RDataTable) input.getValue();
+	}
+	
+	private void appendFrameGeneration(StringBuilder rScript, String retRVariableName) {
+		rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), ruleID = character(), toColor = character());");
 	}
 }
