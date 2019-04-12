@@ -462,7 +462,10 @@ public class TableUserTracker implements IUserTracker {
 			
 			for(IQuerySelector selector : selectors) {
 				String uniqueMetaName = aliasHash.get(selector.getAlias());
-				List<String[]> dbInfo = meta.getDatabaseInformation(uniqueMetaName);
+				List<String[]> dbInfo = new Vector<String[]>();
+				if(selector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.CONSTANT) {
+					dbInfo = meta.getDatabaseInformation(uniqueMetaName);
+				}
 				int size = dbInfo.size();
 				if(size == 0) {
 					// this is probably some complex derived column
