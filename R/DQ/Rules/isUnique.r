@@ -15,12 +15,12 @@ duplicates <- function(dt, rule) {
   
   tempArray <- dt[, get(rule$col)]
   totLength <- length(tempArray)
-  tempTotErrs <- sum(idx, na.rm = TRUE)
-  totCorrect <- totLength - tempTotErrs - sum(is.na(tempArray))
+
   
   # Identify duplicates
   idx <- as.integer(duplicated(tempArray,incomparables=NA) | duplicated(tempArray, incomparables=NA,fromLast = TRUE))
-
+  tempTotErrs <- sum(idx, na.rm = TRUE)
+  totCorrect <- totLength - tempTotErrs - sum(is.na(tempArray))
   tempArray <- tempArray[!duplicated(tempArray)]
   toPaint <- paste(tempArray, collapse = "\", \"" )
   toPaint <- paste0('\"', toPaint, '\"')
