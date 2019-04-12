@@ -3,6 +3,7 @@ package prerna.query.querystruct.selectors;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.date.SemossDate;
 import prerna.util.Utility;
 
 public class QueryConstantSelector extends AbstractQuerySelector {
@@ -42,6 +43,12 @@ public class QueryConstantSelector extends AbstractQuerySelector {
 	public String getDataType() {
 		if(constant instanceof Number) {
 			return "NUMBER";
+		} else if(constant instanceof SemossDate) {
+			if(((SemossDate) constant).hasTime()) {
+				return "TIMESTAMP";
+			} else {
+				return "DATE";
+			}
 		} else {
 			return "STRING";
 		}
