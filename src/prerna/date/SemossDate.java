@@ -174,6 +174,28 @@ public class SemossDate {
 		SimpleDateFormat formatter = new SimpleDateFormat(requestedPattern);
 		return formatter.format(date);
 	}
+	
+	/**
+	 * Determine if this has 
+	 * @return
+	 */
+	public boolean hasTime() {
+		Calendar c = Calendar.getInstance();
+        c.setTime(getDate());
+        if (c.get(Calendar.HOUR_OF_DAY) > 0) {
+            return true;
+        }
+        if (c.get(Calendar.MINUTE) > 0) {
+            return true;
+        }
+        if (c.get(Calendar.SECOND) > 0) {
+            return true;
+        }
+        if (c.get(Calendar.MILLISECOND) > 0) {
+            return true;
+        }
+        return false;
+	}
 
 	@Override
 	public String toString() {
