@@ -455,8 +455,12 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				
 				// Cleanup
 				outputFile.delete();
-				this.executeEmptyR("rm(" + randomVariable + ")");
-				this.executeEmptyR("gc()"); // Garbage collection
+				try {
+					this.executeEmptyR("rm(" + randomVariable + ")");
+					this.executeEmptyR("gc()"); // Garbage collection
+				} catch (Exception e) {
+					logger.warn("Unable to cleanup R.", e);
+				}
 			}
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Error in writing R script for execution.", e);
