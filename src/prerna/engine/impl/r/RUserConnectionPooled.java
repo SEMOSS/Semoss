@@ -22,17 +22,21 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 			if (rconMeta.getRcon() != null) {
 				rcon = rconMeta.getRcon();
 			} else {
-				rcon = RserveUtil.connect(rconMeta.getHost(), rconMeta.getPort());
+				reloadRcon();
 				rconMeta.setRcon(rcon);
 			}
 		} else {
-			rcon = RserveUtil.connect(rconMeta.getHost(), rconMeta.getPort());
+			reloadRcon();
 		}
+	}
+	
+	private void reloadRcon() throws Exception {
+		if (rcon != null) rcon.close(); // Close the old rcon and get a new one
+		rcon = RserveUtil.connect(rconMeta.getHost(), rconMeta.getPort());
 	}
 	
 	@Override
 	protected void recoverConnection() throws Exception {
-		if (rcon != null) rcon.close();
 
 		// First try to reestablish the connection without restarting Rserve itself
 		try {
