@@ -91,8 +91,15 @@ public class RserveConnectionPool implements IRserveConnectionPool {
 
 	@Override
 	public void shutdown() throws Exception {
-		IRUserConnection.endR();
-		pool.clear();
+		for (RserveConnectionMeta connection : pool.keySet()) {
+			try {
+				RserveUtil.stopR(connection.getPort());
+			} catch (Exception ignore) {
+				// Ignore
+			} finally {
+				pool.remove(connection);
+			}
+		}
 	}
 
 }
