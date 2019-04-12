@@ -65,7 +65,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					this.insight.getUser().setRcon(null);
 				}
 			}
-			throw new IllegalArgumentException("Failed to start R.", e);
+			throw new IllegalArgumentException("Failed to start R: " +  e.getMessage(), e);
 		}
 	}
 

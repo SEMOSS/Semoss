@@ -7,6 +7,7 @@ public class RserveConnectionMeta {
 	private final String host;
 	private final int port;
 	private RConnection rcon;
+	private volatile boolean isActive = false;
 	
 	public RserveConnectionMeta(String host, int port) {
 		this.host = host;
@@ -29,6 +30,14 @@ public class RserveConnectionMeta {
 		this.rcon = rcon;
 	}
 	
+	public boolean isActive() {
+		return isActive;
+	}
+
+	public void setActive(boolean isActive) {
+		this.isActive = isActive;
+	}
+		
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == null) {
