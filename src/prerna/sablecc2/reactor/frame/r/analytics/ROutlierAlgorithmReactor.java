@@ -54,6 +54,17 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		// figure out inputs
 		String instanceColumn = getInstanceCol();
 		List<String> attributeNamesList = getAttributeNames(instanceColumn);
+		
+		// check the unique count of instances for each attribute
+		for (String columnName : attributeNamesList) {
+			int uniqueInstanceCount = dataFrame.getUniqueInstanceCount(columnName);
+			// # of unique instance must be greater than 1 for R routine!!!!
+			if (uniqueInstanceCount < 10) {
+				String msg = "Number of unqiue instances in " + columnName + " is less than 10. Outlier routine is not ideal for small variance.";
+				throw new IllegalArgumentException(msg);
+			}
+		}
+		
 		String[] attributeNames = attributeNamesList.toArray(new String[]{});
 		String alpha = getAlpha();
 		String uniqInstPerRowStr = getUniqInstPerRow();
@@ -123,7 +134,7 @@ public class ROutlierAlgorithmReactor extends AbstractRFrameReactor {
 		// run the script
 		this.rJavaTranslator.runR(rsb.toString());
 		// garbage collection
-		this.rJavaTranslator.executeEmptyR("rm(" + resultsFrameName + "); gc();");
+		this.rJavaTranslator.executeEmptyR("rm(" + resultsFrameName + ", DetermineHDoutliers); gc();");
 	}
 
 	////////////////////////////////////////////////////////////
