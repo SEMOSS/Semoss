@@ -21,7 +21,7 @@ duplicates <- function(dt, rule) {
   idx <- as.integer(duplicated(tempArray,incomparables=NA) | duplicated(tempArray, incomparables=NA,fromLast = TRUE))
   tempTotErrs <- sum(idx, na.rm = TRUE)
   totCorrect <- totLength - tempTotErrs - sum(is.na(tempArray))
-  tempArray <- tempArray[!duplicated(tempArray)]
+  tempArray <- tempArray[duplicated(tempArray)]
   toPaint <- paste(tempArray, collapse = "\", \"" )
   toPaint <- paste0('\"', toPaint, '\"')
   # Calculate values
