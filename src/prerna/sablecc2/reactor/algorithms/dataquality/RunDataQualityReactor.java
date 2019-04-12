@@ -171,6 +171,8 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 			StringBuilder rScript = new StringBuilder();
 			appendFrameGeneration(rScript, retRVariableName);
 			this.rJavaTranslator.runR(rScript.toString());
+			// store as a varaible in the insight
+			this.insight.getVarStore().put(retRVariableName, new NounMetadata(table, PixelDataType.FRAME));
 			return table;
 		}
 		return (RDataTable) input.getValue();
