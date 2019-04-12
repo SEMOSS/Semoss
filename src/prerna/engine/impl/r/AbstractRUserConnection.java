@@ -26,6 +26,10 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private boolean recoveryEnabled = RserveUtil.R_USER_RECOVERY_DEFAULT;
 	private final String rDataFile;
 	
+	// R health timeout
+	private static final long HEALTH_TIMEOUT = 3L;
+	private static final TimeUnit HEALTH_TIMEOUT_UNIT = TimeUnit.SECONDS;
+	
 	// R timeout
 	private static final long R_TIMEOUT = 7L;
 	private static final TimeUnit R_TIMEOUT_UNIT = TimeUnit.HOURS;
@@ -52,11 +56,15 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	////////////////////////////////////////
 	@Override
 	public REXP eval(String rScript) {
-		return eval(rScript, true);
+		return eval(rScript, HEALTH_TIMEOUT, HEALTH_TIMEOUT_UNIT, true);
 	}
 	
-	private REXP eval(String rScript, boolean retry) {
-		if (isHealthy()) {
+	protected REXP eval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit) {
+		return eval(rScript, healthTimeout, healthTimeoutUnit, true);
+	}
+	
+	private REXP eval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
+		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
 			LOGGER.info("Running R: " + rScript);
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			try {
@@ -88,7 +96,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			IllegalArgumentException e = recoveryStatus();
 			if (e == null) {
 				if (retry) {
-					return eval(rScript, false);
+					return eval(rScript, healthTimeout, healthTimeoutUnit, false);
 				} else {
 					throw new IllegalArgumentException("A recoverable error occured. Please try re-running your R script.");
 				}
@@ -100,11 +108,15 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	
 	@Override
 	public void voidEval(String rScript) {
-		voidEval(rScript, true);
+		voidEval(rScript, HEALTH_TIMEOUT, HEALTH_TIMEOUT_UNIT, true);
 	}
 	
-	private void voidEval(String rScript, boolean retry) {
-		if (isHealthy()) {
+	protected void voidEval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit) {
+		voidEval(rScript, healthTimeout, healthTimeoutUnit, true);
+	}
+	
+	private void voidEval(String rScript, long healthTimeout, TimeUnit healthTimeoutUnit, boolean retry) {
+		if (isHealthy(healthTimeout, healthTimeoutUnit)) {
 			LOGGER.info("Running R: " + rScript);
 				ExecutorService executor = Executors.newSingleThreadExecutor();
 				try {
@@ -135,7 +147,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			IllegalArgumentException e = recoveryStatus();
 			if (e == null) {
 				if (retry) {
-					voidEval(rScript, false);
+					voidEval(rScript, healthTimeout, healthTimeoutUnit, false);
 				} else {
 					throw new IllegalArgumentException("A recoverable error occured. Please try re-running your R script.");
 				}
@@ -321,7 +333,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	////////////////////////////////////////
 	// Health check
 	////////////////////////////////////////
-	protected boolean isHealthy() {
+	protected boolean isHealthy(long timeout, TimeUnit timeUnit) {
 		boolean beating = false; // Healthy skepticism
 		
 		ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -334,7 +346,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 					}
 				}
 			});
-			REXP heartBeat = future.get(3L, TimeUnit.SECONDS);
+			REXP heartBeat = future.get(timeout, timeUnit);
 			if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
 				beating = true;
 			}
@@ -347,5 +359,8 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 		return beating;
 	}
 	
+	protected boolean isHealthy() {
+		return isHealthy(HEALTH_TIMEOUT, HEALTH_TIMEOUT_UNIT);
+	}
 	
 }
