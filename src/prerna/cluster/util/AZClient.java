@@ -241,7 +241,56 @@ public class AZClient extends CloudClient {
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
+		
+	
+		try {
+
+			List<String> appWithImages= new ArrayList();
+
+			// List the smss directory to get the alias + app id
+			String[] cmdArray = {"rclone", "lsf", "kunalp:"};
+			List<String> containers = runAnyProcess("rclone", "lsf", "kunalp:");
+			for (String container: containers){
+				List<String> images = runAnyProcess("rclone", "ls" , "kunalp:"+container+"/version/image.png");
+				if(!(images.isEmpty()) && images != null){
+					appWithImages.add(container);
+				}
+			}
+			for(String s: appWithImages){
+				
+				System.out.println(s);
+				List<String> copied = runAnyProcess("rclone", "copy" , "kunalp:"+s+"version/image.png", "kunalp:aaa-imagecontainer/");
+				List<String> moved = runAnyProcess("rclone", "moveto" , "kunalp:aaa-imagecontainer/image.png", "kunalp:aaa-imagecontainer/"+s.substring(0, s.length()-1)+".png");
+
+				//List<String> copied = runAnyProcess("rclone", "copy" , "kunalp:"+s+"version/image.png", "/Users/semoss/Documents/workspace/Semoss/images/download/");
+				//List<String> copied = runAnyProcess("rclone", "copy" , "kunalp:"+s+"version/image.png", "/Users/semoss/Documents/workspace/Semoss/images/download/"+s.substring(0, s.length()-1)+".png");
+
+			}
+			
+//			List<String> containers = runAnyProcess("rclone", "lsf", "kunalp:");
+//
+//			for(String appid : results1){
+//				if( appid.contains("smss")){
+//					continue;
+//				}
+//				
+//				
+//				
+//				List<String> results2= runAnyProcess("rclone", "lsf", "kunalp:"+appid);
+//				for(String content : results2){
+//					if( content.contains("version")){
+//						
+//						System.out.println(appid + " has a version folder");
+//						appWithVersion.add(appid);
+//					}
+//				}
+//			}
+			
+		} catch(Exception e){
+			throw e;
+		}
+		
+		//DIHelper.getInstance().loadCoreProp("C:\\Users\\tbanach\\Documents\\Workspace\\Semoss\\RDF_Map.prop");
 		//		String appId = "a295698a-1f1c-4639-aba6-74b226cd2dfc";
 		//		System.out.println(AZClient.getInstance().getSAS("timb"));
 		//		AZClient.getInstance().deleteApp("1bab355d-a2ea-4fde-9d2c-088287d46978");
@@ -463,6 +512,42 @@ public class AZClient extends CloudClient {
 		}
 	}
 
+	@Override
+	public void pullImageFolder() throws IOException, InterruptedException {
+		String appRcloneConfig = null;
+		try {
+			appRcloneConfig = createRcloneConfig(ClusterUtil.IMAGES_BLOB);
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "apps";
+			File imageFolder = new File(imagesFolderPath);
+			imageFolder.mkdir();
+			runRcloneProcess(appRcloneConfig, "rclone", "copy", appRcloneConfig + ":", imagesFolderPath);
+		}finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+		}
+	}
+	
+	@Override
+	public void pushImageFolder() throws IOException, InterruptedException {
+		String appRcloneConfig = null;
+		try {
+			appRcloneConfig = createRcloneConfig(ClusterUtil.IMAGES_BLOB);
+			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+			String imagesFolderPath = baseFolder + FILE_SEPARATOR + "images" + FILE_SEPARATOR + "apps";
+			File imageFolder = new File(imagesFolderPath);
+			imageFolder.mkdir();
+			runRcloneProcess(appRcloneConfig, "rclone", "sync",imagesFolderPath,  appRcloneConfig + ":");
+		}finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+		}
+	}
+	
+	
+	
 	
 
 		//////////////////////////////////////////////////////////////////////////////////////////
@@ -537,6 +622,7 @@ public class AZClient extends CloudClient {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
 			return rcloneConfig;
 		}
+
 
 		/*
 

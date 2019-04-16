@@ -44,8 +44,12 @@ public abstract class CloudClient {
 	public  abstract void pushApp(String appId) throws IOException, InterruptedException;
 
 	public  abstract void pullApp(String appId) throws IOException, InterruptedException;
-
+	
 	protected abstract void pullApp(String appId, boolean newApp) throws IOException, InterruptedException; 
+	
+	public  abstract void pullImageFolder() throws IOException, InterruptedException;
+
+	public  abstract void pushImageFolder() throws IOException, InterruptedException;
 
 	public abstract void updateApp(String appId) throws IOException, InterruptedException;
 
