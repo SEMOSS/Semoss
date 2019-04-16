@@ -180,21 +180,12 @@ public class SemossDate {
 	 * @return
 	 */
 	public boolean hasTime() {
-		Calendar c = Calendar.getInstance();
-        c.setTime(getDate());
-        if (c.get(Calendar.HOUR_OF_DAY) > 0) {
-            return true;
-        }
-        if (c.get(Calendar.MINUTE) > 0) {
-            return true;
-        }
-        if (c.get(Calendar.SECOND) > 0) {
-            return true;
-        }
-        if (c.get(Calendar.MILLISECOND) > 0) {
-            return true;
-        }
-        return false;
+		if(this.pattern.contains("H") ||
+				this.pattern.contains("m") ||
+				this.pattern.contains("s")) {
+			return true;
+		}
+		return false;
 	}
 
 	@Override
