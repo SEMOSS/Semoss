@@ -305,5 +305,19 @@ public class AWSClient extends CloudClient{
 
 
 
+	@Override
+	public void pullImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void pushImageFolder() throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+
 
 }
