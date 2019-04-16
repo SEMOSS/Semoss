@@ -1,12 +1,18 @@
 package prerna.cluster.util;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Collection;
 
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.insight.TextToGraphic;
 
 public class ClusterUtil {
 
@@ -31,6 +37,14 @@ public class ClusterUtil {
 	public static final boolean LOAD_ENGINES_LOCALLY = System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)
 			? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY))
 			: true;
+
+	public static final String IMAGES_BLOB = "aaa-imagecontainer";
+
+
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
+	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR+"images";;
+;
 
 	/*
 	 * private static final String MULTIPLE_STORAGE_ACCOUNTS_KEY =
@@ -112,5 +126,82 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+	}
+
+	public static void reactorImagePull(String appId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			try {
+				CloudClient.getClient().updateApp(appId);
+			}  catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to fetch app image", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			}
+		}
+	}
+
+	public static File getImage(String appID) {
+		
+			File imageFile = null;
+			File imageFolder= new File (IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps");
+			String imageFilePath; 
+			imageFolder.mkdirs();
+			
+			//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
+			  File[] images = imageFolder.listFiles(new FilenameFilter() {
+			        @Override
+			        public boolean accept(File dir, String name) {
+			            return name.contains(appID);
+			        }
+			    });
+			if(images!= null && images.length > 0){
+				//we got a file. hopefully there is only 1 file if there is more, return [0] for now
+				return images[0];
+			}	
+		else
+			try {
+				//first try to pull the images folder, Return it after the pull, or else we make the file
+				CloudClient.getClient().pullImageFolder();
+				//so i dont always know the extension, but every image should be named by the appid which means i need to search the folder for something like the file
+				 images = imageFolder.listFiles(new FilenameFilter() {
+				        @Override
+				        public boolean accept(File dir, String name) {
+				            return name.contains(appID);
+				        }
+				    });
+				if(images.length > 0){
+					//we got a file. hopefully there is only 1 file if there is more, return [0] for now
+					return images[0];
+				} else {
+					String alias = SecurityQueryUtils.getEngineAliasForId(appID);
+					 imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + appID + ".png";
+
+					if(alias != null) {
+						TextToGraphic.makeImage(alias, imageFilePath);
+					} else{
+						TextToGraphic.makeImage(appID, imageFilePath);
+					}
+					CloudClient.getClient().pushImageFolder();
+				}
+				//finally we will return it if it exists, and if it doesn't we return back the stock. 
+				 imageFile = new File(imageFilePath);
+
+					if(imageFile.exists()){
+						return imageFile;
+					} else{
+					String stockImageDir = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "stock" + DIR_SEPARATOR + "color-logo.png";
+					imageFile = new File (stockImageDir);
+					}
+				
+			} catch (IOException | InterruptedException e) {
+				NounMetadata noun = new NounMetadata("Failed to fetch app image", PixelDataType.CONST_STRING,
+						PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
+			} 
+			return imageFile;
 	}
 }
