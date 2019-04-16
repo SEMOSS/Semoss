@@ -38,7 +38,7 @@ public class ClusterUtil {
 			? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY))
 			: true;
 
-	public static final String IMAGES_BLOB = "aaa-imagecontainer";
+	public static final String IMAGES_BLOB = "semoss-imagecontainer";
 
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -176,7 +176,7 @@ public class ClusterUtil {
 					return images[0];
 				} else {
 					String alias = SecurityQueryUtils.getEngineAliasForId(appID);
-					 imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + appID + ".png";
+					 imageFilePath = IMAGES_FOLDER_PATH + DIR_SEPARATOR + "apps" + DIR_SEPARATOR + appID + ".png";
 
 					if(alias != null) {
 						TextToGraphic.makeImage(alias, imageFilePath);
