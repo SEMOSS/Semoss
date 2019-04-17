@@ -284,7 +284,7 @@ public class CSVFileHelper {
 		Object[][] predictedTypes = new Object[numCols][3];
 		List<Map<String, Integer>> additionalFormatTracker = new Vector<Map<String, Integer>>(numCols);
 		// loop through cols, and up to 1000 rows
-		for(int colIndex = 0; colIndex < numCols; colIndex++) {
+		FOR_LOOP : for(int colIndex = 0; colIndex < numCols; colIndex++) {
 			// grab the column
 			String col = newUniqueCSVHeaders.get(colIndex);
 			parseColumns(new String[]{col});
@@ -333,7 +333,7 @@ public class CSVFileHelper {
 					Object[] columnPrediction = new Object[2];
 					columnPrediction[0] = SemossDataType.STRING;
 					predictedTypes[colIndex] = columnPrediction;
-					break WHILE_LOOP;
+					continue FOR_LOOP;
 				}
 				
 				if(type == null) {
