@@ -35,7 +35,7 @@ regexInput <- function(dt, rule){
   description <- "Check against regex input"
   regexErrorArray <- regexErrorArray[!duplicated(regexErrorArray)]
   toPaint <- paste(regexErrorArray, collapse = "\", \"" )
-  toPaint <- paste0('\"', toPaint, '\"')
+  toPaint <- paste0('\"', toPaint, "null", '\"')
   totCorrect <- totLength - tempTotErrs
   returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, description, currRule, toPaint)
   names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')

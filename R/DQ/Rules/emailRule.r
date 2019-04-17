@@ -44,6 +44,7 @@ emailRule <- function(dt, rule) {
   emailErrorArray <- emailErrorArray[!duplicated(emailErrorArray)]
   toPaint <- paste(emailErrorArray, collapse = "\", \"" )
   toPaint <- paste0('\"', toPaint, '\"')
+  toPaint <- paste(toPaint, "null", sep = ', ')
   totCorrect <- totLength - tempTotErrs
   returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, description, currRule, toPaint)
   names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
