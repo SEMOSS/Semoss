@@ -25,7 +25,7 @@ validator <- function(dt, rule){
   }
   toPaint <- toPaint[!duplicated(toPaint)]
   toPaint <- paste(toPaint, collapse = "\", \"" )
-  toPaint <- paste0('\"', toPaint, '\"')
+  toPaint <- paste0('\"', toPaint, "null", '\"')
   description <- paste(toValidateArray, collapse = ", ")
   returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, description, currRule, toPaint)
   names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')

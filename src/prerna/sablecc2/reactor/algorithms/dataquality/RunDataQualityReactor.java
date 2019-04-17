@@ -70,28 +70,21 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		str.append(", col = \"").append(column).append("\"");
 		str.append(", options = ");
 		if (!optionsList.isEmpty()) {
-			System.out.println("in if");
 			int optListSize = optionsList.size();
-//			if(optListSize > 1) {
-				str.append("c(");
-//			}
+			str.append("c(");
 			for(int i = 0; i < optListSize; i++) {
 				str.append("\"").append(optionsList.get(i)).append("\"");
 				if( (i + 1) != optListSize) {
 					str.append(",");
 				}
 			}
-//			if(optListSize > 1) {
-				str.append(")");
-//			} 
+			str.append(")");
 		}
 		else {
-			System.out.println("in else");
 			str.append("NULL");
 		}
 
 		str.append(")");		
-		System.out.println("WE in HERE");
 		////////  Variable that will be set to map of rules/ input of mission control //////
 		StringBuilder inputString = new StringBuilder();
 		String inputVariable = "inputRules_" + Utility.getRandomString(5);
@@ -111,11 +104,13 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		}
 		rScript.append(inputString.toString());
 		
-		//create a return variable that holds the updated dt and the output data table so we can pass both back
-		String wholeReturn = "return_" + Utility.getRandomString(5);
-		rScript.append(wholeReturn).append(" <- missionControl(" + rFrameVariable + ", " + inputVariable + ", " + retRVariableName + ");");
-		rScript.append(rFrameVariable).append(" <- " + wholeReturn + "[[1]];");
-		rScript.append(retRVariableName).append(" <-  " + wholeReturn + "[[2]];");
+		rScript.append(retRVariableName).append(" <- missionControl(" + rFrameVariable + ", " + inputVariable + ", " + retRVariableName + ");");
+		
+		
+		// R garbage collection
+		rScript.append("source(\"" + dqDirLoc + "fileCleanup.R" + "\");");
+		rScript.append("rm(" + inputVariable + ");");
+		System.out.println(rScript);
 		
 
 		// you will run this rScript
@@ -125,7 +120,6 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		if(inputTable != null) {
 			return new NounMetadata(inputTable, PixelDataType.FRAME);
 		}
-		System.out.println(rScript);
 		// make a new frame
 		RDataTable newFrame = createFrameFromVariable(retRVariableName);
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
