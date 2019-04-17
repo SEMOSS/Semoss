@@ -24,8 +24,7 @@ isNull <- function(dt, rule){
   
   naArray <- is.na(tempArray)
   
-  toPaint <- c("\"\", NA")
-
+  toPaint <- c("\"null\"", "null")
   tempTotErrs <- sum(is.na(tempArray))
   totCorrect <- sum(!is.na(tempArray))
 
