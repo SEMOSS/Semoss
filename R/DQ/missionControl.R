@@ -58,12 +58,5 @@ missionControl <- function (dt, rule, resultsTable){
     tempResultsTable <- regexInput(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   }
-  ##### ADD NEW RULES HERE #####
-  ##### UNCOMMENT BELLOW AND FILL IN REQUIRED VALUES #####
-  # else if (currRule == "YOUR_RULE_IDENTIFIER"){
-  #   tempResultsTable <- YOUR_RULE_FUNCTION_NAME(dt, rulesList[[i]])
-  #   resultsTable <- rbind(resultsTable, tempResultsTable)
-  # }
- 
-  return (list(dt, resultsTable))
+  return(resultsTable)
 }
