@@ -1,0 +1,58 @@
+{
+  "pixelExpression": "PredictMetamodel ( filePath = [ \"<<<testDir>>>/data/unit_test_movie.csv\" ] , delimiter = [ \",\" ] , rowCount = [ false ] ) ;",
+  "output": {
+    "dataTypes": {
+      "Nominated": "STRING",
+      "Title": "STRING",
+      "Genre": "STRING",
+      "Studio": "STRING",
+      "Director": "STRING",
+      "Revenue_Domestic": "INT",
+      "MovieBudget": "INT",
+      "Revenue_International": "INT",
+      "RottenTomatoes_Critics": "DOUBLE",
+      "RottenTomatoes_Audience": "DOUBLE"
+    },
+    "startCount": 2,
+    "fileName": "(ignored)",
+    "headerModifications": {
+      "Revenue_International": "Original Header Value = Revenue-International",
+      "RottenTomatoes_Critics": "Original Header Value = RottenTomatoes-Critics",
+      "RottenTomatoes_Audience": "Original Header Value = RottenTomatoes-Audience",
+      "Revenue_Domestic": "Original Header Value = Revenue-Domestic"
+    },
+    "nodeProp": {
+      "Title": [
+        "RottenTomatoes_Audience",
+        "RottenTomatoes_Critics",
+        "Revenue_Domestic",
+        "MovieBudget",
+        "Revenue_International"
+      ]
+    },
+    "fileLocation": "(ignored)",
+    "additionalDataTypes": {},
+    "relation": [
+      {
+        "relName": "Title_Director",
+        "toTable": "Director",
+        "fromTable": "Title"
+      },
+      {
+        "relName": "Title_Genre",
+        "toTable": "Genre",
+        "fromTable": "Title"
+      },
+      {
+        "relName": "Title_Studio",
+        "toTable": "Studio",
+        "fromTable": "Title"
+      },
+      {
+        "relName": "Title_Nominated",
+        "toTable": "Nominated",
+        "fromTable": "Title"
+      }
+    ]
+  }
+}

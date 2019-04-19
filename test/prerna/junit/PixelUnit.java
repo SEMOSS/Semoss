@@ -1,10 +1,8 @@
 package prerna.junit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 
@@ -48,6 +46,7 @@ import org.dbunit.dataset.xml.FlatXmlDataSetBuilder;
 import org.dbunit.operation.DatabaseOperation;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.AssumptionViolatedException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.quartz.SchedulerException;
@@ -85,7 +84,7 @@ import prerna.util.gson.GsonUtility;
 public class PixelUnit {
 	
 	protected static final Logger LOGGER = LogManager.getLogger(JUnit.class.getName());
-	
+		
 	protected static final String BASE_DIRECTORY = new File("").getAbsolutePath();
 	protected static final String BASE_DB_DIRECTORY = Paths.get(BASE_DIRECTORY, "db").toAbsolutePath().toString();
 	protected static final String TEST_RESOURCES_DIRECTORY = Paths.get(BASE_DIRECTORY, "test", "resources").toAbsolutePath().toString();
@@ -93,7 +92,8 @@ public class PixelUnit {
 	protected static final String TEST_TEXT_DIRECTORY = Paths.get(TEST_RESOURCES_DIRECTORY, "text").toAbsolutePath().toString();
 
 	protected static final Gson GSON = GsonUtility.getDefaultGson();
-	
+	protected static final Gson GSON_PRETTY = GsonUtility.getDefaultGson(true);
+
 	private static final String TEST_DIR_REGEX = "<<<testDir>>>";
 	private static final String BASE_DIR_REGEX = "<<<baseDir>>>";
 	private static final String APP_ID_REGEX = "<<<appId>>>(.*?)<<</appId>>>";
@@ -107,7 +107,9 @@ public class PixelUnit {
 	
 	private static final Path BASE_RDF_MAP = Paths.get(BASE_DIRECTORY, "RDF_Map.prop");
 	private static final Path TEST_RDF_MAP = Paths.get(TEST_RESOURCES_DIRECTORY, "RDF_Map.prop");
-		
+	
+	private static final String LS = System.getProperty("line.separator");
+	
 	protected static Map<String, String> aliasToAppId = new HashMap<>();
 	
 	private static boolean testDatabasesAreClean = true; // This must be static, as one instance of PixelUnit can dirty databases for all others
@@ -478,20 +480,16 @@ public class PixelUnit {
 		
 		// Assume that Python is returning valid differences
 		try {
-			Object result = compareResult("Version();", "{\"datetime\":\"1000-01-01_01:01:01\",\"version\":\"1.0.0-SNAPSHOT\"}");
-
-			// Assume that we are getting differences in the form of a hash map
-			assumeThat(result, is(instanceOf(HashMap.class)));
+			PixelComparison result = compareResult("Version();", "{\"pixelExpression\":\"Version ( ) ;\",\"output\":{\"datetime\":\"1000-01-01 01:01:01\",\"version\":\"1.0.0-SNAPSHOT\"}}").get(0);
 			
 			// Assume that we are getting values changed for this example
 			String valuesChangedKey = "values_changed";
-			@SuppressWarnings("unchecked")
-			HashMap<String, Object> differences = (HashMap<String, Object>) result;
+			Map<String, Object> differences = result.getDifferences();
 			assumeThat(differences.containsKey(valuesChangedKey), is(equalTo(true)));
 			
 			// Assume that the values changed are root['datetime'] and root['version']
 			@SuppressWarnings("unchecked")
-			HashMap<String, Object> valuesChanged = (HashMap<String, Object>) differences.get(valuesChangedKey);
+			Map<String, Object> valuesChanged = (HashMap<String, Object>) differences.get(valuesChangedKey);
 			assumeThat(valuesChanged.containsKey("root['datetime']"), is(equalTo(true)));
 			assumeThat(valuesChanged.containsKey("root['version']"), is(equalTo(true)));
 			
@@ -502,7 +500,7 @@ public class PixelUnit {
 			assumeNoException(e);
 		}
 		
-		// Assume that database metamodels are correct
+		// Assume that database metamodels are correct		
 		for (Entry<String, String> entry : aliasToAppId.entrySet()) {
 			String alias = entry.getKey();
 			String appId = entry.getValue();
@@ -639,38 +637,253 @@ public class PixelUnit {
 	}
 	
 	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, boolean assume) throws IOException {
-		Object result = compareResult(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
-		assumeThat(result, is(not(equalTo(null))));
-		assumeThat(result, is(instanceOf(HashMap.class)));
-		@SuppressWarnings("unchecked")
-		HashMap<String, Object> resultMap = (HashMap<String, Object>) result;
-		if (ignoreAddedDictionary) {
-			resultMap.remove("dictionary_item_added");
-		}
-		if (ignoreAddedIterable) {
-			resultMap.remove("iterable_item_added");
-		}
-		if (assume) {
-			assumeThat(resultMap, is(equalTo(new HashMap<>())));
-		} else {
-			assertThat(resultMap, is(equalTo(new HashMap<>())));
+		try {
+			List<PixelComparison> result = compareResult(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
+
+			// TODO >>>timb: JUnit - here write the reports, for either assume or assert (may need to pass in the name of the test) - either that or write a detailed assertion error
+			for (PixelComparison comparison : result) {
+				if (comparison.isDifferent()) {
+					String testReport = composeTestReport(comparison);
+					if (assume) {
+						throw new AssumptionViolatedException(testReport);
+					} else {
+						throw new AssertionError(testReport);
+					}
+				}
+			}
+		} catch (IOException e) {
+			LOGGER.error("Error: ", e);
+			String message = "An I/O exception occured while running this test.";
+			if (assume) {
+				throw new AssumptionViolatedException(message, e);
+			} else {
+				throw new AssertionError(message, e);
+			}
+		} catch (RuntimeException e) {
+			LOGGER.error("Error: ", e);			
+
+			// Try to report the actual output of the pixel recipe
+			try {
+				
+				// Reset the test state and rerun the pixel
+				destroyTest();
+				initializeTest(false);
+				
+				JsonElement actual;
+				PixelRunner returnData = runPixel(pixel);
+	 			JsonArray all = getPixelReturns(returnData);
+	 			if (compareAll) {
+	 				actual = all;
+	 			} else {
+	 				actual = all.get(all.size() - 1);
+	 			}
+	 			
+	 			String message = "An exception occured while running this test. " + LS +
+						"For your reference, the actual JSON output of the pixel recipe is as follows: " + LS +
+						GSON_PRETTY.toJson(actual);
+				if (assume) {
+					throw new AssumptionViolatedException(message, e);
+				} else {
+					throw new AssertionError(message, e);
+				}
+			} catch (IOException e1) {
+				LOGGER.warn("Failed to get the actual JSON.", e1);
+			}
+			
+			// Otherwise just throw something generic
+			String message = "An exception occured while running this test.";
+			if (assume) {
+				throw new AssumptionViolatedException(message, e);
+			} else {
+				throw new AssertionError(message, e);
+			}
 		}
 	}
 	
+	private static String composeTestReport(PixelComparison comparison) {
+		StringBuilder testReport = new StringBuilder();
+		testReport.append(LS);
+		
+		addTitle(testReport, "Pixel expression: ");
+		testReport.append(comparison.getPixelExpression()).append(LS);
+		
+		addTitle(testReport, "Expected output: ");
+		testReport.append(comparison.getExpectedPixelOutput()).append(LS);
+		
+		addTitle(testReport, "Actual output: ");
+		testReport.append(comparison.getActualPixelOutput()).append(LS);
+		
+		addTitle(testReport, "Differences: ");
+		
+		// Need to rearrange the way the differences are reported
+		Map<String, Object> typeLocationValueMap = comparison.getDifferences(); // Original
+		Map<String, Map<String, String>> locationTypeValueMap = new HashMap<>(); // Rearranged
+		for (Entry<String, Object> typeLocationValueEntry : typeLocationValueMap.entrySet()) {
+							
+			// If a map, report all the differences in the map
+			if (!(typeLocationValueEntry.getValue() instanceof Map)) throw new IllegalArgumentException("Unable to interpret the differences between the expected and actual JSONs for this test.");
+						
+			@SuppressWarnings("unchecked")
+			Map<String, Object> locationValueMap = (Map<String, Object>) typeLocationValueEntry.getValue();
+			for (Entry<String, Object> locationValueEntry : locationValueMap.entrySet()) {
+
+				String type = typeLocationValueEntry.getKey();
+				String location = locationValueEntry.getKey();
+				String value = locationValueEntry.getValue().toString();
+				
+				Map<String, String> typeValueMap = locationTypeValueMap.getOrDefault(location, new HashMap<>());
+				typeValueMap.put(type, value);
+				locationTypeValueMap.put(location, typeValueMap);
+			}
+		}
+		
+		// Then report the results
+		for (Entry<String, Map<String, String>> locationTypeValueEntry : locationTypeValueMap.entrySet()) {
+			
+			String location = locationTypeValueEntry.getKey();
+			testReport.append(location).append(": ").append(LS);
+			
+			Map<String, String> typeValueMap = locationTypeValueEntry.getValue();
+			
+			// Underline to highlight the difference
+			String underline = null;
+			if (typeValueMap.keySet().size() == 2) {
+				String[] values = typeValueMap.values().toArray(new String[] {});
+				String v0 = values[0];
+				String v1 = values[1];
+				int index = getIndexOfFirstDifference(v0, v1);
+				underline = new String(new char[index]).replace('\0', ' ') + "^";
+			}
+			
+			for (Entry<String, String> typeValueEntry : typeValueMap.entrySet()) {
+				
+				String type = typeValueEntry.getKey();
+				String value = typeValueEntry.getValue();
+				
+				testReport.append(type).append("=").append(LS);
+				testReport.append(value).append(LS);
+				if (underline != null) testReport.append(underline).append(LS); // Only underline if available
+			}
+			testReport.append(LS);
+		}
+		
+		return testReport.toString();
+	}
+	
+	private static int getIndexOfFirstDifference(String a, String b) {
+		int min = Math.min(a.length(), b.length());
+		for (int i = 0; i < min; i++) {
+			if (a.charAt(i) != b.charAt(i)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	private static void addTitle(StringBuilder builder, String title) {
+		builder.append(LS);
+		builder.append("-------------------------------------------------------------------------------").append(LS);
+		builder.append(title).append(LS);
+		builder.append("-------------------------------------------------------------------------------").append(LS);
+	}
+    
 	// Compare result methods (overloaded)
-	protected Object compareResult(String pixel, String expectedJson) throws IOException {
+	protected List<PixelComparison> compareResult(String pixel, String expectedJson) throws IOException {
 		return compareResult(pixel, expectedJson, false, new ArrayList<String>(), false);
 	}
 	
-	protected Object compareResult(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder) throws IOException {
+	protected List<PixelComparison> compareResult(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder) throws IOException {
+		
+		// Run the pixel and get the results
+		PixelRunner returnData = runPixel(pixel);
+		List<PixelJson> actualPixelJsons = collectPixelJsons(returnData);
+		int actualRecipeLength = actualPixelJsons.size();
 		
 		// Cleanup the expected json, including formatting it
 		expectedJson = formatString(expectedJson);
-		expectedJson = new JsonParser().parse(expectedJson).toString();
 		
-		// Run the pixel and get the result
-		PixelRunner returnData = runPixel(pixel);
-		String actualJson = compareAll ? collectAllPixelJsons(returnData) : collectLastPixelJson(returnData);
+		// The rest of the comparison is based on whether to compare all pixel returns or not
+		List<PixelComparison> differences = new ArrayList<>();
+		if (compareAll) {
+			
+			// Assume the expectedJson is in the form of an array
+			JsonArray expectedJsonArray = new JsonParser().parse(expectedJson).getAsJsonArray();
+			List<PixelJson> expectedPixelJsons = collectPixelJsons(expectedJsonArray);
+			
+			// The expected and actual arrays must be the same length to perform a valid comparison
+			if (actualPixelJsons.size() != expectedPixelJsons.size()) throw new IllegalArgumentException("Unable to compare the results; the actual and expected json arrays differ in length.");
+
+			// Loop through and compare all
+			for (int i = 0; i < actualRecipeLength; i++) {
+											
+				// Expected
+				PixelJson expectedPixelJson = expectedPixelJsons.get(i);
+				
+				// Actual
+				PixelJson actualPixelJson = actualPixelJsons.get(i);
+				
+				// Difference
+				PixelComparison pixelDifference = new PixelComparison(expectedPixelJson, actualPixelJson, excludePaths, ignoreOrder, this);
+				if (pixelDifference.isDifferent()) {
+					differences.add(pixelDifference);
+				}
+			}
+		} else {
+			
+			// Assume that the expectedJson is in the form of an object
+			JsonObject expectedJsonObject = new JsonParser().parse(expectedJson).getAsJsonObject();
+			
+			// Expected
+			PixelJson expectedPixelJson = new PixelJson(expectedJsonObject);
+			
+			// Actual
+			PixelJson actualPixelJson = actualPixelJsons.get(actualRecipeLength - 1);
+			
+			// This is simple, just compare the one expected pixel json with the last actual pixel json
+			PixelComparison pixelDifference = new PixelComparison(expectedPixelJson, actualPixelJson, excludePaths, ignoreOrder, this);
+			if (pixelDifference.isDifferent()) {
+				differences.add(pixelDifference);
+			}
+		}
+		
+		// Return
+		return differences;
+	}
+	
+	protected static List<PixelJson> collectPixelJsons(PixelRunner returnData) throws IOException {
+		return collectPixelJsons(getPixelReturns(returnData));
+	}
+	
+	protected static List<PixelJson> collectPixelJsons(JsonArray pixelReturns) throws IOException {
+		List<PixelJson> pixelJsons = new ArrayList<>();
+		for (int i = 0; i < pixelReturns.size(); i++) {
+			JsonObject pixelReturn = pixelReturns.get(i).getAsJsonObject();
+			pixelJsons.add(new PixelJson(pixelReturn));
+		}
+		return pixelJsons;
+	}
+		
+	protected static JsonArray getPixelReturns(PixelRunner data) throws IOException {
+		StreamingOutput so = PixelStreamUtility.collectPixelData(data);
+		try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+			so.write(output);
+			String jsonString =  new String(output.toByteArray(), TEXT_ENCODING);
+			JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
+			JsonArray pixelReturns = jsonObject.get("pixelReturn").getAsJsonArray();
+			JsonArray cleanedPixelReturns = new JsonArray();
+			for (int i = 0; i < pixelReturns.size(); i++) {
+				JsonObject pixelReturn = pixelReturns.get(i).getAsJsonObject();
+				JsonObject cleanedPixelReturn = new JsonObject();
+				cleanedPixelReturn.add("pixelExpression", pixelReturn.get("pixelExpression"));
+				cleanedPixelReturn.add("output", pixelReturn.get("output"));
+				cleanedPixelReturns.add(cleanedPixelReturn);
+			}
+			return cleanedPixelReturns;
+		}
+	}
+			
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> deepDiff(String expectedJson, String actualJson, List<String> excludePaths, boolean ignoreOrder) throws IOException {
 		
 		// Only allow ASCII characters
 		expectedJson = expectedJson.replaceAll("[^\\p{ASCII}]", "?");
@@ -704,8 +917,8 @@ public class PixelUnit {
 			LOGGER.debug("EXPECTED: " + expectedJson);
 			LOGGER.debug("ACTUAL:   " + actualJson);
 			LOGGER.info("DIFF:     " + result);
-			return result;
 			
+			return (Map<String, Object>) result;
 		} finally {
 			expectedJsonFile.delete();
 			actualJsonFile.delete();
@@ -742,31 +955,6 @@ public class PixelUnit {
 		}
 		
 		return string;
-	}
-	
-	protected static String collectAllPixelJsons(PixelRunner returnData) throws IOException {
-		StreamingOutput so = PixelStreamUtility.collectPixelData(returnData);
-		try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-			so.write(output);
-			String jsonString = new String(output.toByteArray(), TEXT_ENCODING);
-			JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
-			JsonArray pixelReturns = jsonObject.get("pixelReturn").getAsJsonArray();
-			String pixelJsons = pixelReturns.toString();
-			return pixelJsons;
-		}
-	}
-	
-	protected static String collectLastPixelJson(PixelRunner returnData) throws IOException {
-		StreamingOutput so = PixelStreamUtility.collectPixelData(returnData);
-		try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-			so.write(output);
-			String jsonString = new String(output.toByteArray(), TEXT_ENCODING);
-			JsonObject jsonObject = new JsonParser().parse(jsonString).getAsJsonObject();
-			JsonArray pixelReturns = jsonObject.get("pixelReturn").getAsJsonArray();
-			JsonElement pixelOutput = pixelReturns.get(pixelReturns.size() - 1).getAsJsonObject().get("output");
-			String pixelJson = pixelOutput.toString();
-			return pixelJson;
-		}
 	}
 	
 	
