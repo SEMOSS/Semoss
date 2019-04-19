@@ -5,6 +5,9 @@ import java.io.InputStreamReader;
 
 import org.junit.Test;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+
 import prerna.sablecc2.PixelRunner;
 
 public class PixelUnitConsole extends PixelUnit {
@@ -20,10 +23,7 @@ public class PixelUnitConsole extends PixelUnit {
 
 				// Read pixel from tester
 				BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-				
-				LOGGER.info("Collect all pixel outputs?: (true or false): ");
-				boolean collectAll = Boolean.parseBoolean(reader.readLine().trim());
-				
+								
 				LOGGER.info("Enter Pixel command (separated by ; and on one line): ");
 				String pixel = reader.readLine();   
 				pixel = pixel.trim();
@@ -31,10 +31,14 @@ public class PixelUnitConsole extends PixelUnit {
 				// Run the pixel
 				if(!pixel.isEmpty()) {
 					PixelRunner returnData = runPixel(pixel);
-					String json = collectAll ? collectAllPixelJsons(returnData) : collectLastPixelJson(returnData);
+					JsonArray allPixelReturns = getPixelReturns(returnData);
+					JsonElement lastPixelReturn = allPixelReturns.get(allPixelReturns.size() - 1);
+					
 					LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-					LOGGER.info("OUTPUT: ");
-					System.out.println(json);
+					LOGGER.info("ALL: ");
+					System.out.println(GSON_PRETTY.toJson(allPixelReturns));
+					LOGGER.info("LAST: ");
+					System.out.println(GSON_PRETTY.toJson(lastPixelReturn));
 					LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 				} else {
 					
