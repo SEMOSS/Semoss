@@ -31,7 +31,7 @@
                         "Sunburst"
                      ],
                      "default":true,
-                     "query":"UnfilterFrame(<SelectedColumn>);",
+                     "query":"UnfilterFlame(<SelectedColumn>);",
                      "options":{
 
                      },
@@ -45,7 +45,7 @@
                "Filter":[
                   {
                      "default":true,
-                     "query":"if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
+                     "query":"if(IsBE=mpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
                      "options":{
 
                      },
@@ -90,7 +90,7 @@
                         "Sunburst"
                      ],
                      "default":true,
-                     "query":"UnfilterFrame(<SelectedColumn>);",
+                     "query":"UnfilterFlame(<SelectedColumn>);",
                      "options":{
 
                      },
@@ -253,7 +253,7 @@
                   {
                      "qsName":{
                         "<<<appId>>>unit_test_movie<<</appId>>>":[
-                           "Director"
+                           "Directsor"
                         ]
                      },
                      "isDerived":"false",
@@ -267,7 +267,7 @@
                   {
                      "qsName":{
                         "<<<appId>>>unit_test_movie<<</appId>>>":[
-                           "Genre"
+                           "Gensre"
                         ]
                      },
                      "isDerived":"false",
@@ -281,7 +281,7 @@
                   {
                      "qsName":{
                         "<<<appId>>>unit_test_movie<<</appId>>>":[
-                           "Title__MovieBudget"
+                           "Title__sMovieBudget"
                         ]
                      },
                      "isDerived":"false",

@@ -1,62 +1,12 @@
 name,pixel,expected_json,compare_all,exclude_paths,ignore_order,ignore_added_dictionary,ignore_added_iterable,clean_test_databases
-version,Version();,"{""datetime"":""1000-01-01_01:01:01"",""version"":""1.0.0-SNAPSHOT""}",FALSE,"root['datetime'],root['version']",TRUE,FALSE,FALSE,
-predict metamodel,"PredictMetamodel(filePath=[""<<<testDir>>>/data/unit_test_movie.csv""], delimiter=["",""], rowCount=[false]);","{
-   ""dataTypes"":{
-      ""Nominated"":""STRING"",
-      ""Title"":""STRING"",
-      ""Genre"":""STRING"",
-      ""Studio"":""STRING"",
-      ""Director"":""STRING"",
-      ""Revenue_Domestic"":""INT"",
-      ""MovieBudget"":""INT"",
-      ""Revenue_International"":""INT"",
-      ""RottenTomatoes_Critics"":""DOUBLE"",
-      ""RottenTomatoes_Audience"":""DOUBLE""
-   },
-   ""startCount"":2,
-   ""fileName"":""C:/unit_test_movie.csv"",
-   ""headerModifications"":{
-      ""Revenue_International"":""Original Header Value = Revenue-International"",
-      ""RottenTomatoes_Critics"":""Original Header Value = RottenTomatoes-Critics"",
-      ""RottenTomatoes_Audience"":""Original Header Value = RottenTomatoes-Audience"",
-      ""Revenue_Domestic"":""Original Header Value = Revenue-Domestic""
-   },
-   ""nodeProp"":{
-      ""Title"":[
-         ""RottenTomatoes_Audience"",
-         ""RottenTomatoes_Critics"",
-         ""Revenue_Domestic"",
-         ""MovieBudget"",
-         ""Revenue_International""
-      ]
-   },
-   ""fileLocation"":""C:/unit_test_movie.csv"",
-   ""additionalDataTypes"":{
-
-   },
-   ""relation"":[
-      {
-         ""relName"":""Title_Director"",
-         ""toTable"":""Director"",
-         ""fromTable"":""Title""
-      },
-      {
-         ""relName"":""Title_Genre"",
-         ""toTable"":""Genre"",
-         ""fromTable"":""Title""
-      },
-      {
-         ""relName"":""Title_Studio"",
-         ""toTable"":""Studio"",
-         ""fromTable"":""Title""
-      },
-      {
-         ""relName"":""Title_Nominated"",
-         ""toTable"":""Nominated"",
-         ""fromTable"":""Title""
-      }
-   ]
-}",FALSE,"root['fileName'],root['fileLocation']",TRUE,FALSE,FALSE,
+version,Version();,"{
+  ""pixelExpression"": ""Version ( ) ;"",
+  ""output"": {
+    ""datetime"": ""1000-01-01 01:01:01"",
+    ""version"": ""1.0.0-SNAPSHOT""
+  }
+}",FALSE,"root['datetime'],root['version']",TRUE,FALSE,FALSE,
+predict metamodel,"PredictMetamodel(filePath=[""<<<testDir>>>/data/unit_test_movie.csv""], delimiter=["",""], rowCount=[false]);",<<<text>>>predict_metamodel.txt<<</text>>>,FALSE,"root['fileName'],root['fileLocation']",TRUE,FALSE,FALSE,
 inner join,"CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAMEUNITTEST' ] ) ; 
 Database ( database = [ ""<<<appId>>>unit_test_movie<<</appId>>>"" ] ) | Select ( Director , Title , Title__MovieBudget , Title__Revenue_Domestic , Title__Revenue_International , Title__RottenTomatoes_Audience , Title__RottenTomatoes_Critics , Nominated , Studio , Genre ) .as ( [ Director , Title , MovieBudget , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Nominated , Studio , Genre ] ) | Join ( ( Title , inner.join , Director ) , ( Title , inner.join , Genre ) , ( Title , inner.join , Studio ) , ( Title , inner.join , Nominated ) ) | Import ( ) ;
 Frame ( ) | QueryAll ( ) | Collect ( -1 ) ;",<<<text>>>inner_join.txt<<</text>>>,FALSE,,TRUE,FALSE,FALSE,
