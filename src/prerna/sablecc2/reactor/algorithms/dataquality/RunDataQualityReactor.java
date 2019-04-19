@@ -100,7 +100,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		rScript.append("sourceFiles(\"" + dqDirLoc + "\");");
 		
 		if(inputTable == null) {
-			rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), ruleID = character(), toColor = character());");
+			rScript.append(retRVariableName).append(" <- data.table(Columns=character(), Errors=integer(), Valid=integer(), Total=integer(), Rules=character(), Description=character(), toColor = character());");
 		}
 		rScript.append(inputString.toString());
 		
@@ -110,7 +110,7 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		// R garbage collection
 		rScript.append("source(\"" + dqDirLoc + "fileCleanup.R" + "\");");
 		rScript.append("rm(" + inputVariable + ");");
-		System.out.println(rScript);
+//		System.out.println(rScript);
 		
 
 		// you will run this rScript
