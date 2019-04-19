@@ -34,7 +34,7 @@ public class GsonUtility {
 		
 	}
 	
-	public static Gson getDefaultGson() {
+	public static Gson getDefaultGson(boolean pretty) {
 		GsonBuilder gsonBuilder = new GsonBuilder()
 				.disableHtmlEscaping()
 				.excludeFieldsWithModifiers(Modifier.STATIC)
@@ -73,11 +73,15 @@ public class GsonUtility {
 				.registerTypeAdapter(HeadersDataRow.class, new HeadersDataRowAdapter())
 				;
 		
-		if(testing) {
+		if(pretty) {
 			gsonBuilder.setPrettyPrinting();
 		}
 		
 		return gsonBuilder.create();
+	}
+	
+	public static Gson getDefaultGson() {
+		return getDefaultGson(testing);
 	}
 	
 }
