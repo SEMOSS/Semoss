@@ -15,21 +15,17 @@ library(data.table)
 ## dt: data table read in passed to function
 isNull <- function(dt, rule){
 
-  ruleName <- c("Blanks/Nulls/NAs")
   currCol <- rule$col
   currRule <- rule$rule
   
   tempArray <- dt[, get(currCol)]
   totLength <- length(tempArray)
   
-  naArray <- is.na(tempArray)
-  
-  toPaint <- c("\"null\"", "null")
-  tempTotErrs <- sum(is.na(tempArray))
-  totCorrect <- sum(!is.na(tempArray))
-
-  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, "", currRule, toPaint)
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
+  totErrors <- sum(is.na(tempArray))
+  totCorrect <- totLength - totErrors
+  toPaint <- c("\"\", null")
+  returnTable <- data.table(currCol, totErrors, totCorrect, totLength, currRule, "", toPaint)
+  names(returnTable) <- c('Columns', 'Errors', 'Valid', 'Total', 'Rules', 'Description', 'toColor')
 
   return (returnTable)
 }
