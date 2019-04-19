@@ -1,0 +1,7 @@
+{
+  "pixelExpression": "Version ( ) ;",
+  "output": {
+    "datetime": "1000-01-01 01:01:01",
+    "version": "1.0.0-SNAPSHOT"
+  }
+}

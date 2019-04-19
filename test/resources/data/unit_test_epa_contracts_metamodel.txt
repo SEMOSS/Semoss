@@ -1,39 +1,42 @@
 {
-   "edges":[
+   "pixelExpression":"GetDatabaseMetamodel ( database = [ \"<<<appId>>>unit_test_epa_contracts<<</appId>>>\" ] , options = [ \"datatypes\" ] ) ;",
+   "output":{
+      "edges":[
 
-   ],
-   "nodes":[
-      {
-         "propSet":[
-            "obligated",
-            "state",
-            "type_of_work",
-            "vendor",
-            "zip"
-         ],
-         "keySet":[
-            "contract_id"
-         ],
-         "conceptualName":"contract_id"
+      ],
+      "nodes":[
+         {
+            "propSet":[
+               "obligated",
+               "state",
+               "type_of_work",
+               "vendor",
+               "zip"
+            ],
+            "keySet":[
+               "contract_id"
+            ],
+            "conceptualName":"contract_id"
+         }
+      ],
+      "additionalDataTypes":{
+
+      },
+      "dataTypes":{
+         "contract_id__type_of_work":"STRING",
+         "contract_id":"STRING",
+         "contract_id__zip":"STRING",
+         "contract_id__obligated":"DOUBLE",
+         "contract_id__vendor":"STRING",
+         "contract_id__state":"STRING"
+      },
+      "physicalTypes":{
+         "contract_id__type_of_work":"VARCHAR(2000)",
+         "contract_id":"VARCHAR(2000)",
+         "contract_id__zip":"VARCHAR(2000)",
+         "contract_id__obligated":"FLOAT",
+         "contract_id__vendor":"VARCHAR(2000)",
+         "contract_id__state":"VARCHAR(2000)"
       }
-   ],
-   "additionalDataTypes":{
-
-   },
-   "dataTypes":{
-      "contract_id__type_of_work":"STRING",
-      "contract_id":"STRING",
-      "contract_id__zip":"STRING",
-      "contract_id__obligated":"DOUBLE",
-      "contract_id__vendor":"STRING",
-      "contract_id__state":"STRING"
-   },
-   "physicalTypes":{
-      "contract_id__type_of_work":"VARCHAR(2000)",
-      "contract_id":"VARCHAR(2000)",
-      "contract_id__zip":"VARCHAR(2000)",
-      "contract_id__obligated":"FLOAT",
-      "contract_id__vendor":"VARCHAR(2000)",
-      "contract_id__state":"VARCHAR(2000)"
    }
 }
