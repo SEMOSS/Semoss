@@ -9,7 +9,6 @@
 
 duplicates <- function(dt, rule) {
   
-  ruleName <- c("Duplicates")
   currCol <- rule$col
   currRule <- rule$rule
   
@@ -19,15 +18,15 @@ duplicates <- function(dt, rule) {
   
   # Identify duplicates
   idx <- as.integer(duplicated(tempArray,incomparables=NA) | duplicated(tempArray, incomparables=NA,fromLast = TRUE))
-  tempTotErrs <- sum(idx, na.rm = TRUE)
-  totCorrect <- totLength - tempTotErrs - sum(is.na(tempArray))
+  totErrors <- sum(idx, na.rm = FALSE)
+  totCorrect <- totLength - totErrors - sum(is.na(tempArray))
   tempArray <- tempArray[duplicated(tempArray)]
+  tempArray <- tempArray[!duplicated(tempArray)]
   toPaint <- paste(tempArray, collapse = "\", \"" )
   toPaint <- paste0('\"', toPaint, '\"')
-  # Calculate values
   
-  returnTable <- data.table(currCol, tempTotErrs, totCorrect, totLength, ruleName, "", currRule, toPaint)
-  names(returnTable) <- c('Columns','Errors', 'Valid','Total','Rules', 'Description', 'ruleID', 'toColor')
+  returnTable <- data.table(currCol, totErrors, totCorrect, totLength, currRule, "", toPaint)
+  names(returnTable) <- c('Columns', 'Errors', 'Valid', 'Total', 'Rules', 'Description', 'toColor')
   
   return (returnTable)
 }
