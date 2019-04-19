@@ -31,7 +31,7 @@
                         "Sunburst"
                      ],
                      "default":true,
-                     "query":"UnfilterFlame(<SelectedColumn>);",
+                     "query":"UnfilterFrame(<SelectedColumn>);",
                      "options":{
 
                      },
@@ -45,7 +45,7 @@
                "Filter":[
                   {
                      "default":true,
-                     "query":"if(IsBE=mpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
+                     "query":"if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
                      "options":{
 
                      },
@@ -90,7 +90,7 @@
                         "Sunburst"
                      ],
                      "default":true,
-                     "query":"UnfilterFlame(<SelectedColumn>);",
+                     "query":"UnfilterFrame(<SelectedColumn>);",
                      "options":{
 
                      },
