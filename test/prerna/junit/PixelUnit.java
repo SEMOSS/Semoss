@@ -639,18 +639,29 @@ public class PixelUnit {
 	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, boolean assume) throws IOException {
 		try {
 			List<PixelComparison> result = compareResult(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
-
-			// TODO >>>timb: JUnit - here write the reports, for either assume or assert (may need to pass in the name of the test) - either that or write a detailed assertion error
+			
+			// Compose the full report
+			StringBuilder testReport = new StringBuilder();
+			int index = 0;
+			boolean testFailed = false;
 			for (PixelComparison comparison : result) {
 				if (comparison.isDifferent()) {
-					String testReport = composeTestReport(comparison);
-					if (assume) {
-						throw new AssumptionViolatedException(testReport);
-					} else {
-						throw new AssertionError(testReport);
-					}
+					testFailed = true;
+					testReport.append(composeComparisonReport(comparison, index)).append(LS);
+				}
+				index++;
+			}
+			
+			// Throw the report if the test failed
+			if (testFailed) {
+				if (assume) {
+					throw new AssumptionViolatedException(testReport.toString());
+				} else {
+					throw new AssertionError(testReport.toString());
 				}
 			}
+		} catch (AssumptionViolatedException | AssertionError e) {
+			throw e;
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
 			String message = "An I/O exception occured while running this test.";
@@ -700,12 +711,15 @@ public class PixelUnit {
 		}
 	}
 	
-	private static String composeTestReport(PixelComparison comparison) {
+	private static String composeComparisonReport(PixelComparison comparison, int index) {
 		StringBuilder testReport = new StringBuilder();
 		testReport.append(LS);
 		
-		addTitle(testReport, "Pixel expression: ");
+		addMajorTitle(testReport, "Pixel expression: ");
 		testReport.append(comparison.getPixelExpression()).append(LS);
+		
+		addTitle(testReport, "Index: ");
+		testReport.append(index).append(LS);
 		
 		addTitle(testReport, "Expected output: ");
 		testReport.append(comparison.getExpectedPixelOutput()).append(LS);
@@ -751,8 +765,8 @@ public class PixelUnit {
 				String[] values = typeValueMap.values().toArray(new String[] {});
 				String v0 = values[0];
 				String v1 = values[1];
-				int index = getIndexOfFirstDifference(v0, v1);
-				underline = new String(new char[index]).replace('\0', ' ') + "^";
+				int n = getIndexOfFirstDifference(v0, v1);
+				underline = new String(new char[n]).replace('\0', ' ') + "^";
 			}
 			
 			for (Entry<String, String> typeValueEntry : typeValueMap.entrySet()) {
@@ -782,11 +796,18 @@ public class PixelUnit {
 	
 	private static void addTitle(StringBuilder builder, String title) {
 		builder.append(LS);
+		builder.append("---------------------------------------").append(LS);
+		builder.append(title).append(LS);
+		builder.append("---------------------------------------").append(LS);
+	}
+    
+	private static void addMajorTitle(StringBuilder builder, String title) {
+		builder.append(LS);
 		builder.append("-------------------------------------------------------------------------------").append(LS);
 		builder.append(title).append(LS);
 		builder.append("-------------------------------------------------------------------------------").append(LS);
 	}
-    
+	
 	// Compare result methods (overloaded)
 	protected List<PixelComparison> compareResult(String pixel, String expectedJson) throws IOException {
 		return compareResult(pixel, expectedJson, false, new ArrayList<String>(), false);
