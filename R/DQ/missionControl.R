@@ -16,46 +16,41 @@ missionControl <- function (dt, rule, resultsTable){
   
   dt[dt == ""] <- NA
   
-  tempResultsTable <- data.table(Columns=character(),Errors=integer(),Valid=integer(),Total=integer(),Rules=character(), Description=character(), ruleID = character(), toColor = character())
+  tempResultsTable <- data.table(Columns=character(),Errors=integer(),Valid=integer(),Total=integer(),Rules=character(), Description=character(), toColor = character())
   
   currRule = rule$rule
   currCol = rule$col
   
-  if (currRule == "blanks") {
+  if (currRule == "Blanks/Nulls/NAs") {
     tempResultsTable <- isNull(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   }
-  # Check for incorrect gender format
-  else if (currRule == "gender"){
-    tempResultsTable <- genderRule(dt, rule)
-    resultsTable <- rbind(resultsTable, tempResultsTable)
-  }
   # Check for incorrect email format
-  else if (currRule == "email"){
-    tempResultsTable <- emailRule(dt, rule)
+  else if (currRule == "Email Format"){
+    tempResultsTable <- regexComparison(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   } 
   # Check for incorrect date format
-  else if (currRule == "date"){ 
-    tempResultsTable <- dateRule(dt, rule)
+  else if (currRule == "Date Format"){ 
+    tempResultsTable <- regexComparison(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   }
   # Check for duplicated entries
-  else if (currRule == "duplicates"){
+  else if (currRule == "Duplicates"){
     tempResultsTable <- duplicates(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   }
   # Check for incorrect name format
-  else if(currRule == "name"){
-    tempResultsTable <- nameRule(dt, rule)
+  else if(currRule == "Name Format"){
+    tempResultsTable <- regexComparison(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   }
-  else if(currRule == "validate"){
+  else if(currRule == "Validate Values"){
     tempResultsTable <- validator(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   }
-  else if(currRule == "regex"){
-    tempResultsTable <- regexInput(dt, rule)
+  else if(currRule == "Regex Input"){
+    tempResultsTable <- regexComparison(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   }
   return(resultsTable)

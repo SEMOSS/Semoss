@@ -2,7 +2,7 @@
     "rules" : [
         {
             "name": "Blanks/Nulls/NAs",
-            "ruleID": "blanks",
+            "ruleID": "Blanks/Nulls/NAs",
             "ruleDescription": "Identifies blank cells",
             "option": false,
             "optionType": false,
@@ -10,7 +10,7 @@
         },  
         {
             "name": "Date Format",
-            "ruleID": "date",
+            "ruleID": "Date Format",
             "ruleDescription": "Identifies incorrectly formatted date entries",
             "option": true,
             "optionType": "checklist",
@@ -35,7 +35,7 @@
         },
         {
             "name": "Duplicates",
-            "ruleID": "duplicates",
+            "ruleID": "Duplicates",
             "ruleDescription": "Identifies all non-unique values",
             "option": false,
             "optionType": "n/a",
@@ -48,7 +48,7 @@
         },  
         {
             "name": "Email Format",
-            "ruleID": "email",
+            "ruleID": "Email Format",
             "ruleDescription": "Identifies incorrectly formatted email entries",
             "option": true,
             "optionType": "checklist",
@@ -69,7 +69,7 @@
         },
         {
             "name": "Name Format",
-            "ruleID": "name",
+            "ruleID": "Name Format",
             "ruleDescription": "Identifies incorrectly formatted name entries",
             "option": true,
             "optionType": "checklist",
@@ -86,7 +86,7 @@
         },  
         {
             "name": "Regex Input",
-            "ruleID": "regex",
+            "ruleID": "Regex Input",
             "ruleDescription": "Input your own regex",
             "option": true,
             "optionType": "input",
@@ -94,7 +94,7 @@
         },
         {
             "name": "Validate Values",
-            "ruleID": "validate",
+            "ruleID": "Validate Values",
             "ruleDescription": "Validates the data against an input list",
             "option": true,
             "optionType": "input",
