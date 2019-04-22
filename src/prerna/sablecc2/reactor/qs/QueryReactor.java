@@ -21,10 +21,11 @@ public class QueryReactor extends AbstractQueryStructReactor {
 		HardSelectQueryStruct hardQs = null;
 		if(this.qs instanceof SelectQueryStruct) {
 			SelectQueryStruct sQs = ((SelectQueryStruct) qs);
-			if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+			if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 				hardQs = (HardSelectQueryStruct) sQs.getNewBaseQueryStruct();
-				hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-			} else if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+				hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
+			} else if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE 
+					|| sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				hardQs = new HardSelectQueryStruct();
 				hardQs.setEngine(qs.getEngine());
 				hardQs.setEngineId(qs.getEngineId());
