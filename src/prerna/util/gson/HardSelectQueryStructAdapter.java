@@ -1,7 +1,9 @@
 package prerna.util.gson;
 
 import java.io.IOException;
+import java.util.Map;
 
+import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -11,6 +13,8 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 
 public class HardSelectQueryStructAdapter  extends TypeAdapter<HardSelectQueryStruct> {
+
+	private static final Gson gson = new Gson();
 
 	@Override
 	public HardSelectQueryStruct read(JsonReader in) throws IOException {
@@ -32,6 +36,10 @@ public class HardSelectQueryStructAdapter  extends TypeAdapter<HardSelectQuerySt
 				qs.setFrameName(in.nextString());
 			} else if(name.equals("query")) {
 				qs.setQuery(in.nextString());
+			} else if(name.equals("config")) {
+				TypeAdapter<Map> configReader = gson.getAdapter(Map.class);
+				Map<String, Object> config = configReader.read(in);
+				qs.setConfig(config);
 			}
 		}
 		in.endObject();
@@ -61,6 +69,12 @@ public class HardSelectQueryStructAdapter  extends TypeAdapter<HardSelectQuerySt
 			out.name("frameName").value(value.getFrameName());
 		}
 		out.name("query").value(value.getQuery());
+		
+		if(value.getConfig() != null) {
+			TypeAdapter<Map> configWriter = gson.getAdapter(Map.class);
+			out.name("config");
+			configWriter.write(out, value.getConfig());
+		}
 		out.endObject();
 	}
 }

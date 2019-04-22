@@ -77,15 +77,7 @@ public class FileSourceReactor extends AbstractQueryStructReactor {
 		qs.setNewHeaderNames(newHeaders);
 		qs.setColumnTypes(dataTypes);
 		qs.setAdditionalTypes(additionalDataTypes);
-		
 		qs.merge(this.qs);
-		
-		// track GA data
-		// Formatting and Tracking for Google Analytics
-//		String FileName = getFileName();
-//		List<String> heads = new ArrayList<String>(dataTypes.keySet());
-//		UserTrackerFactory.getInstance().trackDragAndDrop(this.insight, heads, FileName);
-		
 		return qs;
 	}
 
