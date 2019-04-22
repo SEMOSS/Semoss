@@ -27,7 +27,7 @@ public class WikiLogicalNameExtractor {
 		List<String> logicalNames = new Vector<String>();
 
 		WikibaseDataFetcher wbdf = WikibaseDataFetcher.getWikidataDataFetcher();
-		searchTerm = searchTerm.trim().replace("_", " ");
+		searchTerm = splitCamelCase(searchTerm.trim().replace("_", " "));
 		List<WbSearchEntitiesResult> searchResults = wbdf.searchEntities(searchTerm, new Long(10));
 		int numReturns = searchResults.size();
 		if(numReturns == 0) {
@@ -80,4 +80,15 @@ public class WikiLogicalNameExtractor {
 		}
 		return this.logger;
 	}
+	
+	static String splitCamelCase(String s) {
+		   return s.replaceAll(
+		      String.format("%s|%s|%s",
+		         "(?<=[A-Z])(?=[A-Z][a-z])",
+		         "(?<=[^A-Z])(?=[A-Z])",
+		         "(?<=[A-Za-z])(?=[^A-Za-z])"
+		      ),
+		      " "
+		   );
+		}
 }
