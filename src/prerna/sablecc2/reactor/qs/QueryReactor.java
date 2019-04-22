@@ -18,14 +18,19 @@ public class QueryReactor extends AbstractQueryStructReactor {
 		String query = Utility.decodeURIComponent(this.curRow.get(0).toString());
 
 		//create a new query struct
-		HardSelectQueryStruct hardQs = new HardSelectQueryStruct();
+		HardSelectQueryStruct hardQs = null;
 		if(this.qs instanceof SelectQueryStruct) {
 			SelectQueryStruct sQs = ((SelectQueryStruct) qs);
-			if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+			if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+				hardQs = (HardSelectQueryStruct) sQs.getNewBaseQueryStruct();
+				hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+			} else if(sQs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+				hardQs = new HardSelectQueryStruct();
 				hardQs.setEngine(qs.getEngine());
 				hardQs.setEngineId(qs.getEngineId());
 				hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 			} else {
+				hardQs = new HardSelectQueryStruct();
 				hardQs.setFrame(qs.getFrame());
 				hardQs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
 			}
