@@ -27,6 +27,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.OWLER;
 import prerna.util.Utility;
@@ -47,7 +48,12 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		typeConversionMap.put(SemossDataType.TIMESTAMP, "TIMESTAMP");
 		typeConversionMap.put(SemossDataType.STRING, "VARCHAR(800)");
 	}
-
+	
+	private String engineId = null;
+	private String targetTable = null;
+	private boolean override = false;
+	private boolean newTable = false;
+	
 	public ToDatabaseReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), TARGET_DATABASE, TARGET_TABLE, ReactorKeysEnum.OVERRIDE.getKey()};
 	}
@@ -55,7 +61,39 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	@Override
 	public NounMetadata execute() {
 		this.task = getTask();
-		buildTask();
+		
+		this.engineId = getEngineId();
+		if(AbstractSecurityUtils.securityEnabled()) {
+			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
+			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
+				throw new IllegalArgumentException("Database " + this.engineId + " does not exist or user does not have edit access to the app");
+			}
+		} else {
+			this.engineId = MasterDatabaseUtility.testEngineIdIfAlias(this.engineId);
+			if(!MasterDatabaseUtility.getAllEngineIds().contains(this.engineId)) {
+				throw new IllegalArgumentException("Database " + this.engineId + " does not exist");
+			}
+		}
+		
+		this.targetTable = getTargetTable();
+		// clean up the table name
+		this.targetTable = Utility.makeAlphaNumeric(this.targetTable);
+		this.override = getOverride();
+		this.newTable = !MasterDatabaseUtility.getConceptsWithinEngineRDBMS(this.engineId).contains(this.targetTable);
+
+		if(this.newTable && this.override) {
+			// you cannot override a table that doesn't exist
+			throw new SemossPixelException(
+					new NounMetadata("Table " + this.newTable + " cannot be found to override. Please enter an existing table name or turn override to false",
+							PixelDataType.CONST_STRING));
+		}
+		
+		try {
+			buildTask();
+		} catch(Exception e) {
+			// clean up
+			throw e;
+		}
 		ClusterUtil.reactorPushApp(getEngineId());
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
@@ -64,27 +102,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	protected void buildTask() {
 		Logger logger = this.getLogger(CLASS_NAME);
 
-		// first, make sure we have proper permissions
-		String engineId = getEngineId();
-		if(AbstractSecurityUtils.securityEnabled()) {
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist or user does not have edit access to the app");
-			}
-		} else {
-			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(engineId)) {
-				throw new IllegalArgumentException("Database " + engineId + " does not exist");
-			}
-		}
-
-		String targetTable = getTargetTable();
-		// clean up the table name
-		targetTable = Utility.makeAlphaNumeric(targetTable);
-		boolean overWrite = getOverWrite();
-		
-		logger.info("Persisting data into table = " + targetTable);
-		logger.info("Replace existing table data = " + overWrite);
+		logger.info("Persisting data into table = " + this.targetTable);
+		logger.info("Replace existing table data = " + this.override);
 
 		// grab the engine
 		IEngine targetEngine = Utility.getEngine(engineId);
@@ -109,14 +128,12 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		
 		// check if adding to an existing table
 		// that all the columns are there
-		boolean newTable = !MasterDatabaseUtility.getConceptsWithinEngineRDBMS(engineId).contains(targetTable);
-		if(overWrite) {
+		if(this.override) {
 			// just update the metadata in case columns have changed
-			newTable = true;
 			logger.info("Deleting existing table data and creating new table");
 
-			String delete = "DROP TABLE IF EXISTS " + targetTable + ";";
-			String create = RdbmsQueryBuilder.makeCreate(targetTable, headers, sqlTypes);
+			String delete = "DROP TABLE IF EXISTS " + this.targetTable + ";";
+			String create = RdbmsQueryBuilder.makeCreate(this.targetTable, headers, sqlTypes);
 			try {
 				targetEngine.insertData(delete);
 				targetEngine.insertData(create);
@@ -126,7 +143,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			}
 			
 			logger.info("Finished deleting existing table data and creating new table");
-		} else if (newTable) {
+		} else if(this.newTable) {
 			// create the table
 			logger.info("Creating new table ");
 			String create = RdbmsQueryBuilder.makeCreate(targetTable, headers, sqlTypes);
@@ -141,25 +158,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			// # of columns must match
 			List<String> cols = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(targetTable, engineId);
 			if(cols.size() != size) {
-				throw new SemossPixelException(new NounMetadata("Header size does not match for existing table. Please create a new table or have overwrite=true", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(new NounMetadata("Header size does not match for existing table. Please create a new table or have override=true", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
-		}
-
-		// delete table if it exists and overwrite is true
-		if (!newTable && overWrite) {
-			logger.info("Deleting existing table data");
-
-			String delete = "DROP TABLE IF EXISTS " + targetTable + ";";
-			String create = RdbmsQueryBuilder.makeCreate(targetTable, headers, sqlTypes);
-			try {
-				targetEngine.insertData(delete);
-				targetEngine.insertData(create);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw new SemossPixelException(new NounMetadata("Error occured trying to delete and create the new table", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			}
-			
-			logger.info("Finished deleting existing table data");
 		}
 
 		Object[] getPreparedStatementArgs = new Object[headers.length + 1];
@@ -270,8 +270,25 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			throw new IllegalArgumentException("An error occured persisting data into the database");
 		}
 		
-		// need to reload the metadata of this app in case the table is new
-		if(newTable) {
+		
+		// if we are overwriting the existing value
+		// we need to grab the current concept/columns
+		// and we need to delete them
+		// then do the add new table logic
+		if(this.override) {
+			// i will just do the delete portion here
+			// since the add is the same in either case
+			RemoveOwlConceptReactor remover = new RemoveOwlConceptReactor();
+			remover.getNounStore().makeNoun(ReactorKeysEnum.APP.getKey()).addLiteral(this.engineId);
+			remover.getNounStore().makeNoun(ReactorKeysEnum.CONCEPT.getKey()).addLiteral(this.targetTable);
+			remover.setInsight(this.insight);
+			remover.execute();
+		}
+		
+		// if it is a new table
+		// this is easy
+		// just add everything
+		if(this.override || this.newTable) {
 			logger.info("Need to update the engine metadata for the new table");
 			OWLER owler = new OWLER(targetEngine, targetEngine.getOWL());
 			// choose the first column as the prim key
@@ -331,7 +348,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		throw new IllegalArgumentException("Must define the table to persist the data into");
 	}
 	
-	private boolean getOverWrite() {
+	private boolean getOverride() {
 		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[3]);
 		if(boolGrs != null) {
 			if(boolGrs.size() > 0) {
