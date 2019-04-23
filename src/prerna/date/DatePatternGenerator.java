@@ -29,6 +29,8 @@ public class DatePatternGenerator {
 		genSimpleCombinations(retValues, day, month, year, separator);
 		// year, month, day
 		genSimpleCombinations(retValues, year, month, day, separator);
+		// year, day, month
+		genSimpleCombinations(retValues, year, day, month, separator);
 
 		// month, year
 		genSimpleCombinations(retValues, month, year, separator);
