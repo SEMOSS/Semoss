@@ -121,7 +121,8 @@ public class ImportUtility {
 			parseEngineQsToFlatTable(dataframe, qs, frameTableName);
 		}
 		// engine with raw query
-		else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY 
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			parseRawQsToFlatTable(dataframe, qs, frameTableName, (IRawSelectWrapper) it, qs.getEngineId());
 		}
 		// frame
@@ -940,7 +941,8 @@ public class ImportUtility {
 			return getMetaDataFromExcelQs((ExcelQueryStruct)qs);
 		} else if(qsType == QUERY_STRUCT_TYPE.LAMBDA) {
 			return getMetaDataFromLambdaQs((LambdaQueryStruct)qs);
-		} else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		} else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			return getMetaDataFromQuery((IRawSelectWrapper)it);
 		} else if(qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			return getMetaDataFromQuery((IRawSelectWrapper)it);
