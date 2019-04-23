@@ -51,7 +51,8 @@ public class ImportUtility {
 			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), qs);
 		} 
 		// engine with hard coded query
-		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY 
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardSelectQueryStruct) qs).getQuery());
 		}
 		// frame with qs
@@ -1095,7 +1096,8 @@ public class ImportUtility {
 
 	public static void parseQueryStructToFlatTableWithJoin(ITableDataFrame dataframe, SelectQueryStruct qs, String tableName, Iterator<IHeadersDataRow> it, List<Join> joins) {
 		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
-		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
+		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			parseRawQsToFlatTableWithJoin(dataframe, tableName, (IRawSelectWrapper) it, joins, qs.getEngineId());
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			parseRawQsToFlatTableWithJoin(dataframe, tableName, (IRawSelectWrapper) it, joins, "RAW_FRAME_QUERY");
