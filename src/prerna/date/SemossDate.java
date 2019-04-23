@@ -429,6 +429,9 @@ public class SemossDate {
 		
 		d = "2018-03-12 10:20:11";
 		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
+		
+		d = "2019-23-12 02:12:21";
+		System.out.println(SemossDate.genTimeStampDateObj(d).testToString());
 	}
 
 }
