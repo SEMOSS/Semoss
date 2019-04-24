@@ -33,6 +33,10 @@ public class GenericSelectorFunctionReactor extends QuerySelectReactor {
 		for(String key : keys) {
 			if(key.equals("all")) {
 				continue;
+			} else if(key.equals("sDataType")) {
+				String dataType = this.store.getNoun(key).get(0).toString();
+				functionSelector.setDataType(dataType);
+				continue;
 			}
 			GenRowStruct grs = this.store.getNoun(key);
 			int num = grs.size();
