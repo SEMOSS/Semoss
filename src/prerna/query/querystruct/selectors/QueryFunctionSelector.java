@@ -13,6 +13,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	private boolean isDistinct;
 	private String colCast;
 	private List<Object[]> additionalFunctionParams;
+	private String dataType = null;
 	
 	public QueryFunctionSelector() {
 		this.innerSelectors = new ArrayList<IQuerySelector>();
@@ -46,7 +47,10 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	
 	@Override
 	public String getDataType() {
-		return QueryFunctionHelper.determineTypeOfFunction(functionName);
+		if(dataType == null) {
+			dataType = QueryFunctionHelper.determineTypeOfFunction(functionName);
+		}
+		return dataType;
 	}
 
 	@Override
@@ -56,6 +60,10 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 			qsConcat.append(this.innerSelectors.get(i).getQueryStructName());
 		}
 		return QueryFunctionHelper.getPrettyName(this.functionName) + "(" + qsConcat + ")";
+	}
+	
+	public void setDataType(String dataType) {
+		this.dataType = dataType;
 	}
 
 	public List<IQuerySelector> getInnerSelector() {
