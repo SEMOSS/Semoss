@@ -1,0 +1,11 @@
+{
+  "pixelExpression": "R ( \"<encode>1+1</encode>\" ) ;",
+  "output": [
+    {
+      "output": "[1] 2",
+      "operationType": [
+        "OPERATION"
+      ]
+    }
+  ]
+}
