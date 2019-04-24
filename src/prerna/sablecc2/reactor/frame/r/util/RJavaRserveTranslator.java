@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
+import org.rosuda.REngine.RFactor;
 import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
@@ -20,7 +21,6 @@ import prerna.engine.impl.r.RSingleton;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
-import prerna.util.ArrayUtilityMethods;
 
 public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
@@ -475,215 +475,127 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	}
 	
 	@Override
-	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
-		REXP rs = (REXP) executeR(rScript);
-		Object result = null;
-		try {
-			result = rs.asNativeJavaObject();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		if(result instanceof Map) {
-			return processMapReturn((Map<String, Object>) result, headerOrdering);
-		} else if(result instanceof List) {
-			String[] returnNames = null;
-			try {
-				Object namesAttr = rs.getAttribute("names").asNativeJavaObject();
-				if(namesAttr instanceof String[]) {
-					returnNames = (String[]) namesAttr;
-				} else {
-					// assume it is single string
-					returnNames = new String[]{namesAttr.toString()};
-				}
-			} catch (REXPMismatchException e) {
-				e.printStackTrace();
-			}
-			return processListReturn((List) result, headerOrdering, returnNames);
-		} else {
-			throw new IllegalArgumentException("Unknown data type returned from R");
-		}
+	public Object[] getDataRow(String rScript, String[] headerOrdering) {
+		return getBulkDataRow(rScript, headerOrdering).get(0);
 	}
 	
 	@Override
-	public Object[] getDataRow(String rScript, String[] headerOrdering) {
+	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
+		List<Object[]> retArr = new Vector<Object[]>(500);
+
 		REXP rs = (REXP) executeR(rScript);
-		Object[] retArray = null;
-		Object result = null;
 		try {
-			result = rs.asNativeJavaObject();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-		}
-		if(result instanceof Map) {
-			retArray =  processMapReturn((Map<String, Object>) result, headerOrdering).get(0);
-		} else if(result instanceof List) {
-			String[] returnNames = null;
-			try {
-				Object namesAttr = rs.getAttribute("names").asNativeJavaObject();
-				if(namesAttr instanceof String[]) {
-					returnNames = (String[]) namesAttr;
-				} else {
-					// assume it is single string
-					returnNames = new String[]{namesAttr.toString()};
-				}
-			} catch (REXPMismatchException e) {
-				e.printStackTrace();
+			RList result = rs.asList();
+			
+			// match the returns based on index
+			int numColumns = headerOrdering.length;
+			int[] headerIndex = new int[numColumns];
+			for(int i = 0; i < numColumns; i++) {
+				headerIndex[i] = result.names.indexOf(headerOrdering[i]);
 			}
-			retArray = (Object[]) processListReturn((List) result, headerOrdering, returnNames).get(0);
-		} else {
-			throw new IllegalArgumentException("Unknown data type returned from R");
-		}
-		
-		return retArray;
-	}
-	
-	private List<Object[]> processMapReturn(Map<String, Object> result,  String[] headerOrdering) {
-		List<Object[]> retArr = new Vector<Object[]>(500);
-		int numColumns = headerOrdering.length;
-		for(int idx = 0; idx < numColumns; idx++) {
-			Object val = result.get(headerOrdering[idx]);
-
-			if(val instanceof Object[]) {
-				Object[] data = (Object[]) val;
-				if(retArr.size() == 0) {
-					for(int i = 0; i < data.length; i++) {
-						Object[] values = new Object[numColumns];
-						values[idx] = data[i];
-						retArr.add(values);
+			
+			for(int colNum = 0; colNum < numColumns; colNum++) {
+				// grab the right column index
+				int columnIndex = headerIndex[colNum];
+				// each column comes back as an array
+				// need to first initialize my return matrix
+				REXP val = (REXP) result.get(columnIndex);
+				if(val.isFactor()) {
+					RFactor data = val.asFactor();
+					if(retArr.size() == 0) {
+						for(int i = 0; i < data.size(); i++) {
+							Object[] values = new Object[numColumns];
+							values[colNum] = data.at(i);
+							retArr.add(values);
+						}
+					} else {
+						for(int i = 0; i < data.size(); i++) {
+							Object[] values = retArr.get(i);
+							values[colNum] = data.at(i);
+						}
 					}
-				} else {
-					for(int i = 0; i < data.length; i++) {
-						Object[] values = retArr.get(i);
-						values[idx] = data[i];
+				} else if(val.isInteger()) {
+					// see if the integer is pointing to a factor
+					// NOTE ::: CAN NEVER GET .asFactor() to return true when it is a factor...
+					RList attributeList = val._attr().asList();
+					boolean isFactor = attributeList.names.contains("levels");
+					if(isFactor) {
+						String[] levels = ((REXP) attributeList.get("levels")).asStrings();
+						int[] data = val.asIntegers();
+						if(retArr.size() == 0) {
+							for(int i = 0; i < data.length; i++) {
+								Object[] values = new Object[numColumns];
+								values[colNum] = levels[data[i]-1];
+								retArr.add(values);
+							}
+						} else {
+							for(int i = 0; i < data.length; i++) {
+								Object[] values = retArr.get(i);
+								values[colNum] = levels[data[i]-1];
+							}
+						}
+					} else {
+						int[] data = val.asIntegers();
+						if(retArr.size() == 0) {
+							for(int i = 0; i < data.length; i++) {
+								Object[] values = new Object[numColumns];
+								values[colNum] = data[i];
+								retArr.add(values);
+							}
+						} else {
+							for(int i = 0; i < data.length; i++) {
+								Object[] values = retArr.get(i);
+								values[colNum] = data[i];
+							}
+						}
 					}
-				}
-			} else if(val instanceof double[]) {
-				double[] data = (double[]) val;
-				if(retArr.size() == 0) {
-					for(int i = 0; i < data.length; i++) {
-						Object[] values = new Object[numColumns];
-						values[idx] = data[i];
-						retArr.add(values);
+					
+				} else if(val.isNumeric()) {
+					double[] data = val.asDoubles();
+					if(retArr.size() == 0) {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = new Object[numColumns];
+							values[colNum] = data[i];
+							retArr.add(values);
+						}
+					} else {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = retArr.get(i);
+							values[colNum] = data[i];
+						}
 					}
-				} else {
-					for(int i = 0; i < data.length; i++) {
-						Object[] values = retArr.get(i);
-						values[idx] = data[i];
+				} else if(val.isString()) {
+					String[] data = val.asStrings();
+					if(retArr.size() == 0) {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = new Object[numColumns];
+							values[colNum] = data[i];
+							retArr.add(values);
+						}
+					} else {
+						for(int i = 0; i < data.length; i++) {
+							Object[] values = retArr.get(i);
+							values[colNum] = data[i];
+						}
 					}
-				}
-			} else if(val instanceof int[]) {
-				int[] data = (int[]) val;
-				if(retArr.size() == 0) {
-					for(int i = 0; i < data.length; i++) {
-						Object[] values = new Object[numColumns];
-						values[idx] = data[i];
-						retArr.add(values);
-					}
-				} else {
-					for(int i = 0; i < data.length; i++) {
-						Object[] values = retArr.get(i);
-						values[idx] = data[i];
-					}
-				}
-			} else if (val instanceof String) {
-				String data = (String) val;
-				if (retArr.size() == 0) {
-					Object[] values = new Object[numColumns];
-					values[idx] = data;
-					retArr.add(values);
-				} else {
-					Object[] values = retArr.get(0);
-					values[idx] = data;
-				}
-			} else if (val instanceof Double) {
-				Double data = (Double) val;
-				if (retArr.size() == 0) {
-					Object [] values = new Object[numColumns];
-					values[idx] = data;
-					retArr.add(values);
-				} else {
-					Object[] values = retArr.get(0);
-					values [idx] = data;
-				}	
-			} else if (val instanceof Integer){
-				Integer data = (Integer) val;
-				if (retArr.size() == 0) {
-					Object [] values = new Object [numColumns];
-					values[idx] = data;
-					retArr.add(values);
-				} else {
-					Object [] values = retArr.get(0);
-					values [idx] = data;
-				}
-			} else {
-				logger.info("ERROR ::: Could not identify the return type for this iterator!!!");
-			}
-		}
-		return retArr;
-	}
-	
-	private List<Object[]> processListReturn(List<Object[]> result, String[] headerOrdering, String[] returnNames) {
-		List<Object[]> retArr = new Vector<Object[]>(500);
-
-		// match the returns based on index
-		int numHeaders = headerOrdering.length;
-		int[] headerIndex = new int[numHeaders];
-		for(int i = 0; i < numHeaders; i++) {
-			headerIndex[i] = ArrayUtilityMethods.arrayContainsValueAtIndex(returnNames, headerOrdering[i]);
-		}
-		
-		for(int i = 0; i < numHeaders; i++) {
-			// grab the right column index
-			int columnIndex = headerIndex[i];
-			// each column comes back as an array
-			// need to first initize my return matrix
-			Object col = result.get(columnIndex);
-			if(col instanceof Object[]) {
-				Object[] columnResults = (Object[]) col;
-				int numResults = columnResults.length;
-				if(retArr.size() == 0) {
-					for(int j = 0; j < numResults; j++) {
-						Object[] values = new Object[numHeaders];
-						values[i] = columnResults[j];
-						retArr.add(values);
-					}
-				} else {
-					for(int j = 0; j < numResults; j++) {
-						Object[] values = retArr.get(j);
-						values[i] = columnResults[j];
-					}
-				}
-			} else if(col instanceof double[]) {
-				double[] columnResults = (double[]) col;
-				int numResults = columnResults.length;
-				if(retArr.size() == 0) {
-					for(int j = 0; j < numResults; j++) {
-						Object[] values = new Object[numHeaders];
-						values[i] = columnResults[j];
-						retArr.add(values);
-					}
-				} else {
-					for(int j = 0; j < numResults; j++) {
-						Object[] values = retArr.get(j);
-						values[i] = columnResults[j];
-					}
-				}
-			} else if(col instanceof int[]) {
-				int[] columnResults = (int[]) col;
-				int numResults = columnResults.length;
-				if(retArr.size() == 0) {
-					for(int j = 0; j < numResults; j++) {
-						Object[] values = new Object[numHeaders];
-						values[i] = columnResults[j];
-						retArr.add(values);
-					}
-				} else {
-					for(int j = 0; j < numResults; j++) {
-						Object[] values = retArr.get(j);
-						values[i] = columnResults[j];
+				} else if(val.isFactor()) {
+					RFactor data = val.asFactor();
+					if(retArr.size() == 0) {
+						for(int i = 0; i < data.size(); i++) {
+							Object[] values = new Object[numColumns];
+							values[colNum] = data.at(i);
+							retArr.add(values);
+						}
+					} else {
+						for(int i = 0; i < data.size(); i++) {
+							Object[] values = retArr.get(i);
+							values[colNum] = data.at(i);
+						}
 					}
 				}
 			}
+		} catch(REXPMismatchException e) {
+			throw new IllegalArgumentException("R did not evaluate to the proper data type.", e);
 		}
 		
 		return retArr;
