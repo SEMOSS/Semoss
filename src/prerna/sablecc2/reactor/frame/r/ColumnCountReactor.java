@@ -78,7 +78,11 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 
 		// store the values of the column in a string array
 		// get the column names
-		script = tempName + "$" + column;
+		if(colType.equals("ordered") || colType.equals("factor")) {
+			script = "as.character(" + tempName + "$" + column + ")";
+		} else {
+			script = tempName + "$" + column;
+		}
 		String[] uniqueColumns = null;
 		if (colType.equalsIgnoreCase("date")) {
 			String dateFormat = "%Y-%m-%d";
