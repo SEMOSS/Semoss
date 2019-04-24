@@ -10,6 +10,7 @@ import java.util.Vector;
 
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
+import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.auth.AccessToken;
@@ -164,6 +165,51 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a string array.");
 		}
+	}
+	
+	/**
+	 * This method is used to get the column types of a frame
+	 * 
+	 * @param frameName
+	 */
+	public String[] getColumnTypes(String frameName) {
+		String script = "sapply(" + frameName + ", class);";
+		REXP val = rcon.eval(script);
+		try {
+			 return val.asStrings();
+		} catch (REXPMismatchException e) {
+			// ignore
+		}
+		
+		try {
+			RList list = val.asList();
+			int size = list.size();
+			String[] arr = new String[size];
+			for(int i = 0; i < size; i++) {
+				Object v = list.get(i);
+				if(v instanceof REXP) {
+					try {
+						REXP vRexp = (REXP) v;
+						arr[i] = vRexp.asString();
+					}  catch (REXPMismatchException e) {
+						// could be an array
+						// actually, seems like RServe 
+						// will give you the first element
+						// of an array if you use asString
+						// even if asStrings() works
+						REXP vRexp = (REXP) v;
+						arr[i] = vRexp.asStrings()[0];
+					}
+				} else {
+					arr[i] = v.toString();
+				}
+			}
+			
+			return arr;
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	@Override
