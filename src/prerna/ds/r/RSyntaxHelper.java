@@ -66,7 +66,7 @@ public class RSyntaxHelper {
 		int i = 0;
 		int size = row.length;
 		for(; i < size; i++) {
-			if(dataType[i] == SemossDataType.STRING) {
+			if(dataType[i] == SemossDataType.STRING || dataType[i] == SemossDataType.FACTOR) {
 				str.append("\"").append(row[i]).append("\"");
 			} else {
 				str.append(row[i]);
@@ -752,7 +752,7 @@ public class RSyntaxHelper {
 	}
 	
 	public static String formatFilterValue(Object value, SemossDataType dataType) {
-		if(SemossDataType.STRING == dataType) {
+		if(SemossDataType.STRING == dataType || SemossDataType.FACTOR == dataType) {
 			return "\"" + value + "\"";
 		} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
 			return value.toString();
