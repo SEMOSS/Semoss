@@ -176,8 +176,8 @@ public class QueryFunctionHelper {
 	public static String determineTypeOfFunction(String inputFunction) {
 		String lowerfunction = inputFunction.toLowerCase();
 		if(lowerfunction.equals(CONCAT) 
-				|| lowerfunction.equals(CONCAT) 
-				|| lowerfunction.equals(CONCAT)) {
+				|| lowerfunction.equals(GROUP_CONCAT) 
+				|| lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
 			return "STRING";
 		}
 		
