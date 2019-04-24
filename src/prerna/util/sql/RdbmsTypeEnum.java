@@ -3,7 +3,7 @@ package prerna.util.sql;
 public enum RdbmsTypeEnum {
 
 	ASTER("ASTER_DB", "com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver"),
-	CASSANDRA("CASSANDRA", "com.github.adejanovski.cassandra.jdbc.CassandraDriver"),
+	CASSANDRA("CASSANDRA", "com.github.cassandra.jdbc.CassandraDriver"),
 	DB2("DB2", "com.ibm.db2.jcc.DB2Driver"),
 	DERBY("DERBY", "org.apache.derby.jdbc.EmbeddedDriver"),
 	H2_DB("H2_DB", "org.h2.Driver"),
