@@ -32,7 +32,7 @@ public class GraphUtility {
 		if (types != null) {
 			for (Object t : types) {
 				// get the properties for each type
-				GraphTraversal<Vertex, String> x = gts.V().has(graphTypeId, t).properties().key().dedup();
+				GraphTraversal<Vertex, String> x = gts.V().has(graphTypeId, t).properties().key().dedup().order();
 				Map<String, String> propMap = new HashMap<>();
 				while (x.hasNext()) {
 					String nodeProp = x.next();
@@ -136,7 +136,7 @@ public class GraphUtility {
 	}
 	public static List<String> getAllNodeProperties(GraphTraversalSource gts) {
 		ArrayList<String> properties = new ArrayList<>();
-		GraphTraversal<Vertex, String> x = gts.V().properties().key().dedup();
+		GraphTraversal<Vertex, String> x = gts.V().properties().key().dedup().order();
 		while (x.hasNext()) {
 			String prop = x.next();
 			properties.add(prop);
