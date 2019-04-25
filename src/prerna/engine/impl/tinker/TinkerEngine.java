@@ -27,7 +27,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
-import prerna.query.interpreters.GremlinInterpreter;
+import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.util.Constants;
 import prerna.util.MyGraphIoMappingBuilder;
@@ -150,7 +150,7 @@ public class TinkerEngine extends AbstractEngine {
 
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
-		return new GremlinInterpreter(this.g.traversal(), this.typeMap, this.nameMap);
+		return new GremlinNoEdgeBindInterpreter(this.g.traversal(), this.typeMap, this.nameMap);
 	}
 
 	@Override
