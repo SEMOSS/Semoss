@@ -103,7 +103,6 @@ public class GetGraphPropertiesReactor extends AbstractReactor {
 			try {
 				g.close();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
