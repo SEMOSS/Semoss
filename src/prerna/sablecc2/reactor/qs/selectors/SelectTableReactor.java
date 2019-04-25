@@ -23,6 +23,9 @@ public class SelectTableReactor extends AbstractQueryStructReactor {
 		// must have used Database reactor before hand
 		// so we know this must be the id
 		String appId = qs.getEngineId();
+		if(appId == null) {
+			throw new IllegalArgumentException("Must define the app using Database(<input id here>) prior to SelectTable");
+		}
 		String table  = this.keyValue.get(ReactorKeysEnum.TABLE.getKey());
 		
 		// add the table in the list
