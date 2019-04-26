@@ -578,7 +578,7 @@ public class Constants {
 	public static final String END_ROW = "endRow";
 	
 	// python
-	public static final String PY_BASE_FOLDER = "PY";
+	public static final String PY_BASE_FOLDER = "py";
 
 	// Workspace
 	public static final String USER_WORKSPACE = "USER_WORKSPACE";
