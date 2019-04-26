@@ -542,31 +542,50 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 						}
 					} else {
 						int[] data = val.asIntegers();
+						boolean[] na = val.isNA();
 						if(retArr.size() == 0) {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
+								if(na[i]) {
+									// keep it as null
+									retArr.add(values);
+									continue;
+								}
 								values[colNum] = data[i];
 								retArr.add(values);
 							}
 						} else {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = retArr.get(i);
+								if(na[i]) {
+									// keep it as null
+									continue;
+								}
 								values[colNum] = data[i];
 							}
 						}
 					}
-					
 				} else if(val.isNumeric()) {
 					double[] data = val.asDoubles();
+					boolean[] na = val.isNA();
 					if(retArr.size() == 0) {
 						for(int i = 0; i < data.length; i++) {
 							Object[] values = new Object[numColumns];
+							if(na[i]) {
+								// keep it as null
+								retArr.add(values);
+								continue;
+							}
 							values[colNum] = data[i];
 							retArr.add(values);
 						}
 					} else {
 						for(int i = 0; i < data.length; i++) {
 							Object[] values = retArr.get(i);
+							if(na[i]) {
+								// keep it as null
+								continue;
+							}
 							values[colNum] = data[i];
 						}
 					}
