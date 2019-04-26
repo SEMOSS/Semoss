@@ -329,7 +329,7 @@ public class RFrameBuilder {
 		// now that we have everything
 		// execute everything
 		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) ) );
-		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, intColumns) ) );
+		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) ) );
 		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) ) );
 		
 		// if the original file type is excel, then need to assess if there are date/time cols that have been parsed to numbers first 
