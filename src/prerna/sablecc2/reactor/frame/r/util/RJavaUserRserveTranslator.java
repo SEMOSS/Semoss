@@ -459,8 +459,14 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				} else if(val.isInteger()) {
 					// see if the integer is pointing to a factor
 					// NOTE ::: CAN NEVER GET .asFactor() to return true when it is a factor...
-					RList attributeList = val._attr().asList();
-					boolean isFactor = attributeList.names.contains("levels");
+					RList attributeList = null;
+					boolean isFactor = false;
+					if(val._attr() != null) {
+						attributeList = val._attr().asList();
+						if(attributeList != null) {
+							isFactor = attributeList.names.contains("levels");
+						}
+					}
 					if(isFactor) {
 						String[] levels = ((REXP) attributeList.get("levels")).asStrings();
 						int[] data = val.asIntegers();
