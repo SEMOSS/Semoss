@@ -394,6 +394,16 @@ public class RdbmsConnectionHelper {
 			}
 		}
 		
+		if(url.contains(";currentSchema=")) {
+			Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
+			Matcher m = p.matcher(url);
+			if(m.find()) {
+				schema = m.group(0);
+				schema = schema.replace("currentSchema=", "");
+				return schema;
+			}
+		}
+		
 		if(url.contains("?schema=")) {
 			Pattern p = Pattern.compile("schema=[a-zA-Z0-9_]*");
 			Matcher m = p.matcher(url);
