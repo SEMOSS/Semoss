@@ -221,6 +221,8 @@ install.packages("udpipe", dependencies=TRUE)
 install.packages("tokenizers", dependencies=TRUE)
 install.packages("openNLP", dependencies=TRUE)
 install.packages("openNLPmodels.en", dependencies=TRUE)
+# If openNLPmodels.en does not work use this
+#install.packages("http://datacube.wu.ac.at/src/contrib/openNLPmodels.en_1.5-1.tar.gz", repos=NULL, type="source") 
 #install.packages("data.table", dependencies=TRUE)
 #install.packages("stringr", dependencies=TRUE)
 #install.packages("stringdist", dependencies=TRUE)
