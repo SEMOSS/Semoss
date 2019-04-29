@@ -1,38 +1,47 @@
-Which movie Title produced by Studio Paramount
+Which Title produced by Studio Paramount
 Who is Director of Title Titanic
 What is Genre of Title Avatar
 Who is Director in Genre Drama and in Studio Dreamworks
-What is average movie Revenue_Domestic for Studio Paramount
+What is average Revenue_Domestic for Studio Paramount
 Which Title produced by Director Steven_Spielberg
 Which Genre produced by Director Steven_Spielberg
 What is average Revenue_International for Paramount Studio
-What is total movie Revenue_Domestic and total MovieBudget by Studio Genre and Director
-Which movie Title produced by Studio Dreamworks and by Genre Drama
+What is total Revenue_Domestic and total MovieBudget by Studio Genre and Director
+Which Title produced by Studio Dreamworks and by Genre Drama
 Which Title has MovieBudget less than 10000000
 Which Title has MovieBudget greater than 100000000
 Select Title that has Revenue_Domestic greater than 100000000
-Which movie Title has Revenue_Domestic not less than 50000000
+Which Title has Revenue_Domestic not less than 50000000
 Which Title has RottenTomatoes_Critics greater than 0.8 and RottenTomatoes_Audience greater than 0.9
-Which movie Title has Revenue_Domestic between 100000000 and 500000000
+Which Title has Revenue_Domestic between 100000000 and 500000000
 Select Title with Revenue_International greater than 100000000 and released by Studio WB
-Which movie Title has best Revenue_Domestic
-Which movie Title has worst Revenue_Domestic
-What is total movie Revenue_Domestic by Studio
-What is total movie Revenue_Domestic by Director
-What is average movie Revenue_Domestic by Genre
+Which Title has best Revenue_Domestic
+Which Title has worst Revenue_Domestic
+What is total Revenue_Domestic by Studio
+What is total Revenue_Domestic by Director
+What is average Revenue_Domestic by Genre
 Which is average RottenTomatoes_Critics greater and average RottenTomatoes_Audience by Studio
 Which is average RottenTomatoes_Critics greater by Director
 Which is average RottenTomatoes_Audience by Genre
-What is total movie Revenue_Domestic for Studio Universal by Genre
-What is total movie Revenue_Domestic and total MovieBudget by Studio
+What is total Revenue_Domestic for Studio Universal by Genre
+What is total Revenue_Domestic and total MovieBudget by Studio
 What is total MovieBudget by Studio Genre and Director
-Which movie Director has the total Revenue_Domestic greater than 500000000
+Which Director has the total Revenue_Domestic greater than 500000000
 Which Genre has average MovieBudget greater than 30000000
-Which Studio has total movie Revenue_Domestic greater than 500000000
-Which movie Director has highest total Revenue_Domestic in Studio Paramount
-Which movie Director has lowest total Revenue_Domestic in Studio Paramount
-How many movie Title with Revenue_Domestic greater than 100000000
+Which Studio has total Revenue_Domestic greater than 500000000
+Which Director has highest total Revenue_Domestic in Studio Paramount
+Which Director has lowest total Revenue_Domestic in Studio Paramount
+How many Title with Revenue_Domestic greater than 100000000
 How many Title delivered by Studio Paramount
 How many Director in Genre Drama and in Studio Dreamworks
 How many Title delivered by Director Steven_Spielberg
-
+How many Title by Genre
+How many Title by Genre Studio
+When is ReleaseDate for Title Avatar
+Select ReleaseDate and Title for Director Steven_Spielberg
+Select Title and ReleaseDate for Director Steven_Spielberg
+Select Title and Director
+Select Title and MovieBudget by Director Steven_Spielberg
+Select MovieBudget and Title by Director Steven_Spielberg
+Select total MovieBudget by Genre by Director Steven_Spielberg
+Select Title Genre and MovieBudget by Director Steven_Spielberg

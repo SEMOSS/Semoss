@@ -212,7 +212,8 @@ build_sql<-function(select_part1,select_part2,where_part,group_part,having_part,
 
 
 analyze_noun<-function(df){
-	clmns<-df[substr(df$xpos,1,2)=="NN" & df$itemtype=="column" & df$processed=="no","token"]
+	clmns<-df[df$itemtype=="column" & df$processed=="no","token"]
+	#clmns<-df[substr(df$xpos,1,2)=="NN" & df$itemtype=="column" & df$processed=="no","token"]
 	return(clmns)
 }
 
@@ -729,26 +730,47 @@ build_joins<-function(cur_db){
 
 optimize_joins<-function(cols,joins,cur_db){
 	# get the existing tables with required columns
-	tbls<-as.character(unique(cur_db[tolower(cur_db$Column) %in% tolower(cols),"Table"]))
-	if(length(tbls)==1){
-		# if all columns in a single table
-		joins<-joins[0,]
-		joins<-rbindlist(list(joins,list(tbls[1],tbls[1],"","")))
-		colnames(joins)<-c("tbl1","tbl2","joinby1","joinby2")
-	}else{
-		# remove unneeded leaves
-		repeat{
-			tbls_freq<-count(c(joins$tbl1,joins$tbl2))
-			tbls_todrop<-tbls_freq[tbls_freq$freq==1 & !(tolower(tbls_freq$x) %in% tolower(tbls)),"x"]
-			if(length(tbls_todrop)>0){
-				joins<-joins[!(tolower(joins$tbl1) %in% tolower(tbls_todrop)) & !(tolower(joins$tbl2) %in% tolower(tbls_todrop)),]
-			}else{
-				break
+	if(nrow(joins)>0){
+		tbls<-as.character(unique(cur_db[tolower(cur_db$Column) %in% tolower(cols),"Table"]))
+		if(length(tbls)==1){
+			# if all columns in a single table
+			joins<-joins[0,]
+			joins<-rbindlist(list(joins,list(tbls[1],tbls[1],"","")))
+			colnames(joins)<-c("tbl1","tbl2","joinby1","joinby2")
+		}else if(length(tbls)>1){
+			mytbls<-connect_tables(tbls,joins)
+			joins<-joins[(joins$tbl1 %in% mytbls) & (joins$tbl2 %in% mytbls) & (joins$tbl1!=joins$tbl2),]
+		}else{
+			joins<-vector()
+		}
+		gc()
+	}
+	return(joins)
+}
+
+connect_tables<-function(tbls,joins){
+	if(length(tbls)>1){
+		g<-graph_from_edgelist(as.matrix(joins[,1:2]),directed=FALSE)
+		vertices<-unique(names(V(g)))
+		if(length(which(vertices %in% tbls))==length(tbls)){
+			distances<-distances(g,v=tbls,to=tbls)
+			n<-nrow(distances)
+			for(i in 1:(n-1)){
+				for(j in (i+1):n){
+					if(distances[i,j]>1){
+						paths<-all_simple_paths(g,from=tbls[i],to=tbls[j])
+						lengths<-sapply(paths, length)
+						idx<-which.min(lengths)
+						tbls<-unique(append(tbls,names(paths[[idx]])))
+					}
+				}
 			}
+		}else{
+			tbls<-vector()
 		}
 	}
 	gc()
-	return(joins)
+	return(tbls)
 }
 
 verify_joins<-function(cols,joins,cur_db){
@@ -757,7 +779,7 @@ verify_joins<-function(cols,joins,cur_db){
 	myList[[1]]<-""
 	g<-graph_from_edgelist(as.matrix(joins[,1:2]),directed=FALSE)
 	g_mst<-mst(g)
-	# verifu that all required columns accessible
+	# verify that all required columns accessible
 	tbls<-vertex_attr(g_mst)$name
 	tbls_cols<-as.character(cur_db[tolower(cur_db$Table) %in% tolower(tbls),"Column"])
 	if(all(tolower(cols) %in% tolower(tbls_cols))){
@@ -782,11 +804,10 @@ build_join_clause<-function(joins){
 			joins$id<-seq(1:n)
 			tbls<-vector()
 			tbls[1]<-as.character(joins[1,"tbl1"])
-			id<-0
 			clause<-as.character(joins[1,"tbl1"])
 			from_joins<-rbindlist(list(from_joins,list(clause,"","","")))
-			while(nrow(joins[(tolower(joins$tbl1) %in% tolower(tbls) | tolower(joins$tbl2) %in% tolower(tbls) & joins$id != id) & joins$processed == "no",])>0){
-				cur_rec<-joins[(tolower(joins$tbl1) %in% tolower(tbls) | tolower(joins$tbl2) %in% tolower(tbls) & joins$id != id)  & joins$processed == "no",][1,]
+			while(nrow(joins[(tolower(joins$tbl1) %in% tolower(tbls) | tolower(joins$tbl2) %in% tolower(tbls) ) & joins$processed == "no",])>0){
+				cur_rec<-joins[(tolower(joins$tbl1) %in% tolower(tbls) | tolower(joins$tbl2) %in% tolower(tbls) )  & joins$processed == "no",][1,]
 				if(length(tbls[tolower(cur_rec$tbl1) %in% tolower(tbls)])>0){
 					if(length(tbls[tolower(cur_rec$tbl2) %in% tolower(tbls)])>0){
 						clause<-paste0(clause, "on ",cur_rec$tbl1,".",cur_rec$joinby1,"=",cur_rec$tbl2,".",cur_rec$joinby2)
@@ -794,7 +815,7 @@ build_join_clause<-function(joins){
 					}else{
 						tbls[length(tbls)+1]<-cur_rec$tbl2
 						clause<-paste0(clause," inner join ",cur_rec$tbl2," on ",cur_rec$tbl1,".",cur_rec$joinby1,"=",cur_rec$tbl2,".",cur_rec$joinby2)
-						from_joins<-rbindlist(list(from_joins,list(cur_rec$tbl2,cur_rec$tbl1,cur_rec$joinby2,cur_rec$joinby1)))
+						from_joins<-rbindlist(list(from_joins,list(cur_rec$tbl1,cur_rec$tbl2,cur_rec$joinby1,cur_rec$joinby2)))
 					}
 				}else{
 					tbls[length(tbls)+1]<-cur_rec$tbl1
@@ -805,6 +826,10 @@ build_join_clause<-function(joins){
 			}
 		}
 	}
+	from_joins$tbl1=as.character(from_joins$tbl1)
+	from_joins$tbl2=as.character(from_joins$tbl2)
+	from_joins$joinby1=as.character(from_joins$joinby1)
+	from_joins$joinby2=as.character(from_joins$joinby2)
 	myList<-list()
 	myList[[1]]<-clause
 	myList[[2]]<-from_joins
