@@ -3,7 +3,7 @@ refresh_nlidb_history<-function(inputfile,my_db,filename="nli_training.rds"){
 	library(udpipe)
 	library(stringdist)
 	library(tokenizers)
-	tbl1<-data.table(request=character(),sentence=character(),pos=character(),skeleton=character())
+	tbl1<-data.table(request=character(),standard=character(),sentence=character(),pos=character(),skeleton=character())
 	tbl2<-data.table(word=character(),pos=character(),itemtype=character(),itemdatatype=character())
 	tbl3<-data.table(before=character(),after=character())
 	doc<-readLines(inputfile, warn = FALSE)
@@ -11,9 +11,10 @@ refresh_nlidb_history<-function(inputfile,my_db,filename="nli_training.rds"){
 	n<-length(doc)
 	if(n>0){
 		for(i in 1:n){
-			out<-extract_patterns(doc[i],my_db)
+			out<-extract_patterns(doc[i],my_db)		
 			if(length(out[[1]])>0 & nrow(out[[2]])){
-				tbl1<-rbindlist(list(tbl1,list(doc[i],out[[1]]["sentence"],out[[1]]["pos"],out[[1]]["skeleton"])))
+				std_request<-parameterize_request(doc[i],out[[2]])
+				tbl1<-rbindlist(list(tbl1,list(doc[i],std_request,out[[1]]["sentence"],out[[1]]["pos"],out[[1]]["skeleton"])))
 				tbl2<-unique(rbind(tbl2,out[[2]]))
 				ngram_words<-unlist(strsplit(unlist(tokenize_ngrams(doc[i], n = 2,lowercase=FALSE))," "))
 				m<-length(ngram_words)/2
@@ -39,6 +40,18 @@ refresh_nlidb_history<-function(inputfile,my_db,filename="nli_training.rds"){
 	saveRDS(myList,filename)
 	gc()
 	#return(myList)
+}
+
+parameterize_request<-function(txt,tbl){
+	# parse txt
+	words<-unlist(strsplit(txt," "))
+	# replace column names
+	ind=which(words %in% tbl[tbl$itemtype == "column", ]$word)
+	words[ind]<-paste(tbl[tbl$itemtype=="column"]$itemtype,tbl[tbl$itemtype=="column"]$itemdatatype,sep="-")
+	# replace values
+	value_words<-tbl[substr(tbl$pos,1,2)=="NN" & tbl$itemtype!="column" | tbl$pos=="CD",]$word
+	words[words%in% value_words]<-"<value>"
+	return(paste(words,collapse=" "))
 }
 
 build_glove_model<-function(inputfile,my_v){
@@ -144,6 +157,15 @@ next_word_mgr<-function(txt,mydb,direction="next",histfile="nli_training.rds",si
 	return(myList)
 }
 
+map_input<-function(mywords,db){
+	ind=which(mywords %in% db$Column)
+	mywords[ind]<-paste("column",db$Datatype[match(mywords[ind], db$Column)],sep="-")
+
+	ind<-which(grepl("^[-]{0,1}[0-9]{0,}.{0,1}[0-9]{1,}$", mywords))
+	mywords[ind]<-"<value>"
+	return(mywords)
+}
+
 map_to_training<-function(my_vectors,domain_words,mywords,new_db,old_db,tbl){
 	library(openNLP)
 	library(openNLPmodels.en)
@@ -161,7 +183,7 @@ map_to_training<-function(my_vectors,domain_words,mywords,new_db,old_db,tbl){
 			if(length(rows)>0){
 				# column name
 				datatype<-new_db$Datatype[rows[1]]
-				cols<-old_db[old_db$Datatype==datatype,]$Column
+				cols<-tbl[tbl$itemtype=="column" &tbl$itemdatatype=="NUMBER",]$word
 				if(length(cols)>0){
 					# potentially random selection
 					mywords[ind[i]]<-cols[1]
@@ -201,6 +223,42 @@ map_to_training<-function(my_vectors,domain_words,mywords,new_db,old_db,tbl){
 	return(mywords)
 }
 
+get_hist_options<-function(mywords,direction,requests){
+	txt<-paste(mywords,collapse=" ")
+	recs<-str_locate(tolower(requests), tolower(txt))
+	idx<-which(!is.na(recs[,1]))
+	next_words<-vector()
+	if(length(idx)==1){
+		loc<-recs[!is.na(recs[,1]),]
+		if(direction=="next"){
+			mytail<-trim(substring(requests[idx],loc[2]+1))
+			next_words<-unlist(strsplit(mytail," "))
+		}else{
+			myhead<-trim(substr(requests[idx],1,loc[1]-1))
+			next_words<-unlist(strsplit(myhead," "))
+		}
+		if(length(next_words)>0){
+			next_words<-next_words[length(next_words)]
+		}
+	}else if(length(idx)>1){
+		loc<-recs[!is.na(recs[,1]),]
+		if(direction=="next"){
+			mytail<-trim(substring(requests[idx],loc[,2]+1))
+			nextsplit<-function(x){strsplit(x," ")[1]}
+			z<-strsplit(mytail," ")
+			next_words<-unique(unlist(lapply(z,nextsplit)))
+		}else{
+			myhead<-trim(substr(requests[idx],1,loc[,1]-1))
+			mprevsplit<-function(x){strsplit(x," ")[length(strsplit(x," "))]}
+			z<-strsplit(myhead," ")
+			next_words<-unique(unlist(lapply(z,mprevsplit)))
+		
+		}
+	}
+	gc()
+	return(next_words)
+}
+
 get_next_word<-function(txt,new_db,direction,histfile="nli_training.rds",size=5,my_vectors=word_vectors){
 # Determine potential options for the next/previous word
 # Arguments
@@ -212,66 +270,84 @@ get_next_word<-function(txt,new_db,direction,histfile="nli_training.rds",size=5,
 # Output
 # An array of next/previous word options
 	library(text2vec)
+	library(stringr)
 	
 	nli_hist<-readRDS(histfile)
-	#tbl1<-nli_hist[[1]]
-	tbl2<-nli_hist[[2]]
-	tbl3<-nli_hist[[3]]
-	old_db<-nli_hist[[4]]
-	local_vectors<-nli_hist[[5]]
-	domain_words<-nli_hist[[6]]
+	tbl1<-nli_hist[[1]]
+	
+	mywords<-unlist(strsplit(txt," "))
 	
 	options(warn=-1)
-	mywords<-unlist(strsplit(txt," "))
-	mywords<-tail(mywords,size)
+	# parameterize input
+	parm_txt<-map_input(mywords,new_db)
+	# get next words based curent request and parameterized history
+	nextwords<-get_hist_options(parm_txt,direction,tbl1$standard)
 	
-	# map new words to most similar in training
-	mywords<-map_to_training(my_vectors,domain_words,mywords,new_db,old_db,tbl2)
-	
-	# get current text local vectors representation
-	mywords_vectors<-get_word_vector_mgr(local_vectors,mywords)
-	if(nrow(mywords_vectors)>1){
-		# discount  previous words
-		if(direction=="next"){
-			cur_vector<-decay_words(mywords_vectors)
+	# replace the column with the new ones by data type
+	# if hist options are not available use the current way or simply drop it?
+	# if the last word was column then new word should not be. That is a bid question????	
+	if(length(nextwords)>0){
+		col_ind<-which(str_detect(nextwords,"^column"))
+		if(length(col_ind)>0){
+			datatypes<-substring(nextwords[col_ind],8)
+			col_names<-new_db[new_db$Datatype %in% datatypes,]$Column
+			words<-unique(append(nextwords[-col_ind],col_names))
 		}else{
-			cur_vector<-decay_words(mywords_vectors[seq(dim(mywords_vectors)[1],1),])
+			words<-nextwords
 		}
 	}else{
-		cur_vector<-t(mywords_vectors)
-	}
-	cur_matrix<-t(data.matrix(cur_vector,rownames.force=NA))
-	rownames(cur_matrix)<-"request"
+		
+		tbl2<-nli_hist[[2]]
+		tbl3<-nli_hist[[3]]
+		old_db<-nli_hist[[4]]
+		local_vectors<-nli_hist[[5]]
+		domain_words<-nli_hist[[6]]
 	
-	if(length(mywords)>0){
-		if(direction=="next"){
-			nextwords<-tbl3[tolower(tbl3$before) == tolower(mywords[length(mywords)]),]$after
-			cur_datatype<-any(tolower(tbl2$word) == tolower(mywords[length(mywords)]) & tbl2$itemtype=="column")
-		}else{
-			nextwords<-tbl3[tolower(tbl3$after) == tolower(mywords[1]),]$before
-			cur_datatype<-any(tolower(tbl2$word) == tolower(mywords[1]) & tbl2$itemtype=="column")
-		}
-		if(length(nextwords)>0){
-			if(length(nextwords)>1){
-				nextwords_vectors<-get_word_vector_mgr(local_vectors,nextwords)
-				nextword_matrix<-sim2(nextwords_vectors,cur_matrix, method = "cosine",norm = c("l2"))
-				nextwords_result<-nextword_matrix[order(-nextword_matrix[,1]),]
-				words<-names(nextwords_result)
+		# get the window size words
+		mywords<-tail(mywords,size)
+	
+		# map new words to most similar in training
+		mywords<-map_to_training(my_vectors,domain_words,mywords,new_db,old_db,tbl2)
+		
+		# get current text local vectors representation
+		mywords_vectors<-get_word_vector_mgr(local_vectors,mywords)
+		if(nrow(mywords_vectors)>1){
+			# discount  previous words
+			if(direction=="next"){
+				cur_vector<-decay_words(mywords_vectors)
 			}else{
-				words<-nextwords[1]
+				cur_vector<-decay_words(mywords_vectors[seq(dim(mywords_vectors)[1],1),])
 			}
-			if(cur_datatype){
-				words<-words[!(words %in% old_db$Column)]
+		}else{
+			cur_vector<-t(mywords_vectors)
+		}
+		cur_matrix<-t(data.matrix(cur_vector,rownames.force=NA))
+		rownames(cur_matrix)<-"request"
+		
+		if(length(mywords)>0){
+			if(direction=="next"){
+				nextwords<-tbl3[tolower(tbl3$before) == tolower(mywords[length(mywords)]),]$after
 			}else{
+				nextwords<-tbl3[tolower(tbl3$after) == tolower(mywords[1]),]$before
+			}
+			if(length(nextwords)>0){
+				if(length(nextwords)>1){
+					nextwords_vectors<-get_word_vector_mgr(local_vectors,nextwords)
+					nextword_matrix<-sim2(nextwords_vectors,cur_matrix, method = "cosine",norm = c("l2"))
+					nextwords_result<-nextword_matrix[order(-nextword_matrix[,1]),]
+					words<-names(nextwords_result)
+				}else{
+					words<-nextwords[1]
+				}
 				tdb<-unique(tbl2[tolower(tbl2$word) %in% tolower(words) & tbl2$itemtype=="column",c(1,4)])
 				datatypes<-unique(tdb[order(match(tdb$word,words)),]$itemdatatype)
 				tdb<-new_db[new_db$Datatype %in% datatypes,]
 				col_names<-unique(tdb[order(match(tdb[,4],datatypes)),]$Column)
 				words<-words[!(words %in% old_db$Column)]
 				words<-unique(append(words,col_names))
+			}else{
+				words<-vector()
 			}
-		}else{
-			words<-vector()
 		}
 	}
 	gc()
