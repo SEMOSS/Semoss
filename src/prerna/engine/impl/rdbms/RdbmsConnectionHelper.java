@@ -403,6 +403,16 @@ public class RdbmsConnectionHelper {
 				return schema;
 			}
 		}
+
+		if(url.contains(";schema=")) {
+			Pattern p = Pattern.compile("schema=[a-zA-Z0-9_]*");
+			Matcher m = p.matcher(url);
+			if(m.find()) {
+				schema = m.group(0);
+				schema = schema.replace("schema=", "");
+				return schema;
+			}
+		}
 		
 		return schema;
 	}
