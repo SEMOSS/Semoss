@@ -352,6 +352,7 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			}
 		} catch (Exception e) {
 			LOGGER.warn("R health check failed.");
+			e.printStackTrace();
 		} finally {
 			executor.shutdownNow();
 		}
