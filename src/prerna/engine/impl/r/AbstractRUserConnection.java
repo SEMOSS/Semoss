@@ -12,6 +12,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.rosuda.REngine.REXP;
+import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RSession;
 import org.rosuda.REngine.Rserve.RserveException;
@@ -37,7 +38,6 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	// R connection
 	private Object rconMonitor = new Object();
 	protected RConnection rcon;
-	
 	
 	////////////////////////////////////////
 	// Constructors, overloaded for defaults
@@ -68,29 +68,31 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			LOGGER.info("Running R: " + rScript);
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			try {
-				Future<REXP> future = executor.submit(new Callable<REXP>() {
-					@Override
-					public REXP call() throws Exception {
-						REXP rexp;
-						synchronized (rconMonitor) {
-							rexp = rcon.eval(rScript);
+				synchronized (rconMonitor) {
+					Future<REXP> future = executor.submit(new Callable<REXP>() {
+						@Override
+						public REXP call() throws Exception {
+							REXP rexp = rcon.eval(rScript);
+							if (recoveryEnabled) {
+								saveImage(); // Save image after execution
+							}
+							return rexp;
 						}
-						if (recoveryEnabled) saveImage(); // Save image after execution
-						return rexp;
+					});
+					try {
+						return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
+					} catch (TimeoutException | InterruptedException e) {
+						throw new IllegalArgumentException("Timout occured when running R script.", e);
+					} catch (ExecutionException e) {
+						throw new IllegalArgumentException("Failed to run R script.", e);
 					}
-				});
-				try {
-					return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
-				} catch (TimeoutException | InterruptedException e) {
-					throw new IllegalArgumentException("Timout occured when running R script.", e);
-				} catch (ExecutionException e) {
-					throw new IllegalArgumentException("Failed to run R script.", e);
 				}
+
 			} finally {
 				executor.shutdownNow();
 			}
 		} else {
-			
+
 			// If there was no exception with the recovery, then retry once more
 			// Otherwise, throw the exception
 			IllegalArgumentException e = recoveryStatus();
@@ -120,22 +122,24 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			LOGGER.info("Running R: " + rScript);
 				ExecutorService executor = Executors.newSingleThreadExecutor();
 				try {
-					Future<Void> future = executor.submit(new Callable<Void>() {
-						@Override
-						public Void call() throws Exception {
-							synchronized (rconMonitor) {
+					synchronized (rconMonitor) {
+						Future<Void> future = executor.submit(new Callable<Void>() {
+							@Override
+							public Void call() throws Exception {
 								rcon.voidEval(rScript);
+								if (recoveryEnabled) {
+									saveImage(); // Save image after execution
+								}
+								return null;
 							}
-							if (recoveryEnabled) saveImage(); // Save image after execution
-							return null;
+						});
+						try {
+							future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
+						} catch (TimeoutException | InterruptedException e) {
+							throw new IllegalArgumentException("Timout occured when running R script.", e);
+						} catch (ExecutionException e) {
+							throw new IllegalArgumentException("Failed to run R script.", e);
 						}
-					});
-					try {
-						future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
-					} catch (TimeoutException | InterruptedException e) {
-						throw new IllegalArgumentException("Timout occured when running R script.", e);
-					} catch (ExecutionException e) {
-						throw new IllegalArgumentException("Failed to run R script.", e);
 					}
 				} finally {
 					executor.shutdownNow();
@@ -163,21 +167,23 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			LOGGER.info("Detaching R.");
 				ExecutorService executor = Executors.newSingleThreadExecutor();
 				try {
-					Future<RSession> future = executor.submit(new Callable<RSession>() {
-						@Override
-						public RSession call() throws Exception {
-							if (recoveryEnabled) saveImage(); // Save image before detaching
-							synchronized (rconMonitor) {
+					synchronized (rconMonitor) {
+						Future<RSession> future = executor.submit(new Callable<RSession>() {
+							@Override
+							public RSession call() throws Exception {
+								if (recoveryEnabled) {
+									saveImage(); // Save image before detaching
+								}
 								return rcon.detach();
 							}
+						});
+						try {
+							return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
+						} catch (TimeoutException | InterruptedException e) {
+							throw new IllegalArgumentException("Timout occured when detaching R.", e);
+						} catch (ExecutionException e) {
+							throw new IllegalArgumentException("Failed to detach R.", e);
 						}
-					});
-					try {
-						return future.get(R_TIMEOUT, R_TIMEOUT_UNIT);
-					} catch (TimeoutException | InterruptedException e) {
-						throw new IllegalArgumentException("Timout occured when detaching R.", e);
-					} catch (ExecutionException e) {
-						throw new IllegalArgumentException("Failed to detach R.", e);
 					}
 				} finally {
 					executor.shutdownNow();
@@ -209,10 +215,10 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 			// load all the libraries
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			try {
-				Future<Void> future = executor.submit(new Callable<Void>() {
-					@Override
-					public Void call() throws Exception {
-						synchronized (rconMonitor) {
+				synchronized (rconMonitor) {
+					Future<Void> future = executor.submit(new Callable<Void>() {
+						@Override
+						public Void call() throws Exception {
 
 							// split stack shape
 							rcon.eval("library(splitstackshape);");
@@ -237,11 +243,11 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 							// dplyr
 							rcon.eval("library(dplyr);");
 							LOGGER.info("Loaded packages dplyr");
+							return null;
 						}
-						return null;
-					}
-				});
-				future.get(3L, TimeUnit.SECONDS);
+					});
+					future.get(3L, TimeUnit.SECONDS);
+				}
 			} finally {
 				executor.shutdownNow();
 			}
@@ -338,21 +344,25 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 		
 		ExecutorService executor = Executors.newSingleThreadExecutor();
 		try {
-			Future<REXP> future = executor.submit(new Callable<REXP>() {
-				@Override
-				public REXP call() throws Exception {
-					synchronized (rconMonitor) {
+			synchronized (rconMonitor) {
+				Future<REXP> future = executor.submit(new Callable<REXP>() {
+					@Override
+					public REXP call() throws Exception {
 						return rcon.eval("1+2");
 					}
+				});
+				REXP heartBeat = future.get(timeout, timeUnit);
+				if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
+					beating = true;
 				}
-			});
-			REXP heartBeat = future.get(timeout, timeUnit);
-			if (((org.rosuda.REngine.REXP) heartBeat).asDouble() == 3L) {
-				beating = true;
 			}
-		} catch (Exception e) {
-			LOGGER.warn("R health check failed.");
-			e.printStackTrace();
+		} catch (TimeoutException | InterruptedException e) {
+			throw new IllegalArgumentException("R health check failed due to a timeout.", e);
+		} catch (ExecutionException e) {
+			throw new IllegalArgumentException("R health check failed.", e);
+		} catch (REXPMismatchException e) {
+			// the routine ran but the value was not 3... weird
+			throw new IllegalArgumentException("R health check failed.", e);
 		} finally {
 			executor.shutdownNow();
 		}
