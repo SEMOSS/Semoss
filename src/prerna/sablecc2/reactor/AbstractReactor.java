@@ -186,6 +186,8 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public String getName() {
+		if(reactorName.length() == 0)
+			reactorName = this.getClass().getName().replace("Reactor", "");
 		return this.reactorName;
 	}
 	
