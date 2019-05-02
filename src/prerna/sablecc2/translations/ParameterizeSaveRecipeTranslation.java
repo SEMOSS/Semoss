@@ -41,12 +41,12 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.GenericReactor;
 import prerna.sablecc2.reactor.IReactor;
-import prerna.sablecc2.reactor.imports.ImportDataReactor;
-import prerna.sablecc2.reactor.imports.MergeDataReactor;
+import prerna.sablecc2.reactor.imports.ImportReactor;
+import prerna.sablecc2.reactor.imports.MergeReactor;
 import prerna.sablecc2.reactor.map.AbstractMapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
-import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
+import prerna.sablecc2.reactor.qs.source.FileReadReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
 
@@ -195,11 +195,11 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	public void inAOperation(AOperation node) {
 		super.inAOperation(node);
 		
-		if(this.curReactor instanceof DatabaseReactor || this.curReactor instanceof FileSourceReactor
+		if(this.curReactor instanceof DatabaseReactor || this.curReactor instanceof FileReadReactor
 				|| this.curReactor instanceof GoogleFileRetrieverReactor || this.curReactor instanceof FrameReactor) {
 			this.sourceStr = node.toString().trim();
 		}
-		else if(this.curReactor instanceof ImportDataReactor || this.curReactor instanceof MergeDataReactor) {
+		else if(this.curReactor instanceof ImportReactor || this.curReactor instanceof MergeReactor) {
 			this.importStr = node.toString().trim();
 		}
 	}
@@ -228,7 +228,7 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 			isQs = true;
 		} 
     	// need to find imports
-    	else if(thisPrevReactor != null && (thisPrevReactor instanceof ImportDataReactor || thisPrevReactor instanceof MergeDataReactor)) {
+    	else if(thisPrevReactor != null && (thisPrevReactor instanceof ImportReactor || thisPrevReactor instanceof MergeReactor)) {
 			isImport = true;
 		}
     	

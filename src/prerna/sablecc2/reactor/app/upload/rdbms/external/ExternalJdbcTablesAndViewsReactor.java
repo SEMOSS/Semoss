@@ -46,6 +46,11 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
 
 		Connection con = null;
+		
+		// making a quick arrangement to test for sqlite
+		if(host.equalsIgnoreCase("SQLITE"))
+			driver = "SQLITE";
+		
 		try {
 			if(connectionUrl == null || connectionUrl.trim().isEmpty()) {
 				connectionUrl = RdbmsConnectionHelper.getConnectionUrl(driver, host, port, schema, additionalProperties);

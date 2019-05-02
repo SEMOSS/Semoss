@@ -1,12 +1,20 @@
 package prerna.sablecc2.reactor;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
 import java.io.File;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import me.xdrop.fuzzywuzzy.FuzzySearch;
+import me.xdrop.fuzzywuzzy.model.ExtractedResult;
 import prerna.algorithm.api.ITableDataFrame;
 //import prerna.cluster.util.PullCloudAppReactor;
 import prerna.cluster.util.PushAppsReactor;
@@ -20,42 +28,42 @@ import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
-import prerna.forms.FormsReactor;
-import prerna.io.connector.surveymonkey.GetSurveyMonkeySurveysReactor;
-import prerna.poi.main.helper.excel.ExcelDataValidationReactor;
-import prerna.query.querystruct.delete.QueryDeleteReactor;
-import prerna.query.querystruct.update.reactors.QueryUpdateReactor;
-import prerna.sablecc2.reactor.algorithms.AnomalyReactor;
-import prerna.sablecc2.reactor.algorithms.ClusteringAlgorithmReactor;
-import prerna.sablecc2.reactor.algorithms.GenericRReactor;
-import prerna.sablecc2.reactor.algorithms.LOFAlgorithmReactor;
-import prerna.sablecc2.reactor.algorithms.MatrixRegressionReactor;
-import prerna.sablecc2.reactor.algorithms.MultiClusteringAlgorithmReactor;
+import prerna.forms.UpdateFormReactor;
+import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
+import prerna.poi.main.helper.excel.GetExcelFormReactor;
+import prerna.query.querystruct.delete.DeleteReactor;
+import prerna.query.querystruct.update.reactors.UpdateReactor;
+import prerna.sablecc2.reactor.algorithms.RAlgReactor;
 import prerna.sablecc2.reactor.algorithms.NLSQueryHelperReactor;
 import prerna.sablecc2.reactor.algorithms.NaturalLanguageSearchReactor;
-import prerna.sablecc2.reactor.algorithms.NumericalCorrelationReactor;
-import prerna.sablecc2.reactor.algorithms.OutlierAlgorithmReactor;
-import prerna.sablecc2.reactor.algorithms.RatioAlgorithmReactor;
-import prerna.sablecc2.reactor.algorithms.SimilarityAlgorithmReactor;
+import prerna.sablecc2.reactor.algorithms.RatioReactor;
+import prerna.sablecc2.reactor.algorithms.RunAnomalyReactor;
+import prerna.sablecc2.reactor.algorithms.RunAssociatedLearningReactor;
+import prerna.sablecc2.reactor.algorithms.RunClassificationReactor;
+import prerna.sablecc2.reactor.algorithms.RunClusteringReactor;
+import prerna.sablecc2.reactor.algorithms.RunLOFReactor;
+import prerna.sablecc2.reactor.algorithms.RunMatrixRegressionReactor;
+import prerna.sablecc2.reactor.algorithms.RunMultiClusteringReactor;
+import prerna.sablecc2.reactor.algorithms.RunNumericalCorrelationReactor;
+import prerna.sablecc2.reactor.algorithms.RunOutlierReactor;
+import prerna.sablecc2.reactor.algorithms.RunSimilarityReactor;
 import prerna.sablecc2.reactor.algorithms.UpdateNLPHistoryReactor;
-import prerna.sablecc2.reactor.algorithms.WekaAprioriReactor;
-import prerna.sablecc2.reactor.algorithms.WekaClassificationReactor;
-import prerna.sablecc2.reactor.algorithms.dataquality.GetDataQualityRulesReactor;
+import prerna.sablecc2.reactor.algorithms.dataquality.GetDQRulesReactor;
 import prerna.sablecc2.reactor.algorithms.dataquality.RunDataQualityReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetCSVSchemaReactor;
-import prerna.sablecc2.reactor.algorithms.xray.GetExternalDBSchemaReactor;
-import prerna.sablecc2.reactor.algorithms.xray.GetLocalDBSchemaReactor;
+import prerna.sablecc2.reactor.algorithms.xray.GetExternalSchemaReactor;
+import prerna.sablecc2.reactor.algorithms.xray.GetLocalSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
-import prerna.sablecc2.reactor.algorithms.xray.XRayReactor;
+import prerna.sablecc2.reactor.algorithms.xray.RunXRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.DatabaseColumnUniqueReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDescriptionsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.GetOwlDictionaryReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlLogicalNamesReactor;
-import prerna.sablecc2.reactor.app.metaeditor.OwlDictionaryReactor;
-import prerna.sablecc2.reactor.app.metaeditor.OwlMetamodelReactor;
+import prerna.sablecc2.reactor.app.metaeditor.GetOwlMetamodelReactor;
 import prerna.sablecc2.reactor.app.metaeditor.ReloadAppOwlReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.AddOwlConceptReactor;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.EditOwlConceptConceptualNameReactor;
@@ -74,30 +82,30 @@ import prerna.sablecc2.reactor.app.metaeditor.properties.RemoveOwlPropertyReacto
 import prerna.sablecc2.reactor.app.metaeditor.relationships.AddBulkOwlRelationshipsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.relationships.AddOwlRelationshipReactor;
 import prerna.sablecc2.reactor.app.metaeditor.relationships.RemoveOwlRelationshipReactor;
-import prerna.sablecc2.reactor.app.metaeditor.routines.OwlColumnSemanticCosineSimilarityMatchReactor;
-import prerna.sablecc2.reactor.app.metaeditor.routines.OwlDirectNameMatchReactor;
-import prerna.sablecc2.reactor.app.metaeditor.routines.OwlIndirectNameMatchReactor;
-import prerna.sablecc2.reactor.app.metaeditor.routines.OwlInstanceSemanticCosineSimilarityMatchReactor;
-import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlDescriptionsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.routines.FindDirectOwlRelationshipsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.routines.FindIndirectOwlRelationshipsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.routines.FindSemanticColumnOwlRelationshipsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.routines.FindSemanticInstanceOwlRelationshipsReactor;
+import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlDescriptionReactor;
 import prerna.sablecc2.reactor.app.metaeditor.routines.PredictOwlLogicalNamesReactor;
 import prerna.sablecc2.reactor.app.upload.CheckHeadersReactor;
 import prerna.sablecc2.reactor.app.upload.GenerateEmptyAppReactor;
 import prerna.sablecc2.reactor.app.upload.ParseMetamodelReactor;
-import prerna.sablecc2.reactor.app.upload.PredictCsvMetamodelReactor;
+import prerna.sablecc2.reactor.app.upload.PredictMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.PredictExcelDataTypesReactor;
 import prerna.sablecc2.reactor.app.upload.PredictExcelRangeMetadataReactor;
-import prerna.sablecc2.reactor.app.upload.PredictFileDataTypesReactor;
-import prerna.sablecc2.reactor.app.upload.gremlin.external.CreateExternalDSEGraphDBReactor;
-import prerna.sablecc2.reactor.app.upload.gremlin.external.CreateExternalGraphDBReactor;
+import prerna.sablecc2.reactor.app.upload.PredictDataTypesReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.external.CreateExternalDSEGraphDatabaseReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.external.CreateExternalGraphDatabaseReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.GetDSEGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.GetDSEGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.GetGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.GetGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.file.TinkerCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsCsvUploadReactor;
-import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsFlatCsvUploadReactor;
-import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsFlatExcelUploadReactor;
+import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsUploadTableReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsLoaderSheetUploadReactor;
+import prerna.sablecc2.reactor.app.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcSchemaReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.ExternalJdbcTablesAndViewsReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.RdbmsExternalUploadReactor;
@@ -149,19 +157,19 @@ import prerna.sablecc2.reactor.expression.OpSumIfs;
 import prerna.sablecc2.reactor.expression.OpSumProduct;
 import prerna.sablecc2.reactor.expression.filter.OpAnd;
 import prerna.sablecc2.reactor.expression.filter.OpOr;
-import prerna.sablecc2.reactor.federation.AdvancedFederationBlend;
-import prerna.sablecc2.reactor.federation.AdvancedFederationGetBestMatch;
+import prerna.sablecc2.reactor.federation.FederationBestMatches;
+import prerna.sablecc2.reactor.federation.FederationBlend;
 import prerna.sablecc2.reactor.frame.CreateFrameReactor;
 import prerna.sablecc2.reactor.frame.CurrentFrameReactor;
-import prerna.sablecc2.reactor.frame.FrameDuplicatesReactor;
+import prerna.sablecc2.reactor.frame.HasDuplicatesReactor;
 import prerna.sablecc2.reactor.frame.FrameHeaderExistsReactor;
+import prerna.sablecc2.reactor.frame.FrameHeadersReactor;
 import prerna.sablecc2.reactor.frame.FrameTypeReactor;
-import prerna.sablecc2.reactor.frame.GetFrameHeaderMetadataReactor;
 import prerna.sablecc2.reactor.frame.InsightMetamodelReactor;
 import prerna.sablecc2.reactor.frame.SetCurrentFrameReactor;
 import prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.DeleteFrameFilterReactor;
-import prerna.sablecc2.reactor.frame.filter.GetFrameFilterReactor;
+import prerna.sablecc2.reactor.frame.filter.GetFrameFiltersReactor;
 import prerna.sablecc2.reactor.frame.filter.RemoveFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.ReplaceFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.SetFrameFilterReactor;
@@ -177,41 +185,34 @@ import prerna.sablecc2.reactor.frame.graph.RemoveIntermediaryNodeReactor;
 import prerna.sablecc2.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
 import prerna.sablecc2.reactor.frame.r.CancelRReactor;
-import prerna.sablecc2.reactor.frame.r.CompareDbSemanticSimiliarity;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
-import prerna.sablecc2.reactor.frame.r.GetSemanticDescription;
+import prerna.sablecc2.reactor.frame.r.MetaSemanticSimilarityReactor;
 import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RAprioriReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RClassificationAlgorithmReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RClusteringAlgorithmReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RDocumentCosineSimilarityReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RGenerateDescriptionColumnReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RLOFAlgorithmReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RMatrixRegressionReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RNumericalColumnSimilarityReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RNumericalCorrelationReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RNumericalModelAlgorithmReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.ROutlierAlgorithmReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RRandomForestAlgorithmReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RRandomForestResultsReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RSimilarityAlgorithmReactor;
-import prerna.sablecc2.reactor.frame.r.analytics.RSimilarityHeatReactor;
+import prerna.sablecc2.reactor.frame.r.SemanticDescription;
+
+import prerna.sablecc2.reactor.frame.r.analytics.RunDocCosSimilarityReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RunDescriptionGeneratorReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RunNumericalColumnSimilarityReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RunNumericalModelReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RunRandomForestReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.GetRFResultsReactor;
+import prerna.sablecc2.reactor.frame.r.analytics.RunSimilarityHeatReactor;
 import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
 import prerna.sablecc2.reactor.frame.r.graph.GraphLayoutReactor;
 import prerna.sablecc2.reactor.frame.r.graph.NodeDetailsReactor;
 import prerna.sablecc2.reactor.frame.r.util.RClearAllUserRservesReactor;
 import prerna.sablecc2.reactor.frame.r.util.REnableUserRecoveryReactor;
 import prerna.sablecc2.reactor.frame.r.util.RSourceReactor;
-import prerna.sablecc2.reactor.imports.ImportDataReactor;
-import prerna.sablecc2.reactor.imports.MergeDataReactor;
+import prerna.sablecc2.reactor.imports.ImportReactor;
+import prerna.sablecc2.reactor.imports.MergeReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
+import prerna.sablecc2.reactor.insights.CurrentVariablesReactor;
 import prerna.sablecc2.reactor.insights.DropInsightReactor;
 import prerna.sablecc2.reactor.insights.GetCurrentRecipeReactor;
-import prerna.sablecc2.reactor.insights.GetCurrentVariablesReactor;
-import prerna.sablecc2.reactor.insights.GetSavedInsightRecipeReactor;
 import prerna.sablecc2.reactor.insights.InsightHandleReactor;
+import prerna.sablecc2.reactor.insights.InsightRecipeReactor;
 import prerna.sablecc2.reactor.insights.OpenEmptyInsightReactor;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
 import prerna.sablecc2.reactor.insights.OpenOptimizedInsightReactor;
@@ -229,35 +230,35 @@ import prerna.sablecc2.reactor.insights.save.UpdateInsightReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
 import prerna.sablecc2.reactor.masterdatabase.AddMetaDescriptionReactor;
-import prerna.sablecc2.reactor.masterdatabase.AddMetaTagReactor;
+import prerna.sablecc2.reactor.masterdatabase.AddMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.AllConceptualNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.CLPModelReactor;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptPropertiesReactors;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseConceptsReactors;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseConnectionsReactor;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseListReactor;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseMetamodelReactor;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseQueryTranslator;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseSpecificConceptPropertiesReactor;
-import prerna.sablecc2.reactor.masterdatabase.DatabaseTableStructureReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetSpecificConceptPropertiesReactor;
 import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetConceptPropertiesReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetDatabaseConceptsReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetDatabaseConnectionsReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetDatabaseListReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetDatabaseMetamodelReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetDatabaseTableStructureReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetMetaDescriptionReactor;
-import prerna.sablecc2.reactor.masterdatabase.GetMetaTagReactor;
+import prerna.sablecc2.reactor.masterdatabase.GetMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToLogicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
-import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNameReactor;
+import prerna.sablecc2.reactor.masterdatabase.QueryTranslatorReactor;
+import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.SyncAppWithLocalMasterReactor;
 import prerna.sablecc2.reactor.panel.AddPanelConfigReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
 import prerna.sablecc2.reactor.panel.AddPanelReactor;
 import prerna.sablecc2.reactor.panel.CachedPanelCloneReactor;
 import prerna.sablecc2.reactor.panel.CachedPanelReactor;
+import prerna.sablecc2.reactor.panel.CloneReactor;
 import prerna.sablecc2.reactor.panel.ClosePanelReactor;
-import prerna.sablecc2.reactor.panel.GetInsightPanelsReactor;
 import prerna.sablecc2.reactor.panel.GetPanelIdReactor;
-import prerna.sablecc2.reactor.panel.PanelCloneReactor;
+import prerna.sablecc2.reactor.panel.InsightPanelIds;
 import prerna.sablecc2.reactor.panel.PanelExistsReactor;
 import prerna.sablecc2.reactor.panel.PanelReactor;
 import prerna.sablecc2.reactor.panel.RetrievePanelPositionReactor;
@@ -281,31 +282,31 @@ import prerna.sablecc2.reactor.panel.ornaments.RemovePanelOrnamentsReactor;
 import prerna.sablecc2.reactor.panel.ornaments.ResetPanelOrnamentsReactor;
 import prerna.sablecc2.reactor.panel.ornaments.RetrievePanelOrnamentsReactor;
 import prerna.sablecc2.reactor.panel.rules.AddPanelColorByValueReactor;
-import prerna.sablecc2.reactor.panel.rules.DeletePanelColorByValueReactor;
 import prerna.sablecc2.reactor.panel.rules.GetPanelColorByValueReactor;
+import prerna.sablecc2.reactor.panel.rules.RemovePanelColorByValueReactor;
 import prerna.sablecc2.reactor.panel.rules.RetrievePanelColorByValueReactor;
 import prerna.sablecc2.reactor.panel.sort.AddPanelSortReactor;
-import prerna.sablecc2.reactor.panel.sort.RemovePanelSortReactor;
 import prerna.sablecc2.reactor.panel.sort.SetPanelSortReactor;
+import prerna.sablecc2.reactor.panel.sort.UnsortPanelReactor;
 import prerna.sablecc2.reactor.planner.GraphPlanReactor;
-import prerna.sablecc2.reactor.planner.graph.ExecuteJavaGraphPlannerReactor;
-import prerna.sablecc2.reactor.planner.graph.LoadGraphClient;
+import prerna.sablecc2.reactor.planner.graph.RunPlanReactor;
+import prerna.sablecc2.reactor.planner.graph.LoadClientReactor;
 import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor2;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.DistinctReactor;
 import prerna.sablecc2.reactor.qs.ExecQueryReactor;
-import prerna.sablecc2.reactor.qs.GroupByReactor;
+import prerna.sablecc2.reactor.qs.GroupReactor;
+import prerna.sablecc2.reactor.qs.ImplicitFilterOverrideReactor;
+import prerna.sablecc2.reactor.qs.InsertReactor;
 import prerna.sablecc2.reactor.qs.JoinReactor;
 import prerna.sablecc2.reactor.qs.LimitReactor;
 import prerna.sablecc2.reactor.qs.OffsetReactor;
-import prerna.sablecc2.reactor.qs.OrderByReactor;
-import prerna.sablecc2.reactor.qs.OverrideImplicitFiltersReactor;
 import prerna.sablecc2.reactor.qs.QueryAllReactor;
-import prerna.sablecc2.reactor.qs.QueryInsertReactor;
 import prerna.sablecc2.reactor.qs.QueryReactor;
+import prerna.sablecc2.reactor.qs.SortReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
-import prerna.sablecc2.reactor.qs.filter.QueryFilterReactor;
-import prerna.sablecc2.reactor.qs.filter.QueryHavingFilterReactor;
+import prerna.sablecc2.reactor.qs.filter.HavingReactor;
+import prerna.sablecc2.reactor.qs.filter.FilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.AverageReactor;
 import prerna.sablecc2.reactor.qs.selectors.CountReactor;
 import prerna.sablecc2.reactor.qs.selectors.GenericSelectorFunctionReactor;
@@ -313,16 +314,16 @@ import prerna.sablecc2.reactor.qs.selectors.GroupConcatReactor;
 import prerna.sablecc2.reactor.qs.selectors.MaxReactor;
 import prerna.sablecc2.reactor.qs.selectors.MedianReactor;
 import prerna.sablecc2.reactor.qs.selectors.MinReactor;
-import prerna.sablecc2.reactor.qs.selectors.PathSelectorReactor;
-import prerna.sablecc2.reactor.qs.selectors.QuerySelectReactor;
+import prerna.sablecc2.reactor.qs.selectors.PColReactor;
+import prerna.sablecc2.reactor.qs.selectors.PSelectReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
-import prerna.sablecc2.reactor.qs.selectors.QuerySelectorPathReactor;
+import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
 import prerna.sablecc2.reactor.qs.selectors.SelectTableReactor;
 import prerna.sablecc2.reactor.qs.selectors.StandardDeviationReactor;
 import prerna.sablecc2.reactor.qs.selectors.SumReactor;
-import prerna.sablecc2.reactor.qs.selectors.UniqueAverageReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueCountReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueGroupConcatReactor;
+import prerna.sablecc2.reactor.qs.selectors.UniqueAverageReactor;
 import prerna.sablecc2.reactor.qs.selectors.UniqueSumReactor;
 import prerna.sablecc2.reactor.qs.source.APIReactor;
 import prerna.sablecc2.reactor.qs.source.AuditDatabaseReactor;
@@ -330,11 +331,11 @@ import prerna.sablecc2.reactor.qs.source.DatabaseReactor;
 import prerna.sablecc2.reactor.qs.source.DirectJdbcConnectionReactor;
 import prerna.sablecc2.reactor.qs.source.DropBoxFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.DropBoxListFilesReactor;
-import prerna.sablecc2.reactor.qs.source.FileSourceReactor;
+import prerna.sablecc2.reactor.qs.source.FileReadReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleListFilesReactor;
-import prerna.sablecc2.reactor.qs.source.JdbcEngineConnectorReactor;
+import prerna.sablecc2.reactor.qs.source.JdbcSourceReactor;
 import prerna.sablecc2.reactor.qs.source.OneDriveFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.OneDriveListFilesReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointDriveSelectorReactor;
@@ -350,62 +351,62 @@ import prerna.sablecc2.reactor.scheduler.RescheduleExistingJobReactor;
 import prerna.sablecc2.reactor.scheduler.ScheduleJobReactor;
 import prerna.sablecc2.reactor.scheduler.UnscheduleJobReactor;
 import prerna.sablecc2.reactor.storage.RetrieveValue;
+import prerna.sablecc2.reactor.storage.SaveTaxScenarioReactor;
 import prerna.sablecc2.reactor.storage.StoreValue;
 import prerna.sablecc2.reactor.storage.TaxRetrieveValue2;
-import prerna.sablecc2.reactor.storage.TaxSaveScenarioReactor;
 import prerna.sablecc2.reactor.task.AutoTaskOptionsReactor;
+import prerna.sablecc2.reactor.task.FormatReactor;
 import prerna.sablecc2.reactor.task.RemoveTaskReactor;
-import prerna.sablecc2.reactor.task.ResetPanelTasksReactor;
+import prerna.sablecc2.reactor.task.ResetAllReactor;
 import prerna.sablecc2.reactor.task.ResetTaskReactor;
-import prerna.sablecc2.reactor.task.TaskFormatReactor;
-import prerna.sablecc2.reactor.task.TaskLookupReactor;
-import prerna.sablecc2.reactor.task.TaskMetaCollectorReactor;
+import prerna.sablecc2.reactor.task.CollectMetaReactor;
 import prerna.sablecc2.reactor.task.TaskOptionsReactor;
-import prerna.sablecc2.reactor.task.lambda.map.function.ApplyFormattingTaskReactor;
-import prerna.sablecc2.reactor.task.modifiers.FilterLambdaTaskReactor;
-import prerna.sablecc2.reactor.task.modifiers.FlatMapLambdaTaskReactor;
-import prerna.sablecc2.reactor.task.modifiers.GenericMapLambdaTaskReactor;
-import prerna.sablecc2.reactor.task.modifiers.MapLambdaTaskReactor;
-import prerna.sablecc2.reactor.task.modifiers.ToNumericTypeTaskReactor;
-import prerna.sablecc2.reactor.task.modifiers.ToUrlTypeTaskReactor;
-import prerna.sablecc2.reactor.task.modifiers.TransposeRowTaskReactor;
-import prerna.sablecc2.reactor.test.AliasMatchTestReactor;
+import prerna.sablecc2.reactor.task.TaskReactor;
+import prerna.sablecc2.reactor.task.lambda.map.function.ApplyFormattingReactor;
+import prerna.sablecc2.reactor.task.modifiers.CodeLambdaReactor;
+import prerna.sablecc2.reactor.task.modifiers.FilterLambdaReactor;
+import prerna.sablecc2.reactor.task.modifiers.FlatMapLambdaReactor;
+import prerna.sablecc2.reactor.task.modifiers.MapLambdaReactor;
+import prerna.sablecc2.reactor.task.modifiers.ToNumericTypeReactor;
+import prerna.sablecc2.reactor.task.modifiers.ToUrlTypeReactor;
+import prerna.sablecc2.reactor.task.modifiers.TransposeRowsReactor;
 import prerna.sablecc2.reactor.test.LSASpaceColumnLearnedReactor;
+import prerna.sablecc2.reactor.test.RunAliasMatchReactor;
 import prerna.sablecc2.reactor.test.RunLSILearnedReactor;
 import prerna.sablecc2.reactor.utils.AddOperationAliasReactor;
+import prerna.sablecc2.reactor.utils.BDelReactor;
+import prerna.sablecc2.reactor.utils.BQReactor;
 import prerna.sablecc2.reactor.utils.BackupAppReactor;
-import prerna.sablecc2.reactor.utils.BitlyAddReactor;
-import prerna.sablecc2.reactor.utils.BitlyDeleteReactor;
-import prerna.sablecc2.reactor.utils.BitlyQReactor;
-import prerna.sablecc2.reactor.utils.BitlyUpdateReactor;
+import prerna.sablecc2.reactor.utils.BaddReactor;
+import prerna.sablecc2.reactor.utils.BupdReactor;
 import prerna.sablecc2.reactor.utils.CheckRPackagesReactor;
 import prerna.sablecc2.reactor.utils.CheckRecommendOptimizationReactor;
 import prerna.sablecc2.reactor.utils.DatabaseProfileReactor;
 import prerna.sablecc2.reactor.utils.DeleteAppReactor;
 import prerna.sablecc2.reactor.utils.ExportAppReactor;
 import prerna.sablecc2.reactor.utils.ExternalDatabaseProfileReactor;
+import prerna.sablecc2.reactor.utils.GetNumTableReactor;
 import prerna.sablecc2.reactor.utils.GetRequestReactor;
+import prerna.sablecc2.reactor.utils.GetTableHeader;
 import prerna.sablecc2.reactor.utils.GetUserInfoReactor;
-import prerna.sablecc2.reactor.utils.GetWebTableHeader;
-import prerna.sablecc2.reactor.utils.GetWebTableNum;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
 import prerna.sablecc2.reactor.utils.PostRequestReactor;
-import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
+import prerna.sablecc2.reactor.utils.RmReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
+import prerna.sablecc2.reactor.workflow.GetInsightDatasourcesReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
-import prerna.sablecc2.reactor.workflow.InsightDatasourcesReactor;
 import prerna.sablecc2.reactor.workflow.ModifyInsightDatasourceReactor;
 import prerna.sablecc2.reactor.workspace.DeleteUserAssetReactor;
 import prerna.sablecc2.reactor.workspace.MoveUserAssetReactor;
-import prerna.sablecc2.reactor.workspace.NewUserDirectoryReactor;
+import prerna.sablecc2.reactor.workspace.NewDirReactor;
 import prerna.sablecc2.reactor.workspace.UploadUserFileReactor;
-import prerna.sablecc2.reactor.workspace.UserRootDirectoryReactor;
+import prerna.sablecc2.reactor.workspace.UserDirReactor;
 import prerna.solr.reactor.AppInfoReactor;
-import prerna.solr.reactor.AppInsightsReactor;
-import prerna.solr.reactor.AppUsersReactors;
+import prerna.solr.reactor.AppUsersReactor;
+import prerna.solr.reactor.GetInsightsReactor;
 import prerna.solr.reactor.MyAppsReactor;
 import prerna.solr.reactor.SetAppDescriptionReactor;
 import prerna.solr.reactor.SetAppTagsReactor;
@@ -423,21 +424,23 @@ import prerna.util.git.reactors.IsGit;
 import prerna.util.git.reactors.ListAppCollaborators;
 import prerna.util.git.reactors.ListAppRemotes;
 import prerna.util.git.reactors.ListUserApps;
-import prerna.util.git.reactors.LoginGit;
+import prerna.util.git.reactors.LoginReactor;
 import prerna.util.git.reactors.RemoveAppCollaborator;
 import prerna.util.git.reactors.RenameMosfitFileReactor;
 import prerna.util.git.reactors.SearchAppCollaborator;
 import prerna.util.git.reactors.SyncApp;
 import prerna.util.git.reactors.SyncAppFiles;
-import prerna.util.git.reactors.SyncAppFilesOAuth;
-import prerna.util.git.reactors.SyncAppOAuth;
-import prerna.util.usertracking.reactors.AppMetaExtractor;
+import prerna.util.git.reactors.SyncAppFilesO;
+import prerna.util.git.reactors.SyncAppOReactor;
+import prerna.util.usertracking.reactors.ExtractAppMetaReactor;
 import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
 import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
-import prerna.util.usertracking.reactors.WidgetTrackingReactor;
-import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationReactor;
+import prerna.util.usertracking.reactors.WidgetTReactor;
+import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
-import prerna.util.usertracking.reactors.recommendations.VisualizationRecommendationReactor;
+import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -457,6 +460,12 @@ public class ReactorFactory {
 	public static Map<String, Class> tinkerFrameHash;
 	public static Map<String, Class> nativeFrameHash;
 	
+	public static Map <String, Class> reactors = new HashMap<String, Class>();
+	
+	public static List <String> nmList = new ArrayList<String>();
+	public static List <Class> classList = new ArrayList<Class>();
+	
+	
 	static {
 		reactorHash = new HashMap<String, Class>();
 		createReactorHash(reactorHash);
@@ -465,15 +474,15 @@ public class ReactorFactory {
 		populateExpressionSet(expressionHash);
 		// populate the frame specific hashes
 		rFrameHash = new HashMap<String, Class>();
-		populateRFrameHash(rFrameHash);
+		//populateRFrameHash(rFrameHash);
 		pandasFrameHash = new HashMap<String, Class>();
-		populatePandasFrameHash(pandasFrameHash);
+		//populatePandasFrameHash(pandasFrameHash);
 		h2FrameHash = new HashMap<String, Class>();
-		populateH2FrameHash(h2FrameHash);
+		//populateH2FrameHash(h2FrameHash);
 		tinkerFrameHash = new HashMap<String, Class>();
-		populateTinkerFrameHash(tinkerFrameHash);
+		//populateTinkerFrameHash(tinkerFrameHash);
 		nativeFrameHash = new HashMap<String, Class>();
-		populateNativeFrameHash(nativeFrameHash);
+		//populateNativeFrameHash(nativeFrameHash);
 		
 		String additionalReactorsPath = "";
 		try {
@@ -489,6 +498,99 @@ public class ReactorFactory {
 			// hopefully you dont have anything in a prop file you care about
 			// or update the var directly
 		}
+		
+		// load it through the inspect
+		loadFromCP();
+	}
+	
+	public static void main(String [] args)
+	{
+		// print the inconsistencies
+		
+		printInconsistency("Generic", reactorHash);
+		printInconsistency("h2", h2FrameHash);
+		printInconsistency("R", rFrameHash);
+		printInconsistency("Pandas", pandasFrameHash);
+	}
+	
+	public static void printInconsistency(String mapname, Map map)
+	{
+		
+		Iterator keys = map.keySet().iterator();
+		
+		System.out.println(mapname);
+		System.out.println("-----------");
+		
+		while(keys.hasNext())
+		{
+			String key = (String)keys.next();
+			Class value = (Class)map.get(key);
+			
+			String name = value.getSimpleName();
+
+			name = name.replaceAll("Reactor","");
+			if(!name.equals(key))
+				System.out.println(key + " <<>> " + name);
+			
+		}
+		System.out.println("-----------");
+		
+	}
+	
+	private static void loadFromCP()
+	{
+		try {
+			//String folder = "C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes";
+			ScanResult sr = new ClassGraph().whitelistPackages("prerna")
+					//.overrideClasspath((new File(folder).toURI().toURL()))
+					.scan();
+			//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
+			//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
+
+			ClassInfoList classes = sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+			
+			
+			for(int classIndex = 0;classIndex < classes.size();classIndex++)
+			{
+				String name = classes.get(classIndex).getSimpleName();
+				String packageName = classes.get(classIndex).getPackageName();
+				Class actualClass = classes.get(classIndex).loadClass();
+
+				if(!Modifier.isAbstract( actualClass.getModifiers() ))
+				{
+					
+					String [] packagePaths = packageName.split("\\.");
+					//System.out.println("Package name " + packageName);
+					packageName = packagePaths[packagePaths.length - 1];
+					boolean frame = packagePaths[packagePaths.length - 2].equalsIgnoreCase("frame");
+					
+					String reactorName = name.replaceAll("Reactor", "");
+					
+					if(frame)
+					{
+						if(packageName.equalsIgnoreCase("rdbms"))
+							h2FrameHash.put(reactorName, actualClass);
+						if(packageName.equalsIgnoreCase("r"))
+							rFrameHash.put(reactorName, actualClass);
+						if(packageName.equalsIgnoreCase("py"))
+							pandasFrameHash.put(reactorName, actualClass);
+						if(packageName.equalsIgnoreCase("tinker"))
+							tinkerFrameHash.put(reactorName, actualClass);
+						reactorName = packageName + "_" + reactorName;
+					}
+					else
+						reactorHash.put(reactorName, actualClass);
+					
+					nmList.add(reactorName);
+					classList.add(actualClass);
+					
+					reactors.put(reactorName.toUpperCase(), actualClass);
+				}// ignore if it is a abstract class
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
 	}
 	
 	// populates the frame agnostic reactors used by pixel
@@ -498,15 +600,15 @@ public class ReactorFactory {
 
 		// Import Reactors
 		// takes in a query struct and imports data to a new frame
-		reactorHash.put("Import", ImportDataReactor.class);
+		reactorHash.put("Import", ImportReactor.class);
 		// takes in a query struct and merges data to an existing frame
-		reactorHash.put("Merge", MergeDataReactor.class);
+		reactorHash.put("Merge", MergeReactor.class);
 
 		// Utility Reactors
 		reactorHash.put("AddOperationAlias", AddOperationAliasReactor.class);
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
-		reactorHash.put("RemoveVariable", RemoveVariableReactor.class);
-		reactorHash.put("rm", RemoveVariableReactor.class);
+		reactorHash.put("", RmReactor.class);
+		reactorHash.put("rm", RmReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
 		reactorHash.put("BackupApp", BackupAppReactor.class);
 		reactorHash.put("ExportApp", ExportAppReactor.class);
@@ -524,25 +626,25 @@ public class ReactorFactory {
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
-		reactorHash.put("WidgetT", WidgetTrackingReactor.class);
+		reactorHash.put("WidgetT", WidgetTReactor.class);
 		reactorHash.put("GetUserInfo", GetUserInfoReactor.class);
 		
 		// Database uploading utils
 		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);
-		reactorHash.put("PredictDataTypes", PredictFileDataTypesReactor.class);
+		reactorHash.put("PredictDataTypes", PredictDataTypesReactor.class);
 		reactorHash.put("PredictExcelDataTypes", PredictExcelDataTypesReactor.class);
-		reactorHash.put("PredictMetamodel", PredictCsvMetamodelReactor.class);
+		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
-		reactorHash.put("ExtractAppMeta", AppMetaExtractor.class);
+		reactorHash.put("ExtractAppMeta", ExtractAppMetaReactor.class);
 		// Excel Data validation
-		reactorHash.put("GetExcelForm", ExcelDataValidationReactor.class);
+		reactorHash.put("GetExcelForm", GetExcelFormReactor.class);
 		
 		// Database Uploading
 		reactorHash.put("ExternalJdbcSchema", ExternalJdbcSchemaReactor.class);
 		reactorHash.put("ExternalJdbcTablesAndViews", ExternalJdbcTablesAndViewsReactor.class);
 		reactorHash.put("GenerateEmptyApp", GenerateEmptyAppReactor.class);
-		reactorHash.put("RdbmsUploadTableData", RdbmsFlatCsvUploadReactor.class);
-		reactorHash.put("RdbmsUploadExcelData", RdbmsFlatExcelUploadReactor.class);
+		reactorHash.put("RdbmsUploadTableData", RdbmsUploadTableReactor.class);
+		reactorHash.put("RdbmsUploadExcelData", RdbmsUploadExcelDataReactor.class);
 		reactorHash.put("RdbmsExternalUpload", RdbmsExternalUploadReactor.class);
 		reactorHash.put("RdbmsCsvUpload", RdbmsCsvUploadReactor.class);
 		reactorHash.put("RdbmsLoaderSheetUpload", RdbmsLoaderSheetUploadReactor.class);
@@ -553,19 +655,19 @@ public class ReactorFactory {
 		// external graph engine
 		reactorHash.put("GetGraphProperties", GetGraphPropertiesReactor.class);
 		reactorHash.put("GetGraphMetaModel", GetGraphMetaModelReactor.class);
-		reactorHash.put("CreateExternalGraphDatabase", CreateExternalGraphDBReactor.class);
+		reactorHash.put("CreateExternalGraphDatabase", CreateExternalGraphDatabaseReactor.class);
 		// datastax graph reactors
 		reactorHash.put("GetDSEGraphProperties", GetDSEGraphPropertiesReactor.class);
 		reactorHash.put("GetDSEGraphMetaModel", GetDSEGraphMetaModelReactor.class);
-		reactorHash.put("CreateExternalDSEGraphDatabase", CreateExternalDSEGraphDBReactor.class);
+		reactorHash.put("CreateExternalDSEGraphDatabase", CreateExternalDSEGraphDatabaseReactor.class);
 		
 		// Query Struct Reactors
 		// builds the select portion of the QS
 		reactorHash.put("With", WithReactor.class);
-		reactorHash.put("Select", QuerySelectReactor.class);
+		reactorHash.put("Select", SelectReactor.class);
 		reactorHash.put("SelectTable", SelectTableReactor.class);
-		reactorHash.put("PSelect", QuerySelectorPathReactor.class);
-		reactorHash.put("PCol", PathSelectorReactor.class);
+		reactorHash.put("PSelect", PSelectReactor.class);
+		reactorHash.put("PCol", PColReactor.class);
 		reactorHash.put("Average", AverageReactor.class);
 		reactorHash.put("Mean", AverageReactor.class);
 		reactorHash.put("UniqueAverage", UniqueAverageReactor.class);
@@ -580,24 +682,24 @@ public class ReactorFactory {
 		reactorHash.put("UniqueCount", UniqueCountReactor.class);
 		reactorHash.put("GroupConcat", GroupConcatReactor.class);
 		reactorHash.put("UniqueGroupConcat", UniqueGroupConcatReactor.class);
-		reactorHash.put("Group", GroupByReactor.class);
-		reactorHash.put("GroupBy", GroupByReactor.class);
-		reactorHash.put("Sort", OrderByReactor.class);
-		reactorHash.put("Order", OrderByReactor.class);
+		reactorHash.put("Group", GroupReactor.class);
+		reactorHash.put("GroupBy", GroupReactor.class);
+		reactorHash.put("Sort", SortReactor.class);
+		reactorHash.put("Order", SortReactor.class);
 		reactorHash.put("Limit", LimitReactor.class);
 		reactorHash.put("Offset", OffsetReactor.class);
 		reactorHash.put("Join", JoinReactor.class);
-		reactorHash.put("Filter", QueryFilterReactor.class);
-		reactorHash.put("Having", QueryHavingFilterReactor.class);
+		reactorHash.put("Filter", FilterReactor.class);
+		reactorHash.put("Having", HavingReactor.class);
 		reactorHash.put("Query", QueryReactor.class);
 		reactorHash.put("Distinct", DistinctReactor.class);
-		reactorHash.put("ImplicitFilterOverride", OverrideImplicitFiltersReactor.class);
+		reactorHash.put("ImplicitFilterOverride", ImplicitFilterOverrideReactor.class);
 		reactorHash.put("QueryAll", QueryAllReactor.class);
 
 		// modifications to database
-		reactorHash.put("Insert", QueryInsertReactor.class);
-		reactorHash.put("Delete", QueryDeleteReactor.class);
-		reactorHash.put("Update", QueryUpdateReactor.class);
+		reactorHash.put("Insert", InsertReactor.class);
+		reactorHash.put("Delete", DeleteReactor.class);
+		reactorHash.put("Update", UpdateReactor.class);
 		reactorHash.put("ExecQuery", ExecQueryReactor.class);
 		
 		// If is in its own category
@@ -608,8 +710,8 @@ public class ReactorFactory {
 		reactorHash.put("Database", DatabaseReactor.class);
 		reactorHash.put("AuditDatabase", AuditDatabaseReactor.class);
 		reactorHash.put("API", APIReactor.class);
-		reactorHash.put("FileRead", FileSourceReactor.class);
-		reactorHash.put("JdbcSource", JdbcEngineConnectorReactor.class);
+		reactorHash.put("FileRead", FileReadReactor.class);
+		reactorHash.put("JdbcSource", JdbcSourceReactor.class);
 		reactorHash.put("DirectJDBCConnection", DirectJdbcConnectionReactor.class);
 		reactorHash.put("URLSource", URLSourceReactor.class);
 		// drop box
@@ -631,7 +733,7 @@ public class ReactorFactory {
 		reactorHash.put("SharePointDriveSelector", SharePointDriveSelectorReactor.class);
 		reactorHash.put("SharePointWebDavPull", SharePointWebDavPullReactor.class);
 		// survey monkey
-		reactorHash.put("SurveyMonkeyListSurveys", GetSurveyMonkeySurveysReactor.class);
+		reactorHash.put("SurveyMonkeyListSurveys", SurveyMonkeyListSurveysReactor.class);
 		reactorHash.put("NaturalLanguageSearch", NaturalLanguageSearchReactor.class);
 		
 		// specifies that our pksl operations after this point are dealing with the specified frame
@@ -645,9 +747,9 @@ public class ReactorFactory {
 
 		// Task Reactors
 		reactorHash.put("Iterate", IterateReactor.class);
-		reactorHash.put("Task", TaskLookupReactor.class); // defines the task
+		reactorHash.put("Task", TaskReactor.class); // defines the task
 		reactorHash.put("ResetTask", ResetTaskReactor.class); // reset a task
-		reactorHash.put("ResetAll", ResetPanelTasksReactor.class); // reset all panel tasks
+		reactorHash.put("ResetAll", ResetAllReactor.class); // reset all panel tasks
 		reactorHash.put("RemoveTask", RemoveTaskReactor.class);
 		reactorHash.put("Collect", CollectReactor.class); // collect from task
 		reactorHash.put("CollectAll", CollectAllReactor.class); // collect from task
@@ -655,8 +757,8 @@ public class ReactorFactory {
 		reactorHash.put("GrabScalarElement", GrabScalarElementReactor.class);
 		reactorHash.put("AsTask", AsTaskReactor.class);
 		reactorHash.put("EmptyData", EmptyDataReactor.class);
-		reactorHash.put("CollectMeta", TaskMetaCollectorReactor.class); // collect meta from task
-		reactorHash.put("Format", TaskFormatReactor.class); // set formats
+		reactorHash.put("CollectMeta", CollectMetaReactor.class); // collect meta from task
+		reactorHash.put("Format", FormatReactor.class); // set formats
 		reactorHash.put("TaskOptions", TaskOptionsReactor.class); // set options
 		reactorHash.put("AutoTaskOptions", AutoTaskOptionsReactor.class);
 		reactorHash.put("ToCsv", ToCsvReactor.class); // take any task and output to a file
@@ -667,34 +769,34 @@ public class ReactorFactory {
 		reactorHash.put("ToLoaderSheet", ToLoaderSheetReactor.class);
 		
 		// Task Operations
-		reactorHash.put("CodeLambda", GenericMapLambdaTaskReactor.class);
-		reactorHash.put("FlatMapLambda", FlatMapLambdaTaskReactor.class);
-		reactorHash.put("MapLambda", MapLambdaTaskReactor.class);
-		reactorHash.put("FilterLambda", FilterLambdaTaskReactor.class);
-		reactorHash.put("ToNumericType", ToNumericTypeTaskReactor.class);
-		reactorHash.put("ToUrlType", ToUrlTypeTaskReactor.class);
-		reactorHash.put("TransposeRows", TransposeRowTaskReactor.class);
-		reactorHash.put("ApplyFormatting", ApplyFormattingTaskReactor.class);
+		reactorHash.put("CodeLambda", CodeLambdaReactor.class);
+		reactorHash.put("FlatMapLambda", FlatMapLambdaReactor.class);
+		reactorHash.put("MapLambda", MapLambdaReactor.class);
+		reactorHash.put("FilterLambda", FilterLambdaReactor.class);
+		reactorHash.put("ToNumericType", ToNumericTypeReactor.class);
+		reactorHash.put("ToUrlType", ToUrlTypeReactor.class);
+		reactorHash.put("TransposeRows", TransposeRowsReactor.class);
+		reactorHash.put("ApplyFormatting", ApplyFormattingReactor.class);
 
 		// Local Master Reactors
 		// TODO: remove ones no longer used
-		reactorHash.put("GetDatabaseList", DatabaseListReactor.class);
-		reactorHash.put("GetDatabaseConcepts", DatabaseConceptsReactors.class);
+		reactorHash.put("GetDatabaseList", GetDatabaseListReactor.class);
+		reactorHash.put("GetDatabaseConcepts", GetDatabaseConceptsReactor.class);
 		reactorHash.put("GetTraversalOptions", GetTraversalOptionsReactor.class);
-		reactorHash.put("GetDatabaseMetamodel", DatabaseMetamodelReactor.class);
-		reactorHash.put("GetConceptProperties", DatabaseConceptPropertiesReactors.class);
+		reactorHash.put("GetDatabaseMetamodel", GetDatabaseMetamodelReactor.class);
+		reactorHash.put("GetConceptProperties", GetConceptPropertiesReactor.class);
 		
 		// NEW FEDERATE
-		reactorHash.put("GetDatabaseConnections", DatabaseConnectionsReactor.class);
-		reactorHash.put("GetDatabaseTableStructure", DatabaseTableStructureReactor.class);
-		reactorHash.put("GetSpecificConceptProperties", DatabaseSpecificConceptPropertiesReactor.class);
-		reactorHash.put("FederationBlend", AdvancedFederationBlend.class);
-		reactorHash.put("FederationBestMatches", AdvancedFederationGetBestMatch.class);
+		reactorHash.put("GetDatabaseConnections", GetDatabaseConnectionsReactor.class);
+		reactorHash.put("GetDatabaseTableStructure", GetDatabaseTableStructureReactor.class);
+		reactorHash.put("GetSpecificConceptProperties", GetSpecificConceptPropertiesReactor.class);
+		reactorHash.put("FederationBlend", FederationBlend.class);
+		reactorHash.put("FederationBestMatches", FederationBestMatches.class);
 
 		// app meta and local master utilities
 		reactorHash.put("ReloadAppOwl", ReloadAppOwlReactor.class);
-		reactorHash.put("GetOwlMetamodel", OwlMetamodelReactor.class);
-		reactorHash.put("GetOwlDictionary", OwlDictionaryReactor.class);
+		reactorHash.put("GetOwlMetamodel", GetOwlMetamodelReactor.class);
+		reactorHash.put("GetOwlDictionary", GetOwlDictionaryReactor.class);
 		// owl concepts
 		reactorHash.put("AddOwlConcept", AddOwlConceptReactor.class);
 		reactorHash.put("RemoveOwlConcept", RemoveOwlConceptReactor.class);
@@ -722,31 +824,31 @@ public class ReactorFactory {
 		reactorHash.put("EditOwlDescription", EditOwlDescriptionReactor.class);
 		reactorHash.put("RemoveOwlDescription", RemoveOwlDescriptionReactor.class);
 		reactorHash.put("GetOwlDescriptions", GetOwlDescriptionsReactor.class);
-		reactorHash.put("PredictOwlDescription", PredictOwlDescriptionsReactor.class);
+		reactorHash.put("PredictOwlDescription", PredictOwlDescriptionReactor.class);
 		// routines to predict owl information
-		reactorHash.put("FindDirectOwlRelationships", OwlDirectNameMatchReactor.class);
-		reactorHash.put("FindIndirectOwlRelationships", OwlIndirectNameMatchReactor.class);
-		reactorHash.put("FindSemanticColumnOwlRelationships", OwlColumnSemanticCosineSimilarityMatchReactor.class);
-		reactorHash.put("FindSemanticInstanceOwlRelationships", OwlInstanceSemanticCosineSimilarityMatchReactor.class);
+		reactorHash.put("FindDirectOwlRelationships", FindDirectOwlRelationshipsReactor.class);
+		reactorHash.put("FindIndirectOwlRelationships", FindIndirectOwlRelationshipsReactor.class);
+		reactorHash.put("FindSemanticColumnOwlRelationships", FindSemanticColumnOwlRelationshipsReactor.class);
+		reactorHash.put("FindSemanticInstanceOwlRelationships", FindSemanticInstanceOwlRelationshipsReactor.class);
 		
 		reactorHash.put("SyncAppWithLocalMaster", SyncAppWithLocalMasterReactor.class);
-		reactorHash.put("QueryTranslator", DatabaseQueryTranslator.class);
+		reactorHash.put("QueryTranslator", QueryTranslatorReactor.class);
 		reactorHash.put("AllConceptualNames", AllConceptualNamesReactor.class);
 		reactorHash.put("CLPModel", CLPModelReactor.class);
 		// logical name operations
 		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
 		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
-		reactorHash.put("RemoveLogicalNames", RemoveLogicalNameReactor.class);
+		reactorHash.put("RemoveLogicalNames", RemoveLogicalNamesReactor.class);
 		// concept description metadata 
 		reactorHash.put("AddMetaDescription", AddMetaDescriptionReactor.class);
 		reactorHash.put("GetMetaDescription", GetMetaDescriptionReactor.class);
 		// concept tag metadata
-		reactorHash.put("AddMetaTags", AddMetaTagReactor.class);
-		reactorHash.put("GetMetaTags", GetMetaTagReactor.class);
+		reactorHash.put("AddMetaTags", AddMetaTagsReactor.class);
+		reactorHash.put("GetMetaTags", GetMetaTagsReactor.class);
 		reactorHash.put("DeleteMetaTags", DeleteMetaTagsReactor.class);
 		
 		// Panel Reactors
-		reactorHash.put("InsightPanelIds", GetInsightPanelsReactor.class);
+		reactorHash.put("InsightPanelIds", InsightPanelIds.class);
 		reactorHash.put("Panel", PanelReactor.class);
 		reactorHash.put("CachedPanel", CachedPanelReactor.class);
 		reactorHash.put("CachedPanelClone", CachedPanelCloneReactor.class);
@@ -755,7 +857,7 @@ public class ReactorFactory {
 		reactorHash.put("GetPanelId", GetPanelIdReactor.class);
 		reactorHash.put("ClosePanel", ClosePanelReactor.class);
 		reactorHash.put("PanelExists", PanelExistsReactor.class);
-		reactorHash.put("Clone", PanelCloneReactor.class);
+		reactorHash.put("Clone", CloneReactor.class);
 		reactorHash.put("SetPanelLabel", SetPanelLabelReactor.class);
 		reactorHash.put("SetPanelView", SetPanelViewReactor.class);
 		// panel filters
@@ -765,8 +867,8 @@ public class ReactorFactory {
 		// panel sort
 		reactorHash.put("AddPanelSort", AddPanelSortReactor.class);
 		reactorHash.put("SetPanelSort", SetPanelSortReactor.class);
-		reactorHash.put("RemovePanelSort", RemovePanelSortReactor.class);
-		reactorHash.put("UnsortPanel", RemovePanelSortReactor.class);
+		reactorHash.put("RemovePanelSort", UnsortPanelReactor.class);
+		reactorHash.put("UnsortPanel", UnsortPanelReactor.class);
 		// panel comments
 		reactorHash.put("AddPanelComment", AddPanelCommentReactor.class);
 		reactorHash.put("UpdatePanelComment", UpdatePanelCommentReactor.class);
@@ -790,15 +892,15 @@ public class ReactorFactory {
 		// panel color by value
 		reactorHash.put("AddPanelColorByValue", AddPanelColorByValueReactor.class);
 		reactorHash.put("RetrievePanelColorByValue", RetrievePanelColorByValueReactor.class);
-		reactorHash.put("RemovePanelColorByValue", DeletePanelColorByValueReactor.class);
+		reactorHash.put("RemovePanelColorByValue", RemovePanelColorByValueReactor.class);
 		reactorHash.put("GetPanelColorByValue", GetPanelColorByValueReactor.class);
 		
 		// new tab in browser
 		reactorHash.put("OpenTab", OpenTabReactor.class);
 
 		// Insight Reactors
-		reactorHash.put("InsightRecipe", GetSavedInsightRecipeReactor.class);
-		reactorHash.put("CurrentVariables", GetCurrentVariablesReactor.class);
+		reactorHash.put("InsightRecipe", InsightRecipeReactor.class);
+		reactorHash.put("CurrentVariables", CurrentVariablesReactor.class);
 		reactorHash.put("OpenInsight", OpenInsightReactor.class);
 		reactorHash.put("ReloadInsight", ReloadInsightReactor.class);
 		reactorHash.put("OpenOptimizedInsight", OpenOptimizedInsightReactor.class);
@@ -822,17 +924,17 @@ public class ReactorFactory {
 		reactorHash.put("DashboardInsightConfig", DashboardInsightConfigReactor.class);
 
 		// General Frame Reactors
-		reactorHash.put("FrameHeaders", GetFrameHeaderMetadataReactor.class);
+		reactorHash.put("FrameHeaders", FrameHeadersReactor.class);
 		reactorHash.put("FrameHeaderExists", FrameHeaderExistsReactor.class);
 		reactorHash.put("AddFrameFilter", AddFrameFilterReactor.class);
-		reactorHash.put("GetFrameFilters", GetFrameFilterReactor.class);
+		reactorHash.put("GetFrameFilters", GetFrameFiltersReactor.class);
 		reactorHash.put("SetFrameFilter", SetFrameFilterReactor.class);
 		reactorHash.put("RemoveFrameFilter", RemoveFrameFilterReactor.class);
 		reactorHash.put("ReplaceFrameFilter", ReplaceFrameFilterReactor.class);
 		reactorHash.put("DeleteFrameFilter", DeleteFrameFilterReactor.class);
 		reactorHash.put("UnfilterFrame", UnfilterFrameReactor.class);
 		reactorHash.put("InsightMetamodel", InsightMetamodelReactor.class);
-		reactorHash.put("HasDuplicates", FrameDuplicatesReactor.class);
+		reactorHash.put("HasDuplicates", HasDuplicatesReactor.class);
 		reactorHash.put("CurrentFrame", CurrentFrameReactor.class);
 		reactorHash.put("SetCurrentFrame", SetCurrentFrameReactor.class);
 		// filter model
@@ -842,37 +944,37 @@ public class ReactorFactory {
 		reactorHash.put("FrameFilterModelNumericRange", FrameFilterModelNumericRangeReactor.class);
 
 		// Algorithm Reactors
-		reactorHash.put("rAlg", GenericRReactor.class);
-		reactorHash.put("RunClustering", ClusteringAlgorithmReactor.class);
-		reactorHash.put("RunMultiClustering", MultiClusteringAlgorithmReactor.class);
-		reactorHash.put("RunLOF", LOFAlgorithmReactor.class);
-		reactorHash.put("RunSimilarity", SimilarityAlgorithmReactor.class);
-		reactorHash.put("RunOutlier", OutlierAlgorithmReactor.class);
-		reactorHash.put("Ratio", RatioAlgorithmReactor.class);
-		reactorHash.put("RunAnomaly", AnomalyReactor.class);
+		reactorHash.put("rAlg", RAlgReactor.class);
+		reactorHash.put("RunClustering", RunClusteringReactor.class);
+		reactorHash.put("RunMultiClustering", RunMultiClusteringReactor.class);
+		reactorHash.put("RunLOF", RunLOFReactor.class);
+		reactorHash.put("RunSimilarity", RunSimilarityReactor.class);
+		reactorHash.put("RunOutlier", RunOutlierReactor.class);
+		reactorHash.put("Ratio", RatioReactor.class);
+		reactorHash.put("RunAnomaly", RunAnomalyReactor.class);
 		
 		// X-Ray reactors
-		reactorHash.put("RunXray", XRayReactor.class);
+		reactorHash.put("RunXray", RunXRayReactor.class);
 		reactorHash.put("GetXrayConfigList", GetXrayConfigListReactor.class);
 		reactorHash.put("GetXrayConfigFile", GetXrayConfigFileReactor.class);
-		reactorHash.put("GetLocalSchema", GetLocalDBSchemaReactor.class);
+		reactorHash.put("GetLocalSchema", GetLocalSchemaReactor.class);
 		reactorHash.put("GetXLSchema", GetXLSchemaReactor.class);
 		reactorHash.put("GetCSVSchema",GetCSVSchemaReactor.class);
-		reactorHash.put("GetExternalSchema", GetExternalDBSchemaReactor.class);
+		reactorHash.put("GetExternalSchema", GetExternalSchemaReactor.class);
 		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
-		reactorHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
+		reactorHash.put("MetaSemanticSimilarity", MetaSemanticSimilarityReactor.class);
 		
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
-		reactorHash.put("SemanticDescription", GetSemanticDescription.class);
+		reactorHash.put("SemanticDescription", SemanticDescription.class);
 		// similar reactors to x-ray
 		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMapping.class);
 		reactorHash.put("GetPhysicalToPhysicalMapping", GetPhysicalToPhysicalMapping.class);
 
 		// these algorithms return viz data to the FE
-		reactorHash.put("RunNumericalCorrelation", NumericalCorrelationReactor.class);
-		reactorHash.put("RunMatrixRegression", MatrixRegressionReactor.class);
-		reactorHash.put("RunClassification", WekaClassificationReactor.class);
-		reactorHash.put("RunAssociatedLearning", WekaAprioriReactor.class);
+		reactorHash.put("RunNumericalCorrelation", RunNumericalCorrelationReactor.class);
+		reactorHash.put("RunMatrixRegression", RunMatrixRegressionReactor.class);
+		reactorHash.put("RunClassification", RunClassificationReactor.class);
+		reactorHash.put("RunAssociatedLearning", RunAssociatedLearningReactor.class);
 
 		// In mem storage of data
 		reactorHash.put("StoreValue", StoreValue.class);
@@ -893,23 +995,23 @@ public class ReactorFactory {
 		reactorHash.put("ListAppRemotes", ListAppRemotes.class);
 		reactorHash.put("ListUserApps", ListUserApps.class);
 		reactorHash.put("IsGit", IsGit.class);
-		reactorHash.put("Login", LoginGit.class);
+		reactorHash.put("Login", LoginReactor.class);
 		reactorHash.put("GitStatus", GitStatusReactor.class);
 		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
 		reactorHash.put("Version", prerna.util.git.reactors.Version.class);
 		reactorHash.put("CreateAsset", prerna.util.git.reactors.CreateAssetReactor.class);
 		reactorHash.put("UpdateAsset", prerna.util.git.reactors.UpdateAssetReactor.class);
 		reactorHash.put("DeleteAsset", prerna.util.git.reactors.DeleteAssetReactor.class);
-		reactorHash.put("SyncAppO", SyncAppOAuth.class);
-		reactorHash.put("SyncAppFilesO", SyncAppFilesOAuth.class);
+		reactorHash.put("SyncAppO", SyncAppOReactor.class);
+		reactorHash.put("SyncAppFilesO", SyncAppFilesO.class);
 		
 		// App Metadata
 		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("AppInfo", AppInfoReactor.class);
-		reactorHash.put("AppUsers", AppUsersReactors.class);
+		reactorHash.put("AppUsers", AppUsersReactor.class);
 		// TODO: to be removed once FE changes to only use GetInsights
-		reactorHash.put("GetAppInsights", AppInsightsReactor.class);
-		reactorHash.put("GetInsights", AppInsightsReactor.class);
+		reactorHash.put("GetAppInsights", GetInsightsReactor.class);
+		reactorHash.put("GetInsights", GetInsightsReactor.class);
 		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
 		reactorHash.put("GetAppWidgets", GetAppWidgetsReactor.class);
@@ -936,9 +1038,9 @@ public class ReactorFactory {
 		
 		// User Space
 		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
-		reactorHash.put("UserDir", UserRootDirectoryReactor.class);
+		reactorHash.put("UserDir", UserDirReactor.class);
 		reactorHash.put("DeleteUserAsset", DeleteUserAssetReactor.class);
-		reactorHash.put("NewDir", NewUserDirectoryReactor.class);
+		reactorHash.put("NewDir", NewDirReactor.class);
 		reactorHash.put("MoveUserAsset", MoveUserAssetReactor.class);
 
 		// Scheduler
@@ -950,8 +1052,8 @@ public class ReactorFactory {
 		reactorHash.put("UpdateSemanticData", UpdateSemanticDataReactor.class);
 		reactorHash.put("UpdateQueryData", UpdateQueryDataReactor.class);
 		// Recommendations
-		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationReactor.class);
-		reactorHash.put("VizRecommendations", VisualizationRecommendationReactor.class);
+		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationsReactor.class);
+		reactorHash.put("VizRecommendations", VizRecommendationsReactor.class);
 		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		reactorHash.put("UpdateNLPHistory", UpdateNLPHistoryReactor.class);
 		reactorHash.put("NLSQueryHelper", NLSQueryHelperReactor.class);
@@ -960,7 +1062,7 @@ public class ReactorFactory {
 		reactorHash.put("Date", DateReactor.class);
 		
 		// Forms
-		reactorHash.put("UpdateForm", FormsReactor.class);
+		reactorHash.put("UpdateForm", UpdateFormReactor.class);
 		
 		// Pixels for legacy playsheets
 		reactorHash.put("RunPlaysheetMethod", prerna.sablecc2.reactor.legacy.playsheets.RunPlaysheetMethodReactor.class);
@@ -986,28 +1088,28 @@ public class ReactorFactory {
 		reactorHash.put("Java", JavaReactor.class);
 		
 		// Pixel Recipe Parsing / Manipulation
-		reactorHash.put("GetInsightDatasources", InsightDatasourcesReactor.class);
+		reactorHash.put("GetInsightDatasources", GetInsightDatasourcesReactor.class);
 		reactorHash.put("ModifyInsightDatasource", ModifyInsightDatasourceReactor.class);
 		reactorHash.put("GetOptimizedRecipe", GetOptimizedRecipeReactor.class);
 		
 		
 		// web scrape engine
-		reactorHash.put("GetTableHeader", GetWebTableHeader.class);
-		reactorHash.put("GetNumTable", GetWebTableNum.class);
+		reactorHash.put("GetTableHeader", GetTableHeader.class);
+		reactorHash.put("GetNumTable", GetNumTableReactor.class);
 		
 		// Tax specific handles
-		reactorHash.put("LoadClient", LoadGraphClient.class);
-		reactorHash.put("RunPlan", ExecuteJavaGraphPlannerReactor.class);
+		reactorHash.put("LoadClient", LoadClientReactor.class);
+		reactorHash.put("RunPlan", RunPlanReactor.class);
 		reactorHash.put("UpdatePlan", UpdateGraphPlannerReactor2.class);
 		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
-		reactorHash.put("RunAliasMatch", AliasMatchTestReactor.class);
-		reactorHash.put("SaveTaxScenario", TaxSaveScenarioReactor.class);
+		reactorHash.put("RunAliasMatch", RunAliasMatchReactor.class);
+		reactorHash.put("SaveTaxScenario", SaveTaxScenarioReactor.class);
 		
 		// bitly
-		reactorHash.put("badd", BitlyAddReactor.class);
-		reactorHash.put("bupd", BitlyUpdateReactor.class);
-		reactorHash.put("bdel", BitlyDeleteReactor.class);
-		reactorHash.put("bq", BitlyQReactor.class);
+		reactorHash.put("badd", BaddReactor.class);
+		reactorHash.put("bupd", BupdReactor.class);
+		reactorHash.put("bdel", BDelReactor.class);
+		reactorHash.put("bq", BQReactor.class);
 		
 	}
 
@@ -1022,15 +1124,15 @@ public class ReactorFactory {
 		h2FrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.rdbms.DropColumnReactor.class);
 		h2FrameHash.put("DropRows", prerna.sablecc2.reactor.frame.rdbms.DropRowsReactor.class);
 		h2FrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.rdbms.DuplicateColumnReactor.class);
-		h2FrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.rdbms.ExtractAlphaCharsReactor.class);
+		h2FrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.rdbms.ExtractLettersReactor.class);
 		h2FrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.rdbms.ExtractNumbersReactor.class);
 		h2FrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.rdbms.JoinColumnsReactor.class);
 		h2FrameHash.put("RenameColumn", prerna.sablecc2.reactor.frame.rdbms.RenameColumnReactor.class);
 		h2FrameHash.put("SortColumn", prerna.sablecc2.reactor.frame.rdbms.SortColumnReactor.class);
-		h2FrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.rdbms.SplitColumnReactor.class);
+		h2FrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.rdbms.SplitColumnsReactor.class);
 		h2FrameHash.put("ToLowerCase", prerna.sablecc2.reactor.frame.rdbms.ToLowerCaseReactor.class);
 		h2FrameHash.put("ToUpperCase", prerna.sablecc2.reactor.frame.rdbms.ToUpperCaseReactor.class);
-		h2FrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.rdbms.TrimReactor.class);
+		h2FrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.rdbms.TrimColumnReactor.class);
 	}
 
 	private static void populateRFrameHash(Map<String, Class> rFrameHash) {
@@ -1042,7 +1144,7 @@ public class ReactorFactory {
 		rFrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.r.DropColumnReactor.class);
 		rFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.r.DropRowsReactor.class);
 		rFrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.r.DuplicateColumnReactor.class);
-		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractAlphaCharsReactor.class);
+		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractLettersReactor.class);
 		rFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.r.ExtractNumbersReactor.class);
 		rFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.r.JoinColumnsReactor.class);
 		rFrameHash.put("Pivot", prerna.sablecc2.reactor.frame.r.PivotReactor.class);
@@ -1051,15 +1153,15 @@ public class ReactorFactory {
 		rFrameHash.put("RenameColumn", prerna.sablecc2.reactor.frame.r.RenameColumnReactor.class);
 		rFrameHash.put("ReplaceColumnValue", prerna.sablecc2.reactor.frame.r.ReplaceColumnValueReactor.class);
 		rFrameHash.put("SortColumn", prerna.sablecc2.reactor.frame.r.SortColumnReactor.class);
-		rFrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.r.SplitColumnReactor.class);
+		rFrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.r.SplitColumnsReactor.class);
 		rFrameHash.put("SplitUnpivot", prerna.sablecc2.reactor.frame.r.SplitUnpivotReactor.class);
 		rFrameHash.put("ToLowerCase", prerna.sablecc2.reactor.frame.r.ToLowerCaseReactor.class);
 		rFrameHash.put("ToUpperCase", prerna.sablecc2.reactor.frame.r.ToUpperCaseReactor.class);
 		rFrameHash.put("ToProperCase", prerna.sablecc2.reactor.frame.r.ToProperCaseReactor.class);
-		rFrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.r.TrimReactor.class);
+		rFrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.r.TrimColumnsReactor.class);
 		rFrameHash.put("Transpose", prerna.sablecc2.reactor.frame.r.TransposeReactor.class);
 		rFrameHash.put("Unpivot", prerna.sablecc2.reactor.frame.r.UnpivotReactor.class);
-		rFrameHash.put("UpdateRowValues", prerna.sablecc2.reactor.frame.r.UpdateRowValuesWhereColumnContainsValueReactor.class);
+		rFrameHash.put("UpdateRowValues", prerna.sablecc2.reactor.frame.r.UpdateRowValuesReactor.class);
 		rFrameHash.put("Discretize", prerna.sablecc2.reactor.frame.r.DiscretizeReactor.class);
 
 		// frame stats
@@ -1074,28 +1176,28 @@ public class ReactorFactory {
 		rFrameHash.put("GetRuleTypes", prerna.sablecc2.reactor.frame.r.rules.GetRuleTypesReactor.class);
 		
 		// algorithms
-		rFrameHash.put("RunAssociatedLearning", RAprioriReactor.class);
-		rFrameHash.put("RunClassification", RClassificationAlgorithmReactor.class);
-		rFrameHash.put("RunClustering", RClusteringAlgorithmReactor.class);
-		rFrameHash.put("RunDescriptionGenerator", RGenerateDescriptionColumnReactor.class);
-		rFrameHash.put("RunDocCosSimilarity", RDocumentCosineSimilarityReactor.class);
-		rFrameHash.put("RunLOF", RLOFAlgorithmReactor.class);
-		rFrameHash.put("RunMatrixRegression", RMatrixRegressionReactor.class);
-		rFrameHash.put("RunNumericalColumnSimilarity", RNumericalColumnSimilarityReactor.class);
-		rFrameHash.put("RunNumericalCorrelation", RNumericalCorrelationReactor.class);
-		rFrameHash.put("RunNumericalModel", RNumericalModelAlgorithmReactor.class);
-		rFrameHash.put("RunOutlier", ROutlierAlgorithmReactor.class);
-		rFrameHash.put("RunRandomForest", RRandomForestAlgorithmReactor.class);
-		rFrameHash.put("GetRFResults", RRandomForestResultsReactor.class);
-		rFrameHash.put("RunSimilarity", RSimilarityAlgorithmReactor.class);
-		rFrameHash.put("RunSimilarityHeat", RSimilarityHeatReactor.class);
-		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.PredictSimilarColumnValuesReactor.class);
-		rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateSimilarColumnValuesReactor.class);
-		rFrameHash.put("MetaSemanticSimilarity", CompareDbSemanticSimiliarity.class);
+		rFrameHash.put("RunAssociatedLearning", prerna.sablecc2.reactor.frame.r.analytics.RunAssociatedLearningReactor.class);
+		rFrameHash.put("RunClassification", prerna.sablecc2.reactor.frame.r.analytics.RunClassificationReactor.class);
+		rFrameHash.put("RunClustering", prerna.sablecc2.reactor.frame.r.analytics.RunClusteringReactor.class);
+		rFrameHash.put("RunDescriptionGenerator", prerna.sablecc2.reactor.frame.r.analytics.RunDescriptionGeneratorReactor.class);
+		rFrameHash.put("RunDocCosSimilarity", prerna.sablecc2.reactor.frame.r.analytics.RunDocCosSimilarityReactor.class);
+		rFrameHash.put("RunLOF", prerna.sablecc2.reactor.frame.r.analytics.RunLOFReactor.class);
+		rFrameHash.put("RunMatrixRegression", prerna.sablecc2.reactor.frame.r.analytics.RunMatrixRegressionReactor.class);
+		rFrameHash.put("RunNumericalColumnSimilarity", prerna.sablecc2.reactor.frame.r.analytics.RunNumericalColumnSimilarityReactor.class);
+		rFrameHash.put("RunNumericalCorrelation", prerna.sablecc2.reactor.frame.r.analytics.RunNumericalCorrelationReactor.class);
+		rFrameHash.put("RunNumericalModel", prerna.sablecc2.reactor.frame.r.analytics.RunNumericalModelReactor.class);
+		rFrameHash.put("RunOutlier", prerna.sablecc2.reactor.frame.r.analytics.RunOutlierReactor.class);
+		rFrameHash.put("RunRandomForest", prerna.sablecc2.reactor.frame.r.analytics.RunRandomForestReactor.class);
+		rFrameHash.put("GetRFResults", prerna.sablecc2.reactor.frame.r.analytics.GetRFResultsReactor.class);
+		rFrameHash.put("RunSimilarity", prerna.sablecc2.reactor.frame.r.analytics.RunSimilarityReactor.class);
+		rFrameHash.put("RunSimilarityHeat", prerna.sablecc2.reactor.frame.r.analytics.RunSimilarityHeatReactor.class);
+		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.MatchColumnValuesReactor.class);
+		rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateMatchColumnValuesReactor.class);
+		rFrameHash.put("MetaSemanticSimilarity", prerna.sablecc2.reactor.frame.r.MetaSemanticSimilarityReactor.class);
 
 		// data quality rectors
 		rFrameHash.put("RunDataQuality",RunDataQualityReactor.class);
-		rFrameHash.put("GetDQRules", GetDataQualityRulesReactor.class);
+		rFrameHash.put("GetDQRules", GetDQRulesReactor.class);
 	}
 
 	private static void populateTinkerFrameHash(Map<String, Class> tinkerFrameHash) {
@@ -1120,14 +1222,14 @@ public class ReactorFactory {
 		pandasFrameHash.put("DropRows", prerna.sablecc2.reactor.frame.py.DropRowsReactor.class);
 		pandasFrameHash.put("DropColumn", prerna.sablecc2.reactor.frame.py.DropColumnReactor.class);
 		pandasFrameHash.put("DuplicateColumn", prerna.sablecc2.reactor.frame.py.DuplicateColumnReactor.class);
-		pandasFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.py.ExtractAlphaCharsReactor.class);
+		pandasFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.py.ExtractLettersReactor.class);
 		pandasFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.py.ExtractNumbersReactor.class);
 		pandasFrameHash.put("CountIf", prerna.sablecc2.reactor.frame.py.CountIfReactor.class);
-		pandasFrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.py.SplitColumnReactor.class);
-		pandasFrameHash.put("UpdateRowValues", prerna.sablecc2.reactor.frame.py.UpdateRowValuesWhereColumnContainsValueReactor.class);
+		pandasFrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.py.SplitColumnsReactor.class);
+		pandasFrameHash.put("UpdateRowValues", prerna.sablecc2.reactor.frame.py.UpdateRowValuesReactor.class);
 		pandasFrameHash.put("SplitUnpivot", prerna.sablecc2.reactor.frame.py.SplitUnpivotReactor.class);
-		pandasFrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.py.TrimReactor.class);
-		pandasFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.py.PredictSimilarColumnValuesReactor.class);
+		pandasFrameHash.put("TrimColumns", prerna.sablecc2.reactor.frame.py.TrimColumnsReactor.class);
+		pandasFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.py.MatchColumnValuesReactor.class);
 		pandasFrameHash.put("Collapse", prerna.sablecc2.reactor.frame.py.CollapseReactor.class);
 		pandasFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.py.JoinColumnsReactor.class);
 		
@@ -1213,44 +1315,69 @@ public class ReactorFactory {
 			}
 			
 			// see if it is a frame specific reactor
+			String frameName = "";
 			if (frame != null) {
 				// identify the correct hash to use
 				if (frame instanceof H2Frame) {
 					// see if the hash contains the reactor id
 					if (h2FrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) h2FrameHash.get(reactorId).newInstance();
+						frameName ="rdbms_";
 					}
 				} else if (frame instanceof RDataTable) {
 					if (rFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) rFrameHash.get(reactorId).newInstance();
+						frameName ="r_";
 					}
 				} else if (frame instanceof TinkerFrame) {
 					if (tinkerFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) tinkerFrameHash.get(reactorId).newInstance();
+						frameName ="graph_";
 					}
 				} else if (frame instanceof NativeFrame) {
 					if (nativeFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) nativeFrameHash.get(reactorId).newInstance();
+						frameName ="rdbms_";
 					}
 				} else if(frame instanceof PandasFrame) {
 					if (pandasFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) pandasFrameHash.get(reactorId).newInstance();
+						frameName ="py_";
 				}
 				}
-
+				
+				// try the new method
+				IReactor freactor = getFReactor(frameName + reactorId);
+				if(freactor != null && reactor != null && reactor.getClass().toString().equalsIgnoreCase(freactor.getClass().toString()))
+				{
+					if(reactor != null)
+						reactor = freactor;
+				}
+				else if(reactor != null)
+					System.err.println("Failed " + reactor + "<>" + freactor);
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
 					reactor.setPixel(reactorId, nodeString);
 					return reactor;
 				}
 			}
-			
+
+
 			// see if it is a generic one
 			// if not an expression
 			// search in the normal reactor hash
 			if (reactorHash.containsKey(reactorId)) {
 				reactor = (IReactor) reactorHash.get(reactorId).newInstance();
 				reactor.setPixel(reactorId, nodeString);
+
+				IReactor freactor = getFReactor(reactorId);
+				if(freactor != null && reactor != null && reactor.getClass().toString().equalsIgnoreCase(freactor.getClass().toString()))
+				{
+					if(reactor != null)
+						reactor = freactor;
+				}
+				else if(reactor != null)
+					System.err.println("Failed " + reactor + "<>" + freactor);
 				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
@@ -1275,6 +1402,91 @@ public class ReactorFactory {
 		// reactor = new SamplReactor();
 		throw new IllegalArgumentException("Cannot find reactor for keyword = " + reactorId);
 	}
+	
+	public static IReactor getFReactor(String reactorName)
+	{
+		IReactor retReactor = null;
+		Class retClass = null;
+		try {
+			//BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+			
+			//String data = null;
+			//while((data = br.readLine()) != null)
+			System.err.println(" reactor >> " + reactorName);
+			System.err.println("reactors " + reactors.size());
+			
+			if(reactors.containsKey(reactorName.toUpperCase()))
+			{
+				retClass = reactors.get(reactorName.toUpperCase());
+				retReactor = (IReactor)retClass.newInstance();
+			}
+			
+			
+/*			else
+			{
+				System.err.println("Finding Fuzzy.. ");
+				//List <ExtractedResult> resList = FuzzySearch.extractTop(data, list, 3);
+				// run reduction loop
+				int weight = 100;
+				List <ExtractedResult> resList = null;
+				do
+				{
+					resList = FuzzySearch.extractAll(reactorName, nmList, weight);
+					weight = weight -1;
+					System.out.print(weight);
+				}while (resList.size() == 0 && weight > 50);
+				
+				for(int listIndex = 0;listIndex < resList.size() && retReactor == null;listIndex++)
+				{
+					ExtractedResult thisRes = resList.get(listIndex);
+					int index = thisRes.getIndex();
+					retClass = classList.get(index);
+					System.out.println(thisRes.getString() + "<>" + thisRes.getScore());
+					System.out.println("Class >>  " + retClass);
+					if(!Modifier.isAbstract( retClass.getModifiers() ))
+						retReactor = (IReactor)retClass.newInstance();
+				}
+			}
+*/		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return retReactor;
+	}
+	
+	public static List recommend(String reactorName)
+	{
+
+		//List <ExtractedResult> resList = FuzzySearch.extractTop(data, list, 3);
+		// run reduction loop
+		int weight = 100;
+		List <ExtractedResult> resList = null;
+		
+		List <String> retList = new ArrayList();
+		do
+		{
+			resList = FuzzySearch.extractAll(reactorName, nmList, weight);
+			weight = weight -1;
+			System.out.print(weight);
+		}while (resList.size() == 0 && weight > 50);
+		
+		
+		for(int listIndex = 0;listIndex < resList.size();listIndex++)
+		{
+			ExtractedResult thisRes = resList.get(listIndex);
+			int index = thisRes.getIndex();
+			Class retClass = classList.get(index);
+			System.out.println(thisRes.getString() + "<>" + thisRes.getScore());
+			System.out.println("Class >>  " + retClass);
+			if(!Modifier.isAbstract( retClass.getModifiers() ))
+			{
+				retList.add(thisRes.getString());
+			}
+		}
+		
+		return retList;
+	}
+
 
 	public static boolean hasReactor(String reactorId) {
 		return reactorHash.containsKey(reactorId) || expressionHash.containsKey(reactorId.toUpperCase());

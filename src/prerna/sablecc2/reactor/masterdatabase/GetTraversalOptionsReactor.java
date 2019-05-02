@@ -45,6 +45,11 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 			Map<String, Object> traversalOptions = new HashMap<String, Object>();
 			Map connectedConcepts = MasterDatabaseUtility.getConnectedConceptsRDBMS(logicals, engineFilters);
 			Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptPropertiesRDBMS(logicals, engineFilters);
+			
+			// so if this is a property from a node.. then I need to find what that node is
+			// and then from that node traverse to other things.. although.. I have no idea why I would do that
+			//alternately.. I need to account for the flag which could be properties instead of nodes
+			
 			traversalOptions.put("connectedConcepts", connectedConcepts);
 			traversalOptions.put("connectedProperties", conceptProperties);
 			return new NounMetadata(traversalOptions, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.TRAVERSAL_OPTIONS);

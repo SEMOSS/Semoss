@@ -20,6 +20,7 @@ public enum AuthProvider {
 	DROPBOX, 
 	PRODUCT_HUNT, 
 	IN, 
+	BB,
 	;
 
 	public String toString() {
