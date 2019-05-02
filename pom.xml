@@ -2816,5 +2816,15 @@
     		<artifactId>snowflake-jdbc</artifactId>
     		<version>3.7.0</version>
 		</dependency>
+		<dependency>
+		    <groupId>me.xdrop</groupId>
+		    <artifactId>fuzzywuzzy</artifactId>
+		    <version>1.2.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>io.github.classgraph</groupId>
+		    <artifactId>classgraph</artifactId>
+		    <version>4.8.27</version>
+		</dependency> 
 	</dependencies>
 </project>
