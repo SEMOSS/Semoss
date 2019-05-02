@@ -11,9 +11,9 @@ import prerna.util.git.GitPushUtils;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 
-public class Version extends AbstractReactor {
+public class GitVersion extends AbstractReactor {
 
-	public Version() {
+	public GitVersion() {
 		this.keysToGet = new String[]{"app"};
 	}
 
