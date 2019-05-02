@@ -94,8 +94,8 @@ import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentAnd;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentOr;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentSimple;
-import prerna.sablecc2.reactor.qs.filter.QueryFilterReactor;
-import prerna.sablecc2.reactor.qs.selectors.QuerySelectReactor;
+import prerna.sablecc2.reactor.qs.filter.FilterReactor;
+import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
@@ -537,9 +537,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     		if(curReactor != null) {
     			// we will do just a little bit of value validation
     			// so that we only push in basic data types
-    			if(curReactor instanceof QuerySelectReactor 
+    			if(curReactor instanceof SelectReactor 
     					|| curReactor instanceof QuerySelectorExpressionAssimilator 
-    					|| curReactor instanceof QueryFilterReactor) {
+    					|| curReactor instanceof FilterReactor) {
     				if(varType == PixelDataType.CONST_STRING || varType == PixelDataType.CONST_INT || varType == PixelDataType.CONST_DECIMAL
     						|| varType == PixelDataType.CONST_DATE || varType == PixelDataType.CONST_TIMESTAMP 
     						// also account for complex expressions!
@@ -582,9 +582,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     		}
     	} else {
     		if(curReactor != null) {
-    			if(curReactor instanceof QuerySelectReactor 
+    			if(curReactor instanceof SelectReactor 
     					|| curReactor instanceof QuerySelectorExpressionAssimilator 
-    					|| curReactor instanceof QueryFilterReactor) {
+    					|| curReactor instanceof FilterReactor) {
     				// this is part of a query 
     				// add it as a proper query selector object
     				QueryColumnSelector s = new QueryColumnSelector(idInput);
@@ -892,7 +892,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getOrComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor != null && this.curReactor instanceof QueryFilterReactor || this.curReactor instanceof AbstractFilterReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof FilterReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentOr();
     	} else {
     		newReactor = new OpOr();
@@ -904,7 +904,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     
     private void getAndComparison() {
     	IReactor newReactor = null;
-    	if(this.curReactor != null && this.curReactor instanceof QueryFilterReactor || this.curReactor instanceof AbstractFilterReactor) {
+    	if(this.curReactor != null && this.curReactor instanceof FilterReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentAnd();
     	} else {
     		newReactor = new OpAnd();
@@ -965,7 +965,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     @Override
     public void inABaseSimpleComparison(ABaseSimpleComparison node) {
     	IReactor newReactor = null;
-    	if(this.curReactor instanceof QueryFilterReactor || this.curReactor instanceof AbstractFilterReactor) {
+    	if(this.curReactor instanceof FilterReactor || this.curReactor instanceof AbstractFilterReactor) {
     		newReactor = new QueryFilterComponentSimple();
     	} else {
     		newReactor = new OpFilter();
@@ -1181,7 +1181,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         	qAssm.setPixel("EXPR", nodeExpr);
     		initReactor(qAssm);	
         	return false;
-    	} else if(curReactor instanceof QuerySelectReactor) {  
+    	} else if(curReactor instanceof SelectReactor) {  
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
         	qAssm.setPixel("EXPR", nodeExpr);
@@ -1190,7 +1190,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         } 
     	// if the parent is a filter
     	// we need to aggregate this side of the column expression
-    	else if(curReactor != null && curReactor.getParentReactor() instanceof QueryFilterReactor) {
+    	else if(curReactor != null && curReactor.getParentReactor() instanceof FilterReactor) {
         	QuerySelectorExpressionAssimilator qAssm = new QuerySelectorExpressionAssimilator();
         	qAssm.setMathExpr(math);
         	qAssm.setPixel("EXPR", nodeExpr);
