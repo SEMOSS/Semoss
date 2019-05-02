@@ -5,7 +5,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class QueryFilterComponentAnd extends QueryFilterReactor {
+public class QueryFilterComponentAnd extends FilterReactor {
 
 	@Override
 	public NounMetadata execute() {
