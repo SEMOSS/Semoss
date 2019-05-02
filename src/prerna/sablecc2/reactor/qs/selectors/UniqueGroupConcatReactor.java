@@ -7,7 +7,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class UniqueGroupConcatReactor extends QuerySelectReactor {
+public class UniqueGroupConcatReactor extends SelectReactor {
 	
 	public UniqueGroupConcatReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};

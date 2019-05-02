@@ -9,7 +9,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskUtility;
 
-public class QueryFilterComponentSimple extends QueryFilterReactor {
+public class QueryFilterComponentSimple extends FilterReactor {
 
 	@Override
 	public NounMetadata execute() {
