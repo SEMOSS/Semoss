@@ -24,6 +24,10 @@ import prerna.comments.DeleteInsightCommentReactor;
 import prerna.comments.GetInsightCommentsReactor;
 import prerna.comments.ModifyInsightCommentReactor;
 import prerna.date.DateReactor;
+import prerna.date.reactor.DayReactor;
+import prerna.date.reactor.MonthReactor;
+import prerna.date.reactor.WeekReactor;
+import prerna.date.reactor.YearReactor;
 import prerna.ds.TinkerFrame;
 import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
@@ -989,7 +993,7 @@ public class ReactorFactory {
 		reactorHash.put("Login", LoginReactor.class);
 		reactorHash.put("GitStatus", GitStatusReactor.class);
 		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
-		reactorHash.put("Version", prerna.util.git.reactors.GitVersion.class);
+		reactorHash.put("GitVersion", prerna.util.git.reactors.GitVersion.class);
 		reactorHash.put("CreateAsset", prerna.util.git.reactors.CreateAssetReactor.class);
 		reactorHash.put("UpdateAsset", prerna.util.git.reactors.UpdateAssetReactor.class);
 		reactorHash.put("DeleteAsset", prerna.util.git.reactors.DeleteAssetReactor.class);
@@ -1048,9 +1052,6 @@ public class ReactorFactory {
 		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		reactorHash.put("UpdateNLPHistory", UpdateNLPHistoryReactor.class);
 		reactorHash.put("NLSQueryHelper", NLSQueryHelperReactor.class);
-		
-		// Dates
-		reactorHash.put("Date", DateReactor.class);
 		
 		// Forms
 		reactorHash.put("UpdateForm", UpdateFormReactor.class);
@@ -1263,6 +1264,13 @@ public class ReactorFactory {
 		expressionHash.put("PASTE", OpPaste.class);
 		expressionHash.put("CONTAINS", OpContains.class);
 		expressionHash.put("ARRAYLENGTH", OpArrayLength.class);
+		
+		// Dates
+		expressionHash.put("DATE", DateReactor.class);
+		expressionHash.put("DAY", DayReactor.class);
+		expressionHash.put("WEEK", WeekReactor.class);
+		expressionHash.put("MONTH", MonthReactor.class);
+		expressionHash.put("YEAR", YearReactor.class);
 	}
 
 	/**
