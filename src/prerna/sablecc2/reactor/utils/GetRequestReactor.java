@@ -17,6 +17,7 @@ import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.TrustStrategy;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -40,7 +41,7 @@ public class GetRequestReactor extends AbstractReactor {
 		CloseableHttpResponse response = null;
 		try {
 			SSLContextBuilder builder = new SSLContextBuilder();
-			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+			//builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build());
 			CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 			HttpGet httpGet = new HttpGet(url);
@@ -57,9 +58,6 @@ public class GetRequestReactor extends AbstractReactor {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
-		} catch (KeyStoreException e) {
 			e.printStackTrace();
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		} catch (KeyManagementException e) {

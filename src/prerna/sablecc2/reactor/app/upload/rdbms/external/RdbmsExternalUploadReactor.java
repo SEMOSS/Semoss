@@ -13,7 +13,7 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
-import org.python.google.common.io.Files;
+//import org.python.google.common.io.Files;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -38,6 +38,8 @@ import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
+
+import com.google.common.io.Files;
 
 public class RdbmsExternalUploadReactor extends AbstractReactor {
 	

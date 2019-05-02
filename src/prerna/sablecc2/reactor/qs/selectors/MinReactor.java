@@ -6,7 +6,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class MinReactor extends QuerySelectReactor {
+public class MinReactor extends SelectReactor {
 	
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {

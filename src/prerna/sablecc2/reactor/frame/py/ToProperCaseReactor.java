@@ -34,9 +34,9 @@ public class ToProperCaseReactor extends AbstractFrameReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
-		// get the wrapper name
+		// get the wrapper name 
 		// which is the framename with w in the end
-		String table = frame.getName() + "w";
+		String table = frame.getName();
 
 		// get inputs
 		List<String> columns = getColumns();
@@ -60,7 +60,7 @@ public class ToProperCaseReactor extends AbstractFrameReactor {
 				// script will be of the form:
 				// wrapper.toupper(column_name)
 
-				frame.runScript(table + ".title('" + col + "')");
+				frame.runScript(table + ".cache['data'].title('" + col + "')");
 			}
 		}
 		

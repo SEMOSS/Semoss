@@ -7,7 +7,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class StandardDeviationReactor extends QuerySelectReactor {
+public class StandardDeviationReactor extends SelectReactor {
 	
 	public StandardDeviationReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
