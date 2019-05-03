@@ -1408,8 +1408,8 @@ public class ReactorFactory {
 			
 			//String data = null;
 			//while((data = br.readLine()) != null)
-			System.err.println(" reactor >> " + reactorName);
-			System.err.println("reactors " + reactors.size());
+			//System.err.println(" reactor >> " + reactorName);
+			//System.err.println("reactors " + reactors.size());
 			
 			if(reactors.containsKey(reactorName.toUpperCase()))
 			{
