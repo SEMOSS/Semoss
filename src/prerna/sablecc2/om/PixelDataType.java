@@ -6,6 +6,11 @@ public enum PixelDataType {
 	CONST_INT ("CONST_INT"), 						// constant int
 	CONST_STRING ("CONST_STRING"), 					// constant string
 	CONST_DATE ("CONST_DATE"), 						// constant date
+	CONST_DAY ("CONST_DAY"), 						// constant day
+	CONST_WEEK ("CONST_WEEK"), 						// constant week
+	CONST_MONTH ("CONST_MONTH"), 					// constant month
+	CONST_YEAR ("CONST_YEAR"), 						// constant year
+
 	CONST_TIMESTAMP ("CONST_TIMESTAMP"), 			// constant timestamp
 	NULL_VALUE ("NULL_VALUE"), 						// null input
 	COLUMN ("COLUMN"), 								// column name in database or frame
