@@ -525,24 +525,32 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 							isFactor = attributeList.names.contains("levels");
 						}
 					}
+					int[] data = val.asIntegers();
+					boolean[] na = val.isNA();
 					if(isFactor) {
 						String[] levels = ((REXP) attributeList.get("levels")).asStrings();
-						int[] data = val.asIntegers();
 						if(retArr.size() == 0) {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
+								if(na[i]) {
+									// keep it as null
+									retArr.add(values);
+									continue;
+								}
 								values[colNum] = levels[data[i]-1];
 								retArr.add(values);
 							}
 						} else {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = retArr.get(i);
+								if(na[i]) {
+									// keep it as null
+									continue;
+								}
 								values[colNum] = levels[data[i]-1];
 							}
 						}
 					} else {
-						int[] data = val.asIntegers();
-						boolean[] na = val.isNA();
 						if(retArr.size() == 0) {
 							for(int i = 0; i < data.length; i++) {
 								Object[] values = new Object[numColumns];
