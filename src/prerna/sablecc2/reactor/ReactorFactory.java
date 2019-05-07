@@ -1173,6 +1173,7 @@ public class ReactorFactory {
 		rFrameHash.put("RunClustering", prerna.sablecc2.reactor.frame.r.analytics.RunClusteringReactor.class);
 		rFrameHash.put("RunDescriptionGenerator", prerna.sablecc2.reactor.frame.r.analytics.RunDescriptionGeneratorReactor.class);
 		rFrameHash.put("RunDocCosSimilarity", prerna.sablecc2.reactor.frame.r.analytics.RunDocCosSimilarityReactor.class);
+		rFrameHash.put("RunDocumentSummarization", prerna.sablecc2.reactor.algorithms.RunDocumentSummarizationReactor.class);
 		rFrameHash.put("RunLOF", prerna.sablecc2.reactor.frame.r.analytics.RunLOFReactor.class);
 		rFrameHash.put("RunMatrixRegression", prerna.sablecc2.reactor.frame.r.analytics.RunMatrixRegressionReactor.class);
 		rFrameHash.put("RunNumericalColumnSimilarity", prerna.sablecc2.reactor.frame.r.analytics.RunNumericalColumnSimilarityReactor.class);
