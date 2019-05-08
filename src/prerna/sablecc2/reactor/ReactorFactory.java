@@ -390,7 +390,7 @@ import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
 import prerna.sablecc2.reactor.utils.PostRequestReactor;
-import prerna.sablecc2.reactor.utils.RmReactor;
+import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
 import prerna.sablecc2.reactor.utils.VariableExistsReactor;
 import prerna.sablecc2.reactor.workflow.GetInsightDatasourcesReactor;
@@ -602,7 +602,7 @@ public class ReactorFactory {
 		// Utility Reactors
 		reactorHash.put("AddOperationAlias", AddOperationAliasReactor.class);
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
-		reactorHash.put("rm", RmReactor.class);
+		reactorHash.put("RemoveVariable", RemoveVariableReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
 		reactorHash.put("BackupApp", BackupAppReactor.class);
 		reactorHash.put("ExportApp", ExportAppReactor.class);
