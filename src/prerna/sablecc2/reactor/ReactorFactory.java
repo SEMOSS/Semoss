@@ -602,7 +602,6 @@ public class ReactorFactory {
 		// Utility Reactors
 		reactorHash.put("AddOperationAlias", AddOperationAliasReactor.class);
 		reactorHash.put("VariableExists", VariableExistsReactor.class);
-		reactorHash.put("", RmReactor.class);
 		reactorHash.put("rm", RmReactor.class);
 		reactorHash.put("SendEmail", SendEmailReactor.class);
 		reactorHash.put("BackupApp", BackupAppReactor.class);
@@ -1103,6 +1102,12 @@ public class ReactorFactory {
 		reactorHash.put("bdel", BDelReactor.class);
 		reactorHash.put("bq", BQReactor.class);
 		
+		// Dates
+		reactorHash.put("DATE", DateReactor.class);
+		reactorHash.put("DAY", DayReactor.class);
+		reactorHash.put("WEEK", WeekReactor.class);
+		reactorHash.put("MONTH", MonthReactor.class);
+		reactorHash.put("YEAR", YearReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class> nativeFrameHash) {
@@ -1265,13 +1270,6 @@ public class ReactorFactory {
 		expressionHash.put("PASTE", OpPaste.class);
 		expressionHash.put("CONTAINS", OpContains.class);
 		expressionHash.put("ARRAYLENGTH", OpArrayLength.class);
-		
-		// Dates
-		expressionHash.put("DATE", DateReactor.class);
-		expressionHash.put("DAY", DayReactor.class);
-		expressionHash.put("WEEK", WeekReactor.class);
-		expressionHash.put("MONTH", MonthReactor.class);
-		expressionHash.put("YEAR", YearReactor.class);
 	}
 
 	/**
