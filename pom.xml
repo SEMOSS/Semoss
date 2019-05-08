@@ -2825,6 +2825,21 @@
 		    <groupId>io.github.classgraph</groupId>
 		    <artifactId>classgraph</artifactId>
 		    <version>4.8.27</version>
-		</dependency> 
+		</dependency>
+		<dependency>
+			<groupId>org.janusgraph</groupId>
+			<artifactId>janusgraph-core</artifactId>
+			<version>0.2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janusgraph</groupId>
+			<artifactId>janusgraph-berkeleyje</artifactId>
+			<version>0.2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.janusgraph</groupId>
+			<artifactId>janusgraph-es</artifactId>
+			<version>0.2.2</version>
+		</dependency>
 	</dependencies>
 </project>
