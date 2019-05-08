@@ -219,17 +219,17 @@ public class SmssUtilities {
 			return null;
 		}
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		String tinkerFile = null;
-		String tinkerStr = prop.getProperty(Constants.JANUS_CONF);
-		if(tinkerStr.contains("@BaseFolder@")) {
-			tinkerFile = tinkerStr.replace("@BaseFolder@", baseFolder);
+		String janusFile = null;
+		String janusConfPath = prop.getProperty(Constants.JANUS_CONF);
+		if(janusConfPath.contains("@BaseFolder@")) {
+			janusFile = janusConfPath.replace("@BaseFolder@", baseFolder);
 		} else {
 			// could be external file outside of semoss base folder
-			tinkerFile = tinkerStr;
+			janusFile = janusConfPath;
 		}
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File tinker = new File(tinkerFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
+		File tinker = new File(janusFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
 		return tinker;
 	}
 	
