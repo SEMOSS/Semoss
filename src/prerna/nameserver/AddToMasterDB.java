@@ -131,6 +131,9 @@ public class AddToMasterDB {
 		} else 	if(propEngType.contains("RNative")) {
 			engineType = IEngine.ENGINE_TYPE.R; // process it as a flat file I bet 
 			engineTypeString = "TYPE:R";
+		} else if(propEngType.contains("Janus")) {
+			engineType = IEngine.ENGINE_TYPE.JANUS_GRAPH;
+			engineTypeString = "TYPE:JANUS_GRAPH";
 		} else {
 			engineType = IEngine.ENGINE_TYPE.SESAME;
 			engineTypeString = "TYPE:RDF";

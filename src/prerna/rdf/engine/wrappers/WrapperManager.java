@@ -115,6 +115,18 @@ public class WrapperManager {
 			returnWrapper.execute();
 			break;
 		}
+		case JANUS_GRAPH : {
+			genQueryString = false;
+			// since we dont do math on gremlin
+			// right now, we will just construct and return a QSExpressionIterator
+			GremlinInterpreter interpreter = (GremlinInterpreter) engine.getQueryInterpreter();
+			interpreter.setQueryStruct(qs);
+			RawGemlinSelectWrapper gdi = new RawGemlinSelectWrapper(interpreter, qs);
+			gdi.execute();
+			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
+			returnWrapper.execute();
+			break;
+		}
 		case DATASTAX_GRAPH : {
 			genQueryString = false;
 			// since we dont do math on gremlin
