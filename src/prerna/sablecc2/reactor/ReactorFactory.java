@@ -102,10 +102,13 @@ import prerna.sablecc2.reactor.app.upload.PredictExcelRangeMetadataReactor;
 import prerna.sablecc2.reactor.app.upload.PredictMetamodelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.CreateExternalDSEGraphDatabaseReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.CreateExternalGraphDatabaseReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.external.CreateJanusGraphDatabaseReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.GetDSEGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.GetDSEGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.GetGraphMetaModelReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.external.GetGraphPropertiesReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.external.GetJanusGraphMetaModelReactor;
+import prerna.sablecc2.reactor.app.upload.gremlin.external.GetJanusGraphPropertiesReactor;
 import prerna.sablecc2.reactor.app.upload.gremlin.file.TinkerCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsCsvUploadReactor;
 import prerna.sablecc2.reactor.app.upload.rdbms.csv.RdbmsUploadTableReactor;
@@ -654,6 +657,10 @@ public class ReactorFactory {
 		reactorHash.put("GetDSEGraphProperties", GetDSEGraphPropertiesReactor.class);
 		reactorHash.put("GetDSEGraphMetaModel", GetDSEGraphMetaModelReactor.class);
 		reactorHash.put("CreateExternalDSEGraphDatabase", CreateExternalDSEGraphDatabaseReactor.class);
+		// janus graph reactors
+		reactorHash.put("GetJanusGraphProperties", GetJanusGraphPropertiesReactor.class);
+		reactorHash.put("GetJanusGraphMetaModel", GetJanusGraphMetaModelReactor.class);
+		reactorHash.put("CreateJanusGraphDatabase", CreateJanusGraphDatabaseReactor.class);
 		
 		// Query Struct Reactors
 		// builds the select portion of the QS
