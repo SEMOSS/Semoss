@@ -532,6 +532,9 @@ public class Constants {
 	//Tinker engine
 	public static final String TINKER_FILE = "TINKER_FILE";
 	public static final String TINKER_DRIVER = "TINKER_DRIVER";
+	// Janus Engine
+	public static final String JANUS_CONF = "JANUS_CONF";
+
 	
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";

@@ -208,6 +208,32 @@ public class SmssUtilities {
 		File tinker = new File(tinkerFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
 		return tinker;
 	}
+	
+	/**
+	 * Get the data file 
+	 * @param prop
+	 * @return
+	 */
+	public static File getJanusFile(Properties prop) {
+		if(prop.getProperty(Constants.JANUS_CONF) == null) {
+			return null;
+		}
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String tinkerFile = null;
+		String tinkerStr = prop.getProperty(Constants.JANUS_CONF);
+		if(tinkerStr.contains("@BaseFolder@")) {
+			tinkerFile = tinkerStr.replace("@BaseFolder@", baseFolder);
+		} else {
+			// could be external file outside of semoss base folder
+			tinkerFile = tinkerStr;
+		}
+		String engineId = prop.getProperty(Constants.ENGINE);
+		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+		File tinker = new File(tinkerFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
+		return tinker;
+	}
+	
+	
 
 	
 	

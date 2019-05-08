@@ -42,6 +42,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.engine.impl.tinker.JanusEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
@@ -579,6 +580,83 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
+	public static File generateTemporaryJanusGraphSmss(String appId, String appName, File owlFile, String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempSmssLoc);
+		if (appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		// also write the base properties
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		try {
+			File newFile = new File(appTempSmssLoc);
+			writer = new FileWriter(newFile);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, JanusEngine.class.getName(), newLine, tab);
+
+			// janus conf file location
+			// we will want to parameterize this
+			File f = new File(janusConfPath);
+			String fileBasePath = f.getParent();
+			janusConfPath = janusConfPath.replace(fileBasePath, "@BaseFolder@" + ENGINE_DIRECTORY + "@ENGINE@");
+
+			if (janusConfPath.contains("\\")) {
+				janusConfPath = janusConfPath.replace("\\", "\\\\");
+			}
+			bufferedWriter.write(Constants.JANUS_CONF + tab + janusConfPath + newLine);
+			// tinker driver
+			// bufferedWriter.write(Constants.TINKER_DRIVER + tab +
+			// tinkerDriverType + newLine);
+			// type map
+			Gson gson = new GsonBuilder().create();
+			String json = gson.toJson(typeMap);
+			bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+			// name map
+			json = gson.toJson(nameMap);
+			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
+
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			throw new IOException("Could not generate app smss file");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return appTempSmss;
+	}
+
+	/**
+	 * Generate a tinker smss
+	 * 
+	 * @param appId
+	 * @param appName
+	 * @param owlFile
+	 * @param tinkerFilePath
+	 * @param typeMap
+	 * @param nameMap
+	 * @param tinkerDriverType
+	 * @return
+	 * @throws IOException
+	 */
 	public static File generateTemporaryExternalTinkerSmss(String appId, String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
@@ -643,7 +721,6 @@ public class UploadUtilities {
 
 		return appTempSmss;
 	}
-
 	/**
 	 * Generate a temporary datastax smss
  	 * @param appId
@@ -1122,7 +1199,7 @@ public class UploadUtilities {
 	 */
 	public static void addAuditTimelineView(String appId, IEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String insightName = "What are the modifications made to the specific column(s) made over time?";
+		String insightName = "What are the modifications made to the specific column(s) over time?";
 		String layout = "Line";
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditTimelineView.json";
 		File jsonFile = new File(jsonLoc);

@@ -17,8 +17,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.app.upload.gremlin.AbstractCreateExternalGraphReactor;
 
-import com.google.common.io.Files;
-
 public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGraphReactor {
 
 	private File file;
