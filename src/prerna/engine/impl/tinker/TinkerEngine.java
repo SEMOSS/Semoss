@@ -37,16 +37,12 @@ public class TinkerEngine extends AbstractEngine {
 
 	private static final Logger LOGGER = LogManager.getLogger(TinkerEngine.class.getName());
 
-	private Graph g = null;
-	private Map<String, String> typeMap = new HashMap<String, String>();
-	private Map<String, String> nameMap = new HashMap<String, String>();
+	protected Graph g = null;
+	protected Map<String, String> typeMap = new HashMap<String, String>();
+	protected Map<String, String> nameMap = new HashMap<String, String>();
 	
 	public void openDB(String propFile) {
 		super.openDB(propFile);
-		String fileLocation = SmssUtilities.getTinkerFile(prop).getAbsolutePath();
-		LOGGER.info("Opening graph:  " + fileLocation);
-		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
-		
 		// get type map
 		String typeMapStr = this.prop.getProperty("TYPE_MAP");
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
@@ -56,7 +52,7 @@ public class TinkerEngine extends AbstractEngine {
 				e.printStackTrace();
 			}
 		}
-		
+
 		// get the name map
 		String nameMapStr = this.prop.getProperty("NAME_MAP");
 		if (nameMapStr != null && !nameMapStr.trim().isEmpty()) {
@@ -66,42 +62,48 @@ public class TinkerEngine extends AbstractEngine {
 				e.printStackTrace();
 			}
 		}
-		
-		if (tinkerDriver == TINKER_DRIVER.NEO4J) {
-			g = Neo4jGraph.open(fileLocation);
-		} else {
-			g = TinkerGraph.open();
-			// create index for default semoss types
-			if (this.typeMap != null) {
-				((TinkerGraph) g).createIndex(TinkerFrame.TINKER_TYPE, Vertex.class);
-				((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Vertex.class);
-				((TinkerGraph) g).createIndex(T.label.toString(), Edge.class);
-				((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Edge.class);
-			}
-			try {
-				if (tinkerDriver == TINKER_DRIVER.TG) {
-					// user kyro to de-serialize the cached graph
-					Builder<GryoIo> builder = GryoIo.build();
-					builder.graph(g);
-					builder.onMapper(new MyGraphIoMappingBuilder());
-					GryoIo reader = builder.create();
-					reader.readGraph(fileLocation);
-				} else if (tinkerDriver == TINKER_DRIVER.JSON) {
-					// user kyro to de-serialize the cached graph
-					Builder<GraphSONIo> builder = GraphSONIo.build();
-					builder.graph(g);
-					builder.onMapper(new MyGraphIoMappingBuilder());
-					GraphSONIo reader = builder.create();
-					reader.readGraph(fileLocation);
-				} else if (tinkerDriver == TINKER_DRIVER.XML) {
-					Builder<GraphMLIo> builder = GraphMLIo.build();
-					builder.graph(g);
-					builder.onMapper(new MyGraphIoMappingBuilder());
-					GraphMLIo reader = builder.create();
-					reader.readGraph(fileLocation);
+
+		// open normal tinker engine
+		if (prop.getProperty(Constants.TINKER_FILE) != null) {
+			String fileLocation = SmssUtilities.getTinkerFile(prop).getAbsolutePath();
+			LOGGER.info("Opening graph:  " + fileLocation);
+			TINKER_DRIVER tinkerDriver = TINKER_DRIVER.valueOf(prop.getProperty(Constants.TINKER_DRIVER));
+			if (tinkerDriver == TINKER_DRIVER.NEO4J) {
+				g = Neo4jGraph.open(fileLocation);
+			} else {
+				g = TinkerGraph.open();
+				// create index for default semoss types
+				if (this.typeMap != null) {
+					((TinkerGraph) g).createIndex(TinkerFrame.TINKER_TYPE, Vertex.class);
+					((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Vertex.class);
+					((TinkerGraph) g).createIndex(T.label.toString(), Edge.class);
+					((TinkerGraph) g).createIndex(TinkerFrame.TINKER_ID, Edge.class);
 				}
-			} catch (IOException e) {
-				e.printStackTrace();
+				try {
+					if (tinkerDriver == TINKER_DRIVER.TG) {
+						// user kyro to de-serialize the cached graph
+						Builder<GryoIo> builder = GryoIo.build();
+						builder.graph(g);
+						builder.onMapper(new MyGraphIoMappingBuilder());
+						GryoIo reader = builder.create();
+						reader.readGraph(fileLocation);
+					} else if (tinkerDriver == TINKER_DRIVER.JSON) {
+						// user kyro to de-serialize the cached graph
+						Builder<GraphSONIo> builder = GraphSONIo.build();
+						builder.graph(g);
+						builder.onMapper(new MyGraphIoMappingBuilder());
+						GraphSONIo reader = builder.create();
+						reader.readGraph(fileLocation);
+					} else if (tinkerDriver == TINKER_DRIVER.XML) {
+						Builder<GraphMLIo> builder = GraphMLIo.build();
+						builder.graph(g);
+						builder.onMapper(new MyGraphIoMappingBuilder());
+						GraphMLIo reader = builder.create();
+						reader.readGraph(fileLocation);
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
