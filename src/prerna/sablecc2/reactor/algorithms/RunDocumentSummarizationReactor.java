@@ -6,9 +6,9 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
@@ -17,11 +17,11 @@ import prerna.util.Utility;
 public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 
 	/**
-	 * Generates pixel to dynamically create insight based on Natural Language
-	 * search
+	 * Generates a dashboard summarizing a chosen document that is entered by the
+	 * user
 	 */
 
-	// CreateFrame ( R ) .as ( [ 'FRAME950929' ] ) | RunDocumentSummarization(desiredOutput = ["Summarize Text"], fileOrigin = ["File Path"], userInput = ["C:/Users/chrilong/Desktop/GoTAppeal.doc"], numSentences = ["5"],numTopics = ["5"],numTopicTerms=["6"])
+	// CreateFrame ( R ) .as ( [ 'FRAME950929' ] ) | RunDocumentSummarization(desiredOutput = ["Summarize Text"], fileOrigin = ["File Path"], userInput = ["C:/Users/chrilong/Desktop/GoTAppeal.doc"],numSentences = ["5"],numTopics = ["5"],numTopicTerms=["6"])
 
 	protected static final String CLASS_NAME = RunDocumentSummarizationReactor.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
@@ -29,10 +29,10 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 	private static final String USER_INPUT = "userInput";
 	private static final String NUM_SENTENCES = "numSentences";
 	private static final String NUM_TOPICS = "numTopics";
-	private static final String NUM_TOPIC_TERMS = "numTopicTerms";	
+	private static final String NUM_TOPIC_TERMS = "numTopicTerms";
 
 	public RunDocumentSummarizationReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), FILE_ORIGIN, USER_INPUT, NUM_SENTENCES, NUM_TOPICS, NUM_TOPIC_TERMS  };
+		this.keysToGet = new String[] { FILE_ORIGIN, USER_INPUT, NUM_SENTENCES,NUM_TOPICS, NUM_TOPIC_TERMS };
 	}
 
 	@Override
@@ -42,23 +42,23 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		int stepCounter = 1;
 		Logger logger = this.getLogger(CLASS_NAME);
-		
+
 		// get inputs
 		String fileOrigin = this.keyValue.get(FILE_ORIGIN);
 		String userInput = this.keyValue.get(USER_INPUT);
 		String numSentences = this.keyValue.get(NUM_SENTENCES);
 		String numTopics = this.keyValue.get(NUM_TOPICS);
 		String numTopicTerms = this.keyValue.get(NUM_TOPIC_TERMS);
-		
+
 		// set up frame names
 		String summaryFrame = "Summary" + Utility.getRandomString(5);
 		String topicsFrame = "Topics" + Utility.getRandomString(5);
 		String keywordsFrame = "Keywords" + Utility.getRandomString(5);
-		
+
 		// set up the return R frame
 		ITableDataFrame table = getFrame();
-		if(!(table instanceof RDataTable)) {
-			throw new IllegalArgumentException("Frame must be a grid to use DatabaseProfile");
+		if (!(table instanceof RDataTable)) {
+			throw new IllegalArgumentException("Frame must be an R Frame for Document Summarizer");
 		}
 		RDataTable frame = (RDataTable) table;
 		String frameName = frame.getName();
@@ -68,7 +68,7 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		stepCounter++;
 		String[] packages = new String[] { "readtext", "xml2", "rvest", "lexRankr", "textrank", "udpipe", "textreuse",
 				"stringr", "textmineR", "textreadr", "pdftools", "antiword", "dplyr" };
-		this.rJavaTranslator.checkPackages(packages);		
+		this.rJavaTranslator.checkPackages(packages);
 
 		// start the R script
 		logger.info(stepCounter + ". Building script to summarize document");
@@ -80,20 +80,20 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		rsb.append(wd + "<- getwd();");
 		rsb.append(("setwd(\"" + baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts\");").replace("\\", "/"));
 		rsb.append("source(\"text_summary.R\");");
-		
+
 		// if file path, make sure that the file exists
-		if(fileOrigin.equals("File Path")) {
+		if (fileOrigin.equals("File Path")) {
 			userInput = userInput.replace("\\", "/");
-			//String[] accetableFormats = {"txt","doc","docx","pdf"};
+			// String[] accetableFormats = {"txt","doc","docx","pdf"};
 			File f = new File(userInput);
-			if(!f.exists()) {
+			if (!f.exists()) {
 				throw new IllegalArgumentException("File does not exist at that location");
 			}
 		}
-	
+
 		// adjust the file origin parameter to the R syntax
 		fileOrigin = adjustFileOriginParameter(fileOrigin);
-		
+
 		// create the summary, topics, and keywords table
 		rsb.append(summaryFrame + " <- summarize_text(" + fileOrigin + " = \"" + userInput + "\", topN = " + numSentences + ");");
 		rsb.append(topicsFrame + " <- summarize_topics(" + fileOrigin + " = \"" + userInput + "\" , topTopics = " + numTopics + ", " + "topTerms = " + numTopicTerms + ");");
@@ -105,29 +105,43 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 
 		// now lets put it all into one frame for dashboard purposes
 		rsb.append(frameName + "<- bind_rows(as.data.frame(" + summaryFrame + ")," + topicsFrame + ");");
-		rsb.append(frameName + "<- bind_rows(" + frameName +"," + keywordsFrame + ");");
-		
+		rsb.append(frameName + "<- bind_rows(" + frameName + "," + keywordsFrame + ");");
+
 		// change the summary frame column
 		rsb.append("setnames(" + frameName + ", old=c(\"" + summaryFrame + "\"), new=c(\"summary\"));");
-		
-		//reset wd and clean up
+
+		// reset wd and clean up
 		rsb.append("setwd(" + wd + ");");
-		rsb.append("rm(" + summaryFrame +"," + topicsFrame + "," + keywordsFrame + ");");
+		rsb.append("rm(" + summaryFrame + "," + topicsFrame + "," + keywordsFrame + ");");
+		
+		// make sure that script ran correctly, and throw helpful error if not
+		String isError = "documentSummaryError" + Utility.getRandomString(5);
+		rsb.append(isError + " <- \"\";");
 		
 		// run the r script
 		logger.info(stepCounter + ". Summarizing document");
 		stepCounter++;
 		this.rJavaTranslator.runR(rsb.toString());
-		
+		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.asDataTable(frameName, frameName));
 		logger.info(stepCounter + ". Visualizing Data");
 		stepCounter++;
+		
+		// make sure script ran correctly
+		Boolean errorCheck = this.rJavaTranslator.getBoolean("!exists(\"" + isError + "\")");
+		if(errorCheck) {
+			throw new IllegalArgumentException("Document could not be summarized");
+		}
 
-		// now create the frame and return
-		frame = createFrameFromVariable(frameName);
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
-
+		// now create the frame and return the noun
+		RDataTable newTable = createFrameFromVariable(frameName);
+		this.insight.setDataMaker(newTable);
+		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		this.insight.getVarStore().put(frameName, noun);
+		return noun;
 	}
 
+	///////////////////////// ORGANIZING PARAMS /////////////////////////
+	
 	private String adjustFileOriginParameter(String fileOrigin) {
 		if (fileOrigin.equals("File Path")) {
 			fileOrigin = "filename";
@@ -139,5 +153,25 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Improper File Origin");
 		}
 		return fileOrigin;
+	}
+	
+
+	///////////////////////// KEYS /////////////////////////////////////
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(FILE_ORIGIN)) {
+			return "The format of the document to be summarized (file path, url, or free text)";
+		} else if(key.equals(USER_INPUT)) {
+			return "The actual file, whether that is a URL, file path, or free text";
+		} else if (key.equals(NUM_SENTENCES)) {
+			return "The number of sentences to be returned in the summary";
+		} else if(key.equals(NUM_TOPICS)) {
+			return "The number of major topics to be returned in the summary";
+		} else if (key.equals(NUM_TOPIC_TERMS)) {
+			return "The number of keywords within each major topic to be returned in the summary";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }
