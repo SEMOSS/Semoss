@@ -568,15 +568,14 @@ public class UploadUtilities {
 
 	
 	/**
-	 * Generate a tinker smss
+	 * Generate a janus smss
 	 * 
 	 * @param appId
 	 * @param appName
 	 * @param owlFile
-	 * @param tinkerFilePath
+	 * @param janusConfPath
 	 * @param typeMap
 	 * @param nameMap
-	 * @param tinkerDriverType
 	 * @return
 	 * @throws IOException
 	 */
