@@ -38,6 +38,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 
 	private static final String TARGET_DATABASE = "targetDatabase";
 	private static final String TARGET_TABLE = "targetTable";
+	private static final String INSERT_ID_KEY = "insertId";
 
 	protected static Map<SemossDataType, String> typeConversionMap = new HashMap<SemossDataType, String>();
 	static {
@@ -53,9 +54,10 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	private String targetTable = null;
 	private boolean override = false;
 	private boolean newTable = false;
+	private boolean genId = false;
 	
 	public ToDatabaseReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), TARGET_DATABASE, TARGET_TABLE, ReactorKeysEnum.OVERRIDE.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), TARGET_DATABASE, TARGET_TABLE, ReactorKeysEnum.OVERRIDE.getKey(), INSERT_ID_KEY};
 	}
 
 	@Override
@@ -79,8 +81,10 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		// clean up the table name
 		this.targetTable = Utility.makeAlphaNumeric(this.targetTable);
 		this.override = getOverride();
+		// checks if targetTable doesn't exist in the engine
 		this.newTable = !MasterDatabaseUtility.getConceptsWithinEngineRDBMS(this.engineId).contains(this.targetTable);
-
+		// boolean check if a unique id will be generated
+		this.genId = getInsertKey();
 		if(this.newTable && this.override) {
 			// you cannot override a table that doesn't exist
 			throw new SemossPixelException(
@@ -115,18 +119,44 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 
 		// create prepared statement of all inserts from task
 		List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
-		int size = headerInfo.size();
-		String[] headers = new String[size];
-		SemossDataType[] types = new SemossDataType[size];
-		String[] sqlTypes = new String[size];
-		for(int i = 0; i < size; i++) {
-			Map<String, Object> hMap = headerInfo.get(i);
-			headers[i] = (String) hMap.get("alias");
-			types[i] = SemossDataType.convertStringToDataType((String) hMap.get("type"));
-			sqlTypes[i] = typeConversionMap.get(types[i]);
-		}
 		
-		// check if adding to an existing table
+		int size = headerInfo.size();
+		int targetSize;
+		String[] headers;
+		SemossDataType[] types = new SemossDataType[size];
+		String[] sqlTypes;
+		// if we generate an id need to add an id row to schema
+		if(this.genId){
+			headers = new String[size + 1];		
+			sqlTypes = new String[size + 1];
+			targetSize = size + 1;
+			if(this.override || this.newTable){
+				headers[0] = targetTable + "_UNIQUE_ROW";
+			} else {
+				headers[0] = targetTable;
+			}
+			sqlTypes[0] = "IDENTITY";
+			for(int i = 0; i < size; i++) {
+				Map<String, Object> hMap = headerInfo.get(i);
+				headers[i + 1] = (String) hMap.get("alias");
+				types[i] = SemossDataType.convertStringToDataType((String) hMap.get("type"));
+				sqlTypes[i + 1] = typeConversionMap.get(types[i]);
+			}
+		} else {
+			headers = new String[size];		
+			sqlTypes = new String[size];
+			targetSize = size;
+			
+			for(int i = 0; i < size; i++) {
+				Map<String, Object> hMap = headerInfo.get(i);
+				headers[i] = (String) hMap.get("alias");
+				types[i] = SemossDataType.convertStringToDataType((String) hMap.get("type"));
+				sqlTypes[i] = typeConversionMap.get(types[i]);
+			}
+		}
+
+		
+		// check if overriding to an existing table
 		// that all the columns are there
 		if(this.override) {
 			// just update the metadata in case columns have changed
@@ -143,6 +173,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			}
 			
 			logger.info("Finished deleting existing table data and creating new table");
+		// else if newTable create the table
 		} else if(this.newTable) {
 			// create the table
 			logger.info("Creating new table ");
@@ -161,11 +192,21 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				throw new SemossPixelException(new NounMetadata("Header size does not match for existing table. Please create a new table or have override=true", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
 		}
-
-		Object[] getPreparedStatementArgs = new Object[headers.length + 1];
-		getPreparedStatementArgs[0] = targetTable;
-		for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
-			getPreparedStatementArgs[headerIndex + 1] = headers[headerIndex];
+		
+		Object[] getPreparedStatementArgs;
+		// prepared statements differ if we generate id
+		if(this.genId){
+			getPreparedStatementArgs = new Object[headers.length];
+			getPreparedStatementArgs[0] = targetTable;
+			for (int headerIndex = 1; headerIndex < headers.length; headerIndex++) {
+				getPreparedStatementArgs[headerIndex] = headers[headerIndex];
+			}
+		} else {
+			getPreparedStatementArgs = new Object[headers.length + 1];
+			getPreparedStatementArgs[0] = targetTable;
+			for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+				getPreparedStatementArgs[headerIndex + 1] = headers[headerIndex];
+			}
 		}
 		PreparedStatement ps = (PreparedStatement) targetEngine.doAction(ACTION_TYPE.BULK_INSERT, getPreparedStatementArgs);
 
@@ -294,7 +335,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			// choose the first column as the prim key
 			owler.addConcept(targetTable, headers[0], sqlTypes[0]);
 			// add all others as properties
-			for(int i = 1; i < size; i++) {
+			for(int i = 1; i < targetSize; i++) {
 				owler.addProp(targetTable, headers[0], headers[i], sqlTypes[i], null);
 			}
 			
@@ -364,4 +405,24 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		
 		return false;
 	}
+	
+	private boolean getInsertKey() {
+		GenRowStruct boolGrs = this.store.getNoun(this.keysToGet[4]);
+		if(boolGrs != null) {
+			if(boolGrs.size() > 0) {
+				List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
+				return (boolean) val.get(0);
+			}
+		}
+		
+		List<NounMetadata> booleanInput = this.curRow.getNounsOfType(PixelDataType.BOOLEAN);
+		if(booleanInput != null && !booleanInput.isEmpty()) {
+			return (boolean) booleanInput.get(0).getValue();
+		}
+		
+		return false;
+	}
 }
+
+
+
