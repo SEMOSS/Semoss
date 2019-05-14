@@ -237,7 +237,7 @@ public class PixelStreamUtility {
 				// need to make sure this exists
 				if(frame.getMetaData().isOpen()) {
 					noun.addAdditionalReturn(
-							new NounMetadata(frame.getMetaData().getTableHeaderObjects(), 
+							new NounMetadata(frame.getFrameHeadersObject(), 
 									PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS, PixelOperationType.FRAME_HEADERS_CHANGE));
 				}
 			}
