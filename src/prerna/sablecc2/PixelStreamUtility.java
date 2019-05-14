@@ -233,9 +233,13 @@ public class PixelStreamUtility {
 
 			// adding logic to auto send back headers if PixelOperationsType.FRAME_HEADERS_CHANGE is passed back
 			if(opTypes.contains(PixelOperationType.FRAME_HEADERS_CHANGE)) {
-				noun.addAdditionalReturn(
-						new NounMetadata(frame.getMetaData().getTableHeaderObjects(), 
-								PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
+				// since we may be running through a long recipe
+				// need to make sure this exists
+				if(frame.getMetaData().isOpen()) {
+					noun.addAdditionalReturn(
+							new NounMetadata(frame.getMetaData().getTableHeaderObjects(), 
+									PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS, PixelOperationType.FRAME_HEADERS_CHANGE));
+				}
 			}
 			
 		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST) {
