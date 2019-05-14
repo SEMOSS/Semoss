@@ -53,7 +53,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractFrameReactor {
 		String makeWrapper = varName+"w = PyFrame.makefm(" + varName +")";
 		runScript(makeWrapper);
 
-		ImportUtility.parsePyTableColumnsAndTypesToFlatTable(pf, colNames, colTypes, varName);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(pf.getMetaData(), colNames, colTypes, varName);
 		pf.setDataTypeMap(pf.getMetaData().getHeaderToTypeMap());
 
 		NounMetadata noun = new NounMetadata(pf, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);		

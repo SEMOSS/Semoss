@@ -54,7 +54,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		}
 
 		RDataTable newTable = new RDataTable(this.insight.getRJavaTranslator(logger), varName);
-		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, colNames, colTypes, varName);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(newTable.getMetaData(), colNames, colTypes, varName);
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		if (overrideFrame()) {
 			this.insight.setDataMaker(newTable);
