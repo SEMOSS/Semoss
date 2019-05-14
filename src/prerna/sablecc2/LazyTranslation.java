@@ -91,12 +91,12 @@ import prerna.sablecc2.reactor.frame.filter.AbstractFilterReactor;
 import prerna.sablecc2.reactor.map.MapListReactor;
 import prerna.sablecc2.reactor.map.MapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.sablecc2.reactor.qs.filter.FilterReactor;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentAnd;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentOr;
 import prerna.sablecc2.reactor.qs.filter.QueryFilterComponentSimple;
-import prerna.sablecc2.reactor.qs.filter.FilterReactor;
-import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
+import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -121,6 +121,8 @@ public class LazyTranslation extends DepthFirstAdapter {
 	
 	public enum TypeOfOperation {PIPELINE, COMPOSITION};
 	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
+	
+	private ITableDataFrame currentFrame = null;
 	
 	public LazyTranslation() {
 		this.planner = new PixelPlanner();
@@ -167,6 +169,8 @@ public class LazyTranslation extends DepthFirstAdapter {
         	PRoutine e = copy.get(pixelstep);
         	try {
         		e.apply(this);
+        		// reset the state of the frame
+        		this.currentFrame = null;
         	} catch(SemossPixelException ex) {
         		trackError(e.toString(), this.isMeta, ex);
         		ex.printStackTrace();
@@ -570,15 +574,12 @@ public class LazyTranslation extends DepthFirstAdapter {
     				} else {
         				curReactor.getCurRow().add(this.planner.getVariableValue(idInput));
     				}
-//    				if(retType == PixelDataType.CONST_INT || retType == PixelDataType.CONST_DECIMAL) {
-//    					// modify the parent such that the signature has the correct
-//        		    	// value of the numerical without any extra spaces
-//        		    	// plain string will always modify to a integer even if we return double value
-//        		    	curReactor.modifySignature(node.toString().trim(), new BigDecimal( ((Number) retNoun.getValue() ).doubleValue() ).toPlainString());
-//    				}
     			}
     		} else {
-    			this.planner.addVariable("$RESULT", this.planner.getVariableValue(idInput));
+    			if(varType == PixelDataType.FRAME) {
+    				this.currentFrame = (ITableDataFrame) varValue.getValue();
+    			}
+    			this.planner.addVariable("$RESULT", varValue);
     		}
     	} else {
     		if(curReactor != null) {
@@ -1405,8 +1406,11 @@ public class LazyTranslation extends DepthFirstAdapter {
      * Sets the pixel operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
+    	if(this.currentFrame != null) {
+    		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
+    	}
     	IDataMaker dataTable = getDataMaker();
-    	if(dataTable != null && dataTable instanceof ITableDataFrame) {
+    	if(dataTable != null) {
     		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor);
     	} else {
     		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor);
