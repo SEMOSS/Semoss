@@ -90,9 +90,9 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		if (tempTable != null) {
 			frame.executeRScript("rm(" + tempTable + ");");
 			frame.executeRScript("gc();");
-			this.getFrame().syncHeaders();
 		}
-		
+		frame.syncHeaders();
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
