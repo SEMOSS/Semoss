@@ -48,7 +48,7 @@ public class MatchColumnValuesReactor extends AbstractRFrameReactor {
 		rsb.append("rm(" + col1 + ")");
 		this.rJavaTranslator.runR(rsb.toString());
 
-		RDataTable returnTable = createFrameFromVariable(matchesTable);
+		RDataTable returnTable = createNewFrameFromVariable(matchesTable);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 
 		// get count of exact matches
