@@ -110,6 +110,29 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		this.qsNames = this.metaData.getFrameSelectors().toArray(new String[]{});
 	}
 	
+	@Override
+	public Map<String, Object> getFrameHeadersObject(String... headerTypes) {
+		// get types to include
+		Map<String, Object> headersObj = this.metaData.getTableHeaderObjects(headerTypes);
+		// now loop through and add if there are any filters on the header
+		Set<String> filteredCols = this.getFrameFilters().getAllFilteredColumns();
+		List<Map<String, Object>> headersMap = (List<Map<String, Object>>) headersObj.get("headers");
+		for(Map<String, Object> headerMap : headersMap) {
+			String alias = (String) headerMap.get("alias");
+			String rawHeader = (String) headerMap.get("header");
+			if(filteredCols.contains(alias) || filteredCols.contains(rawHeader)) {
+				headerMap.put("isFiltered", true);
+			} else {
+				headerMap.put("isFiltered", false);
+			}
+		}
+		
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		retMap.put("name", this.frameName);
+		retMap.put("headerInfo", headersObj);
+		return retMap;
+	}
+	
 	////////////////////////////////////////////////////////////////////////////
 
 	// logging
