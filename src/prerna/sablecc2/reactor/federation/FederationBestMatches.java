@@ -124,7 +124,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR("rm(" + rCol1 + "," + rCol2 + ")");
 		
 	
-		RDataTable returnTable = createFrameFromVariable(matchesFrame);
+		RDataTable returnTable = createNewFrameFromVariable(matchesFrame);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 		
 		// get count of exact matches

@@ -98,7 +98,7 @@ public class RunDocCosSimilarityReactor extends AbstractRFrameReactor {
 		}
 
 		// create new R DataTable from results
-		RDataTable returnTable = createFrameFromVariable(similarityFrame);
+		RDataTable returnTable = createNewFrameFromVariable(similarityFrame);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 		// replace existing frame
 		if (override) {
