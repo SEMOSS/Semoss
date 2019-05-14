@@ -387,7 +387,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			rJavaTranslator.runR(frameName + "<-" + newValuesBuilder.toString());
 			rJavaTranslator.runR("names(" + frameName + ")<-" + 
 					RSyntaxHelper.createStringRColVec(new String[]{"sourceTable","sourceCol","targetTable","targetCol","action"}));
-			ImportUtility.parserRTableColumnsAndTypesToFlatTable(storeFrame, 
+			ImportUtility.parseTableColumnsAndTypesToFlatTable(storeFrame.getMetaData(), 
 					new String[]{"sourceTable","sourceCol","targetTable","targetCol","action"},
 					new String[]{"STRING", "STRING", "STRING", "STRING", "STRING"}, frameName);
 		} else {

@@ -4,12 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import org.apache.poi.ss.formula.functions.Columns;
-
-import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
-import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -268,7 +264,7 @@ public class PivotReactor extends AbstractFrameReactor {
 		// and set up teverything else
 		
 
-		ImportUtility.parsePyTableColumnsAndTypesToFlatTable(frame, colNames, colTypes, frameName);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(frame.getMetaData(), colNames, colTypes, frameName);
 
 	}
 

@@ -34,6 +34,17 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		this.insight.setDataMaker(newTable);
 	}
 	
+//	/**
+//	 * This method is used to recreate the frame metadata
+//	 * when we execute a script that modifies the data structure
+//	 * @param frameName
+//	 */
+//	protected void recreateMetadata(RDataTable frame) {
+//		frame.getMetaData().
+//		RDataTable newTable = createFrameFromVariable(frameName);
+//		this.insight.setDataMaker(newTable);
+//	}
+	
 	/**
 	 * This method is used to recreate the frame metadata
 	 * when we execute a script that modifies the data structure
@@ -57,7 +68,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
 		this.rJavaTranslator.executeEmptyR(script);
 		RDataTable newTable = new RDataTable(this.insight.getRJavaTranslator(getLogger(this.getClass().getName())), frameName);
-		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(newTable.getMetaData(), colNames, colTypes, frameName);
 		return newTable;
 	}
 	
