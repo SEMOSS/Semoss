@@ -3,6 +3,7 @@ package prerna.sablecc2.om.task;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.sablecc2.om.task.options.TaskOptions;
@@ -85,6 +86,12 @@ public class ConstantDataTask extends AbstractTask {
 	@Override
 	public void reset() {
 		// do nothing
+	}
+
+	@Override
+	public List<Map<String, String>> getSource() {
+		List<Map<String, String>> sources = new Vector<Map<String, String>>();
+		return sources;
 	}
 
 }

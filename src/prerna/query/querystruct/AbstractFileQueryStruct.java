@@ -72,5 +72,11 @@ public abstract class AbstractFileQueryStruct extends SelectQueryStruct {
 		this.additionalTypes = additionalTypes;
 	}
 	
-	
+	@Override
+	public Map<String, String> getSourceMap() {
+		Map<String, String> sourceMap = new HashMap<String, String>();
+		sourceMap.put("type", this.qsType.toString());
+		sourceMap.put("id", this.filePath);
+		return sourceMap;
+	}
 }

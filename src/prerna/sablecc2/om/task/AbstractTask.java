@@ -46,13 +46,27 @@ public abstract class AbstractTask implements ITask {
 		this.formatter = new TableFormatter();
 	}
 	
+	/////////////////////////////////////
+	
+	/*
+	 * abstract methods block
+	 */
+	
+	/**
+	 * Need to track a log of the sources
+	 * @return
+	 */
+	public abstract List<Map<String, String>> getSource();
+	
+	////////////////////////////////////
+	
 	/**
 	 * Collect data from an iterator
 	 * Or return defined outputData
 	 */
 	@Override
 	public Map<String, Object> collect(boolean meta) {
-		Map<String, Object> collectedData = new HashMap<String, Object>(7);
+		Map<String, Object> collectedData = new HashMap<String, Object>(10);
 		collectedData.put("data", getData());
 		if(meta) {
 			collectedData.put("headerInfo", this.getHeaderInfo());
@@ -67,6 +81,7 @@ public abstract class AbstractTask implements ITask {
 				}
 			}
 		}
+		collectedData.put("sources", getSource());
 		collectedData.put("taskId", this.id);
 		collectedData.put("numCollected", this.numCollect);
 		return collectedData;
@@ -74,7 +89,7 @@ public abstract class AbstractTask implements ITask {
 	
 	@Override
 	public Map<String, Object> getMetaMap() {
-		Map<String, Object> collectedData = new HashMap<String, Object>(7);
+		Map<String, Object> collectedData = new HashMap<String, Object>(10);
 		collectedData.put("headerInfo", this.getHeaderInfo());
 		collectedData.put("numCollected", this.numCollect);
 		if(this.taskOptions != null && !this.taskOptions.isEmpty()) {
@@ -87,6 +102,7 @@ public abstract class AbstractTask implements ITask {
 				collectedData.put("numRows", numRows);
 			}
 		}
+		collectedData.put("sources", getSource());
 		return collectedData;
 	}
 	
