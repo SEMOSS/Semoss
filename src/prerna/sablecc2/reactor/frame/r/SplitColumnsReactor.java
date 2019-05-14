@@ -115,8 +115,8 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// column header data is changing so we must recreate metadata
-		recreateMetadata(table);
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		frame.recreateMeta();
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 	
 	//////////////////////////////////////////////////////////////////////

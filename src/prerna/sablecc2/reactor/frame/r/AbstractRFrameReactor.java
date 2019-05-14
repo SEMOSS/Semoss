@@ -2,6 +2,7 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Arrays;
 
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -29,28 +30,20 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 	 * when we execute a script that modifies the data structure
 	 * @param frameName
 	 */
-	protected void recreateMetadata(String frameName) {
-		RDataTable newTable = createFrameFromVariable(frameName);
-		this.insight.setDataMaker(newTable);
+	protected RDataTable createNewFrameFromVariable(String frameName) {
+		// create new frame
+		RDataTable newTable = new RDataTable(this.insight.getRJavaTranslator(getLogger(this.getClass().getName())), frameName);
+		OwlTemporalEngineMeta meta = genNewMetaFromVariable(frameName);
+		newTable.setMetaData(meta);
+		return newTable;
 	}
 	
-//	/**
-//	 * This method is used to recreate the frame metadata
-//	 * when we execute a script that modifies the data structure
-//	 * @param frameName
-//	 */
-//	protected void recreateMetadata(RDataTable frame) {
-//		frame.getMetaData().
-//		RDataTable newTable = createFrameFromVariable(frameName);
-//		this.insight.setDataMaker(newTable);
-//	}
-	
 	/**
-	 * This method is used to recreate the frame metadata
-	 * when we execute a script that modifies the data structure
+	 * Recreate a new engine metadata
 	 * @param frameName
+	 * @return
 	 */
-	protected RDataTable createFrameFromVariable(String frameName) {
+	private OwlTemporalEngineMeta genNewMetaFromVariable(String frameName) {
 		// recreate a new frame and set the frame name
 		String[] colNames = getColumns(frameName);
 		String[] colTypes = getColumnTypes(frameName);
@@ -67,9 +60,10 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor {
 		}
 		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
 		this.rJavaTranslator.executeEmptyR(script);
-		RDataTable newTable = new RDataTable(this.insight.getRJavaTranslator(getLogger(this.getClass().getName())), frameName);
-		ImportUtility.parseTableColumnsAndTypesToFlatTable(newTable.getMetaData(), colNames, colTypes, frameName);
-		return newTable;
+		
+		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta();
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(meta, colNames, colTypes, frameName);
+		return meta;
 	}
 	
 	/**

@@ -111,17 +111,16 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		rScript.append("source(\"" + dqDirLoc + "fileCleanup.R" + "\");");
 		rScript.append("rm(" + inputVariable + ");");
 //		System.out.println(rScript);
-		
 
 		// you will run this rScript
 		this.rJavaTranslator.runR(rScript.toString());
-		recreateMetadata(rFrameVariable);
+		frame.recreateMeta();
 		
 		if(inputTable != null) {
 			return new NounMetadata(inputTable, PixelDataType.FRAME);
 		}
 		// make a new frame
-		RDataTable newFrame = createFrameFromVariable(retRVariableName);
+		RDataTable newFrame = createNewFrameFromVariable(retRVariableName);
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
 		this.insight.getVarStore().put(retRVariableName, noun);
 		return noun;
