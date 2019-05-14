@@ -62,10 +62,16 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		}
 		RDataTable frame = (RDataTable) table;
 		String frameName = frame.getName();
-
+		
+		// make sure that user has correct R version
+		if(checkRVersion(3,4)) {
+			throw new IllegalArgumentException("Document Summary requires at least R 3.4");
+		}
+		
 		// Check Packages
 		logger.info(stepCounter + ". Checking R Packages and Necessary Files");
 		stepCounter++;
+		System.out.println("");
 		String[] packages = new String[] { "readtext", "xml2", "rvest", "lexRankr", "textrank", "udpipe", "textreuse",
 				"stringr", "textmineR", "textreadr", "pdftools", "antiword", "dplyr" };
 		this.rJavaTranslator.checkPackages(packages);
@@ -96,12 +102,12 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 
 		// create the summary, topics, and keywords table
 		rsb.append(summaryFrame + " <- summarize_text(" + fileOrigin + " = \"" + userInput + "\", topN = " + numSentences + ");");
-		rsb.append(topicsFrame + " <- summarize_topics(" + fileOrigin + " = \"" + userInput + "\" , topTopics = " + numTopics + ", " + "topTerms = " + numTopicTerms + ");");
+		rsb.append(topicsFrame + " <- summarize_topics_text(" + fileOrigin + " = \"" + userInput + "\" , topTopics = " + numTopics + ", " + "topTerms = " + numTopicTerms + ");");
 		rsb.append(keywordsFrame + " <- text_keywords(" + fileOrigin + " = \"" + userInput + "\");");
 
 		// adjust the keyword and freq column naming issue
-		rsb.append("setnames(" + topicsFrame + ", old=c(\"freq\",\"keyword\"), new=c(\"freq_Topics\", \"keyword_Topics\"));");
-		rsb.append("setnames(" + keywordsFrame + ", old=c(\"freq\",\"keyword\"), new=c(\"freq_Keywords\", \"keyword_Keywords\"));");
+		rsb.append("setnames(" + topicsFrame + ", old=c(\"freq\",\"keyword\", \"text\"), new=c(\"topic_frequency\", \"topic_keywords\", \"topic_summary\"));");
+		rsb.append("setnames(" + keywordsFrame + ", old=c(\"freq\"), new=c(\"keyword_frequency\"));");
 
 		// now lets put it all into one frame for dashboard purposes
 		rsb.append(frameName + "<- bind_rows(as.data.frame(" + summaryFrame + ")," + topicsFrame + ");");
@@ -109,7 +115,12 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 
 		// change the summary frame column
 		rsb.append("setnames(" + frameName + ", old=c(\"" + summaryFrame + "\"), new=c(\"summary\"));");
-
+		
+		// need to change the integer columns to numeric
+		rsb.append(frameName + "$ngram <- as.numeric("+frameName+"$ngram);");
+		rsb.append(frameName + "$keyword_frequency <- as.numeric("+frameName+"$keyword_frequency);");
+		rsb.append(frameName + "$topic_frequency <- as.numeric("+frameName+"$topic_frequency);");
+		
 		// reset wd and clean up
 		rsb.append("setwd(" + wd + ");");
 		rsb.append("rm(" + summaryFrame + "," + topicsFrame + "," + keywordsFrame + ");");
@@ -133,7 +144,7 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		}
 
 		// now create the frame and return the noun
-		RDataTable newTable = createNewFrameFromVariable(frameName);
+		RDataTable newTable = createFrameFromVariable(frameName);
 		this.insight.setDataMaker(newTable);
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		this.insight.getVarStore().put(frameName, noun);
@@ -155,6 +166,18 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		return fileOrigin;
 	}
 	
+	private boolean checkRVersion(int majorReq, int minorReq) {
+		// relies on the following R format (seems like its been this format for > 6 years
+		// R version 3.5.0 (2018-04-23)
+		String rVersion = this.rJavaTranslator.getString("R.version.string");
+		int major = Integer.parseInt(rVersion.substring(10, 11));
+		int minor = Integer.parseInt(rVersion.substring(12, 13));
+		if(major < 3 || (major <= majorReq && minor < minorReq)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	///////////////////////// KEYS /////////////////////////////////////
 
