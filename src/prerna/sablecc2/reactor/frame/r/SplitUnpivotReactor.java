@@ -113,8 +113,6 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 				"SplitUnpivot", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-		// column header data is changing so we must recreate metadata
-		recreateMetadata(table);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 

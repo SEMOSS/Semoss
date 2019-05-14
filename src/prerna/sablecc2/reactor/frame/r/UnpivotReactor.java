@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
@@ -86,13 +85,13 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 				"Unpivot", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		recreateMetadata(table);
+		frame.recreateMeta();
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + tempName + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 	
 	//////////////////////////////////////////////////////////////////////
