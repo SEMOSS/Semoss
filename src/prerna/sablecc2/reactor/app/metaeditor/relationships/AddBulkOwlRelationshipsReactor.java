@@ -192,7 +192,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 			rJavaTranslator.runR(defineVars + storeFrameName + "<-funion(" + positiveVarName + "," + negativeVarName + ");rm(" + positiveVarName + "," + negativeVarName + ");");
 			rJavaTranslator.runR("names(" + storeFrameName + ")<-" + 
 					RSyntaxHelper.createStringRColVec(new String[]{"sourceTable","sourceCol","targetTable","targetCol","action"}));
-			ImportUtility.parserRTableColumnsAndTypesToFlatTable(storeFrame, 
+			ImportUtility.parseTableColumnsAndTypesToFlatTable(storeFrame.getMetaData(), 
 					new String[]{"sourceTable","sourceCol","targetTable","targetCol","action"},
 					new String[]{"STRING", "STRING", "STRING", "STRING", "STRING"}, storeFrameName);
 		} else {

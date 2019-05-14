@@ -101,7 +101,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		String[] colTypes = this.rJavaTranslator.getColumnTypes(frameName);
 
 		RDataTable newTable = new RDataTable(this.rJavaTranslator, frameName);
-		ImportUtility.parserRTableColumnsAndTypesToFlatTable(newTable, colNames, colTypes, frameName);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(newTable.getMetaData(), colNames, colTypes, frameName);
 		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 		this.insight.setDataMaker(newTable);
 	}
