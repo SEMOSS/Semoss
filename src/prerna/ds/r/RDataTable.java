@@ -373,7 +373,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		// load into it
 		this.metaData.close();
 		this.metaData = new OwlTemporalEngineMeta();
-		ImportUtility.parserRTableColumnsAndTypesToFlatTable(this, colNames, colTypes, getName());
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(this.metaData, colNames, colTypes, getName());
 		
 		// clear the cached info
 		this.clearCachedInfo();
