@@ -1,6 +1,8 @@
 package prerna.query.querystruct;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -63,7 +65,6 @@ public abstract class AbstractQueryStruct {
 	protected String frameName;
 	protected transient IEngine engine;
 	protected String engineId;
-	
 	
 	//////////////////////////////////////////// SELECTORS /////////////////////////////////////////////////
 	
@@ -245,6 +246,27 @@ public abstract class AbstractQueryStruct {
 	
 	public QUERY_STRUCT_TYPE getQsType() {
 		return this.qsType;
+	}
+	
+	/**
+	 * Get a map containing the source information
+	 * @return
+	 */
+	public Map<String, String> getSourceMap() {
+		Map<String, String> sourceMap = new HashMap<String, String>();
+		sourceMap.put("type", this.qsType.toString());
+		if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE ||
+				qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY ||
+				qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
+			
+			sourceMap.put("id", getEngineId());
+			
+		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME ||
+				qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+			
+			sourceMap.put("id", getFrameName());
+		}
+		return sourceMap;
 	}
 	
 	//////////////////////////////////////////// MERGING /////////////////////////////////////////////////////
