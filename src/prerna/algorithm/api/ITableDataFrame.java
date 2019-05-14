@@ -3,6 +3,7 @@ package prerna.algorithm.api;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -167,6 +168,8 @@ public interface ITableDataFrame extends IDataMaker {
 	void setMetaData(OwlTemporalEngineMeta metaData);
 
 	void syncHeaders();
+	
+	Map<String, Object> getFrameHeadersObject(String... headerTypes);
 	
 	void setLogger(Logger logger);
 	
