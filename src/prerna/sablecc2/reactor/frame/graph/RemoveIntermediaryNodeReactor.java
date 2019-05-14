@@ -136,9 +136,7 @@ public class RemoveIntermediaryNodeReactor extends AbstractFrameReactor {
 			}
 		}
 		
-		NounMetadata retNoun = new NounMetadata(tinker, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-		retNoun.addAdditionalReturn(new NounMetadata(meta.getTableHeaderObjects(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
-		return retNoun;
+		return new NounMetadata(tinker, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 	
 	////////////////////////////////////////////////////////////

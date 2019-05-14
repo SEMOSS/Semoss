@@ -171,7 +171,7 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 		String[] colTypes = rJavaTranslator.getColumnTypes(matchDataFrame);
 		
 		RDataTable frame = new RDataTable(this.insight.getRJavaTranslator(logger), matchDataFrame);
-		ImportUtility.parserRTableColumnsAndTypesToFlatTable(frame, colNames, colTypes, matchDataFrame);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(frame.getMetaData(), colNames, colTypes, matchDataFrame);
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);		
 	
 		// store in insight

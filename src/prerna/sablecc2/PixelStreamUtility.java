@@ -228,8 +228,16 @@ public class PixelStreamUtility {
 			ps.print("\"output\":");
 			ps.print(gson.toJson(frameData));
 			ps.print(",\"operationType\":");
+			List<PixelOperationType> opTypes = noun.getOpType();
 			ps.print(gson.toJson(noun.getOpType()));
 
+			// adding logic to auto send back headers if PixelOperationsType.FRAME_HEADERS_CHANGE is passed back
+			if(opTypes.contains(PixelOperationType.FRAME_HEADERS_CHANGE)) {
+				noun.addAdditionalReturn(
+						new NounMetadata(frame.getMetaData().getTableHeaderObjects(), 
+								PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
+			}
+			
 		} else if(nounT == PixelDataType.CODE || nounT == PixelDataType.TASK_LIST) {
 			// code is a tough one to process
 			// since many operations could have been performed
