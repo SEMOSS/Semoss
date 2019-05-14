@@ -70,7 +70,7 @@ public class SemanticDescription extends AbstractRFrameReactor {
 				"SemanticDescription", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		RDataTable returnTable = createFrameFromVariable(rFrame);
+		RDataTable returnTable = createNewFrameFromVariable(rFrame);
 		this.insight.setDataMaker(returnTable);
 		return new NounMetadata(returnTable, PixelDataType.FRAME);
 
