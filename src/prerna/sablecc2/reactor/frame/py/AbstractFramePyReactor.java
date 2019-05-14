@@ -44,7 +44,7 @@ public abstract class AbstractFramePyReactor extends AbstractFrameReactor {
 		// create the pandas frame
 		// and set up teverything else
 
-		ImportUtility.parsePyTableColumnsAndTypesToFlatTable(newFrame, colNames, colTypes, frameName);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName);
 		newFrame.setDataTypeMap(newFrame.getMetaData().getHeaderToTypeMap());
 		
 		if(override)
