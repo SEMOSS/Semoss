@@ -645,7 +645,7 @@ public class PixelUnit {
 			int index = 0;
 			boolean testFailed = false;
 			for (PixelComparison comparison : result) {
-				if (comparison.isDifferent()) {
+				if (comparison.isDifferent(ignoreAddedDictionary, ignoreAddedIterable)) {
 					testFailed = true;
 					testReport.append(composeComparisonReport(comparison, index)).append(LS);
 				}
@@ -733,10 +733,21 @@ public class PixelUnit {
 		Map<String, Object> typeLocationValueMap = comparison.getDifferences(); // Original
 		Map<String, Map<String, String>> locationTypeValueMap = new HashMap<>(); // Rearranged
 		for (Entry<String, Object> typeLocationValueEntry : typeLocationValueMap.entrySet()) {
-							
+			
+			// Handle the case where the value is not a map
+			if (!(typeLocationValueEntry.getValue() instanceof Map)) {
+				String location = typeLocationValueEntry.getValue().toString();
+				if (location.startsWith("{\"")) location = location.substring(2, location.length());
+				if (location.endsWith("\"}")) location = location.substring(0, location.length() - 2);
+				testReport.append(location).append(": ").append(LS);
+				
+				String type = typeLocationValueEntry.getKey();				
+				testReport.append(type).append(LS);
+				
+				continue;
+			}
+			
 			// If a map, report all the differences in the map
-			if (!(typeLocationValueEntry.getValue() instanceof Map)) throw new IllegalArgumentException("Unable to interpret the differences between the expected and actual JSONs for this test.");
-						
 			@SuppressWarnings("unchecked")
 			Map<String, Object> locationValueMap = (Map<String, Object>) typeLocationValueEntry.getValue();
 			for (Entry<String, Object> locationValueEntry : locationValueMap.entrySet()) {
