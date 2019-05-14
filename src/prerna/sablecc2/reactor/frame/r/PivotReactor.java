@@ -133,7 +133,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 			script += table + " <- " + table + "[,.:=NULL];";
 		}
 		this.rJavaTranslator.runR(script);
-		recreateMetadata(table);
+		frame.recreateMeta();
 		
 		//clean up temp r variables
 		StringBuilder cleanUpScript = new StringBuilder();
@@ -148,7 +148,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 				"Pivot", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 		
 	//////////////////////////////////////////////////////////////////////

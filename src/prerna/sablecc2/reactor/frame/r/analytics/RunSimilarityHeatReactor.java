@@ -59,7 +59,7 @@ public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 		}
 		this.rJavaTranslator.runR(rsb.toString());
 		// create new R DataTable from results
-		RDataTable returnTable = createFrameFromVariable(tempFrame);
+		RDataTable returnTable = createNewFrameFromVariable(tempFrame);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 		retNoun.addAdditionalReturn(
 				new NounMetadata("You've successfully completed running similarity heat and generated a new frame", 

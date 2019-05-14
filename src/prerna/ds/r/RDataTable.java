@@ -349,7 +349,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 	
 	/**
-	 * Recrate the metadata for this existing frame
+	 * Recreate the metadata for this existing frame
 	 */
 	public void recreateMeta() {
 		String[] colNames = this.builder.getColumnNames();
