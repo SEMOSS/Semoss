@@ -2,8 +2,6 @@ package prerna.sablecc2.reactor.frame;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -32,24 +30,7 @@ public class FrameHeadersReactor extends AbstractReactor {
 		}
 		// get the types of the headers requested
 		String[] headerTypes = getHeaderTypes();
-		
-		// get types to include
-		Map<String, Object> headersObj = dm.getMetaData().getTableHeaderObjects(headerTypes);
-		
-		// now loop through and add if there are any filters on the header
-		Set<String> filteredCols = dm.getFrameFilters().getAllFilteredColumns();
-		List<Map<String, Object>> headersMap = (List<Map<String, Object>>) headersObj.get("headers");
-		for(Map<String, Object> headerMap : headersMap) {
-			String alias = (String) headerMap.get("alias");
-			String rawHeader = (String) headerMap.get("header");
-			if(filteredCols.contains(alias) || filteredCols.contains(rawHeader)) {
-				headerMap.put("isFiltered", true);
-			} else {
-				headerMap.put("isFiltered", false);
-			}
-		}
-		
-		NounMetadata noun = new NounMetadata(headersObj, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS, PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(dm.getFrameHeadersObject(headerTypes), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS, PixelOperationType.FRAME_HEADERS_CHANGE);
 		return noun;
 	}
 
