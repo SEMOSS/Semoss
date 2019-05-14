@@ -1,5 +1,8 @@
 package prerna.sablecc2.om.task;
 
+import java.util.List;
+import java.util.Map;
+
 import prerna.engine.api.IHeadersDataRow;
 
 public abstract class AbstractTaskOperation extends AbstractTask {
@@ -56,5 +59,11 @@ public abstract class AbstractTaskOperation extends AbstractTask {
 	
 	public ITask getInnerTask() {
 		return this.innerTask;
+	}
+	
+	@Override
+	public List<Map<String, String>> getSource() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
