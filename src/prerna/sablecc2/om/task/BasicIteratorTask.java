@@ -284,6 +284,15 @@ public class BasicIteratorTask extends AbstractTask {
 		return this.headerInfo;
 	}
 	
+	@Override
+	public List<Map<String, String>> getSource() {
+		List<Map<String, String>> sources = new Vector<Map<String, String>>();
+		if(this.qs != null) {
+			sources.add(qs.getSourceMap());
+		}
+		return sources;
+	}
+	
 	public SelectQueryStruct getQueryStruct() {
 		return this.qs;
 	}
