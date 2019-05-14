@@ -30,7 +30,7 @@ public class FrameHeadersReactor extends AbstractReactor {
 		}
 		// get the types of the headers requested
 		String[] headerTypes = getHeaderTypes();
-		NounMetadata noun = new NounMetadata(dm.getFrameHeadersObject(headerTypes), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS, PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(dm.getFrameHeadersObject(headerTypes), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS);
 		return noun;
 	}
 
