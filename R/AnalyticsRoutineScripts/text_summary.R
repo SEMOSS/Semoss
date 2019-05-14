@@ -47,25 +47,22 @@ prepare_doc<-function(filename,page_url,content){
 		t<-unlist(strsplit(filename,"[.]"))	
 		if(length(t)>0){
 			ext<-tolower(t[length(t)])
-			if(ext=="doc"){
-				s<-read_doc(filename)
-				doc<-paste(s,collapse=" ")
+			if(ext %in% c("doc","docx","pdf","txt")){
+				if(ext=="doc"){
+					s<-read_doc(filename)
+					doc<-paste(s,collapse=" ")
+				}else if(ext=="docx"){
+					s<-read_docx(filename)
+					doc<-paste(s,collapse=" ")
+				}else if(ext=="pdf"){
+					s<-read_pdf(filename)
+					doc<-paste(s$text,collapse=" ")
+				}else if(ext=="txt"){
+					doc<-readtext(filename)
+				}
 				txt<-clean_text(doc)
 				txt<-textreuse::tokenize_sentences(txt, lowercase = FALSE)
-			}else if(ext=="docx"){
-				s<-read_docx(filename)
-				doc<-paste(s,collapse=" ")
-				txt<-clean_text(doc)
-				txt<-textreuse::tokenize_sentences(txt, lowercase = FALSE)
-			}else if(ext=="pdf"){
-				s<-read_pdf(filename)
-				doc<-paste(s$text,collapse=" ")
-				txt<-clean_text(doc)
-				txt<-textreuse::tokenize_sentences(txt, lowercase = FALSE)
-			}else if(ext=="txt"){
-				doc<-readtext(filename)
-				txt<-clean_text(doc$text)
-				txt<-textreuse::tokenize_sentences(txt, lowercase = FALSE)
+				txt<-gsub("[[:punct:]]","",txt)
 			}
 		}
 	}else if(page_url!=""){
@@ -73,9 +70,11 @@ prepare_doc<-function(filename,page_url,content){
 		library(rvest)
 		page = xml2::read_html(page_url)
 		txt = clean_text(rvest::html_text(rvest::html_nodes(page, "p")))
+		txt<-gsub("[[:punct:]]","",txt)
 	}else if(content!=""){
 		txt<-clean_text(page_text=content)
 		txt<-textreuse::tokenize_sentences(txt, lowercase = FALSE)
+		txt<-gsub("[[:punct:]]","",txt)
 	}else{
 		txt=""
 	}
@@ -108,12 +107,13 @@ clean_text<-function(page_text){
 	txt<-iconv(txt,to="ASCII//TRANSLIT")
 	txt<-gsub(x=txt,pattern="\"", replacement="")
 	#txt<-gsub("[[:punct:]]|[[:digit:]]","",txt)
+	txt<-gsub("[\r\n]","",txt)
 	txt<-gsub("[[:digit:]]","",txt)
 	txt<-gsub("[^[:alnum:][:space:].?!\"]", "",txt)
 	return(txt)
 }
 
-summarize_topics<-function(filename="",page_url="",content="",topTopics=5,topTerms=6) {
+summarize_topics<-function(filename="",page_url="",content="",topTopics=5,topTerms=10) {
 # Description
 # Extracts a given number of topics based on latent Dirichlet allocation topic model
 # Arguments
@@ -138,6 +138,76 @@ summarize_topics<-function(filename="",page_url="",content="",topTopics=5,topTer
 	return(topic_keywords)
 }
 
+summarize_topics_text<-function(filename="",page_url="",content="",topTopics=5,topTerms=10,topN=5) {
+# Description
+# Extracts a given number of topics based on latent Dirichlet allocation topic model
+# Arguments
+# filename is the file name to extract topics from
+# page_url is the url of the page to extract topics from
+# content is the text to extract topics from
+# topTopics is the number of topics to extract
+	txt<-prepare_doc(filename,page_url,content)
+	library(stringr)
+	library(textmineR)
+	doc <- stringr::str_replace_all(txt, "<br */>", "")
+	tcm <- CreateTcm(doc_vec = doc, skipgram_window = 10,verbose = FALSE, cpus = 2)
+	model <- FitLdaModel(dtm = tcm, k = topTopics, iterations = 200, burnin = 180, alpha = 0.1,beta = 0.05, optimize_alpha = TRUE,calc_likelihood = FALSE,calc_coherence = FALSE, calc_r2 = FALSE, cpus = 2)
+	
+	topics<-SummarizeTopics(model)
+	rownames(topics)<-NULL
+	topics<-topics[,1:5]
+	colnames(topics)[c(2,5)]<-c("label","top terms")
+	topics<-topics[order(-topics$prevalence,-topics$coherence,topics$label),]
+	# Compute and add topic keywords frequency
+	topic_keywords<-topic_terms_freq(txt,topics,model$phi,topTerms)
+	topic_text<-topics_text(txt,topic_keywords,topN)
+	out<-bind_results(topic_keywords,topic_text)
+	gc()
+	return(out)
+}
+
+bind_results<-function(topic_keywords,topic_text){
+	topic_keywords$text<-""
+	topic_text$label<-""
+	topic_text$prevalence<-0
+	topic_text$coherence<-0
+	topic_text$keyword<-""
+	topic_text$freq<-0
+	topic_text$topic_share<-0
+	topic_text$terms_relevance<-0
+	topic_text<-topic_text[,c(1,3,4,5,6,7,8,9,2)]
+	topic_keywords<-rbind(topic_keywords,topic_text)
+	return(topic_keywords)
+}
+
+topics_text<-function(txt,topics,topN){
+	mytopics<-unique(topics$topic)
+	n<-length(mytopics)
+	df<-data.frame()
+	if(n>0){
+		library(plyr)
+		for(i in 1:n){
+			mytopic<-topics[topics$topic==mytopics[i],]
+			m<-nrow(mytopic)
+			v<-vector()
+			for(j in 1:m){
+				v<-append(v,which(grepl(tolower(mytopic$keyword[j]),tolower(txt))))
+			}
+			z<-count(v)
+			z<-z[order(-z$freq),]
+			z<-head(z,topN)
+			if(i==1){
+				df<-data.frame(topic=mytopics[i],text=txt[z$x])
+			}else{
+				df<-rbind(df,data.frame(topic=mytopics[i],text=txt[z$x]))
+			}
+		}
+		df<-format(df,justify="left")
+	}
+	gc()
+	return(df)
+}
+
 topic_terms_freq<-function(txt,topics,phi,topTerms){
 	library(tm)
 	weight<-0.6
@@ -150,9 +220,10 @@ topic_terms_freq<-function(txt,topics,phi,topTerms){
 		top_terms_share<-phi[topics$topic[i],top_terms]
 		
 		topic_terms_relevance<-weight*log(phi[topics$topic[i],top_terms])+(1-weight)*log(phi[topics$topic[i],top_terms]/(colSums(phi[,top_terms])/n))
-		
+		ordered_term_freq<-term_freq[names(term_freq) %in% top_terms][order(match(names(term_freq[names(term_freq) %in% top_terms]),names(top_terms_share)))]
+
 		df<-data.frame(keyword=top_terms,freq=term_freq[names(term_freq) %in% top_terms],
-		topic_share=round(top_terms_share*term_freq[names(term_freq) %in% top_terms],2),terms_relevance=topic_terms_relevance)
+		topic_share=round(top_terms_share*ordered_term_freq,2),terms_relevance=topic_terms_relevance)
 		rownames(df)<-NULL
 		df$keyword<-as.character(df$keyword)
 		df$label<-df[df$terms_relevance==max(df$terms_relevance),]$keyword[1]
@@ -170,7 +241,7 @@ topic_terms_freq<-function(txt,topics,phi,topTerms){
 	return(out[order(-out$prevalence,-out$coherence,-out$terms_relevance),])
 }
 
-text_keywords<-function(filename="",page_url="",content="",min_ngram=1,min_freq=1){
+text_keywords<-function(filename="",page_url="",content="",min_ngram=1,min_freq=2){
 # Description
 # Extracts a set of key words with length greater than one
 # Arguments
@@ -180,8 +251,8 @@ text_keywords<-function(filename="",page_url="",content="",min_ngram=1,min_freq=
 	library(textrank,quietly = TRUE)
 	txt<-prepare_doc(filename,page_url,content)
 	doc<-annotate_doc(txt)	
-	stats <- textrank_keywords(doc$lemma, relevant = doc$upos %in% c("NOUN", "ADJ"), ngram_max = 8, sep = " ")
-	stats <- subset(stats$keywords, ngram + freq >= max(3,min_ngram+1) & ngram>=min_ngram & freq>min_freq )
+	stats <- textrank_keywords(doc$lemma, relevant = doc$upos %in% c("NOUN","PROPN","ADJ"), ngram_max = 8, sep = " ")
+	stats <- subset(stats$keywords, ngram>=min_ngram & freq>=min_freq )
 	gc()
 	return(stats)
 }
