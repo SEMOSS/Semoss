@@ -238,7 +238,7 @@ public class PixelStreamUtility {
 				if(frame.getMetaData().isOpen()) {
 					noun.addAdditionalReturn(
 							new NounMetadata(frame.getFrameHeadersObject(), 
-									PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS, PixelOperationType.FRAME_HEADERS_CHANGE));
+									PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS_CHANGE));
 				}
 			}
 			
