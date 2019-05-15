@@ -93,8 +93,7 @@ public class SplitUnpivotReactor extends AbstractFramePyReactor {
 
 		// column header data is changing so we must recreate metadata
 		recreateMetadata(frame, false);
-		return new NounMetadata(frame, PixelDataType.FRAME,
-				PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
 	// ////////////////////////////////////////////////////////////////////

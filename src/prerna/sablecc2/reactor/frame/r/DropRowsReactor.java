@@ -52,7 +52,6 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-
 	}
 
 	private SelectQueryStruct getQueryStruct() {

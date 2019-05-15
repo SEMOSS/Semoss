@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import java.util.List;
+import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -48,10 +49,17 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		sourceScript = sourceScript.replace("\\", "/");
 		this.rJavaTranslator.runR(sourceScript);
 
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
-				PixelOperationType.FRAME_DATA_CHANGE);
+		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
+		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = null;
+		
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		if(!override) {
+			// adding new column
+			// data + headers change
+			opTypes.add(PixelOperationType.FRAME_HEADERS_CHANGE);
+			retNoun = new NounMetadata(frame, PixelDataType.FRAME, opTypes);
+			
 			// new col is mastered version of column
 			String tempCol = Utility.getRandomString(8);
 			String newHeaderName = getCleanNewHeader(tableName, column);
@@ -70,6 +78,10 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 			metaData.setAliasToProperty(tableName + "__" + newHeaderName, newHeaderName);
 			metaData.setDataTypeToProperty(tableName + "__" + newHeaderName, SemossDataType.STRING.toString());
 		} else {
+			// override existing column
+			// just a data change
+			retNoun = new NounMetadata(frame, PixelDataType.FRAME, opTypes);
+
 			// execute the script on the column and replace original
 			this.rJavaTranslator.runR(tableName + "$" + column + " <- master_col_data(" + tableName + "$" + column + ");");
 		}
