@@ -1,20 +1,14 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.algorithm.api.SemossDataType;
-import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -88,7 +82,7 @@ public class JoinColumnsReactor extends AbstractFramePyReactor {
 				"JoinColumns", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 	
 	//////////////////////////////////////////////////////////////////////

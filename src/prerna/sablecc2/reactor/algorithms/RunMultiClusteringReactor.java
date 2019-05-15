@@ -106,7 +106,7 @@ public class RunMultiClusteringReactor extends AbstractReactor {
 				"ClusterOptimization", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	private AlgorithmSingleColStore<Integer> runGoldenSelectionForNumberOfClusters(ITableDataFrame data, int start, int end, Logger logger) {
