@@ -114,7 +114,7 @@ public class RunSimilarityReactor extends AbstractReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		//return successful frame change to FE
-		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	private void generateClusterCenters(ITableDataFrame dataFrame, Cluster cluster, boolean[] isNumeric) {
