@@ -55,7 +55,7 @@ public enum ReactorKeysEnum {
 	GRAPH_METAMODEL("graphMetamodel",                       "The metamodel of the graph"),
 	GRAPH_TYPE_ID("graphTypeId",                            "The type identifier of the graph nodes"),
 	HOST("host",                                            "The host."),
-	ID("id", 												"This key can represent the unique id of the insight instance, the unique id of the saved insight relative to the app, or the unique id of the insight within solr"),
+	ID("id", 												"This key can represent the unique id of the insight instance or the unique id of the saved insight relative to the app"),
 	IMAGE("image",		 									"The encoding of the image as a png"),
 	INCLUDE_META_KEY("meta", 								"Boolean indication (true or false) of whether to retrieve metadata"),
 	INDEX("index", 											"A specified index for an object (e.g., the frame filter)"),
