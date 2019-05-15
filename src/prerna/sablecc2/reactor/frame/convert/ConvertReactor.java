@@ -98,12 +98,12 @@ public class ConvertReactor extends AbstractFrameReactor {
 	 * @return
 	 */
 	private String getFrameType() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
 		if(grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
 		
-		return this.curRow.get(0).toString();
+		return this.curRow.getAllStrValues().get(0);
 	}
 	
 }
