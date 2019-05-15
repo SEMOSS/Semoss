@@ -175,6 +175,7 @@ import prerna.sablecc2.reactor.frame.FrameTypeReactor;
 import prerna.sablecc2.reactor.frame.HasDuplicatesReactor;
 import prerna.sablecc2.reactor.frame.InsightMetamodelReactor;
 import prerna.sablecc2.reactor.frame.SetCurrentFrameReactor;
+import prerna.sablecc2.reactor.frame.convert.ConvertReactor;
 import prerna.sablecc2.reactor.frame.filter.AddFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.DeleteFrameFilterReactor;
 import prerna.sablecc2.reactor.frame.filter.GetFrameFiltersReactor;
@@ -737,10 +738,11 @@ public class ReactorFactory {
 		reactorHash.put("SurveyMonkeyListSurveys", SurveyMonkeyListSurveysReactor.class);
 		reactorHash.put("NaturalLanguageSearch", NaturalLanguageSearchReactor.class);
 		
-		// specifies that our pksl operations after this point are dealing with the specified frame
+		// specifies that our pixel operations after this point are dealing with the specified frame
 		reactorHash.put("Frame", FrameReactor.class);
 		reactorHash.put("CreateFrame", CreateFrameReactor.class);
 		reactorHash.put("FrameType", FrameTypeReactor.class);
+		reactorHash.put("Convert", ConvertReactor.class);
 		reactorHash.put("GenerateFrameFromRVariable", GenerateFrameFromRVariableReactor.class);
 		reactorHash.put("GenerateFrameFromPyVariable", GenerateFrameFromPyVariableReactor.class);
 		reactorHash.put("GenerateH2FrameFromRVariable", GenerateH2FrameFromRVariableReactor.class);
