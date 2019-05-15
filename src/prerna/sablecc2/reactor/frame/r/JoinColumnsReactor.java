@@ -90,7 +90,7 @@ public class JoinColumnsReactor extends AbstractRFrameReactor {
 				"JoinColumns", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 	
 	//////////////////////////////////////////////////////////////////////

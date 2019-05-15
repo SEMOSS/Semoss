@@ -102,7 +102,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 				"anom_" + aggregateFunction + "_" + seriesColumn);
 		metaData.setDataTypeToProperty(table + "__" + "anom_" + aggregateFunction + "_" + seriesColumn, "NUMBER");
 
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	@Override
