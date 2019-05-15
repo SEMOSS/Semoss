@@ -168,8 +168,6 @@ summarize_topics_text<-function(filename="",page_url="",content="",topTopics=5,t
 
 bind_results<-function(topic_keywords,topic_text){
 	topic_keywords$text<-""
-	topic_text$prevalence<-0
-	topic_text$coherence<-0
 	topic_text$keyword<-""
 	topic_text$freq<-0
 	topic_text$topic_share<-0
@@ -196,12 +194,12 @@ topics_text<-function(txt,topics,topN){
 			z<-z[order(-z$freq),]
 			z<-head(z,topN)
 			if(i==1){
-				df<-data.frame(topic=mytopics[i],label=mytopic$label[1],text=txt[z$x])
+				df<-data.frame(topic=mytopics[i],label=mytopic$label[1],prevalence=mytopic$prevalence[1],coherence=mytopic$coherence[1],text=txt[z$x])
 			}else{
-				df<-rbind(df,data.frame(topic=mytopics[i],label=mytopic$label[1],text=txt[z$x]))
+				df<-rbind(df,data.frame(topic=mytopics[i],label=mytopic$label[1],prevalence=mytopic$prevalence[1],coherence=mytopic$coherence[1],text=txt[z$x]))
 			}
 		}
-		df<-format(df,justify="left")
+		df$text<-format(df$text,justify="left")
 	}
 	gc()
 	return(df)
