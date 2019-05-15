@@ -13,6 +13,20 @@ Frame ( frame = [ FRAMEUNITTEST ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [
 Frame ( ) | Select ( MovieBudget , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Title ) .as ( [ MovieBudget , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Title ] ) | Format ( type = [ 'table' ] ) | TaskOptions ( { ""0"" : { ""layout"" : ""Grid"" , ""alignment"" : { ""label"" : [ ""MovieBudget"" , ""Revenue_Domestic"" , ""Revenue_International"" , ""RottenTomatoes_Audience"" , ""RottenTomatoes_Critics"" , ""Title"" ] } } } ) | Collect ( 2000 ) ;
 AddColumn ( newCol = [ ""test"" ] , dataType = [ ""STRING"" ] ) ;
 Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ ""0"" ] , layout = [ ""Grid"" ] ) | Collect ( 500 ) ;",<<<text>>>clean_add_column_string.json<<</text>>>,FALSE,,TRUE,TRUE,FALSE,
+clean add column number,"AddPanel ( 0 ) ;
+Panel ( 0 ) | AddPanelConfig ( config = [ { ""config"" : { ""type"" : ""STANDARD"" , ""opacity"" : 100 } } ] ) ;
+Panel ( 0 ) | AddPanelEvents ( { ""onSingleClick"" : { ""Unfilter"" : [ { ""panel"" : """" , ""query"" : ""<encode>UnfilterFrame(<SelectedColumn>);</encode>"" , ""options"" : { } , ""refresh"" : false , ""default"" : true , ""disabledVisuals"" : [ ""Grid"" , ""Sunburst"" ] , ""disabled"" : false } ] } , ""onBrush"" : { ""Filter"" : [ { ""panel"" : """" , ""query"" : ""<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>"" , ""options"" : { } , ""refresh"" : false , ""default"" : true , ""disabled"" : false } ] } } ) ;
+Panel ( 0 ) | RetrievePanelEvents ( ) ;
+Panel ( 0 ) | SetPanelView ( ""visualization"" , ""<encode>{""type"":""echarts""}</encode>"" ) ;
+Panel ( 0 ) | SetPanelView ( ""federate-view"" , ""<encode>{""app_id"":""<<<appId>>>unit_test_movie<<</appId>>>""}</encode>"" ) ;
+CreateFrame ( frameType = [ GRID ] , override = [ true ] ) .as ( [ 'FRAMEUNITTEST' ] ) ;
+Database ( database = [ ""<<<appId>>>unit_test_movie<<</appId>>>"" ] ) | Select ( Title , Title__MovieBudget , Title__Revenue_Domestic , Title__Revenue_International , Title__RottenTomatoes_Audience , Title__RottenTomatoes_Critics ) .as ( [ Title , MovieBudget , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics ] ) | Import ( frame = [ FRAMEUNITTEST ] ) ;
+Panel ( 0 ) | SetPanelView ( ""visualization"" ) ;
+Frame ( frame = [ FRAMEUNITTEST ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ ""0"" ] , layout = [ ""Grid"" ] ) | Collect ( 2000 ) ;
+<j><encode>synchronizeGridToRDataTable(""FRAMEUNITTEST"")</encode></j> ;
+Frame ( ) | Select ( MovieBudget , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Title ) .as ( [ MovieBudget , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Title ] ) | Format ( type = [ 'table' ] ) | TaskOptions ( { ""0"" : { ""layout"" : ""Grid"" , ""alignment"" : { ""label"" : [ ""MovieBudget"" , ""Revenue_Domestic"" , ""Revenue_International"" , ""RottenTomatoes_Audience"" , ""RottenTomatoes_Critics"" , ""Title"" ] } } } ) | Collect ( 2000 ) ;
+AddColumn ( newCol = [ ""test"" ] , dataType = [ ""NUMBER"" ] ) ;
+Frame ( ) | QueryAll ( ) | AutoTaskOptions ( panel = [ ""0"" ] , layout = [ ""Grid"" ] ) | Collect ( 500 ) ;",<<<text>>>clean_add_column_number.json<<</text>>>,FALSE,,TRUE,TRUE,FALSE,
 filter,"AddPanel ( 0 ) ;
 Panel ( 0 ) | AddPanelEvents ( { ""onSingleClick"" : { ""Unfilter"" : [ { ""panel"" : """" , ""query"" : ""<encode>UnfilterFrame(<SelectedColumn>);</encode>"" , ""options"" : { } , ""refresh"" : false , ""default"" : true , ""disabledVisuals"" : [ ""Grid"" , ""Sunburst"" ] , ""disabled"" : false } ] } , ""onBrush"" : { ""Filter"" : [ { ""panel"" : """" , ""query"" : ""<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>"" , ""options"" : { } , ""refresh"" : false , ""default"" : true , ""disabled"" : false } ] } } ) ;
 Panel ( 0 ) | RetrievePanelEvents ( ) ;
