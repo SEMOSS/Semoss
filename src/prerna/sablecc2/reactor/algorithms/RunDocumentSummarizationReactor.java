@@ -144,7 +144,7 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		}
 
 		// now create the frame and return the noun
-		RDataTable newTable = createFrameFromVariable(frameName);
+		RDataTable newTable = createNewFrameFromVariable(frameName);
 		this.insight.setDataMaker(newTable);
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		this.insight.getVarStore().put(frameName, noun);
