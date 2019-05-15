@@ -76,7 +76,7 @@ public class SplitColumnsReactor extends AbstractFramePyReactor {
 		recreateMetadata(frame, false);
 		
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 	
 	//////////////////////////////////////////////////////////////////////

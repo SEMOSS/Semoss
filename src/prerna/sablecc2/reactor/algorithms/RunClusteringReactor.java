@@ -168,7 +168,7 @@ public class RunClusteringReactor extends AbstractReactor {
 				"Clustering", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	public boolean isInstanceChangedCluster(AlgorithmSingleColStore<Integer> results, Object instanceName, int bestCluster) {

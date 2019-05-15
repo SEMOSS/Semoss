@@ -37,6 +37,9 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 		boolean overrideColumn = getOverride();
 		// we need to check data types this will only be valid on non numeric values
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
+
+		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
+		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
 		// update existing columns
 		if (overrideColumn) {
 			for (int i = 0; i < columns.size(); i++) {
@@ -57,6 +60,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 		}
 		// create new column
 		else {
+			opTypes.add(PixelOperationType.FRAME_HEADERS_CHANGE);
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
@@ -79,7 +83,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 				"ExtractNumbers", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, opTypes);
 	}
 
 	private List<String> getColumns() {
