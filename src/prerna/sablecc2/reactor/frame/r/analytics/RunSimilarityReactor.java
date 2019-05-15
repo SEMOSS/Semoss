@@ -86,7 +86,7 @@ public class RunSimilarityReactor extends AbstractRFrameReactor {
 		
 		// now return this object
 		// we are returning the name of our table that sits in R; it is structured as a list of entries: x,y,cor
-		NounMetadata noun = new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata noun = new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		noun.addAdditionalReturn(
 				new NounMetadata("Similarity ran succesfully! See new \"" + newColName + "\" column in the grid.",
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
