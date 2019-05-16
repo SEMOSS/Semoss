@@ -108,7 +108,11 @@ public class ConvertReactor extends AbstractFrameReactor {
 			return grs.get(0).toString();
 		}
 		
-		return this.curRow.getAllStrValues().get(0);
+		List<String> inputValues = this.curRow.getAllStrValues();
+		if(!inputValues.isEmpty()) {
+			return inputValues.get(0);
+		}
+		throw new IllegalArgumentException("Must define the output frame type");
 	}
 	
 }
