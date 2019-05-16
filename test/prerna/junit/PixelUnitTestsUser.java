@@ -25,8 +25,9 @@ public class PixelUnitTestsUser extends PixelUnit {
 	private boolean ignoreAddedDictionary;
 	private boolean ignoreAddedIterable;
 	private List<String> cleanTestDatabases;
+	private boolean ignoreFailure;
 	
-	public PixelUnitTestsUser(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases) {
+	public PixelUnitTestsUser(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases, boolean ignoreFailure) {
 		this.name = name;
 		this.pixel = pixel;
 		this.expectedJson = expectedJson;
@@ -36,6 +37,7 @@ public class PixelUnitTestsUser extends PixelUnit {
 		this.ignoreAddedDictionary = ignoreAddedDictionary;
 		this.ignoreAddedIterable = ignoreAddedIterable;
 		this.cleanTestDatabases = cleanTestDatabases;
+		this.ignoreFailure = ignoreFailure;
 	}
 		
 	@Parameters(name = "{index}: (user defined) test {0}")
@@ -45,7 +47,7 @@ public class PixelUnitTestsUser extends PixelUnit {
 	
 	@Test
 	public void runTest() throws IOException {
-		PixelUnitTests.runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases);
+		PixelUnitTests.runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases, ignoreFailure);
 	}
 
 }
