@@ -57,6 +57,11 @@ public class ConvertReactor extends AbstractFrameReactor {
 		// get the name of the frame type
 		String frameType = getFrameType();
 		String alias = getAlias();
+		// will assume the person wants me to 
+		// override the existing variable
+		if(alias == null) {
+			alias = frame.getName();
+		}
 		ITableDataFrame newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
 		// insert the data for the new frame
 		IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
