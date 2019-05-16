@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
-import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -33,7 +32,7 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
-		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame dataFrame = getFrame();
 		PandasFrame frame = (PandasFrame)dataFrame;
 		String frameName = dataFrame.getName();
 		dataFrame.setLogger(logger);

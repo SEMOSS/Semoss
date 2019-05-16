@@ -19,12 +19,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class RunOutlierReactor extends AbstractReactor {
+public class RunOutlierReactor extends AbstractFrameReactor {
 	
 	private static final String CLASS_NAME = RunOutlierReactor.class.getName();
 
@@ -45,7 +45,7 @@ public class RunOutlierReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
-		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame dataFrame = getFrame();
 		dataFrame.setLogger(logger);
 		
 		AlgorithmSingleColStore<Double> results = new AlgorithmSingleColStore<Double>();

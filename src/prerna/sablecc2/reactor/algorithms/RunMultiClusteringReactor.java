@@ -18,12 +18,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class RunMultiClusteringReactor extends AbstractReactor {
+public class RunMultiClusteringReactor extends AbstractFrameReactor {
 	
 	private static final String CLASS_NAME = RunMultiClusteringReactor.class.getName();
 	
@@ -52,7 +52,7 @@ public class RunMultiClusteringReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
-		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame dataFrame = getFrame();
 		dataFrame.setLogger(logger);
 		
 		///////////////// start of initializing some stuff
