@@ -98,12 +98,10 @@ public class RdbmsUploadReactorUtility {
 				String createTable = RdbmsQueryBuilder.makeCreate(tableName, newHeaders, sqlTypes);
 				engine.insertData(createTable);
 			} catch (Exception e) {
-				if (e.getMessage().contains("already exists")) {
-					String dropTable = RdbmsQueryBuilder.makeDropTable(tableName);
-					engine.removeData(dropTable);
-					String createTable = RdbmsQueryBuilder.makeCreate(tableName, newHeaders, sqlTypes);
-					engine.insertData(createTable);
-				}
+				String dropTable = RdbmsQueryBuilder.makeDropTable(tableName);
+				engine.removeData(dropTable);
+				String createTable = RdbmsQueryBuilder.makeCreate(tableName, newHeaders, sqlTypes);
+				engine.insertData(createTable);
 			}
 		} else {
 			String createTable = RdbmsQueryBuilder.makeOptionalCreate(tableName, newHeaders, sqlTypes);
