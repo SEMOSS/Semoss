@@ -2,43 +2,15 @@ package prerna.sablecc2.reactor.frame.filter;
 
 import java.util.List;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 
-public abstract class AbstractFilterReactor extends AbstractReactor {
-
-	/**
-	 * Get the frame
-	 * 
-	 * @return
-	 */
-	public ITableDataFrame getFrame() {
-		// get frame from key
-		GenRowStruct frameGrs = this.store.getNoun(ReactorKeysEnum.FRAME.getKey());
-		if (frameGrs != null && !frameGrs.isEmpty()) {
-			return (ITableDataFrame) frameGrs.get(0);
-		}
-		
-		// get frame |
-		GenRowStruct pipedGrs = this.store.getNoun(PixelDataType.FRAME.toString());
-		if (pipedGrs != null && !pipedGrs.isEmpty()) {
-			return (ITableDataFrame)  pipedGrs.get(0);
-		}
-		
-		// else, grab the default frame from the insight
-		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
-		
-		if(defaultFrame == null) {
-			throw new NullPointerException("No frame defined and could not find the default insight frame");
-		}
-		return defaultFrame;
-	}
+public abstract class AbstractFilterReactor extends AbstractFrameReactor {
 
 	/**
 	 * Get the filters passed into the reactor
