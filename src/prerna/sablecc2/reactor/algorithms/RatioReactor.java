@@ -29,7 +29,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.imports.RImporter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -37,7 +37,7 @@ import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class RatioReactor extends AbstractReactor {
+public class RatioReactor extends AbstractFrameReactor {
 
 	private static final String CLASS_NAME = RatioReactor.class.getName();
 
@@ -58,7 +58,7 @@ public class RatioReactor extends AbstractReactor {
 		// get pixel inputs
 		String instanceColumn = getInstanceColumn();
 		List<String> attributeColumns = getAttributes();
-		ITableDataFrame frame = getData();
+		ITableDataFrame frame = getFrame();
 		String origTableName = frame.getName();
 		frame.setLogger(logger);
 		optimizeFrame(frame, instanceColumn);
@@ -456,15 +456,6 @@ public class RatioReactor extends AbstractReactor {
 		}
 
 		throw new IllegalArgumentException("Need to define the attributes for the Ratio reactor");
-	}
-
-	private ITableDataFrame getData() {
-
-		if(this.insight.getDataMaker() != null) {
-			return (ITableDataFrame) this.insight.getDataMaker();
-		}
-
-		throw new IllegalArgumentException("Need to define the data for the Ratio reactor");
 	}
 
 	/**
