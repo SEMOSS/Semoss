@@ -259,12 +259,12 @@ public abstract class AbstractQueryStruct {
 				qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY ||
 				qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			
-			sourceMap.put("id", getEngineId());
+			sourceMap.put("name", getEngineId());
 			
 		} else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME ||
 				qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			
-			sourceMap.put("id", getFrameName());
+			sourceMap.put("name", getFrameName());
 		}
 		return sourceMap;
 	}
