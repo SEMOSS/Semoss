@@ -30,6 +30,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 	public NounMetadata execute() {
 		ITableDataFrame frame = getFrame();
 		SelectQueryStruct qs = frame.getMetaData().getFlatTableQs();
+		qs.setFrame(frame);
 		if(qs.getSelectors().size() == 0) {
 			throw new IllegalArgumentException("There are no selectors in this frame to move to R");
 		}
