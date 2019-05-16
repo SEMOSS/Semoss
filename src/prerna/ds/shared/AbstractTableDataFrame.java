@@ -37,6 +37,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -129,6 +130,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		retMap.put("name", this.frameName);
+		retMap.put("type", FrameFactory.getFrameType(this));
 		retMap.put("headerInfo", headersObj);
 		return retMap;
 	}
