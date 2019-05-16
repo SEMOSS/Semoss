@@ -5,12 +5,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
 import com.google.gson.JsonSyntaxException;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -28,6 +30,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -299,80 +302,30 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		if(!pixelReturn.isEmpty()) {
 			runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
 		}
+		// logic to get all the frame headers
+		{
+			// get all frame headers
+			VarStore vStore = insight.getVarStore();
+			Set<String> keys = vStore.getKeys();
+			for(String k : keys) {
+				NounMetadata noun = insight.getVarStore().get(k);
+				PixelDataType type = noun.getNounType();
+				if(type == PixelDataType.FRAME) {
+					try {
+						ITableDataFrame frame = (ITableDataFrame) noun.getValue();
+						runner.addResult("CACHED_FRAME_HEADERS", 
+								new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS),
+								true);
+					} catch(Exception e) {
+						e.printStackTrace();
+						// ignore
+					}
+				}
+			}
+		}
 		
 		// we need to reset the tempInsight recipe to the original recipe
 		tempInsight.setPixelRecipe(insight.getPixelRecipe());
-		
-//		Gson gson = new Gson();
-//		// I will create a temp insight
-//		// so that I can mock the output as if this was run properly
-//		Insight tempInsight = new Insight(insight.getEngineId(), insight.getEngineName(), insight.getRdbmsId());
-//		tempInsight.setInsightId(insight.getInsightId());
-//		tempInsight.setInsightName(insight.getInsightName());
-//		tempInsight.setVarStore(insight.getVarStore());
-//		
-//		PixelRunner runner = new PixelRunner();
-//		// i need to mock adding all the panels
-//		Map<String, InsightPanel> panels = insight.getInsightPanels();
-//		for(String panelId : panels.keySet()) {
-//			runner.runPixel("AddPanel(" + panelId + ");", tempInsight);
-//		}
-//		
-//		// i am going to run the panel view at the end again
-//		// because if we clone to get a new panel
-//		// and then switch it at another point
-//		Map<String, String> panelToPanelView = new HashMap<String, String>();
-//		// set the view to a vizual to paint the data
-//		for(String panelId : panels.keySet()) {
-//			InsightPanel panel = panels.get(panelId);
-//			String panelView = panel.getPanelView();
-//			String panelViewOptions = panel.getPanelActiveViewOptions();
-//			Map<String, Object> config = panel.getConfig();
-//			
-//			String pixelToRun = "";
-//			if(panelViewOptions != null && !panelViewOptions.isEmpty()) {
-//				pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\", \"" + Utility.encodeURIComponent(panelViewOptions) + "\");";
-//			} else {
-//				pixelToRun = "Panel(" + panelId + ") | SetPanelView(\"" + panelView + "\");";
-//			}
-//			if(config != null && !config.isEmpty()) {
-//				pixelToRun += "Panel(" + panelId + ") |AddPanelConfig(" + gson.toJson(config) + ");";
-//			}
-//			
-//			panelToPanelView.put(panelId, pixelToRun);
-//			runner.runPixel(pixelToRun, tempInsight);
-//		}
-//		
-//		// send the view data
-//		Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
-//		List<Object> pixelReturn = (List<Object>) viewData.get("pixelReturn");
-//		if(!pixelReturn.isEmpty()) {
-//			runner.addResult("CACHED_DATA", new NounMetadata(pixelReturn, PixelDataType.CACHED_PIXEL_RUNNER), true);
-//		}
-//		
-//		// now we will set the actual panels
-//		for(String panelId : panels.keySet()) {
-//			tempInsight.addNewInsightPanel(panels.get(panelId));
-//		}
-//		
-//		// and finally return all the panel ornaments
-//		for(String panelId : panels.keySet()) {
-//			String userDefinedLabel = "";
-//			String panelLabel = panels.get(panelId).getPanelLabel();
-//			if(panelLabel != null) {
-//				userDefinedLabel = "Panel(" + panelId + ")|SetPanelLabel(\"" + panelLabel + "\");";
-//			}
-//			runner.runPixel(panelToPanelView.get(panelId)
-//					+ userDefinedLabel
-//					+ "Panel(" + panelId + ") | RetrievePanelOrnaments();"
-//					+ "Panel(" + panelId + ") | RetrievePanelEvents();"
-//					+ "Panel(" + panelId + ") | RetrievePanelComment();"
-//					, tempInsight);
-//		}
-//		
-//		// we need to reset the recipe
-//		tempInsight.setPixelRecipe(insight.getPixelRecipe());
-		
 		return runner;
 	}
 	
