@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.junit.AssumptionViolatedException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,8 +35,9 @@ public class PixelUnitTests extends PixelUnit {
 	private boolean ignoreAddedDictionary;
 	private boolean ignoreAddedIterable;
 	private List<String> cleanTestDatabases;
+	private boolean ignoreFailure;
 	
-	public PixelUnitTests(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases) {
+	public PixelUnitTests(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases, boolean ignoreFailure) {
 		this.name = name;
 		this.pixel = pixel;
 		this.expectedJson = expectedJson;
@@ -45,6 +47,7 @@ public class PixelUnitTests extends PixelUnit {
 		this.ignoreAddedDictionary = ignoreAddedDictionary;
 		this.ignoreAddedIterable = ignoreAddedIterable;
 		this.cleanTestDatabases = cleanTestDatabases;
+		this.ignoreFailure = ignoreFailure;
 	}
 		
 	@Parameters(name = "{index}: test {0}")
@@ -65,7 +68,8 @@ public class PixelUnitTests extends PixelUnit {
 						Boolean.parseBoolean(row[5]), // ignore order
 						Boolean.parseBoolean(row[6]), // ignore added dictionary
 						Boolean.parseBoolean(row[7]), // ignore added iterable
-						parseListFromString(row[8]) // clean test databases
+						parseListFromString(row[8]), // clean test databases
+						Boolean.parseBoolean(row[9]) // ignore failure
 					}).collect(Collectors.toList());
 		} catch (IOException e) {
 			LOGGER.error("Error: ", e);
@@ -80,18 +84,21 @@ public class PixelUnitTests extends PixelUnit {
 	
 	@Test
 	public void runTest() throws IOException {
-		runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases);
+		runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases, ignoreFailure);
 	}
 	
-	public static void runTest(PixelUnit testRunner, String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases) throws IOException {
+	public static void runTest(PixelUnit testRunner, String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases, boolean ignoreFailure) throws IOException {
 		LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 		LOGGER.info("RUNNING TEST: " + name);
 		LOGGER.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		try {
 			testRunner.testPixel(pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable);
-		} catch (IOException e) {
-			LOGGER.error("Error: ", e);
-			throw e;
+		} catch (AssertionError e) {
+			if (ignoreFailure) {
+				throw new AssumptionViolatedException("Ignoring failure of the test: " + name, e);
+			} else {
+				throw e;
+			}
 		} finally {
 			testRunner.setCleanTestDatabases(cleanTestDatabases);
 		}
