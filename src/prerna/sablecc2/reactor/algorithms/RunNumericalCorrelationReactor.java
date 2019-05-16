@@ -17,12 +17,12 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class RunNumericalCorrelationReactor extends AbstractReactor {
+public class RunNumericalCorrelationReactor extends AbstractFrameReactor {
 
 	private static final String CLASS_NAME = RunNumericalCorrelationReactor.class.getName();
 	
@@ -33,7 +33,7 @@ public class RunNumericalCorrelationReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
-		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame dataFrame = getFrame();
 		dataFrame.setLogger(logger);
 		
 		// figure out inputs

@@ -45,10 +45,7 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 		int period = getPeriod();
 
 		// get frame
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
-		if (frame == null) {
-			new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-		}
+		ITableDataFrame frame = getFrame();
 
 		// throw error if frame isnt r frame
 		// TODO: we should sync to R in the pixel

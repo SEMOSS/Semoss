@@ -22,7 +22,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 import weka.classifiers.Classifier;
@@ -30,7 +30,7 @@ import weka.classifiers.Evaluation;
 import weka.classifiers.trees.J48;
 import weka.core.Instances;
 
-public class RunClassificationReactor extends AbstractReactor {
+public class RunClassificationReactor extends AbstractFrameReactor {
 
 	private static final String CLASS_NAME = RunClassificationReactor.class.getName();
 
@@ -43,7 +43,7 @@ public class RunClassificationReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
-		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame dataFrame = getFrame();
 		dataFrame.setLogger(logger);
 		
 		// figure out inputs
