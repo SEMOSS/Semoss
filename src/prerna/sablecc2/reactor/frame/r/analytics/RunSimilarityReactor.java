@@ -44,7 +44,7 @@ public class RunSimilarityReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		Logger logger = this.getLogger(CLASS_NAME);
-		ITableDataFrame dataFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame dataFrame = getFrame();
 		String frameName = dataFrame.getName();
 		dataFrame.setLogger(logger);
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
