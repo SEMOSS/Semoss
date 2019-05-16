@@ -628,15 +628,15 @@ public class PixelUnit {
 	//////////////////////////////
 	
 	// Test pixel methods (overloaded)
-	protected void testPixel(String pixel, String expectedJson) throws IOException {
+	protected void testPixel(String pixel, String expectedJson) {
 		testPixel(pixel, expectedJson, false, new ArrayList<String>(), false, false, false);
 	}
 
-	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable) throws IOException {
+	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable) {
 		testPixel(pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, false);
 	}
 	
-	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, boolean assume) throws IOException {
+	protected void testPixel(String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, boolean assume) {
 		try {
 			List<PixelComparison> result = compareResult(pixel, expectedJson, compareAll, excludePaths, ignoreOrder);
 			
