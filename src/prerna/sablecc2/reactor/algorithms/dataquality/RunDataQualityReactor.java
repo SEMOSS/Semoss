@@ -6,6 +6,7 @@ import java.util.Vector;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.Constants;
@@ -117,11 +118,11 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		frame.recreateMeta();
 		
 		if(inputTable != null) {
-			return new NounMetadata(inputTable, PixelDataType.FRAME);
+			return new NounMetadata(inputTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		}
 		// make a new frame
 		RDataTable newFrame = createNewFrameFromVariable(retRVariableName);
-		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
+		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		this.insight.getVarStore().put(retRVariableName, noun);
 		return noun;
 	}
