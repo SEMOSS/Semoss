@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame;
 
-import java.util.HashMap;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -8,9 +7,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 
-public class FrameHeaderExistsReactor extends AbstractReactor {
+public class FrameHeaderExistsReactor extends AbstractFrameReactor {
 
 	public FrameHeaderExistsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey() };
@@ -20,10 +18,6 @@ public class FrameHeaderExistsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// get the frame
 		ITableDataFrame dm = getFrame();
-		if (dm == null) {
-			NounMetadata noun = new NounMetadata(new HashMap<String, Object>(), PixelDataType.CUSTOM_DATA_STRUCTURE);
-			return noun;
-		}
 		// get the types of the headers requested
 		String header = getHeader();
 		
@@ -40,24 +34,6 @@ public class FrameHeaderExistsReactor extends AbstractReactor {
 		return noun;
 	}
 
-	/**
-	 * Getting the frame that is required
-	 * @return
-	 */
-	private ITableDataFrame getFrame() {
-		GenRowStruct frameGrs = this.store.getNoun(this.keysToGet[0]);
-		if(frameGrs != null && !frameGrs.isEmpty()) {
-			return (ITableDataFrame) frameGrs.get(0);
-		}
-		
-		List<Object> frameValues = this.curRow.getValuesOfType(PixelDataType.FRAME);
-		if(frameValues != null && !frameValues.isEmpty()) {
-			return (ITableDataFrame) frameValues.get(0);
-		}
-		
-		return (ITableDataFrame) this.insight.getDataMaker();
-	}
-	
 	/**
 	 * Getting the frame that is required
 	 * @return
