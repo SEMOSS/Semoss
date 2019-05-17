@@ -34,7 +34,9 @@ public class PurgeReactor extends AbstractFrameReactor {
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		// see if this is overriding any reference
 		VarStore varStore = this.insight.getVarStore();
-		// override the references
+		// add new reference
+		varStore.put(newFrame.getName(), noun);
+		// override other references
 		Set<String> curReferences = varStore.getAllAliasForObjectReference(frame);
 		// switch to the new frame
 		for(String reference : curReferences) {
