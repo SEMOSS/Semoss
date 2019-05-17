@@ -7,6 +7,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -29,6 +30,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		ITableDataFrame frame = getFrame();
+		GenRowFilters curFilters = frame.getFrameFilters().copy();
 		SelectQueryStruct qs = frame.getMetaData().getFlatTableQs();
 		qs.setFrame(frame);
 		if(qs.getSelectors().size() == 0) {
@@ -74,6 +76,7 @@ public class ConvertReactor extends AbstractFrameReactor {
 		// if it is the same name
 		// override the reference
 		if(frame.getName().equals(alias)) {
+			newFrame.setFrameFilters(curFilters);
 			Set<String> curReferences = varStore.getAllAliasForObjectReference(frame);
 			// switch to the new frame
 			for(String reference : curReferences) {
