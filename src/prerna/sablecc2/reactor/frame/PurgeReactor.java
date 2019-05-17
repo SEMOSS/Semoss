@@ -42,7 +42,8 @@ public class PurgeReactor extends AbstractFrameReactor {
 		}
 		
 		// return the noun
-		return noun;
+		//TODO: come back to the headers change for now
+		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 }
