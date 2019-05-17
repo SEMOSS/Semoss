@@ -4038,12 +4038,6 @@
     ],
     "sortInfo": [],
     "numRows": 441,
-    "sources": [
-      {
-        "id": "FRAMEUNITTEST",
-        "type": "FRAME"
-      }
-    ],
     "numCollected": 500,
     "taskOptions": {
       "0": {
