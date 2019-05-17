@@ -72,7 +72,7 @@ public class InsightUtility {
 	public static NounMetadata removeVaraible(InMemStore<String, NounMetadata> varStore, String key) {
 		NounMetadata noun = varStore.remove(key);
 		if(noun == null) {
-			return new NounMetadata(false, PixelDataType.BOOLEAN);
+			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
 		}
 		
 		PixelDataType nType = noun.getNounType();
@@ -94,7 +94,7 @@ public class InsightUtility {
 			}
 		}
 		
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
 	}
 	
 	/**
