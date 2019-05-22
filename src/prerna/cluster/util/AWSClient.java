@@ -9,7 +9,6 @@ import java.util.Map;
 
 
 import com.google.common.io.Files;
-import com.microsoft.azure.storage.analytics.CloudAnalyticsClient;
 
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
@@ -56,6 +55,7 @@ public class AWSClient extends CloudClient{
 
 	@Override
 	public void init() {
+
 		rcloneConfigFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "rcloneConfig";		
 		new File(rcloneConfigFolder).mkdir();	
 		dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + FILE_SEPARATOR + "db";
@@ -63,16 +63,23 @@ public class AWSClient extends CloudClient{
 		Map <String, String> env = System.getenv();
 		if(env.containsKey(AWS_REGION_KEY)){
 			aws_region = env.get(AWS_REGION_KEY);
+		} else if (DIHelper.getInstance().getProperty(AWS_REGION_KEY) != null &&  !(DIHelper.getInstance().getProperty(AWS_REGION_KEY).isEmpty())) {
+			aws_region = DIHelper.getInstance().getProperty(AWS_REGION_KEY);
+		} else{
+			throw new IllegalArgumentException("There is no region specified.");
 		}
-		else{
-			throw new IllegalArgumentException("Region has not beem set");
-		}
+		
+		
 		if(env.containsKey(AWS_BUCKET_KEY)){
 			aws_bucket = env.get(AWS_BUCKET_KEY);
+		} else if (DIHelper.getInstance().getProperty(AWS_BUCKET_KEY) != null &&  !(DIHelper.getInstance().getProperty(AWS_BUCKET_KEY).isEmpty())) {
+			aws_region = DIHelper.getInstance().getProperty(AWS_BUCKET_KEY);
 		}
 		else{
-			throw new IllegalArgumentException("Bucket has not beem set");
+			throw new IllegalArgumentException("There is no bucket key specified.");
+
 		}
+		
 	}
 
 	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
