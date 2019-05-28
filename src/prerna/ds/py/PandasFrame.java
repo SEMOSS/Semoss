@@ -142,8 +142,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		runScript("list(locals())");
 		// need to get a pandas frame types and then see if this is the same as 
-		if(!isEmpty(tableName)) {
-			adjustDataTypes(tableName);
+		if(!isEmpty(frameName)) {
+			adjustDataTypes(frameName);
 		}
 		
 
@@ -175,6 +175,15 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String headerS = tableName+".columns=" + header.toString();
 		// execute all 3 scripts
 		runScript(importS, loadS, headerS);
+		
+		// need to set up the name here as well as make the frame
+		String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
+		runScript(makeWrapper);
+		
+		// replacing the name here
+		tableName = tableName + "w";
+		frameName = tableName;
+		
 	}
 	
 	public void merge(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
