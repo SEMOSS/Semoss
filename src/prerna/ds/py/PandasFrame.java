@@ -73,7 +73,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(tableName == null || tableName.trim().isEmpty()) {
 			tableName = "PYFRAME_" + UUID.randomUUID().toString().replace("-", "_");
 		}
-		this.frameName = tableName;
+		this.frameName = tableName + "w";
+	
 
 
 	}
