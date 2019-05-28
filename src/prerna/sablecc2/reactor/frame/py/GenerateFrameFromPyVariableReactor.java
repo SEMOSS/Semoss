@@ -50,7 +50,6 @@ public class GenerateFrameFromPyVariableReactor extends AbstractFrameReactor {
 
 		// create the pandas frame
 		// and set up teverything else
-		varName = varName+"w";
 		PandasFrame pf = new PandasFrame(varName);
 		pf.setJep(this.insight.getPy());
 		
