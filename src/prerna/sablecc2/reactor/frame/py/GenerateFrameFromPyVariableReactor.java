@@ -45,14 +45,14 @@ public class GenerateFrameFromPyVariableReactor extends AbstractFrameReactor {
 			throw new IllegalArgumentException("Please make sure the variable " + varName + " exists and can be a valid data.table object");
 		}
 		
-		// create the pandas frame
-		// and set up teverything else
-		PandasFrame pf = new PandasFrame(varName);
-		pf.setJep(this.insight.getPy());
-		
 		String makeWrapper = varName+"w = PyFrame.makefm(" + varName +")";
 		runScript(makeWrapper);
 
+		// create the pandas frame
+		// and set up teverything else
+		PandasFrame pf = new PandasFrame(varName+"w");
+		pf.setJep(this.insight.getPy());
+		
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(pf.getMetaData(), colNames, colTypes, varName);
 		pf.setDataTypeMap(pf.getMetaData().getHeaderToTypeMap());
 
