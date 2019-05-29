@@ -1,6 +1,7 @@
 package prerna.util.git.reactors;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -14,6 +15,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.git.GitConsumer;
 
 public class CopyAppRepo extends AbstractReactor {
@@ -61,7 +63,8 @@ public class CopyAppRepo extends AbstractReactor {
 				}
 			}
 			logger.info("Congratulations! Downloading your new app has been completed");
-			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
+			return new NounMetadata(UploadUtilities.getAppReturnData(user, appId), PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+//			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 		} catch(Exception e) {
 			NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.WARNING);
 			SemossPixelException err = new SemossPixelException(noun);
