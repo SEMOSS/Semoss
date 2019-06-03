@@ -2736,6 +2736,14 @@ public class Utility {
 		return portStr;
 	}
 	
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it) {
+		return Utility.writeResultToFile(fileLocation, it, null, ",");
+	}
+	
+	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, String separator) {
+		return Utility.writeResultToFile(fileLocation, it, null, separator);
+	}
+	
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		return Utility.writeResultToFile(fileLocation, it, typesMap, ",");
 	}
@@ -2789,9 +2797,13 @@ public class Utility {
 					if( (i+1) != size) {
 						builder.append(seperator);
 					}
-					typesArr[i] = typesMap.get(headers[i]);
-					if(typesArr[i] == null) {
+					if(typesMap == null) {
 						typesArr[i] = SemossDataType.STRING;
+					} else {
+						typesArr[i] = typesMap.get(headers[i]);
+						if(typesArr[i] == null) {
+							typesArr[i] = SemossDataType.STRING;
+						}
 					}
 				}
 				// write the header to the file
