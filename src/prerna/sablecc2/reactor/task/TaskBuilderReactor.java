@@ -82,7 +82,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		SelectQueryStruct qs = null;
 
 		GenRowStruct grsQs = this.store.getNoun(PixelDataType.QUERY_STRUCT.toString());
-		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
+		//if we don't have tasks in the curRow, check if it exists in genrow under the qs key
 		if(grsQs != null && !grsQs.isEmpty()) {
 			noun = grsQs.getNoun(0);
 			qs = (SelectQueryStruct) noun.getValue();

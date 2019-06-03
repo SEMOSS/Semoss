@@ -167,6 +167,7 @@ import prerna.sablecc2.reactor.expression.filter.OpAnd;
 import prerna.sablecc2.reactor.expression.filter.OpOr;
 import prerna.sablecc2.reactor.federation.FederationBestMatches;
 import prerna.sablecc2.reactor.federation.FederationBlend;
+import prerna.sablecc2.reactor.federation.FuzzyMatchesReactor;
 import prerna.sablecc2.reactor.frame.CreateFrameReactor;
 import prerna.sablecc2.reactor.frame.CurrentFrameReactor;
 import prerna.sablecc2.reactor.frame.FrameHeaderExistsReactor;
@@ -793,9 +794,12 @@ public class ReactorFactory {
 		reactorHash.put("GetDatabaseConnections", GetDatabaseConnectionsReactor.class);
 		reactorHash.put("GetDatabaseTableStructure", GetDatabaseTableStructureReactor.class);
 		reactorHash.put("GetSpecificConceptProperties", GetSpecificConceptPropertiesReactor.class);
+		// depcreated
 		reactorHash.put("FederationBlend", FederationBlend.class);
+		// depcreated
 		reactorHash.put("FederationBestMatches", FederationBestMatches.class);
-
+		reactorHash.put("FuzzyMatches", FuzzyMatchesReactor.class);
+		
 		// app meta and local master utilities
 		reactorHash.put("ReloadAppOwl", ReloadAppOwlReactor.class);
 		reactorHash.put("GetOwlMetamodel", GetOwlMetamodelReactor.class);
