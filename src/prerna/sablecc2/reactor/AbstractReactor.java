@@ -238,7 +238,6 @@ public abstract class AbstractReactor implements IReactor {
 	public GenRowStruct getCurRow() {
 		return curRow;
 	}
-	
 
 	@Override
 	public void closeNoun(String noun) {
@@ -249,9 +248,15 @@ public abstract class AbstractReactor implements IReactor {
 	public NounStore getNounStore() {
 		// I need to see if I have a child
 		// if the child
-		if(this.store == null)
+		if(this.store == null) {
 			store = new NounStore(operationName);
+		}
 		return store;
+	}
+	
+	@Override
+	public void setNounStore(NounStore store) {
+		this.store = store;
 	}
 
 	@Override

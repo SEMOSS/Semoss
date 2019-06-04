@@ -83,6 +83,8 @@ public interface IReactor {
 	// gets the nounstore
 	NounStore getNounStore();
 	
+	void setNounStore(NounStore store);
+
 	// gets all the inputs i.e. the noun names
 	// the second string is the meaning
 	// gives JSON with the following values
