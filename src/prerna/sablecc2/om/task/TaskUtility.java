@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.lambda.map.MapLambdaReactor;
@@ -157,4 +158,22 @@ public class TaskUtility {
 		}
 		return false;
 	}
+	
+	/**
+	 * Get the data types for the task based on index of header output
+	 * @param task
+	 * @return
+	 */
+	public static SemossDataType[] getTypesFromTask(ITask task) {
+		List<Map<String, Object>> headerInfo = task.getHeaderInfo();
+		int size = headerInfo.size();
+		
+		SemossDataType[] typesArr = new SemossDataType[size];
+		for(int i = 0; i < size; i++) {
+			Map<String, Object> hMap = headerInfo.get(i);
+			typesArr[i] = SemossDataType.convertStringToDataType((String) hMap.get("type"));
+		}
+		return typesArr;
+	}
+	
 }
