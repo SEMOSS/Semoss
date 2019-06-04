@@ -296,6 +296,10 @@ public class RSyntaxHelper {
 		return str.toString();
 	}
 	
+//	public static alterColumnType(String tableName, String colName, SemossDataType type) {
+//		
+//	}
+
 	public static String alterColumnTypeToCharacter(String tableName, String colName) {
 		// will generate a string similar to
 		// "datatable$Revenue_International <- as.numeric(as.character(datatable$Revenue_International))"
