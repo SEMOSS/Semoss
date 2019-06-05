@@ -296,9 +296,29 @@ public class RSyntaxHelper {
 		return str.toString();
 	}
 	
-//	public static alterColumnType(String tableName, String colName, SemossDataType type) {
-//		
-//	}
+	/**
+	 * Convert the column into the correct type
+	 * @param tableName
+	 * @param colName
+	 * @param type
+	 * @return
+	 */
+	public static String alterColumnType(String tableName, String colName, SemossDataType type) {
+		if(type == SemossDataType.INT) {
+			return alterColumnTypeToInteger(tableName, colName);
+		} else if (type == SemossDataType.DOUBLE) {
+			return alterColumnTypeToNumeric(tableName, colName);
+		} else if(type == SemossDataType.STRING) {
+			return alterColumnTypeToCharacter(tableName, colName);
+		} else if(type == SemossDataType.FACTOR) {
+			return alterColumnTypeToFactor(tableName, colName);
+		} else if(type == SemossDataType.DATE) {
+			return alterColumnTypeToDate(tableName, null, colName);
+		} else if(type == SemossDataType.TIMESTAMP) {
+			return alterColumnTypeToDateTime(tableName, null, colName);
+		}
+		throw new IllegalArgumentException("Unable to convert column to specified type");
+	}
 
 	public static String alterColumnTypeToCharacter(String tableName, String colName) {
 		// will generate a string similar to
