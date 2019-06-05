@@ -138,15 +138,16 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		// now we will just use the normal merge logic
 		// just need to update to join on the new fuzzy column
 		joins.get(0).setSelector(rFrameVar + "__" + fuzzyColName);
+		logger.info("Running script to merge new fields onto frame");
 		MergeReactor mergeReactor = new MergeReactor();
 		mergeReactor.setInsight(this.insight);
 		mergeReactor.setPixelPlanner(planner);
 		mergeReactor.setNounStore(this.store);
 		
 		NounMetadata noun = mergeReactor.execute();
-		
-		// reset the data type
-		
+		// reset the data type for the fuzzy
+		// to be that of the column type it was matched to
+		this.rJavaTranslator.runR(RSyntaxHelper.alterColumnType(rFrameVar, fuzzyColName, frameColDataType));
 		return noun;
 	}
 	

@@ -27,7 +27,7 @@ public class WikiLogicalNameExtractor {
 		List<String> logicalNames = new Vector<String>();
 
 		WikibaseDataFetcher wbdf = WikibaseDataFetcher.getWikidataDataFetcher();
-		searchTerm = splitCamelCase(searchTerm.trim().replace("_", " "));
+		searchTerm = splitCamelCase(searchTerm.trim().replace("_", " ")).replaceAll("\\s+", " ");
 		List<WbSearchEntitiesResult> searchResults = wbdf.searchEntities(searchTerm, new Long(10));
 		int numReturns = searchResults.size();
 		if(numReturns == 0) {
