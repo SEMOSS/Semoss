@@ -32,6 +32,7 @@ public abstract class AbstractSecurityUtils {
 	static RDBMSNativeEngine securityDb;
 	static boolean securityEnabled = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
+	static boolean anonymousUsersEnabled = false;
 	
 	/**
 	 * Only used for static references
@@ -50,10 +51,21 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			securityEnabled = (security instanceof Boolean && ((boolean) security) ) || (Boolean.parseBoolean(security.toString()));
 		}
+		
+		Object anonymousUsers = DIHelper.getInstance().getLocalProp(Constants.ANONYMOUS_USER_ALLOWED);
+		if(anonymousUsers == null) {
+			anonymousUsersEnabled = false;
+		} else {
+			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers) ) || (Boolean.parseBoolean(anonymousUsers.toString()));
+		}
 	}
 
 	public static boolean securityEnabled() {
 		return securityEnabled;
+	}
+	
+	public static boolean anonymousUsersEnabled() {
+		return anonymousUsersEnabled;
 	}
 	
 	/**

@@ -34,6 +34,8 @@ public class User extends AbstractValueObject {
 	// shared sessions
 	List<String> sharedSessions = new Vector<String>();
 	
+	private boolean anonymous;
+	
 	/**
 	 * Set the access token for a given provider
 	 * @param value
@@ -44,6 +46,7 @@ public class User extends AbstractValueObject {
 			loggedInProfiles.add(name);
 		}
 		accessTokens.put(name, value);
+		setAnonymous(false);
 	}
 	
 	/**
@@ -116,6 +119,14 @@ public class User extends AbstractValueObject {
 
 	public boolean isLoggedIn() {
 		return !this.loggedInProfiles.isEmpty();
+	}
+	
+	public void setAnonymous(boolean anonymous) {
+		this.anonymous = anonymous;
+	}
+	
+	public boolean isAnonymous() {
+		return this.anonymous;
 	}
 	
 	////////////////////////////////////////////////////////////////////////
@@ -226,7 +237,6 @@ public class User extends AbstractValueObject {
 	{
 		return sharedSessions.contains(sessionId);
 	}
-	
 	
 	/////////////////////////////////////////////////////
 	

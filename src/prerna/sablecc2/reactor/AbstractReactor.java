@@ -497,7 +497,17 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	/**
-	 * 
+	 * Throw error since anonymous user
+	 */
+	public void throwAnonymousUserError() {
+		NounMetadata  noun = new NounMetadata("Must be logged in to perform this operation", PixelDataType.ERROR, PixelOperationType.ANONYMOUS_USER_ERROR, PixelOperationType.ERROR);
+		SemossPixelException exception = new SemossPixelException(noun);
+		exception.setContinueThreadOfExecution(false);
+		throw exception;
+	}
+	
+	/**
+	 * Throw login required error
 	 * @param details
 	 */
 	public void throwLoginError(Map details) {
