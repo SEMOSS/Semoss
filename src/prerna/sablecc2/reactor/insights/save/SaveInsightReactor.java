@@ -41,6 +41,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// security
 		if(AbstractSecurityUtils.securityEnabled()) {
+			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
+				if(this.insight.getUser().isAnonymous()) {
+					throwAnonymousUserError();
+				}
+			}
+			
 			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the app");
 			}

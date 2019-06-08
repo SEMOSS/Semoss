@@ -59,6 +59,12 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
+			
+			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
+				if(this.insight.getUser().isAnonymous()) {
+					throwAnonymousUserError();
+				}
+			}
 		}
 		
 		String appId = UUID.randomUUID().toString();

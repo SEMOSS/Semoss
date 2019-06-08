@@ -462,12 +462,12 @@ public class Constants {
 	public static final String SECURITY_DB = "security";
 	public static final String SECURITY_ENABLED = "security-enabled";
 	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
+	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
 	public static final String SESSION_USER = "semoss_user";
 	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
 
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
-	public static final String ANONYMOUS_USER_ID = "-1";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
 	
 	// Theming

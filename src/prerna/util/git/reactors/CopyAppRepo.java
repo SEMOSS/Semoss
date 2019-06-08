@@ -1,12 +1,12 @@
 package prerna.util.git.reactors;
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.PixelDataType;
@@ -52,6 +52,12 @@ public class CopyAppRepo extends AbstractReactor {
 		logger.info("Downloading app located at " + repository);
 		logger.info("App will be named locally as " + localAppName);
 
+		if(AbstractSecurityUtils.securityEnabled() && AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if(this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
+		
 		try {
 			String appId = GitConsumer.makeAppFromRemote(localAppName, repository, logger);
 			ClusterUtil.reactorPushApp(appId);
