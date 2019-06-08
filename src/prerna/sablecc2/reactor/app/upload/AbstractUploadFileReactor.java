@@ -69,6 +69,12 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
+			
+			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
+				if(this.insight.getUser().isAnonymous()) {
+					throwAnonymousUserError();
+				}
+			}
 		}
 
 		if (existing) {

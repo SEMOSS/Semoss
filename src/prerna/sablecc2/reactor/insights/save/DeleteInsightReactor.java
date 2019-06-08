@@ -24,6 +24,12 @@ public class DeleteInsightReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if(AbstractSecurityUtils.securityEnabled() && AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if(this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
+		
 		organizeKeys();
 		GenRowStruct appGrs = this.store.getNoun(this.keysToGet[0]);
 		if(appGrs.isEmpty()) {

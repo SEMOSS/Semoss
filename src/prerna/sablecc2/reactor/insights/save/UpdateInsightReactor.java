@@ -46,6 +46,12 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		// security
 		if(AbstractSecurityUtils.securityEnabled()) {
+			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
+				if(this.insight.getUser().isAnonymous()) {
+					throwAnonymousUserError();
+				}
+			}
+			
 			if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, existingId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}
