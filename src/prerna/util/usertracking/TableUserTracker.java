@@ -752,9 +752,13 @@ public class TableUserTracker implements IUserTracker {
 		row[0] = vStore.get(JobReactor.SESSION_KEY).getValue().toString();
 		row[1] = in.getInsightId();
 		User user = in.getUser();
-		if(user != null && !user.getLogins().isEmpty()) {
-			String userId = user.getAccessToken(user.getLogins().get(0)).getId();
-			row[2] = userId;
+		if(user != null) {
+			if(!user.getLogins().isEmpty()) {
+				String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+				row[2] = userId;
+			} else if(user.isAnonymous()) {
+				row[2] = "Anonymous User";
+			}
 		}
 		row[3] = java.sql.Timestamp.valueOf(LocalDateTime.now()).toString();
 		return row;
