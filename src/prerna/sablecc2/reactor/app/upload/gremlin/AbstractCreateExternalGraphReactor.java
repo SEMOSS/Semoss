@@ -61,6 +61,12 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
+			
+			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
+				if(this.insight.getUser().isAnonymous()) {
+					throwAnonymousUserError();
+				}
+			}
 		}
 		
 		organizeKeys();
