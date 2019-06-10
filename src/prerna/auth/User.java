@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
@@ -259,14 +260,19 @@ public class User extends AbstractValueObject {
 			return retMap;
 		}
 		List<AuthProvider> logins = semossUser.getLogins();
-		for(AuthProvider p : logins) {
-			String name = semossUser.getAccessToken(p).getName();
-			if(name == null) {
-				// need to send something
-				name = "";
+		if(logins.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
+			retMap.put("ANNONYMOUS", "Not Logged In");
+		} else {
+			for(AuthProvider p : logins) {
+				String name = semossUser.getAccessToken(p).getName();
+				if(name == null) {
+					// need to send something
+					name = "";
+				}
+				retMap.put(p.toString().toUpperCase(), name);
 			}
-			retMap.put(p.toString().toUpperCase(), name);
 		}
+		
 		return retMap;
 	}
 }
