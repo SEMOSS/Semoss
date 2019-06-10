@@ -27,7 +27,7 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 		this.setDelimiter(getDelimiter());
 		// get a random file name
 		String randomKey = UUID.randomUUID().toString();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + randomKey + ".txt";
+		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + randomKey + ".txt";
 		buildTask();
 		
 		// store it in the insight so the FE can download it
