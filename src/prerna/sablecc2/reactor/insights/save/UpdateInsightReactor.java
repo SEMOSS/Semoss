@@ -33,7 +33,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	public UpdateInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.ID.getKey(), 
 				 ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
-				 ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.IMAGE.getKey()};
+				 ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.PIPELINE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
 	}
 
 	@Override
