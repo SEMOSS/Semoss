@@ -35,6 +35,7 @@ public class User extends AbstractValueObject {
 	List<String> sharedSessions = new Vector<String>();
 	
 	private boolean anonymous;
+	private String anonymousId;
 	
 	/**
 	 * Set the access token for a given provider
@@ -127,6 +128,14 @@ public class User extends AbstractValueObject {
 	
 	public boolean isAnonymous() {
 		return this.anonymous;
+	}
+
+	public void setAnonymousId(String anonymousId) {
+		this.anonymousId = anonymousId;
+	}
+	
+	public String getAnonymousId() {
+		return this.anonymousId;
 	}
 	
 	////////////////////////////////////////////////////////////////////////
