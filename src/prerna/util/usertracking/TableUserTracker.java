@@ -757,7 +757,7 @@ public class TableUserTracker implements IUserTracker {
 				String userId = user.getAccessToken(user.getLogins().get(0)).getId();
 				row[2] = userId;
 			} else if(user.isAnonymous()) {
-				row[2] = "Anonymous User";
+				row[2] = user.getAnonymousId();
 			}
 		}
 		row[3] = java.sql.Timestamp.valueOf(LocalDateTime.now()).toString();
