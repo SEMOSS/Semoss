@@ -68,7 +68,8 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		List<String> params = getParams();
-		
+		Map pipeline = getPipeline();
+
 		// this is always encoded before it gets here
 		recipeToSave = decodeRecipe(recipeToSave);
 		// get an updated recipe if there are files used
@@ -107,6 +108,13 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		logger.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
 		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden);
 		logger.info("3) Done");
+		
+		// write pipeline
+		if(pipeline != null && !pipeline.isEmpty()) {
+			logger.info("4) Add pipeline to file...");
+			writePipelineToFile(engine.getEngineId(), engine.getEngineName(), existingId, pipeline);
+			logger.info("4) Done...");
+		}
 		
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
