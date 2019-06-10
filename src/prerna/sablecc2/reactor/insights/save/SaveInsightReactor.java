@@ -61,7 +61,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String layout = getLayout();
 		boolean hidden = getHidden();
 		List<String> params = getParams();
-		
+		Map pipeline = getPipeline();
+
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.length == 0) {
 			recipeToSave = this.insight.getPixelRecipe().toArray(new String[] {});
@@ -118,6 +119,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
 		logger.info("3) Done...");
 		
+		// write pipeline
+		if(pipeline != null && !pipeline.isEmpty()) {
+			logger.info("4) Add pipeline to file...");
+			writePipelineToFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, pipeline);
+			logger.info("4) Done...");
+		}
+	
 		// get base 64 image string and write to file
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {

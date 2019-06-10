@@ -47,7 +47,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		
 		// get a random file name
 		String randomKey = UUID.randomUUID().toString();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + randomKey + ".xlsx";
+		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + randomKey + ".xlsx";
 		buildTask();
 		
 		// store it in the insight so the FE can download it
