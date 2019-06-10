@@ -206,7 +206,7 @@ public class Insight {
 						break;
 					}
 				} finally {
-					if(!this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace() && AbstractSecurityUtils.securityEnabled() 
+					if(this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace() && AbstractSecurityUtils.securityEnabled() 
 							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
 						if(!runner.isMeta().isEmpty() && !runner.isMeta().get(runner.isMeta().size()-1)) {
 							getWorkspaceCacheThread().addToQueue(this.pixelList);
