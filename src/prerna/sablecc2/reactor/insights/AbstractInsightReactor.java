@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.insights;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -14,6 +15,9 @@ import java.util.Vector;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -152,6 +156,19 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		
 		// well, you are out of luck
 		return new String[0];
+	}
+	
+	protected Map getPipeline() {
+		GenRowStruct pipelineGrs = this.store.getNoun(ReactorKeysEnum.PIPELINE.getKey());
+		if(pipelineGrs != null && !pipelineGrs.isEmpty()) {
+			Map pipeline = (Map) pipelineGrs.get(0);
+			if(pipeline.isEmpty()) {
+				return null;
+			}
+			return pipeline;
+		}
+		
+		return null;
 	}
 	
 	protected String getLayout() {
@@ -318,6 +335,47 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected String[] getParamRecipe(String[] recipe, List<String> params, String insightName) {
 		String paramRecipe = PixelUtility.getParameterizedRecipe(this.insight.getUser(), recipe, params, insightName);
 		return new String[]{paramRecipe};
+	}
+	
+	/**
+	 * Save and persist the pipeline to a file
+	 * @param appId
+	 * @param appName
+	 * @param rdbmsID
+	 * @param pipeline
+	 * @return
+	 */
+	protected File writePipelineToFile(String appId, String appName, String rdbmsID, Map pipeline) {
+		String pipelinePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
+				+ DIR_SEPARATOR + "version" 
+				+ DIR_SEPARATOR + rdbmsID;
+		
+		File f = new File(pipelinePath + DIR_SEPARATOR + "pipeline.json");
+		// delete file if it already exists
+		if(f.exists()) {
+			f.delete();
+		}
+		
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(f);
+			Gson gson = new GsonBuilder().setPrettyPrinting().create();
+			gson.toJson(pipeline, writer);
+		} catch(Exception e) {
+			throw new IllegalArgumentException("An error occured with saving the pipeline", e);
+		} finally {
+			if(writer != null) {
+				try {
+					writer.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		return f;
 	}
 	
 }
