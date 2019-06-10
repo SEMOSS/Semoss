@@ -90,6 +90,7 @@ public enum ReactorKeysEnum {
 	PANEL_VIEW_OPTIONS_KEY("panelViewOptions", 				"The panel view options"),
 	PARAM_KEY("params", 									"The parameters for the insight map"),
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
+	PIPELINE("pipeline", 									"Pipeline json for the insight"),
 	PORT("port",                                            "The connection port."),
 	PLANNER("planner", 										"The planner"),
 	PROP_FILE("propFile", 								    "The path to the properties file."),
