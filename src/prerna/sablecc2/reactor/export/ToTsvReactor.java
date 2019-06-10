@@ -25,7 +25,7 @@ public class ToTsvReactor extends AbstractExportTxtReactor {
 		this.setDelimiter("\t");
 		// get a random file name
 		String randomKey = UUID.randomUUID().toString();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "\\" + randomKey + ".tsv";
+		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + randomKey + ".tsv";
 		buildTask();
 		
 		// store it in the insight so the FE can download it

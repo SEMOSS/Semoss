@@ -29,7 +29,9 @@ import prerna.sablecc2.reactor.job.JobReactor;
 public abstract class AbstractReactor implements IReactor {
 
 	private static final Logger LOGGER = LogManager.getLogger(AbstractReactor.class.getName());
-
+	// get the directory separator
+	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	
 	protected Insight insight = null;
 	public PixelPlanner planner = null;
 	public Vector<IReactor> childReactor = new Vector<IReactor>();
