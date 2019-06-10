@@ -38,7 +38,7 @@ text_summary<-function(filename="",page_url="",content="",topN=5,ord=FALSE,limit
 	return(out)
 }
 
-prepare_doc<-function(filename,page_url,content){
+prepare_doc<-function(filename,page_url,content,exclude=FALSE){
 	library(textreuse)
 	library(textreadr)
 	library(readtext)
@@ -55,12 +55,12 @@ prepare_doc<-function(filename,page_url,content){
 					s<-read_docx(filename)
 					doc<-paste(s,collapse=" ")
 				}else if(ext=="pdf"){
-					s<-read_pdf(filename)
-					doc<-paste(s$text,collapse=" ")
+					s<-filename %>% read_pdf(1) %>% `[[`('text')
+					doc<-paste(s,collapse=" ")
 				}else if(ext=="txt"){
 					doc<-readtext(filename)
 				}
-				txt<-clean_text(doc)
+				txt<-clean_text(doc,exclude)
 				txt<-textreuse::tokenize_sentences(txt, lowercase = FALSE)
 				txt<-gsub("[[:punct:]]","",txt)
 			}
@@ -69,10 +69,11 @@ prepare_doc<-function(filename,page_url,content){
 		library(xml2)
 		library(rvest)
 		page = xml2::read_html(page_url)
-		txt = clean_text(rvest::html_text(rvest::html_nodes(page, "p")))
+		lines<-page %>% rvest::html_nodes("body") %>% rvest::html_nodes("section") %>% rvest::html_nodes("p") %>% rvest::html_text()
+		txt = clean_text(lines,exclude)
 		txt<-gsub("[[:punct:]]","",txt)
 	}else if(content!=""){
-		txt<-clean_text(page_text=content)
+		txt<-clean_text(page_text=content,exclude)
 		txt<-textreuse::tokenize_sentences(txt, lowercase = FALSE)
 		txt<-gsub("[[:punct:]]","",txt)
 	}else{
@@ -98,11 +99,13 @@ summarize_text<-function(filename="",page_url="",content="",topN=5){
 	return(gsub(x=out$sentence,pattern="\"", replacement=""))
 }
 
-clean_text<-function(page_text){
+clean_text<-function(page_text,exclude){
 # Description
 # Cleanse the text from non standard characters
 # Arguments
 # page_text is the text to cleanse
+# exclude - boolean whether to exclude stop words from the text
+	library(tm)
 	txt<-gsub("[^\x20-\x7E|\n|\r]", " ", page_text)
 	txt<-iconv(txt,to="ASCII//TRANSLIT")
 	txt<-gsub(x=txt,pattern="\"", replacement="")
@@ -110,6 +113,8 @@ clean_text<-function(page_text){
 	txt<-gsub("[\r\n]","",txt)
 	txt<-gsub("[[:digit:]]","",txt)
 	txt<-gsub("[^[:alnum:][:space:].?!\"]", "",txt)
+	# remove stop words
+	if(exclude) txt<-removeWords(txt, stopwords("english"))
 	return(txt)
 }
 
@@ -121,7 +126,7 @@ summarize_topics<-function(filename="",page_url="",content="",topTopics=5,topTer
 # page_url is the url of the page to extract topics from
 # content is the text to extract topics from
 # topTopics is the number of topics to extract
-	txt<-prepare_doc(filename,page_url,content)
+	txt<-prepare_doc(filename,page_url,content,TRUE)
 	library(stringr)
 	library(textmineR)
 	doc <- stringr::str_replace_all(txt, "<br */>", "")
@@ -245,13 +250,17 @@ text_keywords<-function(filename="",page_url="",content="",min_ngram=1,min_freq=
 # filename is the file name to extract key words
 # page_url is the url of the page to extract key words
 # content is the text to extract key words
+	MIN_COUNT<-5
 	library(textrank,quietly = TRUE)
-	txt<-prepare_doc(filename,page_url,content)
+	txt<-prepare_doc(filename,page_url,content,TRUE)
 	doc<-annotate_doc(txt)	
 	stats <- textrank_keywords(doc$lemma, relevant = doc$upos %in% c("NOUN","PROPN","ADJ"), ngram_max = 8, sep = " ")
-	stats <- subset(stats$keywords, ngram>=min_ngram & freq>=min_freq )
+	stats_subset <- subset(stats$keywords, ngram>=min_ngram & freq>=min_freq )
+	if(nrow(stats_subset) < MIN_COUNT) {
+		stats_subset<-stats$keywords
+	}
 	gc()
-	return(stats)
+	return(stats_subset)
 }
 
 annotate_doc<-function(txt){
