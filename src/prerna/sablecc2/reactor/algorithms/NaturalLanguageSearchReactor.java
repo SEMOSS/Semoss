@@ -475,7 +475,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				fSelector.setFunction(havingAgg);
 				fSelector.addInnerSelector(selector);
 				// add the selector
-				curQs.addSelector(fSelector);
+//				curQs.addSelector(fSelector);
 				
 				//add lhs of having
 				NounMetadata lhs = new NounMetadata(fSelector, PixelDataType.COLUMN);
