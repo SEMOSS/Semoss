@@ -40,6 +40,7 @@ import prerna.ds.EmptyIteratorException;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.poi.main.HeadersException;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
@@ -143,6 +144,7 @@ public class H2Builder {
 				// need to set values on the first iteration
 				if (ps == null) {
 					String[] headers = headerRow.getHeaders();
+					headers = HeadersException.getInstance().getCleanHeaders(headers);
 					// get the data types
 					types = new SemossDataType[headers.length];
 					strTypes = new String[headers.length];

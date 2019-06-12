@@ -296,6 +296,12 @@ public class RSyntaxHelper {
 		return str.toString();
 	}
 	
+	public static String alterColumnNames(String tableName, String[] oldHeaders, String[] newHeaders) {
+		StringBuilder str = new StringBuilder();
+		str.append("setnames("+tableName+",old=" + createStringRColVec(oldHeaders) + ",new=" + createStringRColVec(newHeaders) + ");");
+		return str.toString();
+	}
+	
 	/**
 	 * Convert the column into the correct type
 	 * @param tableName

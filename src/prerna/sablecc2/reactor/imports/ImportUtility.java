@@ -18,6 +18,7 @@ import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -207,6 +208,7 @@ public class ImportUtility {
 	private static void parseRawQsToFlatTable(ITableDataFrame dataframe, SelectQueryStruct qs, String frameTableName, IRawSelectWrapper it, String source) {
 		SemossDataType[] types = it.getTypes();
 		String[] columns = it.getHeaders();
+		columns = HeadersException.getInstance().getCleanHeaders(columns);
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
 		metaData.addVertex(frameTableName);
@@ -924,6 +926,7 @@ public class ImportUtility {
 		Map<String, SemossDataType> metaData = new HashMap<String, SemossDataType>();
 
 		String[] headers = wrapper.getHeaders();
+		headers = HeadersException.getInstance().getCleanHeaders(headers);
 		SemossDataType[] types = wrapper.getTypes();
 		for(int i = 0; i < headers.length; i++) {
 			metaData.put(headers[i], types[i]);
@@ -1142,6 +1145,8 @@ public class ImportUtility {
 	private static void parseRawQsToFlatTableWithJoin(ITableDataFrame dataframe, String frameTableName, IRawSelectWrapper it, List<Join> joins, String source) {
 		SemossDataType[] types = it.getTypes();
 		String[] columns = it.getHeaders();
+		columns = HeadersException.getInstance().getCleanHeaders(columns);
+
 		// define the frame table name as a primary key within the meta
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
 		metaData.addVertex(frameTableName);
