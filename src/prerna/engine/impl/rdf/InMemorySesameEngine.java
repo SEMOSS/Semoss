@@ -300,6 +300,9 @@ public class InMemorySesameEngine extends AbstractEngine {
 					String date = df.format(object);
 					URI datatype = vf.createURI("http://www.w3.org/2001/XMLSchema#dateTime");
 					sc.addStatement(newSub, newPred, vf.createLiteral(date, datatype));
+				} else if(object.getClass() == new Boolean(true).getClass()) {
+					logger.debug("Found Boolean " + object);
+					sc.addStatement(newSub, newPred, vf.createLiteral((Boolean)object));
 				} else {
 					logger.debug("Found String " + object);
 					String value = object + "";

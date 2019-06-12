@@ -258,7 +258,11 @@ public class ImportUtility {
 				// cannot assume the iterator that created this qs
 				// is from the same frame as the frame we are adding this data to
 				if(qs.getFrame() != null) {
-					dataType = qs.getFrame().getMetaData().getHeaderTypeAsString(selector.getQueryStructName());
+					OwlTemporalEngineMeta meta = qs.getFrame().getMetaData();
+					String uniqueName = meta.getUniqueNameFromAlias(selector.getQueryStructName());
+					if(uniqueName != null) {
+						dataType = meta.getHeaderTypeAsString(uniqueName);
+					}
 				}
 				if(dataType == null) {
 					// if still null
