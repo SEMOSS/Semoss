@@ -313,7 +313,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				if(type == PixelDataType.FRAME) {
 					try {
 						ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-						runner.addResult("CACHED_FRAME_HEADERS", 
+						runner.addResult(0, "CACHED_FRAME_HEADERS", 
 								new NounMetadata(frame.getFrameHeadersObject(), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS),
 								true);
 					} catch(Exception e) {
