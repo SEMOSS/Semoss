@@ -119,6 +119,27 @@ public class PixelRunner {
 	}
 	
 	/**
+	 * Store the terminal output of the pixel statement
+	 * @param index
+	 * @param pixelExpression
+	 * @param result
+	 * @param isMeta
+	 */
+	public void addResult(int index, String pixelExpression, NounMetadata result, boolean isMeta) {
+		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, encodedTextToOriginal);
+		this.pixelExpression.add(index, origExpression);
+		this.results.add(index, result);
+		this.isMeta.add(index, isMeta);
+		
+		// we will start to add to the insight recipe
+		// when we have an expression that is returned
+		// that is not a meta
+		if(!isMeta) {
+			this.insight.getPixelRecipe().add(index, origExpression);
+		}
+	}
+	
+	/**
 	 * Same as addResult but since this is an error we do not want to store it in the pixel recipe
 	 * @param pixelExpression
 	 * @param result
