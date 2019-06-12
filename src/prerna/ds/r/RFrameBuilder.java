@@ -19,6 +19,8 @@ import org.rosuda.REngine.Rserve.RConnection;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -139,7 +141,15 @@ public class RFrameBuilder {
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\\t");
 			evalR(loadFileRScript);
 			newFile.delete();
-		}	
+			
+			// update the headers to be cleaned
+			if(it instanceof IRawSelectWrapper) {
+				String[] headers = ((IRawSelectWrapper) it).getHeaders();
+				String[] cleanHeaders = HeadersException.getInstance().getCleanHeaders(headers);
+				String modHeaders = RSyntaxHelper.alterColumnNames(tableName, headers, cleanHeaders);
+				evalR(modHeaders);
+			}
+		}
 		
 		// alter types
 		alterColumnTypes(tableName, typesMap, additionalType, fileType);
