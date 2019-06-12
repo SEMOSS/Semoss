@@ -19,6 +19,7 @@ import org.openrdf.query.TupleQueryResult;
 import org.openrdf.query.algebra.evaluation.util.QueryEvaluationUtil;
 import org.openrdf.query.parser.ParsedQuery;
 import org.openrdf.query.parser.sparql.SPARQLParser;
+import org.openrdf.sail.memory.model.BooleanMemLiteral;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
@@ -129,6 +130,10 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					// if string, return string
 					if(QueryEvaluationUtil.isStringLiteral((Value) val)){
 						return ((Literal)val).getLabel();
+					}
+					// if boolean
+					else if(lValDataType.getLocalName().equalsIgnoreCase("boolean")) {
+						return ((BooleanMemLiteral) val).booleanValue();
 					}
 					// if datetime
 					else if(lValDataType.getLocalName().equalsIgnoreCase("dateTime")) {
