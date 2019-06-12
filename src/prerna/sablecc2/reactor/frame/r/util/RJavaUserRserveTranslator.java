@@ -75,7 +75,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	}
 	
 	private boolean userIsDefined() {
-		return this.insight != null && this.insight.getUser() != null;
+		return this.insight != null && this.insight.getUser() != null && !this.insight.getUser().isAnonymous();
 	}
 	
 	private String getUserInfo() {
