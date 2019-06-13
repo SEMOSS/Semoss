@@ -2840,6 +2840,12 @@
 			<groupId>org.janusgraph</groupId>
 			<artifactId>janusgraph-es</artifactId>
 			<version>0.2.2</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 	</dependencies>
 </project>
