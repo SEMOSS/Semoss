@@ -155,7 +155,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		}
 		
 		// well, you are out of luck
-		return new String[0];
+		throw new IllegalArgumentException("Must pass a recipe to save");
 	}
 	
 	protected Map getPipeline() {
