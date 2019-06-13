@@ -497,15 +497,21 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						curQs.addOrderBy(orderBy);
 					}
 					
-//					// my rhs is another column agg
-//					QueryFunctionSelector fSelectorR = new QueryFunctionSelector();
-//					fSelectorR.setFunction(havingValueAgg.toString());
-//					fSelectorR.addInnerSelector(new QueryColumnSelector(havingValue2.toString()));
-//					
-//					// add this filter
-//					NounMetadata rhs = new NounMetadata(fSelectorR, PixelDataType.COLUMN);
-//					SimpleQueryFilter filter = new SimpleQueryFilter(lhs, comparator, rhs);
-//					curQs.addHavingFilter(filter);
+					// my rhs is another column agg
+					IQuerySelector selectorR = null;
+					if(MasterDatabaseUtility.getTableForColumn(currAppId, havingValue2.toString()) == null) {
+						selectorR = new QueryColumnSelector(havingTable);
+					} else {
+						selectorR = new QueryColumnSelector(havingTable + "__" + havingValue2);
+					}
+					QueryFunctionSelector fSelectorR = new QueryFunctionSelector();
+					fSelectorR.setFunction(havingValueAgg.toString());
+					fSelectorR.addInnerSelector(selectorR);
+					
+					// add this filter
+					NounMetadata rhs = new NounMetadata(fSelectorR, PixelDataType.COLUMN);
+					SimpleQueryFilter filter = new SimpleQueryFilter(lhs, comparator, rhs);
+					curQs.addHavingFilter(filter);
 				} else {
 					// we have to consider the comparators
 					// so i can do the correct types
