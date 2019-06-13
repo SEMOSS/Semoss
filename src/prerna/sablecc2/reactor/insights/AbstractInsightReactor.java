@@ -40,6 +40,8 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String HIDDEN_KEY = "hidden";
 	protected static final String CACHEABLE = "cache";
 
+	protected static final String PIPELINE_FILE = "pipeline.json";
+	
 	protected String getApp() {
 		String appId = null;
 		// look at all the ways the insight panel could be passed
@@ -338,6 +340,24 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	/**
+	 * Get the pipeline file location for an insight
+	 * @param appId
+	 * @param appName
+	 * @param rdbmsID
+	 * @return
+	 */
+	protected File getPipelineFileLocation(String appId, String appName, String rdbmsID) {
+		String pipelinePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+				+ DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
+				+ DIR_SEPARATOR + "version" 
+				+ DIR_SEPARATOR + rdbmsID;
+		
+		File f = new File(pipelinePath + DIR_SEPARATOR + PIPELINE_FILE);
+		return f;
+	}
+	
+	/**
 	 * Save and persist the pipeline to a file
 	 * @param appId
 	 * @param appName
@@ -346,13 +366,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	 * @return
 	 */
 	protected File writePipelineToFile(String appId, String appName, String rdbmsID, Map pipeline) {
-		String pipelinePath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
-				+ DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
-				+ DIR_SEPARATOR + "version" 
-				+ DIR_SEPARATOR + rdbmsID;
-		
-		File f = new File(pipelinePath + DIR_SEPARATOR + "pipeline.json");
+		File f = getPipelineFileLocation(appId, appName, rdbmsID);
 		// delete file if it already exists
 		if(f.exists()) {
 			f.delete();
