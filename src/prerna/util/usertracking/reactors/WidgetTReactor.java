@@ -44,8 +44,11 @@ public class WidgetTReactor extends AbstractReactor {
 			sessionId = RdbmsQueryBuilder.escapeForSQLStatement(vStore.get(JobReactor.SESSION_KEY).getValue().toString());
 			User user = this.insight.getUser();
 			if(user != null) {
-				userId = user.getAccessToken(user.getLogins().get(0)).getId();
-				userId = RdbmsQueryBuilder.escapeForSQLStatement(userId);
+				if(!user.getLogins().isEmpty()) {
+					userId = user.getAccessToken(user.getLogins().get(0)).getId();
+				} else if(user.isAnonymous()) {
+					userId = user.getAnonymousId();
+				}
 			}
 			
 			int size = grs.size();
