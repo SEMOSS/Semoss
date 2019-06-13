@@ -270,7 +270,6 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 	return(pixel_having)
 }
 
-
 build_pixel_where<-function(where_part,req_tbls,cur_db){
 	pixel_where<-data.table(part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
 	if(length(where_part)!=0){
@@ -295,86 +294,59 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				# handle >=
 				oper<-">="
 				x<-unlist(strsplit(where_part[i],">="))
-				clmn<-trim(x[1])
-				value<-trim(x[2])
-				parsed_value<-parse_aggr(cur_db,req_tbls,value)
-				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
-				if(length(tbls)>0){
-					tbl<-tbls[1]
-					if(length(parsed_value) == 3){
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
-					}else{
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
-					}
-				}
+				item1<-trim(x[1])
+				item2<-trim(x[2])
+				pixel_where<-where_helper(item1,item2,oper,pixel_where,req_tbls,cur_db)
 			}else if(length(unlist(strsplit(where_part[i],"<=")))==2){
 				# handle <=
 				oper<-"<="
 				x<-unlist(strsplit(where_part[i],"<="))
-				clmn<-trim(x[1])
-				value<-trim(x[2])
-				parsed_value<-parse_aggr(cur_db,req_tbls,value)
-				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
-				if(length(tbls)>0){
-					tbl<-tbls[1]
-					if(length(parsed_value) == 3){
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
-					}else{
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
-					}
-				}
+				item1<-trim(x[1])
+				item2<-trim(x[2])
+				pixel_where<-where_helper(item1,item2,oper,pixel_where,req_tbls,cur_db)
 			}else if(length(unlist(strsplit(where_part[i],">")))==2){
 				# handle >
 				oper<-">"
 				x<-unlist(strsplit(where_part[i],">"))
-				clmn<-trim(x[1])
-				value<-trim(x[2])
-				parsed_value<-parse_aggr(cur_db,req_tbls,value)
-				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
-				if(length(tbls)>0){
-					tbl<-tbls[1]
-					if(length(parsed_value) == 3){
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
-					}else{
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
-					}
-				}
+				item1<-trim(x[1])
+				item2<-trim(x[2])
+				pixel_where<-where_helper(item1,item2,oper,pixel_where,req_tbls,cur_db)
 			}else if(length(unlist(strsplit(where_part[i],"<")))==2){
 				# handle <
 				oper<-"<"
 				x<-unlist(strsplit(where_part[i],"<"))
-				clmn<-trim(x[1])
-				value<-trim(x[2])
-				parsed_value<-parse_aggr(cur_db,req_tbls,value)
-				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
-				if(length(tbls)>0){
-					tbl<-tbls[1]
-					if(length(parsed_value) == 3){
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
-					}else{
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,value,"","","")))
-					}
-				}
+				item1<-trim(x[1])
+				item2<-trim(x[2])
+				pixel_where<-where_helper(item1,item2,oper,pixel_where,req_tbls,cur_db)
 			}else if(length(unlist(strsplit(where_part[i],"=")))==2){
 				# handle =
 				oper<-"="
 				x<-unlist(strsplit(where_part[i],"="))
-				clmn<-trim(x[1])
-				value<-trim(x[2])
-				parsed_value<-parse_aggr(cur_db,req_tbls,value)
-				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
-				if(length(tbls)>0){
-					tbl<-tbls[1]
-					if(length(parsed_value) == 3){
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],parsed_value[2],parsed_value[3],"")))
-					}else{
-						pixel_where<-rbindlist(list(pixel_where,list("where",tbl,clmn,oper,parsed_value[1],"","","")))
-					}
-				}
+				item1<-trim(x[1])
+				item2<-trim(x[2])
+				pixel_where<-where_helper(item1,item2,oper,pixel_where,req_tbls,cur_db)
 			}
 		}
 	}
 	gc()
+	return(pixel_where)
+}
+
+where_helper<-function(item1,item2,oper,pixel_where,req_tbls,cur_db){
+	# check if item1 is column
+	tbls1<-cur_db[tolower(cur_db$Column) == tolower(item1) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
+	#check if item2 is column
+	tbls2<-cur_db[tolower(cur_db$Column) == tolower(item2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
+	#construct where
+	if(length(tbls1)>0 & length(tbls2)>0){
+		pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,tbls2[1],item2,"","")))
+	}else if(length(tbls1)>0 & length(tbls2)==0){
+		pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,item2,"","","")))
+	}else if(length(tbls1)==0 & length(tbls2)>0){
+		pixel_where<-rbindlist(list(pixel_where,list("where",item1,oper,tbls2[1],item2,"","","")))
+	}else if(length(tbls1)==0 & length(tbls2)==0){
+		pixel_where<-rbindlist(list(pixel_where,list("where",item1,oper,item2,"","","","")))
+	}
 	return(pixel_where)
 }
 

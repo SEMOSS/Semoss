@@ -1,72 +1,87 @@
 nliapp_mgr<-function(txt,db,joins=data.frame()){
 
-	df<-parse_request(txt,db)
-	out<-get_start(df)
-	select_part<-get_select(out[[1]])
-	mypart<-get_where(out[[2]])
-	where_part<-mypart[[1]]
-	having_part<-mypart[[3]]
-	mypart1<-validate_select(select_part,mypart[[2]])
-	# append misfits from having clause
-	select_aggr<-append(mypart1[[1]],mypart[[4]])
-	select_part<-mypart1[[2]]
-	group_part<-mypart1[[3]]
-	# if groupping present then all non aggregate select should be in groups
-	if(length(having_part)>0){
-		group_part<-unique(append(group_part,select_part))
-	}
-	# add to select section all group columns if they are not there
-	if(length(group_part)>0){
-		select_part<-unique(append(group_part,select_part))
-	}
-	# get columns used in the request
-	cols<-as.character(df[df$itemtype == "column","item"])
-	# get potential appids used in the request
-	apps<-unique(db[db$Column %in% cols,"AppID"])
+	# get all appids used in the request
+	apps<-unique(db$AppID)
 	N<-length(apps)
 	r<-data.table(Response=character(),AppID=character(),Statement=character())
 	p<-data.table(appid=character(),part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
+	df_in<-parse_question_mgr(txt)
 	if(N>0){
-		for(i in 1:N){
-			df$processed<-"no"
+		for(i in 1:N){	
 			cur_db<-db[db$AppID==apps[i],]
 			if(nrow(joins)!=0){
 				cur_joins<-joins[joins$AppID==apps[i],1:4]
 			}else{
 				cur_joins<-joins
 			}
-			# get from clause (joins)
-			out<-join_clause_mgr(cols,cur_db,cur_joins)
-			if(out[[1]]==""){
-				from_clause<-out[[2]]
-				from_joins<-out[[3]]
-				pixel_from<-build_pixel_from(from_joins)
-				request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
-				request_tbls<-request_tbls[request_tbls!=""]
-				response<-"SQL"
-			}else{
-				sql<-out[[1]]
-				response<-"Error"
-				next
+			
+			#####################################################################################################
+			# Prepare request for current db
+			df<-parse_request(df_in,cur_db)
+			df$processed<-"no"
+			out<-get_start(df)
+			if(!is.null(out[[1]]) & !is.null(out[[2]])){
+				select_part<-get_select(out[[1]])
+				mypart<-get_where(out[[2]])
+				where_part<-mypart[[1]]
+				having_part<-mypart[[3]]
+				mypart1<-validate_select(select_part,mypart[[2]])
+				# append misfits from having clause
+				select_aggr<-append(mypart1[[1]],mypart[[4]])
+				select_part<-mypart1[[2]]
+				group_part<-mypart1[[3]]
+				# if groupping present then all non aggregate select should be in groups
+				# aggregates from having clause place in the select to make the results easier to understand
+				if(length(having_part)>0){
+					group_part<-unique(append(group_part,select_part))
+					select_aggr<-select_having(having_part)
+				}
+				# add to select section all group columns if they are not there
+				if(length(group_part)>0){
+					select_part<-unique(append(group_part,select_part))
+				}
+				
+				
+				# get columns used in the request
+				cols<-as.character(df[df$itemtype == "column","item"])
+				#####################################################################################################
+				# get from clause (joins)
+				out<-join_clause_mgr(cols,cur_db,cur_joins)
+				if(out[[1]]==""){
+					from_clause<-out[[2]]
+					from_joins<-out[[3]]
+					pixel_from<-build_pixel_from(from_joins)
+					request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
+					request_tbls<-request_tbls[request_tbls!=""]
+					response<-"SQL"
+				}else{
+					sql<-out[[1]]
+					response<-"Error"
+					next
+				}
+				
+				# add where columns into select section
+				if(length(where_part)>0){
+					select_part<-unique(append(select_part,select_where(where_part,request_tbls,cur_db)))
+				}
+				pixel_where<-build_pixel_where(where_part,request_tbls,cur_db)
+				pixel_group<-build_pixel_group(group_part,request_tbls,cur_db)
+				
+				select_aggr<-get_alias(select_aggr)
+				pixel_aggr_select<-build_pixel_aggr_select(select_aggr,request_tbls,cur_db)
+				
+				pixel_single_select<-build_pixel_single_select(select_part,request_tbls,cur_db)
+				# Initially it is an empty clause
+				pixel_having<-build_pixel_having(having_part,request_tbls,cur_db)
+				
+				# complete building sql nad pixel objects
+				if(response == "SQL"){
+					sql<-"Correct sql"
+					pixel<-build_pixel(apps[i],pixel_aggr_select,pixel_single_select,pixel_where,pixel_group,pixel_having,pixel_from)
+					p<-rbind(p,pixel)
+				}
+				r<-rbindlist(list(r,list(response,as.character(apps[i]),sql)))
 			}
-			
-			pixel_where<-build_pixel_where(where_part,request_tbls,cur_db)
-			pixel_group<-build_pixel_group(group_part,request_tbls,cur_db)
-			
-			select_aggr<-get_alias(select_aggr)
-			pixel_aggr_select<-build_pixel_aggr_select(select_aggr,request_tbls,cur_db)
-			
-			pixel_single_select<-build_pixel_single_select(select_part,request_tbls,cur_db)
-			# Initially it is an empty clause
-			pixel_having<-build_pixel_having(having_part,request_tbls,cur_db)
-			
-			# complete building sql nad pixel objects
-			if(response == "SQL"){
-				sql<-"Correct sql"
-				pixel<-build_pixel(apps[i],pixel_aggr_select,pixel_single_select,pixel_where,pixel_group,pixel_having,pixel_from)
-				p<-rbind(p,pixel)
-			}
-			r<-rbindlist(list(r,list(response,as.character(apps[i]),sql)))
 		}
 	}else{
 		r<-rbindlist(list(r,list("Error","","Rephrase the request: no applicable databases found")))
@@ -123,8 +138,41 @@ get_alias<-function(items){
 	return(repl)
 }
 
+select_having<-function(having_part){
+	items<-unlist(strsplit(having_part," "))
+	ind<-which(tolower(substr(items,1,3)) %in% c("uni","sum","max","min","avg"))
+	return(items[ind])
+}
+
+select_where<-function(where_part,request_tbls,cur_db){
+	items<-vector()
+	n<-length(where_part)
+	for(i in 1:n){
+		x<-trim(unlist(strsplit(where_part[i]," ")))
+		if(length(x)==3){
+			items<-append(items,select_where_helper(x[1],request_tbls,cur_db))
+			items<-append(items,select_where_helper(x[3],request_tbls,cur_db))		
+		}else if(length(x)==5){
+			items<-append(items,select_where_helper(x[1],request_tbls,cur_db))
+			items<-append(items,select_where_helper(x[3],request_tbls,cur_db))		
+			items<-append(items,select_where_helper(x[5],request_tbls,cur_db))	
+		}
+	}
+	gc()
+	return(items)
+}
+
+select_where_helper<-function(item,request_tbls,cur_db){
+	selected<-vector()
+	tbls<-cur_db[tolower(cur_db$Column) == tolower(item) & tolower(cur_db$Table) %in% tolower(request_tbls),"Table"]
+	if(length(tbls)>0){
+		selected<-item
+	}
+	return(selected)
+}
+
 validate_select<-function(select_part,group_part){
-	ind<-which(tolower(substr(select_part,1,3)) %in% c("cou","sum","max","min","avg"))
+	ind<-which(tolower(substr(select_part,1,3)) %in% c("uni","sum","max","min","avg"))
 	if(length(ind)>0){
 		select_aggr<-select_part[select_part %in% select_part[ind]]
 		select_group<-select_part[!(select_part %in% select_part[ind])]
@@ -161,7 +209,7 @@ get_start<-function(parsed_df){
 		out[[2]]<-where_tree
 	}else{
 		kids<-parsed_df[parsed_df$head_token_id==root$token_id,]
-		nsubj<-kids[kids$dep_rel=="nsubj" & kids$itemtype=="column",]
+		nsubj<-kids[substr(kids$dep_rel,1,5)=="nsubj" & kids$itemtype=="column",]
 		obj<-kids[!(kids$token_id %in% nsubj$token_id),]
 		if(nrow(nsubj)>0){
 			# Identify possible select nodes
@@ -188,21 +236,21 @@ get_select<-function(select_df){
 					if(tolower(count_df$token[1]) == "many"){
 						child<-select_df[select_df$head_token_id==count_df$token_id[1] & !(select_df$token_id %in% token_id) & select_df$processed=="no",]
 						if(nrow(child)>0){
-							select_part<-append(select_part,map_aggr(aggr_df$token[1],select_df[select_df$token_id==token_id[i],]$token))
-							select_df[select_df$token_id==count_df$token_id[1],"processed"]<-"yes"
+							select_part<-append(select_part,map_aggr(aggr_df$token[1],select_df[select_df$token_id==token_id[i],]$item))
+							select_df[select_df$token_id==count_df$token_id[i],"processed"]<-"yes"
 							select_df[select_df$token_id==token_id[i],"processed"]<-"yes"
-							select_df[select_df$token_id==child$token_id[1],"processed"]<-"yes"
+							select_df[select_df$token_id==child$token_id[i],"processed"]<-"yes"
 						}
 					}
 				}else{
-					select_part<-append(select_part,map_aggr(aggr_df$token[1],select_df[select_df$token_id==token_id[i],]$token))
+					select_part<-append(select_part,map_aggr(aggr_df$token[1],select_df[select_df$token_id==token_id[i],]$item))
 					select_df[select_df$token_id==aggr_df$token_id[1],"processed"]<-"yes"
 					select_df[select_df$token_id==token_id[i],"processed"]<-"yes"
 				}
 			}else{	
 				aggr_df<-select_df[select_df$head_token_id==select_df$head_token_id[as.integer(token_id[i])] & !(select_df$token_id %in% token_id) & tolower(select_df$token) %in% c("total","average","highest","lowest","best","worst") & select_df$processed=="no",]
 				if(nrow(aggr_df)>0){
-					select_part<-append(select_part,map_aggr(aggr_df$token[1],select_df[select_df$token_id==token_id[i],]$token))
+					select_part<-append(select_part,map_aggr(aggr_df$token[1],select_df[select_df$token_id==token_id[i],]$item))
 					select_df[select_df$token_id==aggr_df$token_id[1],"processed"]<-"yes"
 					select_df[select_df$token_id==token_id[i],"processed"]<-"yes"
 				}else{
@@ -269,6 +317,26 @@ get_having<-function(where_df,root){
 								where_df[where_df$token_id==kid1$token_id[1],"processed"]<-"yes"
 								where_df[where_df$token_id==grandchild$token_id[1],"processed"]<-"yes"
 								where_df[where_df$token_id==root$token_id,"processed"]<-"yes"
+							}else{
+								grandchild<-where_df[where_df$head_token_id==kid2$token_id[1] & where_df$dep_rel=="obl" & where_df$itemtype=="column" & where_df$processed=="no",]
+								if(nrow(grandchild)>0){
+									greatgrandchild<-where_df[where_df$head_token_id==grandchild$token_id[1] & tolower(where_df$token) %in% c("total","average") & where_df$processed=="no",]
+									if(nrow(greatgrandchild)>0){
+										having_part<-append(having_part,paste0(map_aggr(kid1$token[1],root$item),oper,map_aggr(greatgrandchild$token[1],grandchild$item[1])))
+										where_df[where_df$token_id==kid2$token_id[1],"processed"]<-"yes"
+										where_df[where_df$token_id==kid1$token_id[1],"processed"]<-"yes"
+										where_df[where_df$token_id==grandchild$token_id[1],"processed"]<-"yes"
+										where_df[where_df$token_id==greatgrandchild$token_id[1],"processed"]<-"yes"
+										where_df[where_df$token_id==root$token_id,"processed"]<-"yes"
+									}else{
+										having_part<-append(having_part,paste0(map_aggr(kid1$token[1],root$item),oper,grandchild$item[1]))
+										having_part<-append(having_part,paste0(map_aggr(kid1$token[1],root$item),oper,map_aggr(greatgrandchild$token[1],grandchild$item[1])))
+										where_df[where_df$token_id==kid2$token_id[1],"processed"]<-"yes"
+										where_df[where_df$token_id==kid1$token_id[1],"processed"]<-"yes"
+										where_df[where_df$token_id==grandchild$token_id[j],"processed"]<-"yes"
+										where_df[where_df$token_id==root$token_id,"processed"]<-"yes"
+									}
+								}
 							}
 						}
 					}else{
@@ -293,7 +361,7 @@ get_having<-function(where_df,root){
 						oper<-translate_token(grandchild$token[1],discourse=FALSE)
 						greatgrandchild<-where_df[where_df$head_token_id==grandchild$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
 						if(nrow(greatgrandchild)>0){
-							having_part<-append(having_part,paste0("count(",kids$item[i],")",oper,greatgrandchild$token[1]))
+							having_part<-append(having_part,paste0("UniqueCount(",kids$item[i],")",oper,greatgrandchild$token[1]))
 							where_df[where_df$token_id==kids$token_id[i],"processed"]<-"yes"
 							where_df[where_df$token_id==grandchild$token_id[1],"processed"]<-"yes"
 							where_df[where_df$token_id==greatgrandchild$token_id[1],"processed"]<-"yes"
@@ -403,6 +471,20 @@ get_where<-function(where_df){
 							if(discourse){
 								where_df[where_df$token_id==grandchild2$token_id[1],"processed"]<-"yes"
 							}
+						}else{
+							grandchild<-where_df[where_df$head_token_id==child$token_id[1] & where_df$dep_rel=="obl" & where_df$itemtype=="column" & where_df$processed=="no",]
+							if(nrow(grandchild)>0){
+								grandchild2<-where_df[where_df$head_token_id==child$token_id[1] & tolower(where_df$token) %in% c("not","no") & where_df$processed=="no",]
+								discourse<-!nrow(grandchild2)==0
+								oper<-translate_token(child$token[1],discourse)
+								if(oper!=""){
+									where_part<-append(where_part,paste0(node$item,oper,grandchild$token[1]))
+								}
+								where_df[where_df$token_id==grandchild$token_id[1],"processed"]<-"yes"
+								if(discourse){
+									where_df[where_df$token_id==grandchild2$token_id[1],"processed"]<-"yes"
+								}
+							}
 						}
 						where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 					}else {
@@ -416,6 +498,11 @@ get_where<-function(where_df){
 							where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 						}
 					}
+				}
+			}else if(node$dep_rel=="obl" & node$itemtype=="column"){
+				child<-where_df[where_df$head_token_id==node$token_id & tolower(where_df$token) %in% c("by") & where_df$processed=="no",]
+				if(nrow(child)>0){
+					group_part<-append(group_part,node$item)
 				}
 			}
 			where_df[where_df$token_id==node$token_id,"processed"]<-"yes"
@@ -433,15 +520,15 @@ get_where<-function(where_df){
 map_aggr<-function(aggr,colname){
 	if(length(aggr)>0){
 		if(tolower(aggr)=="total"){
-			r<-paste0("sum(",colname,")")
+			r<-paste0("Sum(",colname,")")
 		}else if(tolower(aggr)=="average"){
-			r<-paste0("avg(",colname,")")
+			r<-paste0("Avg(",colname,")")
 		}else if(tolower(aggr) %in% c("lowest","worst")){
-			r<-paste0("min(",colname,")")
+			r<-paste0("Min(",colname,")")
 		}else if(tolower(aggr) %in% c("highest","best")){
-			r<-paste0("max(",colname,")")
+			r<-paste0("Max(",colname,")")
 		}else if(tolower(aggr)=="many"){
-			r<-paste0("count(",colname,")")
+			r<-paste0("UniqueCount(",colname,")")
 		}else{
 			r<-colname
 		}
@@ -463,18 +550,15 @@ get_subtree<-function(df,leaves,excl=vector()){
 	return(out)	
 }
 
-parse_request<-function(txt,db){
+parse_request<-function(df_in,db){
 	library(data.table)
 	library(plyr)
 	library(udpipe)
 	library(stringdist)
 	library(igraph)
 	
-	# db includes: Column, Table and AppID columns
-	df1<-parse_question(txt)
 	# map nouns to db items
-	df1<-map_dbitems(df1,db)
-	#df$lemma<-df1$lemma
+	df1<-map_dbitems(df_in,db)
 	# to handle column names that are not words of English language
 	df<-refine_parsing(df1)
 	return(df)
@@ -506,6 +590,26 @@ parse_question<-function(txt){
 	gc()
 	return(df[,4:12])
 }
+
+parse_question_mgr<-function(txt){
+	x<-unlist(strsplit(txt," "))
+	df<-parse_question(tolower(txt))
+	if(nrow(df)>0){
+		for(i in 1:nrow(df)){
+			token<-df$token[i]
+			y<-which(token==tolower(x))
+			if(length(y)>0){
+				df[i,"token"]<-x[y[1]]
+				x<-x[-y[1]]
+			}
+		}
+	}else{
+		df<-data.frame()
+	}
+	return(df)
+}
+
+
 
 replace_words<-function(words){
 	orig=c("mean","less","lower")
@@ -556,12 +660,6 @@ map_dbitems<-function(df,db,pos="ALL"){
 			df[ind[i],"item"]<-item[1]
 			df[ind[i],"itemtype"]<-"column"
 			df[ind[i],"itemdatatype"]<-item[2]
-		}else{
-			item<-db_match(db,token,"Table")
-			if(item[1]!=""){
-				df[ind[i],"item"]<-item
-				df[ind[i],"itemtype"]<-"table"
-			}
 		}
 	}
 	gc()
@@ -585,7 +683,7 @@ refine_parsing<-function(df){
 		mydf<-df
 		mydf$token[ind]<-"epiphany"
 		mytxt<-paste(mydf$token,collapse=" ")
-		mydf<-parse_question(mytxt)
+		mydf<-parse_question_mgr(mytxt)
 		df[,5:9]<-mydf[,5:9]
 	}
 	gc()
