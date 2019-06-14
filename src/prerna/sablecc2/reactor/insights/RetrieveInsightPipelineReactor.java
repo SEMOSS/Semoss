@@ -4,10 +4,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
-import com.gargoylesoftware.htmlunit.javascript.host.Map;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
@@ -50,13 +51,13 @@ public class RetrieveInsightPipelineReactor extends AbstractInsightReactor {
 			return new NounMetadata(new HashMap<String, Object>(), PixelDataType.MAP, PixelOperationType.PIPELINE);
 		}
 		
-		Map pipeline = null;
+		Map<String, Object> pipeline = null;
 		
 		FileReader reader = null;
 		try {
 			reader = new FileReader(f);
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			pipeline = gson.fromJson(reader, Map.class);
+			pipeline = gson.fromJson(reader, new TypeToken<Map<String, Object>>(){}.getType());
 		} catch(Exception e) {
 			throw new IllegalArgumentException("An error occured with reading the saved pipeline", e);
 		} finally {
