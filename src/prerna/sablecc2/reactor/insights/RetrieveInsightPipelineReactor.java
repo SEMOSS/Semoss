@@ -40,7 +40,7 @@ public class RetrieveInsightPipelineReactor extends AbstractInsightReactor {
 		}
 		
 		// get the app name
-		appName = MasterDatabaseUtility.getEngineAliasForId(appName);
+		appName = MasterDatabaseUtility.getEngineAliasForId(appId);
 
 		// get the pipeline file
 		File f = getPipelineFileLocation(appId, appName, rdbmsId);
