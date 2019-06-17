@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.insights;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,10 +31,15 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 		// set the user in the insight
 		newInsight.setUser(this.insight.getUser());
 
-		List<String> recipe = Arrays.asList(getRecipe());
 		List<String> newRecipe = new Vector<String>();
-		for(String r : recipe) {
-			newRecipe.add(Utility.decodeURIComponent(r));
+		try {
+			String[] recipe = getRecipe();
+			for(String r : recipe) {
+				newRecipe.add(Utility.decodeURIComponent(r));
+			}
+		} catch(IllegalArgumentException e) {
+			// ignore
+			// by default we throw error when recipe is not passed in
 		}
 		
 		// return the recipe steps
