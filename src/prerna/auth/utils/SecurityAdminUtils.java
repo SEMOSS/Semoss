@@ -61,7 +61,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public List<Map<String, Object>> getAllUsers() throws IllegalArgumentException{
-		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM USER ORDER BY NAME, TYPE";
+		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER FROM USER ORDER BY NAME, TYPE";
 		return getSimpleQuery(query);
 	}
 
@@ -355,6 +355,21 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void setInsightGlobalWithinApp(String appId, String insightId, boolean isPublic) {
 		String query = "UPDATE INSIGHT SET GLOBAL=" + isPublic + " WHERE ENGINEID ='" + appId + "' AND INSIGHTID='" + insightId + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured setting this insight global");
+		}
+	}
+
+	/**
+	 * Set the user's publishing rights
+	 * @param userId
+	 * @param isPublisher
+	 */
+	public void setUserPublisher(String userId, boolean isPublisher) {
+		String query = "UPDATE USER SET PUBLISHER=" + isPublisher + " WHERE ID ='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {

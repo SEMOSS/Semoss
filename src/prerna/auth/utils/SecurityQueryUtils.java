@@ -523,6 +523,22 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 	
+	/**
+	 * Determine if the user has publisher rights
+	 * @param user
+	 * @return
+	 */
+	public static boolean userIsPublisher(User user) {
+		String userFilters = getUserFilters(user);
+		String query = "SELECT * FROM USER WHERE PUBLISHER=TRUE AND ID IN " + userFilters + " LIMIT 1;";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		try {
+			return wrapper.hasNext();
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
 	//TODO:
 	//TODO:
 	//TODO:
