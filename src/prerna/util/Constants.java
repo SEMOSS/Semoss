@@ -462,6 +462,7 @@ public class Constants {
 	public static final String SECURITY_DB = "security";
 	public static final String SECURITY_ENABLED = "security-enabled";
 	public static final String ADMIN_SET_PUBLIC = "admin-set-public";
+	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
 	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
 	public static final String SESSION_USER = "semoss_user";
 	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";

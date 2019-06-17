@@ -42,10 +42,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// security
 		if(AbstractSecurityUtils.securityEnabled()) {
-			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
-				if(this.insight.getUser().isAnonymous()) {
-					throwAnonymousUserError();
-				}
+			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
 			}
 			
 			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {

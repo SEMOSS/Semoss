@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -60,10 +61,14 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 				throw err;
 			}
 			
-			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
-				if(this.insight.getUser().isAnonymous()) {
-					throwAnonymousUserError();
-				}
+			// throw error if user is anonymous
+			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+			
+			// throw error is user doesn't have rights to publish new apps
+			if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+				throwUserNotPublisherError();
 			}
 		}
 		
