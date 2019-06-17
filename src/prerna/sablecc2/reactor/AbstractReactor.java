@@ -509,6 +509,16 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	/**
+	 * Throw error since user doesn't have access to publish
+	 */
+	public void throwUserNotPublisherError() {
+		NounMetadata  noun = new NounMetadata("User does not have access to publish apps", PixelDataType.ERROR);
+		SemossPixelException exception = new SemossPixelException(noun);
+		exception.setContinueThreadOfExecution(false);
+		throw exception;
+	}
+	
+	/**
 	 * Throw login required error
 	 * @param details
 	 */

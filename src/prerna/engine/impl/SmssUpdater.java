@@ -44,11 +44,11 @@ public class SmssUpdater {
 	}
 
 	public static void run() {
-		System.out.println("LOOKING TO UPDATE THE FOLLOWING SMSS FILES!");
+//		System.out.println("LOOKING TO UPDATE THE FOLLOWING SMSS FILES!");
 		Map<String, String> aliasToId = MasterDatabaseUtility.getEngineAliasToId();
-		for(String alias : aliasToId.keySet()) {
-			System.out.println(alias + " <---> " + aliasToId.get(alias));
-		}
+//		for(String alias : aliasToId.keySet()) {
+//			System.out.println(alias + " <---> " + aliasToId.get(alias));
+//		}
 
 		addEngineIdToSmss(aliasToId);
 		updateSmssFileName();
@@ -61,9 +61,8 @@ public class SmssUpdater {
 	 */
 	private static void addEngineIdToSmss(Map<String, String> aliasToId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		System.out.println("BASE FOLDER = " + baseFolder);
 		String dbBaseFolder = baseFolder + DIR_SEPARATOR + "db";
-		System.out.println("BASE FOLDER = " + dbBaseFolder);
+//		System.out.println("BASE FOLDER = " + dbBaseFolder);
 
 		File dbFolder = new File(dbBaseFolder);
 		FilenameFilter smssFilter = new WildcardFileFilter("*.smss");
@@ -104,9 +103,8 @@ public class SmssUpdater {
 	 */
 	private static void updateSmssFileName() {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		System.out.println("BASE FOLDER = " + baseFolder);
 		String dbBaseFolder = baseFolder + DIR_SEPARATOR + "db";
-		System.out.println("BASE FOLDER = " + dbBaseFolder);
+//		System.out.println("BASE FOLDER = " + dbBaseFolder);
 
 		File dbFolder = new File(dbBaseFolder);
 		FilenameFilter smssFilter = new WildcardFileFilter("*.smss");
@@ -237,7 +235,7 @@ public class SmssUpdater {
 				}
 			}
 			
-			System.out.println("SMSS values are up to date");
+//			System.out.println("SMSS values are up to date");
 		}		
 	}
 	

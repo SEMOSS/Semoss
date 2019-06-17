@@ -704,12 +704,14 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						// need to prevent 2 threads attempting to add the same user
 						isNewUser = SecurityQueryUtils.checkUserExist(newUser.getId());
 						if(!isNewUser) {
-							query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN) VALUES ('" + 
+							query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER) VALUES ('" + 
 									RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
 									RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
 									RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
 									RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "', '" + 
-									newUser.getProvider() + "', 'FALSE');";
+									newUser.getProvider() + "', " + 
+									"FALSE, " + 
+									!adminSetPublisher() + ");";
 							try {
 								securityDb.insertData(query);
 								securityDb.commit();
@@ -732,10 +734,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * @param userName	String representing the name of the user to add
 	 */
-	public static boolean registerUser(String id, boolean admin) throws IllegalArgumentException{
+	public static boolean registerUser(String id, boolean admin, boolean publisher) throws IllegalArgumentException{
 		boolean isNewUser = SecurityQueryUtils.checkUserExist(id);
 		if(!isNewUser) {			
-			String query = "INSERT INTO USER (ID, NAME, ADMIN) VALUES ('" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', '" + ADMIN_ADDED_USER + "', " + admin + ");";
+			String query = "INSERT INTO USER (ID, NAME, ADMIN, PUBLISHER) VALUES "
+					+ "('" + RdbmsQueryBuilder.escapeForSQLStatement(id) + "', '" + ADMIN_ADDED_USER + "', " + admin + ", " + publisher + ");";
 			try {
 				securityDb.insertData(query);
 				securityDb.commit();
