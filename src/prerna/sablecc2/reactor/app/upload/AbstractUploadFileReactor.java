@@ -70,10 +70,14 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				throw err;
 			}
 			
-			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
-				if(this.insight.getUser().isAnonymous()) {
-					throwAnonymousUserError();
-				}
+			// throw error if user is anonymous
+			if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+			
+			// throw error is user doesn't have rights to publish new apps
+			if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+				throwUserNotPublisherError();
 			}
 		}
 
