@@ -204,7 +204,6 @@ public abstract class AbstractEngine implements IEngine {
 							}
 						}
 						
-						
 						if(!tableExists) {
 							// well, you already created the file
 							// need to run the queries to make this
@@ -248,21 +247,22 @@ public abstract class AbstractEngine implements IEngine {
 				}
 				
 				// yay! even more updates
-				
-				// TODO: this is new code to convert
-				// TODO: this is new code to convert
-				// TODO: this is new code to convert
-				// TODO: this is new code to convert
-				String updatedInsights = prop.getProperty(Constants.PIXEL_UPDATE);
-				if(updatedInsights == null) {
-					updateToPixelInsights();
-					Utility.updateSMSSFile(propFile, Constants.PIXEL_UPDATE, "true");
-				} else if(!Boolean.parseBoolean(updatedInsights)){
-					updateToPixelInsights();
-					Utility.changePropMapFileValue(propFile, Constants.PIXEL_UPDATE, "true");
+				if(this.insightRDBMS != null) {
+					// TODO: this is new code to convert
+					// TODO: this is new code to convert
+					// TODO: this is new code to convert
+					// TODO: this is new code to convert
+					String updatedInsights = prop.getProperty(Constants.PIXEL_UPDATE);
+					if(updatedInsights == null) {
+						updateToPixelInsights();
+						Utility.updateSMSSFile(propFile, Constants.PIXEL_UPDATE, "true");
+					} else if(!Boolean.parseBoolean(updatedInsights)){
+						updateToPixelInsights();
+						Utility.changePropMapFileValue(propFile, Constants.PIXEL_UPDATE, "true");
+					}
+					// update explore an instance query!!!
+					updateExploreInstanceQuery(this.insightRDBMS);
 				}
-				// update explore an instance query!!!
-				updateExploreInstanceQuery(this.insightRDBMS);
 				
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
@@ -285,8 +285,9 @@ public abstract class AbstractEngine implements IEngine {
 							maker.makeOwl(csvFile, owlFile, getEngineType());
 							owlFile = "/db/" + SmssUtilities.getUniqueName(this.prop) + "/" + cleanTableName + ".OWL";
 							
-							if(this.prop.containsKey("REPLACE_OWL"))
+							if(this.prop.containsKey("REPLACE_OWL")) {
 								Utility.updateSMSSFile(propFile, Constants.OWL, owlFile);
+							}
 						} else {
 							owlFile = null;
 						}
@@ -304,7 +305,6 @@ public abstract class AbstractEngine implements IEngine {
 					this.generalEngineProp = Utility.loadProperties(engineProps.getAbsolutePath());
 				}
 			}
-			this.owlHelper = new MetaHelper(this.baseDataEngine, getEngineType(), this.engineId);
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 		} 
