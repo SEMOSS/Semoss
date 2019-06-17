@@ -31,9 +31,10 @@ public abstract class AbstractSecurityUtils {
 
 	static RDBMSNativeEngine securityDb;
 	static boolean securityEnabled = false;
+	static boolean adminSetPublisher = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
 	static boolean anonymousUsersEnabled = false;
-	
+
 	/**
 	 * Only used for static references
 	 */
@@ -58,6 +59,13 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers) ) || (Boolean.parseBoolean(anonymousUsers.toString()));
 		}
+		
+		Object adminSetsPublisher = DIHelper.getInstance().getLocalProp(Constants.ADMIN_SET_PUBLISHER);
+		if(adminSetsPublisher == null) {
+			adminSetPublisher = false;
+		} else {
+			adminSetPublisher = (adminSetsPublisher instanceof Boolean && ((boolean) adminSetsPublisher) ) || (Boolean.parseBoolean(adminSetsPublisher.toString()));
+		}
 	}
 
 	public static boolean securityEnabled() {
@@ -65,7 +73,11 @@ public abstract class AbstractSecurityUtils {
 	}
 	
 	public static boolean anonymousUsersEnabled() {
-		return anonymousUsersEnabled;
+		return securityEnabled && anonymousUsersEnabled;
+	}
+	
+	public static boolean adminSetPublisher() {
+		return securityEnabled && adminSetPublisher;
 	}
 	
 	/**
@@ -171,7 +183,6 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_ENGINEID_INDEX ON ENGINEPERMISSION (ENGINEID);");
 
 		// WORKSPACEENGINE
-		// TODO >>>timb: WORKSPACE - DONE - here are the sec queries for reference
 		colNames = new String[] {"type", "userid", "engineid"};
 		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("WORKSPACEENGINE", colNames, types));
@@ -194,8 +205,6 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_LASTMODIFIEDON_INDEX ON INSIGHT (LASTMODIFIEDON);");
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_GLOBAL_INDEX ON INSIGHT (GLOBAL);");
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_ENGINEID_INDEX ON INSIGHT (ENGINEID);");
-//		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_INSIGHTNAME_INDEX ON INSIGHT (INSIGHTNAME);");
-//		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_INSIGHTID_INDEX ON INSIGHT (INSIGHTID);");
 
 		// USERINSIGHTPERMISSION
 		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
@@ -205,6 +214,11 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS USERINSIGHTPERMISSION_ENGINEID_INDEX ON USERINSIGHTPERMISSION (ENGINEID);");
 		securityDb.insertData("CREATE INDEX IF NOT EXISTS USERINSIGHTPERMISSION_USERID_INDEX ON USERINSIGHTPERMISSION (USERID);");
 
+		// USER
+		colNames = new String[] { "name", "email", "type", "id", "password", "salt", "username", "admin", "publisher"};
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "boolean" };
+		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
+		
 		// PERMISSION
 		colNames = new String[] { "id", "name" };
 		types = new String[] { "integer", "varchar(255)" };
@@ -231,15 +245,16 @@ public abstract class AbstractSecurityUtils {
 		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ACCESSREQUEST", colNames, types));
 		
 		// THIS IS FOR LEGACY !!!!
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		// TODO: EVENTUALLY WE WILL DELETE THIS
-		// TODO: EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
 		
 		// ADD NEW COLUMN FOR CACHEABLE INSIGHTS
 		securityDb.insertData("ALTER TABLE INSIGHT ADD COLUMN IF NOT EXISTS CACHEABLE BOOLEAN DEFAULT TRUE");
-		
+		// ADD NEW COLUMN FOR USER CAN BE PUBLISHER 
+		securityDb.insertData("ALTER TABLE USER ADD COLUMN IF NOT EXISTS PUBLISHER BOOLEAN DEFAULT TRUE");
 		// DROP COLUMN SUBMITTEDTO IN TABLE ACCESSREQUEST
 		securityDb.removeData("ALTER TABLE ACCESSREQUEST DROP COLUMN IF EXISTS SUBMITTEDTO");
 		// CHANGE TYPES TO BE STRINGS WHERE APPROPRIATE
@@ -262,11 +277,6 @@ public abstract class AbstractSecurityUtils {
 		/*
 		 * Tables accounted for that we are not using yet...
 		 */
-		
-		// USER
-		colNames = new String[] { "name", "email", "type", "admin", "id", "password", "salt", "username" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
 		
 		// USERGROUP
 		colNames = new String[] { "groupid", "name", "owner" };
