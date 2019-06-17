@@ -75,20 +75,26 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	}
 	
 	private boolean userIsDefined() {
-		return this.insight != null && this.insight.getUser() != null && !this.insight.getUser().isAnonymous();
+		return this.insight != null && this.insight.getUser() != null;
 	}
 	
 	private String getUserInfo() {
+		String userInfo = null;
 		User user = this.insight.getUser();
-		AuthProvider primaryProvider = user.getPrimaryLogin();
-		AccessToken token = user.getAccessToken(primaryProvider);
-		String userInfo = primaryProvider.name() + "___" + token.getName().replaceAll(" ", "_");
+		if(user.isAnonymous()) {
+			userInfo = "unk" + "___" + user.getAnonymousId();
+		} else {
+			AuthProvider primaryProvider = user.getPrimaryLogin();
+			AccessToken token = user.getAccessToken(primaryProvider);
+			userInfo = primaryProvider.name() + "___" + token.getName().replaceAll(" ", "_");
+		}
 		return userInfo; 
 	}
 	
 	private String getRDataFile() {
 		if (userIsDefined()) {
-			if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USER_WORKSPACE))) {
+			// do we have a user workspace and is the person logged in?
+			if ( Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USER_WORKSPACE)) && !this.insight.getUser().isAnonymous() ) {
 				String assetDirectory = WorkspaceAssetUtils.getUserAssetRootDirectory(this.insight.getUser(), this.insight.getUser().getPrimaryLogin());
 				if (assetDirectory != null && new File(assetDirectory).isDirectory()) {
 					String rDataDirectory = assetDirectory + "/" + "RData";
