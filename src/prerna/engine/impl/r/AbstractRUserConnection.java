@@ -357,12 +357,14 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 				}
 			}
 		} catch (TimeoutException | InterruptedException e) {
-			throw new IllegalArgumentException("R health check failed due to a timeout.", e);
+			LOGGER.warn("R health check failed due to a timeout.");
+			e.printStackTrace();
 		} catch (ExecutionException e) {
-			throw new IllegalArgumentException("R health check failed.", e);
+			LOGGER.warn("R health check failed");
+			e.printStackTrace();
 		} catch (REXPMismatchException e) {
-			// the routine ran but the value was not 3... weird
-			throw new IllegalArgumentException("R health check failed.", e);
+			LOGGER.warn("R health check failed due to incorrect result");
+			e.printStackTrace();
 		} finally {
 			executor.shutdownNow();
 		}
