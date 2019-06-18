@@ -247,7 +247,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// now return this object
-		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(
 				new NounMetadata(algName + " ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid.", 
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
