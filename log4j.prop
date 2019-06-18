@@ -4,9 +4,9 @@ log4j.rootLogger=INFO, A1
 # A1 is set to be a ConsoleAppender.
 log4j.appender.A1=org.apache.log4j.ConsoleAppender
 
-# A1 uses PatternLayout.
-log4j.appender.A1.layout=org.apache.log4j.PatternLayout
-log4j.appender.A1.layout.ConversionPattern=%d [%p|%c|%C{1}] %m%n
+# A1 uses EnhancedPatternLayout.
+log4j.appender.A1.layout=org.apache.log4j.EnhancedPatternLayout
+log4j.appender.A1.layout.ConversionPattern=%d [%p|%c{1.}] %m%n
 
 # Print only messages of level WARN or above in the packages
 log4j.logger.org.quartz=WARN
