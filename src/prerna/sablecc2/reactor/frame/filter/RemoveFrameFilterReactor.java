@@ -76,7 +76,8 @@ public class RemoveFrameFilterReactor extends AbstractFilterReactor {
 			}
 		}
 
-		return new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		return noun;
 	}
 
 	//////////////////////////////////////////////////////////////////////
