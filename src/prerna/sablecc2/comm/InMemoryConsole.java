@@ -1,10 +1,10 @@
 package prerna.sablecc2.comm;
 
 import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.EnhancedPatternLayout;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 
 public class InMemoryConsole extends Logger {
 	
@@ -35,8 +35,8 @@ public class InMemoryConsole extends Logger {
 		setLevel(Level.INFO);
 		//configure the appender
 		ConsoleAppender console = new ConsoleAppender(); //create appender
-		String PATTERN = "%d [%p|%c|%C{1}] %m%n";
-		console.setLayout(new PatternLayout(PATTERN)); 
+		String PATTERN = "%d [%p|%c{1.}] %m%n";
+		console.setLayout(new EnhancedPatternLayout(PATTERN)); 
 		console.setThreshold(Level.INFO);
 		console.activateOptions();
 		//add appender to the logger
