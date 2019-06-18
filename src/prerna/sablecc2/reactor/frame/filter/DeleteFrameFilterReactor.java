@@ -38,7 +38,8 @@ public class DeleteFrameFilterReactor extends AbstractFilterReactor {
 			filters.removeFilter(indexList.get(i - 1).intValue());
 		}
 
-		return new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
+		return noun;
 	}
 
 	//////////////////////////////////////////////////////////////////////
