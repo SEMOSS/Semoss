@@ -25,6 +25,9 @@ public class AddFrameFilterReactor extends AbstractFilterReactor {
 		frame.addFilter(grf);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER, PixelOperationType.FRAME_HEADERS_CHANGE);
+		noun.addAdditionalReturn(
+				new NounMetadata(frame.getFrameHeadersObject(), 
+						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
 		return noun;
 	}
 }
