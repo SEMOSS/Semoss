@@ -13,4 +13,3 @@ log4j.logger.org.quartz=WARN
 log4j.logger.apache.commons=WARN
 log4j.logger.com.bigdata=WARN
 log4j.logger.org.openrdf=WARN
-log4j.logger.org.openrdf.sail.memory.MemoryStoreConnection=ERROR
