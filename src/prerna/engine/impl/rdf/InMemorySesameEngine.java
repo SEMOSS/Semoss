@@ -121,6 +121,7 @@ public class InMemorySesameEngine extends AbstractEngine {
 		if(connected) {
 			try {
 				rc.clear();
+				rc.rollback();
 				rc.close();
 				connected = false;
 			} catch (RepositoryException e) {
