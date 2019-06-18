@@ -70,10 +70,7 @@ public class ReplaceFrameFilterReactor extends AbstractFilterReactor {
 			filters.addFilters(replaceFilter);
 		}
 
-		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER, PixelOperationType.FRAME_HEADERS_CHANGE);
-		noun.addAdditionalReturn(
-				new NounMetadata(frame.getFrameHeadersObject(), 
-						PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS));
+		NounMetadata noun = new NounMetadata(filters, PixelDataType.FILTER, PixelOperationType.FRAME_FILTER);
 		return noun;
 	}
 
