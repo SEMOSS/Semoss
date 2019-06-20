@@ -452,25 +452,3 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	}
 	
 }
-
-/**
- * Simple object to help cache frames
- */
-class FrameCacheHelper {
-	
-	ITableDataFrame frame;
-	List<String> alias = new Vector<String>();
-	
-	FrameCacheHelper(ITableDataFrame frame) {
-		this.frame = frame;
-	}
-	
-	public void addAlias(String alias) {
-		this.alias.add(alias);
-	}
-	
-	public boolean sameFrame(ITableDataFrame frame) {
-		return this.frame == frame;
-	}
-}
-
