@@ -211,6 +211,7 @@ import prerna.sablecc2.reactor.frame.r.util.RSourceReactor;
 import prerna.sablecc2.reactor.imports.ImportReactor;
 import prerna.sablecc2.reactor.imports.MergeReactor;
 import prerna.sablecc2.reactor.insights.ClearInsightReactor;
+import prerna.sablecc2.reactor.insights.CopyInsightReactor;
 import prerna.sablecc2.reactor.insights.CurrentVariablesReactor;
 import prerna.sablecc2.reactor.insights.DropInsightReactor;
 import prerna.sablecc2.reactor.insights.GetCurrentRecipeReactor;
@@ -913,6 +914,7 @@ public class ReactorFactory {
 		reactorHash.put("CurrentVariables", CurrentVariablesReactor.class);
 		reactorHash.put("OpenInsight", OpenInsightReactor.class);
 		reactorHash.put("ReloadInsight", ReloadInsightReactor.class);
+		reactorHash.put("CopyInsight", CopyInsightReactor.class);
 		reactorHash.put("OpenOptimizedInsight", OpenOptimizedInsightReactor.class);
 		reactorHash.put("OpenEmptyInsight", OpenEmptyInsightReactor.class);
 		reactorHash.put("DropInsight", DropInsightReactor.class);
