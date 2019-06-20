@@ -13,7 +13,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.OpenInsightReactor;
-import prerna.util.insight.InsightUtility;
 
 public class ReloadInsightReactor extends OpenInsightReactor {
 
@@ -41,7 +40,6 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 					hasCache = true;
 					cachedInsight.setInsightId(this.insight.getInsightId());
 					cachedInsight.setInsightName(this.insight.getInsightName());
-					InsightUtility.transferDefaultVars(this.insight, cachedInsight);
 				}
 			} catch (IOException | RuntimeException e) {
 				hasCache = true;
