@@ -29,8 +29,6 @@ import prerna.util.insight.InsightUtility;
 
 public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
 	private File folderDir;
 	private Insight existingInsight;
 	
