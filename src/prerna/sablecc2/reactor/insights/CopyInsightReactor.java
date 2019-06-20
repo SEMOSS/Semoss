@@ -4,9 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 
@@ -15,6 +18,7 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.om.Insight;
 import prerna.om.InsightCacheUtility;
+import prerna.om.InsightStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -52,39 +56,53 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 			folderDir.mkdirs();
 		}
 		
-		UnsavedInsightAdapter adapter = new UnsavedInsightAdapter(folderDir);
+		String insightLoc = null;
+		File insightFile = null;
 		{
+			UnsavedInsightAdapter adapter = new UnsavedInsightAdapter(folderDir);
 			StringWriter writer = new StringWriter();
 			JsonWriter jWriter = new JsonWriter(writer);
 			try {
 				adapter.write(jWriter, this.insight);
-				String insightLoc = folderDir+ DIR_SEPARATOR + InsightCacheUtility.MAIN_INSIGHT_JSON;
-				File insightFile = new File(insightLoc);
+				insightLoc = folderDir+ DIR_SEPARATOR + InsightCacheUtility.MAIN_INSIGHT_JSON;
+				insightFile = new File(insightLoc);
 				FileUtils.writeStringToFile(insightFile, writer.toString());
 			} catch (IOException e) {
 				e.printStackTrace();
 				throw new IllegalArgumentException("An error occured trying to copy the insight");
 			}
 		}
-		// now we need to read that insight cache
-		{
-			StringReader reader = new StringReader(folderDirLoc);
+		try {
+			// now we need to read that insight cache
+			UnsavedInsightAdapter adapter = new UnsavedInsightAdapter(folderDir);
+			StringReader reader = new StringReader(FileUtils.readFileToString(insightFile));
 			JsonReader jReader = new JsonReader(reader);
-			try {
+				// set the user context for reading
+				// need this to pass default insight parameters + user
+				adapter.setUserContext(this.insight);
 				Insight in = adapter.read(jReader);
 				
-				String[] recipe = getRecipe();
-				Map<String, Object> runnerWraper = new HashMap<String, Object>();
-				runnerWraper.put("runner", in.runPixel(Arrays.asList(recipe)));
-				NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.NEW_EMPTY_INSIGHT);
-				if(dropInsight()) {
-					noun.addAdditionalReturn(new NounMetadata(true, PixelDataType.DROP_INSIGHT, PixelOperationType.DROP_INSIGHT));
+				// need to set the new insight with a new id
+				in.setInsightId(UUID.randomUUID().toString());
+				InsightStore.getInstance().putWithCurrentId(in);
+				
+				List<String> recipe = new ArrayList<String>();
+				try {
+					String[] recipeToRun = getRecipe();
+					recipe.addAll(Arrays.asList(recipeToRun));
+					if(dropInsight()) {
+						recipe.add("DropInsight();");
+					}
+				} catch(IllegalArgumentException e) {
+					// ignore
 				}
+				Map<String, Object> runnerWraper = new HashMap<String, Object>();
+				runnerWraper.put("runner", in.runPixel(recipe));
+				NounMetadata noun = new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.NEW_EMPTY_INSIGHT);
 				return noun;
-			} catch (IOException e) {
-				e.printStackTrace();
-				throw new IllegalArgumentException("An error occured trying to read the insight copy");
-			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured trying to read the insight copy");
 		}
 	}
 	
