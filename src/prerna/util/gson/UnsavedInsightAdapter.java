@@ -9,10 +9,14 @@ import java.util.Vector;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.ds.py.PandasFrame;
+import prerna.ds.r.RDataTable;
+import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,12 +25,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.insight.InsightUtility;
 
 public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	private File folderDir;
+	private Insight existingInsight;
 	
 	/**
 	 * Constructor 
@@ -157,134 +163,146 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 	
 	@Override
 	public Insight read(JsonReader in) throws IOException {
-//		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-//
-//		Insight insight = new Insight();
-//		InsightUtility.transferDefaultVars(existingInsight, insight);
-//		
-//		in.beginObject();
-//		in.nextName();
-//		// engine id, engine name, rdbms id
-//		String engineId = in.nextString();
-//		insight.setEngineId(engineId);
-//		in.nextName();
-//		String engineName = in.nextString();
-//		insight.setEngineName(engineName);
-//		in.nextName();
-//		String rdbmsId = in.nextString();
-//		insight.setRdbmsId(rdbmsId);
-//		
-//		// this will be the varstore
-//		in.nextName();
-//		VarStoreAdapter varStoreAdapter = new VarStoreAdapter();
-//		VarStore store = varStoreAdapter.read(in);
-//		insight.setVarStore(store);
-//		
-//		// this will be the frames
-//		in.nextName();
-//		in.beginArray();
-//		while(in.hasNext()) {
-//			in.beginObject();
-//			
-//			List<String> varStoreKeys = new Vector<String>();
-//			CachePropFileFrameObject cf = new CachePropFileFrameObject();
-//			while(in.hasNext()) {
-//				String k = in.nextName();
-//				if(k.equals("file")) {
-//					String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
-//					if(!(new File(path).exists())) {
-//						InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
-//					}
-//					cf.setFrameCacheLocation(path);
-//				} else if(k.equals("meta")) {
-//					String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
-//					if(!(new File(path).exists())) {
-//						InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
-//					}
-//					cf.setFrameMetaCacheLocation(path);
-//				} else if(k.equals("type")) {
-//					cf.setFrameType(in.nextString());
-//				} else if(k.equals("name")) {
-//					cf.setFrameName(in.nextString());
-//				} else if(k.equals("state")) {
-//					// this is not always present
-//					JsonToken peek = in.peek();
-//					if(peek == JsonToken.NULL) {
-//						in.nextNull();
-//					} else {
-//						String path = deparameterizePath(in.nextString(), baseFolder, engineName, engineId);
-//						if(!(new File(path).exists())) {
-//							InsightCacheUtility.unzipFile(zip, FilenameUtils.getName(path), path);
-//						}
-//						cf.setFrameStateCacheLocation(path);
-//					}
-//				} else if(k.equals("keys")) {
-//					in.beginArray();
-//					while(in.hasNext()) {
-//						varStoreKeys.add(in.nextString());
-//					}
-//					in.endArray();
-//				}
-//			}
-//
-//			ITableDataFrame frame;
-//			try {
-//				frame = (ITableDataFrame) Class.forName(cf.getFrameType()).newInstance();
-//				// need to set the exector for pandas
-//				if(frame instanceof PandasFrame) {
-//					((PandasFrame)frame).setJep(insight.getPy());
-//				}
-//				else if(RserveUtil.IS_USER_RSERVE && frame instanceof RDataTable) {
-//					frame = new RDataTable(insight.getUser());
-//				}
-//				
-//				frame.open(cf);
-//				
-//				NounMetadata fNoun = new NounMetadata(frame, PixelDataType.FRAME);
-//				for(String varStoreK : varStoreKeys) {
-//					store.put(varStoreK, fNoun);
-//				}
-//			} catch (InstantiationException e) {
-//				e.printStackTrace();
-//			} catch (IllegalAccessException e) {
-//				e.printStackTrace();
-//			} catch (ClassNotFoundException e) {
-//				e.printStackTrace();
-//			}
-//			
-//			in.endObject();
-//		}
-//		in.endArray();
-//		
-//		// this will be the panels
-//		in.nextName();
-//		in.beginArray();
-//		while(in.hasNext()) {
-//			InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
-//			InsightPanel panel = panelAdapter.read(in);
-//			insight.addNewInsightPanel(panel);
-//		}
-//		in.endArray();
-//		
-//		// this will be the tasks
-//		in.nextName();
-//		TaskStoreAdapter tStoreAdapter = new TaskStoreAdapter();
-//		TaskStore tStore = tStoreAdapter.read(in);
-//		insight.setTaskStore(tStore);
-//		
-//		// this will be the recipe
-//		in.nextName();
-//		List<String> recipe = new Vector<String>();
-//		in.beginArray();
-//		while(in.hasNext()) {
-//			recipe.add(in.nextString());
-//		}
-//		in.endArray();
-//		insight.setPixelRecipe(recipe);
-//		
-//		in.endObject();
-//		return insight;
-		return null;
+		Insight insight = new Insight();
+		
+		in.beginObject();
+		in.nextName();
+		// engine id, engine name, rdbms id
+		if(in.peek() == JsonToken.NULL) {
+			in.nextNull();
+		} else {
+			String engineId = in.nextString();
+			insight.setEngineId(engineId);
+		}
+		
+		in.nextName();
+		if(in.peek() == JsonToken.NULL) {
+			in.nextNull();
+		} else {
+			String engineName = in.nextString();
+			insight.setEngineName(engineName);
+		}
+		
+		in.nextName();
+		if(in.peek() == JsonToken.NULL) {
+			in.nextNull();
+		} else {
+			String rdbmsId = in.nextString();
+			insight.setRdbmsId(rdbmsId);
+		}
+
+		// this will be the varstore
+		in.nextName();
+		VarStoreAdapter varStoreAdapter = new VarStoreAdapter();
+		VarStore store = varStoreAdapter.read(in);
+		if(store != null) {
+			insight.setVarStore(store);
+		}
+		// after we potentially set the var store
+		// transfer over the default variables
+		if(this.existingInsight != null) {
+			InsightUtility.transferDefaultVars(this.existingInsight, insight);
+		}
+		
+		// this will be the frames
+		in.nextName();
+		in.beginArray();
+		while(in.hasNext()) {
+			in.beginObject();
+			
+			List<String> varStoreKeys = new Vector<String>();
+			CachePropFileFrameObject cf = new CachePropFileFrameObject();
+			while(in.hasNext()) {
+				String k = in.nextName();
+				if(k.equals("file")) {
+					String path = in.nextString();
+					cf.setFrameCacheLocation(path);
+				} else if(k.equals("meta")) {
+					String path = in.nextString();
+					cf.setFrameMetaCacheLocation(path);
+				} else if(k.equals("type")) {
+					cf.setFrameType(in.nextString());
+				} else if(k.equals("name")) {
+					cf.setFrameName(in.nextString());
+				} else if(k.equals("state")) {
+					// this is not always present
+					JsonToken peek = in.peek();
+					if(peek == JsonToken.NULL) {
+						in.nextNull();
+					} else {
+						String path = in.nextString();
+						cf.setFrameStateCacheLocation(path);
+					}
+				} else if(k.equals("keys")) {
+					in.beginArray();
+					while(in.hasNext()) {
+						varStoreKeys.add(in.nextString());
+					}
+					in.endArray();
+				}
+			}
+
+			ITableDataFrame frame;
+			try {
+				frame = (ITableDataFrame) Class.forName(cf.getFrameType()).newInstance();
+				// need to set the exector for pandas
+				if(frame instanceof PandasFrame) {
+					((PandasFrame)frame).setJep(insight.getPy());
+				}
+				else if(RserveUtil.IS_USER_RSERVE && frame instanceof RDataTable) {
+					frame = new RDataTable(insight.getUser());
+				}
+				
+				frame.open(cf);
+				
+				NounMetadata fNoun = new NounMetadata(frame, PixelDataType.FRAME);
+				for(String varStoreK : varStoreKeys) {
+					store.put(varStoreK, fNoun);
+				}
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+			
+			in.endObject();
+		}
+		in.endArray();
+		
+		// this will be the panels
+		in.nextName();
+		in.beginArray();
+		while(in.hasNext()) {
+			InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
+			InsightPanel panel = panelAdapter.read(in);
+			insight.addNewInsightPanel(panel);
+		}
+		in.endArray();
+		
+		// this will be the tasks
+		in.nextName();
+		TaskStoreAdapter tStoreAdapter = new TaskStoreAdapter();
+		TaskStore tStore = tStoreAdapter.read(in);
+		insight.setTaskStore(tStore);
+		
+		// this will be the recipe
+		in.nextName();
+		List<String> recipe = new Vector<String>();
+		in.beginArray();
+		while(in.hasNext()) {
+			recipe.add(in.nextString());
+		}
+		in.endArray();
+		insight.setPixelRecipe(recipe);
+		
+		in.endObject();
+		return insight;
 	}
 
+	public void setUserContext(Insight existingInsight) {
+		this.existingInsight = existingInsight;		
+	}
+	
 }

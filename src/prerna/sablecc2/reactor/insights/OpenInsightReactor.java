@@ -149,8 +149,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					hasCache = true;
 					cachedInsight.setInsightName(newInsight.getInsightName());
 					newInsight = cachedInsight;
-					// need to transfer again
-					InsightUtility.transferDefaultVars(this.insight, newInsight);
 				}
 			} catch (IOException | RuntimeException e) {
 				hasCache = true;

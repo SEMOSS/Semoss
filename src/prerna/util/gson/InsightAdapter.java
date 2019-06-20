@@ -303,7 +303,6 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 
 		Insight insight = new Insight();
-		InsightUtility.transferDefaultVars(existingInsight, insight);
 		
 		in.beginObject();
 		in.nextName();
@@ -321,7 +320,12 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		in.nextName();
 		VarStoreAdapter varStoreAdapter = new VarStoreAdapter();
 		VarStore store = varStoreAdapter.read(in);
-		insight.setVarStore(store);
+		if(store != null) {
+			insight.setVarStore(store);
+		}
+		if(this.existingInsight != null) {
+			InsightUtility.transferDefaultVars(this.existingInsight, insight);
+		}
 		
 		// this will be the frames
 		in.nextName();
