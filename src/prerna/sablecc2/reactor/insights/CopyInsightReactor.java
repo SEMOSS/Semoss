@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
@@ -16,6 +17,7 @@ import org.apache.commons.io.FileUtils;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.om.InsightCacheUtility;
 import prerna.om.InsightStore;
@@ -23,6 +25,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -41,7 +44,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 	public NounMetadata execute() {
 		/*
 		 * Create a new empty insight
-		 * We do this by cahing the current insight into a folder
+		 * We do this by caching the current insight into a folder
 		 * And then reading that cache 
 		 * Will override the insight id to be a new one
 		 */
@@ -81,6 +84,26 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				// need this to pass default insight parameters + user
 				adapter.setUserContext(this.insight);
 				Insight in = adapter.read(jReader);
+				
+				// since R and Py share the same user space
+				// i will need to go through and modify them to have another variable name
+				VarStore vStore = in.getVarStore();
+				Set<String> varKeys = vStore.getKeys();
+				for(String var : varKeys) {
+					NounMetadata variable = vStore.get(var);
+					if(variable.getNounType() == PixelDataType.FRAME) {
+						// if R or Py, we have to change
+						if(variable.getValue() instanceof RDataTable) {
+							RDataTable dt = (RDataTable) variable.getValue();
+							String newName = dt.getName() + "_COPY";
+							dt.executeRScript(newName + "<- " + dt.getName());
+							dt.setName(newName);
+						}
+					}
+				}
+				
+				// drop the insight folder
+				insightFile.delete();
 				
 				// need to set the new insight with a new id
 				in.setInsightId(UUID.randomUUID().toString());
