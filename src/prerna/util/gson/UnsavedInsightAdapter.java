@@ -23,8 +23,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.insight.InsightUtility;
 
 public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
@@ -45,8 +43,6 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		String rdbmsId = value.getRdbmsId();
 		String engineId = value.getEngineId();
 		String engineName = value.getEngineName();
-		
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		
 		// start insight object
 		out.beginObject();
