@@ -89,12 +89,13 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				List<String> recipe = new ArrayList<String>();
 				try {
 					String[] recipeToRun = getRecipe();
+					recipeToRun = decodeRecipe(recipeToRun);
 					recipe.addAll(Arrays.asList(recipeToRun));
-					if(dropInsight()) {
-						recipe.add("DropInsight();");
-					}
 				} catch(IllegalArgumentException e) {
 					// ignore
+				}
+				if(dropInsight()) {
+					recipe.add("DropInsight();");
 				}
 				Map<String, Object> runnerWraper = new HashMap<String, Object>();
 				runnerWraper.put("runner", in.runPixel(recipe));
