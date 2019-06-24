@@ -92,6 +92,9 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		logger.info("Creating second vector of values to compare");
 		boolean optimized = false;
 		String frameCol = getFrameColumn();
+		if(frameCol.contains("__")) {
+			frameCol = frameCol.split("__")[1];
+		}
 		if(frameCol != null) {
 			ITableDataFrame frame = getFrame();
 			if(frame instanceof RDataTable) {
