@@ -164,9 +164,15 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 	private String getMatchesFrame() {
 		GenRowStruct grs = this.store.getNoun(FED_FRAME);
 		if(grs != null && !grs.isEmpty()) {
-			String outFrame = grs.get(0).toString().trim();
-			if(!outFrame.isEmpty()) {
+			NounMetadata noun = grs.getNoun(0);
+			if(noun.getNounType() == PixelDataType.FRAME) {
+				String outFrame = ((ITableDataFrame) noun.getValue()).getName();
 				return outFrame;
+			} else {
+				String outFrame = grs.get(0).toString().trim();
+				if(!outFrame.isEmpty()) {
+					return outFrame;
+				}
 			}
 		}
 		throw new IllegalArgumentException("Must pass in the frame that contains the matches");
