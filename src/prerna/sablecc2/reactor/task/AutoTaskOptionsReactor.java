@@ -21,6 +21,10 @@ public class AutoTaskOptionsReactor extends TaskBuilderReactor {
 		organizeKeys();
 		String panelId = this.keyValue.get(this.keysToGet[0]);
 		String layout = this.keyValue.get(this.keysToGet[1]);
+		if(layout == null) {
+			// assume default value is grid
+			layout = "GRID";
+		}
 		
 		Map<String, Object> optionsMap = null;
 		String findlayout = layout.toUpperCase();
