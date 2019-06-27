@@ -144,11 +144,10 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 			long end = System.currentTimeMillis();
 			logger.info("Time to output file = " + (end-start) + " ms");
 		} catch(Exception e) {
-			e.printStackTrace();
 			if(f.exists()) {
 				f.delete();
 			}
-			throw new IllegalArgumentException("Encountered error while writing to CSV file");
+			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 	}
 	
