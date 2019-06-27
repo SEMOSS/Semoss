@@ -632,7 +632,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 								if(i != 0) {
 									filterBuilder.append(" || ");
 								}
-								filterBuilder.append("REGEX(?").append(leftCleanVarName).append(", \"").append(rightObjects.get(i)).append("\", 'i')");
+								filterBuilder.append("REGEX(?").append(leftCleanVarName).append(", \"").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
 							}
 						}
 					} else {
@@ -642,7 +642,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 								filterBuilder.append(" || ");
 							}
 							filterBuilder.append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
-									.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i)).append("\", 'i')");
+									.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
 						}
 					}
 				} else {
