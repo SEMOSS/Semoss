@@ -16,6 +16,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.algorithm.api.SemossDataType;
@@ -58,9 +60,10 @@ public class ToExcelReactor extends TaskBuilderReactor {
 
 	@Override
 	protected void buildTask() {
-		Workbook workbook = new XSSFWorkbook();
+		SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
 		CreationHelper createHelper = workbook.getCreationHelper();
-		Sheet sheet = workbook.createSheet("Results");
+		SXSSFSheet sheet = workbook.createSheet("Results");
+		sheet.setRandomAccessWindowSize(100);
 		// freeze the first row
 		sheet.createFreezePane(0, 1);
 		
@@ -169,30 +172,28 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				}
 			}
 		}
-		
-		// Resize all columns to fit the content size
-        for(i = 0; i < size; i++) {
-            sheet.autoSizeColumn(i);
-        }
 
         // Write the output to a file
-        FileOutputStream fileOut = null;
+		FileOutputStream fileOut = null;
 		try {
 			fileOut = new FileOutputStream(this.fileLocation);
-			 workbook.write(fileOut);
+			workbook.write(fileOut);
+			workbook.close();
+			workbook.dispose();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
-			if(fileOut != null) {
+			if (fileOut != null) {
 				try {
 					fileOut.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
-			if(workbook != null) {
+			if (workbook != null) {
 				try {
 					workbook.close();
+					workbook.dispose();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
