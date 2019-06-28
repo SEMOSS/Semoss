@@ -91,6 +91,8 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private BasicDataSource dataSource = null;
 	Connection engineConn = null;
 	private boolean useConnectionPooling = false;
+	private boolean autoCommit = false;
+	
 	public PersistentHash conceptIdHash = null;
 	
 	private RdbmsConnectionBuilder connBuilder;
@@ -113,8 +115,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		if(propFile == null && prop == null){
 			if(dataSource!= null){
 				try{
-					engineConn = getConnection();
+					this.engineConn = getConnection();
 					this.engineConnected = true;
+					this.autoCommit = this.engineConn.getAutoCommit();
 				} catch (Exception e){
 					LOGGER.error("error RDBMS opening database", e);
 				}
@@ -204,6 +207,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 					this.datasourceConnected = true;
 				}
 				this.engineConnected = true;
+				this.autoCommit = this.engineConn.getAutoCommit();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -220,17 +224,23 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		// default does nothing
 	}
 
+	public boolean makeConnection(String driver, String url, String userName, String password) {
+		makeConnection(driver, userName, password, url, null);
+		return this.engineConnected;
+	}
+	
 	private void makeConnection(String driver, String userName, String password, String url, String createString) {
 		try {
-			Class.forName("org.h2.Driver");
-			engineConn = DriverManager.getConnection(url, userName, password);
-			engineConn.createStatement().execute(createString);
-			engineConnected = true;
+			Class.forName(driver);
+			this.engineConn = DriverManager.getConnection(url, userName, password);
+			if(createString != null) {
+				this.engineConn.createStatement().execute(createString);
+			}
+			this.engineConnected = true;
+			this.autoCommit = this.engineConn.getAutoCommit();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -238,27 +248,11 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	// you cant change owl right now
 	public void reloadFile() {
 		try {
-			engineConn.close();
-			makeConnection(driver, userName, password, connectionURL, createString);
+			this.engineConn.close();
+			makeConnection(this.driver, this.userName, this.password, this.connectionURL, this.createString);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
-	}
-
-	public boolean makeConnection(String url, String userName, String password)
-	{
-		try {
-			Class.forName("org.h2.Driver");
-			engineConn = DriverManager.getConnection(url, userName, password);
-			engineConnected = true;
-
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return engineConnected;
 	}
 
 	private Connection getConnection(){
@@ -278,6 +272,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			try {
 				this.engineConn = connBuilder.build();
 				this.engineConnected = true;
+				this.autoCommit = this.engineConn.getAutoCommit();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -585,7 +580,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void commit() {
 		try {
-			getConnection().commit();
+			if(!autoCommit) {
+				getConnection().commit();
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -792,6 +789,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		this.engineConn = engineConn;
 		try {
 			this.engineConnected = !this.engineConn.isClosed();
+			this.autoCommit = this.engineConn.getAutoCommit();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
