@@ -1,9 +1,11 @@
 package prerna.util;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
+import java.io.UnsupportedEncodingException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -36,8 +38,9 @@ public class AppNameRecipeModifier {
 	 * @param smssFile
 	 * @param rdbmsInsightsLocation
 	 * @param newNameForDb
+	 * @throws UnsupportedEncodingException 
 	 */
-	public static void renameDatabaseForInsights(String rdbmsInsightsLocation, String newNameForDb, String origEngineName) {
+	public static void renameDatabaseForInsights(String rdbmsInsightsLocation, String newNameForDb, String origEngineName) throws UnsupportedEncodingException {
 		// in case we need to prefill the location
 		Map<String, String> paramHash = new Hashtable<String, String>();
 		paramHash.put("engine", newNameForDb);
@@ -48,7 +51,7 @@ public class AppNameRecipeModifier {
 		String password = "";
 
 		RDBMSNativeEngine rne = new RDBMSNativeEngine();
-		rne.makeConnection(jdbcURL, userName, password);
+		rne.makeConnection("org.h2.Driver", jdbcURL, userName, password);
 
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, GET_ALL_RECIPES);
 		while(wrapper.hasNext()) {
@@ -86,11 +89,11 @@ public class AppNameRecipeModifier {
 		rne.closeDB();
 	}
 
-	private static List<String> modifyPixelDatabaseName(String pixel, String engineToFind, String engineToReplace) {
+	private static List<String> modifyPixelDatabaseName(String pixel, String engineToFind, String engineToReplace) throws UnsupportedEncodingException {
 		Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
 		pixel = PixelPreProcessor.preProcessPixel(pixel, encodedTextToOriginal);
 		
-		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new StringBufferInputStream(pixel)), pixel.length())));
+		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
 		DbTranslationEditor translation = new DbTranslationEditor();
 		translation.setEngineToFind(engineToFind);
 		translation.setEngineToReplace(engineToReplace);
