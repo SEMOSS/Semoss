@@ -113,7 +113,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			String userName = "sa";
 			String password = "";
 			rne.setEngineId(appId + "_InsightsRDBMS");
-			boolean connected = rne.makeConnection(jdbcURL, userName, password);
+			boolean connected = rne.makeConnection("org.h2.Driver", jdbcURL, userName, password);
 			if (!connected) {
 				// If the connection failed, then try and pull the insight database from the engine itself
 				loadedEngine = true;
