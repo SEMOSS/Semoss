@@ -120,11 +120,33 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		logger.info(stepCounter + ". Done");
 
 		logger.info(stepCounter + ". Generating pixel return from results");
-		List<Map<String, String>> returnPixels = generatePixels(retData, query);
+		List<Map<String, Object>> returnPixels = generatePixels(retData, query);
 		logger.info(stepCounter + ". Done");
 		
-		//reset working directory
+		//reset working directory and run garbage cleanup
 		this.rJavaTranslator.runR("setwd(\"" + wd + "\");");
+		this.rJavaTranslator.executeEmptyR("rm(" + wd + 
+				",build_join_clause," + "build_pixel," +             
+				"build_pixel_aggr_select," +  "build_pixel_from," +        
+				"build_pixel_group," +        "build_pixel_having," +      
+				"build_pixel_single_select," +"build_pixel_where," +       
+				"connect_tables," +          
+				"db_match," +                 "filter_apps," +             
+				"get_alias," +                "get_conj," +                
+				"get_having," +               "get_select," +              
+				"get_start," +                "get_subtree," +             
+				"get_where," +                "join_clause_mgr," +         
+				"map_aggr," +                 "map_dbitems," +             
+				"min_joins," +                "nliapp_mgr," +              
+				"optimize_joins," +           "parse_aggr," +              
+				"parse_question," +           "parse_question_mgr," +      
+				"parse_request," +            "refine_parsing," +          
+				"replace_words," +            "select_having," +           
+				"select_where," +             "select_where_helper," +     
+				"tag_dbitems," +              "tagger," +                  
+				"translate_token," +          "trim," +                    
+				"validate_pixel," +           "validate_select," +         
+				"verify_joins," +             "where_helper" + "); gc();");
 
 		return new NounMetadata(returnPixels, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
@@ -150,6 +172,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		String rTempTable = "NaturalLangTable" + Utility.getRandomString(8);
 		String rJoinTable = "JoinTable" + Utility.getRandomString(8);
 		String result = "result" + Utility.getRandomString(8);
+		String gc = rTempTable + " , " + result;
 		StringBuilder rsb = new StringBuilder();
 
 		String rAppIds = "c(";
@@ -269,12 +292,17 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			// Create data frame from above join vectors
 			rsb.append(rJoinTable + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDs_join + ", stringsAsFactors = FALSE);");
 			rsb.append(result + " <- nliapp_mgr(\"" + query + "\"," + rTempTable + "," + rJoinTable + ");");
+			gc += (" , " + rJoinTable);
 		}
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// get back the data
 		String[] headerOrdering = new String[]{"appid", "part", "item1", "item2", "item3", "item4", "item5", "item6", "item7" };
 		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(result, headerOrdering);
+		
+		// garbage cleanup
+		this.rJavaTranslator.executeEmptyR("rm(" + gc + "); gc();");
+
 		return list;
 	}
 
@@ -284,7 +312,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @param queryInput
 	 * @return
 	 */
-	private List<Map<String, String>> generatePixels(List<Object[]> retData, String queryInput) {
+	private List<Map<String, Object>> generatePixels(List<Object[]> retData, String queryInput) {
 		// we do not know how many rows associate with the same QS
 		// but we know the algorithm only returns one QS per engine
 		// and the rows are ordered with regards to how the engine comes back
@@ -571,18 +599,21 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 
 		}
 
-		List<Map<String, String>> retMap = new Vector<Map<String, String>>();
+		List<Map<String, Object>> retMap = new Vector<Map<String, Object>>();
 		for(SelectQueryStruct qs : qsList) {
-			Map<String, String> map = new HashMap<String, String>();
+			Map<String, Object> map = new HashMap<String, Object>();
 			
 			String appId = qs.getEngineId();
 			String appName = MasterDatabaseUtility.getEngineAliasForId(appId);
+			String frameName = "FRAME_" + Utility.getRandomString(5);
 			map.put("app_id", appId);
 			map.put("app_name", appName);
-			String finalPixel = buildPixelFromQs(qs, appId);
+			map.put("frame_name", frameName);
+			String finalPixel = buildPixelFromQs(qs, appId, frameName);
 			finalPixel += "Panel ( 0 ) | SetPanelLabel(\"" + appName + ": " + queryInput + "\");";
 			map.put("pixel", finalPixel);
-			map.put("layout", "Grid");
+			map.put("layout", "NLP");
+			map.put("columns", getSelectorAliases(qs.getSelectors()));
 			retMap.add(map);
 		}
 		
@@ -599,15 +630,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * @param appId
 	 * @return
 	 */
-	public String buildPixelFromQs(SelectQueryStruct qs, String appId) {
+	public String buildPixelFromQs(SelectQueryStruct qs, String appId, String frameName) {
 		StringBuilder psb = new StringBuilder();
 		// run default pixels setting up panel
 		psb.append("AddPanel ( 0 ) ;");
 		psb.append("Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;");
-		psb.append("Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
-		psb.append("Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" );");
-		String frameName = "FRAME_" + Utility.getRandomString(5);
-		psb.append("CreateFrame ( GRID ) .as ( [ '" + frameName + "' ] );");
+		psb.append("CreateFrame ( R ) .as ( [ '" + frameName + "' ] );");
 
 		// pull from the appId
 		psb.append("Database ( database = [ \"" + appId + "\" ] ) | ");
@@ -828,12 +856,11 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		// final import statement
 		psb.append("Import ( frame = [ " + frameName + " ] ) ;");
 		// now that we have the data, visualize in grid
-		psb.append("Panel ( 0 ) | SetPanelView ( \"visualization\" );");
-		psb.append("Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );");
+		psb.append("Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;");
 
 		return psb.toString();
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -856,5 +883,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		return engineFilters;
 	}
 	
+	private List<String> getSelectorAliases(List<IQuerySelector> selectors){
+		List<String> aliases = new Vector<String>();
+		for(IQuerySelector sel : selectors) {
+			aliases.add(sel.getAlias());
+		}
+		return aliases;
+	}
 	
 }
