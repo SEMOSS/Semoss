@@ -8,23 +8,33 @@ import prerna.auth.AccessPermission;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class SecurityAppUtils extends AbstractSecurityUtils {
 
 	/**
-	 * Get what permission the user has for a given insight
+	 * Get what permission the user has for a given app
 	 * @param userId
 	 * @param engineId
 	 * @param insightId
 	 * @return
 	 */
 	public static String getActualUserAppPermission(User user, String engineId) {
-		String userFilters = getUserFilters(user);
-
-		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
+//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		while(wrapper.hasNext()) {
 			Object val = wrapper.next().getValues()[0];
 			if(val != null) {
@@ -41,10 +51,22 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		return null;
 	}
 	
+	/**
+	 * Get the app permissions for a specific user
+	 * @param singleUserId
+	 * @param engineId
+	 * @return
+	 */
 	public static Integer getUserAppPermission(String singleUserId, String engineId) {
-		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION  "
-				+ "WHERE ENGINEID='" + engineId + "' AND USERID='" + singleUserId + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION  "
+//				+ "WHERE ENGINEID='" + engineId + "' AND USERID='" + singleUserId + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -60,12 +82,18 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Get global engines
+	 * See if specific app is global
 	 * @return
 	 */
 	public static boolean appIsGlobal(String engineId) {
-		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='" + engineId + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='" + engineId + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				return true;
@@ -77,26 +105,25 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
-	 * Determine if the user is the owner
-	 * @param user
-	 * @param engineId
-	 * @return
-	 */
-	public static boolean userIsOwner(User user, String engineId) {
-		String userFilters = getUserFilters(user);
-		return userIsOwner(userFilters, engineId);
-	}
-	
-	/**
-	 * Determine if the user is the owner
+	 * Determine if the user is the owner of an app
 	 * @param userFilters
 	 * @param engineId
 	 * @return
 	 */
-	static boolean userIsOwner(String userFilters, String engineId) {
-		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+	public static boolean userIsOwner(User user, String engineId) {
+		return userIsOwner(getUserFiltersQs(user), engineId);
+	}
+	
+	static boolean userIsOwner(List<String> userIds, String engineId) {
+//		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
+//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		while(wrapper.hasNext()) {
 			Object val = wrapper.next().getValues()[0];
 			if(val == null) {
@@ -117,18 +144,28 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanViewEngine(User user, String engineId) {
-		String userFilters = getUserFilters(user);
-		String query = "SELECT * "
-				+ "FROM ENGINE "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "WHERE ("
-				+ "ENGINE.GLOBAL=TRUE "
-				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + ") AND ENGINE.ENGINEID='" + engineId + "'"
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT * "
+//				+ "FROM ENGINE "
+//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "WHERE ("
+//				+ "ENGINE.GLOBAL=TRUE "
+//				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + ") AND ENGINE.ENGINEID='" + engineId + "'"
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		qs.addExplicitFilter(orFilter);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			// if you are here, you can view
-			while(wrapper.hasNext()) {
+			if(wrapper.hasNext()) {
 				return true;
 			} 
 		} finally {
@@ -144,10 +181,16 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanEditEngine(User user, String engineId) {
-		String userFilters = getUserFilters(user);
-		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
+//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -172,12 +215,18 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	static int getMaxUserAppPermission(User user, String engineId) {
-		String userFilters = getUserFilters(user);
-
-		// query the database
-		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters + " ORDER BY PERMISSION";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String userFilters = getUserFilters(user);
+//		// query the database
+//		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
+//				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters + " ORDER BY PERMISSION";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -205,26 +254,34 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 	/**
 	 * Retrieve the list of users for a given insight
 	 * @param user
-	 * @param appId
+	 * @param engineId
 	 * @param insightId
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static List<Map<String, Object>> getAppUsers(User user, String appId) throws IllegalAccessException {
-		if(!userCanViewEngine(user, appId)) {
+	public static List<Map<String, Object>> getAppUsers(User user, String engineId) throws IllegalAccessException {
+		if(!userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException("The user does not have access to view this app");
 		}
 		
-		String query = "SELECT USER.ID AS \"id\", "
-				+ "USER.NAME AS \"name\", "
-				+ "PERMISSION.NAME AS \"permission\" "
-				+ "FROM USER "
-				+ "INNER JOIN ENGINEPERMISSION ON (USER.ID = ENGINEPERMISSION.USERID) "
-				+ "INNER JOIN PERMISSION ON (ENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
-				+ "WHERE ENGINEPERMISSION.ENGINEID='" + appId + "';"
-				;
+//		String query = "SELECT USER.ID AS \"id\", "
+//				+ "USER.NAME AS \"name\", "
+//				+ "PERMISSION.NAME AS \"permission\" "
+//				+ "FROM USER "
+//				+ "INNER JOIN ENGINEPERMISSION ON (USER.ID = ENGINEPERMISSION.USERID) "
+//				+ "INNER JOIN PERMISSION ON (ENGINEPERMISSION.PERMISSION = PERMISSION.ID) "
+//				+ "WHERE ENGINEPERMISSION.ENGINEID='" + appId + "';"
+//				;
+//		
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__NAME", "id"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
+		qs.addRelation("ENGINEPERMISSION", "PERMISSION", "inner.join");
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushRsToMap(wrapper);
 	}
 	

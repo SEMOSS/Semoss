@@ -1,5 +1,6 @@
 package prerna.query.interpreters.sql;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -31,7 +33,6 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -64,7 +65,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	// but everything needs to be the physical schema
 	protected transient IEngine engine; 
 	protected transient ITableDataFrame frame;
-	
+	protected SQLQueryUtil queryUtil = SQLQueryUtil.initialize(RdbmsTypeEnum.H2_DB);
+
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
 	// and the values are values
@@ -83,8 +85,6 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	protected List<String[]> froms = new Vector<String[]>();
 	// store the joins in the object for easy use
 	protected SqlJoinStructList joinStructList = new SqlJoinStructList();
-	
-	protected SQLQueryUtil queryUtil = SQLQueryUtil.initialize(RdbmsTypeEnum.H2_DB);
 	
 	public SqlInterpreter() {
 		
@@ -325,7 +325,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		String function = selector.getFunction();
 		
 		StringBuilder expression = new StringBuilder();
-		expression.append(QueryFunctionHelper.convertFunctionToSqlSyntax(function)).append("(");
+		expression.append(this.queryUtil.getSqlFunctionSyntax(function)).append("(");
 		if(selector.isDistinct()) {
 			expression.append("DISTINCT ");
 		}
@@ -477,6 +477,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			return processAndQueryFilter((AndQueryFilter) filter);
 		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
 			return processOrQueryFilter((OrQueryFilter) filter);
+		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.FUNCTION) {
+			return processFunctionQueryFilter((FunctionQueryFilter) filter);
 		}
 		return null;
 	}
@@ -513,6 +515,44 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 
+	protected StringBuilder processFunctionQueryFilter(FunctionQueryFilter filter) {
+		QueryFunctionSelector functionSelector = filter.getFunctionSelector();
+		List<IQuerySelector> innerSelectors = functionSelector.getInnerSelector();
+		String function = functionSelector.getFunction();
+		
+		StringBuilder expression = new StringBuilder();
+		expression.append(this.queryUtil.getSqlFunctionSyntax(function)).append("(");
+		if(functionSelector.isDistinct()) {
+			expression.append("DISTINCT ");
+		}
+		int size = innerSelectors.size();	
+		for(int i = 0; i< size; i++) {
+			if(i == 0) {
+				expression.append(processSelector(innerSelectors.get(i), false));
+			} else {
+				expression.append(",").append(processSelector(innerSelectors.get(i), false));
+			}
+		}
+		
+		List<Object[]> additionalParams = functionSelector.getAdditionalFunctionParams();
+		for(int i = 0; i < additionalParams.size(); i++) {
+			expression.append(",");
+			Object[] param = additionalParams.get(i);
+			String name = param[0].toString();
+			if(!name.equals("noname")) {
+				expression.append(name).append(" ");
+			}
+			for(int j = 1; j < param.length; j++) {
+				if(j > 1) {
+					expression.append(",");
+				}
+				expression.append(param[j]);
+			}
+		}
+		expression.append(")");
+		return expression;
+	}
+	
 	protected StringBuilder processSimpleQueryFilter(SimpleQueryFilter filter) {
 		NounMetadata leftComp = filter.getLComparison();
 		NounMetadata rightComp = filter.getRComparison();
@@ -744,8 +784,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		PixelDataType rCompType = rightComp.getNounType();
 		List<Object> rightObjects = new Vector<Object>();
 		// ugh... this is gross
-		if(rightComp.getValue() instanceof List) {
-			rightObjects.addAll( (List) rightComp.getValue());
+		if(rightComp.getValue() instanceof Collection) {
+			rightObjects.addAll( (Collection) rightComp.getValue());
 		} else {
 			rightObjects.add(rightComp.getValue());
 		}
@@ -798,7 +838,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if(dataType != null) {
 			dataType = dataType.toUpperCase();
 			SemossDataType type = SemossDataType.convertStringToDataType(dataType);
-			if(SemossDataType.INT == type || SemossDataType.DOUBLE == type) {
+			if(SemossDataType.INT == type || SemossDataType.DOUBLE == type || SemossDataType.BOOLEAN == type) {
 				// get the first value
 				myObj.append(objects.get(0));
 				i++;
@@ -857,7 +897,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// can't have mixed types
 			// so only using first value
 			Object object = objects.get(0);
-			if(object instanceof Number) {
+			if(object instanceof Number || object instanceof Boolean) {
 				// get the first value
 				myObj.append(objects.get(0));
 				i++;
@@ -1254,7 +1294,6 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// need to figure out what the predicate is from the owl
 			// also need to determine the direction of the relationship -- if it is forward or backward
 			String query = "SELECT ?relationship WHERE {<" + fromURI + "> ?relationship <" + toURI + "> } ORDER BY DESC(?relationship)";
-			System.out.println(query);
 			TupleQueryResult res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
 			String predURI = " unable to get pred from owl for " + fromURI + " and " + toURI;
 			try {
@@ -1270,7 +1309,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					}
 				}
 			} catch (QueryEvaluationException e) {
-				System.out.println(predURI);
+				logger.error("ERROR in query for metadata ::: predURI = " + predURI);
 			}
 			String[] predPieces = Utility.getInstanceName(predURI).split("[.]");
 			if(predPieces.length == 4)

@@ -2187,6 +2187,15 @@ public class Utility {
 		return false;
 	}
 	
+	public static boolean isBoolean(String dataType) {
+		dataType = dataType.toUpperCase().trim();		
+		if(dataType.startsWith("BOOL")) {
+			return true;
+		}
+		
+		return false;
+	}
+	
 	public static boolean isDoubleType(String dataType) {
 		dataType = dataType.toUpperCase().trim();		
 		if(dataType.startsWith("NUMBER")

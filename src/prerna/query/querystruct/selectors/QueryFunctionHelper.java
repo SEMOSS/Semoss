@@ -20,45 +20,62 @@ public class QueryFunctionHelper {
 	public static final String CONCAT = "concat";
 	public static final String GROUP_CONCAT = "groupconcat";
 	public static final String UNIQUE_GROUP_CONCAT = "uniquegroupconcat";
-
+	public static final String LOWER = "lower";
+	public static final String COALESCE = "coalesce";
+	public static final String REGEXP_LIKE = "regexlike";
+	
 	private QueryFunctionHelper() {
 		
 	}
 	
 	/**
-	 * Convert the function name to ansi-sql syntax
-	 * @param inputFunction
-	 * @return
+	 * DUE TO THE LARGE VARIANCE IN SQL 
+	 * THIS IS PUSHED TO THE {{@link prerna.util.sql.SQLQueryUtil}}
+	 * AND IS USED BY METHOD {{@link prerna.util.sql.SQLQueryUtil#getSqlFunctionSyntax()}}
+	 * 
+	 * INDIVIDUAL QUERY UTIL IMPLEMENTATIONS CAN OVERRIDE THE SUBMETHODS FOR THEIR VERSION
+	 * OF THE QUERY FUNCTION
+	 * 
 	 */
-	public static String convertFunctionToSqlSyntax(String inputFunction) {
-		String lowerfunction = inputFunction.toLowerCase();
-		if(lowerfunction.equals(MIN)) {
-			inputFunction = "MIN";
-		} else if(lowerfunction.equals(MAX)) {
-			inputFunction = "MAX";
-		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2) 
-				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
-			inputFunction = "AVG";
-		} else if(lowerfunction.equals(MEDIAN)) {
-			inputFunction = "MEDIAN";
-		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
-			inputFunction = "SUM";
-		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
-			inputFunction = "STDDEV_SAMP";
-		} else if(lowerfunction.equals(COUNT)) {
-			inputFunction = "COUNT";
-		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
-			inputFunction = "COUNT";
-		} else if(lowerfunction.equals(CONCAT)) {
-			inputFunction = "CONCAT";
-		} else if(lowerfunction.equals(GROUP_CONCAT)) {
-			inputFunction = "GROUP_CONCAT";
-		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
-			inputFunction = "GROUP_CONCAT";
-		}
-		
-		return inputFunction;
-	}
+	
+//	/**
+//	 * Convert the function name to ansi-sql syntax
+//	 * @param inputFunction
+//	 * @return
+//	 */
+//	public static String convertFunctionToSqlSyntax(String inputFunction) {
+//		String lowerfunction = inputFunction.toLowerCase();
+//		if(lowerfunction.equals(MIN)) {
+//			inputFunction = "MIN";
+//		} else if(lowerfunction.equals(MAX)) {
+//			inputFunction = "MAX";
+//		} else if(lowerfunction.equals(MEAN) || lowerfunction.equals(AVERAGE_1) || lowerfunction.equals(AVERAGE_2) 
+//				|| lowerfunction.equals(UNIQUE_MEAN) || lowerfunction.equals(UNIQUE_AVERAGE_1) || lowerfunction.equals(UNIQUE_AVERAGE_2)) {
+//			inputFunction = "AVG";
+//		} else if(lowerfunction.equals(MEDIAN)) {
+//			inputFunction = "MEDIAN";
+//		} else if(lowerfunction.equals(SUM) || lowerfunction.equals(UNIQUE_SUM)) {
+//			inputFunction = "SUM";
+//		} else if(lowerfunction.equals(STDEV_1) || lowerfunction.equals(STDEV_2)) {
+//			inputFunction = "STDDEV_SAMP";
+//		} else if(lowerfunction.equals(COUNT)) {
+//			inputFunction = "COUNT";
+//		} else if(lowerfunction.equals(UNIQUE_COUNT)) {
+//			inputFunction = "COUNT";
+//		} else if(lowerfunction.equals(CONCAT)) {
+//			inputFunction = "CONCAT";
+//		} else if(lowerfunction.equals(GROUP_CONCAT)) {
+//			inputFunction = "GROUP_CONCAT";
+//		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
+//			inputFunction = "GROUP_CONCAT";
+//		} else if(lowerfunction.equals(LOWER)) {
+//			inputFunction = "LOWER";
+//		} else if(lowerfunction.equals(COALESCE)) {
+//			inputFunction = "COALESCE";
+//		}
+//		
+//		return inputFunction;
+//	}
 	
 	/**
 	 * Convert the function name to r data.table syntax
@@ -90,6 +107,8 @@ public class QueryFunctionHelper {
 			inputFunction = "paste";
 		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
 			inputFunction = "paste";
+		} else if(lowerfunction.equals(LOWER)) {
+			inputFunction = "tolower";
 		}
 		
 		return inputFunction;
@@ -125,6 +144,8 @@ public class QueryFunctionHelper {
 			inputFunction = "count";
 		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
 			inputFunction = "count";
+		} else if(lowerfunction.equals(LOWER)) {
+			inputFunction = "str.lower";
 		}
 		
 		return inputFunction;
@@ -162,6 +183,10 @@ public class QueryFunctionHelper {
 			inputFunction = "GROUP_CONCAT";
 		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
 			inputFunction = "GROUP_CONCAT";
+		} else if(lowerfunction.equals(LOWER)) {
+			inputFunction = "LCASE";
+		} else if(lowerfunction.endsWith(COALESCE)) {
+			inputFunction = "COALESCE";
 		}
 		
 		return inputFunction;
@@ -177,7 +202,9 @@ public class QueryFunctionHelper {
 		String lowerfunction = inputFunction.toLowerCase();
 		if(lowerfunction.equals(CONCAT) 
 				|| lowerfunction.equals(GROUP_CONCAT) 
-				|| lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
+				|| lowerfunction.equals(UNIQUE_GROUP_CONCAT)
+				|| lowerfunction.equals(LOWER)
+				|| lowerfunction.equals(COALESCE)) {
 			return "STRING";
 		}
 		
@@ -213,6 +240,12 @@ public class QueryFunctionHelper {
 			inputFunction = "GroupConcat";
 		} else if(lowerfunction.equals(UNIQUE_GROUP_CONCAT)) {
 			inputFunction = "UniqueGroupConcat";
+		} else if(lowerfunction.equals(LOWER)) {
+			inputFunction = "Lower";
+		} else if(lowerfunction.equals(COALESCE)) {
+			inputFunction = "Coalesce";
+		} else if(lowerfunction.equals(REGEXP_LIKE)) {
+			inputFunction = "RegexLike";
 		}
 		
 		return inputFunction;

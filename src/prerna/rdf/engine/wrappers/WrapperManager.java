@@ -158,7 +158,7 @@ public class WrapperManager {
 			returnWrapper.setQuery(query);
 			returnWrapper.execute();
 			long end = System.currentTimeMillis();
-			LOGGER.info("Engine execution time = " + (end-start) + "ms");
+			LOGGER.debug("Engine execution time = " + (end-start) + "ms");
 		} 
 
 		return returnWrapper;

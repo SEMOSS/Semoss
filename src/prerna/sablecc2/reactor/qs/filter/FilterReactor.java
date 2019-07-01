@@ -17,9 +17,6 @@ public class FilterReactor extends AbstractQueryStructReactor {
 
 	protected AbstractQueryStruct createQueryStruct() {
 		List<Object> filters = this.curRow.getValuesOfType(PixelDataType.FILTER);
-//		if(filters.isEmpty()) {
-//			throw new IllegalArgumentException("No filter founds to append into the query");
-//		}
 		for(int i = 0; i < filters.size(); i++) {
 			IQueryFilter nextFilter = (IQueryFilter)filters.get(i);
 			if(nextFilter != null) {

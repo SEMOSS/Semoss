@@ -2,9 +2,7 @@ package prerna.auth.utils;
 
 import java.io.File;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +23,9 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightsDatabaseUpdater3CacheableColumn;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
@@ -128,7 +129,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			// TODO: EVENTUALLY WE WILL DELETE THIS
 			InsightsDatabaseUpdater3CacheableColumn.update(appId, rne);
 		}
-		
+		rne.setBasic(true);
+
 		// i need to delete any current insights for the app
 		// before i start to insert new insights
 		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
@@ -165,8 +167,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		LocalDateTime now = LocalDateTime.now();
 		
-		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
+//		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("QUESTION_ID__ID"));
+		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_NAME"));
+		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_LAYOUT"));
+		qs.addSelector(new QueryColumnSelector("QUESTION_ID__HIDDEN_INSIGHT"));
+		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHEABLE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", "FALSE"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
 			try {
@@ -422,7 +433,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.insertData(update1);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String update2 = "UPDATE INSIGHT SET GLOBAL=TRUE WHERE ENGINEID='" + engineId + "'";
@@ -497,149 +507,149 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	
-	/*
-	 * Groups
-	 */
-	
-	/**
-	 * Add a new group
-	 * @param userId
-	 * @param groupName
-	 * @param users
-	 * @return
-	 */
-	public static Boolean addGroup(String userId, String groupName, List<String> users) {
-		String query = "INSERT INTO USERGROUP(GROUPID, NAME, OWNER) VALUES (NULL, '" + groupName + "', '" + userId + "');";
-		Statement stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
-		int id = -1;
-		ResultSet rs = null;
-		try {
-			rs = stmt.getGeneratedKeys();
-			while (rs.next()) {
-			   id = rs.getInt(1);
-			   if(id < 1) {
-				   return false;
-			   }
-			}
-		} catch(SQLException e) {
-			e.printStackTrace();
-			return false;
-		} finally {
-			try {
-				if(rs != null) {
-					rs.close();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		for(String user : users) {
-			query = "INSERT INTO GROUPMEMBERS(GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, " + id + ", '" + user + "');";
-			try {
-				securityDb.insertData(query);
-				securityDb.commit();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		//ADD VISIBILITY
-		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY) "
-				+ "SELECT NULL AS ID, GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID AS GROUPENGINEPERMISSIONID, GROUPMEMBERS.GROUPMEMBERSID AS GROUPMEMBERSID, TRUE AS VISIBILITY "
-				+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON(GROUPMEMBERS.GROUPID = GROUPENGINEPERMISSION.GROUPID) "
-				+ "WHERE GROUPMEMBERS.GROUPID = ?1 AND GROUPMEMBERS.USERID ?2 ";
-		query = query.replace("?1", id + "");
-		query = query.replace("?2", createFilter(users));
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return true;
-	}
-	
-	/**
-	 * Remove a group
-	 * @param userId
-	 * @param groupId
-	 * @return
-	 */
-	public static Boolean removeGroup(String userId, String groupId) {
-		String query;
-		if(SecurityQueryUtils.userIsAdmin(userId)){
-			query = "DELETE FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); ";
-			query += "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); ";
-			query += "DELETE FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "';";
-		} else {
-			query = "DELETE FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "'); ";
-			query += "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "'); ";
-			query += "DELETE FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "';";
-		}
-		
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
-		return true;
-	}
-	
-	public static Boolean addUserToGroup(String userId, String groupId, String userIdToAdd) {
-		String query;
-		
-		if(SecurityQueryUtils.userIsAdmin(userId)){
-			query = "INSERT INTO GROUPMEMBERS (GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'), '" + userIdToAdd + "');";
-		} else {
-			query = "INSERT INTO GROUPMEMBERS (GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "'), '" + userIdToAdd + "');";
-		}
-		
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		//ADD VISIBILITY
-		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY) "
-				+ "SELECT NULL AS ID, GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID AS GROUPENGINEPERMISSIONID, GROUPMEMBERS.GROUPMEMBERSID AS GROUPMEMBERSID, TRUE AS VISIBILITY "
-				+ "FROM GROUPMEMBERS GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON(GROUPMEMBERS.GROUPID = GROUPENGINEPERMISSION.GROUPID) "
-				+ "WHERE GROUPMEMBERS.GROUPID = '?1' AND GROUPMEMBERS.USERID = '?2'";
-		query = query.replace("?1", groupId);
-		query = query.replace("?2", userIdToAdd);
-		
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return true;
-	}
-	
-	/**
-	 * Remove a user from a group. Only owner of a group can do it. 
-	 * @param userId
-	 * @param groupId
-	 * @param userToRemove
-	 * @return
-	 */
-	public static Boolean removeUserFromGroup(String userId, String groupId, String userToRemove) {
-        String query;
-        
-        /*if(isUserAdmin(userId)){
-            query = "DELETE FROM GroupMembers WHERE GROUPMEMBERS.USERID='" + userToRemove + "' AND GroupMembers.GROUPID = '" + groupId + "';";
-        } else {*/
-        query = "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.USERID='" + userToRemove + "' AND GROUPMEMBERS.GROUPID IN "
-                    + "(SELECT DISTINCT USERGROUP.GROUPID AS GROUPID FROM USERGROUP WHERE USERGROUP.OWNER='" + userId + "' AND USERGROUP.GROUPID = '" + groupId + "');";
-        //}
-        
-        securityDb.execUpdateAndRetrieveStatement(query, true);
-        securityDb.commit();
-        
-        return true;
-    }
+//	/*
+//	 * Groups
+//	 */
+//	
+//	/**
+//	 * Add a new group
+//	 * @param userId
+//	 * @param groupName
+//	 * @param users
+//	 * @return
+//	 */
+//	public static Boolean addGroup(String userId, String groupName, List<String> users) {
+//		String query = "INSERT INTO USERGROUP(GROUPID, NAME, OWNER) VALUES (NULL, '" + groupName + "', '" + userId + "');";
+//		Statement stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
+//		int id = -1;
+//		ResultSet rs = null;
+//		try {
+//			rs = stmt.getGeneratedKeys();
+//			while (rs.next()) {
+//			   id = rs.getInt(1);
+//			   if(id < 1) {
+//				   return false;
+//			   }
+//			}
+//		} catch(SQLException e) {
+//			e.printStackTrace();
+//			return false;
+//		} finally {
+//			try {
+//				if(rs != null) {
+//					rs.close();
+//				}
+//			} catch (SQLException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		
+//		for(String user : users) {
+//			query = "INSERT INTO GROUPMEMBERS(GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, " + id + ", '" + user + "');";
+//			try {
+//				securityDb.insertData(query);
+//				securityDb.commit();
+//			} catch (SQLException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//		
+//		//ADD VISIBILITY
+//		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY) "
+//				+ "SELECT NULL AS ID, GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID AS GROUPENGINEPERMISSIONID, GROUPMEMBERS.GROUPMEMBERSID AS GROUPMEMBERSID, TRUE AS VISIBILITY "
+//				+ "FROM GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON(GROUPMEMBERS.GROUPID = GROUPENGINEPERMISSION.GROUPID) "
+//				+ "WHERE GROUPMEMBERS.GROUPID = ?1 AND GROUPMEMBERS.USERID ?2 ";
+//		query = query.replace("?1", id + "");
+//		query = query.replace("?2", createFilter(users));
+//		try {
+//			securityDb.insertData(query);
+//			securityDb.commit();
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		return true;
+//	}
+//	
+//	/**
+//	 * Remove a group
+//	 * @param userId
+//	 * @param groupId
+//	 * @return
+//	 */
+//	public static Boolean removeGroup(String userId, String groupId) {
+//		String query;
+//		if(SecurityQueryUtils.userIsAdmin(userId)){
+//			query = "DELETE FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); ";
+//			query += "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); ";
+//			query += "DELETE FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "';";
+//		} else {
+//			query = "DELETE FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "'); ";
+//			query += "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "'); ";
+//			query += "DELETE FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "';";
+//		}
+//		
+//		securityDb.execUpdateAndRetrieveStatement(query, true);
+//		securityDb.commit();
+//		return true;
+//	}
+//	
+//	public static Boolean addUserToGroup(String userId, String groupId, String userIdToAdd) {
+//		String query;
+//		
+//		if(SecurityQueryUtils.userIsAdmin(userId)){
+//			query = "INSERT INTO GROUPMEMBERS (GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'), '" + userIdToAdd + "');";
+//		} else {
+//			query = "INSERT INTO GROUPMEMBERS (GROUPMEMBERSID, GROUPID, USERID) VALUES (NULL, (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "' AND USERGROUP.OWNER='" + userId + "'), '" + userIdToAdd + "');";
+//		}
+//		
+//		try {
+//			securityDb.insertData(query);
+//			securityDb.commit();
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		//ADD VISIBILITY
+//		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY) "
+//				+ "SELECT NULL AS ID, GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID AS GROUPENGINEPERMISSIONID, GROUPMEMBERS.GROUPMEMBERSID AS GROUPMEMBERSID, TRUE AS VISIBILITY "
+//				+ "FROM GROUPMEMBERS GROUPMEMBERS JOIN GROUPENGINEPERMISSION ON(GROUPMEMBERS.GROUPID = GROUPENGINEPERMISSION.GROUPID) "
+//				+ "WHERE GROUPMEMBERS.GROUPID = '?1' AND GROUPMEMBERS.USERID = '?2'";
+//		query = query.replace("?1", groupId);
+//		query = query.replace("?2", userIdToAdd);
+//		
+//		try {
+//			securityDb.insertData(query);
+//			securityDb.commit();
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		return true;
+//	}
+//	
+//	/**
+//	 * Remove a user from a group. Only owner of a group can do it. 
+//	 * @param userId
+//	 * @param groupId
+//	 * @param userToRemove
+//	 * @return
+//	 */
+//	public static Boolean removeUserFromGroup(String userId, String groupId, String userToRemove) {
+//        String query;
+//        
+//        /*if(isUserAdmin(userId)){
+//            query = "DELETE FROM GroupMembers WHERE GROUPMEMBERS.USERID='" + userToRemove + "' AND GroupMembers.GROUPID = '" + groupId + "';";
+//        } else {*/
+//        query = "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.USERID='" + userToRemove + "' AND GROUPMEMBERS.GROUPID IN "
+//                    + "(SELECT DISTINCT USERGROUP.GROUPID AS GROUPID FROM USERGROUP WHERE USERGROUP.OWNER='" + userId + "' AND USERGROUP.GROUPID = '" + groupId + "');";
+//        //}
+//        
+//        securityDb.execUpdateAndRetrieveStatement(query, true);
+//        securityDb.commit();
+//        
+//        return true;
+//    }
 	
 	/**
 	 * Adds a new user to the database. Does not create any relations, simply the node.
@@ -756,26 +766,26 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * Permissions
 	 */
 	
-	/**
-	 * Remove all permissions from a group with a database.
-	 * @param groupId
-	 * @param engineId
-	 * @return
-	 */
-	public static Boolean removeAllPermissionsForGroup(String groupId, String engineId) {
-		String query = "DELETE FROM GROUPENGINEPERMISSION WHERE ENGINE = '?1' AND GROUPID = '?2'";
-		query = query.replace("?1", engineId);
-		query = query.replace("?2", groupId);
-		
-		System.out.println("Executing security query: " + query);
-		if(securityDb.execUpdateAndRetrieveStatement(query, true) != null){
-			securityDb.commit();
-		} else {
-			return false;
-		}
-		
-		return true;
-	}
+//	/**
+//	 * Remove all permissions from a group with a database.
+//	 * @param groupId
+//	 * @param engineId
+//	 * @return
+//	 */
+//	public static Boolean removeAllPermissionsForGroup(String groupId, String engineId) {
+//		String query = "DELETE FROM GROUPENGINEPERMISSION WHERE ENGINE = '?1' AND GROUPID = '?2'";
+//		query = query.replace("?1", engineId);
+//		query = query.replace("?2", groupId);
+//		
+//		System.out.println("Executing security query: " + query);
+//		if(securityDb.execUpdateAndRetrieveStatement(query, true) != null){
+//			securityDb.commit();
+//		} else {
+//			return false;
+//		}
+//		
+//		return true;
+//	}
 	
 	/**
 	 * Remove all permission a user has over a database.
@@ -801,121 +811,121 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		return true;
 	}
 	
-	/**
-	 * Remove all direct permissions of user with a database. 
-	 * @param userId
-	 * @param engineId
-	 * @return
-	 */
-	public static Boolean removeAllPermissionsForUser(String userId, String engineId) {
-		String query = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '?1' AND USERID = '?2'";
-		query = query.replace("?1", engineId);
-		query = query.replace("?2", userId);
-		
-		if(securityDb.execUpdateAndRetrieveStatement(query, true) != null){
-			securityDb.commit();
-		} else {
-			return false;
-		}
-		
-		return true;
-	}
-	
-	/**
-	 * Build the relationship between a group and a database.
-	 * @param groupId
-	 * @param engineId
-	 * @param permission
-	 * @return true
-	 */
-	public static Boolean setPermissionsForGroup(String groupId, String engineId, AccessPermission permission) {
-		String query = "INSERT INTO GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID, ENGINE, GROUPID, PERMISSION) VALUES (NULL,'?1', '?2', '?3')";
-		query = query.replace("?1", engineId);
-		query = query.replace("?2", groupId);
-		query = query.replace("?3", permission.getId() + "");
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		//ADD VISIBILITY
-		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY)  "
-				+ "SELECT NULL AS ID, GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID AS GROUPENGINEPERMISSIONID, GROUPMEMBERS.GROUPMEMBERSID AS GROUPMEMBERS, TRUE AS VISIBILITY "
-				+ "FROM GROUPENGINEPERMISSION JOIN GROUPMEMBERS GROUPMEMBERS ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) "
-				+ "WHERE GROUPENGINEPERMISSION.GROUPID = '?1' AND GROUPENGINEPERMISSION.ENGINE = '?2'";
-		query = query.replace("?1", groupId);
-		query = query.replace("?2", engineId);
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return true;
-	}
-	
-	public static Boolean setPermissionsForUser(String engineId, String userToAdd, AccessPermission permission) {
-		String query = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION) VALUES ('?1', '?2', '?3')";
-		query = query.replace("?1", engineId);
-		query = query.replace("?2", userToAdd);
-		query = query.replace("?3", permission.getId() + "");
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return true;
-	}
-	
-	/**
-	 * Adds or Remove permission for users and groups to a
-	 * certain database.
-	 * @param userId
-	 * @param isAdmin
-	 * @param engineId
-	 * @param groups
-	 * @param users
-	 */
-	public static void savePermissions(String userId, boolean isAdmin, String engineId, Map<String, List<Map<String, String>>> groups, Map<String, List<Map<String, String>>> users){
-		
-		List<Map<String, String>> groupsToAdd = groups.get("add");
-		List<Map<String, String>> groupsToRemove = groups.get("remove");
-		
-		if(isAdmin && !SecurityQueryUtils.userIsAdmin(userId)){
-			throw new IllegalArgumentException("The user doesn't have the permissions to access this resource.");
-		}
-		
-		if(!isAdmin && !SecurityQueryUtils.isUserDatabaseOwner(userId, engineId)){
-			throw new IllegalArgumentException("The user is not an owner of this database.");
-		}
-		
-		for(Map<String, String> map : groupsToRemove) {
-			removeAllPermissionsForGroup(map.get("id"), engineId);
-		}
-		
-		for(Map<String, String> map : groupsToAdd) {
-			String perm = map.get("permission");
-			setPermissionsForGroup(map.get("id"), engineId, AccessPermission.getPermissionByValue(perm));
-		}
-		
-		List<Map<String, String>> usersToAdd = users.get("add");
-		List<Map<String, String>> usersToRemove = users.get("remove");
-		
-		for(Map<String, String> map : usersToRemove) {
-			removeAllPermissionsForUser(map.get("id"), engineId);
-		}
-		
-		for(Map<String, String> map : usersToAdd) {
-			String perm = map.get("permission");
-			setPermissionsForUser(engineId, map.get("id"), AccessPermission.getPermissionByValue(perm));
-		}
-		
-	}
+//	/**
+//	 * Remove all direct permissions of user with a database. 
+//	 * @param userId
+//	 * @param engineId
+//	 * @return
+//	 */
+//	public static Boolean removeAllPermissionsForUser(String userId, String engineId) {
+//		String query = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '?1' AND USERID = '?2'";
+//		query = query.replace("?1", engineId);
+//		query = query.replace("?2", userId);
+//		
+//		if(securityDb.execUpdateAndRetrieveStatement(query, true) != null){
+//			securityDb.commit();
+//		} else {
+//			return false;
+//		}
+//		
+//		return true;
+//	}
+//	
+//	/**
+//	 * Build the relationship between a group and a database.
+//	 * @param groupId
+//	 * @param engineId
+//	 * @param permission
+//	 * @return true
+//	 */
+//	public static Boolean setPermissionsForGroup(String groupId, String engineId, AccessPermission permission) {
+//		String query = "INSERT INTO GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID, ENGINE, GROUPID, PERMISSION) VALUES (NULL,'?1', '?2', '?3')";
+//		query = query.replace("?1", engineId);
+//		query = query.replace("?2", groupId);
+//		query = query.replace("?3", permission.getId() + "");
+//		try {
+//			securityDb.insertData(query);
+//			securityDb.commit();
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		//ADD VISIBILITY
+//		query = "INSERT INTO ENGINEGROUPMEMBERVISIBILITY (ID, GROUPENGINEPERMISSIONID, GROUPMEMBERSID, VISIBILITY)  "
+//				+ "SELECT NULL AS ID, GROUPENGINEPERMISSION.GROUPENGINEPERMISSIONID AS GROUPENGINEPERMISSIONID, GROUPMEMBERS.GROUPMEMBERSID AS GROUPMEMBERS, TRUE AS VISIBILITY "
+//				+ "FROM GROUPENGINEPERMISSION JOIN GROUPMEMBERS GROUPMEMBERS ON (GROUPENGINEPERMISSION.GROUPID = GROUPMEMBERS.GROUPID) "
+//				+ "WHERE GROUPENGINEPERMISSION.GROUPID = '?1' AND GROUPENGINEPERMISSION.ENGINE = '?2'";
+//		query = query.replace("?1", groupId);
+//		query = query.replace("?2", engineId);
+//		try {
+//			securityDb.insertData(query);
+//			securityDb.commit();
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		return true;
+//	}
+//	
+//	public static Boolean setPermissionsForUser(String engineId, String userToAdd, AccessPermission permission) {
+//		String query = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION) VALUES ('?1', '?2', '?3')";
+//		query = query.replace("?1", engineId);
+//		query = query.replace("?2", userToAdd);
+//		query = query.replace("?3", permission.getId() + "");
+//		try {
+//			securityDb.insertData(query);
+//			securityDb.commit();
+//		} catch (SQLException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		return true;
+//	}
+//	
+//	/**
+//	 * Adds or Remove permission for users and groups to a
+//	 * certain database.
+//	 * @param userId
+//	 * @param isAdmin
+//	 * @param engineId
+//	 * @param groups
+//	 * @param users
+//	 */
+//	public static void savePermissions(String userId, boolean isAdmin, String engineId, Map<String, List<Map<String, String>>> groups, Map<String, List<Map<String, String>>> users){
+//		
+//		List<Map<String, String>> groupsToAdd = groups.get("add");
+//		List<Map<String, String>> groupsToRemove = groups.get("remove");
+//		
+//		if(isAdmin && !SecurityQueryUtils.userIsAdmin(userId)){
+//			throw new IllegalArgumentException("The user doesn't have the permissions to access this resource.");
+//		}
+//		
+//		if(!isAdmin && !SecurityQueryUtils.isUserDatabaseOwner(userId, engineId)){
+//			throw new IllegalArgumentException("The user is not an owner of this database.");
+//		}
+//		
+//		for(Map<String, String> map : groupsToRemove) {
+//			removeAllPermissionsForGroup(map.get("id"), engineId);
+//		}
+//		
+//		for(Map<String, String> map : groupsToAdd) {
+//			String perm = map.get("permission");
+//			setPermissionsForGroup(map.get("id"), engineId, AccessPermission.getPermissionByValue(perm));
+//		}
+//		
+//		List<Map<String, String>> usersToAdd = users.get("add");
+//		List<Map<String, String>> usersToRemove = users.get("remove");
+//		
+//		for(Map<String, String> map : usersToRemove) {
+//			removeAllPermissionsForUser(map.get("id"), engineId);
+//		}
+//		
+//		for(Map<String, String> map : usersToAdd) {
+//			String perm = map.get("permission");
+//			setPermissionsForUser(engineId, map.get("id"), AccessPermission.getPermissionByValue(perm));
+//		}
+//		
+//	}
 	
 	/*
 	 * Engines
