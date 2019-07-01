@@ -28,6 +28,11 @@ public class QueryColumnSelector extends AbstractQuerySelector {
 			this.column = SelectQueryStruct.PRIM_KEY_PLACEHOLDER;
 		}
 	}
+	
+	public QueryColumnSelector(String qsValue, String alias) {
+		this(qsValue);
+		this.alias = alias;
+	}
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {

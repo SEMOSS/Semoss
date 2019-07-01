@@ -99,10 +99,7 @@ public class SqlJoinStructList {
 				if(!definedTables.contains(sourceTable)) {
 					// need to define the source
 					// if the source is not defined
-					// i need to reverse the join type
-					// if it is right to left
-					// or left to right
-					jSyntax.append(" ").append(j.getReverseJoinType()).append(" ");
+					jSyntax.append(" ").append(jType).append(" ");
 					jSyntax.append(sourceTable).append(" ").append(sourceTableAlias);
 
 					// add source table since it is now defined
@@ -114,15 +111,16 @@ public class SqlJoinStructList {
 
 					// add target table as it is now defined
 					definedTables.add(targetTable);
-				} else {
-					// both are defined
-					// need to make a new alias for the table
-					// at this point, i am not using this to bring in new values
-					// but to filter 
-					jSyntax.append(" ").append(jType).append(" ");
-					targetTableAlias = targetTableAlias + Utility.getRandomString(6);
-					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
-				}
+				} 
+//				else {
+//					// both are defined
+//					// need to make a new alias for the table
+//					// at this point, i am not using this to bring in new values
+//					// but to filter 
+//					jSyntax.append(" ").append(jType).append(" ");
+//					targetTableAlias = targetTableAlias + Utility.getRandomString(6);
+//					jSyntax.append(targetTable).append(" ").append(targetTableAlias);
+//				}
 				
 				// define the rest of the join portion
 				jSyntax.append(" on ")

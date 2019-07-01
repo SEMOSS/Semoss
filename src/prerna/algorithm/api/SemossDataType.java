@@ -35,7 +35,9 @@ public enum SemossDataType {
 			return null;
 		}
 		
-		if(Utility.isIntegerType(dataType)) {
+		if(Utility.isBoolean(dataType)) {
+			return SemossDataType.BOOLEAN;
+		} else if(Utility.isIntegerType(dataType)) {
 			return SemossDataType.INT;
 		} else if(Utility.isDoubleType(dataType)) {
 			return SemossDataType.DOUBLE;
