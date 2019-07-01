@@ -16,6 +16,9 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
@@ -212,11 +215,17 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getUserWorkspaceApp(AccessToken token) {
-		String query = "SELECT ENGINEID FROM WORKSPACEENGINE WHERE "
-				+ "TYPE = '" + token.getProvider().name() + "' AND "
-				+ "USERID = '" + token.getId() + "'"
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT ENGINEID FROM WORKSPACEENGINE WHERE "
+//				+ "TYPE = '" + token.getProvider().name() + "' AND "
+//				+ "USERID = '" + token.getId() + "'"
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__TYPE", "==", token.getProvider().name()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__USERID", "==", token.getId()));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if (wrapper.hasNext()) {
 				 Object rs = wrapper.next().getValues()[0];
@@ -249,11 +258,17 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getUserAssetApp(AccessToken token) {
-		String query = "SELECT ENGINEID FROM ASSETENGINE WHERE "
-				+ "TYPE = '" + token.getProvider().name() + "' AND "
-				+ "USERID = '" + token.getId() + "'"
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT ENGINEID FROM ASSETENGINE WHERE "
+//				+ "TYPE = '" + token.getProvider().name() + "' AND "
+//				+ "USERID = '" + token.getId() + "'"
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ASSETENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__TYPE", "==", token.getProvider().name()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__USERID", "==", token.getId()));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if (wrapper.hasNext()) {
 				 Object rs = wrapper.next().getValues()[0];
@@ -285,15 +300,25 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean isAssetOrWorkspaceApp(String appId) {
-		String query = "SELECT ENGINEID FROM WORKSPACEENGINE WHERE ENGINEID='" + appId + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT ENGINEID FROM WORKSPACEENGINE WHERE ENGINEID='" + appId + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__ENGINEID", "==", appId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if (wrapper.hasNext()) {
 				return true;
 			} else {
 				wrapper.cleanUp();
-				query = "SELECT ENGINEID FROM ASSETENGINE WHERE ENGINEID='" + appId + "'";
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//				query = "SELECT ENGINEID FROM ASSETENGINE WHERE ENGINEID='" + appId + "'";
+//				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+				
+				qs = new SelectQueryStruct();
+				qs.addSelector(new QueryColumnSelector("ASSETENGINE__ENGINEID"));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__ENGINEID", "==", appId));
+				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 				if (wrapper.hasNext()) {
 					return true;
 				}

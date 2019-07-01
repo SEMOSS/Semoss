@@ -244,7 +244,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// initialize the security database
 		try {
 			AbstractSecurityUtils.loadSecurityDatabase();
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			// we couldn't initialize the db
 			// remove it from DIHelper
 			DIHelper.getInstance().removeLocalProperty(Constants.SECURITY_DB);

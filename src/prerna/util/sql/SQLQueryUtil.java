@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+
 public abstract class SQLQueryUtil {
 
 	private String defaultDbUserName = "";
@@ -49,7 +51,11 @@ public abstract class SQLQueryUtil {
 	private String dialectDropIndex = "DROP INDEX ";
 	
 
-	// Add SQLServer compatibility
+	/**
+	 * Get the appropriate query util class
+	 * @param dbtype
+	 * @return
+	 */
 	public static SQLQueryUtil initialize(RdbmsTypeEnum dbtype) {
 		if(dbtype == RdbmsTypeEnum.H2_DB) {
 			return new H2QueryUtil();
@@ -102,12 +108,125 @@ public abstract class SQLQueryUtil {
 			return new MySQLQueryUtil(connectionURL, username, password);
 		} else if(dbtype == RdbmsTypeEnum.ORACLE) {
 			return new OracleQueryUtil(connectionURL, username, password);
+		} else if(dbtype == RdbmsTypeEnum.IMPALA) {
+			return new ImpalaQueryUtil(connectionURL, username, password);
+		} else if(dbtype == RdbmsTypeEnum.TIBCO) {
+			return new TibcoQueryUtil(connectionURL, username, password);
 		} else {
 			AnsiSqlQueryUtil queryUtil = new AnsiSqlQueryUtil();
 			queryUtil.setDbType(dbtype);
 			return queryUtil;
 		}
 	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Query helper for interpreters
+	 * Here is the abstract which is for typical ANSI SQL
+	 * However, each query util can override and use its
+	 * own specific function names
+	 */
+	
+	public String getSqlFunctionSyntax(String inputFunction) {
+		String findFunction = inputFunction.toLowerCase();
+		if(findFunction.equals(QueryFunctionHelper.MIN)) {
+			return getMinFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.MAX)) {
+			return getMaxFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.MEAN) 
+				|| findFunction.equals(QueryFunctionHelper.AVERAGE_1) 
+				|| findFunction.equals(QueryFunctionHelper.AVERAGE_2)) { 
+			return getAvgFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.UNIQUE_MEAN) 
+				|| findFunction.equals(QueryFunctionHelper.UNIQUE_AVERAGE_1) 
+				|| findFunction.equals(QueryFunctionHelper.UNIQUE_AVERAGE_2)) {
+			return getAvgFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.MEDIAN)) {
+			return getMedianFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.SUM) 
+				|| findFunction.equals(QueryFunctionHelper.UNIQUE_SUM)) {
+			return getSumFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.STDEV_1) 
+				|| findFunction.equals(QueryFunctionHelper.STDEV_2)) {
+			return getStdevFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.COUNT)) {
+			return getCountFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.UNIQUE_COUNT)) {
+			return getCountFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.CONCAT)) {
+			return getConcatFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.GROUP_CONCAT)) {
+			return getGroupConcatFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.UNIQUE_GROUP_CONCAT)) {
+			return getGroupConcatFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.LOWER)) {
+			return getLowerFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.COALESCE)) {
+			return getCoalesceFunctionSyntax();
+		} else if(findFunction.equals(QueryFunctionHelper.REGEXP_LIKE)) {
+			return getRegexLikeFunctionSyntax();
+		}
+		
+		return inputFunction;
+	}
+	
+	public String getMinFunctionSyntax() {
+		return "MIN";
+	}
+	
+	public String getMaxFunctionSyntax() {
+		return "MAX";
+	}
+	
+	public String getAvgFunctionSyntax() {
+		return "AVG";
+	}
+	
+	public String getMedianFunctionSyntax() {
+		return "MEDIAN";
+	}
+	
+	public String getSumFunctionSyntax() {
+		return "SUM";
+	}
+	
+	public String getStdevFunctionSyntax() {
+		return "STDDEV_SAMP";
+	}
+	
+	public String getCountFunctionSyntax() {
+		return "COUNT";
+	}
+	
+	public String getConcatFunctionSyntax() {
+		return "CONCAT";
+	}
+	
+	public String getGroupConcatFunctionSyntax() {
+		return "GROUP_CONCAT";
+	}
+	
+	public String getLowerFunctionSyntax() {
+		return "LOWER";
+	}
+	
+	public String getCoalesceFunctionSyntax() {
+		return "COALESCE";
+	}
+	
+	public String getRegexLikeFunctionSyntax() {
+		return "REGEXP_LIKE";
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * These are older methods
+	 * Need to come back and see where to 
+	 * utilize these/clean up
+	 */
+	
 
 	public abstract RdbmsTypeEnum getDatabaseType();
 

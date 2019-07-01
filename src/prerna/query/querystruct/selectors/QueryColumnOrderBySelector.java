@@ -13,6 +13,11 @@ public class QueryColumnOrderBySelector extends QueryColumnSelector {
 	public QueryColumnOrderBySelector(String qsValue) {
 		super(qsValue);
 	}
+	
+	public QueryColumnOrderBySelector(String qsValue, String sortDir) {
+		super(qsValue);
+		setSortDir(sortDir);
+	}
 	 
 	public void setSortDir(String sortDir) {
 		this.sortDir = sortDir.toUpperCase();
