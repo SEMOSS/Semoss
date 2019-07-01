@@ -14,6 +14,7 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.JdbcHardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -61,7 +62,8 @@ public class GsonUtility {
 				.registerTypeAdapter(SimpleQueryFilter.class, new SimpleQueryFilterAdapter())
 				.registerTypeAdapter(OrQueryFilter.class, new OrQueryFilterAdapter())
 				.registerTypeAdapter(AndQueryFilter.class, new AndQueryFilterAdapter())
-
+				.registerTypeAdapter(FunctionQueryFilter.class, new FunctionQueryFilterAdapter())
+				
 				// noun meta
 				.registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
 				.registerTypeAdapter(VarStore.class, new VarStoreAdapter())

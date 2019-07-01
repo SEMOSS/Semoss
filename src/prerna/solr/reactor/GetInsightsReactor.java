@@ -54,18 +54,11 @@ public class GetInsightsReactor extends AbstractReactor {
 		String offset = this.keyValue.get(this.keysToGet[3]);
 		// get results
 		List<Map<String, Object>> results = null;
-		if (eFilters != null) {
-			if (AbstractSecurityUtils.securityEnabled()) {
-				results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, limit,offset);
-			} else {
-				results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, limit, offset);
-			}
+		// method handles if filters are null or not
+		if (AbstractSecurityUtils.securityEnabled()) {
+			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, limit,offset);
 		} else {
-			if (AbstractSecurityUtils.securityEnabled()) {
-				results = SecurityInsightUtils.searchUserInsightDataByName(this.insight.getUser(), searchTerm, limit, offset);
-			} else {
-				results = SecurityInsightUtils.searchAllInsightDataByName(searchTerm, limit, offset);
-			}
+			results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, limit, offset);
 		}
 		
 		NounMetadata retNoun = new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INSIGHTS);

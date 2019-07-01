@@ -11,7 +11,7 @@ import prerna.util.gson.SimpleQueryFilterAdapter;
 
 public interface IQueryFilter {
 
-	enum QUERY_FILTER_TYPE {AND, OR, SIMPLE, SUBQUERY};
+	enum QUERY_FILTER_TYPE {AND, OR, SIMPLE, SUBQUERY, FUNCTION};
 	
 	/**
 	 * Get the type of the filter

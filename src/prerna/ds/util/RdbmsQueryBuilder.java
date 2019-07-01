@@ -25,6 +25,13 @@ public class RdbmsQueryBuilder {
 		return s.replaceAll("'", "''");
 	}
 	
+	public static String escapeRegexCharacters(String s) {
+		s = s.trim();
+		s = s.replace("(", "\\(");
+		s = s.replace(")", "\\)");
+		return s;
+	}
+	
 	
 	/******************************
 	 * CREATE QUERIES

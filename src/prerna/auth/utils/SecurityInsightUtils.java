@@ -10,7 +10,19 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.FunctionQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SecurityInsightUtils extends AbstractSecurityUtils {
 
@@ -22,18 +34,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserInsightPermission(User user, String engineId, String insightId) {
-		String userFilters = getUserFilters(user);
+		List<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
 			return AccessPermission.OWNER.getPermission();
 		}
 		
-		// query the database
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		// query the database
+//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
+//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -53,9 +72,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	static Integer getUserInsightPermission(String singleUserId, String engineId, String insightId) {
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + singleUserId + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
+//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + singleUserId + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", singleUserId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -79,7 +105,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanViewInsight(User user, String engineId, String insightId) {
-		String userFilters = getUserFilters(user);
+		List<String> userIds = getUserFiltersQs(user);
 
 		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
 			return true;
@@ -87,14 +113,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
 			return true;
 		}
 		
 		// else query the database
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
+//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				// do not care if owner/edit/read
@@ -116,18 +149,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanEditInsight(User user, String engineId, String insightId) {
-		String userFilters = getUserFilters(user);
+		List<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
 			return true;
 		}
 		
 		// else query the database
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
+//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("EUSERINSIGHTPERMISSION__USERID", "==", userIds));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -154,18 +194,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsInsightOwner(User user, String engineId, String insightId) {
-		String userFilters = getUserFilters(user);
+		List<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner of app
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
 			return true;
 		}
 		
 		// else query the database
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
+//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -192,19 +239,27 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	static int getMaxUserInsightPermission(User user, String engineId, String insightId) {
-		String userFilters = getUserFilters(user);
+		List<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner of the app
 		// they can do whatever they want
-		if(SecurityAppUtils.userIsOwner(userFilters, engineId)) {
+		if(SecurityAppUtils.userIsOwner(userIds, engineId)) {
 			// owner of engine is owner of all the insights
 			return AccessPermission.OWNER.getId();
 		}
 		
 		// else query the database
-		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters + " ORDER BY PERMISSION";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
+//				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID IN " + userFilters + " ORDER BY PERMISSION";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+		qs.addOrderBy(new QueryColumnOrderBySelector("USERINSIGHTPERMISSION__PERMISSION"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			while(wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -264,17 +319,27 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("The user does not have access to view this insight");
 		}
 		
-		String query = "SELECT USER.ID AS \"id\", "
-				+ "USER.NAME AS \"name\", "
-				+ "PERMISSION.NAME AS \"permission\" "
-				+ "FROM USER "
-				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
-				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID) "
-				+ "WHERE USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
-				+ " AND USERINSIGHTPERMISSION.INSIGHTID='" + insightId + "'"
-				;
+//		String query = "SELECT USER.ID AS \"id\", "
+//				+ "USER.NAME AS \"name\", "
+//				+ "PERMISSION.NAME AS \"permission\" "
+//				+ "FROM USER "
+//				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
+//				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID) "
+//				+ "WHERE USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
+//				+ " AND USERINSIGHTPERMISSION.INSIGHTID='" + insightId + "'"
+//				;
+//		
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addRelation("USER", "USERINSIGHTPERMISSION", "inner.join");
+		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushRsToMap(wrapper);
 	}
 	
@@ -594,58 +659,256 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, String limit, String offset) {
-		String userFilters = getUserFilters(user);
+//		String userFilters = getUserFilters(user);
+//
+//		String query = "SELECT DISTINCT "
+//				+ "INSIGHT.ENGINEID AS \"app_id\", "
+//				+ "ENGINE.ENGINENAME AS \"app_name\", "
+//				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
+//				+ "INSIGHT.INSIGHTNAME as \"name\", "
+//				+ "INSIGHT.LAYOUT as \"layout\", "
+//				+ "INSIGHT.CREATEDON as \"created_on\", "
+//				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
+//				+ "INSIGHT.CACHEABLE as \"cacheable\", "
+//				+ "INSIGHT.GLOBAL as \"insight_global\", "
+//				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
+//				+ "FROM INSIGHT "
+//				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
+//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.INSIGHTID=INSIGHT.INSIGHTID "
+//				+ "WHERE "
+//				+ "INSIGHT.ENGINEID " + createFilter(engineFilter)+ " "
+//				+ " AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
+//						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
+//				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
+//				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
+//				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+//				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		
+//		// if no engine filters
+//		
+//		String userFilters = getUserFilters(user);
+//
+//		String query = "SELECT DISTINCT "
+//				+ "INSIGHT.ENGINEID AS \"app_id\", "
+//				+ "ENGINE.ENGINENAME AS \"app_name\", "
+//				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
+//				+ "INSIGHT.INSIGHTNAME as \"name\", "
+//				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\", "
+//				+ "INSIGHT.LAYOUT as \"layout\", "
+//				+ "INSIGHT.CREATEDON as \"created_on\", "
+//				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
+//				+ "INSIGHT.CACHEABLE as \"cacheable\", "
+//				+ "INSIGHT.GLOBAL as \"insight_global\", "
+//				+ "LOWER(INSIGHT.INSIGHTNAME) AS \"low_name\" "
+//				+ "FROM INSIGHT "
+//				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
+//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
+//				+ "LEFT JOIN USERINSIGHTPERMISSION ON USER.ID=USERINSIGHTPERMISSION.USERID "
+//				+ "WHERE "
+//				// engine is visible to me
+//				+ "( ENGINE.GLOBAL=TRUE "
+//				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
+//				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + " "
+//				// have access to insight
+//				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
+//						// if i own this, i dont care what permissions you want to give me + i want to see this engine
+//						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) )) "
+//				// and match what i search
+//				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm)) + "', 'i') " : "")
+//				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
+//				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+//				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		boolean hasEngineFilters = engineFilter != null && !engineFilter.isEmpty();
+		
+		List<String> userIds = getUserFiltersQs(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT", "layout"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		fun.setAlias("low_name");
+		qs.addSelector(fun);
+		
+		// filters
+		// if we have an engine filter
+		// i'm assuming you want these even if visibility is false
+		if(hasEngineFilters) {
+			// will filter to the list of engines
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+			// make sure you have access to each of these insights
+			// 1) you have access based on user insight permission table -- or
+			// 2) the insight is global -- or 
+			// 3) you are the owner of this engine (defined by the embedded and)
+			OrQueryFilter orFilter = new OrQueryFilter();
+			{
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", "TRUE"));
+				AndQueryFilter embedAndFilter = new AndQueryFilter();
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				orFilter.addFilter(embedAndFilter);
+			}
+			qs.addExplicitFilter(orFilter);
+		} else {
+			// search across all engines
+			// so guessing you only want those you have visible to you
+			// 1) the engine is global -- or
+			// 2) you have access to it
+			
+			OrQueryFilter firstOrFilter = new OrQueryFilter();
+			{
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			}
+			qs.addExplicitFilter(firstOrFilter);
 
-		String query = "SELECT DISTINCT "
-				+ "INSIGHT.ENGINEID AS \"app_id\", "
-				+ "ENGINE.ENGINENAME AS \"app_name\", "
-				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
-				+ "INSIGHT.INSIGHTNAME as \"name\", "
-				+ "INSIGHT.LAYOUT as \"layout\", "
-				+ "INSIGHT.CREATEDON as \"created_on\", "
-				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
-				+ "INSIGHT.CACHEABLE as \"cacheable\", "
-				+ "INSIGHT.GLOBAL as \"insight_global\", "
-				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
-				+ "FROM INSIGHT "
-				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.INSIGHTID=INSIGHT.INSIGHTID "
-				+ "WHERE "
-				+ "INSIGHT.ENGINEID " + createFilter(engineFilter)+ " "
-				+ " AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
-						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
-				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
-				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+			// subquery time
+			// remove those engines you have visibility as false
+			{
+				SelectQueryStruct subQs = new SelectQueryStruct();
+				subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", "FALSE"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+	
+				NounMetadata subQueryLHS = new NounMetadata(new QueryColumnSelector("ENGINE__ENGINEID"), PixelDataType.COLUMN);
+				NounMetadata subQueryRHS = new NounMetadata(subQs, PixelDataType.QUERY_STRUCT);
+				SimpleQueryFilter subQueryFilter = new SimpleQueryFilter(subQueryLHS, "!=", subQueryRHS);
+				qs.addExplicitFilter(subQueryFilter);
+			}
+			
+			OrQueryFilter secondOrFilter = new OrQueryFilter();
+			{
+				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", "TRUE"));
+				AndQueryFilter embedAndFilter = new AndQueryFilter();
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", "TRUE"));
+				secondOrFilter.addFilter(embedAndFilter);
+			}
+			qs.addExplicitFilter(secondOrFilter);
+		}
+		// add the search term filter
+		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+			FunctionQueryFilter filter = new FunctionQueryFilter();
+			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
+			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
+			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
+			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
+			filter.setFunctionSelector(regexFunction);
+			qs.addExplicitFilter(filter);
+		}
+		// joins
+		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
+		// sort
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
+		// limit 
+		if(limit != null && !limit.trim().isEmpty()) {
+			qs.setLimit(Long.parseLong(limit));
+		}
+		// offset
+		if(offset != null && !offset.trim().isEmpty()) {
+			qs.setOffSet(Long.parseLong(offset));
+		}
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushRsToMap(wrapper);
 	}
 	
-	public static List<Map<String, Object>> searchInsights(List<String> eFilters, String searchTerm, String limit, String offset) {
-		String query = "SELECT DISTINCT "
-				+ "INSIGHT.ENGINEID AS \"app_id\", "
-				+ "ENGINE.ENGINENAME AS \"app_name\", "
-				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
-				+ "INSIGHT.INSIGHTNAME as \"name\", "
-				+ "INSIGHT.LAYOUT as \"layout\", "
-				+ "INSIGHT.CREATEDON as \"created_on\", "
-				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
-				+ "INSIGHT.CACHEABLE as \"cacheable\", "
-				+ "INSIGHT.GLOBAL as \"insight_global\", "
-				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
-				+ "FROM INSIGHT "
-				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
-				+ "WHERE "
-				+ "INSIGHT.ENGINEID " + createFilter(eFilters) + " "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
-				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
-				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+	/**
+	 * Search through all insights with an optional filter on engines and an optional search term
+	 * @param engineFilter
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static List<Map<String, Object>> searchInsights(List<String> engineFilter, String searchTerm, String limit, String offset) {
+//		String query = "SELECT DISTINCT "
+//				+ "INSIGHT.ENGINEID AS \"app_id\", "
+//				+ "ENGINE.ENGINENAME AS \"app_name\", "
+//				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
+//				+ "INSIGHT.INSIGHTNAME as \"name\", "
+//				+ "INSIGHT.LAYOUT as \"layout\", "
+//				+ "INSIGHT.CREATEDON as \"created_on\", "
+//				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
+//				+ "INSIGHT.CACHEABLE as \"cacheable\", "
+//				+ "INSIGHT.GLOBAL as \"insight_global\", "
+//				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
+//				+ "FROM INSIGHT "
+//				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
+//				+ "WHERE "
+//				+ "INSIGHT.ENGINEID " + createFilter(engineFilter) + " "
+//				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
+//				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
+//				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+//				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "view_count"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT", "layout"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		fun.setAlias("low_name");
+		qs.addSelector(fun);
+		// filters
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", engineFilter));
+		}
+		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+			FunctionQueryFilter filter = new FunctionQueryFilter();
+			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
+			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
+			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
+			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
+			filter.setFunctionSelector(regexFunction);
+			qs.addExplicitFilter(filter);
+		}
+		// joins
+		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		// sort
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		// limit 
+		if(limit != null && !limit.trim().isEmpty()) {
+			qs.setLimit(Long.parseLong(limit));
+		}
+		// offset
+		if(offset != null && !offset.trim().isEmpty()) {
+			qs.setOffSet(Long.parseLong(offset));
+		}
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushRsToMap(wrapper);
 	}
 	
@@ -669,147 +932,113 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> predictUserInsightSearch(User user, String searchTerm, String limit, String offset) {
-		String userFilters = getUserFilters(user);
-
-		String query = "SELECT DISTINCT "
-				+ "INSIGHT.INSIGHTNAME as \"name\", "
-				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
-				+ "FROM INSIGHT "
-				+ "LEFT JOIN ENGINEPERMISSION ON INSIGHT.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
-				+ "WHERE "
-				+ "(USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
-						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
-				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
-				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String userFilters = getUserFilters(user);
+//
+//		String query = "SELECT DISTINCT "
+//				+ "INSIGHT.INSIGHTNAME as \"name\", "
+//				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
+//				+ "FROM INSIGHT "
+//				+ "LEFT JOIN ENGINEPERMISSION ON INSIGHT.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "LEFT JOIN USERINSIGHTPERMISSION ON USERINSIGHTPERMISSION.ENGINEID=INSIGHT.ENGINEID "
+//				+ "WHERE "
+//				+ "(USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
+//						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + ") ) "
+//				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
+//				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
+//				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+//				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		List<String> userIds = getUserFiltersQs(user);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		fun.setAlias("low_name");
+		qs.addSelector(fun);
+		OrQueryFilter orFilters = new OrQueryFilter();
+		{
+			// i have access to the insight
+			orFilters.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
+			// or, the insight is global
+			orFilters.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", "TRUE"));
+			// or, i'm the app owner ( you can't hide your stuff from me O_O )
+			AndQueryFilter andFilter = new AndQueryFilter();
+			{
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			}
+			orFilters.addFilter(andFilter);
+		}
+		qs.addExplicitFilter(orFilters);
+		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+			FunctionQueryFilter filter = new FunctionQueryFilter();
+			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
+			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
+			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
+			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
+			filter.setFunctionSelector(regexFunction);
+			qs.addExplicitFilter(filter);
+		}
+		// sort
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
+		// limit 
+		if(limit != null && !limit.trim().isEmpty()) {
+			qs.setLimit(Long.parseLong(limit));
+		}
+		// offset
+		if(offset != null && !offset.trim().isEmpty()) {
+			qs.setOffSet(Long.parseLong(offset));
+		}
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushToListString(wrapper);
 	}
 	
 	public static List<String> predictInsightSearch(String searchTerm, String limit, String offset) {
-		String query = "SELECT DISTINCT "
-				+ "INSIGHT.INSIGHTNAME as \"name\", "
-				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
-				+ "FROM INSIGHT "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
-				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
-				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT DISTINCT "
+//				+ "INSIGHT.INSIGHTNAME as \"name\", "
+//				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
+//				+ "FROM INSIGHT "
+//				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
+//				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME) "
+//				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
+//				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+		fun.setAlias("low_name");
+		qs.addSelector(fun);
+		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
+			FunctionQueryFilter filter = new FunctionQueryFilter();
+			QueryFunctionSelector regexFunction = new QueryFunctionSelector();
+			regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
+			regexFunction.addInnerSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
+			regexFunction.addInnerSelector(new QueryConstantSelector(RdbmsQueryBuilder.escapeForSQLStatement(RdbmsQueryBuilder.escapeRegexCharacters(searchTerm))));
+			regexFunction.addInnerSelector(new QueryConstantSelector("i"));
+			filter.setFunctionSelector(regexFunction);
+			qs.addExplicitFilter(filter);
+		}
+		// sort
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_name"));
+		// limit 
+		if(limit != null && !limit.trim().isEmpty()) {
+			qs.setLimit(Long.parseLong(limit));
+		}
+		// offset
+		if(offset != null && !offset.trim().isEmpty()) {
+			qs.setOffSet(Long.parseLong(offset));
+		}
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushToListString(wrapper);
 	}
-	
-	/*
-	 * For searching in search bar
-	 */
-	
-	/**
-	 * 
-	 * @param searchTerm
-	 * @param limit
-	 * @param offset
-	 * @param sortOrder
-	 * @param sortField
-	 * @param engineFilter
-	 * @return
-	 */
-	public static List<Map<String, Object>> searchUserInsightDataByName(User user, String searchTerm, String limit, String offset) {
-		String userFilters = getUserFilters(user);
-
-		String query = "SELECT DISTINCT "
-				+ "INSIGHT.ENGINEID AS \"app_id\", "
-				+ "ENGINE.ENGINENAME AS \"app_name\", "
-				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
-				+ "INSIGHT.INSIGHTNAME as \"name\", "
-				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\", "
-				+ "INSIGHT.LAYOUT as \"layout\", "
-				+ "INSIGHT.CREATEDON as \"created_on\", "
-				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
-				+ "INSIGHT.CACHEABLE as \"cacheable\", "
-				+ "INSIGHT.GLOBAL as \"insight_global\", "
-				+ "LOWER(INSIGHT.INSIGHTNAME) AS \"low_name\" "
-				+ "FROM INSIGHT "
-				+ "INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
-				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "LEFT JOIN USER ON ENGINEPERMISSION.USERID=USER.ID "
-				+ "LEFT JOIN USERINSIGHTPERMISSION ON USER.ID=USERINSIGHTPERMISSION.USERID "
-				+ "WHERE "
-				// engine is visible to me
-				+ "( ENGINE.GLOBAL=TRUE "
-				+ "OR ENGINEPERMISSION.USERID IN " + userFilters + " ) "
-				+ "AND ENGINE.ENGINEID NOT IN (SELECT ENGINEID FROM ENGINEPERMISSION WHERE VISIBILITY=FALSE AND USERID IN " + userFilters + " "
-				// have access to insight
-				+ "AND (USERINSIGHTPERMISSION.USERID IN " + userFilters + " OR INSIGHT.GLOBAL=TRUE OR "
-						// if i own this, i dont care what permissions you want to give me + i want to see this engine
-						+ "(ENGINEPERMISSION.PERMISSION=1 AND ENGINEPERMISSION.USERID IN " + userFilters + " AND ENGINEPERMISSION.VISIBILITY=TRUE) )) "
-				// and match what i search
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "AND REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(escapeRegexCharacters(searchTerm)) + "', 'i') " : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
-				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
-				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		return flushRsToMap(wrapper);
-	}
-	
-	/**
-	 * 
-	 * @param searchTerm
-	 * @param limit
-	 * @param offset
-	 * @param sortOrder
-	 * @param sortField
-	 * @param engineFilter
-	 * @return
-	 */
-	public static List<Map<String, Object>> searchAllInsightDataByName(String searchTerm, String limit, String offset) {
-		String query = "SELECT DISTINCT "
-				+ "INSIGHT.ENGINEID AS \"app_id\", "
-				+ "ENGINE.ENGINENAME AS \"app_name\", "
-				+ "INSIGHT.INSIGHTID as \"app_insight_id\", "
-				+ "INSIGHT.INSIGHTNAME as \"name\", "
-				+ "INSIGHT.EXECUTIONCOUNT as \"view_count\", "
-				+ "INSIGHT.LAYOUT as \"layout\", "
-				+ "INSIGHT.CREATEDON as \"created_on\", "
-				+ "INSIGHT.LASTMODIFIEDON as \"last_modified_on\", "
-				+ "INSIGHT.CACHEABLE as \"cacheable\", "
-				+ "INSIGHT.GLOBAL as \"insight_global\", "
-				+ "LOWER(INSIGHT.INSIGHTNAME) AS \"low_name\" "
-				+ "FROM INSIGHT INNER JOIN ENGINE ON ENGINE.ENGINEID=INSIGHT.ENGINEID "
-				+ ( (searchTerm != null && !searchTerm.trim().isEmpty()) ? "WHERE REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(escapeRegexCharacters(searchTerm)) + "', 'i')" : "")
-				+ "ORDER BY LOWER(INSIGHT.INSIGHTNAME), \"last_modified_on\" DESC "
-				+ ( (limit != null && !limit.trim().isEmpty()) ? "LIMIT " + limit + " " : "")
-				+ ( (offset != null && !offset.trim().isEmpty()) ? "OFFSET " + offset + " ": "")
-				;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		return flushRsToMap(wrapper);
-	}
-	
-	/**
-	 * 
-	 * @param searchTerm
-	 * @param engineFilter
-	 * @return
-	 */
-	public static List<Map<String, Object>> getInsightFacetDataByName(String searchTerm, String[] engineFilter) {
-		String filter = createFilter(engineFilter); 
-		String query = "SELECT DISTINCT "
-				+ "ENGINEID, "
-				+ "LAYOUT, "
-				+ "COUNT(ENGINEID) "
-				+ "FROM INSIGHT LEFT JOIN ENGINE ON INSIGHT.ENGINEID=ENGINE.ENGINEID "
-				+ "WHERE "
-				+ "REGEXP_LIKE(INSIGHT.INSIGHTNAME, '"+ RdbmsQueryBuilder.escapeForSQLStatement(escapeRegexCharacters(searchTerm)) + "', 'i') " 
-				+ "AND (INSIGHT.ENGINEID " + filter + " OR ENGINE.GLOBAL=TRUE) "
-				+ "GROUP BY LAYOUT, ENGINEID;";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		return flushRsToMap(wrapper);
-	}
-
-
 	
 }
