@@ -759,7 +759,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			OrQueryFilter orFilter = new OrQueryFilter();
 			{
 				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", "TRUE"));
+				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 				AndQueryFilter embedAndFilter = new AndQueryFilter();
 				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
 				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
@@ -774,7 +774,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			
 			OrQueryFilter firstOrFilter = new OrQueryFilter();
 			{
-				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 				firstOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			}
 			qs.addExplicitFilter(firstOrFilter);
@@ -784,7 +784,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			{
 				SelectQueryStruct subQs = new SelectQueryStruct();
 				subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", "FALSE"));
+				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
 				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 	
 				NounMetadata subQueryLHS = new NounMetadata(new QueryColumnSelector("ENGINE__ENGINEID"), PixelDataType.COLUMN);
@@ -796,11 +796,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			OrQueryFilter secondOrFilter = new OrQueryFilter();
 			{
 				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", "TRUE"));
+				secondOrFilter.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 				AndQueryFilter embedAndFilter = new AndQueryFilter();
 				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1, PixelDataType.CONST_INT));
 				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", "TRUE"));
+				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", true, PixelDataType.BOOLEAN));
 				secondOrFilter.addFilter(embedAndFilter);
 			}
 			qs.addExplicitFilter(secondOrFilter);
@@ -964,7 +964,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			// i have access to the insight
 			orFilters.addFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
 			// or, the insight is global
-			orFilters.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", "TRUE"));
+			orFilters.addFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			// or, i'm the app owner ( you can't hide your stuff from me O_O )
 			AndQueryFilter andFilter = new AndQueryFilter();
 			{
