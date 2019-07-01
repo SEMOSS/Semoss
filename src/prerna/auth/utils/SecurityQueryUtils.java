@@ -197,8 +197,16 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		{
+			QueryFunctionSelector fun = new QueryFunctionSelector();
+			fun.setFunction(QueryFunctionHelper.COALESCE);
+			fun.addInnerSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
+			fun.addInnerSelector(new QueryConstantSelector(true));
+			fun.setAlias("app_visibility");
+			qs.addSelector(fun);
+		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", engineIdsIncluded));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(engineIdsIncluded)));
 		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		while(wrapper.hasNext()) {
 			IHeadersDataRow headerRow = wrapper.next();
@@ -212,7 +220,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			// add the others which we know
 			map.put("app_global", true);
 			map.put("app_permission", "READ_ONLY");
-			map.put("app_visibility", true);
 			result.add(map);
 		}
 		
