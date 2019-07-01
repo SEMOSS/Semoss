@@ -316,7 +316,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 				predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
 			}
 		} catch (QueryEvaluationException e) {
-			System.out.println(predURI);
+			logger.error("ERROR in query for metadata ::: predURI = " + predURI);
 		}
 		if(predURI == null) {
 			throw new IllegalArgumentException("Unable to add join because we are unable to find the predicate on the owl");

@@ -13,6 +13,12 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Utility;
 
@@ -39,9 +45,15 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param userId	String representing the id of the user to check
 	 */
 	public static Boolean userIsAdmin(User user) {
-		String userFilters = getUserFilters(user);
-		String query = "SELECT * FROM USER WHERE ADMIN=TRUE AND ID IN " + userFilters + " LIMIT 1;";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT * FROM USER WHERE ADMIN=TRUE AND ID IN " + userFilters + " LIMIT 1;";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", getUserFiltersQs(user)));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ADMIN", "==", "TRUE"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			return wrapper.hasNext();
 		} finally {
@@ -61,8 +73,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public List<Map<String, Object>> getAllUsers() throws IllegalArgumentException{
-		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER FROM USER ORDER BY NAME, TYPE";
-		return getSimpleQuery(query);
+//		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER FROM USER ORDER BY NAME, TYPE";
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector("USER__ADMIN"));
+		qs.addSelector(new QueryColumnSelector("USER__PUBLISHER"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("USER__NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("USER__TYPE"));
+		return getSimpleQuery(qs);
 	}
 
 	/**
@@ -132,10 +155,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param userDelete
 	 */
 	public boolean deleteUser(String userToDelete) {
-		List<String> groups = SecurityQueryUtils.getGroupsOwnedByUser(userToDelete);
-		for(String groupId : groups){
-			removeGroup(userToDelete, groupId);
-		}
+//		List<String> groups = SecurityQueryUtils.getGroupsOwnedByUser(userToDelete);
+//		for(String groupId : groups){
+//			removeGroup(userToDelete, groupId);
+//		}
 		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; DELETE FROM GROUPMEMBERS WHERE USERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
 		query = query.replace("?1", RdbmsQueryBuilder.escapeForSQLStatement(userToDelete));
 		securityDb.execUpdateAndRetrieveStatement(query, true);
@@ -143,17 +166,31 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return true;
 	}
 	
+
 	/**
-	 * Set if engine should be public or not
-	 * @param engineId
-	 * @param isPublic
+	 * Set the user's publishing rights
+	 * @param userId
+	 * @param isPublisher
 	 */
-	public boolean setDbGlobal(String engineId, boolean isPublic) {
-		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + engineId + "';";
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
-		return true;
+	public void setUserPublisher(String userId, boolean isPublisher) {
+		String query = "UPDATE USER SET PUBLISHER=" + isPublisher + " WHERE ID ='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured setting this insight global");
+		}
 	}
+	
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * METHODS FOR APP AUTHORIZATION THAT ARE AT THE ADMIN LEVEL
+	 */
 	
 	/**
 	 * Get all databases options
@@ -161,31 +198,128 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param isAdmin
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllUserDatabaseSettings() {
-		String query = "SELECT DISTINCT "
-				+ "ENGINE.ENGINEID as \"app_id\", "
-				+ "ENGINE.ENGINENAME as \"app_name\", "
-				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\", "
-				+ "ENGINE.GLOBAL as \"app_global\" "
-				+ "FROM ENGINE "
-				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+	public List<Map<String, Object>> getAllDatabaseSettings() {
+//		String query = "SELECT DISTINCT "
+//				+ "ENGINE.ENGINEID as \"app_id\", "
+//				+ "ENGINE.ENGINENAME as \"app_name\", "
+//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\", "
+//				+ "ENGINE.GLOBAL as \"app_global\" "
+//				+ "FROM ENGINE "
+//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.setAlias("low_app_name");
+		qs.addSelector(fun);
+		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushRsToMap(wrapper);
 	}
 	
 	/**
-	 * Remove a group
-	 * @param userId
-	 * @param groupId
-	 * @return
+	 * Set if engine should be public or not
+	 * @param engineId
+	 * @param isPublic
 	 */
-	private Boolean removeGroup(String userId, String groupId) {
-		String query = "DELETE FROM GROUPENGINEPERMISSION WHERE GROUPENGINEPERMISSION.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); "
-				+ "DELETE FROM GROUPMEMBERS WHERE GROUPMEMBERS.GROUPID IN (SELECT USERGROUP.GROUPID FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "'); "
-				+ "DELETE FROM USERGROUP WHERE USERGROUP.GROUPID='" + groupId + "';";
+	public boolean setAppGlobal(String engineId, boolean isPublic) {
+		String query = "UPDATE ENGINE SET GLOBAL = " + isPublic + " WHERE ENGINEID ='" + engineId + "';";
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
 		return true;
+	}
+	
+	/**
+	 * Get all the users for an app
+	 * @param engineId
+	 * @return
+	 */
+	public List<Map<String, Object>> getAppUsers(String engineId) {
+		return SecurityQueryUtils.getFullDatabaseOwnersAndEditors(engineId);
+	}
+	
+	/**
+	 * 
+	 * @param newUserId
+	 * @param engineId
+	 * @param permission
+	 * @return
+	 */
+	public void addAppUser(String newUserId, String engineId, String permission) {
+		// make sure user doesn't already exist for this app
+		if(SecurityAppUtils.getUserAppPermission(newUserId, engineId) != null) {
+			// that means there is already a value
+			throw new IllegalArgumentException("This user already has access to this insight. Please edit the existing permission level.");
+		}
+		
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY) VALUES('"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(newUserId) + "', '"
+				+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "', "
+				+ AccessPermission.getIdByPermission(permission) + ", "
+				+ "TRUE);";
+
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		}
+	}
+	
+	/**
+	 * 
+	 * @param existingUserId
+	 * @param engineId
+	 * @param newPermission
+	 * @return
+	 */
+	public void editAppUserPermission(String existingUserId, String engineId, String newPermission) {
+		// make sure we are trying to edit a permission that exists
+		Integer existingUserPermission = SecurityAppUtils.getUserAppPermission(existingUserId, engineId);
+		if(existingUserPermission == null) {
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the app");
+		}
+		
+		int newPermissionLvl = AccessPermission.getIdByPermission(newPermission);
+		
+		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=" + newPermissionLvl
+				+ " WHERE USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		}
+	}
+	
+	/**
+	 * 
+	 * @param editedUserId
+	 * @param engineId
+	 * @return
+	 */
+	public void removeAppUser(String existingUserId, String engineId) {
+		// make sure we are trying to edit a permission that exists
+		Integer existingUserPermission = SecurityAppUtils.getUserAppPermission(existingUserId, engineId);
+		if(existingUserPermission == null) {
+			throw new IllegalArgumentException("Attempting to modify user permission for a user who does not currently have access to the app");
+		}
+		
+		String query = "DELETE FROM ENGINEPERMISSION WHERE "
+				+ "USERID='" + RdbmsQueryBuilder.escapeForSQLStatement(existingUserId) + "' "
+				+ "AND ENGINEID='"	+ RdbmsQueryBuilder.escapeForSQLStatement(engineId) + "';";
+		try {
+			securityDb.insertData(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("An error occured adding user permissions for this app");
+		}
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -204,19 +338,32 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getAppInsights(String appId) {
-		String query = "SELECT ENGINEID AS \"app_id\", "
-				+ "INSIGHTID AS \"app_insight_id\", "
-				+ "INSIGHTNAME as \"name\", "
-				+ "GLOBAL as \"insight_global\", "
-				+ "EXECUTIONCOUNT as \"exec_count\", "
-				+ "CREATEDON  as \"created_on\", "
-				+ "LASTMODIFIEDON as \"last_modified_on\", "
-				+ "CACHEABLE as \"cacheable\" "
-				+ "FROM INSIGHT "
-				+ "WHERE ENGINEID='" + appId + "'"
-				;
+//		String query = "SELECT ENGINEID AS \"app_id\", "
+//				+ "INSIGHTID AS \"app_insight_id\", "
+//				+ "INSIGHTNAME as \"name\", "
+//				+ "GLOBAL as \"insight_global\", "
+//				+ "EXECUTIONCOUNT as \"exec_count\", "
+//				+ "CREATEDON  as \"created_on\", "
+//				+ "LASTMODIFIEDON as \"\", "
+//				+ "CACHEABLE as \"cacheable\" "
+//				+ "FROM INSIGHT "
+//				+ "WHERE ENGINEID='" + appId + "'"
+//				;
+//
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID", "app_insight_id"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__GLOBAL", "insight_global"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__EXECUTIONCOUNT", "exec_count"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CREATEDON", "created_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON", "last_modified_on"));
+		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE", "cacheable"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
+		qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushRsToMap(wrapper);
 	}
 	
@@ -249,17 +396,29 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public List<Map<String, Object>> getInsightUsers(String appId, String insightId) throws IllegalAccessException {
-		String query = "SELECT USER.ID AS \"id\", "
-				+ "USER.NAME AS \"name\", "
-				+ "PERMISSION.NAME AS \"permission\" "
-				+ "FROM USER "
-				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
-				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID) "
-				+ "WHERE USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
-				+ " AND USERINSIGHTPERMISSION.INSIGHTID='" + insightId + "'"
-				;
+//		String query = "SELECT USER.ID AS \"id\", "
+//				+ "USER.NAME AS \"name\", "
+//				+ "PERMISSION.NAME AS \"permission\" "
+//				+ "FROM USER "
+//				+ "INNER JOIN USERINSIGHTPERMISSION ON (USER.ID = USERINSIGHTPERMISSION.USERID) "
+//				+ "INNER JOIN PERMISSION ON (USERINSIGHTPERMISSION.PERMISSION = PERMISSION.ID) "
+//				+ "WHERE USERINSIGHTPERMISSION.ENGINEID='" + appId + "'"
+//				+ " AND USERINSIGHTPERMISSION.INSIGHTID='" + insightId + "'"
+//				;
+//		
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__ID", "pvalue"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__ENGINEID", "==", appId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
+		qs.addRelation("USER", "USERINSIGHTPERMISSION", "inner.join");
+		qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("PERMISSION__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("USER__ID"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushRsToMap(wrapper);
 	}
 	
@@ -355,21 +514,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public void setInsightGlobalWithinApp(String appId, String insightId, boolean isPublic) {
 		String query = "UPDATE INSIGHT SET GLOBAL=" + isPublic + " WHERE ENGINEID ='" + appId + "' AND INSIGHTID='" + insightId + "';";
-		try {
-			securityDb.insertData(query);
-		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("An error occured setting this insight global");
-		}
-	}
-
-	/**
-	 * Set the user's publishing rights
-	 * @param userId
-	 * @param isPublisher
-	 */
-	public void setUserPublisher(String userId, boolean isPublisher) {
-		String query = "UPDATE USER SET PUBLISHER=" + isPublisher + " WHERE ID ='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "';";
 		try {
 			securityDb.insertData(query);
 		} catch (SQLException e) {
