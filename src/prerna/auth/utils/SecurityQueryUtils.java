@@ -207,6 +207,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", new Vector<String>(engineIdsIncluded)));
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		while(wrapper.hasNext()) {
 			IHeadersDataRow headerRow = wrapper.next();
