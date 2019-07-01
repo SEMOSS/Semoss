@@ -61,7 +61,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			ids = flushToListString(wrapper);
@@ -197,7 +197,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "!=", engineIdsIncluded));
 		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		while(wrapper.hasNext()) {
@@ -270,14 +270,14 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		// filters
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			qs.addExplicitFilter(orFilter);
 		}
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", "FALSE"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			
 			NounMetadata subQueryLHS = new NounMetadata(new QueryColumnSelector("ENGINE__ENGINEID"), PixelDataType.COLUMN);
@@ -365,7 +365,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 			qs.addExplicitFilter(orFilter);
 		}
@@ -463,7 +463,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", "TRUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return flushToSetString(wrapper, false);
 	}
