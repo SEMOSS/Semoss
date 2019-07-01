@@ -31,7 +31,6 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
-import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.sablecc2.om.PixelDataType;
@@ -465,7 +464,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		String function = selector.getFunction();
 		StringBuilder expression = new StringBuilder();
-		expression.append(QueryFunctionHelper.convertFunctionToSqlSyntax(function)).append("(");
+		expression.append(this.queryUtil.getSqlFunctionSyntax(function)).append("(");
 		if(selector.isDistinct()) {
 			expression.append("DISTINCT ");
 		}
