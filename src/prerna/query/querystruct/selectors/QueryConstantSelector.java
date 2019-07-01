@@ -15,6 +15,10 @@ public class QueryConstantSelector extends AbstractQuerySelector {
 	public QueryConstantSelector() {
 		this.constant = "";
 	}
+	
+	public QueryConstantSelector(Object constant) {
+		this.constant = constant;
+	}
 
 	@Override
 	public SELECTOR_TYPE getSelectorType() {

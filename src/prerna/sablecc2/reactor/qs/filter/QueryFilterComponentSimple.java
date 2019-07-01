@@ -22,7 +22,7 @@ public class QueryFilterComponentSimple extends FilterReactor {
 	 * @return
 	 */
 	private SimpleQueryFilter generateFilterObject() {
-		// need to consider list fo values
+		// need to consider list of values
 		// can have column == [set of values]
 		// can also have [set of values] == column
 		// need to account for both situations

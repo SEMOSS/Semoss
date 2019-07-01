@@ -229,19 +229,19 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	protected void addJoin(String fromCol, String thisComparator, String toCol) {
 		// get the parts of the join
 		String[] relConProp = getRelationshipConceptProperties(fromCol, toCol);
-		String targetTable = relConProp[0];
-		String targetColumn = relConProp[1];
-		String sourceTable = relConProp[2];
-		String sourceColumn = relConProp[3];
+		String sourceTable = relConProp[0];
+		String sourceColumn = relConProp[1];
+		String targetTable = relConProp[2];
+		String targetColumn = relConProp[3];
 		
 		String compName = thisComparator.replace(".", " ");
-		if (!fromCol.equals(sourceTable)) {
-			if (compName.startsWith("left")){
-				compName = compName.replace("left", "right");
-			} else if (compName.startsWith("right")){
-				compName = compName.replace("right", "left");
-			}
-		}
+//		if (!fromCol.equals(sourceTable)) {
+//			if (compName.startsWith("left")){
+//				compName = compName.replace("left", "right");
+//			} else if (compName.startsWith("right")){
+//				compName = compName.replace("right", "left");
+//			}
+//		}
 		jTypeList.add(compName);
 		
 		SqlJoinStruct jStruct = new SqlJoinStruct();

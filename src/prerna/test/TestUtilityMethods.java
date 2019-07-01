@@ -29,13 +29,13 @@ public final class TestUtilityMethods {
 	}
 
 	public static void loadLocalMasterAndSecruity() throws Exception {
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
+		String engineProp = "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
 		IEngine coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("LocalMasterDatabase");
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("LocalMasterDatabase", coreEngine);
 
-		engineProp = "C:\\workspace\\Semoss_Dev\\db\\security.smss";
+		engineProp = "C:\\workspace2\\Semoss_Dev\\db\\security.smss";
 		coreEngine = new RDBMSNativeEngine();
 		coreEngine.setEngineId("security");
 		coreEngine.openDB(engineProp);

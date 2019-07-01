@@ -312,10 +312,12 @@ import prerna.sablecc2.reactor.qs.SortReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
 import prerna.sablecc2.reactor.qs.filter.FilterReactor;
 import prerna.sablecc2.reactor.qs.filter.HavingReactor;
+import prerna.sablecc2.reactor.qs.filter.RegexFilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.AverageReactor;
 import prerna.sablecc2.reactor.qs.selectors.CountReactor;
 import prerna.sablecc2.reactor.qs.selectors.GenericSelectorFunctionReactor;
 import prerna.sablecc2.reactor.qs.selectors.GroupConcatReactor;
+import prerna.sablecc2.reactor.qs.selectors.LowerReactor;
 import prerna.sablecc2.reactor.qs.selectors.MaxReactor;
 import prerna.sablecc2.reactor.qs.selectors.MedianReactor;
 import prerna.sablecc2.reactor.qs.selectors.MinReactor;
@@ -688,6 +690,7 @@ public class ReactorFactory {
 		reactorHash.put("UniqueCount", UniqueCountReactor.class);
 		reactorHash.put("GroupConcat", GroupConcatReactor.class);
 		reactorHash.put("UniqueGroupConcat", UniqueGroupConcatReactor.class);
+		reactorHash.put("Lower", LowerReactor.class);
 		reactorHash.put("Group", GroupReactor.class);
 		reactorHash.put("GroupBy", GroupReactor.class);
 		reactorHash.put("Sort", SortReactor.class);
@@ -696,6 +699,7 @@ public class ReactorFactory {
 		reactorHash.put("Offset", OffsetReactor.class);
 		reactorHash.put("Join", JoinReactor.class);
 		reactorHash.put("Filter", FilterReactor.class);
+		reactorHash.put("RegexFilter", RegexFilterReactor.class);
 		reactorHash.put("Having", HavingReactor.class);
 		reactorHash.put("Query", QueryReactor.class);
 		reactorHash.put("Distinct", DistinctReactor.class);

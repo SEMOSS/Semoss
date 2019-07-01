@@ -8,6 +8,10 @@ import prerna.auth.AccessToken;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class NativeUserSecurityUtils extends AbstractSecurityUtils {
@@ -28,11 +32,20 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 		validInformation(newUser, password);
 		
 		// is this an admin added user???
-		String query = "SELECT ID FROM USER WHERE "
-				+ "NAME='" + ADMIN_ADDED_USER + "' AND "
-				// this matching the ID field to the email because admin added user only sets the id field
-				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT ID FROM USER WHERE "
+//				+ "NAME='" + ADMIN_ADDED_USER + "' AND "
+//				// this matching the ID field to the email because admin added user only sets the id field
+//				+ "(ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "' OR ID='" + RdbmsQueryBuilder.escapeForSQLStatement(newUser.getEmail()) + "')";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__NAME", "==", ADMIN_ADDED_USER));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", newUser.getId()));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", newUser.getEmail()));
+		qs.addExplicitFilter(orFilter);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				// this was the old id that was added when the admin 
@@ -86,7 +99,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 					String salt = SecurityQueryUtils.generateSalt();
 					String hashedPassword = (SecurityQueryUtils.hash(password, salt));
 					
-					query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('" + 
+					String query = "INSERT INTO USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT) VALUES ('" + 
 							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getId()) + "', '" + 
 							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getName()) + "', '" + 
 							RdbmsQueryBuilder.escapeForSQLStatement(newUser.getUsername()) + "', '" + 
@@ -143,13 +156,20 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	}
 	
 	static String getUsernameByUserId(String userId) {
-		String query = "SELECT NAME FROM USER WHERE ID = '?1'";
-		query = query.replace("?1", userId);
+//		String query = "SELECT NAME FROM USER WHERE ID = '?1'";
+//		query = query.replace("?1", userId);
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
-		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		if(sjsw.hasNext()) {
-			IHeadersDataRow sjss = sjsw.next();
-			return sjss.getValues()[0].toString();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__NAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", userId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try {
+			if(wrapper.hasNext()) {
+				return wrapper.next().getValues()[0].toString();
+			}
+		} finally {
+			wrapper.cleanUp();
 		}
 		return null;
 	}
@@ -160,13 +180,20 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getUserId(String username) {
-		String query = "SELECT ID FROM USER WHERE USERNAME = '?1'";
-		query = query.replace("?1", username);
-
-		IRawSelectWrapper sjsw = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		if(sjsw.hasNext()) {
-			IHeadersDataRow sjss = sjsw.next();
-			return sjss.getValues()[0].toString();
+//		String query = "SELECT ID FROM USER WHERE USERNAME = '?1'";
+//		query = query.replace("?1", username);
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try {
+			if(wrapper.hasNext()) {
+				return wrapper.next().getValues()[0].toString();
+			}
+		} finally {
+			wrapper.cleanUp();
 		}
 		return null;
 
@@ -178,13 +205,17 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 * @return email if it exists otherwise null
 	 */
 	public static String getUserEmail(String username) {
-		String query = "SELECT EMAIL FROM USER WHERE USERNAME = '?1'";
-		query = query.replace("?1", username);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT EMAIL FROM USER WHERE USERNAME = '?1'";
+//		query = query.replace("?1", username);
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if (wrapper.hasNext()) {
-				IHeadersDataRow sjss = wrapper.next();
-				return sjss.getValues()[0].toString();
+				return wrapper.next().getValues()[0].toString();
 			}
 		} finally {
 			wrapper.cleanUp();
@@ -198,9 +229,14 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getNameUser(String username) {
-		String query = "SELECT NAME FROM USER WHERE USERNAME = '?1'";
-		query = query.replace("?1", username);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT NAME FROM USER WHERE USERNAME = '?1'";
+//		query = query.replace("?1", username);
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__NAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try{
 			if(wrapper.hasNext()) {
 				IHeadersDataRow sjss = wrapper.next();
@@ -220,8 +256,21 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 */
 	private static Map<String, String> getUserFromDatabase(String username) {
 		Map<String, String> user = new HashMap<String, String>();
-		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT FROM USER WHERE USERNAME='" + username + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+//		String query = "SELECT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT FROM USER WHERE USERNAME='" + username + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("USER__USERNAME"));
+		qs.addSelector(new QueryColumnSelector("USER__EMAIL"));
+		qs.addSelector(new QueryColumnSelector("USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector("USER__ADMIN"));
+		qs.addSelector(new QueryColumnSelector("USER__PASSWORD"));
+		qs.addSelector(new QueryColumnSelector("USER__SALT"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__USERNAME", "==", username));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		String[] names = wrapper.getHeaders();
 		if(wrapper.hasNext()) {
 			Object[] values = wrapper.next().getValues();

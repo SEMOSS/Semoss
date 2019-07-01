@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,11 +19,16 @@ import java.util.regex.Pattern;
 import jodd.util.BCrypt;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.ds.QueryStruct;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -42,8 +48,12 @@ public abstract class AbstractSecurityUtils {
 		
 	}
 	
-	public static void loadSecurityDatabase() throws SQLException {
+	public static void loadSecurityDatabase() throws SQLException, IOException {
 		securityDb = (RDBMSNativeEngine) Utility.getEngine(Constants.SECURITY_DB);
+		SecurityOwlCreator owlCreator = new SecurityOwlCreator(securityDb);
+		if(owlCreator.needsRemake()) {
+			owlCreator.remakeOwl();
+		}
 		initialize();
 		
 		Object security = DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED);
@@ -91,12 +101,23 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
-		String userFilters = getUserFilters(user);
-		String query = "SELECT * "
-				+ "FROM ENGINE "
-				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2) AND ENGINEPERMISSION.USERID IN " + userFilters;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT * "
+//				+ "FROM ENGINE "
+//				+ "INNER JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "WHERE ENGINENAME='" + appName + "' AND PERMISSION IN (1,2) AND ENGINEPERMISSION.USERID IN " + userFilters;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", appName));
+		List<Integer> permissionValues = new Vector<Integer>(2);
+		permissionValues.add(new Integer(1));
+		permissionValues.add(new Integer(2));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", permissionValues, PixelDataType.CONST_INT));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				return true;
@@ -113,8 +134,13 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
-		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINENAME='" + appName + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINENAME='" + appName + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", appName));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				return true;
@@ -131,8 +157,13 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
-		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+//		String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", appId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			if(wrapper.hasNext()) {
 				return true;
@@ -347,9 +378,16 @@ public abstract class AbstractSecurityUtils {
 	 */
 	public static File getStockImage(String appId, String insightId) {
 		String imageDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/images/stock/";
-		String query = "SELECT LAYOUT FROM INSIGHT WHERE INSIGHT.ENGINEID='" + appId + "' AND INSIGHT.INSIGHTID='" + insightId + "'";
 		String layout = null;
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
+//		String query = "SELECT LAYOUT FROM INSIGHT WHERE INSIGHT.ENGINEID='" + appId + "' AND INSIGHT.INSIGHTID='" + insightId + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__ENGINEID", "==", appId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__INSIGHTID", "==", insightId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			while(wrapper.hasNext()) {
 				layout = wrapper.next().getValues()[0].toString();
@@ -591,6 +629,23 @@ public abstract class AbstractSecurityUtils {
 		return b.toString();
 	}
 	
+	/**
+	 * Get a vector of the user ids
+	 * @param user
+	 * @return
+	 */
+	static List<String> getUserFiltersQs(User user) {
+		List<String> filters = new Vector<String>();
+		if(user != null) {
+			List<AuthProvider> logins = user.getLogins();
+			for(AuthProvider l : logins) {
+				filters.add(user.getAccessToken(l).getId());
+			}
+		}
+		
+		return filters;
+	}
+	
 	////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////
@@ -598,11 +653,41 @@ public abstract class AbstractSecurityUtils {
 	
 	/**
 	 * Returns a list of values given a query with one column/variable.
-	 * @param query		Query to be executed to retrieve engine names
-	 * @return			List of engine names
+	 * @param query		Query to be executed
+	 * @return			
 	 */
 	static List<Map<String, Object>> getSimpleQuery(String query) {
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		List<Map<String, Object>> ret = new Vector<Map<String, Object>>();
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			String[] headers = row.getHeaders();
+			Object[] values = row.getValues();
+			Map<String, Object> rowData = new HashMap<String, Object>();
+			for(int idx = 0; idx < headers.length; idx++){
+				if(values[idx] == null) {
+					rowData.put(headers[idx].toLowerCase(), "null");
+				} else {
+					if(headers[idx].toLowerCase().equals("type") && values[idx].toString().equals("NATIVE")){
+						rowData.put(headers[idx].toLowerCase(), "Default");
+					} else {
+						rowData.put(headers[idx].toLowerCase(), values[idx]);
+					}
+				}
+			}
+			ret.add(rowData);
+		}
+
+		return ret;
+	}
+	
+	/**
+	 * Returns a list of values given a query with one column/variable.
+	 * @param qs		Query Struct to be executed
+	 * @return			
+	 */
+	static List<Map<String, Object>> getSimpleQuery(SelectQueryStruct qs) {
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		List<Map<String, Object>> ret = new Vector<Map<String, Object>>();
 		while(wrapper.hasNext()) {
 			IHeadersDataRow row = wrapper.next();
@@ -633,13 +718,6 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
-	static String escapeRegexCharacters(String s) {
-		s = s.trim();
-		s = s.replace("(", "\\(");
-		s = s.replace(")", "\\)");
-		return s;
-	}
-	
 	static String validEmail(String email){
 		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
 			return  email + " is not a valid email address. ";
