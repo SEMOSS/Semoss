@@ -38,6 +38,7 @@ import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
 import prerna.poi.main.helper.excel.GetExcelFormReactor;
 import prerna.query.querystruct.delete.DeleteReactor;
 import prerna.query.querystruct.update.reactors.UpdateReactor;
+import prerna.sablecc2.reactor.algorithms.CreateNLPVizReactor;
 import prerna.sablecc2.reactor.algorithms.NLSQueryHelperReactor;
 import prerna.sablecc2.reactor.algorithms.NaturalLanguageSearchReactor;
 import prerna.sablecc2.reactor.algorithms.RAlgReactor;
@@ -1071,6 +1072,7 @@ public class ReactorFactory {
 		// Recommendations
 		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationsReactor.class);
 		reactorHash.put("VizRecommendations", VizRecommendationsReactor.class);
+		reactorHash.put("PredictViz", CreateNLPVizReactor.class);
 		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		reactorHash.put("UpdateNLPHistory", UpdateNLPHistoryReactor.class);
 		reactorHash.put("NLSQueryHelper", NLSQueryHelperReactor.class);
