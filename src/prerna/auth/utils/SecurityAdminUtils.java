@@ -20,6 +20,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Utility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
@@ -52,7 +53,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ID", "==", getUserFiltersQs(user)));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ADMIN", "==", "TRUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		try {
 			return wrapper.hasNext();
