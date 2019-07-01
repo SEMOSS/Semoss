@@ -529,6 +529,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	
 	public static List<Map<String, Object>> getFullDatabaseOwnersAndEditors(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
