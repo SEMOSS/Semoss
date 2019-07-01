@@ -124,6 +124,26 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 		// reset working directory
 		this.rJavaTranslator.runR("setwd(\"" + wd + "\");");
+		
+		// run Garbage Cleanup
+		this.rJavaTranslator.executeEmptyR("rm(" + wd + ",assemble_word_vector," + "build_glove_model," +    "build_join_clause," +   
+				"connect_tables," +       "db_match," +            
+				"decay_words," +          "extract_patterns," +     "filter_apps," +         
+				"get_alias," +            "get_column_neighbors," + "get_conj," +            
+				"get_forecast_pattern," + "get_having," +           "get_hist_options," +    
+				"get_next_word," +        "get_query_pattern," +    "get_select," +          
+				"get_start," +            "get_subtree," +          "get_where," +           
+				"get_word_vector," +      "get_word_vector_mgr," +  "glove_neighbors," +     
+				"glove_sim," +            "glove_weighted_sim," +   "join_clause_mgr," +     
+				"load_glove," +           "map_aggr," +             "map_dbitems," +         
+				"map_input," +            "map_to_training," +      "min_joins," +           
+				"next_word_mgr," +        "nliapp_mgr," +           "optimize_joins," +      
+				"parameterize_request," + "parse_question," +       "parse_question_mgr," +  
+				"parse_request," +        "parse_sentence," +       "refine_parsing," +      
+				"refresh_nlidb_history," +"replace_words," +        "select_having," +       
+				"select_where," +         "select_where_helper," +  "tag_dbitems," +         
+				"translate_token," +      "validate_pixel," +       "validate_select," +     
+				"verify_joins," + "); gc();");
 
 		// return data to the front end
 		return new NounMetadata(retData, PixelDataType.CUSTOM_DATA_STRUCTURE);
