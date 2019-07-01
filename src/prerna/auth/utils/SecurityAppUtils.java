@@ -277,7 +277,8 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USER__NAME", "id"));
+		qs.addSelector(new QueryColumnSelector("USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addRelation("USER", "ENGINEPERMISSION", "inner.join");
