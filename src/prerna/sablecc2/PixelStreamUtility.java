@@ -446,12 +446,18 @@ public class PixelStreamUtility {
 			// because the user may want to get the task and then
 			// remove the frame right after
 			// so we need to remove only at the end
-			NounMetadata newNoun = InsightUtility.removeVaraible(in.getVarStore(), noun.getValue().toString());
+			NounMetadata newNoun = null;
+			if(noun.getOpType().contains(PixelOperationType.REMOVE_FRAME)) {
+				// if it is specifically the remove frame reactor 
+				// we will only remove the variable if it is pointing to a frame
+				newNoun = InsightUtility.removeFrameVaraible(in.getVarStore(), noun.getValue().toString());
+			} else {
+				newNoun = InsightUtility.removeVaraible(in.getVarStore(), noun.getValue().toString());
+			}
 			ps.print("\"output\":");
 			ps.print(gson.toJson(newNoun.getValue()));
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(newNoun.getOpType()));
-			
 		}
 		
 		// remove insight 
