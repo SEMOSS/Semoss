@@ -18,13 +18,11 @@ import java.util.stream.Stream;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Utility;
-import prerna.util.sql.SQLQueryUtil;
 
 public class NoOuterJoinSqlInterpreter extends SqlInterpreter {	
 	
@@ -50,12 +48,11 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 	}
 
 	public NoOuterJoinSqlInterpreter(IEngine engine) {
-		this.engine = engine;
-		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
+		super(engine);
 	}
 	
 	public NoOuterJoinSqlInterpreter(ITableDataFrame frame) {
-		this.frame = frame;
+		super(frame);
 	}
 
 	/**

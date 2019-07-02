@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.rdf.main; // TODO: move to prerna.poi.main
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -46,7 +45,7 @@ import prerna.poi.main.AbstractEngineCreator;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 
 public class ImportRDBMSProcessor extends AbstractEngineCreator {
 	
@@ -68,7 +67,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get("nodes");
 		List<String[]> relationships = (List<String[]>) externalMetamodel.get("relationships");
 
-		this.queryUtil = SQLQueryUtil.initialize(sqlType, host, port, schema, username, password);
+		this.queryUtil = RdbmsQueryUtilFactor.initialize(sqlType, host, port, schema, username, password);
 		prepEngineCreator(null, options.getOwlFileLocation(), options.getSMSSLocation());
 		// this will create the class variable this.engine
 		generateEngineFromRDBMSConnection(schema, engineName, appName);

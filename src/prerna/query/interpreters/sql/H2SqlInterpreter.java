@@ -5,12 +5,10 @@ import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.util.sql.SQLQueryUtil;
 
 public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 
@@ -19,12 +17,11 @@ public class H2SqlInterpreter extends NoOuterJoinSqlInterpreter {
 	}
 
 	public H2SqlInterpreter(IEngine engine) {
-		this.engine = engine;
-		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
+		super(engine);
 	}
 	
 	public H2SqlInterpreter(ITableDataFrame frame) {
-		this.frame = frame;
+		super(frame);
 	}
 	
 	@Override
