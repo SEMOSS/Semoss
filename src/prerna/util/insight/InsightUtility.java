@@ -98,6 +98,28 @@ public class InsightUtility {
 	}
 	
 	/**
+	 * Will remove the variable only if the key is pointing to a frame
+	 * @param varStore
+	 * @param key
+	 * @return
+	 */
+	public static NounMetadata removeFrameVaraible(InMemStore<String, NounMetadata> varStore, String key) {
+		// only remove if the frame variable is in fact a frame
+		NounMetadata noun = varStore.get(key);
+		if(noun == null) {
+			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
+		}
+		
+		PixelDataType nType = noun.getNounType();
+		if(nType == PixelDataType.FRAME) {
+			removeVaraible(varStore, key);
+			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
+		}
+		
+		return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
+	}
+	
+	/**
 	 * 
 	 * @param insight
 	 * @param taskId
