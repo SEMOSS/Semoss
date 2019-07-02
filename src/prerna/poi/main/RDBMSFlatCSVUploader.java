@@ -24,7 +24,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 
 @Deprecated
 public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
@@ -76,7 +76,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		cleanString = options.getCleanString();
 		
 		RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
-		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		queryUtil = RdbmsQueryUtilFactor.initialize(dbDriverType);
 		
 		boolean error = false;
 		// sets the custom base uri, sets the owl path, sets the smss location
@@ -169,7 +169,7 @@ public class RDBMSFlatCSVUploader extends AbstractCSVFileReader {
 		cleanString = options.getCleanString();
 		
 		RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
-		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		queryUtil = RdbmsQueryUtilFactor.initialize(dbDriverType);
 		
 		Hashtable <String, String> paramHash2 = new Hashtable<String, String>();
 		paramHash2.put("engine", engineName);

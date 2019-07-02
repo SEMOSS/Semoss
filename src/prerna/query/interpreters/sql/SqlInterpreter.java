@@ -41,8 +41,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 
 public class SqlInterpreter extends AbstractQueryInterpreter {
 	
@@ -65,7 +66,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	// but everything needs to be the physical schema
 	protected transient IEngine engine; 
 	protected transient ITableDataFrame frame;
-	protected SQLQueryUtil queryUtil = SQLQueryUtil.initialize(RdbmsTypeEnum.H2_DB);
+	protected AbstractRdbmsQueryUtil queryUtil = RdbmsQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB);
 
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
@@ -92,7 +93,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 	public SqlInterpreter(IEngine engine) {
 		this.engine = engine;
-		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) engine).getDbType());
+		this.queryUtil = ((RDBMSNativeEngine) engine).getQueryUtil();
 	}
 	
 	public SqlInterpreter(ITableDataFrame frame) {

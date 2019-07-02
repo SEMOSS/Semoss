@@ -43,9 +43,10 @@ import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 
 /**
  * Creates a folder in user.dir/db that contains the files required for the engine The custom map, smss, and question sheet are all named based on the
@@ -69,7 +70,7 @@ public class PropFileWriter {
 	private String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
 
 	private RdbmsTypeEnum dbDriverType = RdbmsTypeEnum.H2_DB;
-	SQLQueryUtil queryUtil;
+	AbstractRdbmsQueryUtil queryUtil;
 
 	// additional tinker props
 	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default
@@ -200,20 +201,20 @@ public class PropFileWriter {
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
 				if(this.queryUtil == null) {
-					this.queryUtil = SQLQueryUtil.initialize(dbDriverType);
+					this.queryUtil = RdbmsQueryUtilFactor.initialize(dbDriverType);
 				}
 
-				if(this.queryUtil.getDatabaseType().toString().equalsIgnoreCase("IMPALA")) {
+				if(queryUtil.getDbType() == RdbmsTypeEnum.IMPALA) {
 					pw.write(Constants.ENGINE_TYPE + "\t" + this.impalaEngine + "\n");
 				} else {
 					pw.write(Constants.ENGINE_TYPE + "\t" + this.defaultRDBMSEngine + "\n");
 				}
-				pw.write(Constants.RDBMS_TYPE + "\t" + queryUtil.getDatabaseType().toString() + "\n");
-				pw.write(Constants.DRIVER + "\t" + queryUtil.getDatabaseDriverClassName() + "\n");
-				pw.write(Constants.USERNAME + "\t" + queryUtil.getDefaultDBUserName() + "\n");
-				pw.write(Constants.PASSWORD + "\t" + queryUtil.getDefaultDBPassword() + "\n");
+				pw.write(Constants.RDBMS_TYPE + "\t" + queryUtil.getDbType().toString() + "\n");
+				pw.write(Constants.DRIVER + "\t" + queryUtil.getDriver() + "\n");
+				pw.write(Constants.USERNAME + "\t" + queryUtil.getUsername() + "\n");
+				pw.write(Constants.PASSWORD + "\t" + queryUtil.getPassword() + "\n");
 				String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-				if(queryUtil.getDatabaseType().equals(RdbmsTypeEnum.H2_DB)) {
+				if(queryUtil.getDbType() == RdbmsTypeEnum.H2_DB) {
 					if(fileName == null) {
 						pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL() + "\n");
 					} else {
@@ -226,7 +227,7 @@ public class PropFileWriter {
 						pw.write(Constants.CONNECTION_URL + "\t" + RDBMSUtility.getH2BaseConnectionURL2() + "\n");
 					}
 				} else {
-					pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionURL(baseFolder,dbname) + "\n");
+					pw.write(Constants.CONNECTION_URL + "\t" + queryUtil.getConnectionUrl() + "\n");
 				}
 			}
 
@@ -283,7 +284,7 @@ public class PropFileWriter {
 		}
 	}
 
-	public void setSQLQueryUtil(SQLQueryUtil queryUtil) {
+	public void setSQLQueryUtil(AbstractRdbmsQueryUtil queryUtil) {
 		this.queryUtil = queryUtil;
 	}
 

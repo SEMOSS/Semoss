@@ -12,7 +12,6 @@ import org.openrdf.model.vocabulary.RDF;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -24,7 +23,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.RDBMSUtility;
 
 public class AbstractEngineCreator {
 
@@ -40,7 +40,7 @@ public class AbstractEngineCreator {
 	protected String dbPropFile;
 
 	// sadly need to keep RDBMS specific object
-	protected SQLQueryUtil queryUtil;
+	protected AbstractRdbmsQueryUtil queryUtil;
 	// keep conversion from user input to sql datatypes
 	protected Map<String, String> sqlHash = new Hashtable<String, String>();
 	
@@ -82,14 +82,20 @@ public class AbstractEngineCreator {
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
 		Properties prop = new Properties();
-		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,SmssUtilities.getUniqueName(appName, appID)));
+//		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder,SmssUtilities.getUniqueName(appName, appID)));
+		// open db will fill in the parameterization for us!
+		if(this.queryUtil == null || this.queryUtil.getConnectionUrl() == null || this.queryUtil.getConnectionUrl().isEmpty()) {
+			prop.put(Constants.CONNECTION_URL, RDBMSUtility.getH2BaseConnectionURL2());
+		} else {
+			prop.put(Constants.CONNECTION_URL, this.queryUtil.getConnectionUrl());
+		}
 		prop.put(Constants.ENGINE, appID);
 		prop.put(Constants.ENGINE_ALIAS, appName);
-		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
-		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
-		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.RDBMS_TYPE, queryUtil.getDatabaseType().toString());
+		prop.put(Constants.USERNAME, queryUtil.getUsername());
+		prop.put(Constants.PASSWORD, queryUtil.getPassword());
+		prop.put(Constants.DRIVER, queryUtil.getDriver());
+		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
 		prop.put("TEMP", "TRUE");
 		engine.setProp(prop);
 		engine.openDB(null);
@@ -166,14 +172,16 @@ public class AbstractEngineCreator {
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
 		Properties prop = new Properties();
-		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+//		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+		// grab from the query util 
+		prop.put(Constants.CONNECTION_URL, this.queryUtil.getConnectionUrl());
 		prop.put(Constants.ENGINE, appID);
 		prop.put(Constants.ENGINE_ALIAS, appName);
-		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
-		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
-		prop.put(Constants.DRIVER, queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.RDBMS_TYPE, queryUtil.getDatabaseType().toString());
+		prop.put(Constants.USERNAME, queryUtil.getUsername());
+		prop.put(Constants.PASSWORD, queryUtil.getPassword());
+		prop.put(Constants.DRIVER, queryUtil.getDriver());
+		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
 		
 		// setting as a parameter for engine
 		//prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");
@@ -196,14 +204,16 @@ public class AbstractEngineCreator {
 		engine.setEngineId(appID);
 		engine.setEngineName(appName);
 		Properties prop = new Properties();
-		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
-		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+//		String dbBaseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", System.getProperty("file.separator"));
+//		prop.put(Constants.CONNECTION_URL, queryUtil.getConnectionURL(dbBaseFolder, SmssUtilities.getUniqueName(appName, appID)));
+		// grab from the query util directly
+		prop.put(Constants.CONNECTION_URL, this.queryUtil.getConnectionUrl());
 		prop.put(Constants.ENGINE, appID);
 		prop.put(Constants.ENGINE_ALIAS, appName);
-		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
-		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
-		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put(Constants.USERNAME, queryUtil.getUsername());
+		prop.put(Constants.PASSWORD, queryUtil.getPassword());
+		prop.put(Constants.DRIVER,queryUtil.getDriver());
+		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
 
 		// setting as a parameter for engine
 		//prop.put(Constants.RDBMS_INSIGHTS, "db" + System.getProperty("file.separator") + dbName + System.getProperty("file.separator") + "insights_database");

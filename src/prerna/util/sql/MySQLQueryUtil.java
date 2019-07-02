@@ -1,55 +1,63 @@
 package prerna.util.sql;
 
-public class MySQLQueryUtil extends SQLQueryUtil {
+public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	
-	private String connectionBase = "jdbc:mysql://HOST:PORT/SCHEMA";
+	MySQLQueryUtil() {
+		super();
+	}
+	
+	MySQLQueryUtil(String connectionUrl, String username, String password) {
+		super(connectionUrl, username, password);
+	}
+	
+	MySQLQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
+		super(dbType, hostname, port, schema, username, password);
+	}
+	
+	@Override
+	public boolean allowIfExistsModifyColumnSyntax() {
+		return false;
+	}
+	
+	@Override
+	public boolean allowIfExistsIndexSyntax() {
+		return false;
+	}
+	
+	@Override
+	public String modColumnType(String tableName, String columnName, String dataType) {
+		return "ALTER TABLE " + tableName + " MODIFY COLUMN " + columnName + " " + dataType + ";";
+	}
+	
+	@Override
+	public String dropIndex(String indexName, String tableName) {
+		return "ALTER TABLE " + tableName + " DROP INDEX " + indexName;
+	}
+		
+	/////////////////////////////////////////////////////////////////////////////////////
 
-	public MySQLQueryUtil(){
-		super.setDefaultDbUserName("root");
-		super.setDefaultDbPassword("password");
-	}
+	/*
+	 * Query database scripts
+	 */
 	
-	public MySQLQueryUtil(String hostname, String port, String schema, String username, String password) {
-		connectionBase = connectionBase.replace("HOST", hostname).replace("SCHEMA", schema);
-		if(port != null && !port.isEmpty()) {
-			connectionBase = connectionBase.replace(":PORT", ":" + port);
-		} else {
-			connectionBase = connectionBase.replace(":PORT", "");
-		}
-		super.setDefaultDbUserName(username);
-		super.setDefaultDbPassword(password);
-	}
-	
-	public MySQLQueryUtil(String connectionURL, String username, String password) {
-		connectionBase = connectionURL;
-		super.setDefaultDbUserName(username);
-		super.setDefaultDbPassword(password);
+	@Override
+	public String tableExistsQuery(String tableName, String schema) {
+		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='" + schema + "' AND TABLE_NAME='" + tableName + "';";
 	}
 	
 	@Override
-	public RdbmsTypeEnum getDatabaseType(){
-		return RdbmsTypeEnum.MYSQL;
+	public String getIndexList(String schema) {
+		return "SELECT DISTINCT INDEX_NAME, TABLE_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA='" + schema + "';";
+	}
+	
+	@Override
+	public String getIndexDetails(String indexName, String tableName, String schema) {
+		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA='" + schema + "' AND INDEX_NAME='" + indexName  + "' AND TABLE_NAME='" + tableName + "';";
+	}
+	
+	@Override
+	public String allIndexForTableQuery(String tableName, String schema) {
+		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA='" + schema + "' AND TABLE_NAME='" + tableName + "';";
 	}
 
-	@Override
-	public String getDialectAllIndexesInDB(String schema){
-		return super.getDialectAllIndexesInDB();
-	}
-	
-	//jdbc:mysql://<hostname>[:port]/<DBname>?user=username&password=pw
-	@Override
-	public String getConnectionURL(String baseFolder, String dbname){
-		return connectionBase;
-	}
-	
-	@Override
-	public String getDatabaseDriverClassName(){
-		return RdbmsTypeEnum.MYSQL.getDriver();
-	}
-
-	@Override
-	public String getDialectIndexInfo(String indexName, String dbName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

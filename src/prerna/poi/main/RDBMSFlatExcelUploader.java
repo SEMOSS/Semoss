@@ -25,7 +25,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 
 @Deprecated
 public class RDBMSFlatExcelUploader extends AbstractFileReader {
@@ -112,7 +112,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		String appID = options.getEngineID();
 		
 		RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
-		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		queryUtil = RdbmsQueryUtilFactor.initialize(dbDriverType);
 
 		boolean error = false;
 		// sets the custom base uri, sets the owl path, sets the smss location
@@ -197,7 +197,7 @@ public class RDBMSFlatExcelUploader extends AbstractFileReader {
 		cleanString = options.getCleanString();
 
 		RdbmsTypeEnum dbDriverType = options.getRDBMSDriverType();
-		queryUtil = SQLQueryUtil.initialize(dbDriverType);
+		queryUtil = RdbmsQueryUtilFactor.initialize(dbDriverType);
 		
 		boolean error = false;
 		// sets the custom base uri, sets the owl path, sets the smss location
