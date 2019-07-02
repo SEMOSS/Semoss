@@ -135,6 +135,12 @@ public class AuditDatabase {
 			}
 		}
 		
+		// define table where change is occurring
+		if (primaryKeyTable == null) {
+			QueryColumnSelector s = (QueryColumnSelector) selectors.get(0);
+			primaryKeyTable = s.getTable();
+		}
+		
 		StringBuilder auditInserts = new StringBuilder();
 		
 		String id = UUID.randomUUID().toString();
@@ -164,7 +170,7 @@ public class AuditDatabase {
 		}
 		
 		// execute the inserts
-		execQ(getAuditInsert(insert));
+		execQ(auditInserts.toString());
 		
 		// store the query
 		execQ(getAuditQueryLog(new Object[]{id, "INSERT", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
