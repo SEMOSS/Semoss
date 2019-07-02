@@ -70,32 +70,32 @@ public class RdbmsConnectionHelper {
 	 * @throws SQLException
 	 */
 	public static String getConnectionUrl(String driverType, String host, String port, String schema, String additonalProperties) throws SQLException {
-		String connectionUrl = "";
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromString(driverType);
 		if(rdbmsType == null) {
 			throw new SQLException("Invalid driver");
 		}
-		
+		String connectionUrl = rdbmsType.getUrlPrefix();
+
 		if (rdbmsType == RdbmsTypeEnum.ASTER) {
-			connectionUrl = "jdbc:ncluster://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.CASSANDRA) {
-			connectionUrl = "jdbc:cassandra://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.DB2) {
-			connectionUrl = "jdbc:db2://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.DERBY) {
-			connectionUrl = "jdbc:derby://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.H2_DB) {
 			File f = new File(host);
 			if(f.exists()) {
 				host = host.replace(".mv.db", "");
 				// there is no port for files
-				connectionUrl = "jdbc:h2:nio:HOST/SCHEMA".replace("HOST", host);
+				connectionUrl += ":nio:HOST/SCHEMA".replace("HOST", host);
 			} else {
-				connectionUrl = "jdbc:h2:tcp://HOST:PORT/SCHEMA".replace("HOST", host);
+				connectionUrl += ":tcp://HOST:PORT/SCHEMA".replace("HOST", host);
 			}
 			// schema may be empty
 			if(schema == null || schema.isEmpty()) {
@@ -107,43 +107,43 @@ public class RdbmsConnectionHelper {
 			host = host.replace(".mv.db", "");
 			// there is no port for files
 			// sqlite doesn't really support schemas
-			connectionUrl = "jdbc:sqlite:HOST".replace("HOST", host);
+			connectionUrl += ":HOST".replace("HOST", host);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.IMPALA) {
-			connectionUrl = "jdbc:impala://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.MARIADB) {
-			connectionUrl = "jdbc:mariadb://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.MYSQL) {
-			connectionUrl = "jdbc:mysql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.ORACLE) {
-			connectionUrl = "jdbc:oracle:thin:@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.PHOENIX) {
-			connectionUrl = "jdbc:phoenix:HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.POSTGRES) {
-			connectionUrl = "jdbc:postgresql://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.SAP_HANA) {
-			connectionUrl = "jdbc:sap://HOST:PORT/?currentSchema=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.SNOWFLAKE) {
-			connectionUrl = "jdbc:snowflake://HOST:PORT/?db=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.SQLSERVER) {
-			connectionUrl = "jdbc:sqlserver://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
-		}
-		else if (rdbmsType == RdbmsTypeEnum.TERADATA) {
-			connectionUrl = "jdbc:teradata://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.REDSHIFT) {
-			connectionUrl = "jdbc:redshift://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
+		else if (rdbmsType == RdbmsTypeEnum.MARIADB) {
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
+		else if (rdbmsType == RdbmsTypeEnum.MYSQL) {
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
+		else if (rdbmsType == RdbmsTypeEnum.ORACLE) {
+			connectionUrl += ":@HOST:PORT:SERVICE".replace("HOST", host).replace("SERVICE", schema);
+		}
+		else if (rdbmsType == RdbmsTypeEnum.PHOENIX) {
+			connectionUrl += ":HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
+		else if (rdbmsType == RdbmsTypeEnum.POSTGRES) {
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
+		else if (rdbmsType == RdbmsTypeEnum.SAP_HANA) {
+			connectionUrl += "://HOST:PORT/?currentSchema=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
+		else if (rdbmsType == RdbmsTypeEnum.SNOWFLAKE) {
+			connectionUrl += "://HOST:PORT/?db=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
+		else if (rdbmsType == RdbmsTypeEnum.SQLSERVER) {
+			connectionUrl += "://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
+		else if (rdbmsType == RdbmsTypeEnum.TERADATA) {
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}		
 		else if (rdbmsType == RdbmsTypeEnum.TIBCO) {
-			connectionUrl = "jdbc:compositesw:dbapi@HOST:PORT?SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl += "@HOST:PORT?SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		
 		// replace the PORT if defined
@@ -239,21 +239,20 @@ public class RdbmsConnectionHelper {
 	 * @param con
 	 * @return
 	 */
-	public static String getSchema(DatabaseMetaData meta, Connection con, String connectionUrl) {
+	public static String getSchema(DatabaseMetaData meta, Connection con, String connectionUrl, RdbmsTypeEnum rdbmsType) {
 		String schema = null;
 		String driverName = null;
 		try {
 			driverName = meta.getDriverName().toLowerCase();
-		} catch (SQLException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 		
 		// in oracle
 		// the datbase/schema/user are all considered the same thing
 		// so here, if we want to filter
 		// we use the user name
-		if(driverName.contains("oracle")) {
+		if(driverName.contains("oracle") || (rdbmsType != null && rdbmsType == RdbmsTypeEnum.ORACLE)) {
 			try {
 				schema = meta.getUserName();
 			} catch (SQLException e) {
@@ -288,6 +287,61 @@ public class RdbmsConnectionHelper {
 			return schema;
 		}
 		schema = predictSchemaFromUrl(connectionUrl);
+		
+		String truncatedUrl = connectionUrl;
+		if(rdbmsType != null) {
+			truncatedUrl = connectionUrl.substring(rdbmsType.getUrlPrefix().length());
+		}
+		
+		if(schema == null) {
+			// try schema...
+			ResultSet schemaRs = null;
+			try {
+				schemaRs = meta.getSchemas();
+				while(schemaRs.next()) {
+					String tableSchema = schemaRs.getString(1);
+					if(truncatedUrl.contains(tableSchema)) {
+						schema = tableSchema;
+						break;
+					}
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				if(schemaRs != null) {
+					try {
+						schemaRs.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		
+		// try catalog...
+		if(schema == null) {
+			ResultSet catalogRs = null;
+			try {
+				catalogRs = meta.getCatalogs();
+				while(catalogRs.next()) {
+					String tableSchema = catalogRs.getString(1);
+					if(truncatedUrl.contains(tableSchema)) {
+						schema = tableSchema;
+						break;
+					}
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				if(catalogRs != null) {
+					try {
+						catalogRs.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
 		
 		return schema;
 	}

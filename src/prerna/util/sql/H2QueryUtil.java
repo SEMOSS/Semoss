@@ -27,39 +27,58 @@
  *******************************************************************************/
 package prerna.util.sql;
 
-public class H2QueryUtil extends SQLQueryUtil {
+public class H2QueryUtil extends AnsiSqlQueryUtil {
 	
-	public H2QueryUtil(){
-		super.setDialectAllIndexesInDB("SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' ORDER BY INDEX_NAME");
-		super.setDialectIndexInfo("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_SCHEMA = 'PUBLIC' AND INDEX_NAME = ");
-		super.setDefaultDbUserName("sa");
-		super.setDefaultDbPassword("");
+	public H2QueryUtil() {
+		super();
+	}
+	
+	H2QueryUtil(String connectionUrl, String username, String password) {
+		super(connectionUrl, username, password);
+	}
+	
+	H2QueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
+		super(dbType, hostname, port, schema, username, password);
 	}
 	
 	@Override
-	public RdbmsTypeEnum getDatabaseType(){
-		return RdbmsTypeEnum.H2_DB;
+	public String dropIndex(String indexName, String tableName) {
+		return "DROP INDEX " + indexName;
+	}
+
+	@Override
+	public String dropIndexIfExists(String indexName, String tableName) {
+		return "DROP INDEX IF EXISTS " + indexName;
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Query database scripts
+	 */
+	
+	@Override
+	public String tableExistsQuery(String tableName, String schema) {
+		// do not need to use the schema
+		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "'";
 	}
 	
 	@Override
-	public String getDialectAllIndexesInDB(String schema){
-		return super.getDialectAllIndexesInDB(); //dont plop schema into here
+	public String getIndexList(String schema) {
+		// do not need to use the schema
+		return "SELECT DISTINCT INDEX_NAME, TABLE_NAME FROM INFORMATION_SCHEMA.INDEXES;";
 	}
 	
 	@Override
-	public String getConnectionURL(String baseFolder, String dbname){
-		String engineDirectoryName = "db" + System.getProperty("file.separator") + dbname;
-		return "jdbc:h2:nio:" + baseFolder + System.getProperty("file.separator") + engineDirectoryName
-				+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+	public String getIndexDetails(String indexName, String tableName, String schema) {
+		// do not use the schema
+		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME='" + indexName + "' AND TABLE_NAME='" + tableName + "';";
 	}
 	
 	@Override
-	public String getDatabaseDriverClassName(){
-		return RdbmsTypeEnum.H2_DB.getDriver();
+	public String allIndexForTableQuery(String tableName, String schema) {
+		// do not need to use the schema
+		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='" + tableName + "';";
 	}
 	
-	@Override
-	public String getDialectIndexInfo(String indexName, String dbName){
-		return super.getDialectIndexInfo() + "'" + indexName+ "'"; //h2 doesnt need the dbName 
-	}
 }
