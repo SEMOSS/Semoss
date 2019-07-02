@@ -8,7 +8,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -21,13 +20,15 @@ import java.util.Vector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 
 /**
  * @author pkapaleeswaran
@@ -40,100 +41,237 @@ public class MasterDatabaseUtility {
 	public static void initLocalMaster() throws SQLException {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 		Connection conn = engine.makeConnection();
+		
 		String [] colNames = null;
 		String [] types = null;
 		
+		String schema = engine.getSchema();
+		AbstractRdbmsQueryUtil queryUtil = engine.getQueryUtil();
+		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+		
 		// engine table
-		colNames = new String[]{"ID", "EngineName", "ModifiedDate", "Type"};
+		colNames = new String[]{"ID", "ENGINENAME", "MODIFIEDDATE", "TYPE"};
 		types = new String[]{"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engine", colNames, types));
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("ENGINE", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, "ENGINE", schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("ENGINE", colNames, types));
+			}
+		}
 		// add index
-		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_ID_INDEX ON ENGINE (ID);");
+		if(allowIfExistsIndexs) {
+			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID"));
+		} else {
+			// see if index exists
+			if(!indexExists(engine, queryUtil, "ENGINE_ID_INDEX", "ENGINE", schema)) {
+				executeSql(conn, queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID"));
+			}
+		}
 		
 		// engine concept table
-		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type", "Additional_Type"};
+		colNames = new String[]{"ENGINE", "PHYSICALNAME", "PARENTPHYSICALID", "PHYSICALNAMEID", "LOCALCONCEPTID", "PK", "PROPERTY", "ORIGINAL_TYPE", "PROPERTY_TYPE", "ADDITIONAL_TYPE"};
 		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)", "varchar(800)", "varchar(800)"};
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("engineconcept", colNames, types));
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, "ENGINECONCEPT", schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("ENGINECONCEPT", colNames, types));
+			}
+		}
 		// add index
-		executeSql(conn, "CREATE INDEX IF NOT EXISTS ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID ON ENGINECONCEPT (ENGINE, LOCALCONCEPTID);");
-
+		if(allowIfExistsIndexs) {
+			List<String> iCols = new Vector<String>();
+			iCols.add("ENGINE");
+			iCols.add("LOCALCONCEPTID");
+			executeSql(conn, queryUtil.createIndexIfNotExists("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
+		} else {
+			// see if index exists
+			if(!indexExists(engine, queryUtil, "ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", schema)) {
+				List<String> iCols = new Vector<String>();
+				iCols.add("ENGINE");
+				iCols.add("LOCALCONCEPTID");
+				executeSql(conn, queryUtil.createIndex("ENGINE_CONCEPT_ENGINE_LOCAL_CONCEPT_ID", "ENGINECONCEPT", iCols));
+			}
+		}
+		
 		// concept table
-		colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
+		colNames = new String[]{"LOCALCONCEPTID", "CONCEPTUALNAME", "LOGICALNAME", "DOMAINNAME", "GLOBALID"};
 		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("concept", colNames, types));
-		executeSql(conn, "CREATE INDEX IF NOT EXISTS CONCEPT_ID_INDEX ON CONCEPT (LOCALCONCEPTID);");
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("CONCEPT", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, "CONCEPT", schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("CONCEPT", colNames, types));
+			}
+		}
+		// add index
+		if(allowIfExistsIndexs) {
+			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
+		} else {
+			// see if index exists
+			if(!indexExists(engine, queryUtil, "CONCEPT_ID_INDEX", "CONCEPT", schema)) {
+				executeSql(conn, queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"));
+			}
+		}
 		
 		// relation table
-		colNames = new String[]{"ID", "SourceID", "TargetID", "GlobalID"};
+		colNames = new String[]{"ID", "SOURCEID", "TARGETID", "GLOBALID"};
 		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("relation", colNames, types));
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("RELATION", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, "RELATION", schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("RELATION", colNames, types));
+			}
+		}
 		
 		// engine relation table
-		colNames = new String[]{"Engine", "RelationID", "InstanceRelationID", "SourceConceptID", "TargetConceptID", "SourceProperty", "TargetProperty", "RelationName"}; //"DomainName"};
+		colNames = new String[]{"ENGINE", "RELATIONID", "INSTANCERELATIONID", "SOURCECONCEPTID", "TARGETCONCEPTID", "SOURCEPROPERTY", "TARGETPROPERTY", "RELATIONNAME"};
 		types = new String[]{"varchar(800)", "varchar(800)","varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("enginerelation", colNames, types));
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, "ENGINERELATION", schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("ENGINERELATION", colNames, types));
+			}
+		}
 		
 		// kv store
 		colNames = new String[]{"K","V"};
 		types = new String[]{"varchar(800)", "varchar(800)"};
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("kvstore", colNames, types));
-
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("KVSTORE", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, "KVSTORE", schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("KVSTORE", colNames, types));
+			}
+		}
+		
 		// concept metadata
-		updateMetadataTable(engine);
+		updateMetadataTable(engine, conn, queryUtil, Constants.CONCEPT_METADATA_TABLE, schema);
 		colNames = new String[] {Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE };
 		types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate(Constants.CONCEPT_METADATA_TABLE, colNames, types));
-		executeSql(conn, "CREATE INDEX IF NOT EXISTS CONCEPTMETADATA_KEY_INDEX ON CONCEPTMETADATA (KEY);");
-
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, Constants.CONCEPT_METADATA_TABLE, schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable(Constants.CONCEPT_METADATA_TABLE, colNames, types));
+			}
+		}
+		// add index
+		if(allowIfExistsIndexs) {
+			executeSql(conn, queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
+		} else {
+			// see if index exists
+			if(!indexExists(engine, queryUtil, "CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", schema)) {
+				executeSql(conn, queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", "CONCEPTMETADATA", "KEY"));
+			}
+		}
+				
 		// x-ray config
-		colNames = new String[]{"filename", "config" };
+		colNames = new String[]{"FILENAME", "CONFIG" };
 		types = new String[]{"varchar(800)", "varchar(20000)" };
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("xrayconfigs", colNames, types));
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, "XRAYCONFIGS", schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("XRAYCONFIGS", colNames, types));
+			}
+		}
 		
 		// bitly
-		colNames = new String[]{"fancy", "embed"};
+		colNames = new String[]{"FANCY", "EMBED"};
 		types = new String[]{"varchar(800)", "varchar(20000)" };
-		executeSql(conn, RdbmsQueryBuilder.makeOptionalCreate("BITLY", colNames, types));
-		
-		//System.out.println(">>>> Added BITLY <<<<");
-		
+		if(allowIfExistsTable) {
+			executeSql(conn, queryUtil.createTableIfNotExists("BITLY", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(engine, queryUtil, "BITLY", schema)) {
+				// make the table
+				executeSql(conn, queryUtil.createTable("BITLY", colNames, types));
+			}
+		}
 	}
 	
 	@Deprecated
-	private static void updateMetadataTable(RDBMSNativeEngine engine) {
-		boolean tableExists = false;
-		ResultSet rs = null;
-		try {
-			rs = engine.getConnectionMetadata().getTables(null, null, "CONCEPTMETADATA", null);
-			if (rs.next()) {
-				tableExists = true;
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				if(rs != null) {
-					rs.close();
+	private static void updateMetadataTable(RDBMSNativeEngine engine, Connection conn, AbstractRdbmsQueryUtil queryUtil, String tableName, String schema) throws SQLException {
+		if(tableExists(engine, queryUtil, tableName, schema)) {
+			boolean allowIfExists = queryUtil.allowIfExistsModifyColumnSyntax();
+			if(queryUtil.allowDropColumn()) {
+				if(allowIfExists) {
+					executeSql(conn, queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID"));
+				} else {
+					// check column exists in table
 				}
-			} catch(SQLException e) {
-				e.printStackTrace();
 			}
-		}
-
-		if(tableExists) {
-			// first let us drop the tables we do not require
-			try {
-				engine.removeData("ALTER TABLE CONCEPTMETADATA DROP COLUMN IF EXISTS LOCALCONCEPTID;");
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-			// let us add the new column with default value of true
-			try {
-				engine.insertData("ALTER TABLE CONCEPTMETADATA ADD COLUMN IF NOT EXISTS PHYSICALNAMEID VARCHAR(800);");
-			} catch (SQLException e) {
-				e.printStackTrace();
+			if(queryUtil.allowAddColumn()) {
+				if(allowIfExists) {
+					executeSql(conn, queryUtil.alterTableAddColumnIfNotExists(tableName, "PHYSICALNAMEID", "VARCHAR(800)"));
+				} else {
+					// check column exists in table
+					
+				}
 			}
 			engine.commit();
+		}
+	}
+	
+	/**
+	 * Helper method to see if a table exits based on Query Utility class
+	 * @param queryUtil
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	private static boolean tableExists(RDBMSNativeEngine engine, AbstractRdbmsQueryUtil queryUtil, String tableName, String schema) {
+		String tableCheckQ = queryUtil.tableExistsQuery(tableName, schema);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, tableCheckQ);
+		try {
+			if(wrapper.hasNext()) {
+				return true;
+			}
+			return false;
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
+	/**
+	 * Helper method to see if an index exists based on Query Utility class
+	 * @param queryUtil
+	 * @param indexName
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	private static boolean indexExists(RDBMSNativeEngine engine, AbstractRdbmsQueryUtil queryUtil, String indexName, String tableName, String schema) {
+		String indexCheckQ = queryUtil.getIndexDetails(indexName, tableName, schema);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, indexCheckQ);
+		try {
+			if(wrapper.hasNext()) {
+				return true;
+			}
+			return false;
+		} finally {
+			wrapper.cleanUp();
 		}
 	}
 	

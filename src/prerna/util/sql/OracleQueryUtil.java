@@ -1,56 +1,17 @@
 package prerna.util.sql;
 
-public class OracleQueryUtil extends SQLQueryUtil {
-
-	private String connectionBase = "jdbc:oracle:thin:@HOST:PORT:SERVICE";
-
-	public OracleQueryUtil(){
-		super.setDefaultDbUserName("root");
-		super.setDefaultDbPassword("password");
+public class OracleQueryUtil extends AnsiSqlQueryUtil {
+	
+	OracleQueryUtil() {
+		super();
 	}
 	
-	public OracleQueryUtil(String hostname, String port, String schema, String username, String password) {
-		connectionBase = connectionBase.replace("HOST", hostname).replace("SERVICE", schema);
-		if(port != null && !port.isEmpty()) {
-			connectionBase = connectionBase.replace(":PORT", ":" + port);
-		} else {
-			connectionBase = connectionBase.replace(":PORT", "");
-		}
-		super.setDefaultDbUserName(username);
-		super.setDefaultDbPassword(password);
+	OracleQueryUtil(String connectionUrl, String username, String password) {
+		super(connectionUrl, username, password);
 	}
 	
-	public OracleQueryUtil(String connectionURL, String username, String password) {
-		connectionBase = connectionURL;
-		super.setDefaultDbUserName(username);
-		super.setDefaultDbPassword(password);
-	}
-	
-	@Override
-	public RdbmsTypeEnum getDatabaseType(){
-		return RdbmsTypeEnum.ORACLE;
-	}
-	
-	@Override
-	public String getDialectAllIndexesInDB(String schema){
-		return super.getDialectAllIndexesInDB();
-	}
-	
-	//jdbc:oracle:thin:@<hostname>[:port]/<service or sid>[-schema name]
-	@Override
-	public String getConnectionURL(String baseFolder,String dbname){
-		return connectionBase;// + "-" + dbname;
-	}
-	
-	@Override
-	public String getDatabaseDriverClassName(){
-		return RdbmsTypeEnum.ORACLE.getDriver();
-	}
-
-	@Override
-	public String getDialectIndexInfo(String indexName, String dbName) {
-		// TODO Auto-generated method stub
-		return null;
+	OracleQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
+		super(dbType, hostname, port, schema, username, password);
 	}
 
 	@Override
@@ -62,5 +23,20 @@ public class OracleQueryUtil extends SQLQueryUtil {
 			query = query.append(" FETCH NEXT " + limit+" ROWS ONLY ");
 		}
 		return query;
+	}
+	
+	@Override
+	public boolean allowIfExistsModifyColumnSyntax() {
+		return false;
+	}
+	
+	@Override
+	public String modColumnType(String tableName, String columnName, String dataType) {
+		return "ALTER TABLE " + tableName + " MODIFY " + columnName + " " + dataType + ";";
+	}
+	
+	@Override
+	public String dropIndex(String indexName, String tableName) {
+		return "DROP INDEX " + indexName;
 	}
 }

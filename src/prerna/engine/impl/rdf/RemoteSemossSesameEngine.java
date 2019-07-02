@@ -208,10 +208,10 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 		// if not kill the file
 		
 		prop.put(Constants.CONNECTION_URL, connectionURL);
-		prop.put(Constants.USERNAME, queryUtil.getDefaultDBUserName());
-		prop.put(Constants.PASSWORD, queryUtil.getDefaultDBPassword());
-		prop.put(Constants.DRIVER,queryUtil.getDatabaseDriverClassName());
-		prop.put(Constants.RDBMS_TYPE,queryUtil.getDatabaseType().toString());
+		prop.put(Constants.USERNAME, queryUtil.getUsername());
+		prop.put(Constants.PASSWORD, queryUtil.getPassword());
+		prop.put(Constants.DRIVER, queryUtil.getDriver());
+		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
 		prop.put("TEMP", "TRUE");
 		return prop;
 	}
