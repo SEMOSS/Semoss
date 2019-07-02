@@ -113,7 +113,7 @@ public class InsightUtility {
 		PixelDataType nType = noun.getNounType();
 		if(nType == PixelDataType.FRAME) {
 			removeVaraible(varStore, key);
-			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
+			return new NounMetadata(key, PixelDataType.CONST_STRING, PixelOperationType.REMOVE_FRAME, PixelOperationType.REMOVE_VARIABLE);
 		}
 		
 		return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
