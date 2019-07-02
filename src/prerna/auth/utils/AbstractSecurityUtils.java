@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 import jodd.util.BCrypt;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.ds.QueryStruct;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -32,6 +31,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 
 public abstract class AbstractSecurityUtils {
 
@@ -88,6 +88,417 @@ public abstract class AbstractSecurityUtils {
 	
 	public static boolean adminSetPublisher() {
 		return securityEnabled && adminSetPublisher;
+	}
+	
+	public static void initialize() throws SQLException {
+		String schema = securityDb.getSchema();
+		
+		String[] colNames = null;
+		String[] types = null;
+		Object[] defaultValues = null;
+		/*
+		 * Currently used
+		 */
+		
+		AbstractRdbmsQueryUtil queryUtil = securityDb.getQueryUtil();
+		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+		// ENGINE
+		colNames = new String[] { "enginename", "engineid", "global", "type", "cost" };
+		types = new String[] { "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "ENGINE", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("ENGINE", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "ENGINE_GLOBAL_INDEX", "ENGINE", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL"));
+			}
+			if(!indexExists(queryUtil, "ENGINE_ENGINENAME_INDEX", "ENGINE", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINENAME_INDEX", "ENGINE", "ENGINENAME"));
+			}
+			if(!indexExists(queryUtil, "ENGINE_ENGINEID_INDEX", "ENGINE", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID"));
+			}
+		}
+		
+		// ENGINEMETA
+		colNames = new String[] { "engineid", "key", "value" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "ENGINEMETA", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("ENGINEMETA", colNames, types));
+			}
+		}
+		
+		// ENGINEPERMISSION
+		colNames = new String[] { "userid", "permission", "engineid", "visibility" };
+		types = new String[] { "varchar(255)", "integer", "varchar(255)", "boolean" };
+		defaultValues = new Object[]{null, null, null, true};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "ENGINEPERMISSION", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("ENGINEPERMISSION", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION", "PERMISSION"));
+			}
+			if(!indexExists(queryUtil, "ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_VISIBILITY_INDEX", "ENGINEPERMISSION", "VISIBILITY"));
+			}
+			if(!indexExists(queryUtil, "ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndex("ENGINEPERMISSION_ENGINEID_INDEX", "ENGINEPERMISSION", "ENGINEID"));
+			}
+		}
+
+		// WORKSPACEENGINE
+		colNames = new String[] {"type", "userid", "engineid"};
+		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("WORKSPACEENGINE", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "WORKSPACEENGINE", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("WORKSPACEENGINE", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
+			}
+			if(!indexExists(queryUtil, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
+			}			
+		}
+		
+		// ASSETENGINE
+		colNames = new String[] {"type", "userid", "engineid"};
+		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "ASSETENGINE", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("ASSETENGINE", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "ASSETENGINE_TYPE_INDEX", "ASSETENGINE", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
+			}
+			if(!indexExists(queryUtil, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
+			}
+		}
+		
+
+		// INSIGHT
+		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)", "boolean" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "INSIGHT", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("INSIGHT", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
+			}
+			if(!indexExists(queryUtil, "INSIGHT_GLOBAL_INDEX", "INSIGHT", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
+			}
+			if(!indexExists(queryUtil, "INSIGHT_ENGINEID_INDEX", "INSIGHT", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+			}
+		}
+
+
+		// USERINSIGHTPERMISSION
+		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERINSIGHTPERMISSION", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "USERINSIGHTPERMISSION", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("USERINSIGHTPERMISSION", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", "ENGINEID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
+			}
+			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", "ENGINEID"));
+			}
+			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
+			}
+		}
+
+		// USER
+		colNames = new String[] { "name", "email", "type", "id", "password", "salt", "username", "admin", "publisher"};
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "boolean" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("USER", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "USER", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("USER", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("USER_ID_INDEX", "USER", "ID"));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "USER_ID_INDEX", "USER", schema)) {
+				securityDb.insertData(queryUtil.createIndexIfNotExists("USER_ID_INDEX", "USER", "ID"));
+			}
+		}
+		
+		// PERMISSION
+		colNames = new String[] { "id", "name" };
+		types = new String[] { "integer", "varchar(255)" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "PERMISSION", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("PERMISSION", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			List<String> iCols = new Vector<String>();
+			iCols.add("ID");
+			iCols.add("NAME");
+			securityDb.insertData(queryUtil.createIndexIfNotExists("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "PERMISSION_ID_NAME_INDEX", "PERMISSION", schema)) {
+				List<String> iCols = new Vector<String>();
+				iCols.add("ID");
+				iCols.add("NAME");
+				securityDb.insertData(queryUtil.createIndex("PERMISSION_ID_NAME_INDEX", "PERMISSION", iCols));
+			}
+		}
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
+		if(wrapper.hasNext()) {
+			int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+			if(numrows > 3) {
+				securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+			} else if(numrows == 0) {
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
+				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
+			}
+		}
+
+		// ACCESSREQUEST
+		colNames = new String[] { "id", "submittedby", "engine", "permission" };
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("ACCESSREQUEST", colNames, types));
+		} else {
+			// see if table exists
+			if(!tableExists(queryUtil, "ACCESSREQUEST", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
+			}
+		}
+		
+		// THIS IS FOR LEGACY !!!!
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+		// TODO: maher EVENTUALLY WE WILL DELETE THIS
+
+		// MAKE SURE VARCHAR(255)
+//		securityDb.insertData("ALTER TABLE ASSETENGINE MODIFY ENGINEID VARCHAR(255) NOT NULL;");
+//		securityDb.insertData("ALTER TABLE WORKSPACEENGINE MODIFY ENGINEID VARCHAR(255) NOT NULL;");
+//		// ADD NEW COLUMN FOR CACHEABLE INSIGHTS
+//		securityDb.insertData("ALTER TABLE INSIGHT ADD COLUMN IF NOT EXISTS CACHEABLE BOOLEAN DEFAULT TRUE");
+//		// ADD NEW COLUMN FOR USER CAN BE PUBLISHER 
+//		securityDb.insertData("ALTER TABLE USER ADD COLUMN IF NOT EXISTS PUBLISHER BOOLEAN DEFAULT TRUE");
+//		// DROP COLUMN SUBMITTEDTO IN TABLE ACCESSREQUEST
+//		securityDb.removeData("ALTER TABLE ACCESSREQUEST DROP COLUMN IF EXISTS SUBMITTEDTO");
+//		// CHANGE TYPES TO BE STRINGS WHERE APPROPRIATE
+//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ACCESSREQUEST' and COLUMN_NAME IN ('ID','ENGINE')");
+//		while(wrapper.hasNext()) {
+//			Object[] row = wrapper.next().getValues();
+//			String column = row[0].toString();
+//			String type = row[1].toString();
+//			if(!type.equals("VARCHAR")) {
+//				securityDb.insertData("ALTER TABLE ACCESSREQUEST ALTER COLUMN " + column + " VARCHAR(255);");
+//			}
+//		}
+//		wrapper.cleanUp();
+
+		
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////
+		
+		/*
+		 * Tables accounted for that we are not using yet...
+		 */
+		
+//		// USERGROUP
+//		colNames = new String[] { "groupid", "name", "owner" };
+//		types = new String[] { "int identity", "varchar(255)", "varchar(255)" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
+//		
+//		// GROUPMEMBERS
+//		colNames = new String[] {"groupmembersid", "groupid", "userid"};
+//		types = new String[] {"int identity", "integer", "varchar(255)"};
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS", colNames, types));
+//		
+//		// ENGINEGROUPMEMBERVISIBILITY
+//		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
+//		types = new String[] { "int identity", "integer", "integer", "boolean" };
+//		defaultValues = new Object[]{null, null, null, true};
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEGROUPMEMBERVISIBILITY", colNames, types, defaultValues));
+//
+//		// GROUPENGINEPERMISSION
+//		colNames = new String[] {"groupenginepermissionid", "groupid", "permission", "engine"};
+//		types = new String[] {"int identity", "integer", "integer", "varchar(255)"};
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
+//		
+//		// FOREIGN KEYS FOR CASCASDE DELETE
+//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPENGINEPERMISSION'");
+//		if(wrapper.hasNext()) {
+//			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
+//				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPENGINEPERMISSION FOREIGN KEY (GROUPENGINEPERMISSIONID) REFERENCES GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID) ON DELETE CASCADE;");
+//			}
+//		}
+//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPMEMBERSID'");
+//		if(wrapper.hasNext()) {
+//			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
+//				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS (GROUPMEMBERSID) ON DELETE CASCADE;");
+//			}
+//		}
+//				
+//		// GROUPINSIGHTPERMISSION
+//		colNames = new String[] { "groupid", "engineid", "insightid" };
+//		types = new String[] { "integer", "integer", "varchar(255)" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPINSIGHTPERMISSION", colNames, types));
+
+//		// INSIGHTEXECUTION
+//		colNames = new String[] { "user", "database", "insight", "count", "lastexecuted", "session" };
+//		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer", "date", "varchar(255)" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION", colNames, types));
+
+//		// SEED
+//		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
+//		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", "clob", "varchar(255)" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
+
+//		// USERSEEDPERMISSION
+//		colNames = new String[] { "userid", "seedid" };
+//		types = new String[] { "varchar(255)", "integer" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERSEEDPERMISSION", colNames, types));
+		
+//		// GROUPSEEDPERMISSION
+//		colNames = new String[] { "groupid", "seedid" };
+//		types = new String[] { "integer", "integer" };
+//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
+	}
+	
+	/**
+	 * Helper method to see if a table exits based on Query Utility class
+	 * @param queryUtil
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	private static boolean tableExists(AbstractRdbmsQueryUtil queryUtil, String tableName, String schema) {
+		String tableCheckQ = queryUtil.tableExistsQuery(tableName, schema);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, tableCheckQ);
+		try {
+			if(wrapper.hasNext()) {
+				return true;
+			}
+			return false;
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
+	/**
+	 * Helper method to see if an index exists based on Query Utility class
+	 * @param queryUtil
+	 * @param indexName
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	private static boolean indexExists(AbstractRdbmsQueryUtil queryUtil, String indexName, String tableName, String schema) {
+		String indexCheckQ = queryUtil.getIndexDetails(indexName, tableName, schema);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, indexCheckQ);
+		try {
+			if(wrapper.hasNext()) {
+				return true;
+			}
+			return false;
+		} finally {
+			wrapper.cleanUp();
+		}
 	}
 	
 	/**
@@ -181,193 +592,6 @@ public abstract class AbstractSecurityUtils {
 			return true;
 		}
 		return false;
-	}
-	
-	public static void initialize() throws SQLException {
-		String[] colNames = null;
-		String[] types = null;
-		Object[] defaultValues = null;
-		/*
-		 * Currently used
-		 */
-		
-		// ENGINE
-		colNames = new String[] { "enginename", "engineid", "global", "type", "cost" };
-		types = new String[] { "varchar(255)", "varchar(255)", "boolean", "varchar(255)", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINE", colNames, types));
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINE_GLOBAL_INDEX ON ENGINE (GLOBAL);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINE_ENGINENAME_INDEX ON ENGINE (ENGINENAME);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINE_ENGINEID_INDEX ON ENGINE (ENGINEID);");
-
-		// ENGINEMETA
-		colNames = new String[] { "engineid", "key", "value" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ENGINEMETA", colNames, types));
-
-		// ENGINEPERMISSION
-		colNames = new String[] { "userid", "permission", "engineid", "visibility" };
-		types = new String[] { "varchar(255)", "integer", "varchar(255)", "boolean" };
-		defaultValues = new Object[]{null, null, null, true};
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEPERMISSION", colNames, types, defaultValues));
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_PERMISSION_INDEX ON ENGINEPERMISSION (PERMISSION);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_VISIBILITY_INDEX ON ENGINEPERMISSION (VISIBILITY);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ENGINEPERMISSION_ENGINEID_INDEX ON ENGINEPERMISSION (ENGINEID);");
-
-		// WORKSPACEENGINE
-		colNames = new String[] {"type", "userid", "engineid"};
-		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("WORKSPACEENGINE", colNames, types));
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS WORKSPACEENGINE_TYPE_INDEX ON WORKSPACEENGINE (TYPE);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS WORKSPACEENGINE_USERID_INDEX ON WORKSPACEENGINE (USERID);");
-		securityDb.insertData("ALTER TABLE WORKSPACEENGINE MODIFY ENGINEID VARCHAR(255) NOT NULL;");
-		
-		// ASSETENGINE
-		colNames = new String[] {"type", "userid", "engineid"};
-		types = new String[] {"varchar(255)", "varchar(255)", "varchar(255)"};
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ASSETENGINE", colNames, types));
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ASSETENGINE_TYPE_INDEX ON ASSETENGINE (TYPE);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS ASSETENGINE_USERID_INDEX ON ASSETENGINE (USERID);");
-		securityDb.insertData("ALTER TABLE ASSETENGINE MODIFY ENGINEID VARCHAR(255) NOT NULL;");
-
-		// INSIGHT
-		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)", "boolean" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_LASTMODIFIEDON_INDEX ON INSIGHT (LASTMODIFIEDON);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_GLOBAL_INDEX ON INSIGHT (GLOBAL);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS INSIGHT_ENGINEID_INDEX ON INSIGHT (ENGINEID);");
-
-		// USERINSIGHTPERMISSION
-		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERINSIGHTPERMISSION", colNames, types));
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS USERINSIGHTPERMISSION_PERMISSION_INDEX ON USERINSIGHTPERMISSION (PERMISSION);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS USERINSIGHTPERMISSION_ENGINEID_INDEX ON USERINSIGHTPERMISSION (ENGINEID);");
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS USERINSIGHTPERMISSION_USERID_INDEX ON USERINSIGHTPERMISSION (USERID);");
-
-		// USER
-		colNames = new String[] { "name", "email", "type", "id", "password", "salt", "username", "admin", "publisher"};
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "boolean" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USER", colNames, types));
-		
-		// PERMISSION
-		colNames = new String[] { "id", "name" };
-		types = new String[] { "integer", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("PERMISSION", colNames, types));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from permission");
-		if(wrapper.hasNext()) {
-			int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
-			if(numrows > 3) {
-				securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
-				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
-			} else if(numrows == 0) {
-				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{1, "OWNER"}));
-				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{2, "EDIT"}));
-				securityDb.insertData(RdbmsQueryBuilder.makeInsert("PERMISSION", colNames, types, new Object[]{3, "READ_ONLY"}));
-			}
-		}
-		securityDb.insertData("CREATE INDEX IF NOT EXISTS PERMISSION_ID_NAME_INDEX ON PERMISSION (ID, NAME);");
-
-		// ACCESSREQUEST
-		colNames = new String[] { "id", "submittedby", "engine", "permission" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ACCESSREQUEST", colNames, types));
-		
-		// THIS IS FOR LEGACY !!!!
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		
-		// ADD NEW COLUMN FOR CACHEABLE INSIGHTS
-		securityDb.insertData("ALTER TABLE INSIGHT ADD COLUMN IF NOT EXISTS CACHEABLE BOOLEAN DEFAULT TRUE");
-		// ADD NEW COLUMN FOR USER CAN BE PUBLISHER 
-		securityDb.insertData("ALTER TABLE USER ADD COLUMN IF NOT EXISTS PUBLISHER BOOLEAN DEFAULT TRUE");
-		// DROP COLUMN SUBMITTEDTO IN TABLE ACCESSREQUEST
-		securityDb.removeData("ALTER TABLE ACCESSREQUEST DROP COLUMN IF EXISTS SUBMITTEDTO");
-		// CHANGE TYPES TO BE STRINGS WHERE APPROPRIATE
-		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ACCESSREQUEST' and COLUMN_NAME IN ('ID','ENGINE')");
-		while(wrapper.hasNext()) {
-			Object[] row = wrapper.next().getValues();
-			String column = row[0].toString();
-			String type = row[1].toString();
-			if(!type.equals("VARCHAR")) {
-				securityDb.insertData("ALTER TABLE ACCESSREQUEST ALTER COLUMN " + column + " VARCHAR(255);");
-			}
-		}
-		wrapper.cleanUp();
-		
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		
-		/*
-		 * Tables accounted for that we are not using yet...
-		 */
-		
-		// USERGROUP
-		colNames = new String[] { "groupid", "name", "owner" };
-		types = new String[] { "int identity", "varchar(255)", "varchar(255)" };
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP", colNames, types));
-		
-		// GROUPMEMBERS
-		colNames = new String[] {"groupmembersid", "groupid", "userid"};
-		types = new String[] {"int identity", "integer", "varchar(255)"};
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS", colNames, types));
-		
-		// ENGINEGROUPMEMBERVISIBILITY
-		colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid", "visibility" };
-		types = new String[] { "int identity", "integer", "integer", "boolean" };
-		defaultValues = new Object[]{null, null, null, true};
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEGROUPMEMBERVISIBILITY", colNames, types, defaultValues));
-
-		// GROUPENGINEPERMISSION
-		colNames = new String[] {"groupenginepermissionid", "groupid", "permission", "engine"};
-		types = new String[] {"int identity", "integer", "integer", "varchar(255)"};
-		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION", colNames, types));
-		
-		// FOREIGN KEYS FOR CASCASDE DELETE
-		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPENGINEPERMISSION'");
-		if(wrapper.hasNext()) {
-			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
-				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPENGINEPERMISSION FOREIGN KEY (GROUPENGINEPERMISSIONID) REFERENCES GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID) ON DELETE CASCADE;");
-			}
-		}
-		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select count(*) from INFORMATION_SCHEMA.CONSTRAINTS where constraint_name='FK_GROUPMEMBERSID'");
-		if(wrapper.hasNext()) {
-			if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
-				securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS (GROUPMEMBERSID) ON DELETE CASCADE;");
-			}
-		}
-				
-//		// GROUPINSIGHTPERMISSION
-//		colNames = new String[] { "groupid", "engineid", "insightid" };
-//		types = new String[] { "integer", "integer", "varchar(255)" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPINSIGHTPERMISSION", colNames, types));
-
-//		// INSIGHTEXECUTION
-//		colNames = new String[] { "user", "database", "insight", "count", "lastexecuted", "session" };
-//		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer", "date", "varchar(255)" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION", colNames, types));
-
-//		// SEED
-//		colNames = new String[] { "id", "name", "databaseid", "tablename", "columnname", "rlsvalue", "rlsjavacode", "owner" };
-//		types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)", "varchar(255)", "varchar(255)", "clob", "varchar(255)" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames, types));
-
-//		// USERSEEDPERMISSION
-//		colNames = new String[] { "userid", "seedid" };
-//		types = new String[] { "varchar(255)", "integer" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERSEEDPERMISSION", colNames, types));
-		
-//		// GROUPSEEDPERMISSION
-//		colNames = new String[] { "groupid", "seedid" };
-//		types = new String[] { "integer", "integer" };
-//		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
 	}
 	
 	/**

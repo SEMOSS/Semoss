@@ -2,31 +2,33 @@ package prerna.util.sql;
 
 public enum RdbmsTypeEnum {
 
-	ASTER("ASTER_DB", "com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver"),
-	CASSANDRA("CASSANDRA", "com.github.cassandra.jdbc.CassandraDriver"),
-	DB2("DB2", "com.ibm.db2.jcc.DB2Driver"),
-	DERBY("DERBY", "org.apache.derby.jdbc.EmbeddedDriver"),
-	H2_DB("H2_DB", "org.h2.Driver"),
-	IMPALA("IMPALA", "com.cloudera.impala.jdbc4.Driver"),
-	REDSHIFT("REDSHIFT", "com.amazon.redshift.jdbc.Driver"),
-	MARIADB("MARIA_DB", "org.mariadb.jdbc.Driver"),
-	MYSQL("MYSQL", "com.mysql.jdbc.Driver"),
-	ORACLE("ORACLE", "oracle.jdbc.driver.OracleDriver"),
-	PHOENIX("PHOENIX", "org.apache.phoenix.jdbc.PhoenixDriver"),
-	POSTGRES("POSTGRES", "org.postgresql.Driver"),
-	SAP_HANA("SAP_HANA", "com.sap.db.jdbc.Driver"),
-	SNOWFLAKE("SNOWFLAKE","net.snowflake.client.jdbc.SnowflakeDriver"),
-	SQLSERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver"),
-	TERADATA("TERADATA", "com.teradata.jdbc.TeraDriver"),
-	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver"),
-	SQLITE("SQLITE", "org.sqlite.JDBC");
+	ASTER("ASTER_DB", "com.asterdata.ncluster.jdbc.core.NClusterJDBCDriver", "jdbc:ncluster"),
+	CASSANDRA("CASSANDRA", "com.github.cassandra.jdbc.CassandraDriver", "jdbc:cassandra"),
+	DB2("DB2", "com.ibm.db2.jcc.DB2Driver", "jdbc:db2"),
+	DERBY("DERBY", "org.apache.derby.jdbc.EmbeddedDriver", "jdbc:derby"),
+	H2_DB("H2_DB", "org.h2.Driver", "jdbc:h2"),
+	SQLITE("SQLITE", "org.sqlite.JDBC", "jdbc:sqlite"),
+	IMPALA("IMPALA", "com.cloudera.impala.jdbc4.Driver", "jdbc:impala"),
+	REDSHIFT("REDSHIFT", "com.amazon.redshift.jdbc.Driver", "jdbc:redshift"),
+	MARIADB("MARIA_DB", "org.mariadb.jdbc.Driver", "jdbc:mariadb"),
+	MYSQL("MYSQL", "com.mysql.jdbc.Driver", "jdbc:mysql"),
+	ORACLE("ORACLE", "oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin"),
+	PHOENIX("PHOENIX", "org.apache.phoenix.jdbc.PhoenixDriver", "jdbc:phoenix"),
+	POSTGRES("POSTGRES", "org.postgresql.Driver", "jdbc:postgresql"),
+	SAP_HANA("SAP_HANA", "com.sap.db.jdbc.Driver", "jdbc:sap"),
+	SNOWFLAKE("SNOWFLAKE","net.snowflake.client.jdbc.SnowflakeDriver", "jdbc:snowflake"),
+	SQLSERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
+	TERADATA("TERADATA", "com.teradata.jdbc.TeraDriver", "jdbc:teradata"),
+	TIBCO("TIBCO", "cs.jdbc.driver.CompositeDriver", "jdbc:compositesw:dbapi");
 	
 	private String label;
 	private String driver;
+	private String urlPrefix;
 	
-	RdbmsTypeEnum(String label, String driver) {
+	RdbmsTypeEnum(String label, String driver, String urlPrefix) {
 		this.label = label;
 		this.driver = driver;
+		this.urlPrefix = urlPrefix;
 	}
 	
 	public String getLabel() {
@@ -35,6 +37,10 @@ public enum RdbmsTypeEnum {
 	
 	public String getDriver() {
 		return this.driver;
+	}
+	
+	public String getUrlPrefix() {
+		return this.urlPrefix;
 	}
 	
 	/**
