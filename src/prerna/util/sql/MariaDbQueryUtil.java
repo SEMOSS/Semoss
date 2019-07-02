@@ -27,47 +27,18 @@
  *******************************************************************************/
 package prerna.util.sql;
 
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-
-//interchangable with mysql
-public class MariaDbQueryUtil extends SQLQueryUtil {
+public class MariaDbQueryUtil extends MySQLQueryUtil {
 	
-	private static String connectionBase = "jdbc:mysql://localhost:"+DIHelper.getInstance().getProperty(Constants.MARIADB_PORT);
-	private static String indexNameBind = "{indexName}";
-	private static String dbNameBind = "{dbName}";
-
-	public MariaDbQueryUtil(){
-		super.setDialectAllIndexesInDB("SELECT DISTINCT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = ");
-		super.setDialectIndexInfo("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE INDEX_NAME = " + indexNameBind
-				+ " and TABLE_SCHEMA = " + dbNameBind);  
-
-		super.setDefaultDbUserName("root");
-		super.setDefaultDbPassword("");
+	MariaDbQueryUtil() {
+		super();
 	}
 	
-	@Override
-	public RdbmsTypeEnum getDatabaseType(){
-		return RdbmsTypeEnum.MARIADB;
-	}
-	@Override
-	public String getConnectionURL(String baseFolder,String dbname){
-		return connectionBase + System.getProperty("file.separator") + dbname;
-	}
-
-	@Override
-	public String getDatabaseDriverClassName(){
-		return RdbmsTypeEnum.MARIADB.getDriver();
-	}
-	@Override
-	public String getDialectIndexInfo(String indexName, String dbName){
-		String qry =  super.getDialectIndexInfo().replace(indexNameBind, "'" + indexName + "'");
-		qry =  qry.replace(dbNameBind, "'" + dbName + "'");
-		return qry;
+	MariaDbQueryUtil(String connectionUrl, String username, String password) {
+		super(connectionUrl, username, password);
 	}
 	
-	@Override
-	public String getDialectDropIndex(String indexName, String tableName){
-		return super.getDialectDropIndex() + indexName + " ON " + tableName;
+	MariaDbQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
+		super(dbType, hostname, port, schema, username, password);
 	}
+	
 }

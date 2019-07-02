@@ -500,8 +500,6 @@ public class Constants {
 	
 	// prohibited headers
 	public static final String PROBHIBITED_HEADERS = "PROBHIBITED_HEADERS";
-	public static final String MARIADB_PORT = "MARIADB_PORT";
-	public static final String SQL_Server_PORT = "SQLServer_PORT";
 	
 	// all frame limit
 	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";

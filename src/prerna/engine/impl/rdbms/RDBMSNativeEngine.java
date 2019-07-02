@@ -70,7 +70,9 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 import prerna.util.sql.RDBMSUtility;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RDBMSNativeEngine extends AbstractEngine {
@@ -100,6 +102,9 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private String password = null;
 	private String driver = null;
 	private String connectionURL = null;
+	private String schema = null;
+	
+	private AbstractRdbmsQueryUtil queryUtil = null;
 	
 	private String fileDB = null;
 	private String createString = null;
@@ -208,6 +213,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 				this.engineConnected = true;
 				this.autoCommit = this.engineConn.getAutoCommit();
+				this.queryUtil = RdbmsQueryUtilFactor.initialize(this.dbType, this.connectionURL, this.userName, this.password);
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -224,6 +230,20 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		// default does nothing
 	}
 
+	public AbstractRdbmsQueryUtil getQueryUtil() {
+		return this.queryUtil;
+	}
+	
+	public String getSchema() {
+		if(this.schema == null) {
+			DatabaseMetaData meta = getConnectionMetadata();
+			if(meta != null) {
+				this.schema = RdbmsConnectionHelper.getSchema(meta, getConnection(), this.connectionURL, this.dbType);
+			}
+		}
+		return this.schema;
+	}
+	
 	public boolean makeConnection(String driver, String url, String userName, String password) {
 		makeConnection(driver, userName, password, url, null);
 		return this.engineConnected;

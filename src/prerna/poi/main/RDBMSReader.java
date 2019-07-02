@@ -32,8 +32,8 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SQLQueryUtil;
 
 public class RDBMSReader extends AbstractCSVFileReader {
 
@@ -101,7 +101,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		long start = System.currentTimeMillis();
 
 		boolean error = false;
-		queryUtil = SQLQueryUtil.initialize(dbType);
+		queryUtil = RdbmsQueryUtilFactor.initialize(dbType);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, smssLocation, propertyFiles);
 
 		try {
@@ -198,7 +198,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String propertyFiles = options.getPropertyFiles();
 		boolean allowDuplicates = options.isAllowDuplicates();
 
-		queryUtil = SQLQueryUtil.initialize(dbType);
+		queryUtil = RdbmsQueryUtilFactor.initialize(dbType);
 		String[] files = prepareCsvReader(fileNames, customBase, owlFile, engineName, propertyFiles);
 
 		LOGGER.setLevel(Level.WARN);
@@ -615,21 +615,23 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		}
 	}
 
-
+	// TODO: THIS DEFINITELY DOESN'T WORK
+	// WILL NOT WORK FOR ANY ENGINE WHERE THE QUERY TO GET THE INDEX
+	// REQUIRES THE ACCURATE SCHEMA
 	private void findIndexes(String engineName){
 		// this gets all the existing tables
-		String query = queryUtil.getDialectAllIndexesInDB(engineName);
+		String query = queryUtil.getIndexList(engineName);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
-		while(wrapper.hasNext())
-		{
+		while(wrapper.hasNext()) {
 			String tablename = "";
 			String dropCurrentIndexText = "";
 			IHeadersDataRow rawArr = wrapper.next();
 			Object[] values = rawArr.getValues();
 			String indexName = values[0].toString();
+			String indexTableName = values[1].toString();
 			//only storing off custom indexes, recreating the non custom ones on the fly on the cleanUpDBTables method
 
-			String indexInfoQry = queryUtil.getDialectIndexInfo(indexName, engineName);
+			String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, engineName);
 			IRawSelectWrapper indexInfo = WrapperManager.getInstance().getRawWrapper(engine, indexInfoQry);
 			List<String> columnsInIndex = new Vector<String>();
 			String columnName = "";
@@ -641,10 +643,10 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				columnsInIndex.add(columnName);
 			}
 			if(indexName.startsWith("CUST_")){
-				recreateIndexList.add(queryUtil.getDialectCreateIndex(indexName,tablename,columnsInIndex));
+				recreateIndexList.add(queryUtil.createIndex(indexName,tablename,columnsInIndex));
 			}
 			//drop all indexes, recreate the custom ones, the non custom ones will be systematically recreated.
-			dropCurrentIndexText = queryUtil.getDialectDropIndex(indexName, tablename);
+			dropCurrentIndexText = queryUtil.dropIndex(indexName, tablename);
 			insertData(dropCurrentIndexText);
 		}
 	}
@@ -653,7 +655,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 		String indexOnTable =  cleanTableKey + " ( " +  indexStr + " ) ";
 		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
-		String dropIndex = queryUtil.getDialectDropIndex(indexName, cleanTableKey);//"DROP INDEX " + indexName;
+		String dropIndex = queryUtil.dropIndex(indexName, cleanTableKey); //"DROP INDEX " + indexName;
 		if(tempIndexAddedList.size() == 0 ){
 			insertData(createIndex);
 			tempIndexAddedList.add(indexOnTable);
@@ -713,7 +715,7 @@ public class RDBMSReader extends AbstractCSVFileReader {
 				}
 				//index should be created on each individual primary and foreign key column
 				if(col.equals(tableName) ||  col.endsWith(FK)){
-					createIndex.add(queryUtil.getDialectCreateIndex(tableName + "_INDX_"+indexCount, tableName, col));
+					createIndex.add(queryUtil.createIndex(tableName + "_INDX_"+indexCount, tableName, col));
 					indexCount++;
 				}
 			}
@@ -730,30 +732,29 @@ public class RDBMSReader extends AbstractCSVFileReader {
 			if(tableAltered){
 				if(!allowDuplicates){
 					//create new temporary table that has ONLY distinct values, also make sure you are removing those null values from the PK column
-					String createTable = queryUtil.getDialectRemoveDuplicates(tableName, colsBuilder.toString());
+					String createTable = queryUtil.removeDuplicatesFromTable(tableName, colsBuilder.toString());
 					insertData(createTable);
 				}
 
 				//check that the temp table was created before dropping the table.
-				String verifyTable = queryUtil.dialectVerifyTableExists(tableName + "_TEMP"); //query here would return a row count 
+				String verifyTable = queryUtil.tableExistsQuery(tableName + "_TEMP", null); //query here would return a row count 
 				//if temp table wasnt successfully created, go to the next table.
 				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, verifyTable);
-				if(wrapper.hasNext()){
-					String rowcount = wrapper.next().getValues()[0].toString();
-					if(rowcount.equals("0")){
-						//This REALLY shouldnt happen, but its here just in case...
-						LOGGER.error("**** Error***** occurred during database clean up on table " + tableName);
-						continue;
-					}
+				if(wrapper.hasNext()) {
+					wrapper.cleanUp();
+				} else {
+					//This REALLY shouldnt happen, but its here just in case...
+					LOGGER.error("**** Error***** occurred during database clean up on table " + tableName);
+					continue;
 				}
 
 				if(!allowDuplicates){
 					//drop existing table
-					String dropTable = queryUtil.getDialectDropTable(tableName);//dropTable = "DROP TABLE " + tableName;
+					String dropTable = queryUtil.dropTable(tableName);//dropTable = "DROP TABLE " + tableName;
 					insertData(dropTable);
 
 					//rename our temporary table to the new table name				
-					String alterTableName = queryUtil.getDialectAlterTableName(tableName+"_TEMP", tableName); //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
+					String alterTableName = queryUtil.alterTableName(tableName+"_TEMP", tableName); //alterTableName = "ALTER TABLE " + tableName + "_TEMP RENAME TO " + tableName;
 					insertData(alterTableName);
 				}
 			}

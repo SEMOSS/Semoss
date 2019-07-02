@@ -66,8 +66,9 @@ import prerna.rdf.main.ImportRDBMSProcessor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 
 public class ImportDataProcessor {
 
@@ -725,7 +726,7 @@ public class ImportDataProcessor {
 				String username = options.getUsername();
 				String password = options.getPassword();
 
-				SQLQueryUtil sqlQueryUtil = SQLQueryUtil.initialize(dbDriverType, host, port, schema, username, password);
+				AbstractRdbmsQueryUtil sqlQueryUtil = RdbmsQueryUtilFactor.initialize(dbDriverType, host, port, schema, username, password);
 				propWriter.setSQLQueryUtil(sqlQueryUtil);
 			}
 			propWriter.setRDBMSType(dbDriverType);

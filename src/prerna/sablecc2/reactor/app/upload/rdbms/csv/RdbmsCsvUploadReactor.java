@@ -35,7 +35,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 
 public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
@@ -55,7 +56,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	private final String FK = "_FK";
 	protected Map<String, String> objectValueMap = new HashMap<String, String>();
 	protected Map<String, String> objectTypeMap = new HashMap<String, String>();
-	protected SQLQueryUtil queryUtil;
+	protected AbstractRdbmsQueryUtil queryUtil;
 	protected boolean createIndexes = true; 
 	// What to put in a prop file to grab the current row number
 	protected String rowKey;
@@ -122,7 +123,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 			String[] headers = (String[]) headerTypesArr[0];
 			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-			queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) this.engine).getDbType());
+			queryUtil = RdbmsQueryUtilFactor.initialize(((RDBMSNativeEngine) this.engine).getDbType());
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 
@@ -192,7 +193,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
-		queryUtil = SQLQueryUtil.initialize(((RDBMSNativeEngine) this.engine).getDbType());
+		queryUtil = RdbmsQueryUtilFactor.initialize(((RDBMSNativeEngine) this.engine).getDbType());
 		
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get app upload input...");
@@ -1122,7 +1123,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 				// index should be created on each individual primary and
 				// foreign key column
 				if (col.equals(tableName) || col.endsWith(FK)) {
-					createIndex.add(queryUtil.getDialectCreateIndex(tableName + "_INDX_" + indexCount, tableName, col));
+					createIndex.add(queryUtil.createIndex(tableName + "_INDX_" + indexCount, tableName, col));
 					indexCount++;
 				}
 			}
@@ -1141,35 +1142,34 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					// create new temporary table that has ONLY distinct values,
 					// also make sure you are removing those null values from
 					// the PK column
-					String createTable = queryUtil.getDialectRemoveDuplicates(tableName, colsBuilder.toString());
+					String createTable = queryUtil.removeDuplicatesFromTable(tableName, colsBuilder.toString());
 					insertData(engine, createTable);
 				}
 
 				// check that the temp table was created before dropping the
 				// table.
-				String verifyTable = queryUtil.dialectVerifyTableExists(tableName + "_TEMP");
+				String verifyTable = queryUtil.tableExistsQuery(tableName + "_TEMP", null);
 				// if temp table wasnt successfully created, go to the next
 				// table.
 				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, verifyTable);
-				if (wrapper.hasNext()) {
-					String rowcount = wrapper.next().getValues()[0].toString();
-					if (rowcount.equals("0")) {
-						// This REALLY shouldnt happen, but its here just in case...
-						logger.error("**** Error***** occurred during database clean up on table " + tableName);
-						continue;
-					}
+				if(wrapper.hasNext()) {
+					wrapper.cleanUp();
+				} else {
+					//This REALLY shouldnt happen, but its here just in case...
+					logger.error("**** Error***** occurred during database clean up on table " + tableName);
+					continue;
 				}
 
 				if (!allowDuplicates) {
 					// drop existing table
 					// dropTable = "DROP TABLE " + tableName;
-					String dropTable = queryUtil.getDialectDropTable(tableName);//
+					String dropTable = queryUtil.dropTable(tableName);//
 					insertData(engine, dropTable);
 
 					// rename our temporary table to the new table name
 					// alterTableName = "ALTER TABLE " + tableName + "_TEMP
 					// RENAME TO " + tableName;
-					String alterTableName = queryUtil.getDialectAlterTableName(tableName + "_TEMP", tableName);
+					String alterTableName = queryUtil.alterTableName(tableName + "_TEMP", tableName);
 					insertData(engine, alterTableName);
 				}
 			}
@@ -1203,7 +1203,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
 		// "DROP INDEX " + indexName;
-		String dropIndex = queryUtil.getDialectDropIndex(indexName, cleanTableKey);
+		String dropIndex = queryUtil.dropIndex(indexName, cleanTableKey);
 		if (tempIndexAddedList.size() == 0) {
 			insertData(engine, createIndex);
 			tempIndexAddedList.add(indexOnTable);
@@ -1229,9 +1229,12 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
+	// TODO: THIS DEFINITELY DOESN'T WORK
+	// WILL NOT WORK FOR ANY ENGINE WHERE THE QUERY TO GET THE INDEX
+	// REQUIRES THE ACCURATE SCHEMA
 	private void findIndexes(IEngine engine) throws Exception {
 		// this gets all the existing tables
-		String query = queryUtil.getDialectAllIndexesInDB(engine.getEngineId());
+		String query = queryUtil.getIndexList(engine.getEngineId());
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
 		while (wrapper.hasNext()) {
 			String tablename = "";
@@ -1239,10 +1242,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			IHeadersDataRow rawArr = wrapper.next();
 			Object[] values = rawArr.getValues();
 			String indexName = values[0].toString();
+			String indexTableName = values[1].toString();
 			// only storing off custom indexes, recreating the non custom ones
 			// on the fly on the cleanUpDBTables method
 
-			String indexInfoQry = queryUtil.getDialectIndexInfo(indexName, engine.getEngineId());
+			String indexInfoQry = queryUtil.getIndexDetails(indexName, indexTableName, engine.getEngineId());
 			IRawSelectWrapper indexInfo = WrapperManager.getInstance().getRawWrapper(engine, indexInfoQry);
 			List<String> columnsInIndex = new Vector<String>();
 			String columnName = "";
@@ -1254,11 +1258,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 				columnsInIndex.add(columnName);
 			}
 			if (indexName.startsWith("CUST_")) {
-				recreateIndexList.add(queryUtil.getDialectCreateIndex(indexName, tablename, columnsInIndex));
+				recreateIndexList.add(queryUtil.createIndex(indexName, tablename, columnsInIndex));
 			}
 			// drop all indexes, recreate the custom ones, the non custom ones
 			// will be systematically recreated.
-			dropCurrentIndexText = queryUtil.getDialectDropIndex(indexName, tablename);
+			dropCurrentIndexText = queryUtil.dropIndex(indexName, tablename);
 			insertData(engine, dropCurrentIndexText);
 		}
 	}

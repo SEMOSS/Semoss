@@ -63,7 +63,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.SQLQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
 
 /**
  * Loading data into SEMOSS using Microsoft Excel Loading Sheet files
@@ -312,7 +312,7 @@ public class FormulaExtractor extends AbstractFileReader {
 		RdbmsTypeEnum dbType = options.getRDBMSDriverType();
 		boolean allowDuplicates = options.isAllowDuplicates();
 		boolean error = false;
-		queryUtil = SQLQueryUtil.initialize(dbType);
+		queryUtil = RdbmsQueryUtilFactor.initialize(dbType);
 		String[] files = prepareReader(fileNames, customBase, owlFile, smssLocation);
 		String appID = options.getEngineID();
 		try {
@@ -1242,7 +1242,7 @@ public class FormulaExtractor extends AbstractFileReader {
 		String indexOnTable =  cleanTableKey + " ( " +  indexStr + " ) ";
 		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
-		String dropIndex = queryUtil.getDialectDropIndex(indexName, cleanTableKey);//"DROP INDEX " + indexName;
+		String dropIndex = queryUtil.dropIndex(indexName, cleanTableKey);
 		if(tempIndexAddedList.size() == 0 ){
 			try {
 				engine.insertData(createIndex);
