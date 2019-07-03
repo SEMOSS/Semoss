@@ -100,7 +100,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGIENID", "==", id));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", id));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		List<String> results = flushToListString(wrapper);
 		if(results.isEmpty()) {
