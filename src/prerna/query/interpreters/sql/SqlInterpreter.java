@@ -17,7 +17,6 @@ import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.poi.main.HeadersException;
 import prerna.query.interpreters.AbstractQueryInterpreter;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -42,12 +41,10 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractRdbmsQueryUtil;
-import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class SqlInterpreter extends AbstractQueryInterpreter {
-	
-	protected static HeadersException headerExec = HeadersException.getInstance();
 	
 	// this keeps the table aliases
 	protected HashMap<String, String> aliases = new HashMap<String, String>();
@@ -281,6 +278,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if(tableAlias == null) {
 			tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
 		}
+		// account for keywords
+		if(queryUtil.isSelectorKeyword(tableAlias)) {
+			tableAlias = queryUtil.getEscapeKeyword(tableAlias);
+		}
+		
 		// will be getting the physical column name
 		String physicalColName = colName;
 		// if engine is not null, get the info from the engine
@@ -312,13 +314,12 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		
 		// if its an illegal char
 		// first,  you are a jerk for how you made your table
-		// but we will just put quotes around it
-		String quote = "";
-		if(headerExec.isIllegalHeader(physicalColName)) {
-			quote = "\"";
+		// but we will escape it
+		if(queryUtil.isSelectorKeyword(physicalColName)) {
+			physicalColName = queryUtil.getEscapeKeyword(physicalColName);
 		}
 		
-		return tableAlias + "." + quote + physicalColName + quote;
+		return tableAlias + "." + physicalColName;
 	}
 	
 	protected String processFunctionSelector(QueryFunctionSelector selector) {
@@ -396,6 +397,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// we want to use the physical table name
 			String physicalTableName = getPhysicalTableNameFromConceptualName(conceptualTableName);
 			
+			if(queryUtil.isSelectorKeyword(physicalTableName)) {
+				physicalTableName = queryUtil.getEscapeKeyword(physicalTableName);
+			}
 			froms.add(new String[]{physicalTableName, alias});
 		}
 	}
@@ -1002,13 +1006,25 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// might want to order by a derived column being returned
 			if(origPrim && this.selectorAliases.contains(tableConceptualName)) {
 				// either instantiate the string builder or add a comma for multi sort
-				thisOrderBy.append(tableConceptualName);
+				if(queryUtil.isSelectorKeyword(tableConceptualName)) {
+					thisOrderBy.append(queryUtil.getEscapeKeyword(tableConceptualName));
+				} else {
+					thisOrderBy.append(tableConceptualName);
+				}
 			}
 			// we need to make sure the sort is a valid one!
 			// if it is not already processed, there is no way to sort it...
 			else if(this.retTableToCols.containsKey(tableConceptualName)){
 				if(this.retTableToCols.get(tableConceptualName).contains(columnConceptualName)) {
-					thisOrderBy.append(getAlias(tableConceptualName)).append(".").append(columnConceptualName);
+					String orderByTable = getAlias(tableConceptualName);
+					String orderByColumn = columnConceptualName;
+					if(queryUtil.isSelectorKeyword(orderByTable)) {
+						orderByTable = queryUtil.getEscapeKeyword(orderByTable);
+					}
+					if(queryUtil.isSelectorKeyword(orderByColumn)) {
+						orderByColumn = queryUtil.getEscapeKeyword(orderByColumn);
+					}
+					thisOrderBy.append(orderByTable).append(".").append(orderByColumn);
 				} else {
 					continue;
 				}
@@ -1047,8 +1063,10 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	public StringBuilder appendGroupBy(StringBuilder query) {
 		//grab the order by and get the corresponding display name for that order by column
 		List<QueryColumnSelector> groupBy = ((SelectQueryStruct) this.qs).getGroupBy();
-		String groupByName = null;
-		for(QueryColumnSelector groupBySelector : groupBy) {
+		StringBuilder groupByName = new StringBuilder();
+		int numGroups = groupBy.size();
+		for(int i = 0; i < numGroups; i++) {
+			QueryColumnSelector groupBySelector = groupBy.get(i);
 			String tableConceptualName = groupBySelector.getTable();
 			String columnConceptualName = groupBySelector.getColumn();
 			
@@ -1058,14 +1076,23 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
 			}
 			
-			if(groupByName == null) {
-				groupByName = getAlias(tableConceptualName) + "." + columnConceptualName;
-			} else {
-				groupByName += ", "+ getAlias(tableConceptualName) + "." + columnConceptualName;
-			}	
+			String groupByTable = getAlias(tableConceptualName);
+			String groupByColumn = columnConceptualName;
+			if(queryUtil.isSelectorKeyword(groupByTable)) {
+				groupByTable = queryUtil.getEscapeKeyword(groupByTable);
+			}
+			if(queryUtil.isSelectorKeyword(groupByColumn)) {
+				groupByColumn = queryUtil.getEscapeKeyword(groupByColumn);
+			}
+			
+			if(i > 0) {
+				groupByName.append(", ");
+			}
+			
+			groupByName.append(groupByTable).append(".").append(groupByColumn);
 		}
 		
-		if(groupByName != null) {
+		if(numGroups > 0) {
 			query.append(" GROUP BY ").append(groupByName);
 		}
 		return query;
