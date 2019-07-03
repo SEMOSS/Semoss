@@ -101,4 +101,19 @@ public enum RdbmsTypeEnum {
 		return null;
 	}
 	
+	/**
+	 * Get the enum from the driver
+	 * @param driver
+	 * @return
+	 */
+	public static RdbmsTypeEnum getEnumFromDriver(String driver) {
+		for(RdbmsTypeEnum rdbmsType : RdbmsTypeEnum.values()) {
+			if(driver.equalsIgnoreCase(rdbmsType.driver)) {
+				return rdbmsType;
+			}
+		}
+		
+		return null;
+	}
+	
 }

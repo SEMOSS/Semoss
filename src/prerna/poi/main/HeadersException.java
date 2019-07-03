@@ -42,7 +42,7 @@ public class HeadersException {
 		// grab the giant string from helper
 		try {
 			String prohibitedHeadersStr = DIHelper.getInstance().getProperty(Constants.PROBHIBITED_HEADERS);
-			// the string is semicolon delimited
+			// the string is comma delimited
 			String[] words = prohibitedHeadersStr.split(",");
 			for(String word : words) {
 				// keep everything upper case for simplicity in comparisons
