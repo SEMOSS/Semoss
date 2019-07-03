@@ -1,5 +1,6 @@
 package prerna.util.sql;
 
+import java.sql.Connection;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -18,6 +19,11 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	
 	public AnsiSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		super(dbType, hostname, port, schema, username, password);
+	}
+	
+	@Override
+	public void enhanceConnection(Connection con) {
+		// default do nothing
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -711,4 +717,5 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		// there is no commonality that i have found for this
 		throw new IllegalArgumentException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
+
 }

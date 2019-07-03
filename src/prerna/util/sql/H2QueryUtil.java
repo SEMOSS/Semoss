@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 public class H2QueryUtil extends AnsiSqlQueryUtil {
 	
 	public H2QueryUtil() {
@@ -42,6 +46,20 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public void enhanceConnection(Connection con) {
+		try {
+			Statement stmt = con.createStatement();
+			stmt.execute("DROP AGGREGATE IF EXISTS MEDIAN");
+			stmt.close();
+			stmt = con.createStatement();
+			stmt.execute("CREATE AGGREGATE MEDIAN FOR \"prerna.ds.h2.H2MedianAggregation\";");
+			stmt.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
 	public String dropIndex(String indexName, String tableName) {
 		return "DROP INDEX " + indexName;
 	}
@@ -50,7 +68,7 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	public String dropIndexIfExists(String indexName, String tableName) {
 		return "DROP INDEX IF EXISTS " + indexName;
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
