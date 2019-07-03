@@ -4,10 +4,10 @@ ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
 RDBMS_INSIGHTS	db/LocalMasterDatabase/insights_database
 OWL	db/LocalMasterDatabase/MasterDatabase_OWL.OWL
 PIXEL_UPDATE	true
-
+RDBMS_TYPE	H2_DB
 DRIVER org.h2.Driver
 USERNAME        sa
 PASSWORD        abcd
-CONNECTION_URL                jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/databaseNewMaster;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/databaseNewMaster;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
 USE_OUTER_JOINS         false
 # USE_CONNECTION_POOLING                true
