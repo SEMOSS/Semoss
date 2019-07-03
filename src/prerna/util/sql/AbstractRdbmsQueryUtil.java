@@ -45,6 +45,8 @@ public abstract class AbstractRdbmsQueryUtil {
 	protected String username;
 	protected String password;
 	protected String connectionUrl;
+
+	protected List<String> reservedWords = null;
 	
 	AbstractRdbmsQueryUtil() {
 		
@@ -119,6 +121,38 @@ public abstract class AbstractRdbmsQueryUtil {
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Set the list of reserved words
+	 * @param reservedWords
+	 */
+	public void setReservedWords(List<String> reservedWords) {
+		this.reservedWords = reservedWords;
+	}
+	
+	/**
+	 * Check if the selector is in fact a reserved word
+	 * @param selector
+	 * @return
+	 */
+	public boolean isSelectorKeyword(String selector) {
+		if(this.reservedWords != null) {
+			if(this.reservedWords.contains(selector.toUpperCase())) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * Get the escaped keyword
+	 * Default is to wrap the selector in quotes
+	 * @param selector
+	 * @return
+	 */
+	public String getEscapeKeyword(String selector) {
+		return "\"" + selector + "\"";
+	}
 	
 	
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -410,7 +444,7 @@ public abstract class AbstractRdbmsQueryUtil {
 	 * @param column
 	 * @return
 	 */
-	public abstract String createIndex(String indexName, String tableName, String column);
+	public abstract String createIndex(String indexName, String tableName, String columnName);
 	
 	/**
 	 * Create an index on a table with a set of columns
@@ -428,7 +462,7 @@ public abstract class AbstractRdbmsQueryUtil {
 	 * @param column
 	 * @return
 	 */
-	public abstract String createIndexIfNotExists(String indexName, String tableName, String column);
+	public abstract String createIndexIfNotExists(String indexName, String tableName, String columnName);
 	
 	/**
 	 * Create an index on a table with a set of columns

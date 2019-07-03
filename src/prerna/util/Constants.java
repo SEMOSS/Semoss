@@ -500,6 +500,8 @@ public class Constants {
 	
 	// prohibited headers
 	public static final String PROBHIBITED_HEADERS = "PROBHIBITED_HEADERS";
+	// keywords 
+	public static final String KEYWORDS_SUFFIX = "_KEYWORDS";
 	
 	// all frame limit
 	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";
