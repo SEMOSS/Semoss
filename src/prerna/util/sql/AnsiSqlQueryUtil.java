@@ -20,6 +20,8 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		super(dbType, hostname, port, schema, username, password);
 	}
 	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
 	/*
 	 * Query helper for interpreters
 	 * Here is the abstract which is for typical ANSI SQL
@@ -215,9 +217,22 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	
 	@Override
 	public String createTable(String tableName, String[] colNames, String[] types) {
-		StringBuilder retString = new StringBuilder("CREATE TABLE "+ tableName + " (" + colNames[0] + " " + types[0]);
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		String columName = colNames[0];
+		if(isSelectorKeyword(columName)) {
+			columName = getEscapeKeyword(columName);
+		}
+		
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			retString = retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
+			columName = colNames[colIndex];
+			if(isSelectorKeyword(columName)) {
+				columName = getEscapeKeyword(columName);
+			}
+			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
 		}
 		retString = retString.append(");");
 		return retString.toString();
@@ -225,9 +240,30 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	
 	@Override
 	public String createTableWithDefaults(String tableName, String [] colNames, String [] types, Object[] defaultValues) {
-		StringBuilder retString = new StringBuilder("CREATE TABLE "+ tableName + " (" + colNames[0] + " " + types[0]);
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		String columName = colNames[0];
+		if(isSelectorKeyword(columName)) {
+			columName = getEscapeKeyword(columName);
+		}
+		
+		StringBuilder retString = new StringBuilder("CREATE TABLE ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		if(defaultValues[0] != null) {
+			retString.append(" DEFAULT ");
+			if(defaultValues[0] instanceof String) {
+				retString.append("'").append(defaultValues[0]).append("'");
+			} else {
+				retString.append(defaultValues[0]);
+			}
+		}
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
+			columName = colNames[colIndex];
+			if(isSelectorKeyword(columName)) {
+				columName = getEscapeKeyword(columName);
+			}
+			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
 			// add default values
 			if(defaultValues[colIndex] != null) {
 				retString.append(" DEFAULT ");
@@ -238,7 +274,7 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 				}
 			}
 		}
-		retString = retString.append(");");
+		retString.append(");");
 		return retString.toString();
 	}
 	
@@ -247,9 +283,23 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowsIfExistsTableSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists table syntax");
 		}
-		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS "+ tableName + " (" + colNames[0] + " " + types[0]);
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		String columName = colNames[0];
+		if(isSelectorKeyword(columName)) {
+			columName = getEscapeKeyword(columName);
+		}
+		
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			retString = retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
+			columName = colNames[colIndex];
+			if(isSelectorKeyword(columName)) {
+				columName = getEscapeKeyword(columName);
+			}
+			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
 		}
 		retString = retString.append(");");
 		return retString.toString();
@@ -260,9 +310,31 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowsIfExistsTableSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists table syntax");
 		}
-		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS "+ tableName + " (" + colNames[0] + " " + types[0]);
+
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		String columName = colNames[0];
+		if(isSelectorKeyword(columName)) {
+			columName = getEscapeKeyword(columName);
+		}
+		
+		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (").append(columName).append(" ").append(types[0]);
+		if(defaultValues[0] != null) {
+			retString.append(" DEFAULT ");
+			if(defaultValues[0] instanceof String) {
+				retString.append("'").append(defaultValues[0]).append("'");
+			} else {
+				retString.append(defaultValues[0]);
+			}
+		}
 		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
+			columName = colNames[colIndex];
+			if(isSelectorKeyword(columName)) {
+				columName = getEscapeKeyword(columName);
+			}
+			retString.append(" , ").append(columName).append("  ").append(types[colIndex]);
 			// add default values
 			if(defaultValues[colIndex] != null) {
 				retString.append(" DEFAULT ");
@@ -273,7 +345,7 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 				}
 			}
 		}
-		retString = retString.append(");");
+		retString.append(");");
 		return retString.toString();
 	}
 	
@@ -283,6 +355,10 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 
 	@Override
 	public String dropTable(String tableName) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
 		return "DROP TABLE " + tableName + ";";
 	}
 	
@@ -290,6 +366,11 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	public String dropTableIfExists(String tableName) {
 		if(!allowsIfExistsTableSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists table syntax");
+		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
 		}
 		return "DROP TABLE IF EXISTS " + tableName + ";";
 	}
@@ -300,6 +381,13 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	
 	@Override
 	public String alterTableName(String tableName, String newTableName) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(newTableName)) {
+			newTableName = getEscapeKeyword(newTableName);
+		}
 		return "ALTER TABLE " + tableName + " RENAME TO " + newTableName;
 	}
 
@@ -308,6 +396,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowAddColumn()) {
 			throw new IllegalArgumentException("Does not support add column syntax");
 		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(newColumn)) {
+			newColumn = getEscapeKeyword(newColumn);
+		}
 		return "ALTER TABLE " + tableName + " ADD COLUMN " + newColumn + " " + newColType + ";";
 	}
 
@@ -315,6 +411,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	public String alterTableAddColumnWithDefault(String tableName, String newColumn, String newColType, Object defualtValue) {
 		if(!allowAddColumn()) {
 			throw new IllegalArgumentException("Does not support add column syntax");
+		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(newColumn)) {
+			newColumn = getEscapeKeyword(newColumn);
 		}
 		return "ALTER TABLE " + tableName + " ADD COLUMN " + newColumn + " " + newColType + " DEFAULT '" + defualtValue + "';";
 	}
@@ -327,6 +431,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowIfExistsModifyColumnSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists column syntax");
 		}
+
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(newColumn)) {
+			newColumn = getEscapeKeyword(newColumn);
+		}
 		return "ALTER TABLE " + tableName + " ADD COLUMN IF NOT EXISTS " + newColumn + " " + newColType + ";";
 	}
 
@@ -338,6 +450,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowIfExistsModifyColumnSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists column syntax");
 		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(newColumn)) {
+			newColumn = getEscapeKeyword(newColumn);
+		}
 		return "ALTER TABLE " + tableName + " ADD COLUMN IF NOT EXISTS " + newColumn + " " + newColType + " DEFAULT '" + defualtValue + "';";
 	}
 
@@ -345,6 +465,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	public String alterTableDropColumn(String tableName, String columnName) {
 		if(!allowDropColumn()) {
 			throw new IllegalArgumentException("Does not support drop column syntax");
+		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
 		}
 		return "ALTER TABLE " + tableName + " DROP COLUMN " + columnName + ";";
 	}
@@ -357,6 +485,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowIfExistsModifyColumnSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists column syntax");
 		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
 		return "ALTER TABLE " + tableName + " DROP COLUMN IF EXISTS " + columnName + ";";
 	}
 	
@@ -365,6 +501,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowRedefineColumn()) {
 			throw new IllegalArgumentException("Does not support redefinition of column syntax");
 		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
 		return "ALTER TABLE " + tableName + " ALTER COLUMN " + columnName + " " + dataType + ";";
 	}
 	
@@ -372,6 +516,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	public String modColumnTypeWithDefault(String tableName, String columnName, String dataType, Object defualtValue) {
 		if(!allowRedefineColumn()) {
 			throw new IllegalArgumentException("Does not support redefinition of column syntax");
+		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
 		}
 		return "ALTER TABLE " + tableName + " ALTER COLUMN " + columnName + " " + dataType + " " + defualtValue + ";";
 	}
@@ -384,6 +536,14 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowIfExistsModifyColumnSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists column syntax");
 		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
 		return "ALTER TABLE " + tableName + " ALTER COLUMN IF EXISTS " + columnName + " " + dataType + ";";
 	}
 	
@@ -395,16 +555,36 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowIfExistsModifyColumnSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists column syntax");
 		}
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
 		return "ALTER TABLE " + tableName + " ALTER COLUMN IF EXISTS " + columnName + " " + dataType + " " + defualtValue + ";";
 	}
 
 	@Override
-	public String createIndex(String indexName, String tableName, String column) {
-		return "CREATE INDEX " + indexName + " ON " + tableName + "(" + column + ");";
+	public String createIndex(String indexName, String tableName, String columnName) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+		return "CREATE INDEX " + indexName + " ON " + tableName + "(" + columnName + ");";
 	}
 
 	@Override
 	public String createIndex(String indexName, String tableName, Collection<String> columns) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE INDEX ")
 				.append(indexName)
@@ -413,20 +593,38 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 				.append("(");
 		
 		Iterator<String> colIt = columns.iterator();
-		builder.append(colIt.next());
+		String columnName = colIt.next();
+		// should escape keywords
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+		builder.append(columnName);
 		while(colIt.hasNext()) {
-			builder.append(", ").append(colIt.next());
+			columnName = colIt.next();
+			// should escape keywords
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+			builder.append(", ").append(columnName);
 		}
 		builder.append(");");
 		return builder.toString();
 	}
 
 	@Override
-	public String createIndexIfNotExists(String indexName, String tableName, String column) {
+	public String createIndexIfNotExists(String indexName, String tableName, String columnName) {
 		if(!allowIfExistsIndexSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists index syntax");
 		}
-		return "CREATE INDEX IF NOT EXISTS " + indexName + " ON " + tableName + "(" + column + ");";
+		
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+		return "CREATE INDEX IF NOT EXISTS " + indexName + " ON " + tableName + "(" + columnName + ");";
 	}
 
 	@Override
@@ -434,6 +632,11 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		if(!allowIfExistsIndexSyntax()) {
 			throw new IllegalArgumentException("Does not support if exists index syntax");
 		}
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE INDEX IF NOT EXISTS ")
 				.append(indexName)
@@ -442,9 +645,19 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 				.append("(");
 		
 		Iterator<String> colIt = columns.iterator();
-		builder.append(colIt.next());
+		String columnName = colIt.next();
+		// should escape keywords
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+		builder.append(columnName);
 		while(colIt.hasNext()) {
-			builder.append(", ").append(colIt.next());
+			columnName = colIt.next();
+			// should escape keywords
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+			builder.append(", ").append(columnName);
 		}
 		builder.append(");");
 		return builder.toString();
