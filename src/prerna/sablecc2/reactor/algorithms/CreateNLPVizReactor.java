@@ -15,8 +15,11 @@ import com.google.gson.reflect.TypeToken;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.Insight;
+import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
@@ -56,7 +59,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		String appName = MasterDatabaseUtility.getEngineAliasForId(appId).replace(" ", "_");
 
 		// check if packages are installed
-		String[] packages = { "data.table", "plyr" };
+		String[] packages = { "data.table", "plyr" , "jsonlite" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// let's first create the input frame
@@ -64,15 +67,20 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		rsb.append(inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);");
 		int rowCounter = 1;
 		for (String col : cols) {
-			String tableName = frameName;
-			String colName = col;
+			String tableName = null;
+			String colName = null;
 
-			// lets get the table name, column name if passed in
+			// lets get the table name, column name, and type (if possible)
 			if (col.contains("__")) {
 				// this both a table and a column
 				String[] parsedCol = col.split("__");
 				tableName = parsedCol[0];
 				colName = parsedCol[1];
+			} else {
+				// this is a table and column (primary key)
+				// or an aggregate
+				tableName = frameName;
+				colName = col;
 			}
 
 			String dataType = metadata.getHeaderTypeAsString(tableName + "__" + colName);
@@ -117,7 +125,11 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		// if no recommendation was found, lets just return it in a grid
 		if (json == null) {
 			String nullPixel = "Frame () | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );";
-			return new NounMetadata(nullPixel, PixelDataType.CONST_STRING);
+			PixelRunner runner = this.insight.runPixel(nullPixel);
+			return runner.getResults().get(0);
+//			Map<String, Object> runnerWraper = new HashMap<String, Object>();
+//			runnerWraper.put("runner", runner);
+//			return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.VECTOR);
 		}
 
 		// converting physical column names to frame aliases
@@ -157,8 +169,11 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 						+ "restore_datatype" + "viz_history," + "viz_recom," + "viz_recom_mgr" + " ); gc();");
 
 		String returnPixel = generatePixelFromRec(recommendations, cols, frameName);
-		return new NounMetadata(returnPixel, PixelDataType.CONST_STRING);
-
+		PixelRunner runner = this.insight.runPixel(returnPixel);
+		return runner.getResults().get(0);
+//		Map<String, Object> runnerWraper = new HashMap<String, Object>();
+//		runnerWraper.put("runner", runner);
+//		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.VECTOR);
 	}
 
 	private List<String> getColumns() {
