@@ -1,5 +1,11 @@
 package prerna.util.sql;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.regex.Pattern;
+
+import org.sqlite.Function;
+
 public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 
 	SQLiteQueryUtil() {
@@ -12,6 +18,37 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	
 	SQLiteQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		super(dbType, hostname, port, schema, username, password);
+	}
+	
+	@Override
+	public void enhanceConnection(Connection con) {
+		try {
+			try {
+				Function.create(con, "REGEXP", new Function() {
+					@Override
+					protected void xFunc() throws SQLException {
+						String value = value_text(0);
+				        String expression = value_text(1);
+				        String caseInsensitive = value_text(2);
+				        if (value == null) {
+				            value = "";
+				        }
+
+				        Pattern pattern = null;
+				        if(caseInsensitive != null && caseInsensitive.equals("i")) {
+				        	pattern = Pattern.compile(expression, Pattern.CASE_INSENSITIVE);
+				        } else {
+				        	pattern = Pattern.compile(expression);
+				        }
+				        result(pattern.matcher(value).find() ? 1 : 0);
+					}
+				});
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
