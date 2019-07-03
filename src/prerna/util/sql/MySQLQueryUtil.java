@@ -15,6 +15,11 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getEscapeKeyword(String selector) {
+		return "`" + selector + "`";
+	}
+	
+	@Override
 	public boolean allowIfExistsModifyColumnSyntax() {
 		return false;
 	}
@@ -26,11 +31,22 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public String modColumnType(String tableName, String columnName, String dataType) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
 		return "ALTER TABLE " + tableName + " MODIFY COLUMN " + columnName + " " + dataType + ";";
 	}
 	
 	@Override
 	public String dropIndex(String indexName, String tableName) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
 		return "ALTER TABLE " + tableName + " DROP INDEX " + indexName;
 	}
 		

@@ -193,10 +193,10 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			// see if index exists
 			if(!indexExists(queryUtil, "WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
+				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_TYPE_INDEX", "WORKSPACEENGINE", "TYPE"));
 			}
 			if(!indexExists(queryUtil, "WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
+				securityDb.insertData(queryUtil.createIndex("WORKSPACEENGINE_USERID_INDEX", "WORKSPACEENGINE", "USERID"));
 			}			
 		}
 		
@@ -218,10 +218,10 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			// see if index exists
 			if(!indexExists(queryUtil, "ASSETENGINE_TYPE_INDEX", "ASSETENGINE", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
+				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_TYPE_INDEX", "ASSETENGINE", "TYPE"));
 			}
 			if(!indexExists(queryUtil, "ASSETENGINE_USERID_INDEX", "ASSETENGINE", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
+				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
 			}
 		}
 		
@@ -245,13 +245,13 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			// see if index exists
 			if(!indexExists(queryUtil, "INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
+				securityDb.insertData(queryUtil.createIndex("INSIGHT_LASTMODIFIEDON_INDEX", "INSIGHT", "LASTMODIFIEDON"));
 			}
 			if(!indexExists(queryUtil, "INSIGHT_GLOBAL_INDEX", "INSIGHT", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
+				securityDb.insertData(queryUtil.createIndex("INSIGHT_GLOBAL_INDEX", "INSIGHT", "GLOBAL"));
 			}
 			if(!indexExists(queryUtil, "INSIGHT_ENGINEID_INDEX", "INSIGHT", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+				securityDb.insertData(queryUtil.createIndex("INSIGHT_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
 			}
 		}
 
@@ -275,13 +275,13 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			// see if index exists
 			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
+				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_PERMISSION_INDEX", "USERINSIGHTPERMISSION", "PERMISSION"));
 			}
 			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", "ENGINEID"));
+				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_ENGINEID_INDEX", "USERINSIGHTPERMISSION", "ENGINEID"));
 			}
 			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
+				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
 			}
 		}
 
@@ -302,7 +302,7 @@ public abstract class AbstractSecurityUtils {
 		} else {
 			// see if index exists
 			if(!indexExists(queryUtil, "USER_ID_INDEX", "USER", schema)) {
-				securityDb.insertData(queryUtil.createIndexIfNotExists("USER_ID_INDEX", "USER", "ID"));
+				securityDb.insertData(queryUtil.createIndex("USER_ID_INDEX", "USER", "ID"));
 			}
 		}
 		

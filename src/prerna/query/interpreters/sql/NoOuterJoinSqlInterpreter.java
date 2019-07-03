@@ -232,13 +232,6 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		String targetColumn = relConProp[3];
 		
 		String compName = thisComparator.replace(".", " ");
-//		if (!fromCol.equals(sourceTable)) {
-//			if (compName.startsWith("left")){
-//				compName = compName.replace("left", "right");
-//			} else if (compName.startsWith("right")){
-//				compName = compName.replace("right", "left");
-//			}
-//		}
 		jTypeList.add(compName);
 		
 		SqlJoinStruct jStruct = new SqlJoinStruct();

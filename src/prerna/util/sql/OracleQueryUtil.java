@@ -32,6 +32,13 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public String modColumnType(String tableName, String columnName, String dataType) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
 		return "ALTER TABLE " + tableName + " MODIFY " + columnName + " " + dataType + ";";
 	}
 	
