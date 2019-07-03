@@ -214,6 +214,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				this.engineConnected = true;
 				this.autoCommit = this.engineConn.getAutoCommit();
 				this.queryUtil = RdbmsQueryUtilFactor.initialize(this.dbType, this.connectionURL, this.userName, this.password);
+				this.queryUtil.enhanceConnection(this.engineConn);
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
