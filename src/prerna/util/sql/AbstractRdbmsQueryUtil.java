@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -71,6 +72,14 @@ public abstract class AbstractRdbmsQueryUtil {
 			e.printStackTrace();
 		}
 	}
+	
+	/**
+	 * Use this when we need to make any modifications to the 
+	 * connection object for proper usage
+	 * Example ::: Adding user defined functions for RDBMS types that allow it
+	 * @param con
+	 */
+	public abstract void enhanceConnection(Connection con);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
