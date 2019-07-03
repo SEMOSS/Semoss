@@ -1,7 +1,20 @@
 package prerna.util.sql;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+
 public class RdbmsQueryUtilFactor {
 
+	/**
+	 * List of keywords based on what has been pushed into DIHelper
+	 */
+	private static Map<RdbmsTypeEnum, List<String>> keywordsMap = new HashMap<RdbmsTypeEnum, List<String>>();
+	
 	/**
 	 * Get the appropriate query util class
 	 * @param dbType
@@ -32,32 +45,34 @@ public class RdbmsQueryUtilFactor {
 		}
 		
 		queryUtil.setDbType(dbType);
+		queryUtil.setReservedWords(loadReservedWords(dbType));
 		return queryUtil;
 	}
 	
-	public static AbstractRdbmsQueryUtil initialize(RdbmsTypeEnum dbtype, String connectionUrl, String username, String password) {
+	public static AbstractRdbmsQueryUtil initialize(RdbmsTypeEnum dbType, String connectionUrl, String username, String password) {
 		AbstractRdbmsQueryUtil queryUtil = null;
-		if(dbtype == RdbmsTypeEnum.H2_DB) {
-			return new H2QueryUtil(connectionUrl, username, password);
-		} else if(dbtype == RdbmsTypeEnum.SQLSERVER){
-			return new MicrosoftSqlServerUtil(connectionUrl, username, password);
-		} else if(dbtype == RdbmsTypeEnum.MYSQL) {
-			return new MySQLQueryUtil(connectionUrl, username, password);
-		} else if(dbtype == RdbmsTypeEnum.ORACLE) {
-			return new OracleQueryUtil(connectionUrl, username, password);
-		} else if(dbtype == RdbmsTypeEnum.IMPALA) {
-			return new ImpalaQueryUtil(connectionUrl, username, password);
-		} else if(dbtype == RdbmsTypeEnum.TIBCO) {
-			return new TibcoQueryUtil(connectionUrl, username, password);
-		} else if(dbtype == RdbmsTypeEnum.SQLITE) {
-			return new SQLiteQueryUtil(connectionUrl, username, password);
+		if(dbType == RdbmsTypeEnum.H2_DB) {
+			queryUtil = new H2QueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.SQLSERVER){
+			queryUtil = new MicrosoftSqlServerUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.MYSQL) {
+			queryUtil = new MySQLQueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.ORACLE) {
+			queryUtil = new OracleQueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.IMPALA) {
+			queryUtil = new ImpalaQueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.TIBCO) {
+			queryUtil = new TibcoQueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.SQLITE) {
+			queryUtil = new SQLiteQueryUtil(connectionUrl, username, password);
 		}
 		// base will work for most situations
 		else {
 			queryUtil = new AnsiSqlQueryUtil(connectionUrl, username, password);
 		}
 		
-		queryUtil.setDbType(dbtype);
+		queryUtil.setDbType(dbType);
+		queryUtil.setReservedWords(loadReservedWords(dbType));
 		return queryUtil;
 	}
 	
@@ -83,8 +98,33 @@ public class RdbmsQueryUtilFactor {
 			queryUtil = new AnsiSqlQueryUtil(dbType, hostname, port, schema, username, password);
 		}
 		
+		queryUtil.setReservedWords(loadReservedWords(dbType));
 		return queryUtil;
 	}
 	
-
+	/**
+	 * Load the reserved words from DIHelper (static - only load once per type)
+	 * @param type
+	 * @return
+	 */
+	private static List<String> loadReservedWords(RdbmsTypeEnum type) {
+		if(keywordsMap.containsKey(type)) {
+			return keywordsMap.get(type);
+		}
+		
+		// see if it exists in dihelper and load
+		String keywordsString = DIHelper.getInstance().getProperty(type.getLabel().toUpperCase() + Constants.KEYWORDS_SUFFIX);
+		if(keywordsString != null) {
+			List<String> keywordsList = new Vector<String>();
+			// the string is comma delimited
+			String[] words = keywordsString.split(",");
+			for(String word : words) {
+				// keep everything upper case for simplicity in comparisons
+				keywordsList.add(word.toUpperCase());
+			}
+			keywordsMap.put(type, keywordsList);
+		}
+		
+		return keywordsMap.get(type);
+	}
 }

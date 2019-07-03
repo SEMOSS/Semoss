@@ -249,15 +249,19 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return this.engineConnected;
 	}
 	
-	private void makeConnection(String driver, String userName, String password, String url, String createString) {
+	private void makeConnection(String driver, String userName, String password, String connectionUrl, String createString) {
 		try {
 			Class.forName(driver);
-			this.engineConn = DriverManager.getConnection(url, userName, password);
+			this.connectionURL = connectionUrl;
+			this.userName = userName;
+			this.password = password;
+			this.engineConn = DriverManager.getConnection(connectionUrl, userName, password);
 			if(createString != null) {
 				this.engineConn.createStatement().execute(createString);
 			}
 			this.engineConnected = true;
 			this.autoCommit = this.engineConn.getAutoCommit();
+			this.queryUtil = RdbmsQueryUtilFactor.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (SQLException e) {

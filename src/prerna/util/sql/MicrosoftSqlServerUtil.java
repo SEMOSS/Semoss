@@ -42,6 +42,10 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public String dropIndex(String indexName, String tableName) {
+		// should escape keywords
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
 		return "DROP INDEX " + tableName + "." + indexName + ";";
 	}
 
