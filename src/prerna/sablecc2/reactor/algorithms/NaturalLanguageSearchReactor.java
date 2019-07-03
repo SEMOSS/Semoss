@@ -54,7 +54,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		
 		// Check Packages
 		logger.info(stepCounter + ". Checking R Packages and Necessary Files");
-		String[] packages = new String[] { "data.table", "udpipe" };
+		String[] packages = new String[] { "data.table", "plyr" , "udpipe" , "stringdist" , "igraph" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// Check to make sure that needed files exist before searching
@@ -611,6 +611,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			map.put("frame_name", frameName);
 			String finalPixel = buildPixelFromQs(qs, appId, frameName);
 			finalPixel += "Panel ( 0 ) | SetPanelLabel(\"" + appName + ": " + queryInput + "\");";
+			finalPixel += (frameName + " | PredictViz(app=[\"" + appId + "\"],columns=" + getSelectorAliases(qs.getSelectors()) + ");");
 			map.put("pixel", finalPixel);
 			map.put("layout", "NLP");
 			map.put("columns", getSelectorAliases(qs.getSelectors()));
