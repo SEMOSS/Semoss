@@ -46,8 +46,12 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class H2Builder {
+	private static AbstractRdbmsQueryUtil queryUtil = RdbmsQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB); 
 
 	private static final String CLASS_NAME = H2Builder.class.getName();
 	private Logger logger = LogManager.getLogger(CLASS_NAME);
@@ -412,7 +416,7 @@ public class H2Builder {
 						indicesToAdd.add(tableCol);
 						removeColumnIndex(tableCol[0], tableCol[1]);
 					}
-					
+					//TODO make one alter statement for new headers and types
 					String alterQuery = RdbmsQueryBuilder.makeAlter(tableName, newHeaders.toArray(new String[] {}), newTypes.toArray(new String[] {}));
 					logger.debug("ALTERING TABLE: " + alterQuery);
 					runQuery(alterQuery);
@@ -424,7 +428,7 @@ public class H2Builder {
 				}
 			} else {
 				// if table doesn't exist then create one with headers and types
-				String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
+				String createTable =  queryUtil.createTable(tableName, headers, types);
 				logger.info("Generating SQL table");
 				logger.debug("CREATING TABLE: " + createTable);
 				runQuery(createTable);
@@ -451,7 +455,7 @@ public class H2Builder {
 		// create table if it does not already exist
 		try {
 			if (!tableExists(tableName)) {
-				String createTable = RdbmsQueryBuilder.makeCreate(tableName, headers, types);
+				String createTable = queryUtil.createTable(tableName, headers, types);
 				runQuery(createTable);
 			}
 		} catch (Exception ex) {
@@ -463,6 +467,7 @@ public class H2Builder {
 		try {
 			if (create) {
 				cells = Utility.castToTypes(cells, types);
+				// TODO
 				String inserter = RdbmsQueryBuilder.makeInsert(headers, types, cells, new Hashtable<String, String>(), tableName);
 				runQuery(inserter);
 			}
@@ -490,7 +495,7 @@ public class H2Builder {
 	 */
 	public void dropColumn(String columnHeader) {
 		try {
-			String dropColumnQuery = RdbmsQueryBuilder.makeDropColumn(columnHeader, tableName);
+			String dropColumnQuery = queryUtil.alterTableDropColumn(tableName, columnHeader);
 			runQuery(dropColumnQuery);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -503,7 +508,7 @@ public class H2Builder {
 	protected void dropTable() {
 		if(tableExists(tableName)) {
 			try {
-				String dropTableQuery = RdbmsQueryBuilder.makeDropTable(tableName);
+				String dropTableQuery = queryUtil.dropTable(tableName);
 				runQuery(dropTableQuery);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -570,7 +575,7 @@ public class H2Builder {
 			logger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			try {
 				String indexName = colName + "_INDEX_" + getNextNumber();
-				indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + colName + ")";
+				indexSql = queryUtil.createIndex(indexName, tableName, colName);
 				runQuery(indexSql);
 				columnIndexMap.put(tableName + "+++" + colName, indexName);
 				
@@ -755,7 +760,7 @@ public class H2Builder {
 				copyTable(this.conn, this.tableName, newConnection, this.tableName);
 				
 				// drop the current table from in-memory or from old physical db
-				runQuery(RdbmsQueryBuilder.makeDropTable(this.tableName));
+				runQuery(queryUtil.dropTable(this.tableName));
 				this.conn = newConnection;
 			} else {
 				// just create a new connection
@@ -813,7 +818,7 @@ public class H2Builder {
 		}
 		
 		//generate the toTable using the toConnection with the columns and types we created
-		String createTable = RdbmsQueryBuilder.makeCreate(toTable, columns.toArray(new String[]{}), types.toArray(new String[]{}));
+		String createTable = queryUtil.createTable(toTable, columns.toArray(new String[]{}), types.toArray(new String[]{}));
 		toConnection.createStatement().execute(createTable);
 		
 		
@@ -821,6 +826,7 @@ public class H2Builder {
 		String insertPreparedStatement = RdbmsQueryBuilder.createInsertPreparedStatementString(toTable, columns.toArray(new String[columns.size()]));
 		
 		//select the data we want to copy
+		// TODO
 		String selectFromTableQuery = RdbmsQueryBuilder.makeSelect(fromTable, columns, false);
 		
 		try {
@@ -1069,7 +1075,6 @@ public class H2Builder {
 				}
 				server.start();
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -1103,10 +1108,8 @@ public class H2Builder {
 				System.out.println("Table name is " + rs.getString(1));
 
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
