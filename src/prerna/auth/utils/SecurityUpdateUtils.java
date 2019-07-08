@@ -102,8 +102,16 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		LOGGER.info("Security database going to add app with alias = " + appName);
 		
 		// load just the insights database
-		RDBMSNativeEngine rne = EngineInsightsHelper.loadInsightsEngine(prop, LOGGER);
-
+		// first see if engine is already loaded
+		boolean engineLoaded = false;
+		RDBMSNativeEngine rne = null;
+		if(Utility.engineLoaded(appId)) {
+			engineLoaded = true;
+			rne = Utility.getEngine(appId).getInsightDatabase();
+		} else {
+			rne = EngineInsightsHelper.loadInsightsEngine(prop, LOGGER);
+		}
+		
 		// i need to delete any current insights for the app
 		// before i start to insert new insights
 		String deleteQuery = "DELETE FROM INSIGHT WHERE ENGINEID='" + appId + "'";
@@ -195,9 +203,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		// close the connection to the insights
-		// database since we will need to open it when we 
-		// load the actual engine
-		if(rne != null) {
+		// if the engine is not already loaded 
+		// since the openDb method will load it
+		if(!engineLoaded && rne != null) {
 			rne.closeDB();
 		}
 		
