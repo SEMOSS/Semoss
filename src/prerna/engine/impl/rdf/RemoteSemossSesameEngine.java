@@ -64,7 +64,9 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.H2QueryUtil;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class RemoteSemossSesameEngine extends AbstractEngine {
 
@@ -127,16 +129,20 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 				logger.info("Have insights string::: " + insights);
 				String[] insightBuilderQueries = insights.split("%!%");
 
-				// need to move this from null to a fully open DB
-				Properties dbProp = writePropFile();
-				this.insightRDBMS = new RDBMSNativeEngine();
-				this.insightRDBMS.setProp(dbProp);;
-				this.insightRDBMS.openDB(null);
+				// legacy was to load from prop and then run through queries
 				
+				// need to move this from null to a fully open DB
+//				Properties dbProp = writePropFile();
+//				this.insightRdbms = new RDBMSNativeEngine();
+//				this.insightRdbms.setProp(dbProp);;
+//				this.insightRdbms.openDB(null);
+				
+				// new - load from abstract method and then run through queries
+				loadInsightsRdbms();
 				for (String insightBuilderQuery : insightBuilderQueries)
 				{
 					logger.info("running query " +  insightBuilderQuery);
-					this.insightRDBMS.insertData(insightBuilderQuery);
+					this.insightRdbms.insertData(insightBuilderQuery);
 				}
 
 				
@@ -199,22 +205,23 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	}
 
 	// TODO: do we really need this?
-	private Properties writePropFile() {
-		H2QueryUtil queryUtil = new H2QueryUtil();
-		Properties prop = new Properties();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String connectionURL = connectionURLStart + baseFolder + "/" + insightDatabaseLoc + connectionURLEnd;
-		// check to see if it exists
-		// if not kill the file
-		
-		prop.put(Constants.CONNECTION_URL, connectionURL);
-		prop.put(Constants.USERNAME, queryUtil.getUsername());
-		prop.put(Constants.PASSWORD, queryUtil.getPassword());
-		prop.put(Constants.DRIVER, queryUtil.getDriver());
-		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
-		prop.put("TEMP", "TRUE");
-		return prop;
-	}
+//	private Properties writePropFile() {
+//		AbstractRdbmsQueryUtil queryUtil = RdbmsQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB);
+//		Properties prop = new Properties();
+//		//TODO: come back and set this properly
+//		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+//		String connectionURL = connectionURLStart + baseFolder + "/" + insightDatabaseLoc + connectionURLEnd;
+//		// check to see if it exists
+//		// if not kill the file
+//		
+//		prop.put(Constants.CONNECTION_URL, connectionURL);
+//		prop.put(Constants.USERNAME, queryUtil.getUsername());
+//		prop.put(Constants.PASSWORD, queryUtil.getPassword());
+//		prop.put(Constants.DRIVER, queryUtil.getDriver());
+//		prop.put(Constants.RDBMS_TYPE, queryUtil.getDbType().toString());
+//		prop.put("TEMP", "TRUE");
+//		return prop;
+//	}
 		
 	public RepositoryConnection getNewRepository() {
 		try {
@@ -404,7 +411,7 @@ public class RemoteSemossSesameEngine extends AbstractEngine {
 	@Override
 	public void closeDB() {
 		// this does nothing
-		this.insightRDBMS.closeDB();
+		this.insightRdbms.closeDB();
 		logger.info("cannot close remote engine");
 	}
 	

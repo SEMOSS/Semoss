@@ -220,6 +220,7 @@ public class MasterDatabaseUtility {
 					executeSql(conn, queryUtil.alterTableDropColumnIfExists(tableName, "LOCALCONCEPTID"));
 				} else {
 					// check column exists in table
+					
 				}
 			}
 			if(queryUtil.allowAddColumn()) {

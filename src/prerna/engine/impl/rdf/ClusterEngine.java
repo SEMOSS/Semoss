@@ -41,7 +41,10 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 import prerna.util.sql.H2QueryUtil;
+import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ClusterEngine extends AbstractEngine {
 
@@ -107,7 +110,7 @@ public class ClusterEngine extends AbstractEngine {
 		{
 			logger.info("running query " +  insightBuilderQuery);
 			try {
-				this.insightRDBMS.insertData(insightBuilderQuery);
+				this.insightRdbms.insertData(insightBuilderQuery);
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -129,9 +132,9 @@ public class ClusterEngine extends AbstractEngine {
 	public void initializeInsightBase()
 	{
 		Properties dbProp = writePropFile();
-		this.insightRDBMS = new RDBMSNativeEngine();
-		this.insightRDBMS.setProp(dbProp);;
-		this.insightRDBMS.openDB(null);
+		this.insightRdbms = new RDBMSNativeEngine();
+		this.insightRdbms.setProp(dbProp);;
+		this.insightRdbms.openDB(null);
 	}
 	
 	
@@ -182,7 +185,7 @@ public class ClusterEngine extends AbstractEngine {
 
 	// TODO: do we really need this?
 	private Properties writePropFile() {
-		H2QueryUtil queryUtil = new H2QueryUtil();
+		AbstractRdbmsQueryUtil queryUtil = RdbmsQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB);
 		Properties prop = new Properties();
 		String connectionURL = "jdbc:h2:mem:temp";
 		prop.put(Constants.CONNECTION_URL, connectionURL);

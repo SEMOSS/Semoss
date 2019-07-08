@@ -55,6 +55,13 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	public String getRegexLikeFunctionSyntax() {
 		return "REGEXP";
 	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
+	@Override
+	public boolean allowArrayDatatype() {
+		return false;
+	}
 
 	@Override
 	public boolean allowRedefineColumn() {
@@ -70,6 +77,8 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	public boolean allowIfExistsModifyColumnSyntax() {
 		return false;
 	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////
 	
 	@Override
 	public String dropIndex(String indexName, String tableName) {

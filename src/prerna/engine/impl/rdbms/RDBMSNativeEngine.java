@@ -245,11 +245,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return this.schema;
 	}
 	
-	public boolean makeConnection(String driver, String url, String userName, String password) {
-		makeConnection(driver, userName, password, url, null);
-		return this.engineConnected;
-	}
-	
 	private void makeConnection(String driver, String userName, String password, String connectionUrl, String createString) {
 		try {
 			Class.forName(driver);
@@ -700,7 +695,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 
 		// Close the Insights RDBMS connection, the actual connection, and delete the folders
 		try {
-			this.insightRDBMS.getConnection().close();
+			this.insightRdbms.getConnection().close();
 			closeDB();
 
 			DeleteDbFiles.execute(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + this.engineName, "database", false);

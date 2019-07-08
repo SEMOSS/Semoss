@@ -35,6 +35,8 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 					+ " IS NOT NULL AND LTRIM(RTRIM(" + tableName + ")) <> ''";
 	}
 	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
 	@Override
 	public String alterTableName(String tableName, String newTableName) {
 		return "sp_reanme '" + tableName + "', '" + newTableName + "';";
