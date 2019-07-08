@@ -470,13 +470,17 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				if(retArr.size() == 0) {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = new Object[numColumns];
-						values[colNum] = data[i];
+						if(data[i] != Integer.MIN_VALUE) {
+							values[colNum] = data[i];
+						}
 						retArr.add(values);
 					}
 				} else {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = retArr.get(i);
-						values[colNum] = data[i];
+						if(data[i] != Integer.MIN_VALUE) {
+							values[colNum] = data[i];
+						}
 					}
 				}
 			} else if(typeInt == REXP.XT_ARRAY_STR) {
