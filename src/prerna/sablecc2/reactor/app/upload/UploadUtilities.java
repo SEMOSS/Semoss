@@ -1036,7 +1036,7 @@ public class UploadUtilities {
 		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
 			connectionUrl = "jdbc:sqlite:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database.sqlite";
 		} else {
-			connectionUrl = "jdbc:h2:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			connectionUrl = "jdbc:h2:nio:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
@@ -1163,7 +1163,6 @@ public class UploadUtilities {
 				newPixel += "} </encode>\" ) ;";
 				String[] pkqlRecipeToSave = {newPixel};
 				admin.addInsight(insightName, layout, pkqlRecipeToSave);
-				insightEngine.commit();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
