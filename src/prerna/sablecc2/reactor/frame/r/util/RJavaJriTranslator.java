@@ -470,6 +470,8 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				if(retArr.size() == 0) {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = new Object[numColumns];
+						// unlike double, this doesn't return NA 
+						// and instead returns min integer value
 						if(data[i] != Integer.MIN_VALUE) {
 							values[colNum] = data[i];
 						}
@@ -478,6 +480,8 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 				} else {
 					for(int i = 0; i < data.length; i++) {
 						Object[] values = retArr.get(i);
+						// unlike double, this doesn't return NA 
+						// and instead returns min integer value
 						if(data[i] != Integer.MIN_VALUE) {
 							values[colNum] = data[i];
 						}
