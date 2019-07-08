@@ -505,6 +505,7 @@ public class Constants {
 	
 	// all frame limit
 	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";
+	public static final String DEFAULT_FRAME_TYPE = "DEFAULT_FRAME_TYPE";
 	
 	// h2 frame limit size before going on disk
 	public static final String H2_IN_MEM_SIZE = "H2_IN_MEM_SIZE";
