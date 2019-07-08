@@ -1,15 +1,11 @@
 package prerna.engine.impl.app;
 
-import java.util.Hashtable;
-import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -31,24 +27,9 @@ public class AppEngine extends AbstractEngine {
 		this.engineId = this.prop.getProperty(Constants.ENGINE);
 		this.engineName = this.prop.getProperty(Constants.ENGINE_ALIAS);
 		
-		// since the URL is most likely parameterized for sharing
-		// create the param hash to fill it in
-		Hashtable <String, String> paramHash = new Hashtable <String, String>();
-		paramHash.put("BaseFolder", baseFolder);
-		paramHash.put(Constants.ENGINE, SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		String insightDatabaseLoc = prop.getProperty(Constants.RDBMS_INSIGHTS);
-		insightDatabaseLoc = Utility.fillParam2(insightDatabaseLoc, paramHash);
-
-		// now open up and set the insights rdbms
-		this.insightRDBMS = new RDBMSNativeEngine();
-		Properties prop = new Properties();
-		prop.put(Constants.DRIVER, insightDriver);
-		prop.put(Constants.RDBMS_TYPE, insightRDBMSType);
-		String connURL = connectionURLStart + baseFolder + "/" + insightDatabaseLoc + connectionURLEnd;
-		prop.put(Constants.CONNECTION_URL, connURL);
-		prop.put(Constants.USERNAME, insightUsername);
-		this.insightRDBMS.setProp(prop);
-		this.insightRDBMS.openDB(null);
+		// only need to load the insights database
+		// there is no data in this app - so no OWL
+		this.loadInsightsRdbms();
 	}
 	
 	@Override
@@ -74,7 +55,6 @@ public class AppEngine extends AbstractEngine {
 	
 	@Override
 	public Object execQuery(String query) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -85,7 +65,6 @@ public class AppEngine extends AbstractEngine {
 
 	@Override
 	public Vector<Object> getEntityOfType(String type) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

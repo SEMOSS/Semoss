@@ -13,9 +13,9 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -100,7 +100,7 @@ public class GenerateEmptyAppReactor extends AbstractReactor {
 		logger.info("Done generating app folder");
 
 		logger.info("Start generating insights database");
-		IEngine insightDb = UploadUtilities.generateInsightsDatabase(appId, appName);
+		RDBMSNativeEngine insightDb = UploadUtilities.generateInsightsDatabase(appId, appName);
 		logger.info("Done generating insights database");
 
 		// add to DIHelper so we dont auto load with the file watcher
