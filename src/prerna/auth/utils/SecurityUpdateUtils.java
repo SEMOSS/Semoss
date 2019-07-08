@@ -348,9 +348,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			e.printStackTrace();
 		}
 //		//TODO: add the other tables...
-		if(AbstractSecurityUtils.securityEnabled){
-			removeDb(appId);
-		}
 	}
 	
 	
@@ -718,19 +715,4 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		
 		return true;
 	}
-	
-	/**
-	 * Remove a database and all the permissions related to it.
-	 * @param engineName
-	 */
-	public static void removeDb(String engineId) {
-		//DELETE USERPERMISSIONS
-		String query = "DELETE FROM ENGINEPERMISSION WHERE ENGINEID = '?1'; DELETE FROM GROUPENGINEPERMISSION WHERE ENGINE = '?1'; DELETE FROM ENGINE WHERE ENGINEID = '?1'";
-		query = query.replace("?1", engineId);
-		
-		System.out.println("Executing security query: " + query);
-		securityDb.execUpdateAndRetrieveStatement(query, true);
-		securityDb.commit();
-	}
-
 }
