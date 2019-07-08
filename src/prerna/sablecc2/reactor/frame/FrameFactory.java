@@ -10,13 +10,26 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 public class FrameFactory {
 
 	private static final String CLASS_NAME = FrameFactory.class.getName();
+	// this is so we only grab from DIHelper once
+	private static boolean INIT = false;
+	// grab default frame
+	private static String DEFAULT_FRAME_TYPE = null;
 	
 	public static ITableDataFrame getFrame(Insight insight, String frameType, String alias) {
 		Logger logger = null;
+		if(!INIT) {
+			init();
+		}
+		
+		if(frameType.toUpperCase().equals("DEFAULT")) {
+			frameType = DEFAULT_FRAME_TYPE;
+		}
 		switch (frameType.toUpperCase()) {
 			case "GRID": { 
 				return new H2Frame(alias); 
@@ -88,6 +101,12 @@ public class FrameFactory {
 		}
 	}
 	
+	private static void init() {
+		DEFAULT_FRAME_TYPE =  DIHelper.getInstance().getProperty(Constants.DEFAULT_FRAME_TYPE);
+		INIT = true;
+		
+	}
+
 	public static String getFrameType(ITableDataFrame frame) {
 		if(frame instanceof H2Frame) {
 			return "GRID";
