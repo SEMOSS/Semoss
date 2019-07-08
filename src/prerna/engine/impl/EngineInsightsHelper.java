@@ -62,7 +62,7 @@ public class EngineInsightsHelper {
 			prop.put(Constants.USERNAME, "");
 			prop.put(Constants.PASSWORD, "");
 		} else {
-			connURL = rdbmsInsightsType.getUrlPrefix() + ":nio:" + insightDatabaseLoc;
+			connURL = rdbmsInsightsType.getUrlPrefix() + ":nio:" + insightDatabaseLoc.replace(".mv.db", "");
 			prop.put(Constants.USERNAME, "sa");
 			prop.put(Constants.PASSWORD, "");
 		}
