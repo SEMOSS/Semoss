@@ -20,7 +20,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import prerna.auth.User;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelParsing;
@@ -110,7 +109,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		IEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
+		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		logger.info(stepCounter + ". Complete");

@@ -19,6 +19,8 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 		return "`" + selector + "`";
 	}
 	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
 	@Override
 	public boolean allowIfExistsModifyColumnSyntax() {
 		return false;
@@ -28,6 +30,8 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	public boolean allowIfExistsIndexSyntax() {
 		return false;
 	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
 	
 	@Override
 	public String modColumnType(String tableName, String columnName, String dataType) {

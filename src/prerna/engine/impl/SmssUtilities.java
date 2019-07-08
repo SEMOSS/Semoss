@@ -5,6 +5,7 @@ import java.util.Properties;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class SmssUtilities {
 
@@ -41,11 +42,22 @@ public class SmssUtilities {
 		if(prop.getProperty(Constants.RDBMS_INSIGHTS) == null) {
 			return null;
 		}
+		String rdbmsInsightsType = prop.getProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsInsightsType);
+
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		String rdbmsInsights = baseFolder + DIR_SEPARATOR + prop.getProperty(Constants.RDBMS_INSIGHTS);
 		String engineId = prop.getProperty(Constants.ENGINE);
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
-		File rdbms = new File(rdbmsInsights.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)) + ".mv.db");
+		
+		rdbmsInsights = rdbmsInsights.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId));
+		File rdbms = null;
+		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
+			rdbms = new File(rdbmsInsights + ".sqlite");
+		} else {
+			// must be H2
+			rdbms = new File(rdbmsInsights + ".mv.db");
+		}
 		return rdbms;
 	}
 	
