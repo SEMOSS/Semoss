@@ -2505,6 +2505,10 @@ public class Utility {
 		return retString;
 	}
 	
+	public static boolean engineLoaded(String engineId) {
+		return DIHelper.getInstance().getLocalProp(engineId) != null; 
+	}
+	
 	/**
 	 * 
 	 * @param engineId - engine to get
