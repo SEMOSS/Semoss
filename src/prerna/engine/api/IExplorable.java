@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -119,9 +120,9 @@ public interface IExplorable {
 	// REFAC: Change this to engine
 	Object execOntoSelectQuery(String query);
 	
-	IEngine getInsightDatabase();
+	RDBMSNativeEngine getInsightDatabase();
 
-	void setInsightDatabase(IEngine insightDatabase);
+	void setInsightDatabase(RDBMSNativeEngine insightDatabase);
 	
 	String getInsightDefinition();
 	

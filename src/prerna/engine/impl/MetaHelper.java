@@ -179,7 +179,7 @@ public class MetaHelper implements IExplorable {
 	}
 
 	@Override
-	public IEngine getInsightDatabase() {
+	public RDBMSNativeEngine getInsightDatabase() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -538,7 +538,7 @@ public class MetaHelper implements IExplorable {
 	}
 	
 	@Override
-	public void setInsightDatabase(IEngine insightDatabase) {
+	public void setInsightDatabase(RDBMSNativeEngine insightDatabase) {
 		// TODO Auto-generated method stub
 		
 	}

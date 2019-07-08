@@ -6,6 +6,7 @@ import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 
 public class RDFEngineCreationHelper {
@@ -59,7 +60,7 @@ public class RDFEngineCreationHelper {
 	 */
 	public static void insertNewSelectConceptsAsInsights(IEngine rdfEngine, Set<String> conceptualNames) {
 		String engineId = rdfEngine.getEngineId();
-		IEngine insightsDatabase = rdfEngine.getInsightDatabase();
+		RDBMSNativeEngine insightsDatabase = rdfEngine.getInsightDatabase();
 		InsightAdministrator admin = new InsightAdministrator(insightsDatabase);
 		
 		//determine the # where the new questions should start

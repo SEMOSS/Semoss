@@ -329,9 +329,6 @@ public class Constants {
 	public static final String SOA_TRANSITION_ALL_GENERIC_BLU_QUERY = "SOA_TRANSITION_ALL_GENERIC_BLU_QUERY";
 	public static final String SOA_TRANSITION_ALL_BLU_QUERY = "SOA_TRANSITION_ALL_BLU_QUERY";
 
-	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
-	public static final String RDBMS_INSIGHTS_CONNECTION_URL_END = "RDBMS_INSIGHTS_CONNECTION_URL_END";
-	
 	public static final String PERSPECTIVE_SELECTOR = "perspectiveSelector";
 
 	public static final String BROWSER_TYPE = "BROWSER_TYPE";
@@ -369,8 +366,9 @@ public class Constants {
 
 	public static final String GLITEM_SITE_LOADING_SHEET = "Site_HWSW_GLItems.xlsx";
 	public static final String OWL = "OWL";
-	public static final String PIXEL_UPDATE = "PIXEL_UPDATE";
 	public static final String DB = "DB";
+	@Deprecated
+	public static final String PIXEL_UPDATE = "PIXEL_UPDATE";
 	
 	public static final String URL_PARAM = "URL_PARAM";
 	public static final String PROPS = "PROPS";
@@ -480,6 +478,12 @@ public class Constants {
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@" + System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
 			+ System.getProperty("file.separator") + "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
 	
+	// default rdbms insights type
+	public static final String RDBMS_INSIGHTS = "RDBMS_INSIGHTS";
+	public static final String RDBMS_INSIGHTS_TYPE = "RDBMS_INSIGHTS_TYPE";
+	public static final String RDBMS_INSIGHTS_CONNECTION_URL_END = "RDBMS_INSIGHTS_CONNECTION_URL_END";
+	public static final String DEFAULT_INSIGHTS_RDBMS = "DEFAULT_INSIGHTS_RDBMS";
+
 	//SOLR specific
 	public static final String RELOAD_INSIGHTS = "RELOAD_INSIGHTS";
 //	public static final String SOLR_RELOAD = "SOLR_RELOAD";
@@ -494,17 +498,15 @@ public class Constants {
 	public static final String NAME = "NAME";
 	
 	public static final String STORE = "STORE";
-	public static final String INSIGHTS_DB = "RDBMS_INSIGHTS";
-	public static final String DEFAULT_INSIGHT_DRIVER = "org.h2.Driver";
-	public static final String DEFAULT_RDBMS_TYPE = "H2_DB";
-	
+
 	// prohibited headers
 	public static final String PROBHIBITED_HEADERS = "PROBHIBITED_HEADERS";
 	// keywords 
 	public static final String KEYWORDS_SUFFIX = "_KEYWORDS";
-	
+
 	// all frame limit
 	public static final String FRAME_SIZE_LIMIT = "FRAME_SIZE_LIMIT";
+	// default frame type for the application
 	public static final String DEFAULT_FRAME_TYPE = "DEFAULT_FRAME_TYPE";
 	
 	// h2 frame limit size before going on disk

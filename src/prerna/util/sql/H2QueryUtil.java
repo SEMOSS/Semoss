@@ -33,7 +33,7 @@ import java.sql.Statement;
 
 public class H2QueryUtil extends AnsiSqlQueryUtil {
 	
-	public H2QueryUtil() {
+	H2QueryUtil() {
 		super();
 	}
 	

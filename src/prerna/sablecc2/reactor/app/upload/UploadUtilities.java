@@ -53,6 +53,7 @@ import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -985,6 +986,12 @@ public class UploadUtilities {
 		bufferedWriter.write(Constants.ENGINE_TYPE + tab + engineClassName + newLine);
 		// write insights rdbms
 		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
+		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+		if(rdbmsTypeStr == null) {
+			// default will be h2
+			rdbmsTypeStr = "H2_DB";
+		}
+		bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
 		// write owl
 		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(SmssUtilities.getUniqueName(appName, appId), SmssUtilities.ENGINE_REPLACEMENT);
 		bufferedWriter.write(Constants.OWL + tab + paramOwlLoc + newLine);
@@ -1016,14 +1023,21 @@ public class UploadUtilities {
 	
 	/**
 	 * Get the default connection url for the insights database
-	 * NOTE : THIS IS HARD CODED FOR H2
+	 * NOTE : ONLY ALLOWING FOR H2 OR SQLITE STORAGE OPTIONS AT THE MOMENT
 	 * NOTE : THIS IS THE ACTUAL FULL CONNECITON URL
+	 * TODO: expand how we store this information to be able to keep in another database option / shared database
 	 * @param appName
 	 * @return
 	 */
-	public static String getInsightDatabaseConnectionUrl(String appId, String appName) {
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String connectionUrl = "jdbc:h2:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+	private static String getNewInsightDatabaseConnectionUrl(RdbmsTypeEnum rdbmsType, String appId, String appName) {
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		
+		String connectionUrl = null;
+		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
+			connectionUrl = "jdbc:sqlite:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database.sqlite";
+		} else {
+			connectionUrl = "jdbc:h2:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
 		return connectionUrl;
@@ -1034,26 +1048,40 @@ public class UploadUtilities {
 	 * @param appName
 	 * @return
 	 */
-	public static IEngine generateInsightsDatabase(String appId, String appName) {
+	public static RDBMSNativeEngine generateInsightsDatabase(String appId, String appName) {
+		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+		if(rdbmsTypeStr == null) {
+			// default will be h2
+			rdbmsTypeStr = "H2_DB";
+		}
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+		
 		Properties prop = new Properties();
 
 		/*
-		 * This has hard coded defaults for h2!
+		 * This must be either H2 or SQLite
 		 */
 		
-		String connectionUrl = getInsightDatabaseConnectionUrl(appId, appName);
+		String connectionUrl = getNewInsightDatabaseConnectionUrl(rdbmsType, appId, appName);
 		prop.put(Constants.CONNECTION_URL, connectionUrl);
-		prop.put(Constants.USERNAME, "sa");
-		prop.put(Constants.PASSWORD, "");
-		prop.put(Constants.DRIVER, RdbmsTypeEnum.H2_DB.getDriver());
-		prop.put(Constants.RDBMS_TYPE, RdbmsTypeEnum.H2_DB.getLabel());
+		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
+			// sqlite has no username/password
+			prop.put(Constants.USERNAME, "");
+			prop.put(Constants.PASSWORD, "");
+		} else {
+			prop.put(Constants.USERNAME, "sa");
+			prop.put(Constants.PASSWORD, "");
+		}
+		prop.put(Constants.DRIVER, rdbmsType.getDriver());
+		prop.put(Constants.RDBMS_TYPE, rdbmsType.getLabel());
 		prop.put("TEMP", "TRUE");
 		RDBMSNativeEngine insightEngine = new RDBMSNativeEngine();
 		insightEngine.setProp(prop);
 		// opening will work since we directly injected the prop map
 		// this way i do not need to write it to disk and then recreate it later
 		insightEngine.openDB(null);
-
+		insightEngine.setBasic(true);
+		
 		runInsightCreateTableQueries(insightEngine);
 		return insightEngine;
 	}
@@ -1064,71 +1092,52 @@ public class UploadUtilities {
 	 */
 	public static void runInsightCreateTableQueries(RDBMSNativeEngine insightEngine) {
 		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255), QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225), QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP CLOB, QUESTION_PROPERTIES CLOB, QUESTION_OWL CLOB, QUESTION_IS_DB_QUERY BOOLEAN, DATA_TABLE_ALIGN VARCHAR(500), QUESTION_PKQL ARRAY)
-		String questionTableCreate = "CREATE TABLE QUESTION_ID ("
-				+ "ID VARCHAR(50), "
-				+ "QUESTION_NAME VARCHAR(255), "
-				+ "QUESTION_PERSPECTIVE VARCHAR(225), "
-				+ "QUESTION_LAYOUT VARCHAR(225), "
-				+ "QUESTION_ORDER INT, "
-				+ "QUESTION_DATA_MAKER VARCHAR(225), "
-				+ "QUESTION_MAKEUP CLOB, "
-				
-				// THESE COLUMNS ARE NOT USED ANYWHERE, EVEN IN LEGACY CODE!
-//				+ "QUESTION_PROPERTIES CLOB, "
-//				+ "QUESTION_OWL CLOB, "
-//				+ "QUESTION_IS_DB_QUERY BOOLEAN, "
-
-				+ "DATA_TABLE_ALIGN VARCHAR(500), "
-				+ "HIDDEN_INSIGHT BOOLEAN, "
-				+ "CACHEABLE BOOLEAN, "
-				+ "QUESTION_PKQL ARRAY)";
-
+		AbstractRdbmsQueryUtil queryUtil = insightEngine.getQueryUtil();
+		String[] columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
+				"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL"};
+		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "CLOB",
+				"VARCHAR(500)", "BOOLEAN", "BOOLEAN", "ARRAY"};
+		// this is annoying
+		// need to adjust if the engine allows array data types
+		if(!queryUtil.allowArrayDatatype()) {
+			types[types.length-1] = "CLOB";
+		}
 		try {
-			insightEngine.insertData(questionTableCreate);
+			insightEngine.insertData(queryUtil.createTable("QUESTION_ID", columns, types));
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
+		
+		/*
+		 * NOTE : THESE TABLES ARE LEGACY!!!!
+		 */
+		
 		{
-
 			/*
-			 * NOTE : THESE TABLES ARE LEGACY!!!!
+			 * Whenever we are finally done / have removed all our playsheet insights
+			 * We can officially delete this portion
 			 */
-
+			
 			// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
-			String parameterTableCreate = "CREATE TABLE PARAMETER_ID ("
-					+ "PARAMETER_ID VARCHAR(255), "
-					+ "PARAMETER_LABEL VARCHAR(255), "
-					+ "PARAMETER_TYPE VARCHAR(225), "
-					+ "PARAMETER_DEPENDENCY VARCHAR(225), "
-					+ "PARAMETER_QUERY VARCHAR(2000), "
-					+ "PARAMETER_OPTIONS VARCHAR(2000), "
-					+ "PARAMETER_IS_DB_QUERY BOOLEAN, "
-					+ "PARAMETER_MULTI_SELECT BOOLEAN, "
-					+ "PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), "
-					+ "PARAMETER_VIEW_TYPE VARCHAR(255), "
-					+ "QUESTION_ID_FK INT)";
-	
+			columns = new String[]{"PARAMETER_ID", "PARAMETER_LABEL", "PARAMETER_TYPE", "PARAMETER_DEPENDENCY", "PARAMETER_QUERY", 
+					"PARAMETER_OPTIONS", "PARAMETER_IS_DB_QUERY", "PARAMETER_MULTI_SELECT", "PARAMETER_COMPONENT_FILTER_ID", "PARAMETER_VIEW_TYPE", "QUESTION_ID_FK"};
+			types = new String[]{"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(2000)", "BOOLEAN",
+					"BOOLEAN", "VARCHAR(255)", "VARCHAR(255)", "INT"};
 			try {
-				insightEngine.insertData(parameterTableCreate);
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-
-			String feTableCreate = "CREATE TABLE UI ("
-					+ "QUESTION_ID_FK INT, "
-					+ "UI_DATA CLOB)";
-	
-			try {
-				insightEngine.insertData(feTableCreate);
+				insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 			
-			/*
-			 * DONE WITH LEGACY TABLES
-			 */
+			columns = new String[]{"QUESTION_ID_FK", "UI_DATA"};
+			types = new String[]{"INT", "CLOB"};
+			try {
+				insightEngine.insertData(queryUtil.createTable("UI", columns, types));
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
+		
 		
 		insightEngine.commit();
 	}
@@ -1138,7 +1147,7 @@ public class UploadUtilities {
 	 * @param appId
 	 * @param insightEngine
 	 */
-	public static void addExploreInstanceInsight(String appId, IEngine insightEngine) {
+	public static void addExploreInstanceInsight(String appId, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = "Explore an instance of a selected node type";
 		String layout = "Graph";
@@ -1167,7 +1176,7 @@ public class UploadUtilities {
 	 * @param appId
 	 * @param insightEngine
 	 */
-	public static void addAuditModificationView(String appId, IEngine insightEngine) {
+	public static void addAuditModificationView(String appId, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = "What are the modifications made to specific column(s)?";
 		String layout = "Bar";
@@ -1196,7 +1205,7 @@ public class UploadUtilities {
 	 * @param appId
 	 * @param insightEngine
 	 */
-	public static void addAuditTimelineView(String appId, IEngine insightEngine) {
+	public static void addAuditTimelineView(String appId, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = "What are the modifications made to the specific column(s) over time?";
 		String layout = "Line";
@@ -1226,7 +1235,7 @@ public class UploadUtilities {
 	 * @param owl
 	 * @param headers
 	 */
-	public static void addInsertFormInsight(String appId, IEngine insightEngine, OWLER owl, String[] headers) {
+	public static void addInsertFormInsight(String appId, RDBMSNativeEngine insightEngine, OWLER owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owl);
 		// assuming single sheet
@@ -1250,7 +1259,7 @@ public class UploadUtilities {
 	 * @param propMap
 	 * @param headers
 	 */
-	public static void addInsertFormInsight(IEngine insightDatabase, String appId, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
+	public static void addInsertFormInsight(RDBMSNativeEngine insightDatabase, String appId, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		Map<String, Map<String, SemossDataType>> metamodel = new HashMap<>();
 		metamodel.put(sheetName, propMap);
@@ -1273,7 +1282,7 @@ public class UploadUtilities {
 	 * @param sheetName
 	 * @param dataValidationMap
 	 */
-	public static void addInsertFormInsight(IEngine insightEngine, String appId, String sheetName, Map<String, Object> widgetJson) {
+	public static void addInsertFormInsight(RDBMSNativeEngine insightEngine, String appId, String sheetName, Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = getInsightFormName(sheetName);
 		String layout = "default-handle";
@@ -1439,7 +1448,7 @@ public class UploadUtilities {
 	 * @param owl
 	 * @param appId
 	 */
-	public static void addUpdateInsights(IEngine insightDatabase, OWLER owl, String appId) {
+	public static void addUpdateInsights(RDBMSNativeEngine insightDatabase, OWLER owl, String appId) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		Map<String, Map<String, SemossDataType>> existingMetamodel = getExistingMetamodel(owl);
 		for (String concept : existingMetamodel.keySet()) {
@@ -1464,8 +1473,7 @@ public class UploadUtilities {
 	 * @param concept
 	 * @param propMap
 	 */
-	public static void addUpdateInsights(IEngine insightDatabase, OWLER owl, String appId, String concept,
-			Map<String, SemossDataType> propMap) {
+	public static void addUpdateInsights(RDBMSNativeEngine insightDatabase, OWLER owl, String appId, String concept, Map<String, SemossDataType> propMap) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		String insightName = "Update " + concept;
 		String layout = "grid-delta";
@@ -1485,8 +1493,7 @@ public class UploadUtilities {
 	 * @param sheetName
 	 * @param updateForm
 	 */
-	public static void addUpdateInsights(IEngine insightDatabase, String appId, String sheetName,
-			Map<String, Object> updateForm) {
+	public static void addUpdateInsights(RDBMSNativeEngine insightDatabase, String appId, String sheetName, Map<String, Object> updateForm) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		String insightName = "Update " + sheetName;
 		String layout = "grid-delta";

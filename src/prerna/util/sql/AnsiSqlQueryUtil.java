@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
-import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 
@@ -13,11 +12,11 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		super();
 	}
 	
-	public AnsiSqlQueryUtil(String connectionUrl, String username, String password) {
+	AnsiSqlQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 	}
 	
-	public AnsiSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
+	AnsiSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		super(dbType, hostname, port, schema, username, password);
 	}
 	
@@ -139,12 +138,6 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 		return "REGEXP_LIKE";
 	}
 	
-	@Override
-	public void preProcessFunctionSelector(QueryFunctionSelector selector) {
-		// nothing to do for base
-		
-	}
-
 	/////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
@@ -184,6 +177,11 @@ public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
 	 * in the "if exists" methods so that the implementations that override these
 	 * methods only need to override these booleans and not every subsequent method
 	 */
+	
+	@Override
+	public boolean allowArrayDatatype() {
+		return true;
+	}
 	
 	@Override
 	public boolean allowAddColumn() {

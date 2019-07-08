@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 public abstract class AbstractRdbmsQueryUtil {
 
@@ -207,11 +206,6 @@ public abstract class AbstractRdbmsQueryUtil {
 	
 	public abstract String getRegexLikeFunctionSyntax();
 	
-	/**
-	 * Function to perform any necessary preprocessing for the functions
-	 */
-	public abstract void preProcessFunctionSelector(QueryFunctionSelector selector);
-	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
@@ -237,6 +231,12 @@ public abstract class AbstractRdbmsQueryUtil {
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * Does the RDBMS type support array data types
+	 * @return
+	 */
+	public abstract boolean allowArrayDatatype();
+	
 	/**
 	 * Does the engine allow you to add a column to an existing table
 	 * @return

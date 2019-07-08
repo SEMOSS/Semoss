@@ -25,10 +25,14 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 		return query;
 	}
 	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
 	@Override
 	public boolean allowIfExistsModifyColumnSyntax() {
 		return false;
 	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
 	
 	@Override
 	public String modColumnType(String tableName, String columnName, String dataType) {
