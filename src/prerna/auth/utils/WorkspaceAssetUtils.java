@@ -16,6 +16,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -101,7 +102,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		appFolder.mkdirs();
 		
 		// Create the insights database
-		IEngine insightDb = UploadUtilities.generateInsightsDatabase(appId, appName);
+		RDBMSNativeEngine insightDb = UploadUtilities.generateInsightsDatabase(appId, appName);
 
 		// Add database into DIHelper so that the web watcher doesn't try to load as well
 		File tempSmss = UploadUtilities.createTemporaryAppSmss(appId, appName);

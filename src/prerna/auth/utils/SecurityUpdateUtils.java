@@ -1,8 +1,8 @@
 package prerna.auth.utils;
 
-import java.io.File;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -20,14 +20,13 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.InsightsDatabaseUpdater3CacheableColumn;
-import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.EngineInsightsHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.reactor.app.upload.UploadUtilities;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -101,35 +100,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		
 		LOGGER.info("Security database going to add app with alias = " + appName);
-
-		boolean loadedEngine = false;
-		RDBMSNativeEngine rne = new RDBMSNativeEngine();
-		File dbfile = SmssUtilities.getInsightsRdbmsFile(prop);
-		if(!dbfile.exists()) {
-			rne = (RDBMSNativeEngine) UploadUtilities.generateInsightsDatabase(appId, appName);
-			UploadUtilities.addExploreInstanceInsight(appId, rne);
-		} else {
-			rne = new RDBMSNativeEngine();
-			String jdbcURL = "jdbc:h2:" + dbfile.getAbsolutePath().replace(".mv.db", "") + ";query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
-			String userName = "sa";
-			String password = "";
-			rne.setEngineId(appId + "_InsightsRDBMS");
-			boolean connected = rne.makeConnection("org.h2.Driver", jdbcURL, userName, password);
-			if (!connected) {
-				// If the connection failed, then try and pull the insight database from the engine itself
-				loadedEngine = true;
-				rne = (RDBMSNativeEngine) Utility.getEngine(appId).getInsightDatabase();
-			}
-			
-			// THIS IS FOR LEGACY !!!!
-			// TODO: EVENTUALLY WE WILL DELETE THIS
-			// TODO: EVENTUALLY WE WILL DELETE THIS
-			// TODO: EVENTUALLY WE WILL DELETE THIS
-			// TODO: EVENTUALLY WE WILL DELETE THIS
-			// TODO: EVENTUALLY WE WILL DELETE THIS
-			InsightsDatabaseUpdater3CacheableColumn.update(appId, rne);
-		}
-		rne.setBasic(true);
+		
+		// load just the insights database
+		RDBMSNativeEngine rne = EngineInsightsHelper.loadInsightsEngine(prop, LOGGER);
 
 		// i need to delete any current insights for the app
 		// before i start to insert new insights
@@ -166,6 +139,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		int count = 0;
 		
 		LocalDateTime now = LocalDateTime.now();
+		Timestamp timeStamp = java.sql.Timestamp.valueOf(now);
 		
 //		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
@@ -176,7 +150,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__QUESTION_LAYOUT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__HIDDEN_INSIGHT"));
 		qs.addSelector(new QueryColumnSelector("QUESTION_ID__CACHEABLE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", "FALSE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
@@ -187,8 +161,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.setString(3, row[1].toString());
 				ps.setBoolean(4, !((boolean) row[3]));
 				ps.setLong(5, 0);
-				ps.setTimestamp(6, java.sql.Timestamp.valueOf(now));
-				ps.setTimestamp(7, java.sql.Timestamp.valueOf(now));
+				ps.setTimestamp(6, timeStamp);
+				ps.setTimestamp(7, timeStamp);
 				ps.setString(8, row[2].toString());
 				ps.setBoolean(9, (boolean) row[4]);
 				ps.addBatch();
@@ -223,7 +197,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		// close the connection to the insights
 		// database since we will need to open it when we 
 		// load the actual engine
-		if(!loadedEngine && rne != null) {
+		if(rne != null) {
 			rne.closeDB();
 		}
 		

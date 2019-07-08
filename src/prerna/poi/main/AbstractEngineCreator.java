@@ -102,8 +102,7 @@ public class AbstractEngineCreator {
 		
 		// create the insight database
 		if(engine.getInsightDatabase() == null) {
-			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-			engine.setInsightDatabase(insightDatabase);
+			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
 		}
 	}
 
@@ -124,8 +123,7 @@ public class AbstractEngineCreator {
 		
 		// create the insight database
 		if(engine.getInsightDatabase() == null) {
-			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-			engine.setInsightDatabase(insightDatabase);
+			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
 		}
 	}
 	
@@ -137,8 +135,7 @@ public class AbstractEngineCreator {
 		
 		// create the insight database
 		if(engine.getInsightDatabase() == null) {
-			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-			engine.setInsightDatabase(insightDatabase);
+			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
 		}
 	}
 	
@@ -150,8 +147,7 @@ public class AbstractEngineCreator {
 		
 		// create the insight database
 		if(engine.getInsightDatabase() == null) {
-			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-			engine.setInsightDatabase(insightDatabase);
+			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
 		}
 	}
 	
@@ -193,8 +189,7 @@ public class AbstractEngineCreator {
 		
 		// create the insight database
 		if(engine.getInsightDatabase() == null) {
-			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-			engine.setInsightDatabase(insightDatabase);
+			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
 		}
 	}
 
@@ -225,8 +220,7 @@ public class AbstractEngineCreator {
 
 		// create the insight database
 		if(engine.getInsightDatabase() == null) {
-			IEngine insightDatabase = createNewInsightsDatabase(appName, appID);
-			engine.setInsightDatabase(insightDatabase);
+			engine.setInsightDatabase(createNewInsightsDatabase(appName, appID));
 		}
 	}
 
@@ -338,8 +332,8 @@ public class AbstractEngineCreator {
 
 	}
 	
-	protected IEngine createNewInsightsDatabase(String appName, String appId) {
-		IEngine insightEngine = UploadUtilities.generateInsightsDatabase(appId, appName);
+	protected RDBMSNativeEngine createNewInsightsDatabase(String appName, String appId) {
+		RDBMSNativeEngine insightEngine = UploadUtilities.generateInsightsDatabase(appId, appName);
 		UploadUtilities.addExploreInstanceInsight(appId, insightEngine);
 		return insightEngine;
 	}

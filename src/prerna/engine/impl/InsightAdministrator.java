@@ -7,8 +7,11 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.sql.AbstractRdbmsQueryUtil;
 
 public class InsightAdministrator {
 
@@ -21,10 +24,17 @@ public class InsightAdministrator {
 	private static final String HIDDEN_INSIGHT_COL = "HIDDEN_INSIGHT";
 	private static final String CACHEABLE_COL = "CACHEABLE";
 
-	private IEngine insightEngine;
+	private static Gson gson = new Gson();
+
+	private RDBMSNativeEngine insightEngine;
+	private AbstractRdbmsQueryUtil queryUtil;
+	private boolean allowArrayDatatype;
+
 	
-	public InsightAdministrator(IEngine insightEngine) {
+	public InsightAdministrator(RDBMSNativeEngine insightEngine) {
 		this.insightEngine = insightEngine;
+		this.queryUtil = this.insightEngine.getQueryUtil();
+		this.allowArrayDatatype = this.queryUtil.allowArrayDatatype();
 	}
 
 	/**
@@ -67,7 +77,11 @@ public class InsightAdministrator {
 				.append("'").append(layout).append("', ").append(hidden).append(", true, ");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
-		insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		if(this.allowArrayDatatype) {
+			insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		} else {
+			insertQuery.append(getClobRecipeSyntax(pixelRecipeToSave));
+		}
 		insertQuery.append(");");
 		
 		// now run the query and commit
@@ -102,7 +116,11 @@ public class InsightAdministrator {
 				.append("'").append(layout).append("', ").append(hidden).append(", true, ");
 		// loop through and add the recipe
 		// don't forget to escape each entry in the array
-		insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		if(this.allowArrayDatatype) {
+			insertQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		} else {
+			insertQuery.append(getClobRecipeSyntax(pixelRecipeToSave));
+		}
 		insertQuery.append(");");
 		
 		// now run the query and commit
@@ -142,7 +160,11 @@ public class InsightAdministrator {
 				.append(QUESTION_LAYOUT_COL).append(" = '").append(layout).append("', ")
 				.append(HIDDEN_INSIGHT_COL).append(" = '").append(hidden).append("', ")
 				.append(QUESTION_PKQL_COL).append("=");
-		updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		if(this.allowArrayDatatype) {
+			updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		} else {
+			updateQuery.append(getClobRecipeSyntax(pixelRecipeToSave));
+		}
 		updateQuery.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
 		
 		// now run the query and commit
@@ -165,7 +187,11 @@ public class InsightAdministrator {
 				.append(QUESTION_LAYOUT_COL).append(" = '").append(layout).append("', ")
 				.append(HIDDEN_INSIGHT_COL).append(" = '").append(hidden).append("', ")
 				.append(QUESTION_PKQL_COL).append("=");
-		updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		if(this.allowArrayDatatype) {
+			updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
+		} else {
+			updateQuery.append(getClobRecipeSyntax(pixelRecipeToSave));
+		}
 		updateQuery.append(" WHERE ").append(QUESTION_ID_COL).append(" = '").append(existingRdbmsId).append("'");
 		
 		// now run the query and commit
@@ -289,5 +315,14 @@ public class InsightAdministrator {
 		}
 		sql.append(")");
 		return sql.toString();
+	}
+	
+	public static String getClobRecipeSyntax(String[] pixelRecipeToSave) {
+		String sql = gson.toJson(pixelRecipeToSave);
+		return "'" + RdbmsQueryBuilder.escapeForSQLStatement(sql) + "'";
+	}
+	
+	public static String getClobRecipeSyntax(Collection<String> pixelRecipeToSave) {
+		return getClobRecipeSyntax(pixelRecipeToSave.toArray(new String[]{}));
 	}
 }
