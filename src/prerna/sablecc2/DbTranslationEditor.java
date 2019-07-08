@@ -140,7 +140,7 @@ public class DbTranslationEditor extends DepthFirstAdapter {
 		coreEngine.openDB(engineProp);
 		DIHelper.getInstance().setLocalProperty("Movie", coreEngine);
 
-		IEngine insightEngine = coreEngine.getInsightDatabase();
+		RDBMSNativeEngine insightEngine = coreEngine.getInsightDatabase();
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 
 		// query the insights rdbms and get all the insights
