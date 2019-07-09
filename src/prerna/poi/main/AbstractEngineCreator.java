@@ -23,7 +23,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 
 public class AbstractEngineCreator {
@@ -40,7 +40,7 @@ public class AbstractEngineCreator {
 	protected String dbPropFile;
 
 	// sadly need to keep RDBMS specific object
-	protected AbstractRdbmsQueryUtil queryUtil;
+	protected AbstractSqlQueryUtil queryUtil;
 	// keep conversion from user input to sql datatypes
 	protected Map<String, String> sqlHash = new Hashtable<String, String>();
 	

@@ -70,9 +70,9 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.PersistentHash;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
-import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RDBMSNativeEngine extends AbstractEngine {
@@ -104,7 +104,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private String connectionURL = null;
 	private String schema = null;
 	
-	private AbstractRdbmsQueryUtil queryUtil = null;
+	private AbstractSqlQueryUtil queryUtil = null;
 	
 	private String fileDB = null;
 	private String createString = null;
@@ -213,7 +213,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 				this.engineConnected = true;
 				this.autoCommit = this.engineConn.getAutoCommit();
-				this.queryUtil = RdbmsQueryUtilFactor.initialize(this.dbType, this.connectionURL, this.userName, this.password);
+				this.queryUtil = SqlQueryUtilFactor.initialize(this.dbType, this.connectionURL, this.userName, this.password);
 				this.queryUtil.enhanceConnection(this.engineConn);
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -231,7 +231,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		// default does nothing
 	}
 
-	public AbstractRdbmsQueryUtil getQueryUtil() {
+	public AbstractSqlQueryUtil getQueryUtil() {
 		return this.queryUtil;
 	}
 	
@@ -257,7 +257,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			}
 			this.engineConnected = true;
 			this.autoCommit = this.engineConn.getAutoCommit();
-			this.queryUtil = RdbmsQueryUtilFactor.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
+			this.queryUtil = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.getEnumFromDriver(driver), this.connectionURL, this.userName, this.password);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (SQLException e) {

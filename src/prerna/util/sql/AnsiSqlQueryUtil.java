@@ -6,7 +6,7 @@ import java.util.Iterator;
 
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 
-public class AnsiSqlQueryUtil extends AbstractRdbmsQueryUtil {
+public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 
 	AnsiSqlQueryUtil() {
 		super();

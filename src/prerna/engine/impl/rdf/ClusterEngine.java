@@ -41,9 +41,9 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.H2QueryUtil;
-import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ClusterEngine extends AbstractEngine {
@@ -185,7 +185,7 @@ public class ClusterEngine extends AbstractEngine {
 
 	// TODO: do we really need this?
 	private Properties writePropFile() {
-		AbstractRdbmsQueryUtil queryUtil = RdbmsQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB);
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB);
 		Properties prop = new Properties();
 		String connectionURL = "jdbc:h2:mem:temp";
 		prop.put(Constants.CONNECTION_URL, connectionURL);

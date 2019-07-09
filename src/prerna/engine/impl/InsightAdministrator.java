@@ -11,7 +11,7 @@ import com.google.gson.Gson;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class InsightAdministrator {
 
@@ -27,7 +27,7 @@ public class InsightAdministrator {
 	private static Gson gson = new Gson();
 
 	private RDBMSNativeEngine insightEngine;
-	private AbstractRdbmsQueryUtil queryUtil;
+	private AbstractSqlQueryUtil queryUtil;
 	private boolean allowArrayDatatype;
 
 	
