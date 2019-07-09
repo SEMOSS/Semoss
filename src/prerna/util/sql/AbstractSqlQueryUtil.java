@@ -36,7 +36,7 @@ import java.util.List;
 
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 
-public abstract class AbstractRdbmsQueryUtil {
+public abstract class AbstractSqlQueryUtil {
 
 	protected RdbmsTypeEnum dbType = null;
 	protected String hostname;
@@ -48,17 +48,17 @@ public abstract class AbstractRdbmsQueryUtil {
 
 	protected List<String> reservedWords = null;
 	
-	AbstractRdbmsQueryUtil() {
+	AbstractSqlQueryUtil() {
 		
 	}
 	
-	AbstractRdbmsQueryUtil(String connectionURL, String username, String password) {
+	AbstractSqlQueryUtil(String connectionURL, String username, String password) {
 		this.connectionUrl = connectionURL;
 		this.username = username;
 		this.password = password;
 	}
 	
-	AbstractRdbmsQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
+	AbstractSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		this.dbType = dbType;
 		this.hostname = hostname;
 		this.port = port;

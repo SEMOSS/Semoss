@@ -8,7 +8,7 @@ import java.util.Vector;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
-public class RdbmsQueryUtilFactor {
+public class SqlQueryUtilFactor {
 
 	/**
 	 * List of keywords based on what has been pushed into DIHelper
@@ -20,8 +20,8 @@ public class RdbmsQueryUtilFactor {
 	 * @param dbType
 	 * @return
 	 */
-	public static AbstractRdbmsQueryUtil initialize(RdbmsTypeEnum dbType) {
-		AbstractRdbmsQueryUtil queryUtil = null;
+	public static AbstractSqlQueryUtil initialize(RdbmsTypeEnum dbType) {
+		AbstractSqlQueryUtil queryUtil = null;
 		if(dbType == RdbmsTypeEnum.H2_DB) {
 			queryUtil = new H2QueryUtil();
 		} else if(dbType == RdbmsTypeEnum.MARIADB){
@@ -49,8 +49,8 @@ public class RdbmsQueryUtilFactor {
 		return queryUtil;
 	}
 	
-	public static AbstractRdbmsQueryUtil initialize(RdbmsTypeEnum dbType, String connectionUrl, String username, String password) {
-		AbstractRdbmsQueryUtil queryUtil = null;
+	public static AbstractSqlQueryUtil initialize(RdbmsTypeEnum dbType, String connectionUrl, String username, String password) {
+		AbstractSqlQueryUtil queryUtil = null;
 		if(dbType == RdbmsTypeEnum.H2_DB) {
 			queryUtil = new H2QueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.SQLSERVER){
@@ -76,8 +76,8 @@ public class RdbmsQueryUtilFactor {
 		return queryUtil;
 	}
 	
-	public static AbstractRdbmsQueryUtil initialize(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
-		AbstractRdbmsQueryUtil queryUtil = null;
+	public static AbstractSqlQueryUtil initialize(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
+		AbstractSqlQueryUtil queryUtil = null;
 		if(dbType == RdbmsTypeEnum.H2_DB) {
 			queryUtil = new H2QueryUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == RdbmsTypeEnum.SQLSERVER){
