@@ -36,8 +36,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
-import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.SqlQueryUtilFactor;
 
 public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	
@@ -784,7 +784,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		String indexOnTable = cleanTableKey + " ( " + indexStr + " ) ";
 		String indexName = "INDX_" + cleanTableKey + indexUniqueId;
 		String createIndex = "CREATE INDEX " + indexName + " ON " + indexOnTable;
-		AbstractRdbmsQueryUtil queryUtil = RdbmsQueryUtilFactor.initialize(engine.getDbType());
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactor.initialize(engine.getDbType());
 
 		// "DROP INDEX " + indexName;
 		String dropIndex = queryUtil.dropIndex(indexName, cleanTableKey);

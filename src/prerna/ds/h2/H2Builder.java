@@ -47,12 +47,12 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
-import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.SqlQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class H2Builder {
-	private static AbstractRdbmsQueryUtil queryUtil = RdbmsQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB); 
+	private static AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB); 
 
 	private static final String CLASS_NAME = H2Builder.class.getName();
 	private Logger logger = LogManager.getLogger(CLASS_NAME);

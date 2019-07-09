@@ -10,7 +10,7 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class EngineInsightsHelper {
@@ -73,7 +73,7 @@ public class EngineInsightsHelper {
 		insightsRdbms.openDB(null);
 		insightsRdbms.setEngineId(engineId + "_INSIGHTS_RDBMS");
 		
-		AbstractRdbmsQueryUtil queryUtil = insightsRdbms.getQueryUtil();
+		AbstractSqlQueryUtil queryUtil = insightsRdbms.getQueryUtil();
 		String tableExistsQuery = queryUtil.tableExistsQuery("QUESTION_ID", insightsRdbms.getSchema());
 		boolean tableExists = false;
 		IRawSelectWrapper wrapper = null;
