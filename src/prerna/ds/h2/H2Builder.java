@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -534,7 +535,7 @@ public class H2Builder {
 	 * @return true if table with name tableName exists, false otherwise
 	 */
 	protected boolean tableExists(String tableName) {
-		String query = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "'";
+		String query = queryUtil.tableExistsQuery(tableName, null);
 		Statement stmt = null;
 		ResultSet rs = null;
 		try {
@@ -591,33 +592,19 @@ public class H2Builder {
 	}
 	
 	protected void addColumnIndex(String tableName, String[] colNames) {
-		StringBuilder multiColIndexNameBuilder = new StringBuilder(colNames[0]);
-		for(int i = 1; i < colNames.length; i++) {
-			multiColIndexNameBuilder.append("__").append(colNames[i]);
-		}
-		String multiColIndexName = multiColIndexNameBuilder.toString();
+		String multiColIndexName = StringUtils.join(colNames, "__");
 		if (!multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
-			long start = System.currentTimeMillis();
-
-			StringBuilder indexSqlBuilder = new StringBuilder();
 			logger.info("Generating index on SQL Table columns = " + StringUtils.join(colNames,", "));
-			logger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexNameBuilder);
+			logger.debug("CREATING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexName);
 			try {
-				String indexName = multiColIndexNameBuilder + "_INDEX_" + getNextNumber();
-				indexSqlBuilder.append("CREATE INDEX ").append(indexName).append(" ON ").append(tableName)
-						.append("(").append(colNames[0]);
-				for(int i = 1; i < colNames.length; i++) {
-					indexSqlBuilder.append(",").append(colNames[i]);
-				}
-				indexSqlBuilder.append(")");
-				String indexSql = indexSqlBuilder.toString();
+				long start = System.currentTimeMillis();
+				String indexName = multiColIndexName + "_INDEX_" + getNextNumber();
+				String indexSql = queryUtil.createIndex(indexName, tableName, Arrays.asList(colNames));
 				runQuery(indexSql);
 				multiColumnIndexMap.put(tableName + "+++" + multiColIndexName, indexName);
-				
 				long end = System.currentTimeMillis();
-
 				logger.debug("TIME FOR INDEX CREATION = " + (end - start) + " ms");
-				logger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames,", "));
+				logger.info("Finished generating indices on SQL Table on columns = " + StringUtils.join(colNames, ", "));
 			} catch (Exception e) {
 				logger.debug("ERROR WITH INDEX !!! " + multiColIndexName);
 				e.printStackTrace();
@@ -631,7 +618,7 @@ public class H2Builder {
 			logger.debug("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMN = " + colName);
 			String indexName = columnIndexMap.remove(tableName +  "+++" + colName);
 			try {
-				runQuery("DROP INDEX " + indexName);
+				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -639,16 +626,12 @@ public class H2Builder {
 	}
 	
 	protected void removeColumnIndex(String tableName, String[] colNames) {
-		StringBuilder multiColIndexNameBuilder = new StringBuilder(colNames[0]);
-		for(int i = 1; i < colNames.length; i++) {
-			multiColIndexNameBuilder.append("__").append(colNames[i]);
-		}
-		String multiColIndexName = multiColIndexNameBuilder.toString();
+		String multiColIndexName = StringUtils.join(colNames, "__");
 		if (multiColumnIndexMap.containsKey(tableName + "+++" + multiColIndexName)) {
 			logger.info("DROPPING INDEX ON TABLE = " + tableName + " ON COLUMNS = " + multiColIndexName);
 			String indexName = multiColumnIndexMap.remove(tableName +  "+++" + multiColIndexName);
 			try {
-				runQuery("DROP INDEX " + indexName);
+				runQuery(queryUtil.dropIndex(indexName, tableName));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
