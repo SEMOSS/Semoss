@@ -28,7 +28,7 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
  * @author pkapaleeswaran
@@ -46,7 +46,7 @@ public class MasterDatabaseUtility {
 		String [] types = null;
 		
 		String schema = engine.getSchema();
-		AbstractRdbmsQueryUtil queryUtil = engine.getQueryUtil();
+		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		
@@ -212,7 +212,7 @@ public class MasterDatabaseUtility {
 	}
 	
 	@Deprecated
-	private static void updateMetadataTable(RDBMSNativeEngine engine, Connection conn, AbstractRdbmsQueryUtil queryUtil, String tableName, String schema) throws SQLException {
+	private static void updateMetadataTable(RDBMSNativeEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil, String tableName, String schema) throws SQLException {
 		if(tableExists(engine, queryUtil, tableName, schema)) {
 			boolean allowIfExists = queryUtil.allowIfExistsModifyColumnSyntax();
 			if(queryUtil.allowDropColumn()) {
@@ -242,7 +242,7 @@ public class MasterDatabaseUtility {
 	 * @param schema
 	 * @return
 	 */
-	private static boolean tableExists(RDBMSNativeEngine engine, AbstractRdbmsQueryUtil queryUtil, String tableName, String schema) {
+	private static boolean tableExists(RDBMSNativeEngine engine, AbstractSqlQueryUtil queryUtil, String tableName, String schema) {
 		String tableCheckQ = queryUtil.tableExistsQuery(tableName, schema);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, tableCheckQ);
 		try {
@@ -263,7 +263,7 @@ public class MasterDatabaseUtility {
 	 * @param schema
 	 * @return
 	 */
-	private static boolean indexExists(RDBMSNativeEngine engine, AbstractRdbmsQueryUtil queryUtil, String indexName, String tableName, String schema) {
+	private static boolean indexExists(RDBMSNativeEngine engine, AbstractSqlQueryUtil queryUtil, String indexName, String tableName, String schema) {
 		String indexCheckQ = queryUtil.getIndexDetails(indexName, tableName, schema);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, indexCheckQ);
 		try {

@@ -43,10 +43,10 @@ import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.RdbmsTypeEnum;
-import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.SqlQueryUtilFactor;
 
 /**
  * Creates a folder in user.dir/db that contains the files required for the engine The custom map, smss, and question sheet are all named based on the
@@ -70,7 +70,7 @@ public class PropFileWriter {
 	private String defaultTinkerEngine = "prerna.engine.impl.tinker.TinkerEngine";
 
 	private RdbmsTypeEnum dbDriverType = RdbmsTypeEnum.H2_DB;
-	AbstractRdbmsQueryUtil queryUtil;
+	AbstractSqlQueryUtil queryUtil;
 
 	// additional tinker props
 	private ImportOptions.TINKER_DRIVER tinkerDriverType = ImportOptions.TINKER_DRIVER.TG; //default
@@ -201,7 +201,7 @@ public class PropFileWriter {
 			pw.write(Constants.HIDDEN_DATABASE + "\tfalse\n");
 			if (dbType == ImportOptions.DB_TYPE.RDBMS) {
 				if(this.queryUtil == null) {
-					this.queryUtil = RdbmsQueryUtilFactor.initialize(dbDriverType);
+					this.queryUtil = SqlQueryUtilFactor.initialize(dbDriverType);
 				}
 
 				if(queryUtil.getDbType() == RdbmsTypeEnum.IMPALA) {
@@ -284,7 +284,7 @@ public class PropFileWriter {
 		}
 	}
 
-	public void setSQLQueryUtil(AbstractRdbmsQueryUtil queryUtil) {
+	public void setSQLQueryUtil(AbstractSqlQueryUtil queryUtil) {
 		this.queryUtil = queryUtil;
 	}
 
