@@ -116,18 +116,46 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				} else if(type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL || type == Types.BIGINT) {
 					val = rs.getDouble(colNum);
 				} else if(type == Types.DATE) {
-					Date dVal = rs.getDate(colNum);
-					if(dVal == null) {
-						val = null;
-					} else {
-						val = new SemossDate(dVal, "yyyy-MM-dd");
+					try {
+						Date dVal = rs.getDate(colNum);
+						if(dVal == null) {
+							val = null;
+						} else {
+							val = new SemossDate(dVal, "yyyy-MM-dd");
+						}
+					} catch(Exception e) {
+						// some rdbms do not actually support dates
+						// and just return a string
+						// ex: SQLite
+						try {
+							String dateValStr = rs.getString(colNum);
+							val = new SemossDate(dateValStr, "yyyy-MM-dd");
+						} catch(Exception e2) {
+							// out of luck...
+							e.printStackTrace();
+							e2.printStackTrace();
+						}
 					}
 				} else if(type == Types.TIMESTAMP) {
-					Timestamp dVal = rs.getTimestamp(colNum);
-					if(dVal == null) {
-						val = null;
-					} else {
-						val = new SemossDate(dVal.getTime(), true);
+					try {
+						Timestamp dVal = rs.getTimestamp(colNum);
+						if(dVal == null) {
+							val = null;
+						} else {
+							val = new SemossDate(dVal.getTime(), true);
+						}
+					} catch(Exception e) {
+						// some rdbms do not actually support dates
+						// and just return a string
+						// ex: SQLite
+						try {
+							String dateValStr = rs.getString(colNum);
+							val = new SemossDate(dateValStr, "yyyy-MM-dd HH:mm:ss");
+						} catch(Exception e2) {
+							// out of luck...
+							e.printStackTrace();
+							e2.printStackTrace();
+						}
 					}
 				} else if(type == Types.CLOB) {
 					val = rs.getClob(colNum);
