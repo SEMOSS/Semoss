@@ -35,8 +35,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
-import prerna.util.sql.RdbmsQueryUtilFactor;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.SqlQueryUtilFactor;
 
 public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
@@ -56,7 +56,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	private final String FK = "_FK";
 	protected Map<String, String> objectValueMap = new HashMap<String, String>();
 	protected Map<String, String> objectTypeMap = new HashMap<String, String>();
-	protected AbstractRdbmsQueryUtil queryUtil;
+	protected AbstractSqlQueryUtil queryUtil;
 	protected boolean createIndexes = true; 
 	// What to put in a prop file to grab the current row number
 	protected String rowKey;
@@ -123,7 +123,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 			Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 			String[] headers = (String[]) headerTypesArr[0];
 			SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
-			queryUtil = RdbmsQueryUtilFactor.initialize(((RDBMSNativeEngine) this.engine).getDbType());
+			queryUtil = SqlQueryUtilFactor.initialize(((RDBMSNativeEngine) this.engine).getDbType());
 			logger.info(stepCounter + ". Complete");
 			stepCounter++;
 
@@ -193,7 +193,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
-		queryUtil = RdbmsQueryUtilFactor.initialize(((RDBMSNativeEngine) this.engine).getDbType());
+		queryUtil = SqlQueryUtilFactor.initialize(((RDBMSNativeEngine) this.engine).getDbType());
 		
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get app upload input...");

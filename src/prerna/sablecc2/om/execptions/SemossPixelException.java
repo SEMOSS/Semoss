@@ -7,7 +7,6 @@ public class SemossPixelException extends RuntimeException implements ISemossExc
 
 	private boolean continueThreadOfExecution = true;
 	private NounMetadata noun = null;
-	
 	private String message = null;
 	
 	public SemossPixelException(NounMetadata noun) {
