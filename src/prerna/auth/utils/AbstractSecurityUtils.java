@@ -31,7 +31,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractSecurityUtils {
 
@@ -100,7 +100,7 @@ public abstract class AbstractSecurityUtils {
 		 * Currently used
 		 */
 		
-		AbstractRdbmsQueryUtil queryUtil = securityDb.getQueryUtil();
+		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 		// ENGINE
@@ -467,7 +467,7 @@ public abstract class AbstractSecurityUtils {
 	 * @param schema
 	 * @return
 	 */
-	private static boolean tableExists(AbstractRdbmsQueryUtil queryUtil, String tableName, String schema) {
+	private static boolean tableExists(AbstractSqlQueryUtil queryUtil, String tableName, String schema) {
 		String tableCheckQ = queryUtil.tableExistsQuery(tableName, schema);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, tableCheckQ);
 		try {
@@ -488,7 +488,7 @@ public abstract class AbstractSecurityUtils {
 	 * @param schema
 	 * @return
 	 */
-	private static boolean indexExists(AbstractRdbmsQueryUtil queryUtil, String indexName, String tableName, String schema) {
+	private static boolean indexExists(AbstractSqlQueryUtil queryUtil, String indexName, String tableName, String schema) {
 		String indexCheckQ = queryUtil.getIndexDetails(indexName, tableName, schema);
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, indexCheckQ);
 		try {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
+	 * Copyright 2015 Defense Health Agency (DHA)
  *
  * If your use of this software does not include any GPLv2 components:
  * 	Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.io.StringBufferInputStream;
 import java.sql.SQLException;
 import java.util.Hashtable;
-import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
@@ -56,7 +55,6 @@ import com.google.gson.Gson;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.impl.AbstractEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.RemoteSesameSelectWrapper;
 import prerna.rdf.engine.wrappers.SesameConstructWrapper;
 import prerna.rdf.engine.wrappers.SesameSelectWrapper;
@@ -64,9 +62,6 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractRdbmsQueryUtil;
-import prerna.util.sql.RdbmsQueryUtilFactor;
-import prerna.util.sql.RdbmsTypeEnum;
 
 public class RemoteSemossSesameEngine extends AbstractEngine {
 
