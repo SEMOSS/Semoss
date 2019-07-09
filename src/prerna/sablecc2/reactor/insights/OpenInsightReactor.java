@@ -14,7 +14,7 @@ import com.google.gson.JsonSyntaxException;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -71,10 +71,11 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			// TODO >>>timb: switch this back once we have insight level security
-//			if(!SecurityQueryUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), appId)) {
-				throw new IllegalArgumentException("User does not have access to this insight");
+			if(!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), appId, rdbmsId)) {
+				NounMetadata noun = new NounMetadata("User does not have access to this insight", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				SemossPixelException err = new SemossPixelException(noun);
+				err.setContinueThreadOfExecution(false);
+				throw err;
 			}
 		} else {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
@@ -99,7 +100,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				List<Insight> in = engine.getInsight(rdbmsId + "");
 				newInsight = in.get(0);
 			} catch (ArrayIndexOutOfBoundsException e2) {
-				NounMetadata noun = new NounMetadata("Insight does not exist.", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+				NounMetadata noun = new NounMetadata("Insight does not exist", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
