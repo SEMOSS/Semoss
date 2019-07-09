@@ -2,7 +2,6 @@ package prerna.query.querystruct.update;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -19,7 +18,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class UpdateSqlInterpreter extends SqlInterpreter {
 	
 	private StringBuilder sets = new StringBuilder();
-	private StringBuilder updateFrom = new StringBuilder();
+	private String updateFrom = null;
 	
 	public UpdateSqlInterpreter(UpdateQueryStruct qs) {
 		this.qs = qs;
@@ -30,7 +29,7 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 	//////////////////////////////////////////// Compose Query //////////////////////////////////////////////
 
 	public String composeQuery() {
-		addSelectors();
+//		addSelectors();
 		addSets();
 		addFilters();
 		
@@ -57,31 +56,33 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 	
 	//////////////////////////////////////////// Add Selectors //////////////////////////////////////////////
 	
-	@Override
-	public void addSelectors() {
-		List<IQuerySelector> selectorData = qs.getSelectors();
-		Set<String> tableList = new HashSet<String>();
-
-		for(IQuerySelector selector : selectorData) {
-			if(selector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
-				throw new IllegalArgumentException("Can only update column values");
-			}
-
-			QueryColumnSelector t = (QueryColumnSelector) selector;
-			String table = t.getTable();
-			tableList.add(table);
-		}		
-		
-		Iterator<String> it = tableList.iterator();
-		if(it.hasNext()) {
-			this.updateFrom.append(it.next());
-		}
-		while(it.hasNext()) {
-			this.updateFrom.append(", ").append(it.next());
-		}
-	}
+//	@Override
+//	public void addSelectors() {
+//		List<IQuerySelector> selectorData = qs.getSelectors();
+//		Set<String> tableList = new HashSet<String>();
+//
+//		for(IQuerySelector selector : selectorData) {
+//			if(selector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
+//				throw new IllegalArgumentException("Can only update column values");
+//			}
+//
+//			QueryColumnSelector t = (QueryColumnSelector) selector;
+//			String table = t.getTable();
+//			tableList.add(table);
+//		}		
+//		
+//		Iterator<String> it = tableList.iterator();
+//		if(it.hasNext()) {
+//			this.updateFrom.append(it.next());
+//		}
+//		while(it.hasNext()) {
+//			this.updateFrom.append(", ").append(it.next());
+//		}
+//	}
 
 	private void addSets() {
+		Set<String> tableList = new HashSet<String>();
+
 		List<IQuerySelector> selectors = qs.getSelectors();
 		List<Object> values = ((UpdateQueryStruct) qs).getValues();
 		int numSelectors = selectors.size();
@@ -97,13 +98,23 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 			}
 			Object v = values.get(i);
 			if(v instanceof String) {
-				sets.append(table + "." + column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
+//				sets.append(table + "." + column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
+				sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
 			} else if(v instanceof SemossDate) {
-				sets.append(table + "." + column + "=" + "'" + ((SemossDate) v).getFormattedDate() + "'");
+//				sets.append(table + "." + column + "=" + "'" + ((SemossDate) v).getFormattedDate() + "'");
+				sets.append(column + "=" + "'" + ((SemossDate) v).getFormattedDate() + "'");
 			} else {
-				sets.append(table + "." + column + "=" + v );
+//				sets.append(table + "." + column + "=" + v );
+				sets.append(column + "=" + v );
 			}
+			
+			tableList.add(table);
 		}
+		
+		if(tableList.size() > 1) {
+			throw new IllegalArgumentException("Cannot update multiple tables in the same statement");
+		}
+		this.updateFrom = tableList.iterator().next();
 	}
 	
 
