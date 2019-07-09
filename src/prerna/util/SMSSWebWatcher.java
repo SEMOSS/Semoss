@@ -43,7 +43,6 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.OwlPrettyPrintFixer;
-import prerna.engine.impl.SmssUpdater;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
@@ -224,19 +223,13 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// initialize the local master
 		try {
 			MasterDatabaseUtility.initLocalMaster();
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			// we couldn't initialize the db
 			// remove it from DIHelper
 			DIHelper.getInstance().removeLocalProperty(Constants.LOCAL_MASTER_DB_NAME);
 			e.printStackTrace();
 		}
 					
-		/*
-		 * AFTER WE LOAD THE LOCAL MASTER - UPDATE LEGACY DATABASES
-		 * TO ADD USER SPECIFIC DATABASES / UNIQUE ENGINE NAMES
-		 */
-		SmssUpdater.run();
-		
 		// also need to load the security db
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		int securityIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, securityDBName);
