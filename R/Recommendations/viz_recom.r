@@ -91,6 +91,11 @@ viz_recom_mgr<-function(fileroot,df1,chartToExclude=NULL,top=5){
 viz_recom<-function(df,df1,chartToExclude=NULL,top=5){
 	library(plyr)
 	library(data.table)
+	top_in<-top
+	if(top < 5){	
+		top<-5
+	}
+
 	# filter the history based on the current frame
 	dft<-merge(df,df1,by="reference",allow.cartesian=TRUE)
 	# count number of records in each viz both in original history and filtered
@@ -118,101 +123,122 @@ viz_recom<-function(df,df1,chartToExclude=NULL,top=5){
 	m<-nrow(dt)
 	df<-df[order(df$unit,df$element),]
 	chosen<-vector()
-	# find fitting units
-	for(i in 1:n){
-		p<-df[df$unit==units[i],]
-		n1<-nrow(p)
-		dt$done<-0
-		found<-0
-		for(j in 1:n1){
-			p1<-p[j,]
-			type<-p1[1,"reference"]
-			for(k in 1:m){
-				if(dt[k,"reference"]==type & dt[k,"done"]==0){
-						dt[k,"done"]<-1
-						found<-found+1
-						break
+	if(n>0){
+		# find fitting units
+		for(i in 1:n){
+			p<-df[df$unit==units[i],]
+			n1<-nrow(p)
+			dt$done<-0
+			found<-0
+			for(j in 1:n1){
+				p1<-p[j,]
+				type<-p1[1,"reference"]
+				for(k in 1:m){
+					if(dt[k,"reference"]==type & dt[k,"done"]==0){
+							dt[k,"done"]<-1
+							found<-found+1
+							break
+					}
 				}
 			}
+			if(found==n1){
+				chosen[length(chosen)+1]<-p[1,"unit"]
+			}
 		}
-		if(found==n1){
-			chosen[length(chosen)+1]<-p[1,"unit"]
+		# this is a valid subset
+		dff<-df[df$unit %in% chosen,]
+		####### get the most frequent charts  ### exclude complabel
+		dff0<-count(dff,names(dff)[c(3,4,5,6,7,10)])
+		dff1<-dff0[,c("chart","freq")]
+		o<-count(dff1,names(dff1)[1])
+		o<-o[order(-o$freq),]
+		if(!is.null(chartToExclude)){
+			o<-o[!(tolower(o$chart) %in% tolower(chartToExclude)),]
 		}
-	}
-	# this is a valid subset
-	dff<-df[df$unit %in% chosen,]
-	####### get the most frequent charts  ### exclude complabel
-	dff0<-count(dff,names(dff)[c(3,4,5,6,7,10)])
-	dff1<-dff0[,c("chart","freq")]
-	o<-count(dff1,names(dff1)[1])
-	o<-o[order(-o$freq),]
-	if(!is.null(chartToExclude)){
-		o<-o[!(tolower(o$chart) %in% tolower(chartToExclude)),]
-	}
-	o$weight<-round(o$freq/max(o$freq),4)
-	o<-o[,-2]
+		o$weight<-round(o$freq/max(o$freq),4)
+		o<-o[,-2]
 
-	# identify the most popular from subset
-	q<-dff[tolower(dff$chart) %in% tolower(o[,1]),]
-	q$chart<-as.character(q$chart)
-	
-	n<-length(chosen)
-	tbl<-data.table(unit=integer(),chart=character(),types=character());
-	paste2 <- function(x, y, sep = "-") paste(x, y, sep = sep)
-	for(i in 1:n){
-		p<-q[q$unit == chosen[i],]
-		t<-p$reference
-		if(length(t) > 1){
-			types<-Reduce(paste2,t)
-			tbl<-rbindlist(list(tbl,list(chosen[i],as.character(p[1,"chart"]),types)))
-		}
-	
-	}
-	# determine the most popular chart within most frequent
-	o<-count(tbl,names(tbl)[c(2,3)])
-	o<-o[order(-o$freq),]
-	o<-o[!duplicated(o$chart,o$types),]
-	o<-head(o,top)
-	tbl1<-merge(tbl,o)
-	tbl1<-tbl1[!duplicated(tbl1$chart,tbl1$types),]
-	tbl1$weight<-round(tbl1$freq/sum(tbl1$freq),4)
-	tbl2<-tbl1[,c("chart","weight")]
-	units<-tbl1$unit
-	q1<-q[q$unit %in% units,]
-	q1$weight = tbl2[match(q1$chart, tbl2$chart), "weight"]$weight
-	# add items from dt then parse it
-	n<-length(units)
-	m<-nrow(dt)
-	q1$item<-""
-	for(i in 1:n){
-		items<-vector()
-		p<-q1[q1$unit==units[i],]
-		n1<-nrow(p)
-		dt$done<-0
-		for(j in 1:n1){
-			p1<-p[j,]
-			type<-p1[1,"reference"]
-			for(k in 1:m){
-				if(dt[k,"reference"]==type & dt[k,"done"]==0){
-						dt[k,"done"]<-1
-						items[j]<-dt[k,"item"]
-						break
+		# identify the most popular from subset
+		q<-dff[tolower(dff$chart) %in% tolower(o[,1]),]
+		q$chart<-as.character(q$chart)
+		
+		n<-length(chosen)
+		tbl<-data.table(unit=integer(),chart=character(),types=character());
+		paste2 <- function(x, y, sep = "-") paste(x, y, sep = sep)
+		if(n>0){
+			for(i in 1:n){
+				p<-q[q$unit == chosen[i],]
+				t<-p$reference
+				if(length(t) > 1){
+					types<-Reduce(paste2,t)
+					tbl<-rbindlist(list(tbl,list(chosen[i],as.character(p[1,"chart"]),types)))
 				}
+			
 			}
+			# determine the most popular chart within most frequent
+			o<-count(tbl,names(tbl)[c(2,3)])
+			o<-o[order(-o$freq),]
+			o<-o[!duplicated(o$chart,o$types),]
+			o<-head(o,top)
+			tbl1<-merge(tbl,o)
+			tbl1<-tbl1[!duplicated(tbl1$chart,tbl1$types),]
+			tbl1$weight<-round(tbl1$freq/sum(tbl1$freq),4)
+			tbl2<-tbl1[,c("chart","weight")]
+			units<-tbl1$unit
+			q1<-q[q$unit %in% units,]
+			q1$weight = tbl2[match(q1$chart, tbl2$chart), "weight"]$weight
+			# add items from dt then parse it
+			n<-length(units)
+			m<-nrow(dt)
+			q1$item<-""
+			if(n>0){
+				for(i in 1:n){
+					items<-vector()
+					p<-q1[q1$unit==units[i],]
+					n1<-nrow(p)
+					dt$done<-0
+					for(j in 1:n1){
+						p1<-p[j,]
+						type<-p1[1,"reference"]
+						for(k in 1:m){
+							if(dt[k,"reference"]==type & dt[k,"done"]==0){
+									dt[k,"done"]<-1
+									items[j]<-dt[k,"item"]
+									break
+							}
+						}
+					}
+					q1[q1$unit==units[i],"item"]<-items
+				}
+
+				m<-nrow(q1)
+				for(i in 1:m){
+					x<-unlist(strsplit(as.character(q1[i,"item"]), "\\$"))
+					q1[i,"dbid"]<-x[1]
+					q1[i,"dbname"]<-x[2]
+					q1[i,"tblname"]<-x[3]
+					q1[i,"colname"]<-x[4]
+				}
+				q1<-q1[,c(1:6,8,10:11)]
+				q1<-q1[order(-q1$weight,q1$unit,q1$element),]
+				x<-count(q1,c("unit"))
+				q1$freq<-x$freq[match(unlist(q1$unit), x$unit)]
+				q1<-q1[order(-q1$freq,-q1$weight,q1$unit,q1$element),]
+				top_unit<-head(unique(q1$unit),top_in)
+				q1<-q1[q1$unit %in% top_unit,]
+				q1<-q1[,-10]
+			}else{
+				q1<-data.frame()
+			}
+		}else{
+			q1<-data.frame()
 		}
-		q1[q1$unit==units[i],"item"]<-items
+			
+	}else{
+		q1<-data.frame()
 	}
-	m<-nrow(q1)
-	for(i in 1:m){
-		x<-unlist(strsplit(as.character(q1[i,"item"]), "\\$"))
-		q1[i,"dbid"]<-x[1]
-		q1[i,"dbname"]<-x[2]
-		q1[i,"tblname"]<-x[3]
-		q1[i,"colname"]<-x[4]
-	}
-	q1<-q1[,c(1:6,8,10:11)]
 	gc()
-	return(q1[order(-q1$weight,q1$unit,q1$element),])
+	return(q1)
 }
 
 
@@ -248,4 +274,13 @@ get_reference<-function(df){
 	z<-as.data.frame(unique(z))
 	rm(n,m,row)
 	return(z)
+}
+
+sync_numeric<-function(sourceroot,targetroot){
+	x<-readRDS(paste0(sourceroot,"-user-history.rds"))
+	source_number<-x$datatype
+	temp_number<-gsub("INT","NUMBER",source_number)
+	target_number<-gsub("DOUBLE","NUMBER",temp_number)
+	x$datatype<-target_number
+	saveRDS(x,paste0(targetroot,"-user-history.rds"))
 }
