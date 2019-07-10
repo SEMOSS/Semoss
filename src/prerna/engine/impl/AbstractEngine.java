@@ -210,7 +210,6 @@ public abstract class AbstractEngine implements IEngine {
 		}
 		if(this.insightRdbms != null) {
 			LOGGER.debug("closing its insight engine ");
-			this.insightRdbms.shutdown();
 			this.insightRdbms.closeDB();
 		}
 	}

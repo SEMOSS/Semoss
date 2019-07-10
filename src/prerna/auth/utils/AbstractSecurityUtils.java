@@ -820,17 +820,6 @@ public abstract class AbstractSecurityUtils {
 		return b.toString();
 	}
 	
-	static String createFilter(String firstValue, String... filterValues) {
-		StringBuilder b = new StringBuilder();
-		b.append(" IN (");
-		b.append("'").append(firstValue).append("'");
-		for(int i = 0; i < filterValues.length; i++) {
-			b.append(", '").append(filterValues[i]).append("'");
-		}
-		b.append(")");
-		return b.toString();
-	}
-	
 	/**
 	 * Get all ids from user object
 	 * @param user

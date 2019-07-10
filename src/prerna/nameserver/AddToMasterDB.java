@@ -35,6 +35,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -205,7 +206,7 @@ public class AddToMasterDB {
 			// so we will just grab the ID
 			conceptGuid = this.conceptIdHash.get(conceptualName + "_CONCEPTUAL");
 			
-			Set<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualName);
+			Collection<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualName);
 			// add new logicals
 			if(!logicals.isEmpty()) {
 				colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
@@ -331,7 +332,7 @@ public class AddToMasterDB {
 			// so we will just grab the ID
 			propertyGuid = this.conceptIdHash.get(propertyConceptualName);
 			
-			Set<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(propertyConceptualName);
+			Collection<String> curLogicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(propertyConceptualName);
 			// add new logicals
 			if(!logicals.isEmpty()) {
 				colNames = new String[]{"LocalConceptID", "ConceptualName", "LogicalName", "DomainName", "GlobalID"};
