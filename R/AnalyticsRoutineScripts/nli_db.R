@@ -430,6 +430,16 @@ get_having<-function(where_df,root){
 	return(myList)
 }
 
+validate_like<-function(token){
+	if(grepl("%",token,fixed=TRUE) | grepl("_",token,fixed=TRUE)){
+		right_part<-paste0(" ?like ",token)
+	}else{
+		right_part<-paste0(" = ",token)
+	}
+	return(right_part)
+}
+
+
 get_where<-function(where_df){
 	# top node
 	where_part<-vector()
@@ -455,7 +465,9 @@ get_where<-function(where_df){
 			if(node$dep_rel %in% c("nmod","conj","obl","obj") & node$xpos!="JJR" & node$itemtype!="column"){
 				child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype=="column" & where_df$processed=="no",]
 				if(nrow(child)>0){
-					where_part<-append(where_part,paste0(child$item[1]," = ",node$token))
+					right_part<-validate_like(node$token)
+					where_part<-append(where_part,paste0(child$item[1],right_part))
+					#where_part<-append(where_part,paste0(child$item[1]," = ",node$token))
 					where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 				}else{
 					compare<-where_df[where_df$dep_rel=="conj" & where_df$xpos=="JJR" & where_df$processed=="no",]
@@ -505,7 +517,9 @@ get_where<-function(where_df){
 			}else if(node$dep_rel %in% c("nmod","conj","compound") & node$itemtype=="column"){
 				child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype!="column" & where_df$dep_rel %in% c("flat","fixed","compound") & where_df$processed=="no",]
 				if(nrow(child)>0){
-					where_part<-append(where_part,paste0(node$item," = ",child$token[1]))
+					right_part<-validate_like(child$token[1])
+					where_part<-append(where_part,paste0(node$item,right_part))
+					#where_part<-append(where_part,paste0(node$item," = ",child$token[1]))
 					where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 				}else{
 					child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype!="column" & where_df$dep_rel %in% c("amod","advmod") & where_df$xpos=="JJR" & where_df$processed=="no",]
@@ -717,16 +731,21 @@ parse_question<-function(txt){
 }
 
 parse_question_mgr<-function(txt){
-	#STOPWORDS<-c("a","the","here","there","it","he","she","they","is","are","which","what","who")
 	STOPWORDS<-c("a","the","here","there","it","he","she","they","which","what","who")
+	FIRSTWORDS<-c("select","show","display","present","list","find","locate")
 	
 	# update text by removing stop words
 	words<-unlist(strsplit(txt," "))
+	if(length(words)>0){
+		if(tolower(words[1]) %in% FIRSTWORDS){
+			words<-words[-1]
+		}
+	}
 	words<-words[!(tolower(words) %in% STOPWORDS)]
 	words<-replace_words(words)
 	
 	# Removing "-","_" to have the correct annotation
-	z<-sapply(words,function(w) gsub("[-_']","",w))
+	z<-sapply(words,function(w) gsub("[-_'%]","",w))
 	mytxt<-paste(z,collapse=" ")
 	df<-parse_question(tolower(mytxt))
 	if(nrow(df)>0){
