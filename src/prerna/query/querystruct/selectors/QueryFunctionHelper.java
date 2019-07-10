@@ -206,6 +206,9 @@ public class QueryFunctionHelper {
 				|| lowerfunction.equals(LOWER)
 				|| lowerfunction.equals(COALESCE)) {
 			return "STRING";
+		} else if(lowerfunction.equals(COUNT) 
+				|| lowerfunction.equals(UNIQUE_COUNT) ) {
+			return "INT";
 		}
 		
 		// default, it is probably a number
