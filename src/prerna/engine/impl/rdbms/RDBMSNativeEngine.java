@@ -72,8 +72,8 @@ import prerna.util.PersistentHash;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
-import prerna.util.sql.SqlQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactor;
 
 public class RDBMSNativeEngine extends AbstractEngine {
 
@@ -482,6 +482,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	@Override
 	public void closeDB() {
 		super.closeDB();
+		this.shutdown();
 		try {
 			if(this.useConnectionPooling){
 				this.engineConnected = false;
@@ -570,17 +571,28 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		return new SQLQueryParser();
 	}
 
-	
-	public void shutdown() {
-		try {
-			Connection conn = getConnection();
-			Statement stmt = conn.createStatement();
-			stmt.execute("SHUTDOWN");
-			// return to pool
-		} catch (Exception e) {
-			LOGGER.error("Unable to shutdown.", e);
+	protected void shutdown() {
+		// shift to grabing from query util
+		if(this.dbType == RdbmsTypeEnum.H2_DB) {
+			Connection conn = null;
+			Statement stmt = null;
+			try {
+				conn = getConnection();
+				stmt = conn.createStatement();
+				stmt.execute("SHUTDOWN");
+				// return to pool
+			} catch (Exception e) {
+				LOGGER.error("Unable to shutdown.", e);
+			} finally {
+				if(stmt != null) {
+					try {
+						stmt.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			}
 		}
-		return;
 	}
 	
 	@Override

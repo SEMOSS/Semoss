@@ -32,7 +32,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 		} else {
 			List<String> conceptuals = getConceptualInputNames();
 			if(!conceptuals.isEmpty()) {
-				logicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptuals, null);
+				logicals = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptuals);
 			}
 		}
 		

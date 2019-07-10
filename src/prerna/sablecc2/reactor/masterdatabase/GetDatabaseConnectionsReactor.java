@@ -56,7 +56,7 @@ public class GetDatabaseConnectionsReactor extends AbstractReactor {
 		}
 		
 		List<String> conceptualNames = getColumns();
-		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames, null);
+		List<String> logicalNames = MasterDatabaseUtility.getAllLogicalNamesFromConceptualRDBMS(conceptualNames);
 		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(logicalNames, appliedAppFilters);
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
 	}

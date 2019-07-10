@@ -25,7 +25,6 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SecurityQueryUtils extends AbstractSecurityUtils {
 	
@@ -284,14 +283,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
+			// store first and fill in sub query after
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+			
+			// fill in the sub query with the necessary column output + filters
 			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-			
-			NounMetadata subQueryLHS = new NounMetadata(new QueryColumnSelector("ENGINE__ENGINEID"), PixelDataType.COLUMN);
-			NounMetadata subQueryRHS = new NounMetadata(subQs, PixelDataType.QUERY_STRUCT);
-			SimpleQueryFilter subQueryFilter = new SimpleQueryFilter(subQueryLHS, "!=", subQueryRHS);
-			qs.addExplicitFilter(subQueryFilter);
 		}
 		// joins
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
