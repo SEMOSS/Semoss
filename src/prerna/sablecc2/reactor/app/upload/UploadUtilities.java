@@ -399,8 +399,13 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.ENGINE + tab + appId + newLine);
 			bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
 			bufferedWriter.write(Constants.ENGINE_TYPE + tab + AppEngine.class.getName() + newLine);
-			// write insights rdbms
-			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
+			String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+			if(rdbmsTypeStr == null) {
+				// default will be h2
+				rdbmsTypeStr = "H2_DB";
+			}
+			bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
+			bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate app smss file");
@@ -985,12 +990,12 @@ public class UploadUtilities {
 		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + appName + newLine);
 		bufferedWriter.write(Constants.ENGINE_TYPE + tab + engineClassName + newLine);
 		// write insights rdbms
-		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation() + newLine);
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
 		if(rdbmsTypeStr == null) {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";
 		}
+		bufferedWriter.write(Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
 		bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
 		// write owl
 		String paramOwlLoc = getRelativeOwlPath(owlFile).replaceFirst(SmssUtilities.getUniqueName(appName, appId), SmssUtilities.ENGINE_REPLACEMENT);
@@ -1004,10 +1009,15 @@ public class UploadUtilities {
 	 * @param appName
 	 * @return
 	 */
-	private static String getParamedSmssInsightDatabaseLocation() {
+	private static String getParamedSmssInsightDatabaseLocation(String rdbmsTypeStr) {
 		String connectionUrl = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + "insights_database";
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
+		
+		// append it on so it looks nicer
+		if(rdbmsTypeStr.equalsIgnoreCase("SQLITE")) {
+			connectionUrl += ".sqlite";
+		}
 		return connectionUrl;
 	}
 	
@@ -1034,6 +1044,7 @@ public class UploadUtilities {
 		
 		String connectionUrl = null;
 		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
+			// append .sqlite so it looks nicer - realize it is not required
 			connectionUrl = "jdbc:sqlite:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database.sqlite";
 		} else {
 			connectionUrl = "jdbc:h2:nio:" + baseFolder + ENGINE_DIRECTORY + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
