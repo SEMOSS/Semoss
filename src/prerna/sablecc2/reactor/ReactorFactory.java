@@ -204,7 +204,7 @@ import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticDescription;
 import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
-import prerna.sablecc2.reactor.frame.r.graph.GraphLayoutReactor;
+import prerna.sablecc2.reactor.frame.r.graph.ChangeGraphLayoutReactor;
 import prerna.sablecc2.reactor.frame.r.graph.NodeDetailsReactor;
 import prerna.sablecc2.reactor.frame.r.util.RClearAllUserRservesReactor;
 import prerna.sablecc2.reactor.frame.r.util.REnableUserRecoveryReactor;
@@ -234,27 +234,19 @@ import prerna.sablecc2.reactor.insights.save.SetInsightNameReactor;
 import prerna.sablecc2.reactor.insights.save.UpdateInsightImageReactor;
 import prerna.sablecc2.reactor.insights.save.UpdateInsightReactor;
 import prerna.sablecc2.reactor.job.JobReactor;
-import prerna.sablecc2.reactor.masterdatabase.AddLogicalNameReactor;
-import prerna.sablecc2.reactor.masterdatabase.AddMetaDescriptionReactor;
-import prerna.sablecc2.reactor.masterdatabase.AddMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.AllConceptualNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.CLPModelReactor;
-import prerna.sablecc2.reactor.masterdatabase.DeleteMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetConceptPropertiesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetDatabaseConceptsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetDatabaseConnectionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetDatabaseListReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetDatabaseMetamodelReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetDatabaseTableStructureReactor;
-import prerna.sablecc2.reactor.masterdatabase.GetLogicalNamesReactor;
-import prerna.sablecc2.reactor.masterdatabase.GetMetaDescriptionReactor;
-import prerna.sablecc2.reactor.masterdatabase.GetMetaTagsReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToLogicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
 import prerna.sablecc2.reactor.masterdatabase.GetSpecificConceptPropertiesReactor;
 import prerna.sablecc2.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.sablecc2.reactor.masterdatabase.QueryTranslatorReactor;
-import prerna.sablecc2.reactor.masterdatabase.RemoveLogicalNamesReactor;
 import prerna.sablecc2.reactor.masterdatabase.SyncAppWithLocalMasterReactor;
 import prerna.sablecc2.reactor.panel.AddPanelConfigReactor;
 import prerna.sablecc2.reactor.panel.AddPanelIfAbsentReactor;
@@ -543,8 +535,7 @@ public class ReactorFactory {
 		
 	}
 	
-	private static void loadFromCP()
-	{
+	private static void loadFromCP() {
 		try {
 			//String folder = "C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes";
 			ScanResult sr = new ClassGraph().whitelistPackages("prerna")
@@ -556,15 +547,13 @@ public class ReactorFactory {
 			ClassInfoList classes = sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
 			
 			
-			for(int classIndex = 0;classIndex < classes.size();classIndex++)
-			{
+			for(int classIndex = 0;classIndex < classes.size();classIndex++) {
 				String name = classes.get(classIndex).getSimpleName();
 				String packageName = classes.get(classIndex).getPackageName();
 				Class actualClass = classes.get(classIndex).loadClass();
 
-				if(!Modifier.isAbstract( actualClass.getModifiers() ))
-				{
-					
+				// ignore abstract
+				if(!Modifier.isAbstract( actualClass.getModifiers() )) {
 					String [] packagePaths = packageName.split("\\.");
 					//System.out.println("Package name " + packageName);
 					packageName = packagePaths[packagePaths.length - 1];
@@ -572,31 +561,32 @@ public class ReactorFactory {
 					
 					String reactorName = name.replaceAll("Reactor", "");
 					
-					if(frame)
-					{
-						if(packageName.equalsIgnoreCase("rdbms"))
+					if(frame) {
+						if(packageName.equalsIgnoreCase("rdbms")) {
 							h2FrameHash.put(reactorName, actualClass);
-						if(packageName.equalsIgnoreCase("r"))
+						}
+						if(packageName.equalsIgnoreCase("r")) {
 							rFrameHash.put(reactorName, actualClass);
-						if(packageName.equalsIgnoreCase("py"))
+						}
+						if(packageName.equalsIgnoreCase("py")) {
 							pandasFrameHash.put(reactorName, actualClass);
-						if(packageName.equalsIgnoreCase("tinker"))
+						}
+						if(packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
 							tinkerFrameHash.put(reactorName, actualClass);
+						}
 						reactorName = packageName + "_" + reactorName;
-					}
-					else
+					} else {
 						reactorHash.put(reactorName, actualClass);
-					
+					}
 					nmList.add(reactorName);
 					classList.add(actualClass);
 					
 					reactors.put(reactorName.toUpperCase(), actualClass);
-				}// ignore if it is a abstract class
+				}
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}		
+		}
 	}
 	
 	// populates the frame agnostic reactors used by pixel
@@ -852,16 +842,16 @@ public class ReactorFactory {
 		reactorHash.put("AllConceptualNames", AllConceptualNamesReactor.class);
 		reactorHash.put("CLPModel", CLPModelReactor.class);
 		// logical name operations
-		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
-		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
-		reactorHash.put("RemoveLogicalNames", RemoveLogicalNamesReactor.class);
-		// concept description metadata 
-		reactorHash.put("AddMetaDescription", AddMetaDescriptionReactor.class);
-		reactorHash.put("GetMetaDescription", GetMetaDescriptionReactor.class);
-		// concept tag metadata
-		reactorHash.put("AddMetaTags", AddMetaTagsReactor.class);
-		reactorHash.put("GetMetaTags", GetMetaTagsReactor.class);
-		reactorHash.put("DeleteMetaTags", DeleteMetaTagsReactor.class);
+//		reactorHash.put("AddLogicalName", AddLogicalNameReactor.class);
+//		reactorHash.put("GetLogicalNames", GetLogicalNamesReactor.class);
+//		reactorHash.put("RemoveLogicalNames", RemoveLogicalNamesReactor.class);
+//		// concept description metadata 
+//		reactorHash.put("AddMetaDescription", AddMetaDescriptionReactor.class);
+//		reactorHash.put("GetMetaDescription", GetMetaDescriptionReactor.class);
+//		// concept tag metadata
+//		reactorHash.put("AddMetaTags", AddMetaTagsReactor.class);
+//		reactorHash.put("GetMetaTags", GetMetaTagsReactor.class);
+//		reactorHash.put("DeleteMetaTags", DeleteMetaTagsReactor.class);
 		
 		// Panel Reactors
 		reactorHash.put("InsightPanelIds", InsightPanelIds.class);
@@ -1229,7 +1219,7 @@ public class ReactorFactory {
 		tinkerFrameHash.put("FindPathsConnectingNodes", FindPathsConnectingNodesReactor.class);
 		tinkerFrameHash.put("FindPathsConnectingGroups", FindPathsConnectingGroupsReactor.class);
 		// require r
-		tinkerFrameHash.put("ChangeGraphLayout", GraphLayoutReactor.class);
+		tinkerFrameHash.put("ChangeGraphLayout", ChangeGraphLayoutReactor.class);
 		tinkerFrameHash.put("ClusterGraph", ClusterGraphReactor.class);
 		tinkerFrameHash.put("NodeDetails", NodeDetailsReactor.class);
 	}

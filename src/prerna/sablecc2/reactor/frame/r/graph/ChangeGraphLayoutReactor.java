@@ -19,11 +19,11 @@ import prerna.util.Utility;
  * http://igraph.org/r/doc/layout_with_fr.html
  *
  */
-public class GraphLayoutReactor extends AbstractRFrameReactor {
+public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 
-	private static final String CLASS_NAME = GraphLayoutReactor.class.getName();
+	private static final String CLASS_NAME = ChangeGraphLayoutReactor.class.getName();
 
-	public GraphLayoutReactor() {
+	public ChangeGraphLayoutReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.GRAPH_LAYOUT.getKey(), "yMin", "yMax", "xMin", "xMax"};
 	}
 
