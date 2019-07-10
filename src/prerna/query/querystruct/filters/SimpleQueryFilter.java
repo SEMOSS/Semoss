@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.PixelDataType;
@@ -887,6 +888,20 @@ public class SimpleQueryFilter implements IQueryFilter {
 	public static SimpleQueryFilter makeColToValFilter(String colQs, String comparator, Object values, PixelDataType rightDataType) {
 		NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(colQs), PixelDataType.COLUMN);
 		NounMetadata rComparison = new NounMetadata(values, rightDataType);
+		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, comparator, rComparison);
+		return filter;
+	}
+	
+	/**
+	 * Helper method to generate a column to subquery filter 
+	 * @param colQs
+	 * @param comparator
+	 * @param subQs
+	 * @return
+	 */
+	public static SimpleQueryFilter makeColToSubQuery(String colQs, String comparator, SelectQueryStruct subQs) {
+		NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(colQs), PixelDataType.COLUMN);
+		NounMetadata rComparison = new NounMetadata(subQs, PixelDataType.QUERY_STRUCT);
 		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 		return filter;
 	}

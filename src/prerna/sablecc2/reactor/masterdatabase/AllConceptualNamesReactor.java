@@ -24,7 +24,7 @@ public class AllConceptualNamesReactor extends AbstractReactor {
 			List<String> engineFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
 			conceptualNames = MasterDatabaseUtility.getAllConceptualNames(engineFilters);
 		} else {
-			conceptualNames = MasterDatabaseUtility.getAllConceptualNames();
+			conceptualNames = MasterDatabaseUtility.getAllConceptualNames(null);
 		}
 		
 		return new NounMetadata(conceptualNames, PixelDataType.CONST_STRING);
