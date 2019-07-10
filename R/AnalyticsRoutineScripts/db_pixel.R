@@ -325,6 +325,12 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				item1<-trim(x[1])
 				item2<-trim(x[2])
 				pixel_where<-where_helper(item1,item2,oper,pixel_where,req_tbls,cur_db)
+			}else if(length(unlist(strsplit(where_part[i],"\\?like")))==2){
+				oper<-"?like"
+				x<-unlist(strsplit(where_part[i],"\\?like"))
+				item1<-trim(x[1])
+				item2<-trim(x[2])
+				pixel_where<-where_helper(item1,item2,oper,pixel_where,req_tbls,cur_db)
 			}
 		}
 	}
@@ -333,17 +339,43 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 }
 
 where_helper<-function(item1,item2,oper,pixel_where,req_tbls,cur_db){
+	p1<-parse_aggr(cur_db,req_tbls,item1)
+	if(length(p1) == 3){
+		item1=p1[2]
+	}
+	p2<-parse_aggr(cur_db,req_tbls,item2)
+	if(length(p2)==3){
+		item2=p2[2]
+	}
 	# check if item1 is column
 	tbls1<-cur_db[tolower(cur_db$Column) == tolower(item1) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 	#check if item2 is column
 	tbls2<-cur_db[tolower(cur_db$Column) == tolower(item2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 	#construct where
 	if(length(tbls1)>0 & length(tbls2)>0){
-		pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,tbls2[1],item2,"","")))
+		if(length(p1)==3 & length(p2)==3){
+			pixel_where<-rbindlist(list(pixel_where,list("where",p1[1],p1[2],p1[3],oper,p2[1],p2[2],p2[3])))
+		}else if(length(p1)==3 & length(p2)!=3){
+			pixel_where<-rbindlist(list(pixel_where,list("where",p1[1],p1[2],p1[3],oper,tbls2[1],item2,"")))
+		}else if(length(p1)!=3 & length(p2)==3){
+			pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,p2[1],p2[2],p2[3],"")))
+		}else{
+			pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,tbls2[1],item2,"","")))
+		}	
 	}else if(length(tbls1)>0 & length(tbls2)==0){
-		pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,item2,"","","")))
+		p1<-parse_aggr(cur_db,req_tbls,item1)	
+		if(length(p1)==3){
+			pixel_where<-rbindlist(list(pixel_where,list("where",p1[1],p1[2],p1[3],oper,tbls2[1],item2,"")))
+		}else{
+			pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,item2,"","","")))
+		}
 	}else if(length(tbls1)==0 & length(tbls2)>0){
-		pixel_where<-rbindlist(list(pixel_where,list("where",item1,oper,tbls2[1],item2,"","","")))
+		p2<-parse_aggr(cur_db,req_tbls,item2)
+		if(length(p2)==3){
+			pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,p2[1],p2[2],p2[3],"")))
+		}else{
+			pixel_where<-rbindlist(list(pixel_where,list("where",item1,oper,tbls2[1],item2,"","","")))
+		}
 	}else if(length(tbls1)==0 & length(tbls2)==0){
 		pixel_where<-rbindlist(list(pixel_where,list("where",item1,oper,item2,"","","","")))
 	}
