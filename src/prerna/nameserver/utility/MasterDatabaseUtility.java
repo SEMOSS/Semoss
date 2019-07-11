@@ -63,7 +63,7 @@ public class MasterDatabaseUtility {
 
 		// engine table
 		colNames = new String[]{"ID", "ENGINENAME", "MODIFIEDDATE", "TYPE"};
-		types = new String[]{"varchar(800)", "varchar(800)", "timestamp", "varchar(800)"};
+		types = new String[]{"varchar(255)", "varchar(255)", "timestamp", "varchar(255)"};
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
@@ -85,7 +85,7 @@ public class MasterDatabaseUtility {
 
 		// engine concept table
 		colNames = new String[]{"ENGINE", "PHYSICALNAME", "PARENTPHYSICALID", "PHYSICALNAMEID", "LOCALCONCEPTID", "PK", "PROPERTY", "ORIGINAL_TYPE", "PROPERTY_TYPE", "ADDITIONAL_TYPE"};
-		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)", "varchar(800)", "varchar(800)"};
+		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "boolean", "varchar(255)", "varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types));
 		} else {
@@ -113,7 +113,7 @@ public class MasterDatabaseUtility {
 
 		// concept table
 		colNames = new String[]{"LOCALCONCEPTID", "CONCEPTUALNAME", "LOGICALNAME", "DOMAINNAME", "GLOBALID"};
-		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists("CONCEPT", colNames, types));
 		} else {
@@ -135,7 +135,7 @@ public class MasterDatabaseUtility {
 
 		// relation table
 		colNames = new String[]{"ID", "SOURCEID", "TARGETID", "GLOBALID"};
-		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists("RELATION", colNames, types));
 		} else {
@@ -148,7 +148,7 @@ public class MasterDatabaseUtility {
 
 		// engine relation table
 		colNames = new String[]{"ENGINE", "RELATIONID", "INSTANCERELATIONID", "SOURCECONCEPTID", "TARGETCONCEPTID", "SOURCEPROPERTY", "TARGETPROPERTY", "RELATIONNAME"};
-		types = new String[]{"varchar(800)", "varchar(800)","varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
+		types = new String[]{"varchar(255)", "varchar(255)","varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINERELATION", colNames, types));
 		} else {
@@ -175,7 +175,7 @@ public class MasterDatabaseUtility {
 		// concept metadata
 		updateMetadataTable(engine, conn, queryUtil, Constants.CONCEPT_METADATA_TABLE, schema);
 		colNames = new String[] {Constants.PHYSICAL_NAME_ID, Constants.KEY, Constants.VALUE };
-		types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
+		types = new String[] { "varchar(255)", "varchar(800)", "varchar(20000)" };
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists(Constants.CONCEPT_METADATA_TABLE, colNames, types));
 		} else {
@@ -210,7 +210,7 @@ public class MasterDatabaseUtility {
 
 		// bitly
 		colNames = new String[]{"FANCY", "EMBED"};
-		types = new String[]{"varchar(800)", "varchar(20000)" };
+		types = new String[]{"varchar(255)", "varchar(20000)" };
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists("BITLY", colNames, types));
 		} else {
@@ -236,7 +236,7 @@ public class MasterDatabaseUtility {
 			}
 			if(queryUtil.allowAddColumn()) {
 				if(allowIfExists) {
-					executeSql(conn, queryUtil.alterTableAddColumnIfNotExists(tableName, "PHYSICALNAMEID", "VARCHAR(800)"));
+					executeSql(conn, queryUtil.alterTableAddColumnIfNotExists(tableName, "PHYSICALNAMEID", "varchar(255)"));
 				} else {
 					// check column exists in table
 
