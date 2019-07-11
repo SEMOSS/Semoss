@@ -230,7 +230,7 @@ public abstract class AbstractSecurityUtils {
 		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "bigint", "timestamp", "timestamp", "varchar(255)", "boolean" };
 		if(allowIfExistsTable) {
-			securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHT", colNames, types));
+			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 		} else {
 			// see if table exists
 			if(!tableExists(queryUtil, "INSIGHT", schema)) {
@@ -260,7 +260,7 @@ public abstract class AbstractSecurityUtils {
 		colNames = new String[] { "userid", "engineid", "insightid", "permission" };
 		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "integer" };
 		if(allowIfExistsTable) {
-			securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERINSIGHTPERMISSION", colNames, types));
+			securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
 		} else {
 			// see if table exists
 			if(!tableExists(queryUtil, "USERINSIGHTPERMISSION", schema)) {
