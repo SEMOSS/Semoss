@@ -1,6 +1,7 @@
 package prerna.query.interpreters;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -322,8 +323,8 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		List<Object> filterValues = new Vector<Object>();
 		// ughhh... this could be a list or an object
 		// need to make this consistent!
-		if(filterObject instanceof List) {
-			filterValues.addAll(((List) filterObject));
+		if(filterObject instanceof Collection) {
+			filterValues.addAll(((Collection) filterObject));
 		} else {
 			filterValues.add(filterObject);
 		}
