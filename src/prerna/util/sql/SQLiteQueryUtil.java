@@ -104,6 +104,13 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String columnDetailsQuery(String tableName, String columnName, String schema) {
+		// do not need to use the schema
+		// the column name appears to always be stored in lower case...
+		return "SELECT NAME, TYPE FROM PRAGMA_TABLE_INFO('" + tableName + "') WHERE NAME='" + columnName.toLowerCase() + "';";
+	}
+	
+	@Override
 	public String getIndexList(String schema) {
 		// do not need to use the schema
 		return "SELECT DISTINCT NAME, TBL_NAME FROM SQLITE_MASTER WHERE TYPE='index';";

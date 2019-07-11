@@ -693,7 +693,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 
 	@Override
-	public String columnDetailsQuery(String tableName, String columnName) {
+	public String columnDetailsQuery(String tableName, String columnName, String schema) {
 		// there is no commonality that i have found for this
 		throw new IllegalArgumentException("This operation does not have a standard across rdbms types. Please update the code for the specific RDBMS query util");
 	}
