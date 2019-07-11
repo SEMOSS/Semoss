@@ -738,17 +738,12 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			QueryColumnSelector gSelect = groupBy.get(i);
 			String tableName = gSelect.getTable();
 			String columnName = gSelect.getColumn();
-			String alias = gSelect.getAlias();
-			
-			if(alias != null && !alias.isEmpty()) {
-				this.groupByClause.append(" ?").append(alias);
-			} else {
-				String varName = Utility.cleanVariableString(tableName);
-				if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-					varName += "__" + Utility.cleanVariableString(columnName);
-				}
-				this.groupByClause.append(" ?").append(varName);
+
+			String varName = Utility.cleanVariableString(tableName);
+			if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				varName += "__" + Utility.cleanVariableString(columnName);
 			}
+			this.groupByClause.append(" ?").append(varName);
 		}
 	}
 	
