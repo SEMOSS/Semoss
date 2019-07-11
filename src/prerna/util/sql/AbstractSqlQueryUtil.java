@@ -34,7 +34,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
+import org.neo4j.cypher.internal.compiler.v3_4.planner.logical.steps.SystemOutCostLogger;
+
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.test.TestUtilityMethods;
+import prerna.util.Utility;
 
 public abstract class AbstractSqlQueryUtil {
 
@@ -519,9 +527,10 @@ public abstract class AbstractSqlQueryUtil {
 	 * Can also imply if the query returns that the column exists
 	 * @param tableName
 	 * @param columnName
+	 * @param schema
 	 * @return
 	 */
-	public abstract String columnDetailsQuery(String tableName, String columnName);
+	public abstract String columnDetailsQuery(String tableName, String columnName, String schema);
 	
 	/**
 	 * Query to get a list of all the indexes in the schema
@@ -595,4 +604,24 @@ public abstract class AbstractSqlQueryUtil {
 		}
 		return query;
 	}
+	
+	
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+
+	public static void main(String[] args) throws Exception {
+		TestUtilityMethods.loadAll("C:\\workspace2\\Semoss_Dev\\RDF_Map.prop");
+		
+		RDBMSNativeEngine security = (RDBMSNativeEngine) Utility.getEngine("security");
+		AbstractSqlQueryUtil util = security.getQueryUtil();
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(security, "SELECT * FROM PRAGMA_TABLE_INFO('USER') WHERE NAME='email'");
+		while(wrapper.hasNext()) {
+			System.out.println(wrapper.next());
+		}
+	}
+	
 }
