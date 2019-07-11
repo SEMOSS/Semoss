@@ -228,6 +228,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			// remove it from DIHelper
 			DIHelper.getInstance().removeLocalProperty(Constants.LOCAL_MASTER_DB_NAME);
 			e.printStackTrace();
+			return;
 		}
 					
 		// also need to load the security db
@@ -242,6 +243,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			// remove it from DIHelper
 			DIHelper.getInstance().removeLocalProperty(Constants.SECURITY_DB);
 			e.printStackTrace();
+			return;
 		}
 		
 		String themingDbName = Constants.THEMING_DB + this.extension;
