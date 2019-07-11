@@ -1,5 +1,6 @@
 package prerna.query.interpreters;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -476,8 +477,8 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		
 		List<Object> rightObjects = new Vector<Object>();
 		// ugh... this is gross
-		if(rightComp.getValue() instanceof List) {
-			rightObjects.addAll( (List) rightComp.getValue());
+		if(rightComp.getValue() instanceof Collection) {
+			rightObjects.addAll( (Collection) rightComp.getValue());
 		} else {
 			rightObjects.add(rightComp.getValue());
 		}

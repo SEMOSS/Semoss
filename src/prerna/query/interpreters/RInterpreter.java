@@ -1,6 +1,7 @@
 package prerna.query.interpreters;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -520,8 +521,8 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		// grab the objects we are setting up for the comparison
 		List<Object> objects = new Vector<Object>();
 		// ugh... this is gross
-		if(rightComp.getValue() instanceof List) {
-			objects.addAll( (List) rightComp.getValue());
+		if(rightComp.getValue() instanceof Collection) {
+			objects.addAll( (Collection) rightComp.getValue());
 		} else {
 			objects.add(rightComp.getValue());
 		}

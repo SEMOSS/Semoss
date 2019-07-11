@@ -1,6 +1,7 @@
 package prerna.auth.utils;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -115,7 +116,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		return userIsOwner(getUserFiltersQs(user), engineId);
 	}
 	
-	static boolean userIsOwner(List<String> userIds, String engineId) {
+	static boolean userIsOwner(Collection<String> userIds, String engineId) {
 //		String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM ENGINEPERMISSION "
 //				+ "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
