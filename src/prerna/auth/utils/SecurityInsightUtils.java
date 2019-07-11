@@ -2,6 +2,7 @@ package prerna.auth.utils;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +34,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserInsightPermission(User user, String engineId, String insightId) {
-		List<String> userIds = getUserFiltersQs(user);
+		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner
 		// they can do whatever they want
@@ -104,7 +105,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanViewInsight(User user, String engineId, String insightId) {
-		List<String> userIds = getUserFiltersQs(user);
+		Collection<String> userIds = getUserFiltersQs(user);
 
 		if(SecurityQueryUtils.insightIsGlobal(engineId, insightId)) {
 			return true;
@@ -148,7 +149,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanEditInsight(User user, String engineId, String insightId) {
-		List<String> userIds = getUserFiltersQs(user);
+		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner
 		// they can do whatever they want
@@ -193,7 +194,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsInsightOwner(User user, String engineId, String insightId) {
-		List<String> userIds = getUserFiltersQs(user);
+		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner of app
 		// they can do whatever they want
@@ -238,7 +239,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	static int getMaxUserInsightPermission(User user, String engineId, String insightId) {
-		List<String> userIds = getUserFiltersQs(user);
+		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner of the app
 		// they can do whatever they want
@@ -726,7 +727,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		
 		boolean hasEngineFilters = engineFilter != null && !engineFilter.isEmpty();
 		
-		List<String> userIds = getUserFiltersQs(user);
+		Collection<String> userIds = getUserFiltersQs(user);
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHT__ENGINEID", "app_id"));
@@ -948,7 +949,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //				;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 		
-		List<String> userIds = getUserFiltersQs(user);
+		Collection<String> userIds = getUserFiltersQs(user);
 		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME", "name"));

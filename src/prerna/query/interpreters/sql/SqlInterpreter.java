@@ -41,8 +41,8 @@ import prerna.test.TestUtilityMethods;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
-import prerna.util.sql.SqlQueryUtilFactor;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactor;
 
 public class SqlInterpreter extends AbstractQueryInterpreter {
 	
@@ -650,8 +650,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		
 		List<Object> objects = new Vector<Object>();
 		// ugh... this is gross
-		if(rightComp.getValue() instanceof List) {
-			objects.addAll( (List) rightComp.getValue());
+		if(rightComp.getValue() instanceof Collection) {
+			objects.addAll( (Collection) rightComp.getValue());
 		} else {
 			objects.add(rightComp.getValue());
 		}
@@ -677,7 +677,9 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		// if there are other instances as well
 		// also add that
-		if(!objects.isEmpty()) {
+		// if objects is empty but we didn't add the null check
+		// then we will filter on nothing
+		if(!objects.isEmpty() || !addNullCheck) {
 			if(filterBuilder == null) {
 				filterBuilder = new StringBuilder();
 			} else {
