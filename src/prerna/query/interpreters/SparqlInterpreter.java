@@ -56,6 +56,8 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	private StringBuilder bindingsWhereClause;
 	// string containing the group by clause
 	private StringBuilder groupByClause;
+	// string containing the havings
+	private StringBuilder havingsClause;
 	// string containing the sort by clause
 	private StringBuilder sortByClause;
 
@@ -105,6 +107,9 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		// add the filters
 		addFilters(combinedFilters, baseUri);
 		
+		// add the havings
+		addHavings(this.qs.getHavingFilters(), baseUri);
+		
 		// add the group bys
 		addGroupClause(((SelectQueryStruct) this.qs).getGroupBy());
 
@@ -126,6 +131,10 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		query.append("}");
 		query.append(this.groupByClause.toString());
 		query.append(" ");
+		String havingsClauseString = this.havingsClause.toString().trim();
+		if(!havingsClauseString.isEmpty()) {
+			query.append("HAVING(").append(havingsClauseString).append(") ");
+		}
 		query.append(this.sortByClause);
 		
 		long limit = ((SelectQueryStruct) this.qs).getLimit();
@@ -386,6 +395,25 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 				// NOTE! we add the filter here and not within the individual methods
 				// so we can correctly do AND/OR filtering
 				this.filtersWhereClause.append(" FILTER( ").append(filterSyntax.toString()).append(")");
+			}
+		}
+	}
+	
+	private void addHavings(GenRowFilters grf, String baseUri) {
+		this.havingsClause = new StringBuilder();
+		
+		List<IQueryFilter> filters = grf.getFilters();
+		boolean first = true;
+		for(IQueryFilter filter : filters) {
+			// do not want this to go through the simple process which would try to add bind() and bindings()
+			StringBuilder filterSyntax = processFilter(filter, baseUri, false);
+			if(filterSyntax != null) {
+				if(first) {
+					this.havingsClause.append(" ( ").append(filterSyntax.toString()).append(") ");
+					first = false;
+				} else {
+					this.havingsClause.append(" && ( ").append(filterSyntax.toString()).append(") ");
+				}
 			}
 		}
 	}
