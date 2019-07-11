@@ -847,7 +847,7 @@ public abstract class AbstractSecurityUtils {
 	 * @param user
 	 * @return
 	 */
-	static List<String> getUserFiltersQs(User user) {
+	static Collection<String> getUserFiltersQs(User user) {
 		List<String> filters = new Vector<String>();
 		if(user != null) {
 			List<AuthProvider> logins = user.getLogins();
