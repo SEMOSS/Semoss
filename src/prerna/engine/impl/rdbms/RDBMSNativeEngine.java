@@ -786,13 +786,15 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	// does not account for a pooled connection need to ensure
 	public Connection makeConnection() {
 		Connection retObject = getConnection();
-		if(conceptIdHash == null) {
-			conceptIdHash = new PersistentHash(this.engineId);
-			try {
-				conceptIdHash.setConnection(retObject);
-				conceptIdHash.load();
-			} catch(Exception ex) {
-				ex.printStackTrace();
+		if(conceptIdHash == null && Constants.LOCAL_MASTER_DB_NAME.equals(this.engineId)) {
+			if(PersistentHash.canInit(this)) {
+				conceptIdHash = new PersistentHash();
+				try {
+					conceptIdHash.setConnection(retObject);
+					conceptIdHash.load();
+				} catch(Exception ex) {
+					ex.printStackTrace();
+				}
 			}
 		}
 		return retObject;
