@@ -82,12 +82,16 @@ public class ExtractAppMetaReactor extends AbstractRFrameReactor {
 			owl.addUniqueCounts(engine);
 		}
 
+		//Turning off due to an issue in docker/openjdk 
+		
+		/*
 		if (UserTrackerFactory.isTracking()) {
 			// store descriptions if requested
 //			if (descriptions) {
 				storeColumnDescriptions(engine);
 //			}
 		}
+		*/
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
