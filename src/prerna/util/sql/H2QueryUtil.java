@@ -82,6 +82,12 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String columnDetailsQuery(String tableName, String columnName, String schema) {
+		// do not need to use the schema
+		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "' AND COLUMN_NAME='" + columnName + "';";
+	}
+	
+	@Override
 	public String getIndexList(String schema) {
 		// do not need to use the schema
 		return "SELECT DISTINCT INDEX_NAME, TABLE_NAME FROM INFORMATION_SCHEMA.INDEXES;";
