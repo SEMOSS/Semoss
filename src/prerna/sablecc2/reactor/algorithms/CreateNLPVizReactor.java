@@ -76,9 +76,14 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 		
 		// sort the columns list in ascending order of unique inst
+		// put the aggregate columns last
 		Collections.sort(cols, new Comparator<String>() {
 			public int compare(String firstCol, String secondCol) {
-				return frame.getUniqueInstanceCount(firstCol) - frame.getUniqueInstanceCount(secondCol);
+				if (isAggregate(firstCol)) {
+					return 1;
+				} else {
+					return frame.getUniqueInstanceCount(firstCol) - frame.getUniqueInstanceCount(secondCol);
+				}
 			}
 		});
 
@@ -116,8 +121,14 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 				allStrings = false;
 			}
 
-			// get unique column values
-			int uniqueValues = frame.getUniqueInstanceCount(colName);
+			// get unique column values -- if it is an aggregate, then make it 30
+			int uniqueValues = 0;
+			if (isAggregate(col)) {
+				uniqueValues = 30;
+			} else {
+				uniqueValues = frame.getUniqueInstanceCount(colName);
+			}
+			
 
 			rsb.append(inputFrame + "[" + rowCounter + ",] <- c(\"" + appId + "$" + appName + "$" + tableName + "$" + colName + "\",");
 			rsb.append("\"" + dataType + "\",");
@@ -221,6 +232,11 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 //		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 //		runnerWraper.put("runner", runner);
 //		return new NounMetadata(runnerWraper, PixelDataType.PIXEL_RUNNER, PixelOperationType.VECTOR);
+	}
+
+	private boolean isAggregate(String col) {
+		return (col.contains("UniqueCount_") || col.contains("Count_") || col.contains("Min_") || col.contains("Max_")
+				|| col.contains("Average_") || col.contains("Sum_"));
 	}
 
 	private List<String> getColumns() {
