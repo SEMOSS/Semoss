@@ -256,7 +256,11 @@ get_start<-function(parsed_df){
 		out[[2]]<-where_tree
 	}else{
 		kids<-parsed_df[parsed_df$head_token_id==root$token_id,]
+		
 		nsubj<-kids[substr(kids$dep_rel,1,5)=="nsubj" & kids$itemtype=="column",]
+		if(nrow(nsubj)==0){
+			nsubj<-kids[substr(kids$dep_rel,1,5)!="obj" & kids$itemtype=="column",]
+		}
 		obj<-kids[!(kids$token_id %in% nsubj$token_id),]
 		if(nrow(nsubj)>0){
 			# Identify possible select nodes
@@ -414,6 +418,19 @@ get_having<-function(where_df,root){
 							where_df[where_df$token_id==greatgrandchild$token_id[1],"processed"]<-"yes"
 							where_df[where_df$token_id==root$token_id,"processed"]<-"yes"
 						}
+					}else{
+						sibling<-where_df[where_df$head_token_id==root$head_token_id[i] & tolower(where_df$token) %in% c("greater","higher","larger","less","lower","smaller","equals","equal"),]
+						if(nrow(sibling)>0){
+							oper<-translate_token(sibling$token[1],discourse=FALSE)
+							child<-where_df[where_df$head_token_id==sibling$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
+							if(nrow(child)>0){
+								having_part<-append(having_part,paste0("UniqueCount(",kids$item[i],")",oper,child$token[1]))
+								where_df[where_df$token_id==kids$token_id[i],"processed"]<-"yes"
+								where_df[where_df$token_id==sibling$token_id[1],"processed"]<-"yes"
+								where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
+								where_df[where_df$token_id==root$token_id,"processed"]<-"yes"
+							}
+						}
 					}
 				}
 			}
@@ -431,7 +448,9 @@ get_having<-function(where_df,root){
 }
 
 validate_like<-function(token){
-	if(grepl("%",token,fixed=TRUE) | grepl("_",token,fixed=TRUE)){
+	# Until wildcard implemented for RDF and other databases
+	##if(grepl("%",token,fixed=TRUE) | grepl("_",token,fixed=TRUE))
+	if(grepl("%",token,fixed=TRUE)){
 		right_part<-paste0(" ?like ",token)
 	}else{
 		right_part<-paste0(" = ",token)
@@ -624,6 +643,12 @@ get_where<-function(where_df){
 								where_df[where_df$token_id==grandchild$token_id[1],"processed"]<-"yes"
 							}
 							where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
+						}else{
+							sibling<-where_df[where_df$head_token_id==node$head_token_id & where_df$dep_rel %in% c("xcomp") & where_df$processed=="no",]
+							if(nrow(sibling)>0){
+								where_part<-append(where_part,paste0(node$item,"=", sibling$token[1]))
+								where_df[where_df$token_id==sibling$token_id[1],"processed"]<-"yes"
+							}
 						}
 					}
 				}
