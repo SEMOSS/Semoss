@@ -11,6 +11,8 @@ public interface IRUserConnection {
 
 	public static final String POOLED = "pooled";
 	public static final String DEDICATED = "dedicated";
+	public static final String SINGLE = "single";
+
 	public static final String TYPE = RserveUtil.R_USER_CONNECTION_TYPE;
 	
 	public static IRUserConnection getRUserConnection(String rDataFile) {
@@ -18,6 +20,8 @@ public interface IRUserConnection {
 			return new RUserConnectionPooled(rDataFile);
 		} else if (TYPE.equals(DEDICATED)) {
 			return new RUserConnectionDedicated(rDataFile);
+		} else if (TYPE.equals(SINGLE)){
+			return new RUserConnectionSingle(rDataFile);
 		} else {
 			throw new IllegalArgumentException("Unknown R user connection type: " + TYPE);
 		}
@@ -28,7 +32,9 @@ public interface IRUserConnection {
 			return new RUserConnectionPooled();
 		} else if (TYPE.equals(DEDICATED)) {
 			return new RUserConnectionDedicated();
-		} else {
+		} else if (TYPE.equals(SINGLE)){
+			return new RUserConnectionSingle();
+		}else {
 			throw new IllegalArgumentException("Unknown R user connection type: " + TYPE);
 		}
 	}
