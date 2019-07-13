@@ -1,6 +1,15 @@
 package prerna.sablecc2.reactor;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,11 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
 import me.xdrop.fuzzywuzzy.FuzzySearch;
 import me.xdrop.fuzzywuzzy.model.ExtractedResult;
 import prerna.algorithm.api.ITableDataFrame;
@@ -203,8 +207,8 @@ import prerna.sablecc2.reactor.frame.r.MetaSemanticSimilarityReactor;
 import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticDescription;
-import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
 import prerna.sablecc2.reactor.frame.r.graph.ChangeGraphLayoutReactor;
+import prerna.sablecc2.reactor.frame.r.graph.ClusterGraphReactor;
 import prerna.sablecc2.reactor.frame.r.graph.NodeDetailsReactor;
 import prerna.sablecc2.reactor.frame.r.util.RClearAllUserRservesReactor;
 import prerna.sablecc2.reactor.frame.r.util.REnableUserRecoveryReactor;
@@ -440,6 +444,8 @@ import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendations
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class ReactorFactory {
 
 	// This holds the reactors that are frame agnostic and can be used by pixel
@@ -462,6 +468,7 @@ public class ReactorFactory {
 	
 	public static List <String> nmList = new ArrayList<String>();
 	public static List <Class> classList = new ArrayList<Class>();
+	public static boolean write = true;
 	
 	
 	static {
@@ -481,6 +488,7 @@ public class ReactorFactory {
 		//populateTinkerFrameHash(tinkerFrameHash);
 		nativeFrameHash = new HashMap<String, Class>();
 		//populateNativeFrameHash(nativeFrameHash);
+
 		
 		String additionalReactorsPath = "";
 		try {
@@ -574,7 +582,11 @@ public class ReactorFactory {
 						if(packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
 							tinkerFrameHash.put(reactorName, actualClass);
 						}
-						reactorName = packageName + "_" + reactorName;
+						else // nullify the package name
+							packageName = null;
+						if(packageName != null)
+							reactorName = packageName + "_" + reactorName;
+						
 					} else {
 						reactorHash.put(reactorName, actualClass);
 					}
@@ -582,13 +594,41 @@ public class ReactorFactory {
 					classList.add(actualClass);
 					
 					reactors.put(reactorName.toUpperCase(), actualClass);
+					
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
 	}
 	
+/*	public static void writeReacFile()
+	{
+		if(write)
+		{
+			String reacFileName = "c:/users/pkapaleeswaran/workspacej3/temp/reactornames.txt";
+			System.err.println("Writing file.. ");
+			try {
+				PrintWriter br = new PrintWriter(new OutputStreamWriter(new FileOutputStream(reacFileName)));
+				Iterator rIt = reactors.keySet().iterator();
+				while(rIt.hasNext())
+					br.write(rIt.next().toString() + "\n");
+				{
+				}
+				br.flush();
+				br.close();
+				write = false;
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+*/	
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class> reactorHash) {
 		// used to generate the base Job for the pksl commands being executed
@@ -1312,6 +1352,7 @@ public class ReactorFactory {
 	 */
 	public static IReactor getReactor(String reactorId, String nodeString, ITableDataFrame frame, IReactor parentReactor) {
 		IReactor reactor = null;
+		//writeReacFile();
 
 		try {
 			// is this an expression?
@@ -1366,8 +1407,12 @@ public class ReactorFactory {
 					if(reactor != null)
 						reactor = freactor;
 				}
+				// should I also search the non frame ? would it help ?
 				else if(reactor != null)
+				{
 					System.err.println("Failed " + reactor + "<>" + freactor);
+					System.err.println("Tried with id " + reactorId + "in frame" + frameName);
+				}
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
 					reactor.setPixel(reactorId, nodeString);
