@@ -148,8 +148,11 @@ public class RSingleton {
 	}
 	
 	private static int getPortForRserve() {
+	
 		int port = 6311;
 		int count = 0;
+	
+		// need to also see if this is already running RServe and if so get that sorted out
 		
 		String portsForR = DIHelper.getInstance().getProperty(R_PORTS);
 		if(portsForR != null && !portsForR.isEmpty()) {
@@ -158,6 +161,12 @@ public class RSingleton {
 				int startPort = Integer.parseInt(portRange[0]);
 				int endPort = Integer.parseInt(portRange[1]);
 				while(startPort <= endPort) {
+					if(isRServe(startPort))
+					{
+						// great - already running rserve
+						port = startPort;
+						break;
+					}
 					if(isPortOpen(startPort)) {
 						port = startPort;
 						break;
@@ -169,6 +178,12 @@ public class RSingleton {
 				String[] portsToTry = portsForR.trim().replace(" ", "").split(",");
 				for(int i = 0; i < portsToTry.length; i++) {
 					int currPort = Integer.parseInt(portsToTry[i]);
+					if(isRServe(currPort))
+					{
+						// great - already running rserve
+						port = currPort;
+						break;
+					}
 					if(isPortOpen(currPort)) {
 						port = currPort;
 						break;
@@ -206,5 +221,25 @@ public class RSingleton {
 		}
 		
 		return isOpen;
+	}
+	
+	private static boolean isRServe(int port) {
+		// try to see if this port is already running RServe
+		
+		boolean isRserve = false;
+		
+
+		System.out.println("Trying to see if port " + port + " is already running Rserve.");
+		try {
+			rcon = new RConnection("127.0.0.1", port);
+			portToCon.put(port, rcon);
+			System.out.println("Success! RServe: " + port);
+			isRserve = true;
+		} catch (Exception ex) {
+			// Port isn't open, notify and move on
+			System.out.println("Port " + port + " is unavailable.");
+		}
+		
+		return isRserve;
 	}
 }
