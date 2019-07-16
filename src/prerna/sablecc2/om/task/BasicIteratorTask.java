@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;
@@ -189,14 +189,14 @@ public class BasicIteratorTask extends AbstractTask {
 	private void optimizeFrame(ITableDataFrame dataframe, List<QueryColumnOrderBySelector> orderBys) {
 		if (dataframe instanceof H2Frame) {
 			H2Frame hFrame = (H2Frame) dataframe;
-			Set<String> hIndexedCols = hFrame.getColumnsWithIndexes();
 			OwlTemporalEngineMeta meta = hFrame.getMetaData();
 			for(int i = 0; i < orderBys.size(); i++) {
 				QueryColumnOrderBySelector origOrderS = orderBys.get(i);
 				QueryColumnOrderBySelector convertedOrderByS = QSAliasToPhysicalConverter.convertOrderBySelector(origOrderS, meta);
+				String table = convertedOrderByS.getTable();
 				String col = convertedOrderByS.getColumn();
-				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col) && !hIndexedCols.contains(col)) {
-					hFrame.addColumnIndex(col);
+				if(!SelectQueryStruct.PRIM_KEY_PLACEHOLDER.equals(col)) {
+					hFrame.getBuilder().addColumnIndex(table, col);
 				}
 			}
 		} else if(dataframe instanceof RDataTable) {

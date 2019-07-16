@@ -18,8 +18,8 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.algorithm.impl.BaseReducerReactor;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IScriptReactor;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.nameserver.utility.MetamodelVertex;

@@ -34,7 +34,12 @@ public class CreateFrameReactor extends AbstractReactor {
 		} else {
 			logger.info("Creating new frame of type = " + frameType + " with alias = " + alias);
 		}
-		ITableDataFrame newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
+		ITableDataFrame newFrame = null;
+		try {
+			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+		}
 		
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		// store it as the result and push it to the planner to override

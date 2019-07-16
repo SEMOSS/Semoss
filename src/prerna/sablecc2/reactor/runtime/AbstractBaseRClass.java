@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -22,11 +20,11 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.cache.ICache;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.r.RSingleton;
 import prerna.poi.main.HeadersException;
@@ -38,10 +36,10 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.imports.H2Importer;
 import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.sablecc2.reactor.imports.RImporter;
+import prerna.sablecc2.reactor.imports.RdbmsFrameImporter;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -195,21 +193,14 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		final String sep = java.lang.System.getProperty("file.separator");
 		String random = Utility.getRandomString(10);
 		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R" + sep + "Temp" + sep + "output" + random + ".tsv";
-		ResultSet rs = null;
 		try {
-			rs = gridFrame.execQuery("CALL CSVWRITE("
+			gridFrame.getBuilder().runQuery("CALL CSVWRITE("
 					+ "'" + outputLocation + "', "
 					+ "'SELECT " + selectors + " FROM " + gridFrame.getName() + "', "
 					+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')"
 					+ ");");
-		} finally {
-			if(rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
 		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(frameName, outputLocation, "\\t"));
@@ -287,7 +278,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		table.setUserId(dataframe.getUserId());
 		if (dataframe instanceof H2Frame) {
 			H2Frame gridFrame = (H2Frame) dataframe;
-			String tableName = gridFrame.getBuilder().getTableName();
+			String tableName = gridFrame.getName();
 			synchronizeGridToR(rVarName);
 			
 			// now that we have created the frame
@@ -421,7 +412,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 		H2Frame frameToUse = null;
 		boolean frameIsH2 = false;
-		String schemaName = null;
 		String tableName = null;
 		boolean determineNewFrameNeeded = false;
 		boolean syncExistingRMetadata = false;
@@ -435,7 +425,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			}
 		} else {
 			frameIsH2 = true;
-			schemaName = ((H2Frame) dataframe).getSchema();
 			tableName = ((H2Frame) dataframe).getName();
 
 			// if we do have an h2frame, look at headers to figure
@@ -467,7 +456,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			// set the correct schema in the new frame
 			// drop the existing table
 			if (frameIsH2) {
-				frameToUse.setUserId(schemaName);
 				((H2Frame) dataframe).close();
 			} else {
 				// this is set when we set the original dataframe
@@ -487,12 +475,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 			// can only enter here when we are overriding the existing H2Frame
 			// drop any index if altering the existing frame
-			Set<String> columnIndices = frameToUse.getColumnsWithIndexes();
-			if (columnIndices != null) {
-				for (String colName : columnIndices) {
-					frameToUse.removeColumnIndex(colName);
-				}
-			}
+			frameToUse.getBuilder().removeAllIndexes();
 
 			// drop all existing data
 			frameToUse.deleteAllRows();
@@ -506,7 +489,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 		// iterate through file and insert values
 		qs.setFilePath(tempFileLocation);
-		H2Importer importer = new H2Importer(frameToUse, qs);
+		RdbmsFrameImporter importer = new RdbmsFrameImporter(frameToUse, qs);
 		if(syncExistingRMetadata) {
 			importer.insertData(newMeta);
 		} else {

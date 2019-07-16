@@ -11,7 +11,8 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.date.SemossDate;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -66,7 +67,7 @@ public class InsertReactor extends AbstractReactor {
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
-				if(!(frame instanceof H2Frame)) {
+				if(!(frame instanceof AbstractRdbmsFrame)) {
 					throw new IllegalArgumentException("Insert query only works for sql frames");
 				}
 			}

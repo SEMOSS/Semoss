@@ -2,7 +2,7 @@ package prerna.sablecc;
 
 import java.util.Iterator;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -28,11 +28,11 @@ public class ConnectReactor extends AbstractReactor {
 		H2Frame frame = (H2Frame)myStore.get("G");		
 		if (myStore.get("TABLE_NAME") != null) {
 			String tableName = (String)myStore.get(PKQLEnum.WORD_OR_NUM.toString());
-			String [] userPass = frame.getBuilder().createUser(tableName);
+			String [] userPass = frame.createUser(tableName);
 			myStore.put("USERNAME", userPass[0]);
 			myStore.put("PASSWORD", userPass[1]);
 		}
-		String url = frame.getBuilder().connectFrame();
+		String url = frame.connectFrame();
 		myStore.put("RESPONSE", url);
 		return null;
 	}

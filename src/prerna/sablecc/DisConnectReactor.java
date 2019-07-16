@@ -2,7 +2,7 @@ package prerna.sablecc;
 
 import java.util.Iterator;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
 import prerna.sablecc.meta.IPkqlMetadata;
 
@@ -27,7 +27,7 @@ public class DisConnectReactor extends AbstractReactor {
 		// eventually, I need to get to the point where I pick the table name and do the username / password thing
 		System.out.println("Frame Disconnected.. ");
 		H2Frame frame = (H2Frame)myStore.get("G");	
-		frame.getBuilder().disconnectFrame();
+		frame.disconnectFrame();
 		myStore.put("RESPONSE", "DISCONNECTED");
 		return null;
 	}

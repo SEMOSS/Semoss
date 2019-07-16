@@ -17,8 +17,8 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -416,7 +416,8 @@ public class RatioReactor extends AbstractFrameReactor {
 			if(uniqueName == null) {
 				uniqueName = instanceColumn;
 			}
-			hFrame.addColumnIndex(uniqueName.split("__")[1]);
+			String[] uSplit = uniqueName.split("__");
+			hFrame.getBuilder().addColumnIndex(uSplit[0], uSplit[1]);
 		}
 	}
 
