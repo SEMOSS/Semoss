@@ -276,6 +276,22 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String removeDuplicatesFromTable(String tableName, String fullColumnNameList);
 	
 	/**
+	 * Create an insert prepared statement
+	 * @param tableName
+	 * @param columns
+	 */
+	public abstract String createInsertPreparedStatementString(String tableName, String[] columns);
+	
+	/**
+	 * Create an update prepared statement
+	 * @param tableName
+	 * @param columnsToUpdate
+	 * @param whereColumns
+	 * @return
+	 */
+	public abstract String createUpdatePreparedStatementString(String tableName, String[] columnsToUpdate, String[] whereColumns);
+	
+	/**
 	 * Create the syntax to merge 2 tables together
 	 * @param returnTableName			The return table name
 	 * @param returnTableTypes 
