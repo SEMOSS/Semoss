@@ -10,7 +10,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -93,11 +93,11 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			// concept data type now get profile data based on type
 			if (Utility.isNumericType(conceptDataType)) {
 				String[] row = getNumericalProfileData(engine, concept, primKey);
-				frame.addRow(tableName, row, headers, dataTypes);
+				frame.addRow(tableName, headers, row, dataTypes);
 			} else {
 				if (Utility.isStringType(conceptDataType)) {
 					String[] cells = getStringProfileData(engine, concept, primKey);
-					frame.addRow(tableName, cells, headers, dataTypes);
+					frame.addRow(tableName, headers, cells, dataTypes);
 				}
 			}
 			if (conceptMap != null) {
@@ -109,11 +109,11 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 						String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
 						if (Utility.isNumericType(dataType)) {
 							String[] cells = getNumericalProfileData(engine, concept, prop);
-							frame.addRow(tableName, cells, headers, dataTypes);
+							frame.addRow(tableName, headers,  cells, dataTypes);
 						} else {
 							if (Utility.isStringType(dataType)) {
 								String[] cells = getStringProfileData(engine, concept, prop);
-								frame.addRow(tableName, cells, headers, dataTypes);
+								frame.addRow(tableName, headers,  cells, dataTypes);
 							}
 						}
 					}

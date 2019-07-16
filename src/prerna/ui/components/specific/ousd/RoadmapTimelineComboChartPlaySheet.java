@@ -11,7 +11,7 @@ import java.util.Map;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.components.playsheets.BrowserPlaySheet;
 import prerna.util.Constants;

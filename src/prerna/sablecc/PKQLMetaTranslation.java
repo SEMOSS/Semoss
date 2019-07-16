@@ -6,8 +6,7 @@ import java.io.PushbackReader;
 import java.io.StringBufferInputStream;
 import java.util.Hashtable;
 
-import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.lexer.Lexer;
 import prerna.sablecc.lexer.LexerException;

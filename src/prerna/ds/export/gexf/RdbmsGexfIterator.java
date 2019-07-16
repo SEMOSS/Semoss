@@ -4,7 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 
 public class RdbmsGexfIterator extends AbstractGexfIterator {
 

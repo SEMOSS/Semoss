@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import java.util.Iterator;
 
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ds.shared.AbstractTableDataFrame;
 //import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -26,7 +26,7 @@ public class DataConnectReactor extends AbstractReactor {
 
 		AbstractTableDataFrame frame = (AbstractTableDataFrame) myStore.get("G");
 		if (frame instanceof H2Frame) {
-			Connection currConn = ((H2Frame) frame).getBuilder().getConnection();
+			Connection currConn = ((H2Frame) frame).getConn();
 			try {
 				DatabaseMetaData dmd = currConn.getMetaData();
 				myStore.put("data.connect", dmd.getURL());

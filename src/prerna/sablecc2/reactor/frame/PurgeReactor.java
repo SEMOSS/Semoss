@@ -26,7 +26,13 @@ public class PurgeReactor extends AbstractFrameReactor {
 		IRawSelectWrapper it = frame.query(qs);
 		
 		// new frame
-		ITableDataFrame newFrame = FrameFactory.getFrame(this.insight, FrameFactory.getFrameType(frame), null);
+		String frameType = FrameFactory.getFrameType(frame);
+		ITableDataFrame newFrame = null;
+		try {
+			newFrame = FrameFactory.getFrame(this.insight, frameType, null);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+		}
 		// insert the data for the new frame
 		IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
 		importer.insertData();		

@@ -1,8 +1,8 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -10,7 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.imports.H2Importer;
+import prerna.sablecc2.reactor.imports.RdbmsFrameImporter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -34,7 +34,12 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		// get rFrameName
 		String varName = getVarName();
-		H2Frame newTable = new H2Frame(varName);
+		H2Frame newTable;
+		try {
+			newTable = new H2Frame(varName);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error occured instaniating new grid frame");
+		}
 
 		//sync R dataframe to H2Frame
 		syncFromR(this.rJavaTranslator,varName, newTable);
@@ -102,7 +107,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 
 		// iterate through file and insert values
 		qs.setFilePath(tempFileLocation);
-		H2Importer importer = new H2Importer(frame, qs);
+		RdbmsFrameImporter importer = new RdbmsFrameImporter(frame, qs);
 		// importer will create the necessary meta information
 		importer.insertData();
 	}

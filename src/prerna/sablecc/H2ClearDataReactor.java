@@ -3,7 +3,7 @@ package prerna.sablecc;
 import java.util.Iterator;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.meta.IPkqlMetadata;
 import prerna.util.Utility;
 

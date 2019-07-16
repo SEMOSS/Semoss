@@ -43,7 +43,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.ui.components.playsheets.OCONUSMapPlaySheet;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;

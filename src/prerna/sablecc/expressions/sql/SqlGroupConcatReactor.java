@@ -2,7 +2,7 @@ package prerna.sablecc.expressions.sql;
 
 import java.util.Map;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;

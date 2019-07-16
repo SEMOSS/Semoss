@@ -4,11 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
-import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

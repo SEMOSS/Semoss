@@ -3,7 +3,7 @@ package prerna.sablecc.expressions.sql.builder;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.expressions.IExpressionSelector;
 
 public class SqlSortSelector implements IExpressionSelector {

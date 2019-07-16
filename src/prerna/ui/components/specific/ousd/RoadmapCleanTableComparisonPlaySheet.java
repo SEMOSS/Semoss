@@ -7,7 +7,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ui.components.playsheets.GridPlaySheet;
 
 public class RoadmapCleanTableComparisonPlaySheet extends GridPlaySheet{

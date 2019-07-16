@@ -1,6 +1,6 @@
 package prerna.sablecc.expressions.sql;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.builder.SqlExpressionBuilder;
 import prerna.sablecc.expressions.sql.builder.SqlMathSelector;

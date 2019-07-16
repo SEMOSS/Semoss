@@ -6,7 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -113,7 +113,7 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 						count = rs.getLong(1);
 						cells[8] = count + "";
 						// add data to frame
-						frame.addRow(tableName, cells, headers, dataTypes);
+						frame.addRow(tableName, headers,  cells, dataTypes);
 					} else {
 						// assume string
 						if (Utility.isStringType(type)) {
@@ -140,7 +140,7 @@ public class ExternalDatabaseProfileReactor extends AbstractReactor {
 							count = rs.getLong(1);
 							cells[8] = count + "";
 							// add data to frame
-							frame.addRow(tableName, cells, headers, dataTypes);
+							frame.addRow(tableName, headers,  cells, dataTypes);
 						}
 					}
 				}
