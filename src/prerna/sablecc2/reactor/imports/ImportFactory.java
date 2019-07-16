@@ -7,7 +7,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
-import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 
