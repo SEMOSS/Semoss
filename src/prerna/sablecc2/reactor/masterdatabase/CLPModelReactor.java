@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -54,7 +54,6 @@ public class CLPModelReactor extends AbstractReactor {
 		String[] types = new String[]{"STRING", "STRING", "STRING", "STRING"};
 
 		H2Frame frame = new H2Frame(headers, types);
-		
 		logger.info("Loading data into frame");
 		try {
 			PreparedStatement ps = frame.createInsertPreparedStatement(headers);

@@ -1,4 +1,4 @@
-package prerna.ds.h2;
+package prerna.ds.rdbms.h2;
 
 public class H2ArrayToStringFunction {
 

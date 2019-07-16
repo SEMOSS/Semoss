@@ -13,7 +13,7 @@ import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.ICache;
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -146,8 +146,12 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 		String random = Utility.getRandomString(10);
 		String outputLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/") + sep + "R"
 				+ sep + "Temp" + sep + "output" + random + ".tsv";
-		gridFrame.execQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM "
-				+ gridFrame.getName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
+		try {
+			gridFrame.getBuilder().runQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM "
+					+ gridFrame.getName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		this.rJavaTranslator.executeR("library(data.table);");
 		this.rJavaTranslator.executeR(rDataTableName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
 		File f = new File(outputLocation);

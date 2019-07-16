@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;

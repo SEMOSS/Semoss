@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -96,7 +96,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 							columnTypes[k] = "STRING";
 						}
 						frame.addNewColumn(newColumns, columnTypes, frame.getName());
-						ps = frame.createUpdatePreparedStatement(addedColumns.toArray(new String[]{}), new String[]{column});
+						ps = frame.getBuilder().createUpdatePreparedStatement(frame.getName(), addedColumns.toArray(new String[]{}), new String[]{column});
 					}
 
 					int colIndex = 0;

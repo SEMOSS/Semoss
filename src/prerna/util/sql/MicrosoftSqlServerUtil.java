@@ -1,5 +1,10 @@
 package prerna.util.sql;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IEngine;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
+
 public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	
 	MicrosoftSqlServerUtil() {
@@ -12,6 +17,16 @@ public class MicrosoftSqlServerUtil extends AnsiSqlQueryUtil {
 	
 	MicrosoftSqlServerUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		super(dbType, hostname, port, schema, username, password);
+	}
+
+	@Override
+	public IQueryInterpreter getInterpreter(IEngine engine) {
+		return new MicrosoftSqlServerInterpreter(engine);
+	}
+
+	@Override
+	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
+		return new MicrosoftSqlServerInterpreter(frame);
 	}
 
 	@Override

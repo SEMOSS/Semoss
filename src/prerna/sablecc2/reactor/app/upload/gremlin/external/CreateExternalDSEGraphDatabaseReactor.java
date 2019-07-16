@@ -3,8 +3,8 @@ package prerna.sablecc2.reactor.app.upload.gremlin.external;
 import java.io.File;
 import java.io.IOException;
 
-import prerna.ds.datastax.DataStaxGraphEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.datastax.DataStaxGraphEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
