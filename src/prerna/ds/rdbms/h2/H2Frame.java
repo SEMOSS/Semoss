@@ -25,8 +25,8 @@ import org.h2.tools.Server;
 
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.QueryStruct;
-import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
-import prerna.ds.rdbms.sqlite.RdbmsFrameBuilder;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
+import prerna.ds.rdbms.RdbmsFrameBuilder;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -34,8 +34,6 @@ import prerna.query.querystruct.RelationSet;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
-import prerna.sablecc2.reactor.imports.IImporter;
-import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.sablecc2.reactor.imports.RdbmsFrameImporter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -434,7 +432,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		// set engine on qs2
 		qs2.setEngineId(component.getEngineName());
 		// instantiate h2importer with frame and qs
-		IImporter importer = new RdbmsFrameImporter(this, qs2);
+		RdbmsFrameImporter importer = new RdbmsFrameImporter(this, qs2);
 		if (joins.isEmpty()) {
 			importer.insertData();
 		} else {

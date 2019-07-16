@@ -32,7 +32,7 @@ import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
-import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.forms.UpdateFormReactor;
 import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
 import prerna.poi.main.helper.excel.GetExcelFormReactor;
