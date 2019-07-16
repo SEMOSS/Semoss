@@ -1,4 +1,4 @@
-package prerna.ds.rdbms.sqlite;
+package prerna.ds.rdbms;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
