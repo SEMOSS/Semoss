@@ -13,7 +13,7 @@ import java.util.Vector;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -80,7 +80,7 @@ public class AuditDatabaseReactor extends AbstractReactor {
 		String[] types = new String[] { "TIMESTAMP", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING","STRING", "STRING", "STRING" };
 		H2Frame frame = new H2Frame(headers, types);
 		// create prepared statement to insert data into frame
-		PreparedStatement insertPS = frame.getBuilder().createInsertPreparedStatement(frame.getName(), headers);
+		PreparedStatement insertPS = frame.createInsertPreparedStatement(headers);
 		// create prepared statement to update frame user ids to user emails
 		PreparedStatement updatePS = frame.createUpdatePreparedStatement(new String[] { "USER_EMAIL" }, new String[] { "USER_EMAIL" });
 		try {

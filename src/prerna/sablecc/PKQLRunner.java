@@ -12,17 +12,14 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.rosuda.REngine.Rserve.RConnection;
-import org.rosuda.REngine.Rserve.RserveException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import cern.colt.Arrays;
-import prerna.cache.ICache;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.expressions.r.builder.RColumnSelector;
 import prerna.sablecc.expressions.r.builder.RExpressionBuilder;
 import prerna.sablecc.expressions.r.builder.RExpressionIterator;

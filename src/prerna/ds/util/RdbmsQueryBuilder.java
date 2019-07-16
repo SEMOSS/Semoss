@@ -2,12 +2,10 @@ package prerna.ds.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -64,32 +62,6 @@ public class RdbmsQueryBuilder {
 	}
 	
 	/**
-	 * Create table if not exists
-	 * @param tableName
-	 * @param colNames
-	 * @param types
-	 * @param defaultValues
-	 * @return
-	 */
-	public static String makeOptionalCreateWithDefault(String tableName, String [] colNames, String [] types, Object[] defaultValues) {
-		StringBuilder retString = new StringBuilder("CREATE TABLE IF NOT EXISTS "+ tableName + " (" + colNames[0] + " " + types[0]);
-		for(int colIndex = 1; colIndex < colNames.length; colIndex++) {
-			retString.append(" , " + colNames[colIndex] + "  " + types[colIndex]);
-			// add default values
-			if(defaultValues[colIndex] != null) {
-				retString.append(" DEFAULT ");
-				if(defaultValues[colIndex] instanceof String) {
-					retString.append("'").append(defaultValues[colIndex]).append("'");
-				} else {
-					retString.append(defaultValues[colIndex]);
-				}
-			}
-		}
-		retString = retString.append(")");
-		return retString.toString();
-	}
-	
-	/**
 	 * Generate an insert query
 	 * @param tableName
 	 * @param colNames
@@ -129,163 +101,6 @@ public class RdbmsQueryBuilder {
 		}
 		retString.append(")");
 		return retString.toString();
-	}
-	
-	/**
-	 * Create the syntax to merge 2 tables together
-	 * @param returnTableName			The return table name
-	 * @param returnTableTypes 
-	 * @param leftTableName				The left table
-	 * @param leftTableTypes			The {header -> type} of the left table
-	 * @param rightTableName			The right table name
-	 * @param rightTableTypes			The {header -> type} of the right table
-	 * @param joins						The joins between the right and left table
-	 * @return
-	 */
-	public static String createNewTableFromJoiningTables(
-			String returnTableName, 
-			String leftTableName, 
-			Map<String, SemossDataType> leftTableTypes,
-			String rightTableName, 
-			Map<String, SemossDataType> rightTableTypes, 
-			List<Join> joins,
-			Map<String, String> leftTableAlias,
-			Map<String, String> rightTableAlias) 
-	{
-		final String LEFT_TABLE_ALIAS = "A";
-		final String RIGHT_TABLE_ALIAS = "B";
-		
-		// 1) get the join portion of the sql syntax
-		
-		// keep a list of the right table join cols
-		// so we know not to include them in the new table
-		Set<String> rightTableJoinCols = new HashSet<String>();
-		
-		StringBuilder joinString = new StringBuilder();
-		int numJoins = joins.size();
-		for(int jIdx = 0; jIdx < numJoins; jIdx++) {
-			Join j = joins.get(jIdx);
-			String leftTableJoinCol = j.getSelector();
-			if(leftTableJoinCol.contains("__")) {
-				leftTableJoinCol = leftTableJoinCol.split("__")[1];
-			}
-			String rightTableJoinCol = j.getQualifier();
-			if(rightTableJoinCol.contains("__")) {
-				rightTableJoinCol = rightTableJoinCol.split("__")[1];
-			}
-			
-			// keep track of join columns on the right table
-			rightTableJoinCols.add(rightTableJoinCol.toUpperCase());
-			
-			String joinType = j.getJoinType();
-			String joinSql = null;
-			if(joinType.equalsIgnoreCase("inner.join")) {
-				joinSql = "INNER JOIN";
-			} else if(joinType.equalsIgnoreCase("left.outer.join")) {
-				joinSql = "LEFT OUTER JOIN";
-			} else if(joinType.equalsIgnoreCase("right.outer.join")) {
-				joinSql = "RIGHT OUTER JOIN";
-			} else if(joinType.equalsIgnoreCase("outer.join")) {
-				joinSql = "FULL OUTER JOIN";
-			} else {
-				joinSql = "INNER JOIN";
-			}
-			
-			if(jIdx != 0) {
-				joinString.append(" AND ");
-			} else {
-				joinString.append(joinSql).append(" ").append(rightTableName)
-							.append(" AS ").append(RIGHT_TABLE_ALIAS)
-							.append(" ON (");
-			}
-			
-			// need to make sure the data types are good to go
-			SemossDataType leftColType = leftTableTypes.get(leftTableName + "__" + leftTableJoinCol);
-			// the right column types are not tablename__colname...
-			SemossDataType rightColType = rightTableTypes.get(rightTableJoinCol);
-			
-			if(leftColType == rightColType) {
-				joinString.append(" ")
-						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-						.append(" = ")
-						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
-			} else {
-				if( (leftColType == SemossDataType.INT || leftColType == SemossDataType.DOUBLE)  && rightColType == SemossDataType.STRING) {
-					// one is a number
-					// other is a string
-					// convert the string to a number
-					joinString.append(" ")
-						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-						.append(" = CAST(")
-						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
-						.append(" AS DOUBLE)");
-				} else if( (rightColType == SemossDataType.INT || rightColType == SemossDataType.DOUBLE ) && leftColType == SemossDataType.STRING) {
-					// one is a number
-					// other is a string
-					// convert the string to a number
-					joinString.append(" CAST(")
-						.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-						.append(" AS DOUBLE) =")
-						.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol);
-				} else {
-					// not sure... just make everything a string
-					joinString.append(" CAST(")
-					.append(LEFT_TABLE_ALIAS).append(".").append(leftTableJoinCol)
-					.append(" AS VARCHAR(800)) = CAST(")
-					.append(RIGHT_TABLE_ALIAS).append(".").append(rightTableJoinCol)
-					.append(" AS VARCHAR(800))");
-				}
-			}
-		}
-		joinString.append(")");
-		
-		// 2) get the create table and the selector portions
-		Set<String> leftTableHeaders = leftTableTypes.keySet();
-		Set<String> rightTableHeaders = rightTableTypes.keySet();
-		StringBuilder sql = new StringBuilder();
-		sql.append("CREATE TABLE ").append(returnTableName).append(" AS ( SELECT ");
-		
-		// select all the columns from the left side
-		int counter = 0;
-		int size = leftTableHeaders.size();
-		for(String leftTableCol : leftTableHeaders) {
-			if(leftTableCol.contains("__")) {
-				leftTableCol = leftTableCol.split("__")[1];
-			}
-			sql.append(LEFT_TABLE_ALIAS).append(".").append(leftTableCol);
-			// add the alias if there
-			if(leftTableAlias.containsKey(leftTableCol)) {
-				sql.append(" AS ").append(leftTableAlias.get(leftTableCol));
-			}
-			if(counter + 1 < size) {
-				sql.append(", ");
-			}
-			counter++;
-		}
-		
-		// select the columns from the right side which are not part of the join!!!
-		for(String rightTableCol : rightTableHeaders) {
-			if(rightTableCol.contains("__")) {
-				rightTableCol = rightTableCol.split("__")[1];
-			}
-			if(rightTableJoinCols.contains(rightTableCol.toUpperCase())) {
-				counter++;
-				continue;
-			}
-			sql.append(", ").append(RIGHT_TABLE_ALIAS).append(".").append(rightTableCol);
-			// add the alias if there
-			if(rightTableAlias.containsKey(rightTableCol)) {
-				sql.append(" AS ").append(rightTableAlias.get(rightTableCol));
-			}
-			counter++;
-		}
-		
-		// 3) combine everything
-		
-		sql.append(" FROM ").append(leftTableName).append(" AS ").append(LEFT_TABLE_ALIAS).append(" ")
-				.append(joinString.toString()).append(" )");
-
-		return sql.toString();
 	}
 	
 	/**
@@ -343,33 +158,6 @@ public class RdbmsQueryBuilder {
 		return selectStatement.toString();
 	}
 	
-	
-	// SELECT AVERAGE(COLUMN1) FROM TABLE_NAME
-	public static String makeFunction(String column, String function, String tableName) {
-		String functionString = "SELECT ";
-		switch (function.toUpperCase()) {
-		case "COUNT":
-			functionString += "COUNT(" + column + ")";
-			break;
-		case "AVERAGE":
-			functionString += "AVG(" + column + ")";
-			break;
-		case "MIN":
-			functionString += "MIN(" + column + ")";
-			break;
-		case "MAX":
-			functionString += "MAX(" + column + ")";
-			break;
-		case "SUM":
-			functionString += "SUM(" + column + ")";
-			break;
-		default:
-			functionString += column;
-		}
-
-		functionString += " FROM " + tableName;
-		return functionString;
-	}
 	
 	/******************************
 	 * END READ QUERIES
@@ -667,19 +455,6 @@ public class RdbmsQueryBuilder {
 		return "DROP TABLE " + name;
 	}
 
-	
-	// DROP VIEW VIEW_NAME
-	public static String makeDropView(String name) {
-		return "DROP VIEW " + name;
-	}
-	
-	
-	// ALTER TABLE TABLE_NAME DROP COLUMN COLUMN1
-	public static String makeDropColumn(String column, String tableName) {
-		return "ALTER TABLE " + tableName + " DROP COLUMN " + column;
-	}
-	
-	
 	// DELETE FROM TABLE_NAME WHERE COLUMN1 = VAL1 AND COLUMN2 = VAL2
 	public static String makeDeleteData(String tableName, String[] columnName, Object[] values) {
 		StringBuilder deleteQuery = new StringBuilder("DELETE FROM " + tableName + " WHERE ");
@@ -696,33 +471,6 @@ public class RdbmsQueryBuilder {
 	 * END DELETE QUERIES
 	 ******************************/
 
-	
-	
-	
-	/******************************
-	 * FILTER QUERIES
-	 ******************************/
-	
-	public static String getQueryStringList(List<Object> values) {
-		String listString = "(";
-
-		for (int i = 0; i < values.size(); i++) {
-			Object value = values.get(i);
-			value = RdbmsFrameUtility.cleanInstance(value.toString());
-			listString += "'" + value + "'";
-			if (i < values.size() - 1) {
-				listString += ", ";
-			}
-		}
-
-		listString += ")";
-		return listString;
-	}
-
-	/******************************
-	 * FILTER QUERIES
-	 ******************************/
-	
 	
 	public static String createTableFromFile(String fileName, Map <String, String> conceptTypes)
 	{

@@ -31,6 +31,11 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IEngine;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.H2SqlInterpreter;
+
 public class H2QueryUtil extends AnsiSqlQueryUtil {
 	
 	H2QueryUtil() {
@@ -46,19 +51,29 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public IQueryInterpreter getInterpreter(IEngine engine) {
+		return new H2SqlInterpreter(engine);
+	}
+
+	@Override
+	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
+		return new H2SqlInterpreter(frame);
+	}
+	
+	@Override
 	public void enhanceConnection(Connection con) {
 		try {
 			Statement stmt = con.createStatement();
 			stmt.execute("DROP AGGREGATE IF EXISTS MEDIAN");
 			stmt.close();
 			stmt = con.createStatement();
-			stmt.execute("CREATE AGGREGATE MEDIAN FOR \"prerna.ds.h2.H2MedianAggregation\";");
+			stmt.execute("CREATE AGGREGATE MEDIAN FOR \"prerna.ds.rdbms.h2.H2MedianAggregation\";");
 			stmt.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	@Override
 	public String dropIndex(String indexName, String tableName) {
 		return "DROP INDEX " + indexName;
@@ -82,9 +97,15 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String getAllColumnDetails(String tableName, String schema) {
+		// do not need to use the schema
+		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "';";
+	}
+	
+	@Override
 	public String columnDetailsQuery(String tableName, String columnName, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "' AND COLUMN_NAME='" + columnName + "';";
+		return "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName + "' AND COLUMN_NAME='" + columnName + "';";
 	}
 	
 	@Override

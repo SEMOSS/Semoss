@@ -134,13 +134,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		out.name("frames");
 		out.beginArray();
 		for(FrameCacheHelper fObj : frames) {
-			CachePropFileFrameObject saveFrame = null;
-			try {
-				saveFrame = fObj.frame.save(folderDir);
-			} catch(Exception e) {
-				e.printStackTrace();
-				continue;
-			}
+			CachePropFileFrameObject saveFrame = fObj.frame.save(folderDir);
 			out.beginObject();
 			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, engineName, engineId));
 			out.name("meta").value(parameterizePath(saveFrame.getFrameMetaCacheLocation(), baseFolder, engineName, engineId));
@@ -376,7 +370,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 
 			ITableDataFrame frame;
 			try {
-				frame = (ITableDataFrame) Class.forName(cf.getFrameType()).newInstance();
+				String className = cf.getFrameType();
+				frame = (ITableDataFrame) Class.forName(className).newInstance();
 				// need to set the exector for pandas
 				if(frame instanceof PandasFrame) {
 					((PandasFrame)frame).setJep(insight.getPy());

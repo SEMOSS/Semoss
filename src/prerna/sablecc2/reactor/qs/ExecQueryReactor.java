@@ -4,7 +4,8 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -64,7 +65,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				}
 			} else if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
 				frame = qs.getFrame();
-				if(!(frame instanceof H2Frame)) {
+				if(!(frame instanceof AbstractRdbmsFrame)) {
 					throw new IllegalArgumentException("Query update/deletes only works for sql frames");
 				}
 				// convert any aliases the FE is using from the frame

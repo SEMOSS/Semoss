@@ -19,7 +19,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.GraphDataModel;
 import prerna.query.querystruct.SelectQueryStruct;

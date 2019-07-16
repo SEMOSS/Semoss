@@ -3,7 +3,7 @@ package prerna.sablecc;
 import java.util.Iterator;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ds.util.RdbmsFrameUtility;
 import prerna.util.ArrayUtilityMethods;
 
@@ -24,7 +24,7 @@ public class MetaH2ImportDataReactor extends ImportDataReactor{
 		boolean overLimit = false;
 		int numNewRecords = -1;
 
-		if(frame.isInMem()) {
+//		if(frame.isInMem()) {
 //			if(this.dataIterator instanceof IFileIterator) {
 //				// get if the frame is over the limit of acceptable values
 //				overLimit = ((IFileIterator) this.dataIterator).numberRowsOverLimit(LIMIT_SIZE);
@@ -69,7 +69,7 @@ public class MetaH2ImportDataReactor extends ImportDataReactor{
 //					frame.convertToOnDiskFrame(null);
 //				}
 //			}
-		}
+//		}
 		
 		return null;
 	}

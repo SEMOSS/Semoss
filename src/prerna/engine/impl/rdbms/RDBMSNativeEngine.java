@@ -53,11 +53,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
-import prerna.query.interpreters.sql.H2SqlInterpreter;
-import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
-import prerna.query.interpreters.sql.PostgresSqlInterpreter;
-import prerna.query.interpreters.sql.SnowFlakeSqlInterpreter;
-import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -275,7 +270,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 	}
 
-	private Connection getConnection(){
+	public Connection getConnection(){
 		Connection connObj = null;
 		if(isConnected()) {
 			try {
@@ -806,17 +801,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	
 	@Override
 	public IQueryInterpreter getQueryInterpreter(){
-		if(dbType == null || dbType == RdbmsTypeEnum.H2_DB) {
-			return new H2SqlInterpreter(this);
-		} else if(dbType == RdbmsTypeEnum.SQLSERVER) {
-			return new MicrosoftSqlServerInterpreter(this);
-		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
-			return new PostgresSqlInterpreter(this);
-		} else if(dbType == RdbmsTypeEnum.SNOWFLAKE) {
-			return new SnowFlakeSqlInterpreter(this);
-		}
-		// defualt ansi sql 
-		return new SqlInterpreter(this);
+		return this.queryUtil.getInterpreter(this);
 	}
 
 	public void setConnection(Connection engineConn) {

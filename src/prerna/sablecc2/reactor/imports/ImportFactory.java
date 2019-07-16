@@ -4,18 +4,18 @@ import java.util.Iterator;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
 
 public class ImportFactory {
 
 	public static IImporter getImporter(ITableDataFrame frame, SelectQueryStruct qs) {
-		if(frame instanceof H2Frame) {
-			return new H2Importer((H2Frame) frame, qs);
+		if(frame instanceof AbstractRdbmsFrame) {
+			return new RdbmsFrameImporter((AbstractRdbmsFrame) frame, qs);
 		} else if(frame instanceof TinkerFrame) {
 			return new TinkerImporter((TinkerFrame) frame, qs);
 		} else if(frame instanceof RDataTable) {
@@ -29,8 +29,8 @@ public class ImportFactory {
 	}
 	
 	public static IImporter getImporter(ITableDataFrame frame, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
-		if(frame instanceof H2Frame) {
-			return new H2Importer((H2Frame) frame, qs, it);
+		if(frame instanceof AbstractRdbmsFrame) {
+			return new RdbmsFrameImporter((AbstractRdbmsFrame) frame, qs, it);
 		} else if(frame instanceof TinkerFrame) {
 			return new TinkerImporter((TinkerFrame) frame, qs, it);
 		} else if(frame instanceof RDataTable) {

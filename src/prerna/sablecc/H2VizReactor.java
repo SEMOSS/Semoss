@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.expressions.IExpressionSelector;
 import prerna.sablecc.expressions.sql.H2SqlExpressionIterator;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;
@@ -140,15 +140,9 @@ public class H2VizReactor extends AbstractVizReactor {
 					boolean notTransientHeader = ArrayUtilityMethods.arrayContainsValue(frame.getColumnHeaders(), sortName);
 					if(notTransientHeader) {
 						// does an index already exist for this column?
-						Set<String> indexedCols = frame.getColumnsWithIndexes();
-						boolean alreadyIndexed = indexedCols.contains(sortName);
-						if(!alreadyIndexed) {
-							// first remove existing ones
-							for(String rCol : indexedCols) {
-								frame.removeColumnIndex(rCol);
-							}
-							// now add the new one
-							frame.addColumnIndex(sortName);
+						if(!frame.getBuilder().columnIndexed(frame.getName(), sortName)) {
+							frame.getBuilder().removeAllIndexes();
+							frame.getBuilder().addColumnIndex(frame.getName(), sortName);
 						}
 					}
 				}
