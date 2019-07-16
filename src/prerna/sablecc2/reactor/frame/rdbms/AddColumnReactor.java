@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.frame.rdbms;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;

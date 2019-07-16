@@ -320,7 +320,74 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 
 		return sql.toString();
 	}
+	
+	@Override
+	public String createInsertPreparedStatementString(String tableName, String[] columns) {
+		// generate the sql for the prepared statement
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		
+		StringBuilder sql = new StringBuilder("INSERT INTO ");
+		sql.append(tableName).append(" (").append(columns[0]);
+		for (int colIndex = 1; colIndex < columns.length; colIndex++) {
+			sql.append(", ");
+			String columnName = columns[colIndex];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+			sql.append(columnName);
+		}
+		sql.append(") VALUES (?"); 
+		// remember, we already assumed one col
+		for (int colIndex = 1; colIndex < columns.length; colIndex++) {
+			sql.append(", ?");
+		}
+		sql.append(")");
+		
+		return sql.toString();
+	}
 
+	@Override
+	public String createUpdatePreparedStatementString(String tableName, String[] columnsToUpdate, String[] whereColumns) {
+		// generate the sql for the prepared statement
+		StringBuilder sql = new StringBuilder("UPDATE ");
+		if(isSelectorKeyword(tableName)) {
+			tableName = getEscapeKeyword(tableName);
+		}
+		sql.append(tableName).append(" SET ");
+		String columnName = columnsToUpdate[0];
+		if(isSelectorKeyword(columnName)) {
+			columnName = getEscapeKeyword(columnName);
+		}
+		sql.append(columnName).append(" = ?");
+		for (int colIndex = 1; colIndex < columnsToUpdate.length; colIndex++) {
+			sql.append(", ");
+			columnName = columnsToUpdate[colIndex];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+			sql.append(columnName).append(" = ?");
+		}
+		if(whereColumns.length > 0) {
+			columnName = whereColumns[0];
+			if(isSelectorKeyword(columnName)) {
+				columnName = getEscapeKeyword(columnName);
+			}
+			sql.append(" WHERE ").append(columnName).append(" = ?");
+			for (int colIndex = 1; colIndex < whereColumns.length; colIndex++) {
+				sql.append(" AND ");
+				columnName = whereColumns[colIndex];
+				if(isSelectorKeyword(columnName)) {
+					columnName = getEscapeKeyword(columnName);
+				}
+				sql.append(columnName).append(" = ?");
+			}
+			sql.append("");
+		}
+		return sql.toString();
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
