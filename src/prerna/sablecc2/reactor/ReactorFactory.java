@@ -1,15 +1,6 @@
 package prerna.sablecc2.reactor;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,6 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
 import me.xdrop.fuzzywuzzy.FuzzySearch;
 import me.xdrop.fuzzywuzzy.model.ExtractedResult;
 import prerna.algorithm.api.ITableDataFrame;
@@ -33,10 +29,10 @@ import prerna.date.reactor.MonthReactor;
 import prerna.date.reactor.WeekReactor;
 import prerna.date.reactor.YearReactor;
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
 import prerna.forms.UpdateFormReactor;
 import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
 import prerna.poi.main.helper.excel.GetExcelFormReactor;
@@ -443,8 +439,6 @@ import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -1180,7 +1174,6 @@ public class ReactorFactory {
 		h2FrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.rdbms.ExtractNumbersReactor.class);
 		h2FrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.rdbms.JoinColumnsReactor.class);
 		h2FrameHash.put("RenameColumn", prerna.sablecc2.reactor.frame.rdbms.RenameColumnReactor.class);
-		h2FrameHash.put("SortColumn", prerna.sablecc2.reactor.frame.rdbms.SortColumnReactor.class);
 		h2FrameHash.put("SplitColumns", prerna.sablecc2.reactor.frame.rdbms.SplitColumnsReactor.class);
 		h2FrameHash.put("ToLowerCase", prerna.sablecc2.reactor.frame.rdbms.ToLowerCaseReactor.class);
 		h2FrameHash.put("ToUpperCase", prerna.sablecc2.reactor.frame.rdbms.ToUpperCaseReactor.class);
@@ -1372,7 +1365,7 @@ public class ReactorFactory {
 			String frameName = "";
 			if (frame != null) {
 				// identify the correct hash to use
-				if (frame instanceof H2Frame) {
+				if (frame instanceof AbstractRdbmsFrame) {
 					// see if the hash contains the reactor id
 					if (h2FrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) h2FrameHash.get(reactorId).newInstance();
@@ -1397,7 +1390,7 @@ public class ReactorFactory {
 					if (pandasFrameHash.containsKey(reactorId)) {
 						reactor = (IReactor) pandasFrameHash.get(reactorId).newInstance();
 						frameName ="py_";
-				}
+					}
 				}
 				
 				// try the new method

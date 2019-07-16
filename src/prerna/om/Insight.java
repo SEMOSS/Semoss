@@ -48,8 +48,8 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.py.PyExecutorThread;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
@@ -344,7 +344,7 @@ public class Insight {
 	}
 	
 	public String getUserId() {
-		if(this.user == null) {
+		if(this.user == null || this.user.isAnonymous()) {
 			return "-1";
 		}
 		return user.getAccessToken(user.getLogins().get(0)).getId();

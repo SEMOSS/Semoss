@@ -2,6 +2,7 @@ package prerna.auth.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,7 +93,7 @@ public abstract class AbstractSecurityUtils {
 	
 	public static void initialize() throws SQLException {
 		String schema = securityDb.getSchema();
-		
+		Connection conn = securityDb.getConnection();
 		String[] colNames = null;
 		String[] types = null;
 		Object[] defaultValues = null;
@@ -110,7 +111,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "ENGINE", schema)) {
+			if(!queryUtil.tableExists(conn, "ENGINE", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ENGINE", colNames, types));
 			}
@@ -139,7 +140,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "ENGINEMETA", schema)) {
+			if(!queryUtil.tableExists(conn, "ENGINEMETA", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ENGINEMETA", colNames, types));
 			}
@@ -153,7 +154,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types, defaultValues));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "ENGINEPERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "ENGINEPERMISSION", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ENGINEPERMISSION", colNames, types));
 			}
@@ -182,7 +183,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("WORKSPACEENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "WORKSPACEENGINE", schema)) {
+			if(!queryUtil.tableExists(conn, "WORKSPACEENGINE", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("WORKSPACEENGINE", colNames, types));
 			}
@@ -207,7 +208,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ASSETENGINE", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "ASSETENGINE", schema)) {
+			if(!queryUtil.tableExists(conn, "ASSETENGINE", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ASSETENGINE", colNames, types));
 			}
@@ -233,7 +234,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHT", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "INSIGHT", schema)) {
+			if(!queryUtil.tableExists(conn, "INSIGHT", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("INSIGHT", colNames, types));
 			}
@@ -263,7 +264,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("USERINSIGHTPERMISSION", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "USERINSIGHTPERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "USERINSIGHTPERMISSION", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("USERINSIGHTPERMISSION", colNames, types));
 			}
@@ -292,7 +293,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("USER", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "USER", schema)) {
+			if(!queryUtil.tableExists(conn, "USER", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("USER", colNames, types));
 			}
@@ -313,7 +314,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("PERMISSION", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "PERMISSION", schema)) {
+			if(!queryUtil.tableExists(conn, "PERMISSION", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("PERMISSION", colNames, types));
 			}
@@ -355,7 +356,7 @@ public abstract class AbstractSecurityUtils {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ACCESSREQUEST", colNames, types));
 		} else {
 			// see if table exists
-			if(!tableExists(queryUtil, "ACCESSREQUEST", schema)) {
+			if(!queryUtil.tableExists(conn, "ACCESSREQUEST", schema)) {
 				// make the table
 				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
 			}
@@ -458,26 +459,6 @@ public abstract class AbstractSecurityUtils {
 //		colNames = new String[] { "groupid", "seedid" };
 //		types = new String[] { "integer", "integer" };
 //		securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION", colNames, types));
-	}
-	
-	/**
-	 * Helper method to see if a table exits based on Query Utility class
-	 * @param queryUtil
-	 * @param tableName
-	 * @param schema
-	 * @return
-	 */
-	private static boolean tableExists(AbstractSqlQueryUtil queryUtil, String tableName, String schema) {
-		String tableCheckQ = queryUtil.tableExistsQuery(tableName, schema);
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, tableCheckQ);
-		try {
-			if(wrapper.hasNext()) {
-				return true;
-			}
-			return false;
-		} finally {
-			wrapper.cleanUp();
-		}
 	}
 	
 	/**

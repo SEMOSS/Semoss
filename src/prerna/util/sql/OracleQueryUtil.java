@@ -1,5 +1,10 @@
 package prerna.util.sql;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IEngine;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.MicrosoftSqlServerInterpreter;
+
 public class OracleQueryUtil extends AnsiSqlQueryUtil {
 	
 	OracleQueryUtil() {
@@ -13,7 +18,7 @@ public class OracleQueryUtil extends AnsiSqlQueryUtil {
 	OracleQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
 		super(dbType, hostname, port, schema, username, password);
 	}
-
+	
 	@Override
 	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
 		if(offset > 0) {

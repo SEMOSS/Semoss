@@ -3,7 +3,7 @@ package prerna.sablecc.expressions.sql;
 import java.util.Iterator;
 import java.util.Vector;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.AbstractReactor;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.expressions.sql.builder.SqlColumnSelector;

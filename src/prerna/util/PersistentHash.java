@@ -7,9 +7,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 
 import prerna.ds.util.RdbmsQueryBuilder;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class PersistentHash {
@@ -91,12 +89,6 @@ public class PersistentHash {
 		}
 
 		// make sure the KVSTORE table exists
-		String tableExistsQuery = queryUtil.tableExistsQuery(TABLE_NAME, engine.getSchema());
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, tableExistsQuery);
-		try {
-			return wrapper.hasNext();
-		} finally {
-			wrapper.cleanUp();
-		}
+		return queryUtil.tableExists(engine.getConnection(), TABLE_NAME, engine.getSchema());
 	}
 }

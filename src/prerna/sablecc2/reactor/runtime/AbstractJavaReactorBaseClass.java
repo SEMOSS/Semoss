@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.runtime;
 
-import java.sql.Connection;
 import java.util.List;
 import java.util.Vector;
 
@@ -9,7 +8,6 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerAlgorithmUtility;
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -529,18 +527,6 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 			this.nounMetaOutput.add(new NounMetadata(disconnectedNodes, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}
 		java.lang.System.setSecurityManager(reactorManager);
-	}
-	
-	////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////
-	//////////////////////// H2Frame Methods ///////////////////////
-
-	protected Connection getConnection() {
-		if(this.dataframe instanceof H2Frame) {
-			return ((H2Frame)this.dataframe).getBuilder().getConnection();
-		} else {
-			return null;
-		}
 	}
 	
 	////////////////////////////////////////////////////////////
