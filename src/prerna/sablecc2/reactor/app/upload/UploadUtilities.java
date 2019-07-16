@@ -1104,17 +1104,24 @@ public class UploadUtilities {
 	public static void runInsightCreateTableQueries(RDBMSNativeEngine insightEngine) {
 		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255), QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225), QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP CLOB, QUESTION_PROPERTIES CLOB, QUESTION_OWL CLOB, QUESTION_IS_DB_QUERY BOOLEAN, DATA_TABLE_ALIGN VARCHAR(500), QUESTION_PKQL ARRAY)
 		AbstractSqlQueryUtil queryUtil = insightEngine.getQueryUtil();
-		String[] columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
-				"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL"};
-		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "CLOB",
-				"VARCHAR(500)", "BOOLEAN", "BOOLEAN", "ARRAY"};
-		// this is annoying
-		// need to adjust if the engine allows array data types
-		if(!queryUtil.allowArrayDatatype()) {
-			types[types.length-1] = "CLOB";
-		}
+		String[] columns = null;
+		String[] types = null;
+		
 		try {
-			insightEngine.insertData(queryUtil.createTable("QUESTION_ID", columns, types));
+			if(!queryUtil.tableExists(insightEngine.getConnection(), "QUESTION_ID", insightEngine.getSchema())) {
+				
+				columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
+						"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL"};
+				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "CLOB",
+						"VARCHAR(500)", "BOOLEAN", "BOOLEAN", "ARRAY"};
+				// this is annoying
+				// need to adjust if the engine allows array data types
+				if(!queryUtil.allowArrayDatatype()) {
+					types[types.length-1] = "CLOB";
+				}
+				
+				insightEngine.insertData(queryUtil.createTable("QUESTION_ID", columns, types));
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -1130,20 +1137,25 @@ public class UploadUtilities {
 			 */
 			
 			// CREATE TABLE PARAMETER_ID (PARAMETER_ID VARCHAR(255), PARAMETER_LABEL VARCHAR(255), PARAMETER_TYPE VARCHAR(225), PARAMETER_DEPENDENCY VARCHAR(225), PARAMETER_QUERY VARCHAR(2000), PARAMETER_OPTIONS VARCHAR(2000), PARAMETER_IS_DB_QUERY BOOLEAN, PARAMETER_MULTI_SELECT BOOLEAN, PARAMETER_COMPONENT_FILTER_ID VARCHAR(255), PARAMETER_VIEW_TYPE VARCHAR(255), QUESTION_ID_FK INT)
-			columns = new String[]{"PARAMETER_ID", "PARAMETER_LABEL", "PARAMETER_TYPE", "PARAMETER_DEPENDENCY", "PARAMETER_QUERY", 
-					"PARAMETER_OPTIONS", "PARAMETER_IS_DB_QUERY", "PARAMETER_MULTI_SELECT", "PARAMETER_COMPONENT_FILTER_ID", "PARAMETER_VIEW_TYPE", "QUESTION_ID_FK"};
-			types = new String[]{"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(2000)", "BOOLEAN",
-					"BOOLEAN", "VARCHAR(255)", "VARCHAR(255)", "INT"};
+			
 			try {
-				insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
+				if(!queryUtil.tableExists(insightEngine.getConnection(), "PARAMETER_ID", insightEngine.getSchema())) {
+					columns = new String[]{"PARAMETER_ID", "PARAMETER_LABEL", "PARAMETER_TYPE", "PARAMETER_DEPENDENCY", "PARAMETER_QUERY", 
+							"PARAMETER_OPTIONS", "PARAMETER_IS_DB_QUERY", "PARAMETER_MULTI_SELECT", "PARAMETER_COMPONENT_FILTER_ID", "PARAMETER_VIEW_TYPE", "QUESTION_ID_FK"};
+					types = new String[]{"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(2000)", "VARCHAR(2000)", "BOOLEAN",
+							"BOOLEAN", "VARCHAR(255)", "VARCHAR(255)", "INT"};
+					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
+				}
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
 			
-			columns = new String[]{"QUESTION_ID_FK", "UI_DATA"};
-			types = new String[]{"INT", "CLOB"};
 			try {
-				insightEngine.insertData(queryUtil.createTable("UI", columns, types));
+				if(!queryUtil.tableExists(insightEngine.getConnection(), "UI", insightEngine.getSchema())) {
+					columns = new String[]{"QUESTION_ID_FK", "UI_DATA"};
+					types = new String[]{"INT", "CLOB"};
+					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
+				}
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
