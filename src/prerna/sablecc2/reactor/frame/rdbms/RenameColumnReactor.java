@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.query.querystruct.transform.QSRenameColumnConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;

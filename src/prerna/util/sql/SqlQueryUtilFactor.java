@@ -38,6 +38,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new TibcoQueryUtil();
 		} else if(dbType == RdbmsTypeEnum.SQLITE) {
 			queryUtil = new SQLiteQueryUtil();
+		} else if(dbType == RdbmsTypeEnum.SNOWFLAKE) {
+			queryUtil = new SnowFlakeQueryUtil();
 		}
 		// base will work for most situations
 		else {
@@ -65,6 +67,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new TibcoQueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.SQLITE) {
 			queryUtil = new SQLiteQueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.SNOWFLAKE) {
+			queryUtil = new SnowFlakeQueryUtil(connectionUrl, username, password);
 		}
 		// base will work for most situations
 		else {
@@ -92,6 +96,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new TibcoQueryUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == RdbmsTypeEnum.SQLITE) {
 			queryUtil = new SQLiteQueryUtil(dbType, hostname, port, schema, username, password);
+		} else if(dbType == RdbmsTypeEnum.SNOWFLAKE) {
+			queryUtil = new SnowFlakeQueryUtil(dbType, hostname, port, schema, username, password);
 		}
 		// base will work for most situations
 		else {

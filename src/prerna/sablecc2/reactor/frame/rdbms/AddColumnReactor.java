@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.frame.rdbms;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -24,7 +24,7 @@ public class AddColumnReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		String table = frame.getName();
 		// get column
 		String colName = this.keyValue.get(this.keysToGet[0]);
@@ -41,9 +41,8 @@ public class AddColumnReactor extends AbstractFrameReactor {
 		// make sql data type
 		dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(dataType));
 		if (frame != null) {
-			String update = "ALTER TABLE " + table + " ADD " + colName + " " + dataType + ";";
 			try {
-				frame.getBuilder().runQuery(update);
+				frame.getBuilder().runQuery(frame.getQueryUtil().alterTableAddColumn(table, colName, dataType));
 				// set metadata for new column
 				OwlTemporalEngineMeta metaData = frame.getMetaData();
 				metaData.addProperty(table, table + "__" + colName);

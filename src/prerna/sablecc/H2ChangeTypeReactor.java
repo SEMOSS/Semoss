@@ -3,7 +3,7 @@ package prerna.sablecc;
 import java.util.Iterator;
 import java.util.List;
 
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc.PKQLRunner.STATUS;
 
 public class H2ChangeTypeReactor extends DataframeChangeTypeReactor {

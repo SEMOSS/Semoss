@@ -65,7 +65,12 @@ public class ConvertReactor extends AbstractFrameReactor {
 		if(alias == null) {
 			alias = frame.getName();
 		}
-		ITableDataFrame newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
+		ITableDataFrame newFrame = null;
+		try {
+			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
+		}
 		// insert the data for the new frame
 		IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
 		importer.insertData();

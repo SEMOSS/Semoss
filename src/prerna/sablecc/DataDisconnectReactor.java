@@ -3,11 +3,10 @@ package prerna.sablecc;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.Iterator;
 
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
+import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ds.shared.AbstractTableDataFrame;
 //import prerna.ds.spark.SparkDataFrame;
 import prerna.sablecc.meta.IPkqlMetadata;
@@ -19,7 +18,7 @@ public class DataDisconnectReactor  extends AbstractReactor{
 		System.out.println("Inside DataDisconnectReactor.process()");
 		AbstractTableDataFrame frame = (AbstractTableDataFrame) myStore.get("G");
 		if(frame instanceof H2Frame){
-			Connection currConn = ((H2Frame) frame).getBuilder().getConnection();
+			Connection currConn = ((H2Frame) frame).getConn();
 			if(currConn != null){
 				try {
 					if(!currConn.isClosed()){

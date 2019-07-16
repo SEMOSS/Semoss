@@ -5,13 +5,16 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
-import prerna.ds.h2.H2Frame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
+import prerna.ds.rdbms.sqlite.SQLiteFrame;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class FrameFactory {
 
@@ -20,22 +23,25 @@ public class FrameFactory {
 	private static boolean INIT = false;
 	// grab default frame
 	private static String DEFAULT_FRAME_TYPE = null;
-	
-	public static ITableDataFrame getFrame(Insight insight, String frameType, String alias) {
+	private static RdbmsTypeEnum RDBMS_TYPE = null;
+
+	public static ITableDataFrame getFrame(Insight insight, String frameType, String alias) throws Exception {
+		frameType = frameType.toUpperCase();
+		
 		Logger logger = null;
 		if(!INIT) {
 			init();
 		}
 		
-		if(frameType.toUpperCase().equals("DEFAULT")) {
+		if(frameType.equals("DEFAULT")) {
 			frameType = DEFAULT_FRAME_TYPE;
 		}
-		switch (frameType.toUpperCase()) {
+		switch (frameType) {
 			case "GRID": { 
-				return new H2Frame(alias); 
+				return getGrid(alias);
 			}
 			case "H2": { 
-				return new H2Frame(alias); 
+				return getGrid(alias);
 			}
 			
 			case "GRAPH": { 
@@ -95,20 +101,40 @@ public class FrameFactory {
 			}
 			
 			default: { 
-				return new H2Frame(alias); 
+				return new SQLiteFrame(alias); 
 			}
 		
 		}
 	}
 	
-	private static void init() {
-		DEFAULT_FRAME_TYPE =  DIHelper.getInstance().getProperty(Constants.DEFAULT_FRAME_TYPE);
-		INIT = true;
+	private static ITableDataFrame getGrid(String alias) throws Exception {
+		if(RDBMS_TYPE == RdbmsTypeEnum.SQLITE) {
+			return new SQLiteFrame(alias);
+		}
 		
+		return new H2Frame(alias);
+	}
+	
+	/**
+	 * Init the frame factory configuration
+	 */
+	private static void init() {
+		DEFAULT_FRAME_TYPE = DIHelper.getInstance().getProperty(Constants.DEFAULT_FRAME_TYPE);
+		String defaultGridType = DIHelper.getInstance().getProperty(Constants.DEFAULT_GRID_TYPE);
+		if(defaultGridType == null || defaultGridType.isEmpty()) {
+			defaultGridType = "H2_DB";
+		}
+		
+		RDBMS_TYPE = RdbmsTypeEnum.valueOf(defaultGridType);
+		
+		if(DEFAULT_FRAME_TYPE == null) {
+			DEFAULT_FRAME_TYPE = "GRID";
+		}
+		INIT = true;
 	}
 
 	public static String getFrameType(ITableDataFrame frame) {
-		if(frame instanceof H2Frame) {
+		if(frame instanceof AbstractRdbmsFrame) {
 			return "GRID";
 		} else if(frame instanceof TinkerFrame) {
 			return "GRAPH";

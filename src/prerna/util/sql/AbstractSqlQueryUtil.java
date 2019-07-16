@@ -28,19 +28,26 @@
 package prerna.util.sql;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
-import org.neo4j.cypher.internal.compiler.v3_4.planner.logical.steps.SystemOutCostLogger;
-
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.Join;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Utility;
 
@@ -132,7 +139,15 @@ public abstract class AbstractSqlQueryUtil {
 	public String getConnectionUrl() {
 		return connectionUrl;
 	}
+	
+	public IQueryInterpreter getInterpreter(IEngine engine) {
+		return new SqlInterpreter(engine);
+	}
 
+	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
+		return new SqlInterpreter(frame);
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -170,6 +185,29 @@ public abstract class AbstractSqlQueryUtil {
 		return "\"" + selector + "\"";
 	}
 	
+	/**
+	 * Escape sql statement literals
+	 * @param s
+	 * @return
+	 */
+	public static String escapeForSQLStatement(String s) {
+		if(s == null) {
+			return s;
+		}
+		return s.replaceAll("'", "''");
+	}
+	
+	/**
+	 * Escape regex searching
+	 * @param s
+	 * @return
+	 */
+	public static String escapeRegexCharacters(String s) {
+		s = s.trim();
+		s = s.replace("(", "\\(");
+		s = s.replace(")", "\\)");
+		return s;
+	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
@@ -237,6 +275,27 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String removeDuplicatesFromTable(String tableName, String fullColumnNameList);
 	
+	/**
+	 * Create the syntax to merge 2 tables together
+	 * @param returnTableName			The return table name
+	 * @param returnTableTypes 
+	 * @param leftTableName				The left table
+	 * @param leftTableTypes			The {header -> type} of the left table
+	 * @param rightTableName			The right table name
+	 * @param rightTableTypes			The {header -> type} of the right table
+	 * @param joins						The joins between the right and left table
+	 * @return
+	 */
+	public abstract String createNewTableFromJoiningTables(
+			String returnTableName, 
+			String leftTableName, 
+			Map<String, SemossDataType> leftTableTypes,
+			String rightTableName, 
+			Map<String, SemossDataType> rightTableTypes, 
+			List<Join> joins,
+			Map<String, String> leftTableAlias,
+			Map<String, String> rightTableAlias);
+
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/**
@@ -250,6 +309,12 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract boolean allowAddColumn();
+	
+	/**
+	 * Does the engine allow you to add multiple columns in a single statement
+	 * @return
+	 */
+	public abstract boolean allowMultiAddColumn();
 	
 	/**
 	 * Does the engine allow you to rename a column in an existing table
@@ -395,6 +460,24 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String alterTableAddColumnIfNotExistsWithDefault(String tableName, String newColumn, String newColType,  Object defualtValue);
 	
+	/**
+	 * Add new columns to an existing table
+	 * @param tableName
+	 * @param newColumns
+	 * @param newColTypes
+	 * @return
+	 */
+	public abstract String alterTableAddColumns(String tableName, String[] newColumns, String[] newColTypes);
+	
+	/**
+	 * Add new columns to an existing table with default value
+	 * @param tableName
+	 * @param newColumns
+	 * @param newColTypes
+	 * @param defaultValue
+	 * @return
+	 */
+	public abstract String alterTableAddColumnsWithDefaults(String tableName, String[] newColumns, String[] newColTypes, Object[] defaultValues);
 	
 	/**
 	 * Drop a column from an existing table
@@ -506,6 +589,16 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String dropIndexIfExists(String indexName, String tableName);
 	
+	/**
+	 * Insert a row into a table
+	 * @param tableName
+	 * @param columnNames
+	 * @param types
+	 * @param values
+	 * @return
+	 */
+	public abstract String insertIntoTable(String tableName, String[] columnNames, String[] types, Object[] values);
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/*
@@ -521,6 +614,16 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String tableExistsQuery(String tableName, String schema);
+	
+	/**
+	 * Query to get the list of column names for a table
+ 	 * The schema input is optional and only required by certain engines
+ 	 * Returns the column name and column type
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	public abstract String getAllColumnDetails(String tableName, String schema);
 	
 	/**
 	 * Query to execute to get the column details 
@@ -568,6 +671,94 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String allIndexForTableQuery(String tableName, String schema);
+	
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Utility methods
+	 */
+	
+	/**
+	 * Test on the connection if a table exists
+	 * Assumption that the conn and sql util are of same type
+	 * @param conn
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	public boolean tableExists(Connection conn, String tableName, String schema) {
+		String query = this.tableExistsQuery(tableName, schema);
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			if (rs.next()) {
+				return true;
+			} else {
+				return false;
+			}
+		} catch (SQLException e) {
+			return false;
+		} finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Get all the table columns
+	 * Will return them all upper cased
+	 * @param conn
+	 * @param tableName
+	 * @param schema
+	 * @return
+	 */
+	public List<String> getTableColumns(Connection conn, String tableName, String schema) {
+		List<String> tableColumns = new Vector<String>();
+		String query = this.getAllColumnDetails(tableName, schema);
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				tableColumns.add(rs.getString(1).toUpperCase());
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if(rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		return tableColumns;
+	}
+	
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 
@@ -623,5 +814,4 @@ public abstract class AbstractSqlQueryUtil {
 			System.out.println(wrapper.next());
 		}
 	}
-	
 }
