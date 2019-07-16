@@ -1,4 +1,4 @@
-package prerna.ds.rdbms.sqlite;
+package prerna.ds.rdbms;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -254,7 +254,7 @@ public class RdbmsFrameBuilder {
 	 * @return The prepared statement
 	 */
 	public PreparedStatement createInsertPreparedStatement(final String TABLE_NAME, final String[] columns) {
-		String sql = RdbmsQueryBuilder.createInsertPreparedStatementString(TABLE_NAME, columns);
+		String sql = this.queryUtil.createInsertPreparedStatementString(TABLE_NAME, columns);
 
 		PreparedStatement ps = null;
 		try {
@@ -276,7 +276,7 @@ public class RdbmsFrameBuilder {
 	 */
 	public PreparedStatement createUpdatePreparedStatement(final String TABLE_NAME, final String[] columnsToUpdate, final String[] whereColumns) {
 		// generate the sql for the prepared statement
-		String sql = RdbmsQueryBuilder.createUpdatePreparedStatementString(TABLE_NAME, columnsToUpdate, whereColumns);
+		String sql = this.queryUtil.createUpdatePreparedStatementString(TABLE_NAME, columnsToUpdate, whereColumns);
 		
 		PreparedStatement ps = null;
 		try {
@@ -288,19 +288,6 @@ public class RdbmsFrameBuilder {
 
 		return ps;
 	}
-	
-	/**
-	 * Get a prepared statement in order to perform a merge
-	 * @param TABLE_NAME
-	 * @param keyColumns
-	 * @param updateColumns
-	 * @return
-	 */
-	public PreparedStatement createMergePreparedStatement(final String TABLE_NAME, final String[] keyColumns, final String[] updateColumns) {
-		String sql = RdbmsQueryBuilder.createMergePreparedStatementString(TABLE_NAME, keyColumns, updateColumns);
-		return createPreparedStatement(sql);
-	}
-
 	
 	private PreparedStatement createPreparedStatement(String sql) {
 		PreparedStatement ps = null;

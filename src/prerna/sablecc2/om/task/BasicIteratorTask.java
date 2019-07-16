@@ -13,7 +13,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IEngineWrapper;
 import prerna.engine.api.IHeadersDataRow;

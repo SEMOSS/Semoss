@@ -12,7 +12,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.sqlite.AbstractRdbmsFrame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
