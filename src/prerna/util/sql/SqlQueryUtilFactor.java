@@ -59,6 +59,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new MicrosoftSqlServerUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.MYSQL) {
 			queryUtil = new MySQLQueryUtil(connectionUrl, username, password);
+		}else if(dbType == RdbmsTypeEnum.MARIADB) {
+			queryUtil = new MariaDbQueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.ORACLE) {
 			queryUtil = new OracleQueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.IMPALA) {
