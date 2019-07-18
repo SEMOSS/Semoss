@@ -101,11 +101,14 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 					NounMetadata variable = vStore.get(var);
 					if(variable.getNounType() == PixelDataType.FRAME) {
 						// if R or Py, we have to change
+						// update the name of the table + update the metadata
 						if(variable.getValue() instanceof RDataTable) {
 							RDataTable dt = (RDataTable) variable.getValue();
-							String newName = dt.getName() + "_COPY";
-							dt.executeRScript(newName + "<- " + dt.getName());
+							String oldName = dt.getName();
+							String newName = oldName + "_COPY";
+							dt.executeRScript(newName + "<- " + oldName);
 							dt.setName(newName);
+							dt.getMetaData().modifyVertexName(oldName, newName);
 						}
 					}
 				}
