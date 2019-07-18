@@ -49,12 +49,15 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 		
 		this.fileLocation = folderToUsePath + DIR_SEPARATOR + "database.sqlite";
 		// build the connection url
-		String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(RdbmsTypeEnum.SQLITE.getLabel(), fileLocation, null, null, null);
+		String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(RdbmsTypeEnum.SQLITE.getLabel(), fileLocation, null, null, "journal_mode=MEMORY;synchronous=OFF");
 		// get the connection
 		this.conn = RdbmsConnectionHelper.getConnection(connectionUrl, "", "", RdbmsTypeEnum.SQLITE.getLabel());
 		// set the builder
 		this.builder = new RdbmsFrameBuilder(this.conn, this.schema, this.util);
 		this.util.enhanceConnection(this.conn);
+		
+		this.builder.runQuery("PRAGMA synchronous = OFF");
+		this.builder.runQuery("PRAGMA journal_mode = MEMORY");
 	}
 	
 	@Override
