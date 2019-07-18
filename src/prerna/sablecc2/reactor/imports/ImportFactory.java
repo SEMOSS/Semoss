@@ -15,7 +15,7 @@ public class ImportFactory {
 
 	public static IImporter getImporter(ITableDataFrame frame, SelectQueryStruct qs) {
 		if(frame instanceof AbstractRdbmsFrame) {
-			return new RdbmsFrameImporter((AbstractRdbmsFrame) frame, qs);
+			return new RdbmsImporter((AbstractRdbmsFrame) frame, qs);
 		} else if(frame instanceof TinkerFrame) {
 			return new TinkerImporter((TinkerFrame) frame, qs);
 		} else if(frame instanceof RDataTable) {
@@ -23,14 +23,14 @@ public class ImportFactory {
 		} else if(frame instanceof PandasFrame) {
 			return new PandasImporter((PandasFrame) frame, qs);
 		} else if(frame instanceof NativeFrame) {
-			return new NativeFrameImporter((NativeFrame) frame, qs);
+			return new NativeImporter((NativeFrame) frame, qs);
 		}
 		return null;
 	}
 	
 	public static IImporter getImporter(ITableDataFrame frame, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		if(frame instanceof AbstractRdbmsFrame) {
-			return new RdbmsFrameImporter((AbstractRdbmsFrame) frame, qs, it);
+			return new RdbmsImporter((AbstractRdbmsFrame) frame, qs, it);
 		} else if(frame instanceof TinkerFrame) {
 			return new TinkerImporter((TinkerFrame) frame, qs, it);
 		} else if(frame instanceof RDataTable) {
@@ -38,7 +38,7 @@ public class ImportFactory {
 		} else if(frame instanceof PandasFrame) {
 			return new PandasImporter((PandasFrame) frame, qs, it);
 		} else if(frame instanceof NativeFrame) {
-			return new NativeFrameImporter((NativeFrame) frame, qs);
+			return new NativeImporter((NativeFrame) frame, qs);
 		}
 		return null;
 	}
