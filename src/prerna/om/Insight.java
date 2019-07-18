@@ -115,7 +115,8 @@ public class Insight {
 	 * this is important so we can save those files into full databases
 	 * if the insight is saved
 	*/
-	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();	
+	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();
+	private transient boolean deleteFilesOnDropInsight = true;
 	private transient Map<String, String> exportFiles = new Hashtable<String, String>();
 	
 	// insight comments
@@ -471,6 +472,14 @@ public class Insight {
 	public List<FileMeta> getFilesUsedInInsight() {
 		return this.filesUsedInInsight;
 	}
+	
+	public boolean isDeleteFilesOnDropInsight() {
+		return this.deleteFilesOnDropInsight;
+	}
+	
+	public void setDeleteFilesOnDropInsight(boolean deleteFilesOnDropInsight) {
+		this.deleteFilesOnDropInsight = deleteFilesOnDropInsight;
+	}
 
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
@@ -741,4 +750,5 @@ public class Insight {
 		}
 		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
 	}
+
 }
