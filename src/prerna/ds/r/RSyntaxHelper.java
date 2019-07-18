@@ -378,6 +378,27 @@ public class RSyntaxHelper {
 	}
 	
 	/**
+	 * Converts a R column type to boolean
+	 * @param tableName				The name of the R table
+	 * @param colName				The name of the column
+	 * @return						The r script to execute
+	 */
+	public static String alterColumnTypeToBoolean(String tableName, String colName) {
+		// will generate a string similar to
+		// "datatable$Revenue_International <- as.boolean(datatable$Revenue_International)"
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName).append("$").append(colName).append(" <- ").append("as.boolean(")
+		.append(tableName).append("$").append(colName).append(")");
+		return builder.toString();
+	}
+	
+	public static String alterColumnTypeToBoolean(String tableName, List<String> colName) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(tableName + "[,(c('" + StringUtils.join(colName,"','") + "')) := lapply(.SD, as.boolean), .SDcols = c('" + StringUtils.join(colName,"','") + "')]");
+		return builder.toString();
+	}
+	
+	/**
 	 * Converts a R column type to numeric
 	 * @param tableName				The name of the R table
 	 * @param colName				The name of the column
@@ -991,4 +1012,6 @@ public class RSyntaxHelper {
 		
 		
 	}
+
+
 }
