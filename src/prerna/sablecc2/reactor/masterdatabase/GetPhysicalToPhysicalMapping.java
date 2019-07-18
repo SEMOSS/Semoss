@@ -7,7 +7,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.imports.RdbmsFrameImporter;
+import prerna.sablecc2.reactor.imports.RdbmsImporter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -33,7 +33,7 @@ public class GetPhysicalToPhysicalMapping extends AbstractReactor {
 		qs.setEngine(Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME));
 		
 		H2Frame frame = new H2Frame();
-		RdbmsFrameImporter importer = new RdbmsFrameImporter(frame, qs);
+		RdbmsImporter importer = new RdbmsImporter(frame, qs);
 		importer.insertData();
 		this.insight.setDataMaker(frame);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME);
