@@ -125,9 +125,9 @@ public class H2Frame extends AbstractRdbmsFrame {
 		Statement stmt = null;
 		try {
 			stmt = this.conn.createStatement();
-			stmt.executeUpdate(saveScript);
+			stmt.execute(saveScript);
 		} catch (Exception e) {
-			throw new IOException("Error occured attempting to cache SQL Frame");
+			throw new IOException("Error occured attempting to cache SQL Frame", e);
 		} finally {
 			if(stmt != null) {
 				try {
