@@ -10,7 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.sablecc2.reactor.imports.RdbmsFrameImporter;
+import prerna.sablecc2.reactor.imports.RdbmsImporter;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -107,7 +107,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 
 		// iterate through file and insert values
 		qs.setFilePath(tempFileLocation);
-		RdbmsFrameImporter importer = new RdbmsFrameImporter(frame, qs);
+		RdbmsImporter importer = new RdbmsImporter(frame, qs);
 		// importer will create the necessary meta information
 		importer.insertData();
 	}

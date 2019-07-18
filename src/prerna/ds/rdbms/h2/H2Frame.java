@@ -34,7 +34,7 @@ import prerna.query.querystruct.RelationSet;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
-import prerna.sablecc2.reactor.imports.RdbmsFrameImporter;
+import prerna.sablecc2.reactor.imports.RdbmsImporter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
@@ -432,7 +432,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		// set engine on qs2
 		qs2.setEngineId(component.getEngineName());
 		// instantiate h2importer with frame and qs
-		RdbmsFrameImporter importer = new RdbmsFrameImporter(this, qs2);
+		RdbmsImporter importer = new RdbmsImporter(this, qs2);
 		if (joins.isEmpty()) {
 			importer.insertData();
 		} else {
