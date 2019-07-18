@@ -85,6 +85,14 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				adapter.setUserContext(this.insight);
 				Insight in = adapter.read(jReader);
 				
+				// TODO: need to better perform this logic
+				// since we are copying a base insight for preview
+				// and we delete a file that was uploaded to the server
+				// things will break
+				// need to come back for when/if we use this for other things
+				// aside from preview
+				in.setDeleteFilesOnDropInsight(false);
+				
 				// since R and Py share the same user space
 				// i will need to go through and modify them to have another variable name
 				VarStore vStore = in.getVarStore();
