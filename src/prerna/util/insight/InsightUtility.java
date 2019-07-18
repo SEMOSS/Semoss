@@ -192,13 +192,15 @@ public class InsightUtility {
 			// since we do not do this in the clear
 			// i will first grab all the files used
 			// then delete them
-			List<FileMeta> fileData = insight.getFilesUsedInInsight();
-			if (fileData != null && !fileData.isEmpty()) {
-				for (int fileIdx = 0; fileIdx < fileData.size(); fileIdx++) {
-					FileMeta file = fileData.get(fileIdx);
-					File f = new File(file.getFileLoc());
-					f.delete();
-					LOGGER.debug("Successfully deleted File used in insight " + file.getFileLoc());
+			if(insight.isDeleteFilesOnDropInsight()) {
+				List<FileMeta> fileData = insight.getFilesUsedInInsight();
+				if (fileData != null && !fileData.isEmpty()) {
+					for (int fileIdx = 0; fileIdx < fileData.size(); fileIdx++) {
+						FileMeta file = fileData.get(fileIdx);
+						File f = new File(file.getFileLoc());
+						f.delete();
+						LOGGER.debug("Successfully deleted File used in insight " + file.getFileLoc());
+					}
 				}
 			}
 			
