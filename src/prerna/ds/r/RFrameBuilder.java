@@ -302,6 +302,8 @@ public class RFrameBuilder {
 		List<String> charColumns = new Vector<String>();
 		List<String> intColumns = new Vector<String>();
 		List<String> doubleColumns = new Vector<String>();
+		List<String> booleanColumns = new Vector<String>();
+
 		Map<String, List<String>> datesMap = new HashMap<String, List<String>>();
 		Map<String, List<String>> dateTimeMap = new HashMap<String, List<String>>();
 
@@ -313,6 +315,8 @@ public class RFrameBuilder {
 				intColumns.add(header);
 			} else if(type == SemossDataType.DOUBLE) {
 				doubleColumns.add(header);
+			} else if(type == SemossDataType.BOOLEAN) {
+				booleanColumns.add(header);
 			} else if( type == SemossDataType.DATE && javaDateFormatMap.containsKey(header)) {
 				String format = javaDateFormatMap.get(header);
 				if(datesMap.containsKey(format)) {
@@ -341,7 +345,8 @@ public class RFrameBuilder {
 		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) ) );
 		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) ) );
 		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) ) );
-		
+		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) ) );
+
 		// if the original file type is excel, then need to assess if there are date/time cols that have been parsed to numbers first 
 		// and handle those separately
 		if (fileType.equals("excel")) {
