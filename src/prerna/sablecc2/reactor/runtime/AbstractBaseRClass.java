@@ -39,7 +39,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.sablecc2.reactor.imports.RImporter;
-import prerna.sablecc2.reactor.imports.RdbmsFrameImporter;
+import prerna.sablecc2.reactor.imports.RdbmsImporter;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -489,7 +489,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 
 		// iterate through file and insert values
 		qs.setFilePath(tempFileLocation);
-		RdbmsFrameImporter importer = new RdbmsFrameImporter(frameToUse, qs);
+		RdbmsImporter importer = new RdbmsImporter(frameToUse, qs);
 		if(syncExistingRMetadata) {
 			importer.insertData(newMeta);
 		} else {
