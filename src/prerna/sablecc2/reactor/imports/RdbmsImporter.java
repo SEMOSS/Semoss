@@ -28,21 +28,21 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class RdbmsFrameImporter extends AbstractImporter {
+public class RdbmsImporter extends AbstractImporter {
 
 	private AbstractRdbmsFrame dataframe;
 	private AbstractSqlQueryUtil queryUtil;
 	private SelectQueryStruct qs;
 	private Iterator<IHeadersDataRow> it;
 	
-	public RdbmsFrameImporter(AbstractRdbmsFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
+	public RdbmsImporter(AbstractRdbmsFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
 		this.dataframe = dataframe;
 		this.queryUtil = dataframe.getQueryUtil();
 		this.qs = qs;
 		this.it = it;
 	}
 	
-	public RdbmsFrameImporter(AbstractRdbmsFrame dataframe, SelectQueryStruct qs) {
+	public RdbmsImporter(AbstractRdbmsFrame dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.queryUtil = dataframe.getQueryUtil();
 		this.qs = qs;

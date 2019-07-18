@@ -30,14 +30,14 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class NativeFrameImporter extends AbstractImporter {
+public class NativeImporter extends AbstractImporter {
 
-	private static final String CLASS_NAME = NativeFrameImporter.class.getName();
+	private static final String CLASS_NAME = NativeImporter.class.getName();
 	
 	private NativeFrame dataframe;
 	private SelectQueryStruct qs;
 	
-	public NativeFrameImporter(NativeFrame dataframe, SelectQueryStruct qs) {
+	public NativeImporter(NativeFrame dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 	}

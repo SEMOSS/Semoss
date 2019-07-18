@@ -391,7 +391,6 @@ import prerna.sablecc2.reactor.utils.GetTableHeader;
 import prerna.sablecc2.reactor.utils.GetUserInfoReactor;
 import prerna.sablecc2.reactor.utils.HelpReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
-import prerna.sablecc2.reactor.utils.IsAppInsightReactor;
 import prerna.sablecc2.reactor.utils.PostRequestReactor;
 import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 import prerna.sablecc2.reactor.utils.SendEmailReactor;
@@ -650,7 +649,6 @@ public class ReactorFactory {
 		reactorHash.put("ExternalDatabaseProfile", ExternalDatabaseProfileReactor.class);
 		reactorHash.put("GetRequest", GetRequestReactor.class);
 		reactorHash.put("PostRequest", PostRequestReactor.class);
-		reactorHash.put("IsAppInsight", IsAppInsightReactor.class);
 		reactorHash.put("CheckRPackages", CheckRPackagesReactor.class);
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
