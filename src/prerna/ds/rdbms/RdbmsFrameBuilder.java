@@ -25,7 +25,6 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.EmptyIteratorException;
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.poi.main.HeadersException;
 import prerna.util.Utility;
