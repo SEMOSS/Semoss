@@ -268,6 +268,16 @@ public class ExcelDataValidationHelper {
 						int validationType = DataValidationConstraint.ValidationType.DECIMAL;
 						headerMeta.put("validationType", validationTypeToString(validationType));
 					}
+					if (type == SemossDataType.TIMESTAMP) {
+						headerMeta.put("type", SemossDataType.TIMESTAMP.toString());
+						int validationType = DataValidationConstraint.ValidationType.TIME;
+						headerMeta.put("validationType", validationTypeToString(validationType));
+					} 
+					if (type == SemossDataType.DATE) {
+						headerMeta.put("type", SemossDataType.DATE.toString());
+						int validationType = DataValidationConstraint.ValidationType.DATE;
+						headerMeta.put("validationType", validationTypeToString(validationType));
+					} 
 					// TODO
 					headerMeta.put("range", "");
 					headerMeta.put("emptyCells", true);
