@@ -136,6 +136,10 @@ public class CleanUpAppsReactor extends AbstractReactor {
 					List<String> allContainers = CloudClient.getClient().listAllBlobContainers();
 					for (String container : allContainers) {
 						String cleanedContainerName = container.replaceAll("-smss", "").replaceAll("/", "");
+						//we now have configuration blobs like the image blob we dont want to delete
+						if(ClusterUtil.CONFIGURATION_BLOBS.contains(cleanedContainerName)){
+							continue;
+						}
 						if (!appIds.contains(cleanedContainerName)) {
 							
 							// Cleanup the container

@@ -3,7 +3,10 @@ package prerna.cluster.util;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,26 +24,34 @@ public class ClusterUtil {
 	// also introduces tracibility
 	
 	private static final String IS_CLUSTER_KEY = "SEMOSS_IS_CLUSTER";
-	public static final boolean IS_CLUSTER = System.getenv().containsKey(IS_CLUSTER_KEY)
-			? Boolean.parseBoolean(System.getenv(IS_CLUSTER_KEY))
-			: false;
+	public static final boolean IS_CLUSTER = (DIHelper.getInstance().getProperty(IS_CLUSTER_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
+			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY)) : (
+					(System.getenv().containsKey(IS_CLUSTER_KEY)) 
+					? Boolean.parseBoolean(System.getenv(IS_CLUSTER_KEY)) : false);
+			
+
 
 	private static final String STORAGE_PROVIDER_KEY = "SEMOSS_STORAGE_PROVIDER";
-	public static final String STORAGE_PROVIDER = System.getenv(STORAGE_PROVIDER_KEY);
+	public static final String STORAGE_PROVIDER = (DIHelper.getInstance().getProperty(STORAGE_PROVIDER_KEY) != null && !(DIHelper.getInstance().getProperty(STORAGE_PROVIDER_KEY).isEmpty())) 
+			? DIHelper.getInstance().getProperty(IS_CLUSTER_KEY) : System.getenv(STORAGE_PROVIDER_KEY);
 
 	private static final String REMOTE_RSERVE_KEY = "REMOTE_RSERVE";
-	public static final boolean REMOTE_RSERVE = System.getenv().containsKey(REMOTE_RSERVE_KEY)
-			? Boolean.parseBoolean(System.getenv(REMOTE_RSERVE_KEY))
-			: false;
+	public static final boolean REMOTE_RSERVE = (DIHelper.getInstance().getProperty(REMOTE_RSERVE_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
+			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(REMOTE_RSERVE_KEY)) : (
+					(System.getenv().containsKey(REMOTE_RSERVE_KEY)) 
+					? Boolean.parseBoolean(System.getenv(REMOTE_RSERVE_KEY)) : false);
+
 
 	private static final String LOAD_ENGINES_LOCALLY_KEY = "SEMOSS_LOAD_ENGINES_LOCALLY";
-	public static final boolean LOAD_ENGINES_LOCALLY = System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)
-			? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY))
-			: true;
+	public static final boolean LOAD_ENGINES_LOCALLY = (DIHelper.getInstance().getProperty(LOAD_ENGINES_LOCALLY_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
+			? Boolean.parseBoolean(DIHelper.getInstance().getProperty(LOAD_ENGINES_LOCALLY_KEY)) : (
+					(System.getenv().containsKey(LOAD_ENGINES_LOCALLY_KEY)) 
+					? Boolean.parseBoolean(System.getenv(LOAD_ENGINES_LOCALLY_KEY)) : false);
 
 	public static final String IMAGES_BLOB = "semoss-imagecontainer";
 
-
+	public static final List<String> CONFIGURATION_BLOBS = new ArrayList<String>(Arrays.asList(IMAGES_BLOB));
+	
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	public static String IMAGES_FOLDER_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR+"images";;
