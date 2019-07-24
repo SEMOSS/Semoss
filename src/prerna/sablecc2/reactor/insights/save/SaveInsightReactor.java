@@ -132,9 +132,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// update the workspace cache for the saved insight
 		this.insight.setEngineId(engine.getEngineId());
+		this.insight.setEngineName(engine.getEngineName());
 		this.insight.setRdbmsId(newRdbmsId);
 		this.insight.setInsightName(insightName);
-
+		// this is to reset it
+		this.insight.setInsightFolder(null);
+		
 		ClusterUtil.reactorPushApp(appId);
 		
 		Map<String, Object> returnMap = new HashMap<String, Object>();

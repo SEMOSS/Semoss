@@ -8,7 +8,6 @@ import org.quartz.UnableToInterruptJobException;
 
 import com.ibm.icu.util.StringTokenizer;
 
-import prerna.cache.CacheFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
@@ -57,7 +56,7 @@ public class InsightsRerunCronJob implements org.quartz.InterruptableJob {
 					try{
 						//delete insight cache
 						//TODO - here CSV cache is not handled 
-						CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).deleteInsightCache(insight);
+//						CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).deleteInsightCache(insight);
 
 						InsightStore.getInstance().put(insight.getInsightId(), insight);
 						// TODO InsightCreateRunner does not exist

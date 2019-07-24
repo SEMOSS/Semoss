@@ -10,6 +10,7 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.om.ThreadStore;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -38,18 +39,35 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 	protected void initConnAndBuilder() throws Exception {
 		this.util = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.SQLITE);
 
+		String sessionId = ThreadStore.getSessionId();
+		String insightId = ThreadStore.getInsightId();
+		
+		String folderToUsePath = null;
+		String fileNameToUse = null;
+		if(sessionId != null && insightId != null) {
+			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
+			fileNameToUse = "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".mv.db";
+		} else {
+			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+					DIR_SEPARATOR + "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+			fileNameToUse = "database.sqlite";
+		}
+		
 		// create the location of the file if it doesn't exist
-		String folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
-				DIR_SEPARATOR + "SQLite_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
-
 		File folderToUse = new File(folderToUsePath);
 		if(!folderToUse.exists()) {
 			folderToUse.mkdirs();
 		}
+
+		this.fileLocation = folderToUsePath + DIR_SEPARATOR + fileNameToUse;
+		File fileToUse = new File(this.fileLocation);
+		if(!fileToUse.exists()) {
+			fileToUse.createNewFile();
+		}
 		
-		this.fileLocation = folderToUsePath + DIR_SEPARATOR + "database.sqlite";
 		// build the connection url
-		String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(RdbmsTypeEnum.SQLITE.getLabel(), fileLocation, null, null, "journal_mode=MEMORY;synchronous=OFF");
+		String connectionUrl = RdbmsConnectionHelper.getConnectionUrl(RdbmsTypeEnum.SQLITE.getLabel(), fileLocation, null, null, null);
 		// get the connection
 		this.conn = RdbmsConnectionHelper.getConnection(connectionUrl, "", "", RdbmsTypeEnum.SQLITE.getLabel());
 		// set the builder

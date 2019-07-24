@@ -23,6 +23,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -68,12 +69,20 @@ public class PixelStreamUtility {
 		// now process everything
 		try {
 			return new StreamingOutput() {
+				PrintStream ps = null;
 				@Override
 				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
-					try(PrintStream ps = new PrintStream(outputStream, false, "UTF-8")) {
+					try {
+						ps = new PrintStream(outputStream, false, "UTF-8");
 						// we want to ignore the first index since it will be a job
 						processPixelRunner(ps, gson, runner, true);
-						ps.close();
+					} catch(Exception e) {
+						e.printStackTrace();
+					} finally {
+						if(ps != null) {
+							ps.close();
+						}
+						ThreadStore.remove();
 					}
 				}};
 		} catch (Exception e) {
@@ -103,6 +112,7 @@ public class PixelStreamUtility {
 						// we want to ignore the first index since it will be a job
 						processPixelRunner(ps, gson, runner, ignoreFirst);
 					} catch(Exception e) {
+						e.printStackTrace();
 						// ugh... this is unfortunate
 					} finally {
 						if(ps != null) {

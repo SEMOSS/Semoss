@@ -21,6 +21,7 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -31,9 +32,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.util.Utility;
 
 public class TableUserTracker implements IUserTracker {
@@ -748,8 +747,7 @@ public class TableUserTracker implements IUserTracker {
 	 */
 	private String[] getInsightDetailsString(Insight in) {
 		String[] row = new String[4];
-		VarStore vStore = in.getVarStore();
-		row[0] = vStore.get(JobReactor.SESSION_KEY).getValue().toString();
+		row[0] = ThreadStore.getSessionId();
 		row[1] = in.getInsightId();
 		User user = in.getUser();
 		if(user != null) {

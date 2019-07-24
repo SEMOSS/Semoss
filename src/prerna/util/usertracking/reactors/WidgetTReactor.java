@@ -7,13 +7,12 @@ import java.util.Vector;
 
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -40,8 +39,7 @@ public class WidgetTReactor extends AbstractReactor {
 			// FE runs this on an empty insight
 			// so they are passing me an insight id that is being droped
 			// but i should be able to user the correct session id and user id from the empty insight
-			VarStore vStore = this.insight.getVarStore();
-			sessionId = RdbmsQueryBuilder.escapeForSQLStatement(vStore.get(JobReactor.SESSION_KEY).getValue().toString());
+			sessionId = RdbmsQueryBuilder.escapeForSQLStatement(ThreadStore.getSessionId());
 			User user = this.insight.getUser();
 			if(user != null) {
 				if(!user.getLogins().isEmpty()) {
