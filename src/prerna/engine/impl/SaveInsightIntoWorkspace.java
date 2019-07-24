@@ -11,8 +11,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.cache.InsightCacheUtility;
 import prerna.engine.api.IEngine;
-import prerna.om.InsightCacheUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;

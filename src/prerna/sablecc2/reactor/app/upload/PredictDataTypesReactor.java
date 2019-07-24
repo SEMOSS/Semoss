@@ -24,7 +24,7 @@ public class PredictDataTypesReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Extracting file headers and determinig data types");
 		organizeKeys();
-		String filePath = UploadInputUtility.getFilePath(this.store);
+		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);
 		boolean rowCount = UploadInputUtility.getRowCount(this.store);
