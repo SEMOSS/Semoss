@@ -7,9 +7,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
+import prerna.om.Insight;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -67,12 +69,18 @@ public class UploadInputUtility {
 		return noun.getValue().toString();
 	}
 
-	public static String getFilePath(NounStore store) {
+	public static String getFilePath(NounStore store, Insight in) {
 		GenRowStruct grs = store.getNoun(FILE_PATH);
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the file path using key " + FILE_PATH);
 		}
-		return grs.get(0).toString();
+		
+		String fileLocation = grs.get(0).toString();
+		if(fileLocation.startsWith("$IF")) {
+			fileLocation = fileLocation.replaceFirst("\\$IF", Matcher.quoteReplacement(in.getInsightFolder()));
+		}
+		
+		return fileLocation;
 	}
 
 	public static boolean getExisting(NounStore store) {
@@ -209,12 +217,12 @@ public class UploadInputUtility {
 	 * @param store
 	 * @return
 	 */
-	public static Map<String, Object> getMetamodelProps(NounStore store) {
+	public static Map<String, Object> getMetamodelProps(NounStore store, Insight in) {
 		// get metamodel from pixel input or prop file
 		Map<String, Object> metamodel = UploadInputUtility.getMetamodel(store);
 		Map<String, String> dataTypesMap = null;
 		if (metamodel == null) {
-			metamodel = UploadInputUtility.getMetamodelFromPropFile(store);
+			metamodel = UploadInputUtility.getMetamodelFromPropFile(store, in);
 			dataTypesMap = (Map<String, String>) metamodel.get(Constants.DATA_TYPES);
 		} else {
 			// if we get the metamodel from the pixel input
@@ -248,13 +256,13 @@ public class UploadInputUtility {
 		return (Map<String, Object>) grs.get(0);
 	}
 
-	public static Map<String, Object> getMetamodelFromPropFile(NounStore store) {
+	public static Map<String, Object> getMetamodelFromPropFile(NounStore store, Insight in) {
 		GenRowStruct grs = store.getNoun(PROP_FILE);
 		if (!(grs == null || grs.isEmpty())) {
 			String metamodelPath = grs.get(0).toString();
 			if (metamodelPath.toLowerCase().endsWith(".prop")) {
 				// using old prop file need to convert
-				return convertPropFile(metamodelPath, store);
+				return convertPropFile(metamodelPath, store, in);
 			}
 			try {
 				// using new json prop file
@@ -267,7 +275,7 @@ public class UploadInputUtility {
 		return null;
 	}
 
-	private static Map<String, Object> convertPropFile(String oldMetamodelPath, NounStore store) {
+	private static Map<String, Object> convertPropFile(String oldMetamodelPath, NounStore store, Insight in) {
 		// need to convert old prop file to json
 		Properties oldMetamodel = Utility.loadProperties(oldMetamodelPath);
 		HashMap<String, Object> newMetamodel = new HashMap<>();
@@ -322,7 +330,7 @@ public class UploadInputUtility {
 			newMetamodel.put(Constants.END_ROW, oldMetamodel.getProperty("END_ROW"));
 		}
 		// ugh getting datatypes is not fun need to look at header index
-		String csvFilePath = UploadInputUtility.getFilePath(store);
+		String csvFilePath = UploadInputUtility.getFilePath(store, in);
 		String delimiter = UploadInputUtility.getDelimiter(store);
 		char delim = delimiter.charAt(0);
 		CSVFileHelper helper = new CSVFileHelper();

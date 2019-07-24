@@ -19,13 +19,13 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
+import prerna.om.ThreadStore;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -54,7 +54,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		String feUrl = this.keyValue.get(this.keysToGet[1]);
 		String param = this.keyValue.get(this.keysToGet[2]);
-		String sessionId = this.planner.getVariable(JobReactor.SESSION_KEY).getValue().toString();
+		String sessionId = ThreadStore.getSessionId();
 		
 		IEngine coreEngine = Utility.getEngine(appId);
 		// loop through the insights

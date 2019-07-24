@@ -31,7 +31,6 @@ import org.openrdf.sail.memory.MemoryStore;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.cache.CacheFactory;
 import prerna.ds.QueryStruct;
 import prerna.ds.TinkerFrame;
 import prerna.engine.api.IEngine;
@@ -428,20 +427,6 @@ public class OldInsight extends Insight {
 			this.dataMaker.setUserId(this.getUserId());
 		}
 		return this.dataMaker;
-	}
-	
-	public IDataMaker loadDataMakerFromCache() {
-		IDataMaker dm = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
-		this.dataMaker = dm;
-		return dm;
-	}
-	
-	public void loadRCache() {
-		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
-	}
-	
-	public boolean hasInstantiatedDataMaker() {
-		return this.dataMaker != null;
 	}
 	
 	/**

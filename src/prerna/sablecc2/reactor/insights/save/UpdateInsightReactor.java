@@ -10,12 +10,12 @@ import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.om.InsightCacheUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
