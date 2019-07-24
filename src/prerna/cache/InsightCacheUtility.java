@@ -1,4 +1,4 @@
-package prerna.om;
+package prerna.cache;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -30,8 +30,8 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-import prerna.cache.ICache;
 import prerna.engine.impl.SmssUtilities;
+import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;

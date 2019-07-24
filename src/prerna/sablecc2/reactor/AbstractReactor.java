@@ -16,6 +16,7 @@ import org.codehaus.plexus.util.StringUtils;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -24,7 +25,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.job.JobReactor;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -463,16 +463,15 @@ public abstract class AbstractReactor implements IReactor {
 	}
 	
 	@Override
-	public Logger getLogger(String className)
-	{
-		NounMetadata job = planner.getVariable(JobReactor.JOB_KEY);
-		if(job != null) {
-			this.jobId = job.getValue() +"";
+	public Logger getLogger(String className) {
+		String jobId = ThreadStore.getJobId();
+		if(jobId != null) {
+			this.jobId = jobId;
 			Logger retLogger = new InMemoryConsole(this.jobId, className);
 			return retLogger;
-		} else {
-			return LogManager.getLogger(className);
 		}
+		
+		return LogManager.getLogger(className);
 	}
 	
 	/**
@@ -480,11 +479,12 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getSessionId() {
-		NounMetadata session = planner.getVariable(JobReactor.SESSION_KEY);
-		if(session != null) {
-			return session.getValue() +"";
-		}
-		return null;
+		return ThreadStore.getSessionId();
+//		NounMetadata session = planner.getVariable(JobReactor.SESSION_KEY);
+//		if(session != null) {
+//			return session.getValue() +"";
+//		}
+//		return null;
 	}
 	
 	public void checkMin(int numKey) {

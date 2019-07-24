@@ -23,12 +23,12 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.cache.InsightCacheUtility;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
-import prerna.om.InsightCacheUtility;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelRunner;

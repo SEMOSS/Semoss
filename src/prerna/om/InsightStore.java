@@ -8,8 +8,6 @@ import java.util.Set;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import prerna.util.Utility;
-
 public class InsightStore extends Hashtable<String, Insight> {
 
 	private static final Logger LOGGER = LogManager.getLogger(InsightStore.class.getName());
@@ -48,20 +46,6 @@ public class InsightStore extends Hashtable<String, Insight> {
 	 * @return						The unique id for the insight
 	 */
 	public String put(Insight data) {
-		String uniqueID = data.getInsightId();
-		if(uniqueID == null || uniqueID.isEmpty()) {
-			uniqueID = (++idCount) + "_" + Utility.getRandomString(16);
-		} else {
-			uniqueID = (++idCount) + "_"  + uniqueID;
-		}
-		super.put(uniqueID, data);
-		// update the new id inside the insight
-		data.setInsightId(uniqueID);
-		
-		return uniqueID;
-	}
-	
-	public String putWithCurrentId(Insight data) {
 		String uniqueID = data.getInsightId();
 		super.put(uniqueID, data);
 		return uniqueID;
@@ -152,7 +136,7 @@ public class InsightStore extends Hashtable<String, Insight> {
 	}
 	
 	public static int getIdCount(){
-		return idCount;
+		return idCount++;
 	}
 	
 }

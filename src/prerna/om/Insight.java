@@ -45,12 +45,12 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.cache.CacheFactory;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
+import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
@@ -62,19 +62,23 @@ import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
-import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
 public class Insight {
 
 	private static final Logger LOGGER = LogManager.getLogger(Insight.class.getName());
+	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
 	// need to account for multiple frames to be saved on the insight
 	// we will use a special key 
 	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
-	
+	public static transient final String INSIGHT_FILE_KEY = "$IF";
+
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
 	protected String insightId;
@@ -115,6 +119,7 @@ public class Insight {
 	 * this is important so we can save those files into full databases
 	 * if the insight is saved
 	*/
+	private transient String insightFolder;
 	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient Map<String, String> exportFiles = new Hashtable<String, String>();
@@ -156,14 +161,24 @@ public class Insight {
 		this(engineId, engineName, rdbmsId, true);
 	}
 	
+	/**
+	 * Open a saved insight and determine if it is cacheable
+	 * @param engineId
+	 * @param engineName
+	 * @param rdbmsId
+	 * @param cacheable
+	 */
 	public Insight(String engineId, String engineName, String rdbmsId, boolean cacheable) {
-		this();
 		this.engineId = engineId;
 		this.engineName = engineName;
 		this.rdbmsId = rdbmsId;
 		this.cacheable = cacheable;
+		loadDefaultSettings();
 	}
 	
+	/**
+	 * Init the insight
+	 */
 	private void loadDefaultSettings() {
 		this.pixelList = new Vector<String>();
 		this.taskStore = new TaskStore();
@@ -310,6 +325,34 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	public String getInsightFolder() {
+		if(this.insightFolder == null) {
+			// account for unsaved insights vs. saved insights
+			if(!isSavedInsight()) {
+				String sessionId = ThreadStore.getSessionId();
+				this.insightFolder = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR + sessionId + DIR_SEPARATOR + this.insightId;
+			} else {
+				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
+				// need to grab from engine
+				this.insightFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+						+ DIR_SEPARATOR + "db" 
+						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ DIR_SEPARATOR + "version"
+						+ DIR_SEPARATOR + this.rdbmsId;
+			}
+		}
+		
+		return this.insightFolder;
+	}
+	
+	public void setInsightFolder(String insightFolder) {
+		this.insightFolder = insightFolder;
+	}
+	
+	public boolean isSavedInsight() {
+		return this.engineId != null && this.rdbmsId != null;
+	}
+	
 	public List<String> getPixelRecipe() {
 		return this.pixelList;
 	}
@@ -330,7 +373,7 @@ public class Insight {
 	}
 	
 	public String getInsightId() {
-		return insightId;
+		return this.insightId;
 	}
 
 	public void setInsightId(String insightId) {
@@ -640,18 +683,6 @@ public class Insight {
 		return returnObj;
 	}
 	
-//	// this is literally just aggregating the respones that i care about
-//	// at the moment, i only care about those pertaining to files
-//	// since i need to grab this info to save a full engine when this engine is saved
-//	// using those files
-//	private void parseMetadataResponse(List<IPkqlMetadata> metadataResponse) {
-//		for(IPkqlMetadata meta : metadataResponse) {
-//			if(meta instanceof FilePkqlMetadata) {
-//				this.filesUsedInInsight.add( (FilePkqlMetadata) meta);
-//			}
-//		}
-//	}
-	
 	@Deprecated
 	public Map<String, Object> reRunInsight() {
 		// just clear the varStore
@@ -698,9 +729,9 @@ public class Insight {
 		Iterator<String> keys = this.varStore.getKeys().iterator();
 		while(keys.hasNext()) {
 			String key = keys.next();
-			if(key.equals(JobReactor.JOB_KEY) || key.equals(JobReactor.SESSION_KEY) || key.equals(JobReactor.INSIGHT_KEY)) {
-				continue;
-			}
+//			if(key.equals(JobReactor.JOB_KEY) || key.equals(JobReactor.SESSION_KEY) || key.equals(JobReactor.INSIGHT_KEY)) {
+//				continue;
+//			}
 			NounMetadata noun = this.varStore.get(key);
 			if(noun.getValue() instanceof ITableDataFrame) {
 				((ITableDataFrame) noun.getValue()).close();
@@ -738,17 +769,5 @@ public class Insight {
 	///////////////////////////// END EXECUTION OF PKQL ////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
-	
-	/**
-	 * Load any cached objects relating to this insight
-	 */
-	@Deprecated
-	public void loadInsightCache() {
-		IDataMaker dm = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getDMCache(this);
-		if(dm != null) {
-			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(dm, PixelDataType.FRAME, PixelOperationType.FRAME));
-		}
-		CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getRCache(this);
-	}
 
 }
