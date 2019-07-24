@@ -17,9 +17,9 @@ import org.apache.commons.io.FileUtils;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.cache.InsightCacheUtility;
 import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
-import prerna.om.InsightCacheUtility;
 import prerna.om.InsightStore;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -118,7 +118,8 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				
 				// need to set the new insight with a new id
 				in.setInsightId(UUID.randomUUID().toString());
-				InsightStore.getInstance().putWithCurrentId(in);
+				in.setInsightFolder(this.insight.getInsightFolder());
+				InsightStore.getInstance().put(in);
 				
 				List<String> recipe = new ArrayList<String>();
 				try {

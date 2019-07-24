@@ -97,7 +97,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		// get metamodel
-		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);;
 
 		/*
@@ -201,7 +201,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		boolean allowDuplicates = false;
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		// get metamodel
-		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);;
 		logger.info(stepCounter + ". Done...");
 		stepCounter++;

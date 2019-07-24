@@ -74,7 +74,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		// get metamodel
-		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
 
 		/*
@@ -147,7 +147,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Get app upload input...");
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);;
 		logger.info(stepCounter + ". Done...");
 		stepCounter++;

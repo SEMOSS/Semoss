@@ -12,6 +12,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.InMemStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -163,12 +164,8 @@ public class InsightUtility {
 			}
 			LOGGER.debug("Successfully removed all frames from insight");
 			
-			// need to keep session key
-			NounMetadata sessionKey = varStore.get(JobReactor.SESSION_KEY);
 			// clear insight
 			insight.getVarStore().clear();
-			// add session key
-			insight.getVarStore().put(JobReactor.SESSION_KEY, sessionKey);
 			LOGGER.debug("Successfully removed all variables from varstore");
 	
 			Map<String, String> fileExports = insight.getExportFiles();
@@ -189,10 +186,9 @@ public class InsightUtility {
 		synchronized(insight) {
 			LOGGER.info("Droping insight " + insight.getInsightId());
 	
-			// since we do not do this in the clear
-			// i will first grab all the files used
-			// then delete them
-			if(insight.isDeleteFilesOnDropInsight()) {
+			// i will first grab all the files used then delete them
+			// only if this is not a saved insight + not a copied insight used for preview
+			if(insight.isDeleteFilesOnDropInsight() && !insight.isSavedInsight()) {
 				List<FileMeta> fileData = insight.getFilesUsedInInsight();
 				if (fileData != null && !fileData.isEmpty()) {
 					for (int fileIdx = 0; fileIdx < fileData.size(); fileIdx++) {
@@ -212,14 +208,22 @@ public class InsightUtility {
 			String insightId = insight.getInsightId();
 			InsightStore.getInstance().remove(insightId);
 	
-			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);;
-			if(sessionNoun != null) {
-				String sessionId = sessionNoun.getValue().toString();
+			String sessionId = ThreadStore.getSessionId();
+			if(sessionId != null) {
 				Set<String> insightIdsForSesh = InsightStore.getInstance().getInsightIDsForSession(sessionId);
 				if(insightIdsForSesh != null) {
 					insightIdsForSesh.remove(insightId);
 				}
 			}
+			
+//			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);;
+//			if(sessionNoun != null) {
+//				String sessionId = sessionNoun.getValue().toString();
+//				Set<String> insightIdsForSesh = InsightStore.getInstance().getInsightIDsForSession(sessionId);
+//				if(insightIdsForSesh != null) {
+//					insightIdsForSesh.remove(insightId);
+//				}
+//			}
 			
 			LOGGER.info("Successfully dropped insight " + insight.getInsightId());
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);

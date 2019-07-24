@@ -16,12 +16,12 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
-import prerna.om.InsightCacheUtility;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.sablecc2.PixelRunner;
@@ -181,7 +181,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 						PixelDataType.CONST_STRING, PixelOperationType.WARNING);
 				e.printStackTrace();
 			}
-		} 
+		}
 
 		if(runner == null) {
 			logger.info("Running insight");

@@ -21,7 +21,7 @@ public class ParseMetamodelReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String csvFilePath = UploadInputUtility.getFilePath(this.store);
+		String csvFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);
 		CSVFileHelper helper = new CSVFileHelper();
@@ -34,7 +34,7 @@ public class ParseMetamodelReactor extends AbstractReactor {
 	 * Generates the Meta model data based on the definition of the prop file
 	 */
 	private Map<String, Object> generateMetaModelFromProp(CSVFileHelper helper) {
-		Map<String, Object> metamodel = UploadInputUtility.getMetamodelFromPropFile(this.store);
+		Map<String, Object> metamodel = UploadInputUtility.getMetamodelFromPropFile(this.store, this.insight);
 		if (metamodel == null) {
 			String error = "Unable to read metamodel prop file.";
 			NounMetadata noun = new NounMetadata(error, PixelDataType.CONST_STRING, PixelOperationType.ERROR);

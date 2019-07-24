@@ -53,7 +53,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 
 		organizeKeys();
 		String appIdOrName = UploadInputUtility.getAppName(this.store);
-		String filePath = UploadInputUtility.getFilePath(this.store);
+		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
 		}

@@ -28,6 +28,7 @@ import prerna.ds.QueryStruct;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
+import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.RelationSet;
@@ -71,16 +72,28 @@ public class H2Frame extends AbstractRdbmsFrame {
 	protected void initConnAndBuilder() throws Exception {
 		this.util = SqlQueryUtilFactor.initialize(RdbmsTypeEnum.H2_DB);
 
+		String sessionId = ThreadStore.getSessionId();
+		String insightId = ThreadStore.getInsightId();
+		
+		String folderToUsePath = null;
+		String fileNameToUse = null;
+		if(sessionId != null && insightId != null) {
+			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
+			fileNameToUse = "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".mv.db";
+		} else {
+			folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
+					DIR_SEPARATOR + "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+			fileNameToUse = "database.mv.db";
+		}
+		
 		// create the location of the file if it doesn't exist
-		String folderToUsePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + 
-				DIR_SEPARATOR + "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
-
 		File folderToUse = new File(folderToUsePath);
 		if(!folderToUse.exists()) {
 			folderToUse.mkdirs();
 		}
 
-		this.fileLocation = folderToUsePath + DIR_SEPARATOR + "database.mv.db";
+		this.fileLocation = folderToUsePath + DIR_SEPARATOR + fileNameToUse;
 		// make the actual file so the connection helper knows its not a tcp protocol
 		File fileToUse = new File(this.fileLocation);
 		if(!fileToUse.exists()) {
