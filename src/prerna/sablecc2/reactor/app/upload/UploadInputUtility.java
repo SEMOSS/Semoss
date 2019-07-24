@@ -260,6 +260,9 @@ public class UploadInputUtility {
 		GenRowStruct grs = store.getNoun(PROP_FILE);
 		if (!(grs == null || grs.isEmpty())) {
 			String metamodelPath = grs.get(0).toString();
+			if(metamodelPath.startsWith("$IF")) {
+				metamodelPath = metamodelPath.replaceFirst("\\$IF", Matcher.quoteReplacement(in.getInsightFolder()));
+			}
 			if (metamodelPath.toLowerCase().endsWith(".prop")) {
 				// using old prop file need to convert
 				return convertPropFile(metamodelPath, store, in);
