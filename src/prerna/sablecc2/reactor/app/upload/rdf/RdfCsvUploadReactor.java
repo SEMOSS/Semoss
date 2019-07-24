@@ -62,7 +62,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		// get metamodel
-		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
 
 		/*
@@ -137,7 +137,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Get app upload input...");
 		logger.setLevel(Level.WARN);
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
-		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store);
+		Map<String, Object> metamodelProps = UploadInputUtility.getMetamodelProps(this.store, this.insight);
 		Map<String, String> dataTypesMap = (Map<String, String>) metamodelProps.get(Constants.DATA_TYPES);
 
 		logger.info(stepCounter + ". Done");

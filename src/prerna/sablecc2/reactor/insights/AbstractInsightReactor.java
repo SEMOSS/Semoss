@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.regex.Matcher;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
@@ -296,7 +297,11 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			String datasourceType = datasourceMap.get("type").toString().toUpperCase();
 			if(datasourceType.equals("FILEREAD")) {
 				// we have a file we want to shift
-				String fileLoc = ((Map<String, List<String>>) datasourceMap.get("params")).get("filePath").get(0);
+				String filePixelPortion = ((Map<String, List<String>>) datasourceMap.get("params")).get("filePath").get(0);
+				String fileLoc = filePixelPortion;
+				if(fileLoc.startsWith("$IF")) {
+					fileLoc = fileLoc.replaceFirst("\\$IF", Matcher.quoteReplacement(this.insight.getInsightFolder()));
+				}
 				String filename = FilenameUtils.getName(fileLoc);
 				File origF = new File(fileLoc);
 				String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
@@ -312,13 +317,15 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				if(!origF.getAbsolutePath().equals(newF.getAbsolutePath())) {
 					try {
 						FileUtils.copyFile(origF, newF);
+						origF.delete();
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
 				}
 				
+				String newFilePixel = "$IF" + DIR_SEPARATOR + "data" + DIR_SEPARATOR + filename;
 				// need to make new pixel
-				String newPixel = datasourceMap.get("expression").toString().replace(fileLoc, newF.getAbsolutePath());
+				String newPixel = datasourceMap.get("expression").toString().replace(filePixelPortion, newFilePixel);
 				Map<String, Object> modificationMap = new HashMap<String, Object>();
 				modificationMap.put("index", datasourceMap.get("pixelStepIndex"));
 				modificationMap.put("pixel", newPixel);

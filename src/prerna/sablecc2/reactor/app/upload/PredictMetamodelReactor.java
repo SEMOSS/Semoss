@@ -28,7 +28,7 @@ public class PredictMetamodelReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		// get csv file path
-		String filePath = UploadInputUtility.getFilePath(this.store);
+		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		// get delimiter
 		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);

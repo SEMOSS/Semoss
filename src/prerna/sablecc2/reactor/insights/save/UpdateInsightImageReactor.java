@@ -2,11 +2,11 @@ package prerna.sablecc2.reactor.insights.save;
 
 import org.apache.log4j.Logger;
 
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
-import prerna.sablecc2.reactor.job.JobReactor;
 import prerna.sablecc2.reactor.utils.ImageCaptureReactor;
 
 public class UpdateInsightImageReactor extends AbstractInsightReactor {
@@ -26,7 +26,7 @@ public class UpdateInsightImageReactor extends AbstractInsightReactor {
 		String appId = getApp();
 		String rdbmsId = getRdbmsId();
 		String feUrl = getUrl();
-		String sessionId = this.planner.getVariable(JobReactor.SESSION_KEY).getValue().toString();
+		String sessionId = ThreadStore.getSessionId();
 		Object params = getExecutionParams();
 		if(params == null) {
 			ImageCaptureReactor.runImageCapture(feUrl, appId, rdbmsId, null, sessionId);

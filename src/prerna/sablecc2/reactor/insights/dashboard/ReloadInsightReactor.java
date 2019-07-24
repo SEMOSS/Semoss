@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import prerna.cache.InsightCacheUtility;
 import prerna.om.Insight;
-import prerna.om.InsightCacheUtility;
 import prerna.om.InsightStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelUtility;
@@ -45,7 +45,6 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 				hasCache = true;
 				e.printStackTrace();
 			}
-			
 		}
 		
 		// get the insight output
@@ -86,7 +85,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 			cachedInsight.setUser(this.insight.getUser());
 			// add the insight to the insight store
 			this.insight = cachedInsight;
-			InsightStore.getInstance().putWithCurrentId(this.insight);
+			InsightStore.getInstance().put(this.insight);
 			InsightStore.getInstance().addToSessionHash(getSessionId(), this.insight.getInsightId());
 			this.insight.setUser(this.insight.getUser());
 		}

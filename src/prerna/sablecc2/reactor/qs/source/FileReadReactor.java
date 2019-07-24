@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.qs.source;
 
 import java.util.Map;
+import java.util.regex.Matcher;
 
 import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -15,7 +16,6 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 
 	//keys to get inputs from pixel command
 	private static final String FILEPATH = ReactorKeysEnum.FILE_PATH.getKey();
-	private static final String FILENAME = ReactorKeysEnum.FILE_NAME.getKey();
 	private static final String SHEET_NAME = "sheetName";
 	private static final String SHEET_RANGE = "sheetRange";
 	private static final String DATA_TYPES = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
@@ -38,7 +38,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	 */
 	
 	public FileReadReactor() {
-		this.keysToGet = new String[]{FILEPATH, FILENAME, SHEET_NAME, SHEET_RANGE, DATA_TYPES, DELIMITER, HEADER_NAMES, ADDITIONAL_DATA_TYPES};
+		this.keysToGet = new String[]{FILEPATH, SHEET_NAME, SHEET_RANGE, DATA_TYPES, DELIMITER, HEADER_NAMES, ADDITIONAL_DATA_TYPES};
 	}
 
 	@Override
@@ -175,17 +175,13 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		} else {
 			throw new IllegalArgumentException("Need to specify " + FILEPATH + "=[filePath] in pixel command");
 		}
-		return fileLocation;
-	}
-	private String getFileName() {
-		GenRowStruct fileGRS = this.store.getNoun(FILENAME);
-		String fileName = "NoFileName";
-		NounMetadata fileNoun;
-		if (fileGRS != null) {
-			fileNoun = fileGRS.getNoun(0);
-			fileName = (String) fileNoun.getValue();
+		
+		// we will need to translate the file path from the parameterized insight form
+		if(fileLocation.startsWith("$IF")) {
+			fileLocation = fileLocation.replaceFirst("\\$IF", Matcher.quoteReplacement(this.insight.getInsightFolder()));
 		}
-		return fileName;
+		
+		return fileLocation;
 	}
 	
 	///////////////////////// KEYS /////////////////////////////////////

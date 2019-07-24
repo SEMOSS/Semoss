@@ -5,15 +5,12 @@ import java.util.Iterator;
 import java.util.Map;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
-import prerna.cache.CacheFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.sablecc.meta.IPkqlMetadata;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Utility;
 
 /**
@@ -58,29 +55,29 @@ public class OutputDataReactor extends AbstractReactor {
 //		IDataMaker insight = (IDataMaker)myStore.get("G");
 //		insightObj.setUserId(insight.getUserId());
 		
-		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
+//		String vizData = CacheFactory.getInsightCache(CacheFactory.CACHE_TYPE.DB_INSIGHT_CACHE).getVizData(insightObj);
 
 //		Object obj = null;
 		boolean runInsightRecipe = true;
-		if(vizData != null) {
-			// insight has been cached, send it to the FE with a new insight id
-//			String id = InsightStore.getInstance().put(insightObj);
-			insightObj.setInsightId(insightId);
-			InsightStore.getInstance().put(insightId, insightObj);
-			myStore.put(PKQLEnum.OUTPUT_DATA, insightId);
-			
-			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
-			uploaded.put("insightID", insightId);
-			
-			myStore.put("webData", uploaded);
-			
-			insightObj.loadInsightCache();
-			IDataMaker dm = insightObj.getDataMaker();
-			if(dm != null) {
-				myStore.put("G", dm);
-				runInsightRecipe = false;
-			}
-		}
+//		if(vizData != null) {
+//			// insight has been cached, send it to the FE with a new insight id
+////			String id = InsightStore.getInstance().put(insightObj);
+//			insightObj.setInsightId(insightId);
+//			InsightStore.getInstance().put(insightId, insightObj);
+//			myStore.put(PKQLEnum.OUTPUT_DATA, insightId);
+//			
+//			Map<String, Object> uploaded = gson.fromJson(vizData, new TypeToken<Map<String, Object>>() {}.getType());
+//			uploaded.put("insightID", insightId);
+//			
+//			myStore.put("webData", uploaded);
+//			
+//			insightObj.loadInsightCache();
+//			IDataMaker dm = insightObj.getDataMaker();
+//			if(dm != null) {
+//				myStore.put("G", dm);
+//				runInsightRecipe = false;
+//			}
+//		}
 		
 		if(runInsightRecipe) {
 			// insight visualization data has not been cached, run the insight
