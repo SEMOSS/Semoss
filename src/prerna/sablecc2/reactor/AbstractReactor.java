@@ -25,6 +25,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.job.JobReactor;
 
 public abstract class AbstractReactor implements IReactor {
 
@@ -479,14 +480,13 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String getSessionId() {
+		NounMetadata session = planner.getVariable(JobReactor.SESSION_KEY);
+		if(session != null) {
+			return session.getValue() +"";
+		}
 		return ThreadStore.getSessionId();
-//		NounMetadata session = planner.getVariable(JobReactor.SESSION_KEY);
-//		if(session != null) {
-//			return session.getValue() +"";
-//		}
-//		return null;
 	}
-	
+
 	public void checkMin(int numKey) {
 		// checks to see if the minmum number of keys are present else
 		// will throw an error
