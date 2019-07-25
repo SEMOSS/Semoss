@@ -19,7 +19,7 @@ public class GlobalInsightCountUpdater {
 	private CountUpdater updater;
 
 	private GlobalInsightCountUpdater() {
-		queue = new ArrayBlockingQueue<String[]>(50);
+		queue = new ArrayBlockingQueue<String[]>(2_000);
 		updater = new CountUpdater(queue);
 
 		new Thread(updater).start();
@@ -33,7 +33,11 @@ public class GlobalInsightCountUpdater {
 	}
 
 	public void addToQueue(String engineId, String id) {
-		queue.add(new String[]{engineId, id});
+		try {
+			queue.add(new String[]{engineId, id});
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 }
