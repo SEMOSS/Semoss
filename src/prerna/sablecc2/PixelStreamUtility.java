@@ -152,30 +152,33 @@ public class PixelStreamUtility {
 		// now flush array of pixel returns
 		ps.print("\"pixelReturn\":[");
 		int size = pixelStrings.size();
-
-		// THIS IS BECAUSE WE APPEND THE JOB PIXEL
-		// BUT FE DOENS'T RESPOND TO IT AND NEED TO REMOVE IT
-		// HOWEVER, IF THE SIZE IS JUST 1, IT MEANS THAT THERE WAS
-		// AN ERROR THAT OCCURED
-		// but when we run a saved insight within a pixel
-		// we do not want to shift the index
-		int startIndex = 0;
-		if(resultList.get(0).getOpType().contains(PixelOperationType.JOB_ID)) {
-			startIndex = 1;
-		}
-		if(size == 1) {
-			startIndex = 0;
-		}
-		for (int i = startIndex; i < size; i++) {
-			NounMetadata noun = resultList.get(i);
-			String expression = pixelStrings.get(i);
-			boolean meta = isMeta.get(i);
-			processNounMetadata(in, ps, gson, noun, expression, meta);
-
-			// add a comma for the next item in the list
-			if( (i+1) != size) {
-				ps.print(",");
-				ps.flush();
+		// this can be empty when we open an empty insight
+		// from an insight
+		if(size > 0) {
+			// THIS IS BECAUSE WE APPEND THE JOB PIXEL
+			// BUT FE DOENS'T RESPOND TO IT AND NEED TO REMOVE IT
+			// HOWEVER, IF THE SIZE IS JUST 1, IT MEANS THAT THERE WAS
+			// AN ERROR THAT OCCURED
+			// but when we run a saved insight within a pixel
+			// we do not want to shift the index
+			int startIndex = 0;
+			if(resultList.get(0).getOpType().contains(PixelOperationType.JOB_ID)) {
+				startIndex = 1;
+			}
+			if(size == 1) {
+				startIndex = 0;
+			}
+			for (int i = startIndex; i < size; i++) {
+				NounMetadata noun = resultList.get(i);
+				String expression = pixelStrings.get(i);
+				boolean meta = isMeta.get(i);
+				processNounMetadata(in, ps, gson, noun, expression, meta);
+	
+				// add a comma for the next item in the list
+				if( (i+1) != size) {
+					ps.print(",");
+					ps.flush();
+				}
 			}
 		}
 
