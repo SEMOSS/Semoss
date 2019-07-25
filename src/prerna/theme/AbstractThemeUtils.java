@@ -9,12 +9,12 @@ import java.util.Vector;
 
 import org.apache.commons.io.IOUtils;
 
-import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractThemeUtils {
 
@@ -42,9 +42,17 @@ public abstract class AbstractThemeUtils {
 		 */
 		
 		// ADMIN_THEME
+		AbstractSqlQueryUtil queryUtil = themeDb.getQueryUtil();
+		
 		colNames = new String[] { "id", "theme_name", "theme_map", "is_active" };
 		types = new String[] { "varchar(255)", "varchar(255)", "clob", "boolean" };
-		themeDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("ADMIN_THEME", colNames, types));
+		if(queryUtil.allowsIfExistsTableSyntax()) {
+			themeDb.insertData(queryUtil.createTableIfNotExists("ADMIN_THEME", colNames, types));
+		} else {
+			if(!queryUtil.tableExists(themeDb.getConnection(), "ADMIN_THEME", themeDb.getSchema())) {
+				themeDb.insertData(queryUtil.createTable("ADMIN_THEME", colNames, types));
+			}
+		}
 
 		// commit the changes
 		themeDb.commit();
