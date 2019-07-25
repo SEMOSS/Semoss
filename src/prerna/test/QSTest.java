@@ -439,7 +439,7 @@ public class QSTest {
 	public void writePixelTask(PixelRunner runner, String fileName)
 	{
 		//PrintStream ps = new PrintStream(new FileOutputStream("c:/temp/output.json"));
-		PixelStreamUtility.writePixelData(runner, new File(fileName), false);
+		PixelStreamUtility.writePixelData(runner, new File(fileName));
 	}
 	
 	public Object runScript(String... script) {
