@@ -1,5 +1,78 @@
 [
    {
+      "pixelExpression":"AddPanel ( 0 ) ;",
+      "output":{
+         "panelId":"0",
+         "view":"visualization",
+         "viewOptions":"{\"type\":\"echarts\"}",
+         "viewOptionsMap":{
+            "federate-view":{
+               "app_id":"<<<appId>>>unit_test_movie<<</appId>>>"
+            },
+            "visualization":{
+               "type":"echarts"
+            }
+         },
+         "config":{
+            "type":"STANDARD",
+            "opacity":100,
+            "labelOverride":false
+         },
+         "ornaments":{
+
+         },
+         "events":{
+            "onSingleClick":{
+               "Unfilter":[
+                  {
+                     "disabledVisuals":[
+                        "Grid",
+                        "Sunburst"
+                     ],
+                     "default":true,
+                     "query":"UnfilterFrame(<SelectedColumn>);",
+                     "options":{
+
+                     },
+                     "refresh":false,
+                     "disabled":false,
+                     "panel":""
+                  }
+               ]
+            },
+            "onBrush":{
+               "Filter":[
+                  {
+                     "default":true,
+                     "query":"if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
+                     "options":{
+
+                     },
+                     "refresh":false,
+                     "disabled":false,
+                     "panel":""
+                  }
+               ]
+            }
+         },
+         "comments":{
+
+         },
+         "position":{
+
+         },
+         "filters":[
+
+         ],
+         "order":[
+
+         ],
+         "cbv":[
+
+         ]
+      }
+   },
+   {
       "pixelExpression":"Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>UnfilterFrame(<SelectedColumn>);</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
       "isMeta":false,
       "output":{
