@@ -244,7 +244,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		}
 		// now that we have updated the task ids
 		// lets write it
-		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile, false);
+		PixelStreamUtility.writePixelData(pixelRunner, vizOutputFile);
 		
 		// add it to the zip
 		try {

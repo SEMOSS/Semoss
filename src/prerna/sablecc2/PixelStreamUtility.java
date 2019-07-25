@@ -75,7 +75,7 @@ public class PixelStreamUtility {
 					try {
 						ps = new PrintStream(outputStream, false, "UTF-8");
 						// we want to ignore the first index since it will be a job
-						processPixelRunner(ps, gson, runner, true);
+						processPixelRunner(ps, gson, runner);
 					} catch(Exception e) {
 						e.printStackTrace();
 					} finally {
@@ -96,7 +96,7 @@ public class PixelStreamUtility {
 	 * @param runner
 	 * @return
 	 */
-	public static File writePixelData(PixelRunner runner, File fileToWrite, boolean ignoreFirst) {
+	public static File writePixelData(PixelRunner runner, File fileToWrite) {
 		// get the default gson object
 		Gson gson = getDefaultGson();
 
@@ -110,7 +110,7 @@ public class PixelStreamUtility {
 					try {
 						ps = new PrintStream(outputStream, false, "UTF-8");
 						// we want to ignore the first index since it will be a job
-						processPixelRunner(ps, gson, runner, ignoreFirst);
+						processPixelRunner(ps, gson, runner);
 					} catch(Exception e) {
 						e.printStackTrace();
 						// ugh... this is unfortunate
@@ -135,7 +135,7 @@ public class PixelStreamUtility {
 		return fileToWrite;
 	}
 
-	private static void processPixelRunner(PrintStream ps, Gson gson, PixelRunner runner, boolean ignoreFirst) {
+	private static void processPixelRunner(PrintStream ps, Gson gson, PixelRunner runner) {
 		// get the values we need from the runner
 		Insight in = runner.getInsight();
 		List<NounMetadata> resultList = runner.getResults();
@@ -160,7 +160,7 @@ public class PixelStreamUtility {
 		// but when we run a saved insight within a pixel
 		// we do not want to shift the index
 		int startIndex = 0;
-		if(ignoreFirst) {
+		if(resultList.get(0).getOpType().contains(PixelOperationType.JOB_ID)) {
 			startIndex = 1;
 		}
 		if(size == 1) {
@@ -443,7 +443,7 @@ public class PixelStreamUtility {
 			ps.flush();
 			ps.print(",\"insightData\":");
 			// process the inner recipe
-			processPixelRunner(ps, gson, runner, false);
+			processPixelRunner(ps, gson, runner);
 			ps.print("}");
 			ps.print(",\"operationType\":");
 			ps.print(gson.toJson(noun.getOpType()));

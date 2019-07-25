@@ -6,6 +6,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -44,7 +45,7 @@ public class JobReactor extends AbstractReactor {
 			planner.addVariable(SESSION_KEY, new NounMetadata(sessionId, PixelDataType.CONST_STRING));
 		}
 
-		return new NounMetadata(jobId, PixelDataType.CONST_STRING);
+		return new NounMetadata(jobId, PixelDataType.CONST_STRING, PixelOperationType.JOB_ID);
 	}
 
 	@Override
