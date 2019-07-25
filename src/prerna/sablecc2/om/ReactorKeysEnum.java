@@ -99,6 +99,7 @@ public enum ReactorKeysEnum {
 	RECIPE("recipe", 										"Recipe that shows the sequence of pixels resulting in the insight"),
 	REGEX("regex", 											"Regular expression (sequence of characters)"),
 	RELATIVE_PATH("relativePath", 							"Relative file path for user assets"),
+	RELOAD("reload", 										"Reload an object or connection"),
 	REPLACE("replace",										"Replace data when adding to existing app"),
 	REPOSITORY("repository", 								"Name of the repository. Usually namespaced to be username\\appname"),
 	ROUTINE("routine",                                      "The name of the routine"),

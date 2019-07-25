@@ -243,7 +243,6 @@ public class UploadInputUtility {
 			if (endRow != null) {
 				metamodel.put(Constants.END_ROW, endRow);
 			}
-
 		}
 		return metamodel;
 	}
