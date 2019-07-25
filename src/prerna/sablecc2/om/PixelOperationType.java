@@ -165,6 +165,9 @@ public enum PixelOperationType {
 	// HELP
 	HELP,
 	
+	// JOB REACTOR
+	JOB_ID,
+	
 	// MESSAGES ERRORS
 	SUCCESS,
 	WARNING,
