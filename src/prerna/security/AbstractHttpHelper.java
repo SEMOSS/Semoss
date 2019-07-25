@@ -246,21 +246,16 @@ public abstract class AbstractHttpHelper {
 		    con.connect();
 
 		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream() ));
-		    String str = "";
+		    StringBuilder str = new StringBuilder();
 		    String line;
 		    while((line = br.readLine()) != null){
-		        str += line;
+		        str.append(line);
 		    }
-		    System.out.println(str);	
-		    
-		    retString = str;
-			//System.out.println("Output.. " + retString);
-			
+		    retString = str.toString();
+		    System.out.println(retString);	
 		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
