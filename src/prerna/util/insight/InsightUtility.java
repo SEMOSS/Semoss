@@ -81,16 +81,13 @@ public class InsightUtility {
 			ITableDataFrame dm = (ITableDataFrame) noun.getValue();
 			dm.close();
 
-			// if it is the current frame
-			// also remove it
-			if(dm == varStore.get(Insight.CUR_FRAME_KEY)) {
-				varStore.remove(Insight.CUR_FRAME_KEY);
-			} else if(key.equals(Insight.CUR_FRAME_KEY)) {
-				// if we are removing curframekey
-				// also remove if it is added twice with its alias
-				String alias = dm.getName();
-				if(alias != null && !alias.isEmpty()) {
-					varStore.remove(alias);
+			// find all other names pointing to this frame and remove it
+			// this is because caching might load this frame
+			Set<String> curKeys = varStore.getKeys();
+			for(String k : curKeys) {
+				// can use == since i am trying to see if same reference
+				if(varStore.get(k) == noun) {
+					varStore.remove(k);
 				}
 			}
 		}
