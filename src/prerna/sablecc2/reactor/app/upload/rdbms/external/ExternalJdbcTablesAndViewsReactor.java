@@ -52,6 +52,7 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 			}
 			con = RdbmsConnectionHelper.buildConnection(connectionUrl, username, password, driver);
 		} catch (SQLException e) {
+			e.printStackTrace();
 			String driverError = e.getMessage();
 			String errorMessage = "Unable to establish connection given the connection details.\nDriver produced error: \" ";
 			errorMessage += driverError;
@@ -67,14 +68,15 @@ public class ExternalJdbcTablesAndViewsReactor extends AbstractReactor {
 		try {
 			meta = con.getMetaData();
 		} catch (SQLException e) {
+			e.printStackTrace();
 			throw new SemossPixelException(new NounMetadata("Unable to get the database metadata", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		
 		String catalogFilter = null;
 		try {
 			catalogFilter = con.getCatalog();
-		} catch (SQLException e1) {
-			e1.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 		String schemaFilter = RdbmsConnectionHelper.getSchema(meta, con, connectionUrl, RdbmsTypeEnum.getEnumFromString(driver));
 		RdbmsTypeEnum driverEnum = RdbmsTypeEnum.getEnumFromString(driver);
