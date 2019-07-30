@@ -97,7 +97,9 @@ public class UpdateSqlInterpreter extends SqlInterpreter {
 				column = getPrimKey4Table(table);
 			}
 			Object v = values.get(i);
-			if(v instanceof String) {
+			if(v == null) {
+				sets.append(column + "= NULL");
+			} else if(v instanceof String) {
 //				sets.append(table + "." + column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
 				sets.append(column + "=" + "'" + RdbmsQueryBuilder.escapeForSQLStatement(v + "") + "'");
 			} else if(v instanceof SemossDate) {
