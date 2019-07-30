@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.upload.rdbms.external;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.regex.Matcher;
 
 import org.apache.log4j.Logger;
 
@@ -54,6 +56,13 @@ public class ExternalJdbcSchemaReactor extends AbstractReactor {
 	
 		List<String> tableAndViewFilters = getFilters();
 		boolean hasFilters = !tableAndViewFilters.isEmpty();
+		
+		if(host != null && host.startsWith("$IF")) {
+			String testUpdatedHost = host.replaceFirst("\\$IF", Matcher.quoteReplacement(this.insight.getInsightFolder()));
+			if(new File(testUpdatedHost).exists()) {
+				host = testUpdatedHost;
+			}
+		}
 		
 		Connection con = null;
 		try {

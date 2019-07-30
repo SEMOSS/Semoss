@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -169,6 +170,14 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		String password = this.keyValue.get(this.keysToGet[5]);
 		String schema = this.keyValue.get(this.keysToGet[6]);
 		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
+
+		// TODO: consolidate with below if statement
+		if(host != null && host.startsWith("$IF")) {
+			String testUpdatedHost = host.replaceFirst("\\$IF", Matcher.quoteReplacement(this.insight.getInsightFolder()));
+			if(new File(testUpdatedHost).exists()) {
+				host = testUpdatedHost;
+			}
+		}
 		
 		// if the host is a file
 		// we should move it into the appFolder directory
