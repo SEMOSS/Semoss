@@ -52,7 +52,7 @@ public class InstallCertNow {
 	public static void main(String [] args)
 	{
 		try {
-			InstallCertNow.please("github.com", null, null);
+			InstallCertNow.please("https://www.google.com/drive", null, null);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();

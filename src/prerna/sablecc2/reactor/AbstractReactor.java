@@ -63,7 +63,17 @@ public abstract class AbstractReactor implements IReactor {
 	
 	protected String jobId;
 	
+	// all the different keys to get
 	public String[] keysToGet = new String[]{"no keys defined"};
+	
+	// which of these are optional
+	// 1 means required, 0 means optional
+	public int[] keyRequired = null;
+	
+	// defaults if one exists
+	// this I am not so sure.. but let us try
+	public Object[] keyDefaults = new Object[]{};
+	
 	public Map<String, String> keyValue = new Hashtable<String, String>();
 
 	// convenience method to allow order or named noun
@@ -89,6 +99,36 @@ public abstract class AbstractReactor implements IReactor {
 			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
 				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
 			}
+		}
+		
+		// check which of these are optional
+		checkOptional();
+	}
+	
+	private void checkOptional()
+	{
+		StringBuilder nullMessage = new StringBuilder();
+		
+		for(int keyIndex = 0;keyRequired != null && keyIndex < keyRequired.length;keyIndex++)
+		{
+			int required = keyRequired[keyIndex];
+			if(required == 1)
+			{
+				String thisKey = keysToGet[keyIndex];
+			
+				
+				if(!keyValue.containsKey(thisKey))
+				{
+					// this is where the default would come in
+					nullMessage.append(thisKey).append("  ");
+				}
+			}
+		}
+		
+		if(nullMessage.length() != 0)
+		{
+			nullMessage.append("Cannot be empty").insert(0, "Fields  ");
+			throw new IllegalArgumentException(nullMessage.toString());
 		}
 	}
 	
