@@ -1,9 +1,15 @@
 package prerna.util.git;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -12,15 +18,41 @@ import javax.net.ssl.SSLHandshakeException;
 
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
+import org.eclipse.jgit.api.AddCommand;
+import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.RemoteRemoveCommand;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.api.Status;
+import org.eclipse.jgit.api.errors.CheckoutConflictException;
+import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.api.errors.NoMessageException;
+import org.eclipse.jgit.api.errors.UnmergedPathsException;
+import org.eclipse.jgit.api.errors.WrongRepositoryStateException;
+import org.eclipse.jgit.errors.AmbiguousObjectException;
+import org.eclipse.jgit.errors.CorruptObjectException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.LargeObjectException;
+import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.errors.NoWorkTreeException;
+import org.eclipse.jgit.errors.RevisionSyntaxException;
+import org.eclipse.jgit.errors.TransportException;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectLoader;
+import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.ProgressMonitor;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.kohsuke.github.GHCreateRepositoryBuilder;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -348,6 +380,12 @@ public class GitRepoUtils {
 	public static ProgressMonitor fetchRemote(String localRepo, String remoteRepo, String userName, String password, int attempt) {
 
 		ProgressMonitor mon = new GitProgressMonitor();
+		try {
+			InstallCertNow.please("github.com", null, null);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
 		if(attempt < 3)
 		{
@@ -368,7 +406,7 @@ public class GitRepoUtils {
 					thisGit.fetch().setRemote(remoteRepo).setProgressMonitor(mon).call();
 				}
 				
-			}catch(SSLHandshakeException ex)
+			}catch(TransportException ex)
 			{
 				ex.printStackTrace();
 				try {
@@ -647,5 +685,478 @@ public class GitRepoUtils {
 		}
 	}
 
+	// find a particular commit in the folder
+	public static RevCommit findCommit(String gitFolder, String id) throws Exception
+	{
+		Git thisGit = Git.open(new File(gitFolder));
+		StringBuilder builder = new StringBuilder();
+		LogCommand lg = thisGit
+						.log()
+						//.addPath(fileName)
+						.all();
+		
+		Iterator <RevCommit> commits = lg.call().iterator();
+		
+		boolean first = true;
+		
+		RevCommit comm = null;
+		
+		while(commits.hasNext())
+		{
+			comm = commits.next();
+			if((comm.getId() + "").contains(id))
+			{
+				break;
+			}
+			comm = null;
+		}
+		
+		return comm;
+		
+	}
+	
+	// install the certificate
+	public static boolean addCertForDomain(String repoName)
+	{
+		try {
+			URI uri = new URI(repoName);
+			String domain = uri.getHost();
+			domain = domain.startsWith("www.") ? domain.substring(4) : domain;
+			
+			InstallCertNow.please(domain, null, null);
+			return true;
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	public static String listCommits(String gitFolder, String fileName)
+	{
+		StringBuilder builder = null;
+		try {
+			Git thisGit = Git.open(new File(gitFolder));
+			builder = new StringBuilder();
+			builder.append("date, user, message, id");
+			LogCommand lg = null;
+			if(fileName != null)
+				lg = thisGit
+					.log()
+					.addPath(fileName)
+					.all();
+			else
+				lg = thisGit
+				.log()
+				.all();
+
+			
+			Iterator <RevCommit> commits = lg.call().iterator();
+			
+			boolean first = true;
+			
+			while(commits.hasNext())
+			{
+				RevCommit comm = commits.next();
+				//System.out.println(comm.getFullMessage());
+				builder.append("\n\n");
+				builder.append(comm.getCommitTime()).append(",");
+				builder.append(comm.getAuthorIdent().getName()).append(",");
+				builder.append(comm.getFullMessage()).append(",");
+				builder.append(comm.getId().toObjectId().toString().substring(0,5)).append(",");
+				builder.append("\n");
+				//RevTree tree = comm.getTree();
+				//tree.
+				
+				//if(first)
+				{
+					//System.out.println(comm.getId());
+					//thisGit.revert().include(comm).call();
+					//first = false;
+				}
+				//break;
+			}
+		} catch (NoHeadException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return builder.toString();
+	}
+	
+	// gets a particular file
+	// showing file content for a particular ID
+	// this will be utilized where the user goes
+	// ok what did the user abcd check in for this file without the needing to revert / reset
+	// frankly we should have a way for the user to go back and forth
+	public static String getFile(String commId, String fileName, String gitFolder)
+	{
+		String output = null;
+		try {
+			Git thisGit = Git.open(new File(gitFolder));
+			//ObjectId masterTreeId= thisGit.getRepository().resolve("refs/heads/master^" + commitID);
+			
+			RevCommit comm = null;
+			if(commId == null)
+			{
+				ObjectId commId2 = thisGit.getRepository().resolve(Constants.HEAD);
+				RevWalk walk = new RevWalk(thisGit.getRepository());
+				comm = walk.lookupCommit(commId2);
+			}
+			else
+				comm = findCommit(gitFolder, commId);
+			
+			TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
+			ObjectId blobId = treeWalk.getObjectId( 0 );
+			
+			ObjectReader objectReader = thisGit.getRepository().newObjectReader();
+			ObjectLoader objectLoader = objectReader.open( blobId );
+			byte[] bytes = objectLoader.getBytes();
+			objectReader.close();
+			
+			output = new String(bytes);
+		} catch (MissingObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IncorrectObjectTypeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (CorruptObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (LargeObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return output;
+		
+	}
+	
+	public static void addAllFiles(String gitFolder, boolean ignoreTheIgnoreFiles) {
+		Git thisGit = null;
+		Status status = null;
+		try {
+			thisGit = Git.open(new File(gitFolder));
+			status = thisGit.status().call();
+		} catch (IOException | NoWorkTreeException | GitAPIException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
+		}
+		
+		AddCommand ac = thisGit.add();
+		boolean added = false;
+		
+		// get new files
+		Iterator <String> upFiles = status.getUntracked().iterator();
+		while(upFiles.hasNext()) {
+			String daFile = upFiles.next();
+			if(ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+				added = true;
+				ac.addFilepattern(daFile);
+			}
+		}
+		
+		// get the modified files
+		Iterator <String> modFiles = status.getModified().iterator();
+		while(modFiles.hasNext()) {
+			String daFile = modFiles.next();
+			if(ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+				added = true;
+				ac.addFilepattern(daFile);
+			}
+		}
+
+		if(added) {
+			try {
+				ac.call();
+			} catch (GitAPIException e) {
+				e.printStackTrace();
+				throw new IllegalArgumentException("Unable to add files to Git directory at " + gitFolder);
+			}
+		}
+		
+		thisGit.close();
+	}
+	
+	/**
+	 * Add specific files to a given git
+	 * @param thisGit
+	 * @param files
+	 */
+	public static void addSpecificFiles(String localRepository, List<String> files) {
+		if(files == null || files.size() == 0) {
+			return;
+		}
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(localRepository));
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
+		}
+		AddCommand ac = thisGit.add();
+		for(String daFile : files) {
+			if(daFile.contains("version")) {
+				daFile = daFile.substring(daFile.indexOf("version") + 8);
+			}
+			daFile = daFile.replace("\\", "/");
+			ac.addFilepattern(daFile);
+		}
+		try {
+			ac.call();
+		} catch (GitAPIException e) {
+			e.printStackTrace();
+		}
+		thisGit.close();
+	}
+	
+	/**
+	 * Add specific files to a given git
+	 * @param thisGit
+	 * @param files
+	 */
+	public static void addSpecificFiles(String localRepository, File[] files) {
+		if(files == null || files.length == 0) {
+			return;
+		}
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(localRepository));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		AddCommand ac = thisGit.add();
+		for(File f : files) {
+			String daFile = f.getAbsolutePath();
+			if(daFile.contains("version")) {
+				daFile = daFile.substring(daFile.indexOf("version") + 8);
+			}
+			daFile = daFile.replace("\\", "/");
+			ac.addFilepattern(daFile);
+		}
+		try {
+			ac.call();
+		} catch (GitAPIException e) {
+			e.printStackTrace();
+		}
+		thisGit.close();
+	}
+	
+	public static void commitAddedFiles(String gitFolder) {
+		commitAddedFiles(gitFolder, null);
+	}
+	
+	public static void commitAddedFiles(String gitFolder, String message) {
+		commitAddedFiles(gitFolder, message, null, null);
+	}
+
+	public static void commitAddedFiles(String gitFolder, String message, String author, String email) {
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(gitFolder));
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
+		}
+
+		CommitCommand cc = thisGit.commit();
+		try {
+			if(message == null)
+				message = GitUtils.getDateMessage("Commited on.. ");
+			if(author == null)
+				author = "SEMOSS";
+			if(email == null)
+				email = "semoss@semoss.org";
+			cc
+			.setMessage(message)
+			.setAuthor(author, email)
+			.call();
+		} catch (GitAPIException e) {
+			e.printStackTrace();
+		}
+		thisGit.close();
+	}
+
+	public static void revertCommit(String gitFolder, String comm1) 
+	{
+		try {
+			Git thisGit = Git.open(new File(gitFolder));
+			RevCommit comm = findCommit(gitFolder, comm1);
+			// revert sets it up where you go back as if nothing has happened
+			//thisGit.reset().setRef(comm.getId().getName()).setMode(ResetType.HARD).call();
+			
+			// this is the revert
+			// the revert works perfectly if you want to go one back
+			// if you further than that.. it will create a change log on your file which you need to find and resolve
+			//thisGit.revert().include(comm.getId()).setOurCommitName("new Commit").call();
+			thisGit.revert().include(thisGit.getRepository().resolve(Constants.HEAD)).setOurCommitName("new Commit").call();
+			//thisGit.commit().setMessage("Post Revert.. " ).call();
+		} catch (RevisionSyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoMessageException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnmergedPathsException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ConcurrentRefUpdateException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (WrongRepositoryStateException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (AmbiguousObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IncorrectObjectTypeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public static void resetCommit(String gitFolder, String comm1) 
+	{
+		try {
+			// this is a different animal.. we just want to make sure the user knows what they are doing
+			// if you dont do hard reset it doesn't give you shit
+			Git thisGit = Git.open(new File(gitFolder));
+			RevCommit comm = findCommit(gitFolder, comm1);
+			// revert sets it up where you go back as if nothing has happened
+			thisGit.reset().setRef(comm.getId().getName()).setMode(ResetType.HARD).call();
+		} catch (CheckoutConflictException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}		
+	}
+	
+	// saves aparticular version of the file
+	// this has to be in some kind of temp directory
+	public static String saveFileForDownload(String commId, String fileName, String gitFolder)
+	{
+		String output = null;
+		// this needs to change
+		String cacheFolder = gitFolder;
+		String cacheFileName = null;
+		
+		try {
+			Git thisGit = Git.open(new File(gitFolder));
+			//ObjectId masterTreeId= thisGit.getRepository().resolve("refs/heads/master^" + commitID);
+			
+			RevCommit comm = null;
+			if(commId == null)
+			{
+				ObjectId commId2 = thisGit.getRepository().resolve(Constants.HEAD);
+				RevWalk walk = new RevWalk(thisGit.getRepository());
+				comm = walk.lookupCommit(commId2);
+				commId = comm.getId().toString().substring(0,5);
+			}
+			else
+				comm = findCommit(gitFolder, commId);
+
+			// this file needs to be in the cache
+			// infact we should even lookup to see if it is in the cache and if so  create it
+			cacheFileName = cacheFolder + "/" + fileName + "_" + commId;
+			
+			// if this is available send it out
+			File cacheFile = new File(cacheFileName);
+			if(cacheFile.exists())
+				return cacheFileName;
+			
+			TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
+			ObjectId blobId = treeWalk.getObjectId( 0 );
+			
+			ObjectReader objectReader = thisGit.getRepository().newObjectReader();
+			ObjectLoader objectLoader = objectReader.open( blobId );
+			
+			byte[] bytes = objectLoader.getBytes();
+			objectReader.close();
+			
+			FileOutputStream fos = new FileOutputStream(cacheFile);
+			fos.write(bytes);
+			fos.close();
+			
+		} catch (MissingObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IncorrectObjectTypeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (CorruptObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (LargeObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return cacheFileName;
+	}
+	
+	// I dont know how it will work for non text files
+	public static void createASCIIFile(String gitFolder, String fileName, String content, String message)
+	{
+		// makes the file
+		// adds it
+		// commits it
+		try {
+			if(message == null)
+				message = GitUtils.getDateMessage("Edited on");
+			
+			File file = new File(gitFolder + "/" + fileName);
+			PrintWriter pw = new PrintWriter(new FileWriter(fileName), true);
+			pw.write(content);
+			pw.close();
+			addAllFiles(gitFolder, false);
+			commitAddedFiles(gitFolder, message); //, author, email); 
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		
+	}
 
 }

@@ -75,8 +75,8 @@ public class GitMergeHelper {
 					if(numAttempts < maxAttempts && delete)
 					{
 						wipeFiles(delFiles);
-						GitPushUtils.addAllFiles(localRepository, false);
-						GitPushUtils.commitAddedFiles(localRepository);
+						GitRepoUtils.addAllFiles(localRepository, false);
+						GitRepoUtils.commitAddedFiles(localRepository);
 						numAttempts++;
 						// I will attempt this just one more time to merge
 						merge(localRepository, startPoint, branchName, numAttempts, maxAttempts, delete);
