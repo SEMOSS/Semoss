@@ -25,6 +25,8 @@ public class GitPushUtils {
 		
 	}
 	
+	@Deprecated
+	// this is moved to git repo utils
 	public static void addAllFiles(String gitFolder, boolean ignoreTheIgnoreFiles) {
 		Git thisGit = null;
 		Status status = null;
@@ -76,6 +78,8 @@ public class GitPushUtils {
 	 * @param thisGit
 	 * @param files
 	 */
+	@Deprecated
+	// this is moved to git repo utils
 	public static void addSpecificFiles(String localRepository, List<String> files) {
 		if(files == null || files.size() == 0) {
 			return;
@@ -108,6 +112,8 @@ public class GitPushUtils {
 	 * @param thisGit
 	 * @param files
 	 */
+	@Deprecated
+	// this is moved to git repo utils
 	public static void addSpecificFiles(String localRepository, File[] files) {
 		if(files == null || files.length == 0) {
 			return;
@@ -135,7 +141,21 @@ public class GitPushUtils {
 		thisGit.close();
 	}
 	
+	@Deprecated
+	// this is moved to git repo utils
 	public static void commitAddedFiles(String gitFolder) {
+		commitAddedFiles(gitFolder, null);
+	}
+	
+	@Deprecated
+	// this is moved to git repo utils
+	public static void commitAddedFiles(String gitFolder, String message) {
+		commitAddedFiles(gitFolder, message, null, null);
+	}
+
+	@Deprecated
+	// this is moved to git repo utils
+	public static void commitAddedFiles(String gitFolder, String message, String author, String email) {
 		Git thisGit = null;
 		try {
 			thisGit = Git.open(new File(gitFolder));
@@ -146,14 +166,23 @@ public class GitPushUtils {
 
 		CommitCommand cc = thisGit.commit();
 		try {
-			cc.setMessage(GitUtils.getDateMessage("Commited on.. ")).call();
+			if(message == null)
+				message = GitUtils.getDateMessage("Commited on.. ");
+			if(author == null)
+				author = "SEMOSS";
+			if(email == null)
+				email = "semoss@semoss.org";
+			cc
+			.setMessage(message)
+			.setAuthor(author, email)
+			.call();
 		} catch (GitAPIException e) {
 			e.printStackTrace();
 		}
 		thisGit.close();
 	}
-	
 
+	
 	public static void push(String repository, String remoteToPush, String branch, String userName, String password)
 	{
 		int attempt = 1;
