@@ -41,6 +41,7 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminSetPublisher = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
 	static boolean anonymousUsersEnabled = false;
+	static boolean anonymousUsersUploadData = false;
 
 	/**
 	 * Only used for static references
@@ -71,6 +72,13 @@ public abstract class AbstractSecurityUtils {
 			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers) ) || (Boolean.parseBoolean(anonymousUsers.toString()));
 		}
 		
+		Object anonymousUsersData = DIHelper.getInstance().getLocalProp(Constants.ANONYMOUS_USER_UPLOAD_DATA);
+		if(anonymousUsersData == null) {
+			anonymousUsersUploadData = false;
+		} else {
+			anonymousUsersUploadData = (anonymousUsersData instanceof Boolean && ((boolean) anonymousUsersData) ) || (Boolean.parseBoolean(anonymousUsersData.toString()));
+		}
+		
 		Object adminSetsPublisher = DIHelper.getInstance().getLocalProp(Constants.ADMIN_SET_PUBLISHER);
 		if(adminSetsPublisher == null) {
 			adminSetPublisher = false;
@@ -85,6 +93,10 @@ public abstract class AbstractSecurityUtils {
 	
 	public static boolean anonymousUsersEnabled() {
 		return securityEnabled && anonymousUsersEnabled;
+	}
+	
+	public static boolean anonymousUserUploadData() {
+		return anonymousUsersEnabled() && anonymousUsersUploadData;
 	}
 	
 	public static boolean adminSetPublisher() {
