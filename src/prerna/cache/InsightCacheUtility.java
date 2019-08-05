@@ -34,7 +34,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightAdapter;
 
 public class InsightCacheUtility {
@@ -209,7 +208,7 @@ public class InsightCacheUtility {
 			zip = new ZipFile(zipFileLoc);
 			zis = zip.getInputStream(viewData);
 			
-			String jsonString = IOUtils.toString(zis);
+			String jsonString = IOUtils.toString(zis, "UTF-8");
 			
 			//TODO:
 			//TODO:
@@ -222,7 +221,7 @@ public class InsightCacheUtility {
 				throw new IllegalArgumentException("Old format of cache. Must delete and re-create.");
 			}
 			
-			Gson gson = GsonUtility.getDefaultGson();
+			Gson gson = new Gson();
 			return gson.fromJson(jsonString, Map.class);
 		} catch(Exception e) {
 			LOGGER.info("Error retrieving cache for " + rdbmsId);
