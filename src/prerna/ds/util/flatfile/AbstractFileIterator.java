@@ -67,29 +67,11 @@ public abstract class AbstractFileIterator implements IFileIterator {
 			String val = row[i].toString().trim();
 			// try to get correct type
 			if(type == SemossDataType.INT) {
-				try {
-					//added to remove $ and , in data and then try parsing as Double
-					int mult = 1;
-					if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
-						mult = -1;
-					val = val.replaceAll("[^0-9\\.E]", "");
-					cleanRow[i] = mult * Integer.parseInt(val.trim());
-				} catch(NumberFormatException ex) {
-					//do nothing
-					cleanRow[i] = null;
-				}
+				// so we are consistent with the predict types
+				cleanRow[i] = Utility.getInteger(val.replaceAll("[$,\\s]", ""));
 			} else if(type == SemossDataType.DOUBLE) {
-				try {
-					//added to remove $ and , in data and then try parsing as Double
-					int mult = 1;
-					if(val.startsWith("(") || val.startsWith("-")) // this is a negativenumber
-						mult = -1;
-					val = val.replaceAll("[^0-9\\.E]", "");
-					cleanRow[i] = mult * Double.parseDouble(val.trim());
-				} catch(NumberFormatException ex) {
-					//do nothing
-					cleanRow[i] = null;
-				}
+				// so we are consistent with the predict types
+				cleanRow[i] = Utility.getDouble(val.replaceAll("[$,\\s]", ""));
 			} else if(type == SemossDataType.DATE || type == SemossDataType.TIMESTAMP) {
 				String additionalTypeData = additionalTypes[i];
 				
