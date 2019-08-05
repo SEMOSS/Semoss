@@ -1580,12 +1580,12 @@ public class Utility {
 				retObject[2] = ((SemossDate) retO).getPattern();
 			}
 			// is it an integer ?
-			else if( (retO = getInteger(input.replaceAll("[^0-9\\.E]", ""))) != null) {
+			else if( (retO = getInteger(input.replaceAll("[$,\\s]", ""))) != null) {
 				retObject[0] = retO;
 				retObject[1] = SemossDataType.INT;
 			}
 			// is it a double ?
-			else if( (retO = getDouble(input.replaceAll("[^0-9\\.E]", ""))) != null) {
+			else if( (retO = getDouble(input.replaceAll("[$,\\s]", ""))) != null) {
 				retObject[0] = retO;
 				retObject[1] = SemossDataType.DOUBLE;
 			}
