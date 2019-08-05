@@ -317,8 +317,11 @@ public class RFrameBuilder {
 				doubleColumns.add(header);
 			} else if(type == SemossDataType.BOOLEAN) {
 				booleanColumns.add(header);
-			} else if( type == SemossDataType.DATE && javaDateFormatMap.containsKey(header)) {
+			} else if(type == SemossDataType.DATE) {
 				String format = javaDateFormatMap.get(header);
+				if(format == null) {
+					format = "yyyy-MM-dd";
+				}
 				if(datesMap.containsKey(format)) {
 					// add to existing list
 					datesMap.get(format).add(header);
@@ -327,8 +330,11 @@ public class RFrameBuilder {
 					headerList.add(header);
 					datesMap.put(format, headerList);
 				}
-			} else if( type == SemossDataType.TIMESTAMP && javaDateFormatMap.containsKey(header)) {
+			} else if( type == SemossDataType.TIMESTAMP) {
 				String format = javaDateFormatMap.get(header);
+				if(format == null) {
+					format = "yyyy-MM-dd HH:mm:ss";
+				}
 				if(dateTimeMap.containsKey(format)) {
 					// add to existing list
 					dateTimeMap.get(format).add(header);
