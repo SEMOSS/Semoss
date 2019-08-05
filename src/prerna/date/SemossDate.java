@@ -376,7 +376,10 @@ public class SemossDate {
 			if(m.matches()) {
 				// yay! we found a match
 				semossdate = new SemossDate(input, match[1]);
-				break FIND_DATE;
+				if(semossdate.getDate() != null) {
+					break FIND_DATE;
+				}
+				semossdate = null;
 			}
 		}
 
