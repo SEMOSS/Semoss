@@ -1830,6 +1830,9 @@ public class Utility {
 	public static Double getDouble(String input) {
 		// try to do some basic clean up if it fails and try again
 		try {
+			if(input.startsWith("(") && input.endsWith(")")) {
+				input = "-" + input.substring(1, input.length()-1);
+			}
 			Double num = Double.parseDouble(input);
 			return num;
 		} catch(NumberFormatException e) {
@@ -1840,6 +1843,9 @@ public class Utility {
 	public static Integer getInteger(String input) {
 		// try to do some basic clean up if it fails and try again
 		try {
+			if(input.startsWith("(") && input.endsWith(")")) {
+				input = "-" + input.substring(1, input.length()-1);
+			}
 			Integer num = Integer.parseInt(input);
 			return num;
 		} catch(NumberFormatException e) {
