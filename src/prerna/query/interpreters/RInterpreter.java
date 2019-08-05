@@ -112,24 +112,34 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		// we need to convert dates from being integer values
 		// to output as dates
 		boolean addedColToDateChange = false;
-		for (String column : this.additionalTypes.keySet()) {
-			if (column.contains("__")) {
-				column = column.split("__")[1];
-			}
-			if (validHeaders.contains(column) && this.additionalTypes.containsKey(this.dataTableName + "__" + column)) {
-				addedColToDateChange = true;
-				String javaFormat = this.additionalTypes.get(this.dataTableName + "__" + column);
-				String[] rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat).split("\\|");
-				query.append("if (is.Date(" + tempVarName + "$" + column + ") || is.POSIXct(" + tempVarName + "$"
-						+ column + ")) {").append("options(digits.secs =" + rFormat[1] + ");")
-						.append(tempVarName + "$" + column + " <- format(" + tempVarName + "$" + column + ", format='"
-								+ rFormat[0] + "')");
-				// handle potential leading zero and second/millisecond delimiter
-				String rSubSyntax = getRSubSyntax(javaFormat, rFormat[0]);
-				if (rSubSyntax.length() > 0) {
-					query.append(" %>% " + rSubSyntax);
+		for (String column : this.colDataTypes.keySet()) {
+			SemossDataType dataType = this.colDataTypes.get(column);
+			if(dataType == SemossDataType.DATE || dataType == SemossDataType.TIMESTAMP) {
+				if (column.contains("__")) {
+					column = column.split("__")[1];
 				}
-				query.append("};");
+				if (validHeaders.contains(column)) {
+					addedColToDateChange = true;
+					String javaFormat = this.additionalTypes.get(this.dataTableName + "__" + column);
+					if(javaFormat == null) {
+						if(dataType == SemossDataType.DATE) {
+							javaFormat = "yyyy-MM-dd";
+						} else if(dataType == SemossDataType.TIMESTAMP) {
+							javaFormat = "yyyy-MM-dd HH:mm:ss";
+						}
+					}
+					String[] rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat).split("\\|");
+					query.append("if (is.Date(" + tempVarName + "$" + column + ") || is.POSIXct(" + tempVarName + "$"
+							+ column + ")) {").append("options(digits.secs =" + rFormat[1] + ");")
+							.append(tempVarName + "$" + column + " <- format(" + tempVarName + "$" + column + ", format='"
+									+ rFormat[0] + "')");
+					// handle potential leading zero and second/millisecond delimiter
+					String rSubSyntax = getRSubSyntax(javaFormat, rFormat[0]);
+					if (rSubSyntax.length() > 0) {
+						query.append(" %>% " + rSubSyntax);
+					}
+					query.append("};");
+				}
 			}
 		}
 		
