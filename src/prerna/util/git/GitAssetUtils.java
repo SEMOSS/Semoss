@@ -8,12 +8,14 @@ import java.util.List;
 
 import org.codehaus.plexus.util.FileUtils;
 
+import prerna.util.Utility;
+
 public class GitAssetUtils {
 
 	// gets all the information on assets
 	// gives the information in 2 chunks
 	// files and directories
-	public static Hashtable browse(String gitFolder)
+	public static Hashtable browse(String gitFolder, String replacer)
 	{
 		Hashtable retHash = new Hashtable();
 		// list or string ?
@@ -25,23 +27,32 @@ public class GitAssetUtils {
 		
 		File folder = new File(gitFolder);
 		File[] listOfFiles = folder.listFiles();
+		  String repString = ""; // can be $IF
+
 
 		for (int i = 0; i < listOfFiles.length; i++) {
 		  if (listOfFiles[i].isFile()) {
-		    System.out.println("File " + listOfFiles[i].getAbsolutePath());
-	    	files.add(listOfFiles[i].getAbsolutePath());
+			  String path = listOfFiles[i].getAbsolutePath().replaceAll("\\\\", "/");
+			    if(replacer != null)
+			    	path = path.replaceAll(replacer, repString);			 
+		    System.out.println("File " + path);
+	    	files.add(path.replaceFirst("/", ""));
 		  } else if (listOfFiles[i].isDirectory()) {
 		    //System.out.println("Directory " + listOfFiles[i].getName());
-			  String path = listOfFiles[i].getName();
+			  String path = listOfFiles[i].getName().replaceAll("\\\\", "/");
 			  if(!path.startsWith(".")) // no hidden files
-				  directories.add(listOfFiles[i].getAbsolutePath());
+			  {
+				    if(replacer != null)
+				    	path = path.replaceAll(replacer, repString);			 
+				  directories.add(path);
+			  }
 		  }
 		}
 
 		if(directories.size() > 0)
-			retHash.put("DIR_LIST", directories.toString());
+			retHash.put("DIR_LIST", directories);
 		if(files.size() > 0)
-			retHash.put("FILE_LIST", directories.toString());
+			retHash.put("FILE_LIST", files);
 		
 		
 		return retHash;
@@ -95,7 +106,7 @@ public class GitAssetUtils {
 	// this is to get all the assets
 	// with a particular extension
 	// runs through recursion to get what is needed
-	public static List listAssets(String gitFolder, String extn, ArrayList <String> dirList, ArrayList <String> retList)
+	public static List listAssets(String gitFolder, String extn, String replacer, ArrayList <String> dirList, ArrayList <String> retList)
 	{
 		Hashtable retHash = new Hashtable();
 		StringBuilder files = new StringBuilder();
@@ -114,10 +125,18 @@ public class GitAssetUtils {
 
 		for (int i = 0; i < listOfFiles.length; i++) {
 		  if (listOfFiles[i].isFile()) {
+			 
 		    System.out.println("File " + listOfFiles[i].getAbsolutePath());
 		    String path = listOfFiles[i].getAbsolutePath();
-		    if(path.endsWith(extn))
-		    	retList.add(listOfFiles[i].getAbsolutePath());
+		    path = path.replaceAll("\\\\", "/");
+		    if(isMatch(Utility.getInstanceName(path),extn))
+		    {
+			    if(replacer != null)
+			    	path = path.replaceAll(replacer, "");
+
+			    path.replaceFirst("/", "");
+		    	retList.add(path);
+		    }
 		  } else if (listOfFiles[i].isDirectory()) {
 		    //System.out.println("Directory " + listOfFiles[i].getName());
 			  String path = listOfFiles[i].getName();
@@ -127,13 +146,40 @@ public class GitAssetUtils {
 		}
 
 		if(dirList.size() > 0)
-			return listAssets(dirList.remove(0),extn, dirList, retList);
+			return listAssets(dirList.remove(0),extn, replacer, dirList, retList);
 		else 
 			return retList;
 		
 	}
-
-
-
+	
+	public static boolean isMatch(String s, String p) {
+		int i = 0;
+		int j = 0;
+		int starIndex = -1;
+		int iIndex = -1;
+	 
+		while (i < s.length()) {
+			if (j < p.length() && (p.charAt(j) == '?' || p.charAt(j) == s.charAt(i))) {
+				++i;
+				++j;
+			} else if (j < p.length() && p.charAt(j) == '*') {
+				starIndex = j;		
+				iIndex = i;
+				j++;
+			} else if (starIndex != -1) {
+				j = starIndex + 1;
+				i = iIndex+1;
+				iIndex++;
+			} else {
+				return false;
+			}
+		}
+	 
+		while (j < p.length() && p.charAt(j) == '*') {
+			++j;
+		}
+	 
+		return j == p.length();
+	}
 	
 }

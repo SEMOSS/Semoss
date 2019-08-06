@@ -411,6 +411,8 @@ public class GitCollaboratorUtils {
 				ghr = gh.getRepository(remoteRepositoryName);
 			} catch (IOException e) {
 				e.printStackTrace();
+				// if the repository is not found - why not just clean up the remote reference
+				//GitRepoUtils.removeRemote(localRepository, repositoryName);
 				throw new IllegalArgumentException("Could not find repository at " + remoteRepositoryName);
 			}
 	
