@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
@@ -16,6 +17,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
@@ -29,14 +31,14 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 	 * Reads in the Databases and Creates an RDS file of all unique instances in the AnalyticsRoutineScripts Folder
 	 */
 
-	// StoreColumnValues(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],columns=[],addDuplicates=[false]);
-	// StoreColumnValues(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],columns=["Title", "Studio", "Genre"],addDuplicates=[false]);
+	// StoreColumnValues(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],table=[],columns=[],addDuplicates=[false]);
+	// StoreColumnValues(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],table=["Title"],columns=["Title"],addDuplicates=[false]);
 
 	private static final String ADD_DUPLICATES = "addDuplicates";
 	protected static final String CLASS_NAME = StoreColumnValuesReactor.class.getName();
 
 	public StoreColumnValuesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ADD_DUPLICATES };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TABLE.getKey() , ReactorKeysEnum.COLUMNS.getKey(), ADD_DUPLICATES };
 	}
 
 	@Override
@@ -46,13 +48,16 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder").replace("\\", "/");
 		String appId = UploadInputUtility.getAppName(this.store);
-		List<String> colFilters = getSpecificColumns(appId);
+		String table = this.keyValue.get(this.keysToGet[1]);
+		List<String> colFilters = getSpecificColumns(appId, table);
 		boolean addDuplicates = getDuplicate();
+		boolean allCols = false;
 		String retFrame = "retFrame_" + Utility.getRandomString(5);
 		
 		// if no columns were entered, default to all string columns
 		if(colFilters == null || colFilters.isEmpty()) {
 			colFilters = getStringColumns(appId);
+			allCols = true;
 		}
 		
 		// check for rds file
@@ -104,12 +109,17 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 			// init variables for the col
 			SelectQueryStruct qs = new SelectQueryStruct();
 			IEngine engine = Utility.getEngine(appId);
-			String table = MasterDatabaseUtility.getTableForColumn(appId, col);
-			if(table == null) {
-				table = col;
-			}
 			colCounter++;
-
+			
+			// if it is all columns, then get the specific columns table
+			// otherwise use the entered table
+			if(allCols) {
+				table = MasterDatabaseUtility.getTableForColumn(appId, col);
+				if(table == null) {
+					table = col;
+				}
+			}
+			
 			// we will fill this in once we figure out if it is a concept or property
 			QueryColumnSelector colSelector = null;
 			if (table.equals(col)) {
@@ -191,19 +201,27 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.executeEmptyR("rm( " + gc + " , origDir ); gc();");
 
 		// return true
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		noun.addAdditionalReturn(new NounMetadata("Successfully indexed data for NLP searching", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		return noun;
 	}
 
 	
-	private List<String> getSpecificColumns(String appId) {
+	private List<String> getSpecificColumns(String appId, String table) {
 		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getNoun(this.keysToGet[1]);
+		GenRowStruct columnGrs = this.store.getNoun(this.keysToGet[2]);
 		if (columnGrs != null) {
 			if (columnGrs.size() > 0) {
 				List<Object> values = columnGrs.getAllValues();
 				List<String> strValues = new Vector<String>();
 				for (Object obj : values) {
-					String objType = MasterDatabaseUtility.getBasicDataType(appId, obj.toString(), MasterDatabaseUtility.getTableForColumn(appId, obj.toString()));
+					String objType = "";
+					if(table.equals(obj.toString())) {
+						objType = MasterDatabaseUtility.getBasicDataType(appId, obj.toString(), null);
+					} else {
+						objType = MasterDatabaseUtility.getBasicDataType(appId, obj.toString(), table);
+					}
+					
 					if(objType.equals(SemossDataType.STRING.toString())) {
 						strValues.add(obj.toString());
 					}
@@ -227,7 +245,7 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 	}
 
 	private boolean getDuplicate() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[3]);
 		if (grs == null || grs.isEmpty()) {
 			return false;
 		}
