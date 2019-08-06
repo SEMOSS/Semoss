@@ -5,12 +5,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.net.ssl.SSLHandshakeException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-import org.codehaus.plexus.util.FileUtils;
+import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
@@ -241,6 +241,7 @@ public class GitFetchUtils {
 	// wipes it and puts a new clone
 	public static void cloneApp(String remoteRepo, String localFolder)
 	{
+		GitRepoUtils.addCertForDomain(remoteRepo); 
 		// tries to find if the local folder is available
 		// deletes it and then clones it back
 		try {
@@ -248,7 +249,9 @@ public class GitFetchUtils {
 			if(file.exists() && file.isDirectory())
 				FileUtils.deleteDirectory(file);
 
-			Git.cloneRepository().setURI(remoteRepo).setDirectory(new File(localFolder)).call();
+			CloneCommand clone = Git.cloneRepository().setURI(remoteRepo).setDirectory(file);
+			Git gclone = clone.call();
+			gclone.close();
 		} catch (InvalidRemoteException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
