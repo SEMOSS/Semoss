@@ -17,18 +17,13 @@ import com.google.gson.reflect.TypeToken;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-// CreateNLPViz(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],columns=[Studio, Average_MovieBudget],frame=["FRAME_ak28Db"])
 
 public class CreateNLPVizReactor extends AbstractRFrameReactor {
 
@@ -36,6 +31,8 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 	 * Reads in the Columns and App IDs and returns the visualization string, which
 	 * is then appended to the NLP search
 	 */
+	
+	// CreateNLPViz(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],columns=[Studio, Average_MovieBudget],frame=["FRAME_ak28Db"])
 
 	protected static final String CLASS_NAME = CreateNLPVizReactor.class.getName();
 
@@ -222,9 +219,10 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		}
 
 		// garbage clean up in R
-		this.rJavaTranslator.executeEmptyR(
-				"rm( " + "get_reference," + "inputFramea6JSRk," + "origDir," + "outputJsonaDbXom," + "recommenda5udnq,"
-						+ "restore_datatype" + "viz_history," + "viz_recom," + "viz_recom_mgr" + " ); gc();");
+		String gc = "rm( " + "get_reference," + inputFrame + "," + "origDir," + outputJson + "," + recommend + ","
+				+ "restore_datatype," + "viz_history," + "viz_recom," + "viz_recom_mgr," + "sync_numeric," 
+				+ "validate_like" + " ); gc();";
+		this.rJavaTranslator.executeEmptyR(gc);
 
 		String returnPixel = generatePixelFromRec(recommendations, cols, frameName);
 		PixelRunner runner = this.insight.runPixel(returnPixel);
