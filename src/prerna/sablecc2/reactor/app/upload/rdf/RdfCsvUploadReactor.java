@@ -46,18 +46,18 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 			};
 	}
 
-	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
+	public void generateNewApp(User user, String newAppName, String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for app...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for app...");
-		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(newAppId, newAppName, owlFile);
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdfSmss(this.appId, newAppName, owlFile);
+		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -70,7 +70,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Create  database store...");
 		this.engine = new BigDataEngine();
-		this.engine.setEngineId(newAppId);
+		this.engine.setEngineId(this.appId);
 		this.engine.setEngineName(newAppName);
 		this.engine.openDB(this.tempSmss.getAbsolutePath());
 		String semossURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
@@ -123,11 +123,11 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Save csv metamodel prop file");
-		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
+		UploadUtilities.createPropFile(this.appId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 	}
 
-	public void addToExistingApp(String appId, String filePath) throws Exception {
+	public void addToExistingApp(String filePath) throws Exception {
 		// get existing app
 		int stepCounter = 1;
 		if (!(this.engine instanceof BigDataEngine)) {
@@ -177,7 +177,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
-		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
+		UploadUtilities.createPropFile(this.appId, this.engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 	}
 

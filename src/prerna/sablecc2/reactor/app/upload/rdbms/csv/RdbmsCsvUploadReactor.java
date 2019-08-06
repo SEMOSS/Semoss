@@ -80,19 +80,19 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 	}
 
 	@Override
-	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception {
+	public void generateNewApp(User user, final String newAppName, final String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 		boolean allowDuplicates = false;
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.appId, newAppName, owlFile, "H2_DB", null);
+		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -105,7 +105,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Create database store...");
 		this.engine = new RDBMSNativeEngine();
-		this.engine.setEngineId(newAppId);
+		this.engine.setEngineId(this.appId);
 		this.engine.setEngineName(newAppName);
 		Properties props = Utility.loadProperties(tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
@@ -175,21 +175,22 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
+		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
+		UploadUtilities.addGridDeltaInsight(this.appId, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Save csv metamodel prop file");
-		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
+		UploadUtilities.createPropFile(this.appId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 	}
 
-	public void addToExistingApp(final String appId, final String filePath) throws Exception {
+	public void addToExistingApp(final String filePath) throws Exception {
 		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
@@ -275,7 +276,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Save csv metamodel prop file");
-		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
+		UploadUtilities.createPropFile(this.appId, this.engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 	}
