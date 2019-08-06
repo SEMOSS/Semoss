@@ -73,7 +73,7 @@ public class RunDocumentSummarizationReactor extends AbstractRFrameReactor {
 		stepCounter++;
 		System.out.println("");
 		String[] packages = new String[] { "readtext", "xml2", "rvest", "lexRankr", "textrank", "udpipe", "textreuse",
-				"stringr", "textmineR", "textreadr", "pdftools", "antiword", "dplyr" };
+				"stringr", "textmineR", "textreadr", "pdftools", "antiword", "dplyr" , "tm" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// start the R script
