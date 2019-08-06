@@ -1,5 +1,9 @@
 package prerna.sablecc2.reactor;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
 import java.io.File;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -9,11 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
+import javassist.ClassPool;
+import javassist.CtClass;
 import me.xdrop.fuzzywuzzy.FuzzySearch;
 import me.xdrop.fuzzywuzzy.model.ExtractedResult;
 import prerna.algorithm.api.ITableDataFrame;
@@ -439,6 +440,8 @@ import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -1624,5 +1627,60 @@ public class ReactorFactory {
 		}
 		return null;
 	}
+	
+	// get insight specific class
+	public IReactor getIReactor(String db, String insightId, String className) 
+	{	
+		// try to get to see if this class already exists
+		// no need to recreate if it does
+		IReactor retReac = null;
+		String qClassName = db + "." + insightId + "." + className;
+		try
+		{
+			retReac = (IReactor)Class.forName(qClassName).newInstance();
+		}catch (Exception ex)
+		{
+			try
+			{
+				// I should create the class pool everytime
+				// this way it doesn't keep others and try to get from other places
+				// does this end up loading all the other classes too ?
+				ClassPool pool = ClassPool.getDefault();
+				// takes a class and modifies the name of the package and then plugs it into the heap
+				
+				// the main folder to add here is
+				// basefolder/db/insightfolder/classes - right now I have it as classes. we can change it to something else if we want
+				String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+				String classesFolder = baseFolder + "/db/" + db + "/version/" + insightId + "/classes"; 
+				
+				// add the path to the insight classes so only this guy can load it
+				pool.appendPathList(classesFolder);
+				// loads a class and tried to change the package of the class on the fly
+				//CtClass clazz = pool.get("prerna.test.CPTest");
+				CtClass clazz = pool.get(className);
+				
+				// change the name of the classes
+				// ideally we would just have the pakcage name change to the insight
+				// this is to namespace it appropriately to have no issues
+				clazz.setName(qClassName);
+				Class newClass = clazz.toClass();
+				//System.out.println(newClass.getCanonicalName());
+				
+				// once the new instance has been done.. it has been injected into heap.. after this anyone can access it. 
+				// no way to remove this class from heap
+				// has to be garbage collected as it moves
+				//System.out.println(newClass.newInstance().getClass().getPackage());
+				
+				// we could do other instrumentation if we so chose to
+				retReac = (IReactor)Class.forName(qClassName).newInstance();
+				
+			}catch(Exception ex2)
+			{
+			
+			}
+		}
+		return retReac;
+	}
+
 	
 }

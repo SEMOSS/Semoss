@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.insights.save;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,6 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
@@ -22,6 +26,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
@@ -114,8 +119,32 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
+		File retFile = MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
 		logger.info("3) Done...");
+		
+		// add the git here
+		String recipePath = retFile.getParent();
+		try {
+			Git.init().setDirectory(new File(recipePath)).call();
+			Git.open(new File(recipePath)).close();
+		} catch (IllegalStateException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// add everything and commit
+		GitRepoUtils.addAllFiles(recipePath, true);
+		
+		// commit it
+		GitRepoUtils.commitAddedFiles(recipePath);
+
+		
 		
 		// write pipeline
 		if(pipeline != null && !pipeline.isEmpty()) {
