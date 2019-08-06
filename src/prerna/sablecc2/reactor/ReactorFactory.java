@@ -53,6 +53,7 @@ import prerna.sablecc2.reactor.algorithms.RunMultiClusteringReactor;
 import prerna.sablecc2.reactor.algorithms.RunNumericalCorrelationReactor;
 import prerna.sablecc2.reactor.algorithms.RunOutlierReactor;
 import prerna.sablecc2.reactor.algorithms.RunSimilarityReactor;
+import prerna.sablecc2.reactor.algorithms.StoreColumnValuesReactor;
 import prerna.sablecc2.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.sablecc2.reactor.algorithms.dataquality.GetDQRulesReactor;
 import prerna.sablecc2.reactor.algorithms.dataquality.RunDataQualityReactor;
@@ -663,6 +664,8 @@ public class ReactorFactory {
 		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
 		reactorHash.put("ExtractAppMeta", ExtractAppMetaReactor.class);
+		reactorHash.put("StoreColumnValues", StoreColumnValuesReactor.class);
+		
 		// Excel Data validation
 		reactorHash.put("GetExcelForm", GetExcelFormReactor.class);
 		
