@@ -1,4 +1,7 @@
-nliapp_mgr<-function(txt,db,joins=data.frame(),refine=TRUE){
+#### either read db value or pass as tabelw!!!!!
+
+
+nliapp_mgr<-function(txt,db,joins=data.frame(),filename="unique-values-table.rds",refine=TRUE){
 	library(data.table)
 	library(plyr)
 	library(udpipe)
@@ -21,8 +24,14 @@ nliapp_mgr<-function(txt,db,joins=data.frame(),refine=TRUE){
 	apps<-unique(db$AppID)
 	N<-length(apps)
 	if(N>0){
+		if(file.exists(filename)){
+			db_values<-readRDS(filename)
+		}else{
+			db_values<-data.frame(AppID=character(),Table=character(),Column=character(),Values=character(),stringsAsFactors=FALSE)
+		}
 		for(i in 1:N){	
 			cur_db<-db[db$AppID==apps[i],]
+			cur_values<-db_values[db_values$AppID==apps[i],]
 			if(nrow(joins)!=0){
 				cur_joins<-joins[joins$AppID==apps[i],1:4]
 			}else{
@@ -41,17 +50,15 @@ nliapp_mgr<-function(txt,db,joins=data.frame(),refine=TRUE){
 				# get from clause (joins)
 				# If required tables not found or not connected move to the next app
 				out<-join_clause_mgr(cols,cur_db,cur_joins)
-				if(out[[1]]==""){
-					from_clause<-out[[2]]
-					from_joins<-unique(out[[3]])
-					pixel_from<-build_pixel_from(from_joins)
-					request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
-					request_tbls<-request_tbls[request_tbls!=""]
-					response<-"SQL"
-				}else{
+				if(out[[1]]!=""){
 					sql<-out[[1]]
 					response<-"Error"
 					next
+				}else{
+					from_clause<-out[[2]]
+					from_joins<-unique(out[[3]])
+					request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
+					request_tbls<-request_tbls[request_tbls!=""]
 				}
 			
 				# Start constructing the query object
@@ -59,7 +66,30 @@ nliapp_mgr<-function(txt,db,joins=data.frame(),refine=TRUE){
 				out<-get_start(df)
 				if(!is.null(out[[1]]) & !is.null(out[[2]])){
 					select_part<-get_select(out[[1]])
-					mypart<-get_where(out[[2]])
+					mypart<-get_where(out[[2]],request_tbls,cur_joins,cur_values)
+					if(length(mypart[[5]])>0){
+						cols<-append(cols,mypart[[5]])
+						out<-join_clause_mgr(cols,cur_db,cur_joins)
+						if(out[[1]]==""){
+							from_clause<-out[[2]]
+							from_joins<-unique(out[[3]])
+							pixel_from<-build_pixel_from(from_joins)
+							request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
+							request_tbls<-request_tbls[request_tbls!=""]
+							response<-"SQL"
+						}else{
+							sql<-out[[1]]
+							response<-"Error"
+							next
+						}
+					}else{
+						pixel_from<-build_pixel_from(from_joins)
+						request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
+						request_tbls<-request_tbls[request_tbls!=""]
+						response<-"SQL"
+					}
+					
+					
 					where_part<-mypart[[1]]
 					having_part<-mypart[[3]]
 					mypart1<-validate_select(select_part,mypart[[2]])
@@ -458,13 +488,44 @@ validate_like<-function(token){
 	return(right_part)
 }
 
+expose_column<-function(tbls,joins,value,cur_values,threshold=0.9){
+	library(igraph)
+	library(stringdist)
+	new_col<-vector()
+	matches<-stringsim(tolower(cur_values$Value),tolower(value),method='jw', p=0.1)
+	ind<-which(matches>=threshold & matches==max(matches))
+	col_rows <-unique(cur_values[ind,])
+	if(nrow(col_rows)==1){
+		new_col[1]<-col_rows$Column[1]
+		new_col[2]<-col_rows$Value[1]
+	}else if(nrow(col_rows)>1){
+		new_tbls<-unique(col_rows$Table)
+		if(length(new_tbls)>1){
+			g<-graph_from_edgelist(as.matrix(joins[,1:2]),directed=FALSE)
+			distances<-distances(g,v=new_tbls,to=tbls)
+			d<-apply(distances, 1, function(x) min(x[x!=0]) )
+			my_row<-which(d==min(d) & is.finite(d))
+			if(length(my_row)>0){
+				new_tbl<-new_tbls[my_row[1]]
+				new_col[1]<-col_rows[col_rows$Table==new_tbl,]$Column[1]
+				new_col[2]<-col_rows[col_rows$Table==new_tbl,]$Value[1]
+			}
+		}else{
+			new_col[1]<-col_rows$Column[1]
+			new_col[2]<-col_rows$Value[1]
+		}
+	}
+	return(new_col)
+}
 
-get_where<-function(where_df){
+
+get_where<-function(where_df,tbls,joins,cur_values){
 	# top node
 	where_part<-vector()
 	group_part<-vector()
 	having_part<-vector()
 	select_aggr<-vector()
+	exposed_cols<-vector()
 	if(nrow(where_df)>0){
 		where_df$processed="no"
 		top_nodes<-where_df[!(where_df$head_token_id %in% where_df$token_id) & !(where_df$dep_rel %in% c("case","cc")) & where_df$processed=="no",]
@@ -500,9 +561,20 @@ get_where<-function(where_df){
 							where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 						}
 						where_df[where_df$token_id==compare$token_id[1],"processed"]<-"yes"
+					}else{
+						# Here is the place where we can determine potential column name by matching
+						# value node$token to a column that contains such a value for strings
+						# if value is non numeric
+						options(warn=-1)
+						if(is.na(as.numeric(node$token))){
+							new_col<-expose_column(tbls,joins,node$token,cur_values)
+							if(length(new_col)==2){
+								exposed_cols<-append(exposed_cols,new_col[1])
+								where_part<-append(where_part,paste0(new_col[1]," = ",gsub(" ","_",new_col[2])))
+							}
+						}
+						options(warn=0)
 					}
-					# Here is the place where we can determine potential column name by matching
-					# value node$token to a column that contains such a value for strings
 				}
 			}else if(node$xpos=="JJR" & node$itemtype!="column"){
 				child<-where_df[where_df$head_token_id==node$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
@@ -667,6 +739,7 @@ get_where<-function(where_df){
 	r[[2]]<-group_part
 	r[[3]]<-having_part
 	r[[4]]<-select_aggr
+	r[[5]]<-exposed_cols
 	return(r)
 }
 
