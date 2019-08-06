@@ -83,7 +83,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	}
 
 	@Override
-	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception {
+	public void generateNewApp(User user, final String newAppName, final String filePath) throws Exception {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -115,19 +115,19 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		// start by validation
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.appId, newAppName, owlFile, "H2_DB", null);
+		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create database store...");
 		this.engine = new RDBMSNativeEngine();
-		this.engine.setEngineId(newAppId);
+		this.engine.setEngineId(this.appId);
 		this.engine.setEngineName(newAppName);
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
@@ -152,10 +152,11 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		UploadUtilities.addAuditModificationView(newAppId, insightDatabase);
-		UploadUtilities.addAuditTimelineView(newAppId, insightDatabase);
+		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
+		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
+		UploadUtilities.addGridDeltaInsight(this.appId, insightDatabase);
+		UploadUtilities.addAuditModificationView(this.appId, insightDatabase);
+		UploadUtilities.addAuditTimelineView(this.appId, insightDatabase);
 		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
 		// create form insights
 		// user hasn't defined the data types
@@ -198,15 +199,15 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
 							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
 							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
-							Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(newAppId, sheetName, dataValidationMap);
-							UploadUtilities.addUpdateInsights(insightDatabase, newAppId,sheetName, updateForm);
+							Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(this.appId, sheetName, dataValidationMap);
+							UploadUtilities.addUpdateInsights(insightDatabase, this.appId, sheetName, updateForm);
 						} else {
 							// get header descriptions
 							dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
 							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
 							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);							
 							Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName);
-							UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId, sheetName, propMap);
+							UploadUtilities.addUpdateInsights(insightDatabase, owler, this.appId, sheetName, propMap);
 						}
 					}
 				}
@@ -246,8 +247,8 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
 						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
 						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
-						Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(newAppId, sheetName, dataValidationMap);
-						UploadUtilities.addUpdateInsights(insightDatabase, newAppId, sheetName, updateForm);
+						Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(this.appId, sheetName, dataValidationMap);
+						UploadUtilities.addUpdateInsights(insightDatabase, this.appId, sheetName, updateForm);
 						;
 					} else {
 						// get header descriptions
@@ -255,7 +256,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
 						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
 						Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName);
-						UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId, sheetName, propMap);
+						UploadUtilities.addUpdateInsights(insightDatabase, owler, this.appId, sheetName, propMap);
 					}
 				}
 			}
@@ -266,7 +267,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	}
 
 	@Override
-	public void addToExistingApp(String appId, String filePath) throws Exception {
+	public void addToExistingApp(String filePath) throws Exception {
 		if(!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);

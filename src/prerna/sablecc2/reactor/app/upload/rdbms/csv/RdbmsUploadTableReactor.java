@@ -79,7 +79,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 	 * @param filePath
 	 */
 	@Override
-	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception {
+	public void generateNewApp(User user, final String newAppName, final String filePath) throws Exception {
 		/*
 		 * Things we need to do
 		 * 1) make directory
@@ -105,19 +105,19 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		int stepCounter = 1;
 		logger.info("Generate new app database");
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.appId, newAppName, owlFile, "H2_DB", null);
+		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create database store...");
 		this.engine = new RDBMSNativeEngine();
-		this.engine.setEngineId(newAppId);
+		this.engine.setEngineId(this.appId);
 		this.engine.setEngineName(newAppName);
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
@@ -174,12 +174,13 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
-		UploadUtilities.addInsertFormInsight(newAppId, insightDatabase, owler, this.helper.orderHeadersToGet(headers));
-		UploadUtilities.addUpdateInsights(insightDatabase, owler, newAppId);
-		UploadUtilities.addAuditModificationView(newAppId, insightDatabase);
-		UploadUtilities.addAuditTimelineView(newAppId, insightDatabase);
+		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
+		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
+		UploadUtilities.addGridDeltaInsight(this.appId, insightDatabase);
+		UploadUtilities.addInsertFormInsight(this.appId, insightDatabase, owler, this.helper.orderHeadersToGet(headers));
+		UploadUtilities.addUpdateInsights(insightDatabase, owler, this.appId);
+		UploadUtilities.addAuditModificationView(this.appId, insightDatabase);
+		UploadUtilities.addAuditTimelineView(this.appId, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info(stepCounter + ". Complete");
@@ -192,7 +193,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 	 * @throws Exception 
 	 */
 	@Override
-	public void addToExistingApp(String appId, String filePath) throws Exception {
+	public void addToExistingApp(String filePath) throws Exception {
 		if (!(this.engine instanceof RDBMSNativeEngine)) {
 			throw new IllegalArgumentException("App must be using a relational database");
 		}
