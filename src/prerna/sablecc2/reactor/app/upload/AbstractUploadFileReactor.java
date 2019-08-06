@@ -109,7 +109,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 					throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
 				}
 				this.logger.info("Done");
-				addToExistingApp(this.appId, filePath);
+				addToExistingApp(filePath);
 				// sync metadata
 				this.logger.info("Process app metadata to allow for traversing across apps");
 				UploadUtilities.updateMetadata(this.engine.getEngineId());
@@ -144,7 +144,7 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				this.logger.info("Start generating app folder");
 				this.appFolder = UploadUtilities.generateAppFolder(this.appId, this.appName);
 				this.logger.info("Complete");
-				generateNewApp(user, this.appId, this.appName, filePath);
+				generateNewApp(user, this.appName, filePath);
 				// and rename .temp to .smss
 				this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 				FileUtils.copyFile(this.tempSmss, this.smssFile);
@@ -235,9 +235,9 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 	 * This will be done by every implementation of the upload file reactors
 	 */
 
-	public abstract void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception;
+	public abstract void generateNewApp(User user, final String newAppName, final String filePath) throws Exception;
 
-	public abstract void addToExistingApp(final String appId, final String filePath) throws Exception;
+	public abstract void addToExistingApp(final String filePath) throws Exception;
 
 	public abstract void closeFileHelpers();
 }

@@ -54,7 +54,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		this.keysToGet = new String[]{ UploadInputUtility.APP, UploadInputUtility.FILE_PATH};
 	}
 
-	public void generateNewApp(User user, final String newAppId, final String newAppName, final String filePath) throws Exception{
+	public void generateNewApp(User user, final String newAppName, final String filePath) throws Exception{
 		if(!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);
@@ -63,19 +63,19 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for database...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(newAppId, newAppName, owlFile, "H2_DB", null);
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.appId, newAppName, owlFile, "H2_DB", null);
+		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create database store...");
 		this.engine = new RDBMSNativeEngine();
-		this.engine.setEngineId(newAppId);
+		this.engine.setEngineId(this.appId);
 		this.engine.setEngineName(newAppName);
 		Properties props = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		props.put("TEMP", true);
@@ -109,13 +109,14 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(newAppId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(newAppId, insightDatabase);
+		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
+		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
+		UploadUtilities.addGridDeltaInsight(this.appId, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		logger.info(stepCounter + ". Complete");
 	}
 
-	public void addToExistingApp(final String appId, final String filePath) throws Exception {
+	public void addToExistingApp(final String filePath) throws Exception {
 		// TODO Auto-generated method stub
 	}
 

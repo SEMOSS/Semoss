@@ -58,18 +58,18 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	
 	private CSVFileHelper helper;
 
-	public void generateNewApp(User user, String newAppId, String newAppName, String filePath) throws Exception {
+	public void generateNewApp(User user, String newAppName, String filePath) throws Exception {
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
 
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create metadata for app...");
-		File owlFile = UploadUtilities.generateOwlFile(newAppId, newAppName);
+		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for app...");
-		this.tempSmss = UploadUtilities.generateTemporaryTinkerSmss(newAppId, newAppName, owlFile, getTinkerDriverType());
-		DIHelper.getInstance().getCoreProp().setProperty(newAppId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.generateTemporaryTinkerSmss(this.appId, newAppName, owlFile, getTinkerDriverType());
+		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -82,7 +82,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		 */
 		logger.info(stepCounter + ". Create  Tinker app...");
 		this.engine = new TinkerEngine();
-		this.engine.setEngineId(newAppId);
+		this.engine.setEngineId(this.appId);
 		this.engine.setEngineName(newAppName);
 		this.engine.openDB(this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
@@ -135,11 +135,11 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
-		UploadUtilities.createPropFile(newAppId, newAppName, filePath, metamodelProps);
+		UploadUtilities.createPropFile(this.appId, newAppName, filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 	}
 	
-	public void addToExistingApp(String appId, String filePath) throws Exception {
+	public void addToExistingApp(String filePath) throws Exception {
 		if (!(this.engine instanceof TinkerEngine)) {
 			throw new IllegalArgumentException("Invalid app type");
 		}
@@ -193,7 +193,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		// TODO update type map and node name map in smss
 
 		logger.info(stepCounter + ". Save csv metamodel prop file	");
-		UploadUtilities.createPropFile(appId, this.engine.getEngineName(), filePath, metamodelProps);
+		UploadUtilities.createPropFile(this.appId, this.engine.getEngineName(), filePath, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 	}
 
