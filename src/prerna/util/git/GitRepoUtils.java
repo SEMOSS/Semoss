@@ -736,13 +736,19 @@ public class GitRepoUtils {
 		}
 	}
 	
-	public static String listCommits(String gitFolder, String fileName)
+	public static List listCommits(String gitFolder, String fileName)
 	{
-		StringBuilder builder = null;
+		// list of lists
+		List builder = null;
 		try {
 			Git thisGit = Git.open(new File(gitFolder));
-			builder = new StringBuilder();
-			builder.append("date, user, message, id");
+			builder = new ArrayList();
+			List row = new ArrayList();
+			row.add("date");
+			row.add("user");
+			row.add("message");
+			row.add("id");
+			builder.add(row);
 			LogCommand lg = null;
 			if(fileName != null)
 				lg = thisGit
@@ -763,12 +769,13 @@ public class GitRepoUtils {
 			{
 				RevCommit comm = commits.next();
 				//System.out.println(comm.getFullMessage());
-				builder.append("\n\n");
-				builder.append(comm.getCommitTime()).append(",");
-				builder.append(comm.getAuthorIdent().getName()).append(",");
-				builder.append(comm.getFullMessage()).append(",");
-				builder.append(comm.getId().toObjectId().toString().substring(0,5)).append(",");
-				builder.append("\n");
+				row = new ArrayList();
+
+				row.add(comm.getCommitTime());
+				row.add(comm.getAuthorIdent().getName());
+				row.add(comm.getFullMessage());
+				row.add(comm.toObjectId().toString().replace("commit ", "").substring(0,6));
+				builder.add(row);
 				//RevTree tree = comm.getTree();
 				//tree.
 				
@@ -791,7 +798,7 @@ public class GitRepoUtils {
 			e.printStackTrace();
 		}
 		
-		return builder.toString();
+		return builder;
 	}
 	
 	// gets a particular file
@@ -1159,4 +1166,23 @@ public class GitRepoUtils {
 		
 	}
 
+	public static void checkout(String gitFolder, String comm) throws Exception
+	{
+		Git git = Git.open(new File(gitFolder));
+
+		git.checkout().setName(comm).call();
+		//System.out.pr
+		
+	}
+	
+	public static void resetCheckout(String gitFolder) throws Exception
+	{
+		Git git = Git.open(new File(gitFolder));
+
+		git.checkout().setName("master").call();
+		//System.out.pr
+		
+	}
+
+	
 }

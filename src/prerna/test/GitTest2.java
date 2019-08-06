@@ -5,8 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-
-import org.eclipse.jgit.revwalk.RevCommit;
+import java.util.List;
 
 import prerna.util.Utility;
 import prerna.util.git.GitDiffUtils;
@@ -56,7 +55,7 @@ public class GitTest2 {
 		
 		// get the last 2 commits
 		// this is tricky has to be user driven
-		String commits = GitRepoUtils.listCommits(baseFolder + "/" + localFolderName, null);
+		List commits = GitRepoUtils.listCommits(baseFolder + "/" + localFolderName, null);
 		
 		System.out.println("Commits !!" + commits);
 		

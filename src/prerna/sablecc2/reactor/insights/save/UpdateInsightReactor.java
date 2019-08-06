@@ -25,6 +25,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 
 public class UpdateInsightReactor extends AbstractInsightReactor {
 
@@ -170,7 +172,17 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
-		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
+		File mosfetFile = MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
+		
+		// git
+		String folder = mosfetFile.getParent();
+		//String mosfetFileName = Utility.getInstanceName(folder);
+		//folder = folder.replaceAll("\\\\", "/");
+		//folder = folder.replace("/" + mosfetFileName, "");
+		GitRepoUtils.addSpecificFiles(folder, new File[]{mosfetFile});
+		GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Recipe Changed on : "));
+
+		
 	}
 	
 }

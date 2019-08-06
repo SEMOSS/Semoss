@@ -23,6 +23,8 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 
 public class SetInsightNameReactor extends AbstractInsightReactor {
 
@@ -107,7 +109,16 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
 		File mosfet = new File(recipeLocation);
 		if(mosfet.exists()) {
-			MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
+			File mosfetFile = MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
+			
+			// Git
+			String folder = mosfetFile.getParent();
+			//String mosfetFileName = Utility.getInstanceName(folder);
+			//folder = folder.replaceAll("\\\\", "/");
+			//folder = folder.replace("/" + mosfetFileName, "");
+			GitRepoUtils.addSpecificFiles(folder, new File[]{mosfetFile});
+			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("File Name Changed on : "));
+
 		} else {
 			logger.info("... Could not find existing mosfet file. Ignoring update.");
 		}
