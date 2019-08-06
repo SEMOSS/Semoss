@@ -111,12 +111,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		logger.info(stepCounter + ". Done");
 		stepCounter++;
 
-		// get matrix of data from local master
-		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(engineFilters);
-		List<String[]> allRelations = MasterDatabaseUtility.getRelationships(engineFilters);
-		
 		logger.info(stepCounter + ". Generating search results");
-		List<Object[]> retData = generateAndRunScript(query, allTableCols, allRelations);
+		List<Object[]> retData = generateAndRunScript(query, !hasFilters, engineFilters);
 		logger.info(stepCounter + ". Done");
 
 		logger.info(stepCounter + ". Generating pixel return from results");
@@ -163,142 +159,173 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	 * Generate the 2 data.tables based on the table structure and relationships and returns back the results
 	 * from the algorithm
 	 * @param query
-	 * @param allTableCols
-	 * @param relationships
+	 * @param allApps 
+	 * @param engineFilters
 	 * @return
 	 */
-	private List<Object[]> generateAndRunScript(String query, List<Object[]> allTableCols, List<String[]> relationships) {
-		// Getting database info
-		String rTempTable = "NaturalLangTable" + Utility.getRandomString(8);
-		String rJoinTable = "JoinTable" + Utility.getRandomString(8);
-		String result = "result" + Utility.getRandomString(8);
-		String gc = rTempTable + " , " + result;
+	private List<Object[]> generateAndRunScript(String query, boolean allApps, List<String> engineFilters) {		
+		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
+		String rSessionJoinTable = "JoinTable" + this.getSessionId().substring(0, 10);
+		String tempResult = "result" + Utility.getRandomString(8);
+		String gc = tempResult;
 		StringBuilder rsb = new StringBuilder();
-
-		String rAppIds = "c(";
-		String rTableNames = "c(";
-		String rColNames = "c(";
-		String rColTypes = "c(";
 		
-		int colCount = allTableCols.size();
-		// create R vector of appid, tables, and columns
-		for(int i = 0; i < colCount; i++) {
-			Object[] entry = allTableCols.get(i);
-			String appId = entry[0].toString();
-			String table = entry[1].toString();
-			String column = entry[2].toString();
-			String dataType = entry[3].toString(); 
-			if(i == 0) {
-				rAppIds += "'" + appId + "'" ;
-				rTableNames += "'" + table + "'" ;
-				rColNames += "'" + column + "'" ;
-				rColTypes += "'" + dataType + "'";
-			} else {
-				rAppIds += ",'" + appId + "'" ;
-				rTableNames += ",'" + table + "'" ;
-				rColNames += ",'" + column + "'" ;
-				rColTypes += ",'" + dataType + "'" ;
-			}
-		}
+		// Create session table to cache if session tables dont exist
+		boolean tablesExist = this.rJavaTranslator.getBoolean("exists(\"" + rSessionTable + "\")");
+		if (!tablesExist) {
+			// first get the total number of cols and relationships
+			List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(SecurityQueryUtils.getUserEngineIds(this.insight.getUser()));
+			List<String[]> allRelations = MasterDatabaseUtility.getRelationships(SecurityQueryUtils.getUserEngineIds(this.insight.getUser()));
+			int totalNumRels = allRelations.size();
+			int totalColCount = allTableCols.size();
+			
+			// start building script
+			StringBuilder sessionTableBuilder = new StringBuilder();
+			String rAppIds = "c(";
+			String rTableNames = "c(";
+			String rColNames = "c(";
+			String rColTypes = "c(";
 
-		// create R vector of table columns and table rows
-		String rAppIDs_join = "c(";
-		String rTbl1 = "c(";
-		String rTbl2 = "c(";
-		String rJoinBy1 = "c(";
-		String rJoinBy2 = "c(";
-
-
-		int numRels = relationships.size();
-		int firstRel = 0;
-		for(int i = 0; i < numRels; i++) {
-			String[] entry = relationships.get(i);
-			String appId = entry[0];
-			String rel = entry[3];
-
-			String[] relSplit = rel.split("\\.");
-			if(relSplit.length == 4) {
-				// this is RDBMS
-				String sourceTable = relSplit[0];
-				String sourceColumn = relSplit[1];
-				String targetTable = relSplit[2];
-				String targetColumn = relSplit[3];
-				
-				//check by firstRel, not index of for loop
-				//loop increments even if relSplit.length != 4
-				//whereas firstRel only increases if something is added to frame
-				if(firstRel == 0) {
-					rAppIDs_join += "'" + appId + "'";
-					rTbl1 += "'" + sourceTable + "'" ;
-					rTbl2 += "'" + targetTable + "'" ;
-					rJoinBy1 += "'" + sourceColumn + "'" ;
-					rJoinBy2 += "'" + targetColumn + "'" ;
+			// create R vector of appid, tables, and columns
+			for (int i = 0; i < totalColCount; i++) {
+				Object[] entry = allTableCols.get(i);
+				String appId = entry[0].toString();
+				String table = entry[1].toString();
+				String column = entry[2].toString();
+				String dataType = entry[3].toString();
+				if (i == 0) {
+					rAppIds += "'" + appId + "'";
+					rTableNames += "'" + table + "'";
+					rColNames += "'" + column + "'";
+					rColTypes += "'" + dataType + "'";
 				} else {
-					rAppIDs_join += ",'" +  appId + "'" ;
-					rTbl1 += ",'" + sourceTable + "'" ;
-					rTbl2 += ",'" + targetTable + "'" ;
-					rJoinBy1 += ",'" + sourceColumn + "'" ;
-					rJoinBy2 += ",'" + targetColumn + "'" ;
+					rAppIds += ",'" + appId + "'";
+					rTableNames += ",'" + table + "'";
+					rColNames += ",'" + column + "'";
+					rColTypes += ",'" + dataType + "'";
 				}
-				
-				if(sourceColumn.endsWith("_FK")) {
-					// if column ends with a _FK, then add it to NaturalLangTable also
-					rAppIds += ",'" + appId + "'" ;
-					rTableNames += ",'" + sourceTable + "'" ;
-					rColNames += ",'" + sourceColumn + "'" ;
-					rColTypes += ", 'STRING' ";
-				}
-				//no longer adding the first row to this data frame, increment..
-				firstRel++;
-			} else {
-				// this is an RDF or Graph
-				String sourceTable = entry[1];
-				String sourceColumn = entry[1];
-				String targetTable = entry[2];
-				String targetColumn = entry[2];
-				if(firstRel == 0) {
-					rAppIDs_join += "'" + appId + "'";
-					rTbl1 += "'" + sourceTable + "'" ;
-					rTbl2 += "'" + targetTable + "'" ;
-					rJoinBy1 += "'" + sourceColumn + "'" ;
-					rJoinBy2 += "'" + targetColumn + "'" ;
-				} else {
-					rAppIDs_join += ",'" +  appId + "'" ;
-					rTbl1 += ",'" + sourceTable + "'" ;
-					rTbl2 += ",'" + targetTable + "'" ;
-					rJoinBy1 += ",'" + sourceColumn + "'" ;
-					rJoinBy2 += ",'" + targetColumn + "'" ;
-				}
-				//no longer adding the first row to this data frame, increment..
-				firstRel++;
 			}
-		}
 
-		// close all the arrays created
-		rAppIds += ")";
-		rTableNames += ")";
-		rColNames += ")";
-		rColTypes += ")";
-		rAppIDs_join += ")";
-		rTbl1 += ")";
-		rTbl2 += ")";
-		rJoinBy1 += ")";
-		rJoinBy2 += ")";
+			// create R vector of table columns and table rows
+			String rAppIDs_join = "c(";
+			String rTbl1 = "c(";
+			String rTbl2 = "c(";
+			String rJoinBy1 = "c(";
+			String rJoinBy2 = "c(";
+
+			
+			int firstRel = 0;
+			for (int i = 0; i < totalNumRels; i++) {
+				String[] entry = allRelations.get(i);
+				String appId = entry[0];
+				String rel = entry[3];
+
+				String[] relSplit = rel.split("\\.");
+				if (relSplit.length == 4) {
+					// this is RDBMS
+					String sourceTable = relSplit[0];
+					String sourceColumn = relSplit[1];
+					String targetTable = relSplit[2];
+					String targetColumn = relSplit[3];
+
+					// check by firstRel, not index of for loop
+					// loop increments even if relSplit.length != 4
+					// whereas firstRel only increases if something is added to frame
+					if (firstRel == 0) {
+						rAppIDs_join += "'" + appId + "'";
+						rTbl1 += "'" + sourceTable + "'";
+						rTbl2 += "'" + targetTable + "'";
+						rJoinBy1 += "'" + sourceColumn + "'";
+						rJoinBy2 += "'" + targetColumn + "'";
+					} else {
+						rAppIDs_join += ",'" + appId + "'";
+						rTbl1 += ",'" + sourceTable + "'";
+						rTbl2 += ",'" + targetTable + "'";
+						rJoinBy1 += ",'" + sourceColumn + "'";
+						rJoinBy2 += ",'" + targetColumn + "'";
+					}
+
+					if (sourceColumn.endsWith("_FK")) {
+						// if column ends with a _FK, then add it to NaturalLangTable also
+						rAppIds += ",'" + appId + "'";
+						rTableNames += ",'" + sourceTable + "'";
+						rColNames += ",'" + sourceColumn + "'";
+						rColTypes += ", 'STRING' ";
+					}
+					// no longer adding the first row to this data frame, increment..
+					firstRel++;
+				} else {
+					// this is an RDF or Graph
+					String sourceTable = entry[1];
+					String sourceColumn = entry[1];
+					String targetTable = entry[2];
+					String targetColumn = entry[2];
+					if (firstRel == 0) {
+						rAppIDs_join += "'" + appId + "'";
+						rTbl1 += "'" + sourceTable + "'";
+						rTbl2 += "'" + targetTable + "'";
+						rJoinBy1 += "'" + sourceColumn + "'";
+						rJoinBy2 += "'" + targetColumn + "'";
+					} else {
+						rAppIDs_join += ",'" + appId + "'";
+						rTbl1 += ",'" + sourceTable + "'";
+						rTbl2 += ",'" + targetTable + "'";
+						rJoinBy1 += ",'" + sourceColumn + "'";
+						rJoinBy2 += ",'" + targetColumn + "'";
+					}
+					// no longer adding the first row to this data frame, increment..
+					firstRel++;
+				}
+			}
+
+			// close all the arrays created
+			rAppIds += ")";
+			rTableNames += ")";
+			rColNames += ")";
+			rColTypes += ")";
+			rAppIDs_join += ")";
+			rTbl1 += ")";
+			rTbl2 += ")";
+			rJoinBy1 += ")";
+			rJoinBy2 += ")";
+			
+			// create the session tables
+			sessionTableBuilder.append(rSessionTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", stringsAsFactors = FALSE);");
+			sessionTableBuilder.append(rSessionJoinTable + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDs_join + ", stringsAsFactors = FALSE);");
+			this.rJavaTranslator.runR(sessionTableBuilder.toString());
+		}
 		
-		rsb.append(rTempTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", stringsAsFactors = FALSE);");
-		if(numRels == 0) {
-			rsb.append(result + " <- nliapp_mgr(\"" + query + "\"," + rTempTable + ");\n");
+		if(allApps) {
+			// lets run the function on all apps (i.e. the session tables)
+			rsb.append(tempResult + " <- nliapp_mgr(\"" + query + "\"," + rSessionTable + "," + rSessionJoinTable + ");");
 		} else {
-			// Create data frame from above join vectors
-			rsb.append(rJoinTable + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDs_join + ", stringsAsFactors = FALSE);");
-			rsb.append(result + " <- nliapp_mgr(\"" + query + "\"," + rTempTable + "," + rJoinTable + ");");
-			gc += (" , " + rJoinTable);
+			// filter the session tables to only the ones needed and run function
+			String rTempTable = "NaturalLangTable" + Utility.getRandomString(8);
+			String rTempJoinTable = "JoinTable" + Utility.getRandomString(8);
+			
+			// create the app list to filter to in R
+			String appFilters = "appFilters" + Utility.getRandomString(8);
+			rsb.append(appFilters + " <- c(");
+			String comma = "";
+			for (String appId : engineFilters) {
+				rsb.append(comma + " \"" + appId + "\" ");
+				comma = " , ";
+			}
+			rsb.append(");");
+			
+			// filter the session tables
+			rsb.append(rTempTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% "+ appFilters + " ,];");
+			rsb.append(rTempJoinTable + " <- " + rSessionJoinTable + "[" + rSessionJoinTable + "$AppID %in% "+ appFilters + " ,];");
+			
+			// run the function
+			rsb.append(tempResult + " <- nliapp_mgr(\"" + query + "\"," + rTempTable + "," + rTempJoinTable + ");");
+			gc += (" , " + rTempTable + " , " + rTempJoinTable + " , " + appFilters);
 		}
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// get back the data
 		String[] headerOrdering = new String[]{"appid", "part", "item1", "item2", "item3", "item4", "item5", "item6", "item7" };
-		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(result, headerOrdering);
+		List<Object[]> list = this.rJavaTranslator.getBulkDataRow(tempResult, headerOrdering);
 		
 		// garbage cleanup
 		this.rJavaTranslator.executeEmptyR("rm(" + gc + "); gc();");
