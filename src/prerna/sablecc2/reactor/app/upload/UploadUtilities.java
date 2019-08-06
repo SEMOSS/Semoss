@@ -1193,6 +1193,19 @@ public class UploadUtilities {
 	}
 	
 	/**
+	 * Add explore an instance to the insights database
+	 * @param appId
+	 * @param insightEngine
+	 */
+	public static void addGridDeltaInsight(String appId, RDBMSNativeEngine insightEngine) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		String insightName = "Grid Delta";
+		String layout = "Grid";
+		String[] pkqlRecipeToSave = {"AddPanel(0); Panel(0)|SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");"};
+		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+	}
+	
+	/**
 	 * Add the insight to check the modifications made to a column from audit db
 	 * 
 	 * @param appId
