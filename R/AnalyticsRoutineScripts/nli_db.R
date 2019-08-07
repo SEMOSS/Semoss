@@ -1,6 +1,3 @@
-#### either read db value or pass as tabelw!!!!!
-
-
 nliapp_mgr<-function(txt,db,joins=data.frame(),filename="unique-values-table.rds",refine=TRUE){
 	library(data.table)
 	library(plyr)
@@ -10,6 +7,8 @@ nliapp_mgr<-function(txt,db,joins=data.frame(),filename="unique-values-table.rds
 	
 	r<-data.table(Response=character(),AppID=character(),Statement=character())
 	p<-data.table(appid=character(),part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
+	# identify multip words column names
+	txt<-db_match_extension(txt,db$Column)
 	df_in<-parse_question_mgr(txt)
 	# get all appids used in the request
 	# refinement is needed if it is desired and there are more than 1 app
@@ -156,6 +155,77 @@ nliapp_mgr<-function(txt,db,joins=data.frame(),filename="unique-values-table.rds
 	# for debugging purposes only!!!
 	write.csv(p,file="query_object.csv")
 	return(p)
+}
+
+get_max_seq<-function(idx){
+	mydif<-diff(idx)
+	if(length(mydif)==1){
+		if(mydif[1]==1){
+			myidx=idx
+		}else{
+			myidx<-0
+		}
+	}else{
+		mydif[mydif>1]<-0
+		x<-which(mydif==0)
+		y<-0
+		y<-append(y,x)
+		y[length(y)+1]<-length(mydif)+1
+		z<-diff(y)
+		p<-which(z==max(z))[1]
+		myidx<-idx[y[p]+1]:idx[y[p+1]]
+	}
+	return(myidx)
+}
+
+db_match_extension<-function(txt,cols){
+	words<-unlist(strsplit(txt," "))
+	out<-words
+	n<-length(words)
+	library(plyr)
+	if(n>0){
+		df<-data.frame(word=character(),idx=numeric(),stringsAsFactors=FALSE)
+		for(i in 1:n){
+			# skip words in single quotes
+			if(substr(words[i],1,1)!="'" & substr(words[i],nchar(words[i]),nchar(words[i]))!="'"){
+				word_idx<-grep(tolower(words[i]),tolower(cols))
+				if(length(word_idx>0)){
+					mydf<-data.frame(idx=word_idx,stringsAsFactors=FALSE)
+					mydf$word<-words[i]
+					df<-rbind(df,mydf)
+				}
+			}
+		}
+		x<-count(df,"idx")
+		x<-x[x$freq>1,]
+		if(nrow(x)>0){
+			candidates<-cols[x$idx]
+			n<-length(candidates)
+			for(i in 1:n){
+				singles<-unique(df[df$idx %in% x$idx[i],]$word)
+				seq_idx<-which(words %in% singles)
+				seq_idx<-seq_idx[order(seq_idx)]
+				seq_idx<-get_max_seq(seq_idx)
+				if(length(seq_idx)>1){
+					m<-length(seq_idx)
+					candidate<-tolower(candidates[i])
+					for(j in seq_idx){	
+						candidate<-gsub(tolower(words[j]),"",candidate)
+					}
+					candidate<-gsub("[[:punct:]]","",candidate)
+					if(nchar(candidate)==0){
+						# Found multiple words column
+						out[seq_idx]<-""
+						out[seq_idx[1]]<-candidates[i]
+					}
+				}
+			}
+		}
+	}
+	out<-out[out!=""]
+	mytxt<-paste(out,collapse=" ")
+	gc()
+	return(mytxt)
 }
 
 validate_pixel<-function(p,myapps){
@@ -728,6 +798,12 @@ get_where<-function(where_df,tbls,joins,cur_values){
 				child<-where_df[where_df$head_token_id==node$token_id & tolower(where_df$token) %in% c("by") & where_df$processed=="no",]
 				if(nrow(child)>0){
 					group_part<-append(group_part,node$item)
+				}else{
+					child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype!="column" & where_df$dep_rel %in% c("amod","advmod") & where_df$processed=="no",]
+					if(nrow(child)>0){
+						where_part<-append(where_part,paste0(node$item,"=", child$token[1]))
+						where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
+					}
 				}
 			}
 			where_df[where_df$token_id==node$token_id,"processed"]<-"yes"
@@ -874,26 +950,58 @@ replace_words<-function(words){
 	return(words)
 }
 
-db_match<-function(db,token,type="Column"){
+db_match<-function(db,token,xpos,type="Column"){
 	THRESHOLD<-0.9
 	db_item<-vector()
-
+	
 	db$Column<-as.character(db$Column)
 	db$Table<-as.character(db$Table)
-	matches<-stringsim(tolower(token),tolower(db[,type]),method='jw', p=0.1)
-	if(max(matches) >= THRESHOLD){
-		ind<-min(which(matches==max(matches)))
-		db_item[1]<-db[ind,type]
-		if(type=="Column"){
-			db_item[2]<-db[ind,"Datatype"]
-		}
+		
+	# get neighbors from glove if not reserved
+	if(is_nlp_reserved(token)){
+		neighbors<-token
 	}else{
+		if(substr(xpos,1,2) %in% c("NN","JJ")){
+			neighbors<-glove_nlp_neighbors(token)
+			# eclude reserved words from neighbors
+			neighbors<-remove_nlp_reserved(neighbors)
+		}else{
+			neighbors<-token
+		}
+	}
+	if(length(neighbors)>0){
+		for(i in 1:length(neighbors)){
+			matches<-stringsim(tolower(neighbors[i]),tolower(db[,type]),method='jw', p=0.1)
+			if(max(matches) >= THRESHOLD){
+				ind<-min(which(matches==max(matches)))
+				db_item[1]<-db[ind,type]
+				if(type=="Column"){
+					db_item[2]<-db[ind,"Datatype"]
+				}
+				break
+			}
+		}
+	}
+	if(length(db_item) != 2){
 		db_item[1]<-""
 	}
 	return(db_item)
 }
 
+is_nlp_reserved<-function(words){
+	STOPWORDS<-c("not","no","best","highest","worst","lowest","greater","higher","larger","less","lower","smaller","equals","equal","total","average","highest","lowest","best","worst","many","number","count")
+	return(any(tolower(words) %in% STOPWORDS))
+}
+
+remove_nlp_reserved<-function(words){
+	# if nlp stoplist no neighbors needed
+	STOPWORDS<-c("not","no","best","highest","worst","lowest","greater","higher","larger","less","lower","smaller","equals","equal","total","average","highest","lowest","best","worst","many","number","count")
+	out<-words[!(tolower(words) %in% STOPWORDS)]
+	return(out)
+}
+
 filter_apps<-function(df_in,db,threshold=0.9){
+	library(plyr)
 	n<-nrow(df_in)
 	if(n>0){
 		db$Word<-""
@@ -901,18 +1009,39 @@ filter_apps<-function(df_in,db,threshold=0.9){
 		for(i in 1:n){
 			token<-df_in[i,"token"]
 			# skip token in single quotes
-			if(substr(token,1,1)!="'" & substr(token,nchar(token),nchar(token))!="'"){		
-				matches<-stringsim(tolower(df_in$token[i]),tolower(db$Column),method='jw', p=0.1)
-				ind<-which(matches>=threshold)
-				if(length(ind)>0){
-					db$Word[ind]<-df_in$token[i]
-					db$Score[ind]<-matches[ind]
+			if(substr(token,1,1)!="'" & substr(token,nchar(token),nchar(token))!="'"){	
+				# exclude reserved words
+				# if not reserved get all neighbors
+				if(is_nlp_reserved(token)){
+					neighbors<-token
+				}else{
+					# if not ADP or ADJ than continue
+					if(substr(df_in$xpos[i],1,2) %in% c("NN","JJ")){
+						neighbors<-glove_nlp_neighbors(token)
+						# eclude reserved words from neighbors
+						neighbors<-remove_nlp_reserved(neighbors)
+					}else{
+						neighbors<-token
+					}
 				}
+				if(length(neighbors)>0){
+					for(j in 1:length(neighbors))
+					{
+						matches<-stringsim(tolower(neighbors[j]),tolower(db$Column),method='jw', p=0.1)
+						ind<-which(matches>=threshold)
+						if(length(ind)>0){
+							db$Word[ind]<-token
+							db$Score[ind]<-matches[ind]
+							break
+						}
+					}
+				}
+				
 			}
+			
 		}
 	}
 	df_apps<-unique(db[db$Word != "",c("AppID","Word")])
-	library(plyr)
 	df_apps<-count(df_apps,"AppID")
 	apps<-df_apps[df_apps$freq==max(df_apps$freq),"AppID"]
 	myList<-list()
@@ -933,8 +1062,9 @@ map_dbitems<-function(df,db,pos="ALL"){
 	n<-length(ind)
 	for(i in 1:n){
 		token<-df[ind[i],"token"]
+		xpos<-df[ind[i],"xpos"]
 		if(substr(token,1,1)!="'" & substr(token,nchar(token),nchar(token))!="'"){
-			item<-db_match(db,token,"Column")
+			item<-db_match(db,token,xpos,"Column")
 			if(item[1]!=""){
 				df[ind[i],"item"]<-item[1]
 				df[ind[i],"itemtype"]<-"column"
@@ -1111,3 +1241,30 @@ join_clause_mgr<-function(cols,cur_db,joins){
 	gc()
 	return(myList)
 }
+
+glove_nlp_neighbors<-function(word,nbr=10,threshold=0.8){
+	
+	library(text2vec)
+	if(!exists("glove_6B_50d_txt")){
+		glove_6B_50d_txt <<- readRDS("glove.rds")
+	}
+	cur_vector <- tryCatch({
+		glove_6B_50d_txt[word, , drop = FALSE]
+	}, error = function(e) {
+		return(NULL)
+	})
+	if(is.null(cur_vector)){
+		out<-word
+	}else{
+		cos_sim = sim2(x = glove_6B_50d_txt, y = cur_vector, method = "cosine", norm = "l2")
+		cos_sim<-cos_sim[cos_sim >= threshold,]
+		if(!is.null(attributes(cos_sim))){
+			out<-names(head(sort(cos_sim, decreasing = TRUE), nbr))
+		}else{
+			out<-word
+		}
+	}
+	return(out)
+}
+
+
