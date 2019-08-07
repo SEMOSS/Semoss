@@ -3,8 +3,11 @@ package prerna.sablecc2.reactor.app;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.log4j.Logger;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -16,19 +19,22 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Utility;
 
-public class ResetDefaultInsightsReactor extends AbstractReactor {
+public class AddDefaultInsightsReactor extends AbstractReactor {
 
+	private static final String CLASS_NAME = AddDefaultInsightsReactor.class.getName();
+	
 	private static final String INSIGHT_KEYS = "insights";
 	
 	private static final String EXPLORE_INSTANCE = "explore";
 	private static final String GRID_DELTA_INSTANCE = "grid-delta";
 	
-	public ResetDefaultInsightsReactor() {
+	public AddDefaultInsightsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), INSIGHT_KEYS};
 	}
 	
 	@Override
 	public NounMetadata execute() {
+		Logger logger = this.getLogger(CLASS_NAME);
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		
@@ -52,24 +58,35 @@ public class ResetDefaultInsightsReactor extends AbstractReactor {
 		List<NounMetadata> additionalNouns = new Vector<NounMetadata>();
 		boolean addedInsight = false;
 		// already have default methods to add
+		
+		logger.info("Retrieving app");
 		IEngine engine = Utility.getEngine(appId);
 		RDBMSNativeEngine insightEngine = engine.getInsightDatabase();
 		ENGINE_TYPE eType = engine.getEngineType();
 		if(addAll) {
-			UploadUtilities.addExploreInstanceInsight(appId, insightEngine);
+			logger.info("Adding all default insights");
+			String newInsightId = UploadUtilities.addExploreInstanceInsight(appId, insightEngine);
 			addedInsight = true;
+			registerInsightAndMetadata(appId, newInsightId, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME, UploadUtilities.EXPLORE_INSIGHT_LAYOUT);
+			logger.info("Done adding explore an instance");
 			if(eType == ENGINE_TYPE.RDBMS) {
-				UploadUtilities.addGridDeltaInsight(appId, insightEngine);
+				newInsightId = UploadUtilities.addGridDeltaInsight(appId, insightEngine);
+				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, UploadUtilities.GRID_DELTA_LAYOUT);
+				logger.info("Done adding grid delta");
 			}
 		} else {
 			if(insightsToAdd.contains(EXPLORE_INSTANCE)) {
-				UploadUtilities.addExploreInstanceInsight(appId, insightEngine);
+				String newInsightId = UploadUtilities.addExploreInstanceInsight(appId, insightEngine);
 				addedInsight = true;
+				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.EXPLORE_INSIGHT_INSIGHT_NAME, UploadUtilities.EXPLORE_INSIGHT_LAYOUT);
+				logger.info("Done adding explore an instance");
 			}
 			if(insightsToAdd.contains(GRID_DELTA_INSTANCE)) {
 				if(eType == ENGINE_TYPE.RDBMS) {
-					UploadUtilities.addGridDeltaInsight(appId, insightEngine);
+					String newInsightId = UploadUtilities.addGridDeltaInsight(appId, insightEngine);
 					addedInsight = true;
+					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, UploadUtilities.GRID_DELTA_LAYOUT);
+					logger.info("Done adding grid delta");
 				} else {
 					additionalNouns.add(NounMetadata.getWarningNounMessage("This app is not an RDBMS so grid delta insight cannot be added"));
 				}
@@ -82,6 +99,13 @@ public class ResetDefaultInsightsReactor extends AbstractReactor {
 		}
 		noun.addAllAdditionalReturn(additionalNouns);
 		return noun;
+	}
+	
+	private void registerInsightAndMetadata(String appId, String insightIdToSave, String insightName, String layout) {
+		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, layout);
+		if(this.insight.getUser() != null) {
+			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, insightIdToSave);
+		}
 	}
 	
 	private List<String> getDefaultInsights() {
