@@ -1,9 +1,5 @@
 package prerna.sablecc2.reactor;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-
 import java.io.File;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -13,6 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
 import javassist.ClassPool;
 import javassist.CtClass;
 import me.xdrop.fuzzywuzzy.FuzzySearch;
@@ -440,8 +441,6 @@ import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -1212,7 +1211,8 @@ public class ReactorFactory {
 		rFrameHash.put("Unpivot", prerna.sablecc2.reactor.frame.r.UnpivotReactor.class);
 		rFrameHash.put("UpdateRowValues", prerna.sablecc2.reactor.frame.r.UpdateRowValuesReactor.class);
 		rFrameHash.put("Discretize", prerna.sablecc2.reactor.frame.r.DiscretizeReactor.class);
-
+		rFrameHash.put("DateExpander", prerna.sablecc2.reactor.frame.r.DateExpanderReactor.class);
+		
 		// frame stats
 		rFrameHash.put("ColumnCount", prerna.sablecc2.reactor.frame.r.ColumnCountReactor.class);
 		rFrameHash.put("DescriptiveStats", prerna.sablecc2.reactor.frame.r.DescriptiveStatsReactor.class);
