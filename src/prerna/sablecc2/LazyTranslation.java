@@ -1,12 +1,24 @@
 package prerna.sablecc2;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
+import java.io.File;
 import java.math.BigDecimal;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
+
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.NotFoundException;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -100,6 +112,7 @@ import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.git.GitAssetUtils;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -1406,6 +1419,16 @@ public class LazyTranslation extends DepthFirstAdapter {
      * Sets the pixel operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
+    	
+    	// oh wait why cant this be in reactor factory
+    	// because it doesn't have control of the insight
+    	// check if this is an insight specific DSL
+    	if(insight != null && insight.getInsightFolder() != null)
+    	{
+    		IReactor insightReactor = ReactorFactory.getIReactor(insight.getInsightFolder(), reactorId);
+	    	if(insightReactor != null)
+	    		return insightReactor;
+    	}   	
     	if(this.currentFrame != null) {
     		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
     	}
@@ -1466,4 +1489,74 @@ public class LazyTranslation extends DepthFirstAdapter {
 //    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
 //    	}
     }
+    
+	public void loadCG() throws MalformedURLException
+	{
+		String folder = "C:/Users/pkapaleeswaran/workspacej3/SemossDev/target/test-classes";
+		folder = "C:/Users/pkapaleeswaran/workspacej3/SemossWeb/db/NewDB__db394ac3-f9ee-460b-949e-ea9e96ecf4a8/version/ca39473f-ca52-4afb-9b7a-565b34e3b6d1/classes";
+		Hashtable dirs = GitAssetUtils.browse(folder, folder);
+		
+		List dirList = (List)dirs.get("DIR_LIST");
+		String [] packages = new String[dirList.size()];
+		
+		for(int dirIndex = 0;dirIndex < dirList.size();packages[dirIndex] = (String)dirList.get(dirIndex),dirIndex++);
+		
+		
+		ScanResult sr = new ClassGraph()
+				//.whitelistPackages("prerna")
+				.overrideClasspath((new File(folder).toURI().toURL()))
+				//.enableAllInfo()
+				//.enableClassInfo()
+				.whitelistPackages(packages)
+				.scan();
+		//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
+		//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
+
+		//sr.getAllClasses(); //
+		//ClassInfoList classes = sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+		//ClassInfoList classes = sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+		ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
+		
+		
+		Map <String, Class> reactors = new HashMap<String, Class>();
+		
+
+		ClassPool pool = ClassPool.getDefault();
+		try {
+			pool.insertClassPath(folder);
+			//pool.appendPathList(folder);
+		} catch (NotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		for(int classIndex = 0;classIndex < classes.size();classIndex++)
+		{
+			String name = classes.get(classIndex).getSimpleName();
+			String packageName = classes.get(classIndex).getPackageName();
+			Class actualClass = classes.get(classIndex).loadClass();
+			
+			try {
+				// can I modify the class here
+				CtClass clazz = pool.get(packageName + "." + name);
+
+				String qClassName = "a.b." + packageName + "." + name;
+				// change the name of the classes
+				// ideally we would just have the pakcage name change to the insight
+				// this is to namespace it appropriately to have no issues
+				clazz.setName(qClassName);
+				Class newClass = clazz.toClass();
+				if(IReactor.class.isAssignableFrom(newClass))
+					System.out.println("System.out.println>>> " +newClass.getName());
+				
+			} catch (NotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (CannotCompileException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		}
+	}
 }
