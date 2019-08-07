@@ -1,28 +1,25 @@
 package prerna.sablecc2;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-
 import java.io.File;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.NotFoundException;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
@@ -1419,15 +1416,14 @@ public class LazyTranslation extends DepthFirstAdapter {
      * Sets the pixel operations in the reactor
      */
     private IReactor getReactor(String reactorId, String nodeString) {
-    	
     	// oh wait why cant this be in reactor factory
     	// because it doesn't have control of the insight
     	// check if this is an insight specific DSL
-    	if(insight != null && insight.getInsightFolder() != null)
-    	{
+    	if(insight != null && insight.getInsightFolder() != null) {
     		IReactor insightReactor = ReactorFactory.getIReactor(insight.getInsightFolder(), reactorId);
-	    	if(insightReactor != null)
+	    	if(insightReactor != null) { 
 	    		return insightReactor;
+	    	}
     	}   	
     	if(this.currentFrame != null) {
     		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
@@ -1494,9 +1490,9 @@ public class LazyTranslation extends DepthFirstAdapter {
 	{
 		String folder = "C:/Users/pkapaleeswaran/workspacej3/SemossDev/target/test-classes";
 		folder = "C:/Users/pkapaleeswaran/workspacej3/SemossWeb/db/NewDB__db394ac3-f9ee-460b-949e-ea9e96ecf4a8/version/ca39473f-ca52-4afb-9b7a-565b34e3b6d1/classes";
-		Hashtable dirs = GitAssetUtils.browse(folder, folder);
+		Map<String, List<String>> dirs = GitAssetUtils.browse(folder, folder);
 		
-		List dirList = (List)dirs.get("DIR_LIST");
+		List<String> dirList = dirs.get("DIR_LIST");
 		String [] packages = new String[dirList.size()];
 		
 		for(int dirIndex = 0;dirIndex < dirList.size();packages[dirIndex] = (String)dirList.get(dirIndex),dirIndex++);

@@ -1,19 +1,19 @@
 package prerna.sablecc2.reactor;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-
 import java.io.File;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -445,8 +445,6 @@ import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -1639,22 +1637,22 @@ public class ReactorFactory {
 	// load insight specific reactors
 	
 	// get insight specific class
-	public static IReactor getIReactor(String insightFolder, String className) 
-	{	
+	public static IReactor getIReactor(String insightFolder, String className) {	
 		// try to get to see if this class already exists
 		// no need to recreate if it does
-		insightFolder = insightFolder.replaceAll("\\\\", "/");
-		String insightId = Utility.getInstanceName(insightFolder);
-		String db = Utility.getClassName(insightFolder);
+		File insightDirector = new File(insightFolder);
+		String insightId = insightDirector.getName();
+		String db = insightDirector.getParent();
+//		insightFolder = insightFolder.replaceAll("\\\\", "/");
+//		String insightId = Utility.getInstanceName(insightFolder);
+//		String db = Utility.getClassName(insightFolder);
 
 		IReactor retReac = null;
 		Map <String, Class> thisInsightMap = null;
 		String key = db + "." + insightId ;
-		if(!insightSpecificHash.containsKey(key))
-		{
+		if(!insightSpecificHash.containsKey(key)) {
 			thisInsightMap = new HashMap<String, Class>();
-			try
-			{
+			try {
 				// I should create the class pool everytime
 				// this way it doesn't keep others and try to get from other places
 				// does this end up loading all the other classes too ?
@@ -1666,18 +1664,17 @@ public class ReactorFactory {
 				String classesFolder = insightFolder + "/classes"; 
 				
 				File file = new File(classesFolder);
-				if(file.exists())
-				{
+				if(file.exists()) {
 					// loads a class and tried to change the package of the class on the fly
 					//CtClass clazz = pool.get("prerna.test.CPTest");
 					
-					Hashtable dirs = GitAssetUtils.browse(classesFolder, classesFolder);
+					Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
+					List<String> dirList = dirs.get("DIR_LIST");
 					
-					List dirList = (List)dirs.get("DIR_LIST");
 					String [] packages = new String[dirList.size()];
-					
-					for(int dirIndex = 0;dirIndex < dirList.size();packages[dirIndex] = (String)dirList.get(dirIndex),dirIndex++);
-
+					for(int dirIndex = 0;dirIndex < dirList.size(); dirIndex++) {
+						packages[dirIndex] = (String)dirList.get(dirIndex);
+					}
 					
 					ScanResult sr = new ClassGraph()
 					//.whitelistPackages("prerna")
@@ -1719,10 +1716,8 @@ public class ReactorFactory {
 							thisInsightMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
 
 						} catch (NotFoundException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						} catch (CannotCompileException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 						//System.out.println(newClass.getCanonicalName());
@@ -1734,27 +1729,22 @@ public class ReactorFactory {
 					}
 					insightSpecificHash.put(key, thisInsightMap);
 				}				
-			}catch(Exception ex2)
-			{
-				//System.out.println("Reactor failed !!")
-				//ex2.printStackTrace();
+			} catch(Exception ex) {
+				ex.printStackTrace();
 			}
-		}// creates the insight specific map
-		if(insightSpecificHash.containsKey(key))
-		{
-			try 
-			{
+		}
+
+		// creates the insight specific map
+		if(insightSpecificHash.containsKey(key)) {
+			try {
 				thisInsightMap = insightSpecificHash.get(db + "." + insightId);
-				if(thisInsightMap.containsKey(className.toUpperCase()))
-				{
+				if(thisInsightMap.containsKey(className.toUpperCase())) {
 					Class thisReactorClass = thisInsightMap.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.newInstance();
 				}
 			} catch (InstantiationException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IllegalAccessException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

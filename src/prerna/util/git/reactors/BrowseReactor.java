@@ -1,7 +1,5 @@
 package prerna.util.git.reactors;
 
-import java.util.Hashtable;
-
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -13,7 +11,7 @@ public class BrowseReactor extends AbstractReactor {
 	// pulls the latest for this project / asset
 	// the asset is basically the folder where it sits
 	// this can be used enroute in a pipeline
-	
+
 	public BrowseReactor() {
 		this.keysToGet = new String[]{"location"};
 	}
@@ -25,13 +23,11 @@ public class BrowseReactor extends AbstractReactor {
 		String assetFolder = this.insight.getInsightFolder();
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 		String locFolder = assetFolder;
-		
-		if(keyValue.containsKey(keysToGet[0]))
+		if(keyValue.containsKey(keysToGet[0])) {
 			locFolder = assetFolder + "/" + keyValue.get(keysToGet[0]);
-				
-		Hashtable output = GitAssetUtils.browse(locFolder, assetFolder);
+		}
 
-		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.OPERATION);
+		return new NounMetadata(GitAssetUtils.browse(locFolder, assetFolder), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 }
