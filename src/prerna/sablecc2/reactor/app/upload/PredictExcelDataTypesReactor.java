@@ -31,7 +31,7 @@ public class PredictExcelDataTypesReactor extends AbstractReactor {
 		organizeKeys();
 		Logger logger = getLogger(CLASS_NAME);
 		int stepCounter = 1;
-		String filePath = this.keyValue.get(UploadInputUtility.FILE_PATH);
+		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		// check if file is valid
 		if(!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
