@@ -538,12 +538,19 @@ public abstract class AbstractReactor implements IReactor {
 		}
 	}
 	
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Throwing common errors
+	 */
+	
 	/**
 	 * Throw error since anonymous user
 	 */
 	public void throwAnonymousUserError() {
-		NounMetadata  noun = new NounMetadata("Must be logged in to perform this operation", PixelDataType.ERROR, PixelOperationType.ANONYMOUS_USER_ERROR, PixelOperationType.ERROR);
-		SemossPixelException exception = new SemossPixelException(noun);
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("Must be logged in to perform this operation", PixelOperationType.ANONYMOUS_USER_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
@@ -552,8 +559,7 @@ public abstract class AbstractReactor implements IReactor {
 	 * Throw error since user doesn't have access to publish
 	 */
 	public void throwUserNotPublisherError() {
-		NounMetadata  noun = new NounMetadata("User does not have access to publish apps", PixelDataType.ERROR);
-		SemossPixelException exception = new SemossPixelException(noun);
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("User does not have access to publish apps"));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
@@ -563,10 +569,8 @@ public abstract class AbstractReactor implements IReactor {
 	 * @param details
 	 */
 	public void throwLoginError(Map details) {
-		NounMetadata  noun = new NounMetadata(details, PixelDataType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR, PixelOperationType.ERROR);
-		SemossPixelException exception = new SemossPixelException(noun);
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
-	
 }

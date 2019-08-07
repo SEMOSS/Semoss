@@ -17,6 +17,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DateExpanderReactor extends AbstractRFrameReactor {
 
+	/*
+	 * Here are the keys that can be passed into the reactor options
+	 */
+	
 	private static final String YEAR = "year";
 	private static final String MONTH = "month";
 	private static final String MONTH_NAME = "month-name";
@@ -101,7 +105,7 @@ public class DateExpanderReactor extends AbstractRFrameReactor {
 		if(operationsNotAdded.size() == numColumnsToAdd){
 			throw new IllegalArgumentException("No new columns were added.");
 		} else if(!operationsNotAdded.isEmpty()) {
-			warning = new NounMetadata("The following operations were not appended: " + options.toString(), PixelDataType.CONST_STRING, PixelOperationType.WARNING);
+			warning = NounMetadata.getWarningNounMessage("The following operations were not appended: " + options.toString());
 		}
 
 		// get src column data type
@@ -121,7 +125,7 @@ public class DateExpanderReactor extends AbstractRFrameReactor {
 		if(warning != null){
 			retNoun.addAdditionalReturn(warning);
 		} else {
-			retNoun.addAdditionalReturn(new NounMetadata("Successfully extracted details from date field", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully extracted details from date field"));
 		}
 		
 		return retNoun;
