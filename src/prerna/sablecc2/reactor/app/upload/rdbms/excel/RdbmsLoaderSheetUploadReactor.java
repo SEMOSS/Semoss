@@ -518,8 +518,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				}
 				for (int cellIndex = 2; cellIndex < numHeaders; cellIndex++) {
 					// account for cells that do not exist (since the array returned might not be the same size as headers)
-					if(cellIndex > numHeaders) {
-						if (types[1] == SemossDataType.INT || types[1] == SemossDataType.DOUBLE) {
+					if(cellIndex >= thisRowLength) {
+						if (types[cellIndex] == SemossDataType.INT || types[cellIndex] == SemossDataType.DOUBLE) {
 							values = values + ", null ";
 						} else {
 							values = values + ", '' ";
@@ -596,6 +596,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
 				thisRow = lSheet.getRow(rowIndex);
+				if(thisRow == null) {
+					continue;
+				}
 				String[] cells = getCells(thisRow);
 				if(cells.length < 3) {
 					// missing value
