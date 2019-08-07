@@ -170,15 +170,13 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			// this means we have a cache
 			// but there was an error with it
 			InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId);
-			additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.", 
-					PixelDataType.CONST_STRING, PixelOperationType.WARNING);
+			additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 		} else if(cacheable && hasCache) {
 			try {
 				runner = getCachedInsightData(cachedInsight);
 			} catch (IOException | RuntimeException e) {
 				InsightCacheUtility.deleteCache(newInsight.getEngineId(), newInsight.getEngineName(), rdbmsId);
-				additionalMeta = new NounMetadata("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.", 
-						PixelDataType.CONST_STRING, PixelOperationType.WARNING);
+				additionalMeta = NounMetadata.getWarningNounMessage("An error occured with retrieving the cache for this insight. System has deleted the cache and recreated the insight.");
 				e.printStackTrace();
 			}
 		}

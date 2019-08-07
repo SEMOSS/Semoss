@@ -118,15 +118,11 @@ public class RunNumericalColumnSimilarityReactor extends AbstractRFrameReactor {
 		// currently though, we dont expose this to the UI, so this will never be hit
 		
 		if(!significance.equals("0.1") && !significance.equals("0.05") && !significance.equals("0.02") && !significance.equals("0.01") ) {
-			noun.addAdditionalReturn(new NounMetadata("Significance level was reset to 0.05", PixelDataType.CONST_STRING,
-					PixelOperationType.WARNING));
+			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Significance level was reset to 0.05"));
 		}
-		noun.addAdditionalReturn(new NounMetadata("Numerical Column Similarity ran successfully!", PixelDataType.CONST_STRING,
-				PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Numerical Column Similarity ran successfully!"));
 		return noun;
-
 	}
-
 
 	private String runAlgorithm(String frameName, List<String> retHeaders, String sampleSize, String significance, String showAll) {
 		// the name of the result for merging later

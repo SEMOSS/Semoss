@@ -76,10 +76,8 @@ public class CopyAppRepo extends AbstractReactor {
 			}
 			logger.info("Congratulations! Downloading your new app has been completed");
 			return new NounMetadata(UploadUtilities.getAppReturnData(user, appId), PixelDataType.MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-//			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE_ADDITION);
 		} catch(Exception e) {
-			NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.WARNING);
-			SemossPixelException err = new SemossPixelException(noun);
+			SemossPixelException err = new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 			err.setContinueThreadOfExecution(false);
 			throw err;
 		}
