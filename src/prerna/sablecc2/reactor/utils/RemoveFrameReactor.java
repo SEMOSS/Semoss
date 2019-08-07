@@ -27,9 +27,9 @@ public class RemoveFrameReactor extends AbstractInsightReactor {
 		// make sure it is a valid removal
 		NounMetadata var = this.insight.getVarStore().get(variableName);
 		if(var == null) {
-			noun.addAdditionalReturn(new NounMetadata("Could not find variable to remove", PixelDataType.CONST_STRING, PixelOperationType.WARNING));
+			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Could not find variable to remove"));
 		} else if(var.getNounType() != PixelDataType.FRAME) {
-			noun.addAdditionalReturn(new NounMetadata("Trying to remove a variable that is not a frame", PixelDataType.CONST_STRING, PixelOperationType.WARNING));
+			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Trying to remove a variable that is not a frame"));
 		}
 		
 		return noun;

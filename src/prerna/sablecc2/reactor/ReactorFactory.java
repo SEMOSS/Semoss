@@ -69,6 +69,7 @@ import prerna.sablecc2.reactor.algorithms.xray.RunXRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.DatabaseColumnUniqueReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
+import prerna.sablecc2.reactor.app.ResetDefaultInsightsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDescriptionsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDictionaryReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlLogicalNamesReactor;
@@ -1060,10 +1061,10 @@ public class ReactorFactory {
 		reactorHash.put("SetAppDescription", SetAppDescriptionReactor.class);
 		reactorHash.put("SetAppTags", SetAppTagsReactor.class);
 		reactorHash.put("GetAppWidgets", GetAppWidgetsReactor.class);
+		reactorHash.put("ResetDefaultInsights", ResetDefaultInsightsReactor.class);
 		// Insight Metadata
 //		reactorHash.put("SetInsightTags", SetInsightTagsReactor.class);
 //		reactorHash.put("SetInsightDescription", SetInsightDescriptionReactor.class);
-
 
 		// Insight Comments
 		reactorHash.put("AddInsightComment", AddInsightCommentReactor.class);
