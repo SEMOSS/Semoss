@@ -14,6 +14,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
+/**
+ * Use ConcatenateReactor
+ * @deprecated
+ */
 public class JoinColumnsReactor extends AbstractRFrameReactor {
 
 	/**
