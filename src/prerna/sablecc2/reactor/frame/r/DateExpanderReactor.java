@@ -125,7 +125,7 @@ public class DateExpanderReactor extends AbstractRFrameReactor {
 		if(warning != null){
 			retNoun.addAdditionalReturn(warning);
 		} else {
-			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully extracted details from date field"));
+			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully extracted details from " + srcCol));
 		}
 		
 		return retNoun;

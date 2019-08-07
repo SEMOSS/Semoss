@@ -65,6 +65,13 @@ public class UploadUtilities {
 		ENGINE_DIRECTORY = DIR_SEPARATOR + "db" + DIR_SEPARATOR;
 	}
 	
+	public static final String EXPLORE_INSIGHT_INSIGHT_NAME = "Explore an instance of a selected node type";
+	public static final String EXPLORE_INSIGHT_LAYOUT = "Graph";
+
+	public static final String GRID_DELTA_INSIGHT_NAME = "Grid Delta";
+	public static final String GRID_DELTA_LAYOUT = "Grid";
+
+	
 	private UploadUtilities() {
 
 	}
@@ -1169,11 +1176,10 @@ public class UploadUtilities {
 	 * Add explore an instance to the insights database
 	 * @param appId
 	 * @param insightEngine
+	 * @return 				String containing the new insight id
 	 */
-	public static void addExploreInstanceInsight(String appId, RDBMSNativeEngine insightEngine) {
+	public static String addExploreInstanceInsight(String appId, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String insightName = "Explore an instance of a selected node type";
-		String layout = "Graph";
 		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
 		File exploreF = new File(exploreLoc);
 		if(exploreF.exists()) {
@@ -1185,24 +1191,24 @@ public class UploadUtilities {
 						.replace("<<ENGINE>>", appId);
 				newPixel += "} </encode>\" ) ;";
 				String[] pkqlRecipeToSave = {newPixel};
-				admin.addInsight(insightName, layout, pkqlRecipeToSave);
+				return admin.addInsight(EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
+		return null;
 	}
 	
 	/**
-	 * Add explore an instance to the insights database
+	 * Add grid delta to the insights database
 	 * @param appId
 	 * @param insightEngine
+	 * @return 				String containing the new insight id
 	 */
-	public static void addGridDeltaInsight(String appId, RDBMSNativeEngine insightEngine) {
+	public static String addGridDeltaInsight(String appId, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String insightName = "Grid Delta";
-		String layout = "Grid";
 		String[] pkqlRecipeToSave = {"AddPanel(0); Panel(0)|SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");"};
-		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		return admin.addInsight(GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave);
 	}
 	
 	/**
