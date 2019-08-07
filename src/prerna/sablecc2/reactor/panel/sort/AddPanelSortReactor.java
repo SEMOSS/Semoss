@@ -23,7 +23,7 @@ public class AddPanelSortReactor extends AbstractPanelSortReactor {
 		List<QueryColumnOrderBySelector> sorts = getSortColumns();
 		NounMetadata noun = null;
 		if(sorts.isEmpty()) {
-			noun = new NounMetadata("No Sort Information Found To Add", PixelDataType.CONST_STRING, PixelOperationType.WARNING);
+			noun = NounMetadata.getWarningNounMessage("No Sort Information Found To Add");
 		} else {
 			panel.getPanelOrderBys().addAll(sorts);
 			noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.PANEL_SORT);

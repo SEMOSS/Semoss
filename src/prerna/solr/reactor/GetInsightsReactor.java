@@ -40,8 +40,7 @@ public class GetInsightsReactor extends AbstractReactor {
 						eFilters.add(engineFilter);
 					} else {
 						// store warnings
-						String msg = engineFilter + " does not exist or user does not have access to database.";
-						warningNouns.add(new NounMetadata(msg, PixelDataType.CONST_STRING, PixelOperationType.WARNING));
+						warningNouns.add(NounMetadata.getWarningNounMessage(engineFilter + " does not exist or user does not have access to database."));
 					}
 				} else {
 					engineFilter = MasterDatabaseUtility.testEngineIdIfAlias(engineFilter);
