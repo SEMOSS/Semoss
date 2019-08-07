@@ -19,10 +19,14 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
+import prerna.date.SemossDate;
+import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelParsing;
+import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -258,7 +262,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		// if the row is present
 		Sheet lSheet = workbook.getSheet(sheetName);
 
-		System.err.println("Processing Sheet..  " + sheetName);
+		this.logger.info("Processing Sheet..  " + sheetName);
 
 		// we need to convert from the generic data types from the FE to the sql
 		// specific types
@@ -471,19 +475,20 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			Row thisRow = lSheet.getRow(0);
 
 			String[] cells = getCells(thisRow);
-			int totalCols = cells.length;
-			String[] types = new String[cells.length];
+			int numHeaders = cells.length;
+			SemossDataType[] types = new SemossDataType[numHeaders];
 
 			String inserter = "INSERT INTO " + conceptName + " ( ";
-
-			for (int cellIndex = 1; cellIndex < cells.length; cellIndex++) {
-				if (cellIndex == 1)
-					inserter = inserter + cells[cellIndex];
-				else
-					inserter = inserter + " , " + cells[cellIndex];
-
-				types[cellIndex] = concepts.get(conceptName).get(cells[cellIndex]);
+			for (int cellIndex = 1; cellIndex < numHeaders; cellIndex++) {
+				String headerValue = (cells[cellIndex] + "").trim();
+				if (cellIndex == 1) {
+					inserter = inserter + headerValue;
+				} else {
+					inserter = inserter + " , " + headerValue;
+				}
+				types[cellIndex] = SemossDataType.convertStringToDataType( concepts.get(conceptName).get(headerValue) );
 			}
+			
 			inserter = inserter + ") VALUES ";
 			int lastRow = lSheet.getLastRowNum();
 			String values = "";
@@ -492,21 +497,46 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				if(thisRow == null) {
 					continue;
 				}
-				String[] uCells = getCells(thisRow, totalCols);
-				cells = Utility.castToTypes(uCells, types);
-				if (types[1].equals("INT") || types[1].equals("DOUBLE")) {
-					values = "( " + cells[1];
-				} else {
-					values = "( '" + cells[1] + "'";
-				}
-				for (int cellIndex = 2; cellIndex < cells.length; cellIndex++) {
-					if (types[cellIndex].equals("INT") || types[cellIndex].equals("DOUBLE")) {
-						values = values + " , " + cells[cellIndex];
+				cells = getCells(thisRow);
+				int thisRowLength = cells.length;
+				// account for cells that do not exist (since the array returned might not be the same size as headers)
+				if(thisRowLength < 2) {
+					if (types[1] == SemossDataType.INT || types[1] == SemossDataType.DOUBLE) {
+						values = "( null ";
 					} else {
-						values = values + " , '" + cells[cellIndex] + "'";
+						values = "( '' ";
+					}
+				} else {
+					// we have values
+					if (types[1] == SemossDataType.INT) {
+						values = "( " + Utility.getInteger(cells[1]);
+					} else if(types[1] == SemossDataType.DOUBLE) {
+						values = "( " + Utility.getDouble(cells[1]);
+					} else {
+						values = "( '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[1]) + "'";
+					}
+				}
+				for (int cellIndex = 2; cellIndex < numHeaders; cellIndex++) {
+					// account for cells that do not exist (since the array returned might not be the same size as headers)
+					if(cellIndex > numHeaders) {
+						if (types[1] == SemossDataType.INT || types[1] == SemossDataType.DOUBLE) {
+							values = values + ", null ";
+						} else {
+							values = values + ", '' ";
+						}
+					} else {
+						// we have values
+						if (types[cellIndex] == SemossDataType.INT) {
+							values = values + " , " + Utility.getInteger(cells[cellIndex]);
+						} else if(types[cellIndex] == SemossDataType.DOUBLE) {
+							values = values + " , " + Utility.getDouble(cells[cellIndex]);
+						} else {
+							values = values + " , '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[cellIndex]) + "'";
+						}
 					}
 				}
 
+				// close the values
 				values = values + ")";
 				try {
 					engine.insertData(inserter + values);
@@ -579,7 +609,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 
 				// need to determine if i am performing an update or an insert
 				String getRowCountQuery = "SELECT COUNT(*) as ROW_COUNT FROM " + tableToSet + " WHERE " + tableToSet
-						+ " = '" + cells[setter] + "' AND " + tableToInsert + "_FK IS NULL";
+						+ " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter]) + "' AND " + tableToInsert + "_FK IS NULL";
 				boolean isInsert = false;
 				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, getRowCountQuery);
 				if (wrapper.hasNext()) {
@@ -651,7 +681,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 						}
 
 						String existingValues = "(SELECT DISTINCT " + unknownCols + " FROM " + tableToSet + " WHERE "
-								+ tableToSet + "='" + cells[setter] + "' ) AS TEMP_FK";
+								+ tableToSet + "='" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter]) + "' ) AS TEMP_FK";
 						StringBuilder selectingValues = new StringBuilder();
 						selectingValues.append("SELECT DISTINCT ");
 
@@ -661,21 +691,18 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 								selectingValues.append("TEMP_FK.").append(col).append(" AS ").append(col).append(", ");
 							}
 						}
-						selectingValues.append("'" + cells[setter] + "'").append(" AS ").append(tableToSet).append(", ");
-						selectingValues.append("'" + cells[inserter] + "'").append(" AS ").append(tableToInsert + "_FK").append(" ");
+						selectingValues.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter]) + "'").append(" AS ").append(tableToSet).append(", ");
+						selectingValues.append("'" + RdbmsQueryBuilder.escapeForSQLStatement(cells[inserter]) + "'").append(" AS ").append(tableToInsert + "_FK").append(" ");
 						selectingValues.append(" FROM ").append(tableToSet).append(",");
 
 						String insert = "INSERT INTO " + tableToSet + "(" + colsToSelect + " ) " + selectingValues.toString() + existingValues;
-
 						engine.insertData(insert);
-
 					}
 				} else {
 					// this is a nice and simple insert
 					String updateString = "Update " + tableToSet + "  SET ";
-					String values = tableToInsert + "_FK" + " = '" + cells[inserter] + "' WHERE " + tableToSet + " = '" + cells[setter] + "'";
+					String values = tableToInsert + "_FK" + " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[inserter]) + "' WHERE " + tableToSet + " = '" + RdbmsQueryBuilder.escapeForSQLStatement(cells[setter])  + "'";
 					engine.insertData(updateString + values);
-
 				}
 			}
 			relsAdded.add(tableToInsert + "_FK");
@@ -683,64 +710,22 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	}
 	
 	public String[] predictRowTypes(Sheet lSheet) {
+		int startRow = 1;
+		int startCol = 2;
 		int numRows = lSheet.getLastRowNum();
 		Row header = lSheet.getRow(0);
 		int numCells = header.getLastCellNum();
 		String[] types = new String[numCells];
+		
+		ExcelRange r = new ExcelRange(startCol, numCells, startRow, numRows);
+		this.logger.info("Predicting datatypes for sheet = " + lSheet.getSheetName());
+		Object[][] prediction = ExcelParsing.predictTypes(lSheet, r.getRangeSyntax());
 
-		// need to loop through and make sure types are good
-		// we know the first col is always null as it is not used
-		for (int i = 1; i < numCells; i++) {
-			String type = null;
-			ROW_LOOP: for (int j = 1; j < numRows; j++) {
-				Row row = lSheet.getRow(j);
-				if (row != null) {
-					Cell cell = row.getCell(i);
-					if (cell != null) {
-						String val = getCell(cell);
-						if (val.isEmpty()) {
-							continue ROW_LOOP;
-						}
-						String newTypePred = (Utility.findTypes(val)[0] + "").toUpperCase();
-						if (newTypePred.contains("VARCHAR")) {
-							type = newTypePred;
-							break ROW_LOOP;
-						}
-
-						// need to also add the type null check for the first
-						// row
-						if (!newTypePred.equals(type) && type != null) {
-							// this means there are multiple types in one column
-							// assume it is a string
-							if ((type.equals("BOOLEAN") || type.equals("INT") || type.equals("DOUBLE")) && 
-									(newTypePred.equals("INT") || newTypePred.equals("INT") || newTypePred.equals("DOUBLE") ) ){
-								// for simplicity, make it a double and call it a day
-								// TODO: see if we want to impl the logic to choose the greater of the newest
-								// this would require more checks though
-								type = "DOUBLE";
-							} else {
-								// should only enter here when there are numbers and dates
-								// TODO: need to figure out what to handle this case
-								// for now, making assumption to put it as a string
-								type = "VARCHAR(800)";
-								break ROW_LOOP;
-							}
-						} else {
-							// type is the same as the new predicated type
-							// or type is null on first iteration
-							type = newTypePred;
-						}
-					}
-				}
-			}
-			if (type == null) {
-				// no data for column....
-				types[i] = "varchar(255)";
-			} else {
-				types[i] = type;
-			}
+		// we will keep types[i] to be null
+		// TODO: in future should fix this but other places are using it this way
+		for(int i = 0; i < (numCells - 1); i++) {
+			types[i+1] = prediction[i][0].toString();
 		}
-
 		return types;
 	}
 	
@@ -754,31 +739,19 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		String[] cols = new String[colLength];
 		for (int colIndex = 1; colIndex < colLength; colIndex++) {
 			Cell thisCell = row.getCell(colIndex);
-			// get all of this into a string
-			if (thisCell != null && row.getCell(colIndex).getCellType() != Cell.CELL_TYPE_BLANK) {
-				if (thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
-					cols[colIndex] = thisCell.getStringCellValue();
-					cols[colIndex] = Utility.cleanString(cols[colIndex], true);
+			Object value = ExcelParsing.getCell(thisCell);
+			if(value instanceof SemossDate) {
+				if( ((SemossDate) value).hasTime()) {
+					cols[colIndex] = ((SemossDate) value).getFormatted("yyyy-MM-dd HH:mm:ss");
+				} else {
+					cols[colIndex] = ((SemossDate) value).getFormatted("yyyy-MM-dd");
 				}
-				if (thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC)
-					cols[colIndex] = "" + thisCell.getNumericCellValue();
 			} else {
-				cols[colIndex] = "";
+				cols[colIndex] = value + "";
 			}
 		}
 
 		return cols;
-	}
-
-	public String getCell(Cell thisCell) {
-		if (thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK) {
-			if (thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
-				return thisCell.getStringCellValue();
-			} else if (thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-				return thisCell.getNumericCellValue() + "";
-			}
-		}
-		return "";
 	}
 
 	private void createIndices(RDBMSNativeEngine engine, String cleanTableKey, String indexStr) {
