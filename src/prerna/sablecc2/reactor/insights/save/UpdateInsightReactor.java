@@ -181,8 +181,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		//folder = folder.replace("/" + mosfetFileName, "");
 		GitRepoUtils.addSpecificFiles(folder, new File[]{mosfetFile});
 		GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Recipe Changed on : "));
-
-		
 	}
 	
 }
