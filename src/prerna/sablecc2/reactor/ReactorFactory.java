@@ -1,21 +1,23 @@
 package prerna.sablecc2.reactor;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
 import java.io.File;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
+import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
+import javassist.NotFoundException;
 import me.xdrop.fuzzywuzzy.FuzzySearch;
 import me.xdrop.fuzzywuzzy.model.ExtractedResult;
 import prerna.algorithm.api.ITableDataFrame;
@@ -69,7 +71,6 @@ import prerna.sablecc2.reactor.algorithms.xray.RunXRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
 import prerna.sablecc2.reactor.app.DatabaseColumnUniqueReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
-import prerna.sablecc2.reactor.app.AddDefaultInsightsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDescriptionsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDictionaryReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlLogicalNamesReactor;
@@ -417,6 +418,7 @@ import prerna.solr.reactor.SetAppTagsReactor;
 //import prerna.solr.reactor.SetInsightTagsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitAssetUtils;
 import prerna.util.git.reactors.AddAppCollaborator;
 import prerna.util.git.reactors.CopyAppRepo;
 import prerna.util.git.reactors.DeleteAppRepo;
@@ -443,6 +445,8 @@ import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendations
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class ReactorFactory {
 
 	// This holds the reactors that are frame agnostic and can be used by pixel
@@ -466,6 +470,8 @@ public class ReactorFactory {
 	public static List <String> nmList = new ArrayList<String>();
 	public static List <Class> classList = new ArrayList<Class>();
 	public static boolean write = true;
+	
+	public static Map<String, Map<String, Class>> insightSpecificHash = new HashMap<String, Map<String, Class>>();
 	
 	
 	static {
@@ -1629,18 +1635,23 @@ public class ReactorFactory {
 		return null;
 	}
 	
+	// load insight specific reactors
+	
 	// get insight specific class
-	public IReactor getIReactor(String db, String insightId, String className) 
+	public static IReactor getIReactor(String insightFolder, String className) 
 	{	
 		// try to get to see if this class already exists
 		// no need to recreate if it does
+		insightFolder = insightFolder.replaceAll("\\\\", "/");
+		String insightId = Utility.getInstanceName(insightFolder);
+		String db = Utility.getClassName(insightFolder);
+
 		IReactor retReac = null;
-		String qClassName = db + "." + insightId + "." + className;
-		try
+		Map <String, Class> thisInsightMap = null;
+		String key = db + "." + insightId ;
+		if(!insightSpecificHash.containsKey(key))
 		{
-			retReac = (IReactor)Class.forName(qClassName).newInstance();
-		}catch (Exception ex)
-		{
+			thisInsightMap = new HashMap<String, Class>();
 			try
 			{
 				// I should create the class pool everytime
@@ -1651,33 +1662,99 @@ public class ReactorFactory {
 				
 				// the main folder to add here is
 				// basefolder/db/insightfolder/classes - right now I have it as classes. we can change it to something else if we want
-				String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-				String classesFolder = baseFolder + "/db/" + db + "/version/" + insightId + "/classes"; 
+				String classesFolder = insightFolder + "/classes"; 
 				
-				// add the path to the insight classes so only this guy can load it
-				pool.appendPathList(classesFolder);
-				// loads a class and tried to change the package of the class on the fly
-				//CtClass clazz = pool.get("prerna.test.CPTest");
-				CtClass clazz = pool.get(className);
-				
-				// change the name of the classes
-				// ideally we would just have the pakcage name change to the insight
-				// this is to namespace it appropriately to have no issues
-				clazz.setName(qClassName);
-				Class newClass = clazz.toClass();
-				//System.out.println(newClass.getCanonicalName());
-				
-				// once the new instance has been done.. it has been injected into heap.. after this anyone can access it. 
-				// no way to remove this class from heap
-				// has to be garbage collected as it moves
-				//System.out.println(newClass.newInstance().getClass().getPackage());
-				
-				// we could do other instrumentation if we so chose to
-				retReac = (IReactor)Class.forName(qClassName).newInstance();
-				
+				File file = new File(classesFolder);
+				if(file.exists())
+				{
+					// loads a class and tried to change the package of the class on the fly
+					//CtClass clazz = pool.get("prerna.test.CPTest");
+					
+					Hashtable dirs = GitAssetUtils.browse(classesFolder, classesFolder);
+					
+					List dirList = (List)dirs.get("DIR_LIST");
+					String [] packages = new String[dirList.size()];
+					
+					for(int dirIndex = 0;dirIndex < dirList.size();packages[dirIndex] = (String)dirList.get(dirIndex),dirIndex++);
+
+					
+					ScanResult sr = new ClassGraph()
+					//.whitelistPackages("prerna")
+							.overrideClasspath((new File(classesFolder).toURI().toURL()))
+							//.enableAllInfo()
+							//.enableClassInfo()
+							.whitelistPackages(packages)
+							.scan();
+					//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
+					//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
+
+					//ClassInfoList classes = sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+					ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
+
+					Map <String, Class> reactors = new HashMap<String, Class>();
+					// add the path to the insight classes so only this guy can load it
+					pool.insertClassPath(classesFolder);
+					
+					for(int classIndex = 0;classIndex < classes.size();classIndex++)
+					{
+						String name = classes.get(classIndex).getSimpleName();
+						String packageName = classes.get(classIndex).getPackageName();
+						//Class actualClass = classes.get(classIndex).loadClass();
+						
+						try {
+							// can I modify the class here
+							CtClass clazz = pool.get(packageName + "." + name);
+							clazz.defrost();
+							String qClassName = key + "." + packageName + "." + name;
+							// change the name of the classes
+							// ideally we would just have the pakcage name change to the insight
+							// this is to namespace it appropriately to have no issues
+							clazz.setName(qClassName);
+							Class newClass = clazz.toClass();
+
+							// add to the insight map
+							// we could do other instrumentation if we so chose to
+							// once I have created it is in the heap, I dont need to do much. One thing I could do is not load every class in the insight but give it out slowly
+							thisInsightMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+
+						} catch (NotFoundException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (CannotCompileException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						//System.out.println(newClass.getCanonicalName());
+						
+						// once the new instance has been done.. it has been injected into heap.. after this anyone can access it. 
+						// no way to remove this class from heap
+						// has to be garbage collected as it moves
+						//System.out.println(newClass.newInstance().getClass().getPackage());
+					}
+					insightSpecificHash.put(key, thisInsightMap);
+				}				
 			}catch(Exception ex2)
 			{
-			
+				//System.out.println("Reactor failed !!")
+				//ex2.printStackTrace();
+			}
+		}// creates the insight specific map
+		if(insightSpecificHash.containsKey(key))
+		{
+			try 
+			{
+				thisInsightMap = insightSpecificHash.get(db + "." + insightId);
+				if(thisInsightMap.containsKey(className.toUpperCase()))
+				{
+					Class thisReactorClass = thisInsightMap.get(className.toUpperCase());
+					retReac = (IReactor) thisReactorClass.newInstance();
+				}
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 		return retReac;
