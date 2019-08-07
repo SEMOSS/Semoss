@@ -9,13 +9,13 @@ import prerna.util.Utility;
 import prerna.util.git.GitFetchUtils;
 import prerna.util.git.GitRepoUtils;
 
-public class CloneReactor extends AbstractReactor {
+public class GitCloneReactor extends AbstractReactor {
 
 	// pulls the latest for this project / asset
 	// the asset is basically the folder where it sits
 	// this can be used enroute in a pipeline
 	
-	public CloneReactor() {
+	public GitCloneReactor() {
 		this.keysToGet = new String[]{"repository"};
 		this.keyRequired = new int[]{1};
 	}
