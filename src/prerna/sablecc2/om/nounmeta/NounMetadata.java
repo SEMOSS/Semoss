@@ -2,6 +2,7 @@ package prerna.sablecc2.om.nounmeta;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import com.google.gson.Gson;
@@ -62,6 +63,16 @@ public class NounMetadata {
 		return this.opType;
 	}
 	
+	public void addAdditionalOpTypes(PixelOperationType... opType) {
+		for(PixelOperationType op : opType) {
+			this.opType.add(op);
+		}
+	}
+	
+	public void addAdditionalOpTypes(List<PixelOperationType> opType) {
+		this.opType.addAll(opType);
+	}
+	
 	public void addAdditionalReturn(NounMetadata noun) {
 		this.additionalReturns.add(noun);
 	}
@@ -103,5 +114,62 @@ public class NounMetadata {
 		Object cloneValue = cloneValue = gson.fromJson(gson.toJson(value), valueClass);
 		
 		return new NounMetadata(cloneValue, this.noun, this.opType);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Static noun constructors
+	 */
+	
+	/**
+	 * Utility to get back a noun metadata with a warning message
+	 * @param message
+ 	 * @param additionalOps			The default op type will be warning but can add additional ones
+	 * @return
+	 */
+	public static NounMetadata getSuccessNounMessage(String message, PixelOperationType... additionalOps) {
+		NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.SUCCESS);
+		noun.addAdditionalOpTypes(additionalOps);
+		return noun;
+	}
+	
+	
+	/**
+	 * Utility to get back a noun metadata with a warning message
+	 * @param message
+ 	 * @param additionalOps			The default op type will be warning but can add additional ones
+	 * @return
+	 */
+	public static NounMetadata getWarningNounMessage(String message, PixelOperationType... additionalOps) {
+		NounMetadata noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.WARNING);
+		noun.addAdditionalOpTypes(additionalOps);
+		return noun;
+	}
+	
+	/**
+	 * Utility to get back a noun metadata with an error message
+	 * @param message
+	 * @param additionalOps			The default op type will be error but can add additional ones
+	 * @return
+	 */
+	public static NounMetadata getErrorNounMessage(String message, PixelOperationType... additionalOps) {
+		NounMetadata noun = new NounMetadata(message, PixelDataType.ERROR, PixelOperationType.ERROR);
+		noun.addAdditionalOpTypes(additionalOps);
+		return noun;
+	}
+	
+	/**
+	 * Utility to get back a noun metadata with an error message
+	 * @param details
+	 * @param additionalOps			The default op type will be error but can add additional ones
+	 * @return
+	 */
+	public static NounMetadata getErrorNounMessage(Map details, PixelOperationType... additionalOps) {
+		NounMetadata noun = new NounMetadata(details, PixelDataType.ERROR, PixelOperationType.ERROR);
+		noun.addAdditionalOpTypes(additionalOps);
+		return noun;
 	}
 }

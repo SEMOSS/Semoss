@@ -196,11 +196,10 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			// ignore, but need to add message
 		}
 		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, 
-				PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		if(emptyMessage) {
-			retNoun.addAdditionalReturn(new NounMetadata("There are no direct matches", PixelDataType.CONST_STRING, PixelOperationType.WARNING));
-		}
+			retNoun.addAdditionalReturn(NounMetadata.getWarningNounMessage("There are no direct matches"));
+		}	
 		// store in insight
 		if(this.insight.getDataMaker() == null) {
 			this.insight.setDataMaker(frame);
