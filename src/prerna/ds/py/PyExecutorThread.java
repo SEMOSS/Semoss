@@ -2,13 +2,12 @@ package prerna.ds.py;
 
 import java.util.Hashtable;
 
-import jep.Jep;
-import jep.JepConfig;
-import jep.JepException;
-
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import jep.Jep;
+import jep.JepConfig;
+import jep.JepException;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -29,13 +28,13 @@ public class PyExecutorThread extends Thread {
 	public void run() {
 		// wait to see if process is true
 		// if process is true - process, put the result and go back to sleep
-		LOGGER.info("Running Python thread");
+		LOGGER.debug("Running Python thread");
 		getJep();
 
 		while(this.keepAlive) {
 			try {
 				synchronized(daLock) {
-					LOGGER.info("Waiting for next command");
+					LOGGER.debug("Waiting for next command");
 					ready = true;
 					daLock.wait();
 					
@@ -47,9 +46,9 @@ public class PyExecutorThread extends Thread {
 							String thisCommand = command[cmdLength];
 							Object thisResponse = null;
 						    try {
-						    	LOGGER.info(">>>>>>>>>>>");
+						    	LOGGER.debug(">>>>>>>>>>>");
 						    	LOGGER.info("Executing Command .. " + thisCommand);
-						    	LOGGER.info("<<<<<<<<<<<");
+						    	LOGGER.debug("<<<<<<<<<<<");
 						    	try {
 						    		thisResponse = jep.getValue(thisCommand);
 						    		response.put(thisCommand, thisResponse);
@@ -75,7 +74,7 @@ public class PyExecutorThread extends Thread {
 				e.printStackTrace();
 			}
 		}
-		LOGGER.info("Thread ENDED");
+		LOGGER.debug("Thread ENDED");
 	}
 	
 	public boolean isReady() {
@@ -113,8 +112,6 @@ public class PyExecutorThread extends Thread {
 				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
 				aJepConfig.addIncludePaths(sitepackages);
 				
-
-				
 				jep = new Jep(aJepConfig);
 
 				jep.eval("import numpy as np");
@@ -132,7 +129,7 @@ public class PyExecutorThread extends Thread {
 				System.err.println("Adding Syspath " + pyBase);				
 				jep.eval("sys.path.append('" + pyBase + "')" );
 
-				System.out.println(jep.getValue("sys.path"));
+				LOGGER.info(jep.getValue("sys.path"));
 				
 				jep.eval("from clean import PyFrame");
 			}
