@@ -69,6 +69,7 @@ import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.sablecc2.reactor.algorithms.xray.GetXrayConfigListReactor;
 import prerna.sablecc2.reactor.algorithms.xray.RunXRayReactor;
 import prerna.sablecc2.reactor.algorithms.xray.XrayMetamodelReactor;
+import prerna.sablecc2.reactor.app.AddDefaultInsightsReactor;
 import prerna.sablecc2.reactor.app.DatabaseColumnUniqueReactor;
 import prerna.sablecc2.reactor.app.GetAppWidgetsReactor;
 import prerna.sablecc2.reactor.app.metaeditor.GetOwlDescriptionsReactor;
