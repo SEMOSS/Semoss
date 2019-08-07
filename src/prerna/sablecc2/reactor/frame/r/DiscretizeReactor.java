@@ -198,6 +198,8 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 				"Discretize", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully added discretized column: " + updatedDtColumns.get(0)));
+		return noun;
 	}
 }
