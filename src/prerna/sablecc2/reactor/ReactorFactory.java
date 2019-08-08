@@ -1663,6 +1663,7 @@ public class ReactorFactory {
 				// the main folder to add here is
 				// basefolder/db/insightfolder/classes - right now I have it as classes. we can change it to something else if we want
 				String classesFolder = insightFolder + "/classes"; 
+				classesFolder = classesFolder.replaceAll("\\\\", "/");
 				
 				File file = new File(classesFolder);
 				if(file.exists()) {
