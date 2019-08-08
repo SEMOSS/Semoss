@@ -537,7 +537,6 @@ public class RFrameBuilder {
 		return null;
 	}
 	
-	
 	protected void save(String frameFileName, String frameName){
 		this.evalR("save(" + frameName + ", file=\"" + frameFileName.replace("\\", "/") + "\")");
 
@@ -549,81 +548,5 @@ public class RFrameBuilder {
 	protected void open(String frameFileName){
 		frameFileName = frameFileName.replaceAll("-", "_");
 		this.evalR("load(\"" + frameFileName.replace("\\", "/") + "\")");
-	}
-	
-	
-//	/**
-//	 * Modify columns to make sure they are numeric for math operations
-//	 * @param typesMap
-//	 */
-//	private void alterColumnsToNumeric(String tableName, Map<SemossDataType, List<String>> typesMap) {	
-//		if (typesMap.containsKey(SemossDataType.INT) || typesMap.containsKey(SemossDataType.DOUBLE)) {
-//			List<String> columns = new ArrayList<String>();
-//			if (typesMap.get(SemossDataType.INT) != null && typesMap.get(SemossDataType.INT).size() > 0) {
-//				columns.addAll(typesMap.get(SemossDataType.INT));
-//			}
-//			if (typesMap.get(SemossDataType.DOUBLE) != null && typesMap.get(SemossDataType.DOUBLE).size() > 0) {
-//				columns.addAll(typesMap.get(SemossDataType.DOUBLE));
-//			}
-//			evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, columns) ) );
-//		}
-//	}
-//	
-//
-//	/**
-//	 * 	Modify columns to make sure they are date or datetime types
-//	 * @param tableName
-//	 * @param typesMap
-//	 * @param javaDateFormatMap
-//	 */
-//	private void alterColumnsToDate(String tableName, Map<SemossDataType, List<String>> typesMap, Map<String, String> javaDateFormatMap) {
-//		if (typesMap.containsKey(SemossDataType.DATE)) {
-//			Map<String, List<String>> rJavaDateFormatMap = new HashMap<String, List<String>>();
-//			//translate java date format to R syntax and aggregate applicable columns
-//			for (String header: typesMap.get(SemossDataType.DATE)){
-//				String javaFormat = javaDateFormatMap.get(header);
-//				String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat);
-//				rJavaDateFormatMap.computeIfAbsent(rFormat, v -> new ArrayList<String>());
-//				rJavaDateFormatMap.get(rFormat).add(header);
-//			}
-//			//for each r format of date, convert column appropriately
-//			for (String key : rJavaDateFormatMap.keySet()) {
-//				evalR( addTryEvalToScript( RSyntaxHelper.alterColumnTypeToDate(tableName, key, rJavaDateFormatMap.get(key)) ) );
-//			}
-//		} 
-//		
-//		if (typesMap.containsKey(SemossDataType.TIMESTAMP)) {
-//			Map<String, List<String>> rJavaTSFormatMap = new HashMap<String, List<String>>();
-//			//translate java timestamp format to R syntax and aggregate applicable columns
-//			for (String header: typesMap.get(SemossDataType.TIMESTAMP)){
-//				String javaFormat = javaDateFormatMap.get(header);
-//				String rFormat = RSyntaxHelper.translateJavaRDateTimeFormat(javaFormat);
-//				rJavaTSFormatMap.computeIfAbsent(rFormat, v -> new ArrayList<String>());
-//				rJavaTSFormatMap.get(rFormat).add(header);
-//			}
-//			//for each r format of timestamp, convert column appropriately
-//			for (String key : rJavaTSFormatMap.keySet()) {
-//				this.rJavaTranslator.runR( RSyntaxHelper.alterColumnTypeToDateTime(tableName, key, rJavaTSFormatMap.get(key)) );
-//			}
-//		}
-//	}
-//	/**
-//	 * Modify columns to make sure they are chars
-//	 * @param tableName
-//	 * @param typesMap
-//	 */
-//	private void alterColumnsToChars(String tableName, Map<SemossDataType, List<String>> typesMap) {
-//		if (typesMap.containsKey(SemossDataType.STRING)) {
-//			List<String> columns = typesMap.get(SemossDataType.STRING);
-//			evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, columns) ) );
-//		}
-//	}
-	public static void main(String[] args) {
-		File f = new File("C://Users//suzikim//Documents//single.rda");
-		if (f.length() == 0){
-			System.out.println("EMPTY");
-		} else {
-			System.out.println("OK");
-		}
 	}
 }
