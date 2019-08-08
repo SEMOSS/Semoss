@@ -13,6 +13,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
@@ -20,6 +21,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.imports.MergeReactor;
+import prerna.sablecc2.reactor.imports.RImporter;
+import prerna.util.insight.InsightUtility;
 
 public class FuzzyMergeReactor extends AbstractRFrameReactor {
 
@@ -73,6 +76,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		}
 		String frameCol = joins.get(0).getSelector();
 		// ignore the table name which is most likely passed
+		// the structure is current frame to new query data
 		if(frameCol.contains("__")) {
 			frameCol = frameCol.split("__")[1];
 		}
@@ -106,13 +110,27 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		ITableDataFrame frame = getFrame();
 		String rFrameVar = frame.getName();
 		if(!(frame instanceof RDataTable)) {
-			// TODO: flush frame into R if it is not already
 			// check if r frame is unique name
 			// otherwise update it
+			int counter = 0;
+			while(this.rJavaTranslator.varExists(rFrameVar)) {
+				rFrameVar = rFrameVar + "_" + (++counter);
+			}
+			RDataTable newFrame = new RDataTable(this.rJavaTranslator, rFrameVar);
+			SelectQueryStruct olfFrameQs = frame.getMetaData().getFlatTableQs();
+			olfFrameQs.setFrame(frame);
+			RImporter importer = new RImporter(newFrame, olfFrameQs);
+			importer.insertData();
+			// drop the existing frame
+			frame.close();
+			// reset all the variable references
+			InsightUtility.replaceNounValue(this.insight.getVarStore(), frame, new NounMetadata(newFrame, PixelDataType.FRAME));
+			// reasign reference
+			frame = newFrame;
 		}
 		
 		// rename the linkFrame col2 name so it is prettier
-		String fuzzyColName = getCleanNewColName(rFrameVar, "Fuzzy_" + frameCol);
+		String fuzzyColName = getCleanNewColName(frame, rFrameVar, "Fuzzy_" + frameCol);
 		script.append("names(" + linkFrame + ")[names(" + linkFrame + ") == \"col2\"] <- \"" + fuzzyColName + "\";");
 		
 		// we will merge on col1

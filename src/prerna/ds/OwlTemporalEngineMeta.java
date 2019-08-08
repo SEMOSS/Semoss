@@ -497,6 +497,28 @@ public class OwlTemporalEngineMeta {
 		return null;
 	}
 	
+	public Map<String, String> getUniqueNameToAlias() {
+		String query = "select distinct ?header ?alias where {"
+				+ "{"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "UNION"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "}";
+		
+		Map<String, String> retMap = new HashMap<String, String>();
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		if(it.hasNext()) {
+			Object[] values = it.next().getValues();
+			retMap.put(values[0].toString(), values[1].toString());
+		}
+		return retMap;
+	}
+	
 	public Object[] getComplexSelector(String uniqueName) {
 		String query = "select distinct "
 				+ "?header "

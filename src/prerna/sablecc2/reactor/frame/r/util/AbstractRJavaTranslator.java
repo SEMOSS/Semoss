@@ -131,6 +131,12 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		return this.getBoolean(script);
 	}
 	
+	public boolean varExists(String varname) {
+		String script = "exists(\"" + varname + "\")";
+		return this.getBoolean(script);
+	}
+	
+	
 	/**
 	 * Alter a column to a new type
 	 * @param frameName
