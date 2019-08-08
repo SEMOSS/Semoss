@@ -40,16 +40,38 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		throw new NullPointerException("No frame found");
 	}
 	
+	/**
+	 * Quick method for {@link #getCleanNewColName(ITableDataFrame, String, String)}
+	 * using passed in frame
+	 * @param frameName
+	 * @param colName
+	 * @return
+	 */
 	protected String getCleanNewColName(String frameName, String colName) {
+		return getCleanNewColName(getFrame(), frameName, colName);
+	}
+	
+	/**
+	 * Quick method for {@link #getColNames(ITableDataFrame, String)}
+	 * using passed in frame
+	 * @param frameName
+	 * @param colName
+	 * @return
+	 */
+	protected String[] getColNames(String frameName) {
+		return getColNames(getFrame(), frameName);
+	}
+	
+	protected String getCleanNewColName(ITableDataFrame frame, String frameName, String colName) {
 		// make the new column name valid
 		HeadersException colNameChecker = HeadersException.getInstance();
-		String[] currentColumnNames = getColNames(frameName);
+		String[] currentColumnNames = getColNames(frame, frameName);
 		String validNewHeader = colNameChecker.recursivelyFixHeaders(colName, currentColumnNames);
 		return validNewHeader;
 	}
 	
-	protected String[] getColNames(String frameName) {
-		List<String> colNames = this.getFrame().getMetaData().getFrameColumnNames();
+	protected String[] getColNames(ITableDataFrame frame, String frameName) {
+		List<String> colNames = frame.getMetaData().getFrameColumnNames();
 		String[] colString = new String[colNames.size()];
 		for (int i = 0; i < colNames.size(); i++) {
 			String column = colNames.get(i);
