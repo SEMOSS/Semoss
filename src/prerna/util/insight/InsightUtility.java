@@ -103,6 +103,27 @@ public class InsightUtility {
 	}
 	
 	/**
+	 * Replaces all nouns with a specific value to point to a new noun
+	 * @param varStore
+	 * @param oldValue
+	 * @param newNoun
+	 */
+	public static void replaceNounValue(InMemStore<String, NounMetadata> varStore, Object oldValue, NounMetadata newNoun) {
+		List<String> keysToSub = new ArrayList<String>();
+		Iterator<String> curKeys = varStore.getKeys().iterator();
+		while(curKeys.hasNext()) {
+			String k = curKeys.next();
+			// can use == since i am trying to see if same reference
+			if(varStore.get(k).getValue() == oldValue) {
+				keysToSub.add(k);
+			}
+		}
+		for(String k : keysToSub) {
+			varStore.put(k, newNoun);
+		}
+	}
+	
+	/**
 	 * Will remove the variable only if the key is pointing to a frame
 	 * @param varStore
 	 * @param key
