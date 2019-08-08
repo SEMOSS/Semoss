@@ -512,7 +512,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		System.out.println("Table Synchronized as " + tableName);
 		// override frame references & table name reference
 		if(overrideExistingTable) {
-			this.nounMetaOutput.add(new NounMetadata(frameToUse, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
+			this.nounMetaOutput.add(new NounMetadata(frameToUse, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));
 			this.insight.setDataMaker(frameToUse);
 		} else {
 			this.nounMetaOutput.add(new NounMetadata(frameToUse, PixelDataType.FRAME));

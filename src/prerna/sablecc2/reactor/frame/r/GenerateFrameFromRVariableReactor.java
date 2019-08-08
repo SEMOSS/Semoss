@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.frame.r;
 
 import org.apache.log4j.Logger;
 
-import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
@@ -35,20 +34,6 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(RSyntaxHelper.cleanFrameHeaders(varName, colNames));
 		colNames = this.rJavaTranslator.getColumns(varName);
 		String[] colTypes = this.rJavaTranslator.getColumnTypes(varName);
-		// change r dataTypes such as dates, logicals, etc to be displayed as strings
-		StringBuilder dataTypeConversion = new StringBuilder();
-		for (int i = 0; i < colTypes.length; i++) {
-			SemossDataType smssType = SemossDataType.convertStringToDataType(colTypes[i]);
-			if (smssType == SemossDataType.INT || smssType == SemossDataType.DOUBLE) {
-				dataTypeConversion.append(RSyntaxHelper.alterColumnTypeToNumeric(varName, colNames[i]) + ";");
-			}
-			if (smssType == SemossDataType.STRING || smssType == SemossDataType.DATE) {
-				dataTypeConversion.append(RSyntaxHelper.alterColumnTypeToCharacter(varName, colNames[i]) + ";");
-			}
-		}
-		if (dataTypeConversion.toString().length() > 0) {
-			this.rJavaTranslator.runR(dataTypeConversion.toString());
-		}
 		if (colNames == null || colTypes == null) {
 			throw new IllegalArgumentException("Please make sure the variable " + varName + " exists and can be a valid data.table object");
 		}
