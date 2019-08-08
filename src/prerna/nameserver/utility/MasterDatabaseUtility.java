@@ -795,12 +795,14 @@ public class MasterDatabaseUtility {
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCECONCEPTID"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETCONCEPTID"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineId));
 		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
 			String startId = row[0].toString();
 			String endId = row[1].toString();
+			String relName = row[2].toString();
 
 			Map<String, String> newEdge = new Hashtable<String, String>();
 			// need to check to see if the idHash has it else put it in
@@ -808,6 +810,7 @@ public class MasterDatabaseUtility {
 			String targetName = idHash.get(endId);
 			newEdge.put("source", sourceName);
 			newEdge.put("target", targetName);
+			newEdge.put("relation", relName);
 
 			boolean foundNode = true;
 			if(!nodeHash.containsKey(sourceName)) {
@@ -818,7 +821,7 @@ public class MasterDatabaseUtility {
 			}
 
 			if(foundNode) {
-				edgeHash.put(startId + "-" + endId, newEdge);
+				edgeHash.put(startId + "-" + endId + "-" + relName, newEdge);
 			} else {
 				System.out.println("Unable to find node " + targetName);
 			}
