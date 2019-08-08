@@ -1,6 +1,8 @@
 package prerna.util.insight;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,12 +85,17 @@ public class InsightUtility {
 
 			// find all other names pointing to this frame and remove it
 			// this is because caching might load this frame
-			Set<String> curKeys = varStore.getKeys();
-			for(String k : curKeys) {
+			List<String> keysToRemove = new ArrayList<String>();
+			Iterator<String> curKeys = varStore.getKeys().iterator();
+			while(curKeys.hasNext()) {
+				String k = curKeys.next();
 				// can use == since i am trying to see if same reference
 				if(varStore.get(k) == noun) {
-					varStore.remove(k);
+					keysToRemove.add(k);
 				}
+			}
+			for(String k : keysToRemove) {
+				varStore.remove(k);
 			}
 		}
 		
