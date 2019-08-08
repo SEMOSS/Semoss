@@ -41,6 +41,32 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	}
 	
 	/**
+	 * Replace all the references in the noun store to point to a specific frame
+	 * @param frameNoun
+	 */
+	protected void setFrameInNounStore(NounMetadata frameNoun) {
+		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.toString());
+		// see if a frame is passed in
+		if (grs != null && !grs.isEmpty()) {
+			grs.removeValuesOfType(PixelDataType.FRAME);
+			grs.add(frameNoun);
+		}
+		
+		grs = this.store.getNoun(ReactorKeysEnum.FRAME.getKey());
+		// see if a frame is passed in
+		if (grs != null && !grs.isEmpty()) {
+			grs.removeValuesOfType(PixelDataType.FRAME);
+			grs.add(frameNoun);
+		}
+		
+		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
+		if(curNouns != null && !curNouns.isEmpty()) {
+			this.curRow.removeValuesOfType(PixelDataType.FRAME);
+			this.curRow.add(frameNoun);
+		}
+	}
+	
+	/**
 	 * Quick method for {@link #getCleanNewColName(ITableDataFrame, String, String)}
 	 * using passed in frame
 	 * @param frameName
