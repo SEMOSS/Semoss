@@ -7,6 +7,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
@@ -52,7 +53,15 @@ public class ConcatenateReactor extends AbstractRFrameReactor {
 		String rScript = frameName + "$" + newColName + " <- paste(" + rsb.toString() + ", sep=\"" + delim + "\")";
 		this.rJavaTranslator.executeEmptyR(rScript);
 
-		// TODO check if new column exists
+		// check if new column exists
+		String colExistsScript = "\"" + newColName + "\" %in% colnames(" + frameName + ")";
+		boolean colExists = this.rJavaTranslator.getBoolean(colExistsScript);
+		if (!colExists) {
+			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to Concatenate values");
+			SemossPixelException exception = new SemossPixelException(error);
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// update the metadata to include this new column
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
@@ -64,9 +73,9 @@ public class ConcatenateReactor extends AbstractRFrameReactor {
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, rFrame, "Concatenate",
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
-		NounMetadata retNoun = new NounMetadata(rFrame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
-				PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(rFrame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully Concatenated values into " + newColName));
 		return retNoun;
 	}
 
