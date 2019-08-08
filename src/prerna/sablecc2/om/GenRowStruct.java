@@ -1,6 +1,7 @@
 package prerna.sablecc2.om;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -172,6 +173,16 @@ public class GenRowStruct {
 			}
 		}
 		return retVector;
+	}
+	
+	public void removeValuesOfType(PixelDataType type) {
+		Iterator<NounMetadata> iterator = vector.iterator();
+		while(iterator.hasNext()) {
+			NounMetadata noun = iterator.next();
+			if(noun.getNounType() == type) {
+				iterator.remove();
+			}
+		}
 	}
 	
 	public List<Object> getAllNumericColumns() {

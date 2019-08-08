@@ -160,6 +160,8 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		MergeReactor mergeReactor = new MergeReactor();
 		mergeReactor.setInsight(this.insight);
 		mergeReactor.setPixelPlanner(planner);
+		// need to reset the store to have the updated frame we updated
+		setFrameInNounStore(new NounMetadata(frame, PixelDataType.FRAME));
 		mergeReactor.setNounStore(this.store);
 		
 		NounMetadata noun = mergeReactor.execute();
