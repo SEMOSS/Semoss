@@ -73,8 +73,8 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		OwlTemporalEngineMeta meta = frame.getMetaData();
 		for (int i = 0; i < rawColumns.length; i++) {
 			String column = rawColumns[i];
-			String dataType = meta.getHeaderTypeAsString(meta.getUniqueNameFromAlias(column));
-			if (dataType.equals("STRING")) {
+			SemossDataType dataType = meta.getHeaderTypeAsEnum(meta.getUniqueNameFromAlias(column));
+			if (dataType == SemossDataType.STRING || dataType == SemossDataType.FACTOR) {
 				stringColumns.add(column);
 			}
 		}
