@@ -27,7 +27,9 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	
 	private static final String EXPLORE_INSTANCE = "explore";
 	private static final String GRID_DELTA_INSTANCE = "grid-delta";
-	
+	private static final String AUDIT_MODIFICATION = "audit-modification";
+	private static final String AUDIT_TIMELINE = "audit-timeline";
+
 	public AddDefaultInsightsReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), INSIGHT_KEYS};
 	}
@@ -73,6 +75,26 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				newInsightId = UploadUtilities.addGridDeltaInsight(appId, insightEngine);
 				registerInsightAndMetadata(appId, newInsightId, UploadUtilities.GRID_DELTA_INSIGHT_NAME, UploadUtilities.GRID_DELTA_LAYOUT);
 				logger.info("Done adding grid delta");
+				
+				// add audit insights
+				// there could be an issue with loading the recipes to create
+				newInsightId = UploadUtilities.addAuditModificationView(appId, insightEngine);
+				if (newInsightId != null) {
+					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT);
+					logger.info("Done adding audit modification view");
+				} else {
+					additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
+				}
+				
+				newInsightId = UploadUtilities.addAuditTimelineView(appId, insightEngine);
+				if (newInsightId != null) {
+					registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME, UploadUtilities.AUDIT_TIMELINE_LAYOUT);
+					logger.info("Done adding audit timeline view");
+				} else {
+					additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
+				}
+				
+				
 			}
 		} else {
 			if(insightsToAdd.contains(EXPLORE_INSTANCE)) {
@@ -90,6 +112,37 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 				} else {
 					additionalNouns.add(NounMetadata.getWarningNounMessage("This app is not an RDBMS so grid delta insight cannot be added"));
 				}
+			}
+			if(insightsToAdd.contains(AUDIT_MODIFICATION)) {
+				if(eType == ENGINE_TYPE.RDBMS) {
+					String newInsightId = UploadUtilities.addAuditModificationView(appId, insightEngine);
+					if (newInsightId != null) {
+						addedInsight = true;
+						registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, UploadUtilities.AUDIT_MODIFICATION_VIEW_LAYOUT);
+						logger.info("Done adding audit modification view");
+					} else {
+						additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit modification view"));
+					}
+				} else {
+					additionalNouns.add(NounMetadata.getWarningNounMessage("This app is not an RDBMS so audit modification view insight cannot be added"));
+				}
+			}
+			if(insightsToAdd.contains(AUDIT_TIMELINE)) {
+				if(eType == ENGINE_TYPE.RDBMS) {
+					String newInsightId = UploadUtilities.addAuditTimelineView(appId, insightEngine);
+					if (newInsightId != null) {
+						addedInsight = true;
+						registerInsightAndMetadata(appId, newInsightId, UploadUtilities.AUDIT_TIMELINE_INSIGHT_NAME, UploadUtilities.AUDIT_TIMELINE_LAYOUT);
+						logger.info("Done adding audit timeline view");
+					} else {
+						additionalNouns.add(NounMetadata.getWarningNounMessage("Unable to add audit timeline view"));
+					}
+				} else {
+					additionalNouns.add(NounMetadata.getWarningNounMessage("This app is not an RDBMS so grid delta insight cannot be added"));
+				}
+			}
+			if(insightsToAdd.contains("")) {
+				
 			}
 		}
 		
