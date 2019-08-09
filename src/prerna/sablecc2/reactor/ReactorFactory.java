@@ -299,7 +299,6 @@ import prerna.sablecc2.reactor.planner.graph.UpdateGraphPlannerReactor2;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.DistinctReactor;
 import prerna.sablecc2.reactor.qs.ExecQueryReactor;
-import prerna.sablecc2.reactor.qs.ExecUpdateReactor;
 import prerna.sablecc2.reactor.qs.GroupReactor;
 import prerna.sablecc2.reactor.qs.ImplicitFilterOverrideReactor;
 import prerna.sablecc2.reactor.qs.InsertReactor;
@@ -746,7 +745,6 @@ public class ReactorFactory {
 		reactorHash.put("Delete", DeleteReactor.class);
 		reactorHash.put("Update", UpdateReactor.class);
 		reactorHash.put("ExecQuery", ExecQueryReactor.class);
-		reactorHash.put("ExecUpdate", ExecUpdateReactor.class);
 		
 		// If is in its own category
 		reactorHash.put("if", IfReactor.class);
