@@ -10,6 +10,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.delete.DeleteSqlInterpreter;
@@ -45,7 +46,7 @@ public class ExecQueryReactor extends AbstractReactor {
 		
 		if(qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
-			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				engine = qs.retrieveQueryStructEngine();
 				if(!(engine instanceof RDBMSNativeEngine)) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms databases");
@@ -76,8 +77,13 @@ public class ExecQueryReactor extends AbstractReactor {
 		}
 		
 		boolean update = false;
+		boolean custom = false;
 		String query = null;
-		if(qs instanceof UpdateQueryStruct) {
+		// grab query && determine how to store in audit db
+		if(qs instanceof HardSelectQueryStruct) {
+			query = ((HardSelectQueryStruct) qs).getQuery();
+			custom = true;
+		} else if(qs instanceof UpdateQueryStruct) {
 			UpdateSqlInterpreter interp = new UpdateSqlInterpreter((UpdateQueryStruct) qs);
 			query = interp.composeQuery();
 			update = true;
@@ -88,31 +94,34 @@ public class ExecQueryReactor extends AbstractReactor {
 		}
 		
 		System.out.println("SQL QUERY...." + query);
-		if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE) {
+		if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			try {
 				engine.insertData(query);
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(
-						new NounMetadata("An error occured trying to update the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(NounMetadata.getErrorNounMessage("An error occured trying to execute the query in the database"));
 			}
+			// store query in audit db
 			AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
-			if(update) {
-				audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+			if (custom) {
+				audit.storeQuery(userId, query);
 			} else {
-				audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
+				if (update) {
+					audit.auditUpdateQuery((UpdateQueryStruct) qs, userId, query);
+				} else {
+					audit.auditDeleteQuery((SelectQueryStruct) qs, userId, query);
+				}
 			}
+	
 		} else {
 			try {
 				((H2Frame) frame).getBuilder().runQuery(query);
 			} catch (Exception e) {
 				e.printStackTrace();
-				throw new SemossPixelException(
-						new NounMetadata("An error occured trying to update the frame", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				throw new SemossPixelException(NounMetadata.getErrorNounMessage("An error occured trying to update the frame"));
 
 			}
 		}
-		
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
 	
