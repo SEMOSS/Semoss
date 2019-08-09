@@ -313,6 +313,15 @@ public class AuditDatabase {
 		execQ(getAuditQueryLog(new Object[]{id, "DELETE", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
 	}
 	
+	/**
+	 * Store custom query into query log
+	 * @param userId
+	 * @param query
+	 */
+	public void storeQuery(String userId, String query) {
+		execQ(getAuditQueryLog(new Object[]{userId, "CUSTOM", RdbmsQueryBuilder.escapeForSQLStatement(query)}));
+	}
+	
 	private String getAuditInsert(Object[] data) {
 		String[] headers = new String[]{"ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
 		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
