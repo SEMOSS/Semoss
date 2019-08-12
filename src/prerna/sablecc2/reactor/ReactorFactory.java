@@ -1219,7 +1219,8 @@ public class ReactorFactory {
 		rFrameHash.put("UpdateRowValues", prerna.sablecc2.reactor.frame.r.UpdateRowValuesReactor.class);
 		rFrameHash.put("Discretize", prerna.sablecc2.reactor.frame.r.DiscretizeReactor.class);
 		rFrameHash.put("DateExpander", prerna.sablecc2.reactor.frame.r.DateExpanderReactor.class);
-		
+		rFrameHash.put("DateDifference", prerna.sablecc2.reactor.frame.r.DateDifferenceReactor.class);
+
 		// frame stats
 		rFrameHash.put("ColumnCount", prerna.sablecc2.reactor.frame.r.ColumnCountReactor.class);
 		rFrameHash.put("DescriptiveStats", prerna.sablecc2.reactor.frame.r.DescriptiveStatsReactor.class);
