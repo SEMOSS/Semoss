@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
@@ -72,11 +71,31 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 			// creates the rds table to rbind to later
 			this.rJavaTranslator.runR(rdsFrame + " <- readRDS(\"" + filePath + "\");");
 
-			// remove the duplicate columns if desired
+			// if updating existing, then remove the current values
+			// otherwise, skip the duplicate columns to improve performance
 			if (!addDuplicates) {
 				String existingColsScript = "unique(" + rdsFrame + "[" + rdsFrame + "$AppID == \"" + appId + "\",]$Column);";
 				String[] existingCols = this.rJavaTranslator.getStringArray(existingColsScript);
 				colFilters.removeAll(Arrays.asList(existingCols));
+			} else {
+				// get the current columns that we have in that app
+				String existingColsScript = "unique(" + rdsFrame + "[" + rdsFrame + "$AppID == \"" + appId + "\",]$Column);";
+				List<String> existingCols = Arrays.asList(this.rJavaTranslator.getStringArray(existingColsScript));
+				
+				// get the intersection of existing columns and columns inputted
+				ArrayList<String> colsToRemove = new ArrayList<String>(existingCols);
+				colsToRemove.retainAll(colFilters);
+				
+				// now remove the current ones that we are about to replace with this script
+				String removeScript = rdsFrame + " <- " + rdsFrame + "[( ";
+				String amp = "";
+				for (String col : colsToRemove ) {
+					removeScript += amp;
+					amp = " & ";
+					removeScript += "!("+rdsFrame+"$AppID==\""+appId+"\" & "+rdsFrame+"$Column==\""+col+"\")";
+				}
+				removeScript += " ),];";
+				this.rJavaTranslator.runR(removeScript);
 			}
 		}
 		
