@@ -224,7 +224,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 				+ "validate_like" + " ); gc();";
 		this.rJavaTranslator.executeEmptyR(gc);
 
-		String returnPixel = generatePixelFromRec(recommendations, cols, frameName);
+		String returnPixel = generatePixelFromRec(recommendations, cols, frameName, metadata);
 		PixelRunner runner = this.insight.runPixel(returnPixel);
 		return runner.getResults().get(0);
 //		Map<String, Object> runnerWraper = new HashMap<String, Object>();
@@ -248,9 +248,17 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 	}
 
 	private String generatePixelFromRec(Map<String, HashMap<String, String>> recommendations, List<String> columns,
-			String frameName) {
+			String frameName, OwlTemporalEngineMeta metadata) {
 		StringBuilder pixel = new StringBuilder();
 		String chartType = recommendations.keySet().toArray()[0].toString();
+		
+		// get the label to ensure that it is not averaged if number
+		String label = "";
+		for (Map.Entry<String, String> entry : recommendations.get(chartType).entrySet()) {
+			if(entry.getKey().equals("label")) {
+				label = entry.getValue();
+			}
+		}
 		
 		//prep to catch the error
 		pixel.append("ifError( ( ");
@@ -262,17 +270,28 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		String selectString = "Select ( ";
 		String aliasString = ".as ( [ ";
 		String delim = "";
+		List<String> groupedCols = new ArrayList<String>();
 		for (String col : columns) {
+			// check data type to see if num and store grouped column if string and not label
+			String dataType = metadata.getHeaderTypeAsString(frameName + "__" + col);
+			
 			// handle comma issue
 			selectString += delim;
 			aliasString += delim;
 			delim = " , ";
 
 			// add to the select and alias strings
+			// if it is a number, default group it as an average if not label
 			if (col.contains("__")) {
 				col = col.split("__")[1];
 			}
-			selectString += Utility.cleanVariableString(col);
+			if(!label.equals(col) && (Utility.isIntegerType(dataType) || Utility.isDoubleType(dataType))) {
+				selectString += "Average ( " + Utility.cleanVariableString(col) + " )";
+			} else {
+				selectString += Utility.cleanVariableString(col);
+				groupedCols.add(Utility.cleanVariableString(col));
+			}
+			
 
 			// clean the alias string then append also
 			if (col.contains("__")) {
@@ -281,6 +300,16 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 			aliasString += Utility.cleanVariableString(col);
 		}
 		pixel.append(selectString + " ) ").append(aliasString + " ] ) | ");
+		
+		// add the grouping in the case where we had to make an average
+		pixel.append("Group( ");
+		delim = "";
+		for (String col : groupedCols) {
+			pixel.append(delim);
+			delim = " , ";
+			pixel.append(col);
+		}
+		pixel.append( ") | ");
 
 		// Now add some formatting
 		pixel.append("With ( Panel ( 0 ) ) | Format ( type = [ 'table' ] ) | ");
