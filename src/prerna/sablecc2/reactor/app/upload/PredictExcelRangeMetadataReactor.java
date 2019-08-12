@@ -28,7 +28,7 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String filePath = this.keyValue.get(this.keysToGet[0]);
+		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		String sheetName = this.keyValue.get(this.keysToGet[1]);
 		String sheetRange = this.keyValue.get(this.keysToGet[2]);
 		
