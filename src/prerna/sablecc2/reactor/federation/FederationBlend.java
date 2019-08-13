@@ -28,6 +28,11 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+/*
+ * Please use {@link #FuzzyMergeReactor.class}
+ */
+
+@Deprecated
 public class FederationBlend extends AbstractRFrameReactor {
 	
 	public static final String JOIN_TYPE = "joinType";

@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -81,7 +82,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 			ITask it1 = getTask(0);
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 			File newFile = Utility.writeResultToFile(newFileLoc, it1, null, "\t");
-			String loadFileRScript = rCol1 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
+			String loadFileRScript = RSyntaxHelper.getFReadSyntax(rCol1, newFile.getAbsolutePath(), "\t");
 			script.append(loadFileRScript);
 			cleanUpFiles.add(newFile);
 		}
@@ -112,7 +113,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 				ITask it2 = new BasicIteratorTask(iterator);
 				String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 				File newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
-				String loadFileRScript = rCol2 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
+				String loadFileRScript = RSyntaxHelper.getFReadSyntax(rCol2, newFile.getAbsolutePath(), "\t");
 				script.append(loadFileRScript);
 				cleanUpFiles.add(newFile);
 			}
@@ -123,12 +124,12 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 			ITask it2 = getTask(1);
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
 			File newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
-			String loadFileRScript = rCol2 + " <- fread(\"" + newFile.getAbsolutePath().replace("\\", "/") + "\", sep=\"\t\");";
+			String loadFileRScript = RSyntaxHelper.getFReadSyntax(rCol2, newFile.getAbsolutePath(), "\t");
 			script.append(loadFileRScript);
 			cleanUpFiles.add(newFile);
 		}
 
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		// source the script
 		script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/Recommendations/advanced_federation_blend.r\");");
 		// create the matches frame using the best_match method
