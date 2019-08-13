@@ -1787,6 +1787,20 @@ public class MasterDatabaseUtility {
 	}
 
 	/**
+	 * Get an engine type for an id
+	 * @return
+	 */
+	public static String getEngineTypeForId(String id) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ID", "==", id));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		return flushToString(wrapper);
+	}
+	
+	/**
 	 * Try to reconcile and get the engine id
 	 * @param engineId
 	 * @return
