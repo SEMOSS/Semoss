@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
@@ -121,6 +122,12 @@ public interface IExplorable {
 	Object execOntoSelectQuery(String query);
 	
 	RDBMSNativeEngine getInsightDatabase();
+	
+	/**
+	 * Generate an audit database
+	 */
+	AuditDatabase generateAudit();
+	
 
 	void setInsightDatabase(RDBMSNativeEngine insightDatabase);
 	
