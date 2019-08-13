@@ -20,6 +20,11 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+/*
+ * Please use {@link #FuzzyMatchesReactor.class}
+ */
+
+@Deprecated
 public class FederationBestMatches extends AbstractRFrameReactor {
 	
 	public static final String FRAME_COLUMN = "frameCol";	
