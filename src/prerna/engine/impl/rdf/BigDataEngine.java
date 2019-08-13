@@ -172,22 +172,16 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	 * @param query the INSERT or INSERT DATA SPARQL query to be run against the engine
 	 */
 	@Override
-	public void insertData(String query) {
+	public void insertData(String query) throws Exception {
 		Update up;
-		try {
-			up = rc.prepareUpdate(QueryLanguage.SPARQL, query);
-			logger.debug("\nSPARQL: " + query);
-			rc.setAutoCommit(false);
-			rc.begin();
-			up.execute();
-			
-			ie.computeClosure(null);
-			sc.commit();
-			rc.commit();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		up = rc.prepareUpdate(QueryLanguage.SPARQL, query);
+		logger.debug("\nSPARQL: " + query);
+		rc.setAutoCommit(false);
+		rc.begin();
+		up.execute();
+		ie.computeClosure(null);
+		sc.commit();
+		rc.commit();
 	}
 
 	/**
@@ -436,7 +430,7 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 	}
 
 	@Override
-	public void removeData(String query) {
+	public void removeData(String query) throws Exception {
 		insertData(query);
 	}
 
