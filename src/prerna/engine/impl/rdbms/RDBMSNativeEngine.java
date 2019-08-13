@@ -104,11 +104,6 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	private String fileDB = null;
 	private String createString = null;
 
-	/**
-	 * This is used for tracking audit modifications 
-	 */
-	private AuditDatabase auditDatabase = null;
-	
 	@Override
 	public void openDB(String propFile)
 	{
@@ -492,9 +487,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				}
 			}
 			closeDataSource();
-			if(auditDatabase != null) {
-				auditDatabase.close();
-			}
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -823,19 +816,4 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
 
-	/**
-	 * Get an audit database for making modifications in a relational database
-	 */
-	
-	/**
-	 * Generate an audit database
-	 * @param appId
-	 */
-	public synchronized AuditDatabase generateAudit() {
-		if(this.auditDatabase == null) {
-			this.auditDatabase = new AuditDatabase();
-			this.auditDatabase.init(this, this.engineId, this.engineName);
-		}
-		return this.auditDatabase;
-	}
 }

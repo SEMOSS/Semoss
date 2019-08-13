@@ -21,6 +21,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IExplorable;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
@@ -597,6 +598,12 @@ public class MetaHelper implements IExplorable {
 		while(manager.hasNext()) {
 			return manager.next().getValues()[0].toString();
 		}
+		return null;
+	}
+
+	@Override
+	public AuditDatabase generateAudit() {
+		// TODO Auto-generated method stub
 		return null;
 	}
 }
