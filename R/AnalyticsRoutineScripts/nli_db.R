@@ -201,22 +201,25 @@ db_match_extension<-function(txt,cols){
 		if(nrow(x)>0){
 			candidates<-cols[x$idx]
 			n<-length(candidates)
-			for(i in 1:n){
+			for(i in 1:n){			
 				singles<-unique(df[df$idx %in% x$idx[i],]$word)
-				seq_idx<-which(words %in% singles)
-				seq_idx<-seq_idx[order(seq_idx)]
-				seq_idx<-get_max_seq(seq_idx)
-				if(length(seq_idx)>1){
-					m<-length(seq_idx)
-					candidate<-tolower(candidates[i])
-					for(j in seq_idx){	
-						candidate<-gsub(tolower(words[j]),"",candidate)
-					}
-					candidate<-gsub("[[:punct:]]","",candidate)
-					if(nchar(candidate)==0){
-						# Found multiple words column
-						out[seq_idx]<-""
-						out[seq_idx[1]]<-candidates[i]
+				seq_idx<-which(out %in% singles)
+				if(length(seq_idx)>0){
+					seq_idx<-seq_idx[order(seq_idx)]
+					seq_idx<-get_max_seq(seq_idx)
+					
+					if(length(seq_idx)>1){
+						m<-length(seq_idx)
+						candidate<-tolower(candidates[i])
+						for(j in seq_idx){	
+							candidate<-gsub(tolower(words[j]),"",candidate)
+						}
+						candidate<-gsub("[[:punct:]]","",candidate)
+						if(nchar(candidate)==0){
+							# Found multiple words column
+							out[seq_idx]<-""
+							out[seq_idx[1]]<-candidates[i]
+						}
 					}
 				}
 			}
@@ -345,7 +348,7 @@ get_start<-function(parsed_df){
 	if(root$itemtype=="column"){
 		# Identify possible select nodes
 		kids<-parsed_df[parsed_df$head_token_id==root$token_id,]
-		select_tree<-kids[!(kids$dep_rel %in% c("nmod","obj","acl","obl","conj")) & kids$xpos != "JJR",]
+		select_tree<-kids[!(kids$dep_rel %in% c("nmod","obj","acl","obl","conj","acl:relcl")) & (kids$xpos != "JJR" | kids$dep_rel %in% "amod"),]
 		# additional nodes using conjunction
 		r<-get_conj(parsed_df,kids)
 		if(nrow(select_tree)>0){
@@ -368,7 +371,9 @@ get_start<-function(parsed_df){
 		}
 		if(nrow(obj)>0){
 			# Identify possible select nodes
-			out[[2]]<-get_subtree(parsed_df,as.integer(obj$token_id))
+			#out[[2]]<-get_subtree(parsed_df,as.integer(obj$token_id))
+			# include root
+			out[[2]]<-rbind(root,get_subtree(parsed_df,as.integer(obj$token_id)))
 		}
 	}
 	return(out)
@@ -562,8 +567,13 @@ expose_column<-function(tbls,joins,value,cur_values,threshold=0.9){
 	library(igraph)
 	library(stringdist)
 	new_col<-vector()
-	matches<-stringsim(tolower(cur_values$Value),tolower(value),method='jw', p=0.1)
-	ind<-which(matches>=threshold & matches==max(matches))
+	if(grepl("%",value,fixed=TRUE)){
+		wildcard<-paste0("^",gsub("%","[A-z0-9_:punct:]*",value),"$")
+		ind<-grep(wildcard, cur_values$Value, ignore.case=TRUE)
+	}else{
+		matches<-stringsim(tolower(cur_values$Value),tolower(value),method='jw', p=0.1)
+		ind<-which(matches>=threshold & matches==max(matches))
+	}
 	col_rows <-unique(cur_values[ind,])
 	if(nrow(col_rows)==1){
 		new_col[1]<-col_rows$Column[1]
@@ -599,6 +609,13 @@ get_where<-function(where_df,tbls,joins,cur_values){
 	if(nrow(where_df)>0){
 		where_df$processed="no"
 		top_nodes<-where_df[!(where_df$head_token_id %in% where_df$token_id) & !(where_df$dep_rel %in% c("case","cc")) & where_df$processed=="no",]
+		token_id<-top_nodes[substr(top_nodes$xpos,1,2)=="VB",]$token_id
+		if(length(token_id)>0){
+			where_df<-where_df[!(where_df$token_id %in% token_id),]
+			if(nrow(where_df)>0){
+				top_nodes<-where_df[!(where_df$head_token_id %in% where_df$token_id) & !(where_df$dep_rel %in% c("case","cc")) & where_df$processed=="no",]
+			}
+		}
 		n<-nrow(top_nodes)
 		if(n>0){
 			for(i in 1:n){
@@ -612,7 +629,8 @@ get_where<-function(where_df,tbls,joins,cur_values){
 		top_nodes<-where_df[!(where_df$head_token_id %in% where_df$token_id) & !(where_df$dep_rel %in% c("case","cc")) & where_df$processed=="no",]
 		while(nrow(top_nodes)>0){
 			node<-top_nodes[1,]
-			if(node$dep_rel %in% c("nmod","conj","obl","obj") & node$xpos!="JJR" & node$itemtype!="column"){
+			# included root/acl:relcl as it can be potential column value
+			if(node$dep_rel %in% c("nmod","conj","obl","obj","root","acl:relcl","xcomp") & node$xpos!="JJR" & substr(node$xpos,1,2)!="VB" & node$itemtype!="column"){
 				child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype=="column" & where_df$processed=="no",]
 				if(nrow(child)>0){
 					right_part<-validate_like(node$token)
@@ -635,15 +653,24 @@ get_where<-function(where_df,tbls,joins,cur_values){
 						# Here is the place where we can determine potential column name by matching
 						# value node$token to a column that contains such a value for strings
 						# if value is non numeric
-						options(warn=-1)
-						if(is.na(as.numeric(node$token))){
-							new_col<-expose_column(tbls,joins,node$token,cur_values)
-							if(length(new_col)==2){
-								exposed_cols<-append(exposed_cols,new_col[1])
-								where_part<-append(where_part,paste0(new_col[1]," = ",gsub(" ","_",new_col[2])))
+						# single quotes indicate that it is not a values of a column to lookup
+						if(substr(node$source,1,1)!="'" & substr(node$source,nchar(node$source),nchar(node$source))!="'"){
+							options(warn=-1)
+							if(is.na(as.numeric(node$token))){	
+								new_col<-expose_column(tbls,joins,node$token,cur_values)
+								if(length(new_col)==2){							
+									if(grepl("%",node$token,fixed=TRUE)){
+										oper<-" ?like "
+										new_col[2]<-node$token
+									}else{
+										oper<-" = "
+									}
+									exposed_cols<-append(exposed_cols,new_col[1])
+									where_part<-append(where_part,paste0(new_col[1],oper,gsub(" ","_",new_col[2])))
+								}
 							}
+							options(warn=0)
 						}
-						options(warn=0)
 					}
 				}
 			}else if(node$xpos=="JJR" & node$itemtype!="column"){
@@ -676,37 +703,27 @@ get_where<-function(where_df,tbls,joins,cur_values){
 					where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 				}
 			}else if(node$dep_rel %in% c("nmod","conj","compound") & node$itemtype=="column"){
-				child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype!="column" & where_df$dep_rel %in% c("flat","fixed","compound") & where_df$processed=="no",]
+				child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype!="column" & where_df$dep_rel %in% c("flat","fixed","compound","nummod") & where_df$processed=="no",]
 				if(nrow(child)>0){
 					right_part<-validate_like(child$token[1])
 					where_part<-append(where_part,paste0(node$item,right_part))
 					#where_part<-append(where_part,paste0(node$item," = ",child$token[1]))
 					where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 				}else{
-					child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype!="column" & where_df$dep_rel %in% c("amod","advmod") & where_df$xpos=="JJR" & where_df$processed=="no",]
+					child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype!="column" & where_df$dep_rel %in% c("amod") & where_df$xpos=="JJ" & where_df$processed=="no",]
 					if(nrow(child)>0){
-						nephew<-where_df[where_df$head_token_id==child$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
-						if(nrow(nephew)>0){				
-							niece<-where_df[where_df$head_token_id==child$token_id[1] & tolower(where_df$token) %in% c("not","no") & where_df$processed=="no",]
-							discourse<-!nrow(niece)==0
-							oper<-translate_token(child$token[1],discourse)
-							if(oper!=""){
-								where_part<-append(where_part,paste0(node$item,oper,nephew$token[1]))
-							}
-							where_df[where_df$token_id==nephew$token_id[1],"processed"]<-"yes"
-							if(discourse){
-								where_df[where_df$token_id==niece$token_id[1],"processed"]<-"yes"
-							}
-						}
+						right_part<-validate_like(child$token[1])
+						where_part<-append(where_part,paste0(node$item,right_part))
+						#where_part<-append(where_part,paste0(node$item," = ",child$token[1]))
 						where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 					}else{
-						sibling<-where_df[where_df$head_token_id==node$head_token_id & where_df$dep_rel=="amod" & where_df$xpos=="JJR" & where_df$processed=="no",]
-						if(nrow(sibling)>0){
-							nephew<-where_df[where_df$head_token_id==sibling$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
-							if(nrow(nephew)>0){
-								niece<-where_df[where_df$head_token_id==sibling$token_id[1] & tolower(where_df$token) %in% c("not","no") & where_df$processed=="no",]
+						child<-where_df[where_df$head_token_id==node$token_id & where_df$itemtype!="column" & where_df$dep_rel %in% c("amod","advmod") & where_df$xpos=="JJR" & where_df$processed=="no",]
+						if(nrow(child)>0){
+							nephew<-where_df[where_df$head_token_id==child$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
+							if(nrow(nephew)>0){				
+								niece<-where_df[where_df$head_token_id==child$token_id[1] & tolower(where_df$token) %in% c("not","no") & where_df$processed=="no",]
 								discourse<-!nrow(niece)==0
-								oper<-translate_token(sibling$token[1],discourse)
+								oper<-translate_token(child$token[1],discourse)
 								if(oper!=""){
 									where_part<-append(where_part,paste0(node$item,oper,nephew$token[1]))
 								}
@@ -715,15 +732,15 @@ get_where<-function(where_df,tbls,joins,cur_values){
 									where_df[where_df$token_id==niece$token_id[1],"processed"]<-"yes"
 								}
 							}
-							where_df[where_df$token_id==sibling$token_id[1],"processed"]<-"yes"
+							where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 						}else{
-							cousin<-where_df[where_df$head_token_id==node$head_token_id & where_df$xpos=="JJR" & where_df$processed=="no",]
-							if(nrow(cousin)>0){
-								nephew<-where_df[where_df$head_token_id==cousin$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
+							sibling<-where_df[where_df$head_token_id==node$head_token_id & where_df$dep_rel=="amod" & where_df$xpos=="JJR" & where_df$processed=="no",]
+							if(nrow(sibling)>0){
+								nephew<-where_df[where_df$head_token_id==sibling$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
 								if(nrow(nephew)>0){
-									niece<-where_df[where_df$head_token_id==cousin$token_id[1] & tolower(where_df$token) %in% c("not","no") & where_df$processed=="no",]
+									niece<-where_df[where_df$head_token_id==sibling$token_id[1] & tolower(where_df$token) %in% c("not","no") & where_df$processed=="no",]
 									discourse<-!nrow(niece)==0
-									oper<-translate_token(cousin$token[1],discourse)
+									oper<-translate_token(sibling$token[1],discourse)
 									if(oper!=""){
 										where_part<-append(where_part,paste0(node$item,oper,nephew$token[1]))
 									}
@@ -732,13 +749,32 @@ get_where<-function(where_df,tbls,joins,cur_values){
 										where_df[where_df$token_id==niece$token_id[1],"processed"]<-"yes"
 									}
 								}
-								where_df[where_df$token_id==cousin$token_id[1],"processed"]<-"yes"
+								where_df[where_df$token_id==sibling$token_id[1],"processed"]<-"yes"
 							}else{
-								group_part<-append(group_part,node$item)
-								where_df[where_df$token_id==node$token_id,"processed"]<-"yes"
+								cousin<-where_df[where_df$head_token_id==node$head_token_id & where_df$xpos=="JJR" & where_df$processed=="no",]
+								if(nrow(cousin)>0){
+									nephew<-where_df[where_df$head_token_id==cousin$token_id[1] & where_df$dep_rel=="obl" & where_df$xpos=="CD" & where_df$processed=="no",]
+									if(nrow(nephew)>0){
+										niece<-where_df[where_df$head_token_id==cousin$token_id[1] & tolower(where_df$token) %in% c("not","no") & where_df$processed=="no",]
+										discourse<-!nrow(niece)==0
+										oper<-translate_token(cousin$token[1],discourse)
+										if(oper!=""){
+											where_part<-append(where_part,paste0(node$item,oper,nephew$token[1]))
+										}
+										where_df[where_df$token_id==nephew$token_id[1],"processed"]<-"yes"
+										if(discourse){
+											where_df[where_df$token_id==niece$token_id[1],"processed"]<-"yes"
+										}
+									}
+									where_df[where_df$token_id==cousin$token_id[1],"processed"]<-"yes"
+								}else{
+									group_part<-append(group_part,node$item)
+									where_df[where_df$token_id==node$token_id,"processed"]<-"yes"
+								}
 							}
 						}
 					}
+						
 				}
 			}else if(node$dep_rel=="obj" & node$itemtype=="column"){
 				child<-where_df[where_df$head_token_id==node$token_id & tolower(where_df$token) %in% c("best","highest","worst","lowest") & where_df$processed=="no",]
@@ -854,13 +890,16 @@ get_subtree<-function(df,leaves,excl=vector()){
 
 parse_request<-function(df_in,db,refine){
 	# map nouns to db items
-	if(refine){
-		df1<-tag_dbitems(df_in,db)
-	}else{
-		df1<-map_dbitems(df_in,db)
-	}
+	#if(refine){
+	# does not work in some cases
+	#	df1<-tag_dbitems(df_in,db)
+	#}else{
+	#	df1<-map_dbitems(df_in,db)
+	#}
 	# to handle column names that are not words of English language
+	df1<-map_dbitems(df_in,db)
 	df<-refine_parsing(df1)
+	df$source<-df1$token
 	gc()
 	return(df)
 }
@@ -878,7 +917,7 @@ tag_dbitems<-function(df_in,db){
 	y[is.na(y)]<-""
 	z[is.na(z)]<-""
 	df_in$item<-y
-	df_in$itemdatatype<-y
+	df_in$itemdatatype<-z
 	df_in[df_in$item != "","itemtype"]<-"column"
 	return(df_in)
 }
@@ -905,7 +944,7 @@ parse_question<-function(txt){
 }
 
 parse_question_mgr<-function(txt){
-	STOPWORDS<-c("a","the","here","there","it","he","she","they","which","what","who")
+	STOPWORDS<-c("a","the","here","there","it","he","she","they","which","what","who","and")
 	FIRSTWORDS<-c("select","show","display","present","list","find","locate")
 	
 	# update text by removing stop words
@@ -1077,7 +1116,7 @@ map_dbitems<-function(df,db,pos="ALL"){
 }
 
 refine_parsing<-function(df){
-	ind<-as.integer(df[df$itemtype %in% c("column","table") & substr(df$xpos,1,2)!="NN","token_id"])
+	ind<-as.integer(df[df$itemtype %in% c("column","table") & substr(df$xpos,1,2)!="NN" & df$dep_rel!="amod","token_id"])
 	if(length(ind)>0){
 		mydf<-df
 		mydf$token[ind]<-"epiphany"
@@ -1135,8 +1174,18 @@ connect_tables<-function(tbls,joins){
 					if(distances[i,j]>1){
 						paths<-all_simple_paths(g,from=tbls[i],to=tbls[j])
 						lengths<-sapply(paths, length)
-						idx<-which.min(lengths)
-						tbls<-unique(append(tbls,names(paths[[idx]])))
+						#idx<-which.min(lengths)
+						idx<-which(lengths==min(lengths))
+						m<-length(idx)
+						min_cnt<-0
+						for(k in 1:m){
+							cnt<-length(which(!(names(paths[[idx[k]]]) %in% tbls)))
+							if(k==1 | cnt < min_cnt){
+								min_idx<-k
+								min_cnt<-cnt
+							}
+						}
+						tbls<-unique(append(tbls,names(paths[[idx[min_idx]]])))
 					}
 				}
 			}
