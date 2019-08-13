@@ -61,6 +61,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.nameserver.utility.MetamodelVertex;
@@ -128,6 +129,11 @@ public abstract class AbstractEngine implements IEngine {
 	private Hashtable<String, String> baseDataHash;
 	
 	private boolean isBasic = false;
+
+	/**
+	 * This is used for tracking audit modifications 
+	 */
+	private AuditDatabase auditDatabase = null;
 
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -211,6 +217,9 @@ public abstract class AbstractEngine implements IEngine {
 		if(this.insightRdbms != null) {
 			LOGGER.debug("closing its insight engine ");
 			this.insightRdbms.closeDB();
+		}
+		if (auditDatabase != null) {
+			auditDatabase.close();
 		}
 	}
 	
@@ -1056,6 +1065,17 @@ public abstract class AbstractEngine implements IEngine {
 		return this.prop;
 	}
 	
+	/**
+	 * Get an audit database for making modifications in a database
+	 */
+	@Override
+	public synchronized AuditDatabase generateAudit() {
+		if(this.auditDatabase == null) {
+			this.auditDatabase = new AuditDatabase();
+			this.auditDatabase.init(this, this.engineId, this.engineName);
+		}
+		return this.auditDatabase;
+	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	

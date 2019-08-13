@@ -9,6 +9,7 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
@@ -48,8 +49,8 @@ public class ExecQueryReactor extends AbstractReactor {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				engine = qs.retrieveQueryStructEngine();
-				if(!(engine instanceof RDBMSNativeEngine)) {
-					throw new IllegalArgumentException("Query update/deletes only works for rdbms databases");
+				if(!(engine instanceof BigDataEngine || engine instanceof RDBMSNativeEngine)) {
+					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
 				
 				// If an engine and the user is defined, then grab it for the audit log
@@ -93,7 +94,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			update = false;
 		}
 		
-		System.out.println("SQL QUERY...." + query);
+		System.out.println("QUERY...." + query);
 		if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			try {
 				engine.insertData(query);
@@ -102,7 +103,7 @@ public class ExecQueryReactor extends AbstractReactor {
 				throw new SemossPixelException(NounMetadata.getErrorNounMessage("An error occured trying to execute the query in the database"));
 			}
 			// store query in audit db
-			AuditDatabase audit = ((RDBMSNativeEngine) engine).generateAudit();
+			AuditDatabase audit = engine.generateAudit();
 			if (custom) {
 				audit.storeQuery(userId, query);
 			} else {
