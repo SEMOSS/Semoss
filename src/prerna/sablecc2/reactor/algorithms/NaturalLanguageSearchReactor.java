@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.algorithms;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +40,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 	protected static final String CLASS_NAME = NaturalLanguageSearchReactor.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	private static LinkedHashMap<String, String> appIdToTypeStore = new LinkedHashMap<String, String>(250);
+	
 	public NaturalLanguageSearchReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.APP.getKey() };
 	}
@@ -433,7 +437,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				}
 				NounMetadata lhs = new NounMetadata(selector, PixelDataType.COLUMN);
 				
-				
 				if(!whereValueAgg.toString().isEmpty()) {
 					// let us address the portion when we have a 
 					// min or max on another column
@@ -742,7 +745,12 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						}
 						psb.append("]");
 					} else { 
-						psb.append("\"" + rhs.getValue() + "\"");
+						// if it is an RDF database make sure that the wild card is *
+						String value = rhs.getValue().toString();
+						if(value.contains("%") && getAppTypeFromId(appId).equals("TYPE:RDF")) {
+							value = value.replaceAll("%", "*");
+						}
+						psb.append("\"" + value + "\"");
 					}
 				} else {
 					Object val = rhs.getValue();
@@ -917,6 +925,43 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			aliases.add(sel.getAlias());
 		}
 		return aliases;
+	}
+	
+	////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////
+	
+	/*
+	* Utility
+	*/
+	
+	/**
+	 * Utilize a static cache so we do not query local master to get the type of an engine every time
+	 * @param appId
+	 * @return
+	 */
+	private static String getAppTypeFromId(String appId) {
+		String type = appIdToTypeStore.get(appId);
+		if(type != null) {
+			return type;
+		}
+		
+		// store the result so we don't need to query all the time
+		type = MasterDatabaseUtility.getEngineTypeForId(appId);
+		appIdToTypeStore.put(appId, type);
+		if(appIdToTypeStore.size() > 200) {
+			synchronized(appIdToTypeStore) {
+				if(appIdToTypeStore.size() > 100) {
+					// it should be ordered from first to last
+					Iterator<String> it = appIdToTypeStore.keySet().iterator();
+					int counter = 0;
+					while(it.hasNext() && counter < 100) {
+						appIdToTypeStore.remove(it.next());
+					}
+				}
+			}
+		}
+		return type;
 	}
 	
 }
