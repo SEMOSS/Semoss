@@ -124,26 +124,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		// add the git here
 		String recipePath = retFile.getParent();
-		try {
-			Git.init().setDirectory(new File(recipePath)).call();
-			Git.open(new File(recipePath)).close();
-		} catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (GitAPIException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		// add everything and commit
-		GitRepoUtils.addAllFiles(recipePath, true);
-		
-		// commit it
-		GitRepoUtils.commitAddedFiles(recipePath);
 
+		// adding all the git here
+		// make a version folder if one doesn't exist
+		GitRepoUtils.init(recipePath);
 		
 		
 		// write pipeline

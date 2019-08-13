@@ -32,6 +32,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor {
 
@@ -274,6 +275,16 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			e.printStackTrace();
 		}
 		this.tempSmss.delete();
+		
+		// adding all the git here
+		// make a version folder if one doesn't exist
+		String versionFolder = appFolder.getAbsolutePath() + "/version";
+		File file = new File(versionFolder);
+		if(!file.exists())
+			file.mkdir();
+		// I will assume the directory is there now
+		GitRepoUtils.init(versionFolder);
+
 	}
 
 	/**

@@ -16,6 +16,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 //import org.python.google.common.io.Files;
 
+
 import com.google.common.io.Files;
 
 import prerna.auth.AuthProvider;
@@ -41,6 +42,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsExternalUploadReactor extends AbstractReactor {
@@ -119,7 +121,21 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			// sync metadata
 			this.logger.info("Process app metadata to allow for traversing across apps");
 			UploadUtilities.updateMetadata(this.appId);
+			
+			
+			// adding all the git here
+			// make a version folder if one doesn't exist
+			String versionFolder = appFolder.getAbsolutePath() + "/version";
+			File file = new File(versionFolder);
+			if(!file.exists())
+				file.mkdir();
+			// I will assume the directory is there now
+			GitRepoUtils.init(versionFolder);
+
+			
 			this.logger.info("Complete");
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			this.error = true;

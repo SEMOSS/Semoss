@@ -23,6 +23,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public abstract class AbstractUploadFileReactor extends AbstractReactor {
 
@@ -154,6 +155,16 @@ public abstract class AbstractUploadFileReactor extends AbstractReactor {
 				// sync metadata
 				this.logger.info("Process app metadata to allow for traversing across apps");
 				UploadUtilities.updateMetadata(this.appId);
+				
+				// adding all the git here
+				// make a version folder if one doesn't exist
+				String versionFolder = appFolder.getAbsolutePath() + "/version";
+				File file = new File(versionFolder);
+				if(!file.exists())
+					file.mkdir();
+				// I will assume the directory is there now
+				GitRepoUtils.init(versionFolder);
+				
 				this.logger.info("Complete");
 			} catch (Exception e) {
 				e.printStackTrace();
