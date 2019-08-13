@@ -1183,6 +1183,29 @@ public class GitRepoUtils {
 		//System.out.pr
 		
 	}
+	
+	public static void init(String folder)
+	{
+		try {
+			Git.init().setDirectory(new File(folder)).call();
+			Git.open(new File(folder)).close();
+		} catch (IllegalStateException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// add everything and commit
+		GitRepoUtils.addAllFiles(folder, true);
+		
+		// commit it
+		GitRepoUtils.commitAddedFiles(folder);
+	}
 
 	
 }
