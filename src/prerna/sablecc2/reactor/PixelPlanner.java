@@ -15,14 +15,17 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.sablecc2.om.CodeBlock;
 import prerna.sablecc2.om.InMemStore;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PixelPlanner {
 	
 	public static final String NOUN = "NOUN";
+	public static final String NOUN_TYPE = "NOUN_TYPE";
 	public static final String OPERATION = "OP";
-	public static final String REACTOR_CLASS = "REACTOR";
+	
+//	public static final String REACTOR_CLASS = "REACTOR";
 	public static final String TINKER_ID = "_T_ID";
 	public static final String TINKER_TYPE = "_T_TYPE";
 	public static final String TINKER_NAME = "_T_NAME";
@@ -61,6 +64,145 @@ public class PixelPlanner {
 		this.g = null;
 	}
 	
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Variable methods
+	 */
+	
+	public void addVariable(String variableName, NounMetadata value) {
+		varStore.put(variableName, value);
+	}
+	
+	public NounMetadata getVariable(String variableName) {
+		return varStore.get(variableName);
+	}
+	
+	public NounMetadata getVariableValue(String variableName) {
+		return varStore.getEvaluatedValue(variableName);
+	}
+	
+	public boolean hasVariable(String variableName) {
+		return varStore.containsKey(variableName);
+	}
+	
+	public NounMetadata removeVariable(String variableName) {
+		return varStore.remove(variableName);
+	}
+	
+	public Set<String> getVariables() {
+		return varStore.getKeys();
+	}
+	
+	public void setVarStore(InMemStore<String, NounMetadata> varStore) {
+		this.varStore = varStore;
+	}
+	
+	public InMemStore<String, NounMetadata> getVarStore() {
+		return this.varStore;
+	}
+	
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * New planner methods for pipeline...
+	 * TODO: see how to perform previous logic (unused currently)
+	 * with new structure
+	 */
+	
+	protected Vertex upsertVertex(String type, Object name) {
+		type = type.trim();
+		if(name instanceof String) {
+			name = name.toString().trim();
+		}
+		Vertex retVertex = findVertex(type, name);
+		if(retVertex == null) {
+			retVertex = g.addVertex(TINKER_ID, type + ":" + name, TINKER_TYPE, type, TINKER_NAME, name);
+		}
+		return retVertex; 
+	}
+	
+	private Vertex findVertex(String type, Object name) {
+		type = type.trim();
+		if(name instanceof String) {
+			name = name.toString().trim();
+		}
+		Vertex retVertex = null;
+		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_ID, type + ":" + name);
+		if(gt.hasNext()) {
+			retVertex = gt.next();
+		}
+		return retVertex;
+	}
+	
+	protected Edge upsertEdge(Vertex startV, Vertex endV, String edgeID, String type) {
+		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(TINKER_ID, edgeID);
+		// increase the count of the in degree on the endV
+		if(gt.hasNext()) {
+			// this is a duplicate edge, do nothing
+			return gt.next();
+		} else {
+			// this is a new edge
+			// increase the in_degree on the end vertex
+			if(!endV.property(IN_DEGREE).isPresent()) {
+				endV.property(IN_DEGREE, 1);
+			} else {
+				int newInDegree = (int) endV.value(IN_DEGREE) + 1;
+				endV.property(IN_DEGREE, newInDegree);
+			}
+			return startV.addEdge(edgeID, endV, TINKER_ID, edgeID, "COUNT", 1, "TYPE", type);
+		}
+	}
+	
+	public void addInputs(String opName, List<NounMetadata> inputs) {
+		opName = opName.trim();
+		Vertex opVertex = upsertVertex(OPERATION, opName);
+		for(int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
+			NounMetadata noun = inputs.get(inputIndex);
+			Object value = noun.getValue();
+			PixelDataType nounType = noun.getNounType();
+			if(value == null) {
+				value = "null";
+			}
+			// if we have a lambda, then its another operation as the input
+			if(nounType == PixelDataType.LAMBDA) {
+				Vertex inpVertex = upsertVertex(OPERATION, value);
+				String edgeID = value + "_" + opName;
+				upsertEdge(inpVertex, opVertex, edgeID, "INPUT");
+			} else {
+				Vertex inpVertex = upsertVertex(NOUN, value);
+				String edgeID = value + "_" + opName;
+				upsertEdge(inpVertex, opVertex, edgeID, "INPUT");
+			}
+		}
+	}
+	
+	public void addOutputs(String opName, List<NounMetadata> outputs) {
+		opName = opName.trim();
+		Vertex opVertex = upsertVertex(OPERATION, opName);
+		for(int inputIndex = 0; inputIndex < outputs.size(); inputIndex++) {
+			Object value = outputs.get(inputIndex).getValue();
+			if(value == null) {
+				value = "null";
+			}
+			Vertex inpVertex = upsertVertex(NOUN, value);
+			String edgeID = value + "_" + opName;
+			upsertEdge(opVertex, inpVertex, edgeID, "OUTPUT");
+		}
+	}
+	
+	
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////
+
 	//**********************PROPERTY METHODS*******************************//
 	
 	public void addProperty(String opName, String propertyName, Object value)
@@ -97,43 +239,6 @@ public class PixelPlanner {
 
 	//**********************END PROPERTY METHODS*******************************//
 	
-	
-	
-	//**********************VARIABLE METHODS*******************************//
-	
-	public void addVariable(String variableName, NounMetadata value) {
-		varStore.put(variableName, value);
-	}
-	
-	public NounMetadata getVariable(String variableName) {
-		return varStore.get(variableName);
-	}
-	
-	public NounMetadata getVariableValue(String variableName) {
-		return varStore.getEvaluatedValue(variableName);
-	}
-	
-	public boolean hasVariable(String variableName) {
-		return varStore.containsKey(variableName);
-	}
-	
-	public NounMetadata removeVariable(String variableName) {
-		return varStore.remove(variableName);
-	}
-	
-	public Set<String> getVariables() {
-		return varStore.getKeys();
-	}
-	
-	public void setVarStore(InMemStore<String, NounMetadata> varStore) {
-		this.varStore = varStore;
-	}
-	
-	public InMemStore<String, NounMetadata> getVarStore() {
-		return this.varStore;
-	}
-	
-	//**********************END VARIABLE METHODS*******************************//
 	
 	//**********************IMPORTANT METHODS*******************************//
 
@@ -199,49 +304,7 @@ public class PixelPlanner {
 		opVertex.property("ALIAS", aliasVector);
 	}
 
-	protected Vertex upsertVertex(String type, String name) {
-		name = name.trim();
-		type = type.trim();
-
-		Vertex retVertex = findVertex(type, name);
-		if(retVertex == null) {
-			retVertex = g.addVertex(TINKER_ID, type + ":" + name, TINKER_TYPE, type, TINKER_NAME, name);
-		}
-		return retVertex; 
-	}
-
-	protected Edge upsertEdge(Vertex startV, Vertex endV, String edgeID, String type) {
-		GraphTraversal<Edge, Edge> gt = g.traversal().E().has(TINKER_ID, edgeID);
-		// increase the count of the in degree on the endV
-		if(gt.hasNext()) {
-			// this is a duplicate edge, do nothing
-			return gt.next();
-		} else {
-			// this is a new edge
-			// increase the in_degree on the end vertex
-			if(!endV.property(IN_DEGREE).isPresent()) {
-				endV.property(IN_DEGREE, 1);
-			} else {
-				int newInDegree = (int) endV.value(IN_DEGREE) + 1;
-				endV.property(IN_DEGREE, newInDegree);
-			}
-			return startV.addEdge(edgeID, endV, TINKER_ID, edgeID, "COUNT", 1, "TYPE", type);
-		}
-	}
-
-	private Vertex findVertex(String type, String name) {
-		name = name.trim();
-		type = type.trim();
-		Vertex retVertex = null;
-		GraphTraversal<Vertex, Vertex> gt = g.traversal().V().has(TINKER_ID, type + ":" + name);
-		if(gt.hasNext()) {
-			retVertex = gt.next();
-		}
-		return retVertex;
-	}
-	
 	//**********************END IMPORTANT METHODS*******************************//
-
 
 	public void addInputs(String opName, CodeBlock codeBlock, List <String> inputs, IReactor.TYPE opType)
 	{

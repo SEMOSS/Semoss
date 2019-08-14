@@ -149,13 +149,31 @@ public abstract class AbstractReactor implements IReactor {
 		if(this.parentReactor != null) {
 			return;
 		}
+		
+		// this is me testing on 8/14
+		// not going to push this yet... will come back later to 
+		// figuring out the right logic for this
+		
+//		// since we use reactors to capture state at various points
+//		// like a reactor to generate a Map properly, etc.
+//		// there are not really ones we need to put in the plan
+//		// since they are in reality just constants
+//		if(this.signature == null) {
+//			return;
+//		}
+		
 		// get the inputs and outputs
 		// and add this to the plan using the signature
 		// of the reactor
 		List<NounMetadata> inputs = this.getInputs();
 		List<NounMetadata> outputs = this.getOutputs();
 
-		if(inputs != null) {
+		if(inputs != null && !inputs.isEmpty()) {
+			// this is me testing on 8/14
+			// not going to push this yet... will come back later to 
+			// figuring out the right logic for this
+//			this.planner.addInputs(this.signature, inputs);
+			
 			List<String> strInputs = new Vector<String>();
 			for(int inputIndex = 0; inputIndex < inputs.size(); inputIndex++) {
 				
@@ -168,7 +186,12 @@ public abstract class AbstractReactor implements IReactor {
 			this.planner.addInputs(this.signature, strInputs, TYPE.FLATMAP);
 		}
 		
-		if(outputs != null) {
+		if(outputs != null && !outputs.isEmpty()) {
+			// this is me testing on 8/14
+			// not going to push this yet... will come back later to 
+			// figuring out the right logic for this
+//			this.planner.addOutputs(this.signature, outputs);
+			
 			List<String> strOutputs = new Vector<String>();
 			for(int outputIndex = 0; outputIndex < outputs.size(); outputIndex++) {
 				NounMetadata noun = outputs.get(outputIndex);
