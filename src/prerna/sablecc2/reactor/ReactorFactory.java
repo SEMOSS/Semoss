@@ -1701,9 +1701,9 @@ public class ReactorFactory {
 		{
 			try
 			{
-				Map thisDbMap = dbSpecificHash.get(db);
+				Map <String, Class> thisDbMap = dbSpecificHash.get(db);
 				if(thisDbMap.containsKey(className.toUpperCase())) {
-					Class thisReactorClass = thisInsightMap.get(className.toUpperCase());
+					Class thisReactorClass = thisDbMap.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.newInstance();
 				}
 			} catch (InstantiationException e) {
