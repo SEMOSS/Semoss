@@ -146,7 +146,7 @@ public class JsonTranslation extends LazyJsonTranslation {
 	    		e.printStackTrace();
 				throw new IllegalArgumentException(e.getMessage());
 			}
-	    	this.planner = ((AbstractReactor)curReactor).planner;
+	    	this.planner = curReactor.getPixelPlanner();
 	    	
 	    	//set the curReactor
 	    	if(parent != null && parent instanceof IReactor) {
