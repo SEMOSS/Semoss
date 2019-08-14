@@ -356,12 +356,12 @@ public class PipelineTranslation extends LazyTranslation {
     			qs.setEngineId(dbId);
     			
     		} else if(opName.equals("Select")) {
-    			List<Object> rowInputs = routine.getRowInputs();
+    			List<Map> rowInputs = routine.getRowInputs();
     			int size = rowInputs.size();
     			
     			for(int i = 0; i < size; i++) {
     				// the value should already be a query column selector
-    				Map<String, Object> rowMap = (Map<String, Object>) rowInputs.get(i);
+    				Map<String, Object> rowMap = rowInputs.get(i);
     				Object rowValue = rowMap.get("value");
     				if(rowValue instanceof IQuerySelector) {
     					qs.addSelector( (IQuerySelector) rowValue);
@@ -390,7 +390,7 @@ public class PipelineTranslation extends LazyTranslation {
     		} else if(opName.equals("FileRead")) {
     			
     			// first grab the specific componenets for excel vs. csv/text file
-    			Map<String, Object> nounInputs = routine.getNounInputs();
+    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
 				String filepath = getStringOpNounInput("filePath", nounInputs);
     			String sheetName = getStringOpNounInput("sheetName", nounInputs);
     			String sheetRange = getStringOpNounInput("sheetRange", nounInputs);
@@ -424,7 +424,9 @@ public class PipelineTranslation extends LazyTranslation {
     		}
     	}
     	
-    	op.addNounInputs("qs", qs);
+    	Map<String, Object> qsMap = new HashMap<String, Object>();
+    	qsMap.put("value", qs);
+    	op.addNounInputs("qs", qsMap);
     	op.setWidgetId(PipelineTranslation.qsToWidget.get(qs.getQsType()));
 	}
     
@@ -434,19 +436,20 @@ public class PipelineTranslation extends LazyTranslation {
      * @param nounInputs
      * @return
      */
-    private Map<String, String> parseMapReactor(String key, Map<String, Object> nounInputs) {
+    private Map<String, String> parseMapReactor(String key, Map<String, List<Map>> nounInputs) {
     	Map<String, String> output = null;
     	if(nounInputs.containsKey(key)) {
-			Map<String, Object> nounMap = (Map<String, Object>) nounInputs.get(key);
-			if(nounMap != null) {
+			List<Map> nounMapList = nounInputs.get(key);
+			if(nounMapList != null && !nounMapList.isEmpty()) {
+				Map<String, Object> nounMap = nounMapList.get(0);
 				PipelineOperation nounMapVal = (PipelineOperation) nounMap.get("value");
 				// we can reconstruct the map looking at each pair of obj/val that is passed in
-				List<Object> inputs = nounMapVal.getRowInputs();
+				List<Map> inputs = nounMapVal.getRowInputs();
 				
 				output = new HashMap<String, String>();
 				for(int i = 0; i < inputs.size(); i=i+2) {
-					Map<String, Object> keyMap = (Map<String, Object>) inputs.get(i);
-					Map<String, Object> valMap = (Map<String, Object>) inputs.get(i+1);
+					Map<String, Object> keyMap = inputs.get(i);
+					Map<String, Object> valMap = inputs.get(i+1);
 					
 					output.put(keyMap.get("value").toString(), valMap.get("value").toString());
 				}
@@ -455,21 +458,21 @@ public class PipelineTranslation extends LazyTranslation {
     	return output;
     }
 
-    private String getStringOpNounInput(String key, Map<String, Object> nounInputs) {
+    private String getStringOpNounInput(String key, Map<String, List<Map>> nounInputs) {
     	String output = null;
     	if(nounInputs.containsKey(key)) {
-			Map<String, Object> nounMap = (Map<String, Object>) nounInputs.get(key);
+			List<Map> nounMap = nounInputs.get(key);
 			if(nounMap != null) {
-				output = (String) nounMap.get("value");
+				output = (String) nounMap.get(0).get("value");
 			}
 		}
     	return output;
     }
     
-    private String getStringOpRowInput(int index, List<Object> nounInputs) {
+    private String getStringOpRowInput(int index, List<Map> nounInputs) {
     	String output = null;
     	if(nounInputs.size() > index) {
-			Map<String, Object> nounMap = (Map<String, Object>) nounInputs.get(index);
+			Map<String, Object> nounMap = nounInputs.get(index);
 			if(nounMap != null) {
 				output = (String) nounMap.get("value");
 			}
@@ -592,13 +595,14 @@ public class PipelineTranslation extends LazyTranslation {
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;" 
 //				+ "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" ) ;" 
 //				+ "CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME238470' ] ) ;" 
-//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Cast_Formed , MOVIE_DATES__DVD_Release , MOVIE_DATES__Director , MOVIE_DATES__Genre , MOVIE_DATES__MovieBudget , MOVIE_DATES__Nominated , MOVIE_DATES__Production_End , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_Domestic , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience , MOVIE_DATES__RottenTomatoes_Critics , MOVIE_DATES__Studio , MOVIE_DATES__Theatre_Release_Date , MOVIE_DATES__Title ) .as ( [ MOVIE_DATES , Cast_Formed , DVD_Release , Director , Genre , MovieBudget , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Import ( frame = [ FRAME238470 ] ) ;" 
-//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
-				+ "FileRead( filePath=[\"$IF\\diabetes_____UNIQUE2019_08_14_15_20_44_0226.csv\" ], dataTypeMap=[{\"patient\":\"INT\",\"chol\":\"INT\",\"stab_glu\":\"INT\",\"hdl\":\"INT\",\"ratio\":\"DOUBLE\",\"glyhb\":\"DOUBLE\",\"location\":\"STRING\",\"age\":\"INT\",\"gender\":\"STRING\",\"height\":\"INT\",\"weight\":\"INT\",\"frame\":\"STRING\",\"bp_1s\":\"INT\",\"bp_1d\":\"INT\",\"bp_2s\":\"INT\",\"bp_2d\":\"INT\",\"waist\":\"INT\",\"hip\":\"INT\",\"time_ppn\":\"INT\",\"Drug\":\"STRING\",\"start_date\":\"DATE\",\"end_date\":\"DATE\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"diabetes.csv\"], additionalDataTypes=[{\"start_date\":\"M/d/yyyy\",\"end_date\":\"M/d/yyyy\"}])|Select(DND__patient, DND__chol, DND__stab_glu, DND__hdl, DND__ratio, DND__glyhb, DND__location, DND__age, DND__gender, DND__height, DND__weight, DND__frame, DND__bp_1s, DND__bp_1d, DND__bp_2s, DND__bp_2d, DND__waist, DND__hip, DND__time_ppn, DND__Drug, DND__start_date, DND__end_date).as([patient, chol, stab_glu, hdl, ratio, glyhb, location, age, gender, height, weight, frame, bp_1s, bp_1d, bp_2s, bp_2d, waist, hip, time_ppn, Drug, start_date, end_date])|Import( frame=[FRAME110871] );"
+				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Cast_Formed , MOVIE_DATES__DVD_Release , MOVIE_DATES__Director , MOVIE_DATES__Genre , MOVIE_DATES__MovieBudget , MOVIE_DATES__Nominated , MOVIE_DATES__Production_End , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_Domestic , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience , MOVIE_DATES__RottenTomatoes_Critics , MOVIE_DATES__Studio , MOVIE_DATES__Theatre_Release_Date , MOVIE_DATES__Title ) .as ( [ MOVIE_DATES , Cast_Formed , DVD_Release , Director , Genre , MovieBudget , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Import ( frame = [ FRAME238470 ] ) ;" 
+				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
+				+ "FileRead( filePath=[\"$IF\\diabetes_____UNIQUE2019_08_14_15_20_44_0226.csv\" ], dataTypeMap=[{\"patient\":\"INT\",\"chol\":\"INT\",\"stab_glu\":\"INT\",\"hdl\":\"INT\",\"ratio\":\"DOUBLE\",\"glyhb\":\"DOUBLE\",\"location\":\"STRING\",\"age\":\"INT\",\"gender\":\"STRING\",\"height\":\"INT\",\"weight\":\"INT\",\"frame\":\"STRING\",\"bp_1s\":\"INT\",\"bp_1d\":\"INT\",\"bp_2s\":\"INT\",\"bp_2d\":\"INT\",\"waist\":\"INT\",\"hip\":\"INT\",\"time_ppn\":\"INT\",\"Drug\":\"STRING\",\"start_date\":\"DATE\",\"end_date\":\"DATE\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"diabetes.csv\"], additionalDataTypes=[{\"start_date\":\"M/d/yyyy\",\"end_date\":\"M/d/yyyy\"}])|Select(DND__patient, DND__chol, DND__stab_glu, DND__hdl, DND__ratio, DND__glyhb, DND__location, DND__age, DND__gender, DND__height, DND__weight, DND__frame, DND__bp_1s, DND__bp_1d, DND__bp_2s, DND__bp_2d, DND__waist, DND__hip, DND__time_ppn, DND__Drug, DND__start_date, DND__end_date).as([patient, chol, stab_glu, hdl, ratio, glyhb, location, age, gender, height, weight, frame, bp_1s, bp_1d, bp_2s, bp_2d, waist, hip, time_ppn, Drug, start_date, end_date])|Import( frame=[FRAME238470] );"
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;" 
 //				+ "Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ;" 
 //				+ "FRAME238470 | Convert ( frameType = [ R ] ) .as ( [ 'FRAME238470' ] ) ;" 
 //				+ "Frame ( frame = [ FRAME238470 ] ) | Select ( Cast_Formed , Director , DVD_Release , Genre , MovieBudget , MOVIE_DATES , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ) .as ( [ Cast_Formed , Director , DVD_Release , Genre , MovieBudget , MOVIE_DATES , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Cast_Formed\" , \"Director\" , \"DVD_Release\" , \"Genre\" , \"MovieBudget\" , \"MOVIE_DATES\" , \"Nominated\" , \"Production_End\" , \"Production_Start\" , \"Revenue_Domestic\" , \"Revenue_International\" , \"RottenTomatoes_Audience\" , \"RottenTomatoes_Critics\" , \"Studio\" , \"Theatre_Release_Date\" , \"Title\" ] } } } ) | Collect ( 2000 ) ;" 
+//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience ) .as ( [ MOVIE_DATES , Production_Start , Revenue_International , RottenTomatoes_Audience ] ) | Merge ( joins = [ ( MOVIE_DATES , inner.join , MOVIE_DATES ), ( x, inner.join, y ) ] , frame = [ FRAME238470 ] ) ;"
 				+ "FRAME238470 | DateExpander ( column = [ \"Cast_Formed\" ] , options = [ \"year\" , \"month\" , \"month-name\" ] ) ;"
 //				+ "if(true, 5+5, 6+6);" 
 //				+ "ifError ( ( Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
