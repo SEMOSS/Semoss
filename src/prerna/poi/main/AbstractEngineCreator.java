@@ -334,7 +334,7 @@ public class AbstractEngineCreator {
 	
 	protected RDBMSNativeEngine createNewInsightsDatabase(String appName, String appId) {
 		RDBMSNativeEngine insightEngine = UploadUtilities.generateInsightsDatabase(appId, appName);
-		UploadUtilities.addExploreInstanceInsight(appId, insightEngine);
+		UploadUtilities.addExploreInstanceInsight(appId, appName, insightEngine);
 		return insightEngine;
 	}
 }

@@ -1,5 +1,6 @@
 package prerna.poi.main;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,6 +25,7 @@ import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.CustomTableAndViewIterator;
+import prerna.util.MosfetSyncHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -50,7 +52,7 @@ public class RDBMSEngineCreationHelper {
 	}
 	
 	public static void insertNewTablesAsInsights(IEngine rdbmsEngine,  Map<String, Map<String, String>> existingMetaModel, Set<String> newTables) {
-		String engineName = rdbmsEngine.getEngineId();
+		String appId = rdbmsEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(rdbmsEngine.getInsightDatabase());
 		
 		//determine the # where the new questions should start
@@ -67,7 +69,7 @@ public class RDBMSEngineCreationHelper {
 				recipeArray[0] = "AddPanel(0);";
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				StringBuilder importPixel = new StringBuilder("Database(\"" + engineName + "\") | Select(");
+				StringBuilder importPixel = new StringBuilder("Database(\"" + appId + "\") | Select(");
 				Map<String, String> colToTypes = existingMetaModel.get(newTable);
 				// inconsistent case for rdbms existingMetamodel passed in from reactors and building it from DatabaseMetaData 
 				if(colToTypes == null) {
@@ -122,6 +124,7 @@ public class RDBMSEngineCreationHelper {
 				viewPixel.append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
 				String id = admin.addInsight(insightName, layout, recipeArray);
+				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdbmsEngine.getEngineName(), id, insightName, layout, recipeArray, false);
 				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), id, insightName, false, layout);
 			}
 		} catch(RuntimeException e) {
