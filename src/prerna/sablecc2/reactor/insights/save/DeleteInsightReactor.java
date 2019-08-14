@@ -1,5 +1,10 @@
 package prerna.sablecc2.reactor.insights.save;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.apache.commons.io.FileUtils;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
@@ -7,6 +12,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -14,6 +20,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class DeleteInsightReactor extends AbstractReactor {
@@ -46,6 +54,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 		}
 		IEngine engine = Utility.getEngine(appId);
+		String appName = engine.getEngineName();
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
@@ -62,6 +71,19 @@ public class DeleteInsightReactor extends AbstractReactor {
 			try {
 				admin.dropInsight(insightId);
 			} catch (RuntimeException e) {
+				e.printStackTrace();
+			}
+			
+			// delete insight folder
+			String insightFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
+					+ DIR_SEPARATOR + "db"
+					+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId)
+					+ DIR_SEPARATOR + "version" 
+					+ DIR_SEPARATOR + insightId;
+			File insightFolder = new File(insightFolderPath);
+			try {
+				FileUtils.deleteDirectory(insightFolder);
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
 
