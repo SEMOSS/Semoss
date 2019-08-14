@@ -134,8 +134,10 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 		// and since out is called prior to update the planner
 		// the qs cannot be null
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
-		outputs.add(output);
+		if(this.qs != null) {
+			NounMetadata output = new NounMetadata(this.qs, PixelDataType.QUERY_STRUCT);
+			outputs.add(output);
+		}
 		return outputs;
 	}
 }

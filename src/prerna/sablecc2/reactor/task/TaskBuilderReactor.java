@@ -41,8 +41,10 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		// and since out is called prior to update the planner
 		// the  cannot be null
 		List<NounMetadata> outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(task, PixelDataType.TASK);
-		outputs.add(output);
+		if(this.task != null) {
+			NounMetadata output = new NounMetadata(task, PixelDataType.TASK);
+			outputs.add(output);
+		}
 		return outputs;
 	}
 	
