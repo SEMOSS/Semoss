@@ -7,8 +7,8 @@ import java.util.Vector;
 
 public class PipelineOperation {
 
-	List<Object> rowInputs = new Vector<Object>();
-	Map<String, Object> nounInputs = new Hashtable<String, Object>();
+	List<Map> rowInputs = new Vector<Map>();
+	Map<String, List<Map>> nounInputs = new Hashtable<String, List<Map>>();
 	
 	// the name of the reactor
 	String opName = null;
@@ -40,23 +40,25 @@ public class PipelineOperation {
 		return this.widgetId;
 	}
 	
-	public void addRowInput(Object o) {
+	public void addRowInput(Map o) {
 		this.rowInputs.add(o);
 	}
 	
-	public void addRowInputs(List<Object> o) {
-		this.rowInputs.addAll(o);
+	public void addNounInputs(String key, Map o) {
+		if(this.nounInputs.containsKey(key)) {
+			this.nounInputs.get(key).add(o);
+		} else {
+			List<Map> oList = new Vector<Map>();
+			oList.add(o);
+			this.nounInputs.put(key, oList);
+		}
 	}
 	
-	public void addNounInputs(String key, Object o) {
-		this.nounInputs.put(key, o);
-	}
-	
-	public List<Object> getRowInputs() {
+	public List<Map> getRowInputs() {
 		return this.rowInputs;
 	}
 	
-	public Map<String, Object> getNounInputs() {
+	public Map<String, List<Map>> getNounInputs() {
 		return this.nounInputs;
 	}
 }
