@@ -175,12 +175,11 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
-		UploadUtilities.addGridDeltaInsight(this.appId, insightDatabase);
-		UploadUtilities.addInsertFormInsight(this.appId, insightDatabase, owler, this.helper.orderHeadersToGet(headers));
-		UploadUtilities.addUpdateInsights(insightDatabase, owler, this.appId);
-		UploadUtilities.addAuditModificationView(this.appId, insightDatabase);
-		UploadUtilities.addAuditTimelineView(this.appId, insightDatabase);
+		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addInsertFormInsight(this.appId, newAppName, insightDatabase, owler, this.helper.orderHeadersToGet(headers));
+		UploadUtilities.addAuditModificationView(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addAuditTimelineView(this.appId, newAppName, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(this.engine, owler);
 		logger.info(stepCounter + ". Complete");
