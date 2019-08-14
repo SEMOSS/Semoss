@@ -27,9 +27,12 @@ import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.pipeline.PipelineOperation;
+import prerna.sablecc2.pipeline.PipelineTranslation;
 import prerna.sablecc2.translations.DatasourceTranslation;
 import prerna.sablecc2.translations.ParameterizeSaveRecipeTranslation;
 import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
@@ -533,9 +536,54 @@ public class PixelUtility {
 		return finalRecipe;
 	}
 	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Get the pipeline operations for a given pixel
+	 * @param in
+	 * @param pixel
+	 * @return
+	 */
+	public static List<List<PipelineOperation>> generatePipeline(Insight in, String pixel) {
+		PipelineTranslation translation = null;
+		Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
+		try {
+			pixel = PixelPreProcessor.preProcessPixel(pixel.trim(), encodedTextToOriginal);
+			Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(pixel.getBytes("UTF-8")), "UTF-8"), pixel.length())));
+			translation = new PipelineTranslation(in);
+
+			// parsing the pixel - this process also determines if expression is syntactically correct
+			Start tree = p.parse();
+			// apply the translation.
+			tree.apply(translation);
+		} catch(SemossPixelException e) {
+			if(!e.isContinueThreadOfExecution()) {
+				throw e;
+			}
+		} catch (ParserException | LexerException | IOException e) {
+			// we only need to catch invalid syntax here
+			// other exceptions are caught in lazy translation
+			String eMessage = e.getMessage();
+			if(eMessage.startsWith("[")) {
+				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
+				Matcher matcher = pattern.matcher(eMessage);
+				if(matcher.find()) {
+					String location = matcher.group(0);
+					location = location.substring(1, location.length()-1);
+					int findIndex = Integer.parseInt(location.split(",")[1]);
+					eMessage += ". Error in syntax around " + pixel.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
+				}
+			}
+			throw new IllegalArgumentException(eMessage, e);
+		}
+		
+		return translation.getAllRoutines();
+	}
 	
 	
 	
+	/////////////////////////////////////////////////////////////////////////////////////
+
 	
 	/*
 	 * LEGACY

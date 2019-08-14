@@ -216,7 +216,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	 * @param pixel
 	 * @param ex
 	 */
-	private void trackError(String pixel, boolean meta, Exception ex) {
+	protected void trackError(String pixel, boolean meta, Exception ex) {
 		if(this.insight != null) {
 			IUserTracker tracker = UserTrackerFactory.getInstance();
 			if(tracker.isActive()) {
@@ -546,7 +546,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     public void inAIdWordOrId(AIdWordOrId node)
     {
     	defaultIn(node);
-    	String idInput = (node.getId()+"").trim();
+    	String idInput = node.getId().getText().trim();
     	
     	if(this.planner.hasVariable(idInput)) {
     		// since this is lazy
