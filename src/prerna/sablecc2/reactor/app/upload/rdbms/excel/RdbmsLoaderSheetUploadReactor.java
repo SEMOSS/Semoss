@@ -114,8 +114,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
-		UploadUtilities.addGridDeltaInsight(this.appId, insightDatabase);
+		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
 		this.engine.setInsightDatabase(insightDatabase);
 		logger.info(stepCounter + ". Complete");
 	}
