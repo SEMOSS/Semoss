@@ -10,6 +10,7 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.MosfetSyncHelper;
+import prerna.util.git.GitRepoUtils;
 
 public class RDFEngineCreationHelper {
 
@@ -46,7 +47,12 @@ public class RDFEngineCreationHelper {
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
 				String insightId = admin.addInsight(insightName, layout, recipeArray);
+				//write recipe to file
 				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
+				// add the git here
+				String recipePath = retFile.getParent();
+				// make a version folder if one doesn't exist
+				GitRepoUtils.init(recipePath);
 				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout); 
 			}
 		} catch(RuntimeException e) {
@@ -98,7 +104,12 @@ public class RDFEngineCreationHelper {
 						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
 				String id = admin.addInsight(insightName, layout, recipeArray);
+				//write recipe to file
 				File retFile = MosfetSyncHelper.makeMosfitFile(engineId, rdfEngine.getEngineName(), id, insightName, layout, recipeArray, false);
+				// add the git here
+				String recipePath = retFile.getParent();
+				// make a version folder if one doesn't exist
+				GitRepoUtils.init(recipePath);
 				SecurityInsightUtils.addInsight(engineId, id, insightName, false, layout); 
 			}
 		} catch(RuntimeException e) {
