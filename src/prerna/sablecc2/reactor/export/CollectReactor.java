@@ -94,7 +94,7 @@ public class CollectReactor extends TaskBuilderReactor {
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = super.getOutputs();
-		if(outputs != null) return outputs;
+		if(outputs != null && !outputs.isEmpty()) return outputs;
 		
 		outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
