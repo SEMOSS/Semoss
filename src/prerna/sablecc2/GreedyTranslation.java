@@ -5,19 +5,26 @@ import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Insight;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.sablecc2.node.AIdWordOrId;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.POtherOpInput;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.AssignmentReactor;
 import prerna.sablecc2.reactor.Assimilator;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.IfReactor;
 import prerna.sablecc2.reactor.expression.IfError;
 import prerna.sablecc2.reactor.imports.ImportSizeRetrictions;
+import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.sablecc2.reactor.qs.filter.FilterReactor;
+import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
+import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
+import prerna.sablecc2.reactor.qs.source.FrameReactor;
 
 public class GreedyTranslation extends LazyTranslation {
 
@@ -27,6 +34,85 @@ public class GreedyTranslation extends LazyTranslation {
 		super(insight);
 		this.runner = runner;
 	}
+	
+    /**
+     * This is greedy because we get the variable value (which means if its an embedded reactor we call execute)
+     * instead of just passing the noun which points to a lambda
+     */
+    @Override
+    public void inAIdWordOrId(AIdWordOrId node)
+    {
+    	defaultIn(node);
+    	String idInput = (node.getId()+"").trim();
+    	
+    	if(this.planner.hasVariable(idInput)) {
+    		NounMetadata varValue = this.planner.getVariableValue(idInput);
+    		PixelDataType varType = varValue.getNounType();
+    		if(curReactor != null) {
+    			// we will do just a little bit of value validation
+    			// so that we only push in basic data types
+    			if(curReactor instanceof SelectReactor 
+    					|| curReactor instanceof QuerySelectorExpressionAssimilator 
+    					|| curReactor instanceof FilterReactor) {
+    				if(varType == PixelDataType.CONST_STRING || varType == PixelDataType.CONST_INT || varType == PixelDataType.CONST_DECIMAL
+    						|| varType == PixelDataType.CONST_DATE || varType == PixelDataType.CONST_TIMESTAMP 
+    						// also account for complex expressions!
+    						|| varType == PixelDataType.TASK
+    						|| varType == PixelDataType.FORMATTED_DATA_SET) {
+    					// this is a basic type
+    					// or a task which needs to be flushed out
+    					// so i can probably add it to the 
+    					// query to work properly
+    					curReactor.getCurRow().add(varValue);
+    				} else {
+    					// if this is not a basic type
+    					// will probably break a query
+    					// so pass in the original stuff
+    					QueryColumnSelector s = new QueryColumnSelector(idInput);
+    					curReactor.getCurRow().addColumn(s);
+    				}
+    			} else if(curReactor instanceof FrameReactor && varType == PixelDataType.FRAME) {
+    				// add the frame based on the variable
+    				curReactor.getCurRow().add(varValue);
+    			} else if(curReactor instanceof AbstractQueryStructReactor) {
+    				// if it is a join or an as 
+					curReactor.getCurRow().addColumn(idInput);
+    			} else {
+    				// let the assimilator handle the variables by defining it in the generated code
+    				if(curReactor instanceof Assimilator) {
+        				curReactor.getCurRow().addColumn(idInput);
+    				} else {
+        				curReactor.getCurRow().add(varValue);
+    				}
+    			}
+    		} else {
+    			if(varType == PixelDataType.FRAME) {
+    				this.currentFrame = (ITableDataFrame) varValue.getValue();
+    			}
+    			this.planner.addVariable("$RESULT", varValue);
+    		}
+    	} else {
+    		if(curReactor != null) {
+    			if(curReactor instanceof SelectReactor 
+    					|| curReactor instanceof QuerySelectorExpressionAssimilator 
+    					|| curReactor instanceof FilterReactor) {
+    				// this is part of a query 
+    				// add it as a proper query selector object
+    				QueryColumnSelector s = new QueryColumnSelector(idInput);
+					curReactor.getCurRow().addColumn(s);
+    			} else {
+    				curReactor.getCurRow().addColumn(idInput);
+    				curReactor.setProp(node.toString().trim(), idInput);
+    			}
+    		} else {
+    			// i guess we should return the actual column from the frame?
+    			// TODO: build this out
+    			// for now, will just return the column name again... 
+    			NounMetadata noun = new NounMetadata(idInput, PixelDataType.CONST_STRING);
+    			this.planner.addVariable("$RESULT", noun);
+    		}
+    	}
+    }
 	
 	@Override
 	public void caseAOperation(AOperation node) {
@@ -150,15 +236,15 @@ public class GreedyTranslation extends LazyTranslation {
 	    	}
 	    	
 	    	NounMetadata output = curReactor.execute();
-	    	this.planner = ((AbstractReactor)curReactor).planner;
+	    	this.planner = curReactor.getPixelPlanner();
 
 	    	// this now becomes the prev reactor
-    		prevReactor = curReactor;
+    		this.prevReactor = this.curReactor;
 	    	//set the curReactor
 	    	if(parent != null && parent instanceof IReactor) {
-	    		curReactor = (IReactor) parent;
+	    		this.curReactor = (IReactor) parent;
 	    	} else {
-	    		curReactor = null;
+	    		this.curReactor = null;
 	    	}
 	    	
 	    	// we will merge up to the parent if one is present
@@ -193,6 +279,25 @@ public class GreedyTranslation extends LazyTranslation {
 	    	} else {
 	    		this.planner.removeVariable("$RESULT");
 	    	}
+    	}
+    }
+    
+    /**
+     * This is greedy because we get the variable value (which means if its an embedded reactor we call execute)
+     * instead of just passing the noun which points to a lambda
+     */
+    @Override
+    protected void syncResult() {
+    	// after we init the new reactor
+        // we will add the result of the last reactor 
+        // into the noun store of this new reactor
+    	NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
+    	if(prevResult != null) {
+    		PixelDataType nounName = prevResult.getNounType();
+    		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
+    		genRow.add(prevResult);
+    		// then we will remove the result from the planner
+        	this.planner.removeVariable("$RESULT");
     	}
     }
 	

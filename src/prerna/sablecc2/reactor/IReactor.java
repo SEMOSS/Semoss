@@ -64,12 +64,14 @@ public interface IReactor {
 	// set the parent reactor for a composition, we start here
 	// for a pipeline this will become the child
 	void setParentReactor(IReactor parentReactor);
+
+	// // gets the parent reactor
+	IReactor getParentReactor();
 	
 	// sets the child reactor
 	void setChildReactor(IReactor childReactor);
 	
-	// // gets the parent reactor
-	IReactor getParentReactor();
+	List<IReactor> getChildReactors();
 	
 	// sets the current noun it is working through
 	void curNoun(String noun);
@@ -95,10 +97,6 @@ public interface IReactor {
 	// are projections the output ?
 	List<NounMetadata> getInputs();
 	
-	// gets the errored PKQL
-	// alternately can set the error message here
-	void getErrorMessage();
-
 	// gets the status of what happened to this reactor
 	STATUS getStatus();
 	
@@ -112,6 +110,8 @@ public interface IReactor {
 	
 	// sets the pksl planner
 	void setPixelPlanner(PixelPlanner planner);
+	
+	PixelPlanner getPixelPlanner();
 	
 	// sets the string for alias i.e. as
 	void setAs(String [] asName);
