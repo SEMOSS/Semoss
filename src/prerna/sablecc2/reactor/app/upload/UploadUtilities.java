@@ -50,8 +50,10 @@ import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.MosfetSyncHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 import prerna.util.gson.GsonUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
@@ -1183,7 +1185,7 @@ public class UploadUtilities {
 	 * @param insightEngine
 	 * @return 				String containing the new insight id
 	 */
-	public static String addExploreInstanceInsight(String appId, RDBMSNativeEngine insightEngine) {
+	public static String addExploreInstanceInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String exploreLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "ExploreInstanceDefaultWidget.json";
 		File exploreF = new File(exploreLoc);
@@ -1196,7 +1198,14 @@ public class UploadUtilities {
 						.replace("<<ENGINE>>", appId);
 				newPixel += "} </encode>\" ) ;";
 				String[] pkqlRecipeToSave = {newPixel};
-				return admin.addInsight(EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave);
+				String insightId = admin.addInsight(EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave);
+				//write recipe to file
+				File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave, false);
+				// add the git here
+				String recipePath = retFile.getParent();
+				// make a version folder if one doesn't exist
+				GitRepoUtils.init(recipePath);
+				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -1210,10 +1219,17 @@ public class UploadUtilities {
 	 * @param insightEngine
 	 * @return 				String containing the new insight id
 	 */
-	public static String addGridDeltaInsight(String appId, RDBMSNativeEngine insightEngine) {
+	public static String addGridDeltaInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String[] pkqlRecipeToSave = {"AddPanel(0); Panel(0)|SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");"};
-		return admin.addInsight(GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave);
+		String insightId = admin.addInsight(GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave);
+		//write recipe to file
+		File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave, false);
+		// add the git here
+		String recipePath = retFile.getParent();
+		// make a version folder if one doesn't exist
+		GitRepoUtils.init(recipePath);
+		return insightId;
 	}
 	
 	/**
@@ -1222,7 +1238,7 @@ public class UploadUtilities {
 	 * @param appId
 	 * @param insightEngine
 	 */
-	public static String addAuditModificationView(String appId, RDBMSNativeEngine insightEngine) {
+	public static String addAuditModificationView(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditModificationView.json";
 		File jsonFile = new File(jsonLoc);
@@ -1235,7 +1251,14 @@ public class UploadUtilities {
 						replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
 				String[] pkqlRecipeToSave = { newPixel };
-				return admin.addInsight(AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pkqlRecipeToSave);
+				String insightId = admin.addInsight(AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pkqlRecipeToSave);
+				//write recipe to file
+				File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pkqlRecipeToSave, false);
+				// add the git here
+				String recipePath = retFile.getParent();
+				// make a version folder if one doesn't exist
+				GitRepoUtils.init(recipePath);
+				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -1249,7 +1272,7 @@ public class UploadUtilities {
 	 * @param appId
 	 * @param insightEngine
 	 */
-	public static String addAuditTimelineView(String appId, RDBMSNativeEngine insightEngine) {
+	public static String addAuditTimelineView(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "AuditTimelineView.json";
 		File jsonFile = new File(jsonLoc);
@@ -1261,7 +1284,14 @@ public class UploadUtilities {
 						.replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
 				String[] pkqlRecipeToSave = { newPixel };
-				return admin.addInsight(AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pkqlRecipeToSave);
+				String insightId = admin.addInsight(AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pkqlRecipeToSave);
+				//write recipe to file
+				File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pkqlRecipeToSave, false);
+				// add the git here
+				String recipePath = retFile.getParent();
+				// make a version folder if one doesn't exist
+				GitRepoUtils.init(recipePath);
+				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -1277,7 +1307,7 @@ public class UploadUtilities {
 	 * @param owl
 	 * @param headers
 	 */
-	public static void addInsertFormInsight(String appId, RDBMSNativeEngine insightEngine, OWLER owl, String[] headers) {
+	public static void addInsertFormInsight(String appId, String appName, RDBMSNativeEngine insightEngine, OWLER owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owl);
 		// assuming single sheet
@@ -1288,8 +1318,14 @@ public class UploadUtilities {
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
 				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "]}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
-		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
+		//write recipe to file
+		File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
+		// add the git here
+		String recipePath = retFile.getParent();
+		// make a version folder if one doesn't exist
+		GitRepoUtils.init(recipePath);
 	}
 	
 	/**
@@ -1301,7 +1337,7 @@ public class UploadUtilities {
 	 * @param propMap
 	 * @param headers
 	 */
-	public static void addInsertFormInsight(RDBMSNativeEngine insightDatabase, String appId, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
+	public static void addInsertFormInsight(RDBMSNativeEngine insightDatabase, String appId, String appName, String sheetName, Map<String, SemossDataType> propMap, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
 		Map<String, Map<String, SemossDataType>> metamodel = new HashMap<>();
 		metamodel.put(sheetName, propMap);
@@ -1312,8 +1348,14 @@ public class UploadUtilities {
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
 				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "]}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
-		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightDatabase.commit();
+		//write recipe to file
+		File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
+		// add the git here
+		String recipePath = retFile.getParent();
+		// make a version folder if one doesn't exist
+		GitRepoUtils.init(recipePath);
 	}
 
 	/**
@@ -1324,7 +1366,7 @@ public class UploadUtilities {
 	 * @param sheetName
 	 * @param dataValidationMap
 	 */
-	public static void addInsertFormInsight(RDBMSNativeEngine insightEngine, String appId, String sheetName, Map<String, Object> widgetJson) {
+	public static void addInsertFormInsight(RDBMSNativeEngine insightEngine, String appId, String appName, String sheetName, Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = getInsightFormName(sheetName);
 		String layout = "default-handle";
@@ -1332,8 +1374,14 @@ public class UploadUtilities {
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
 				+ gson.toJson(widgetJson) + "]}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
-		admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
+		//write recipe to file
+		File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
+		// add the git here
+		String recipePath = retFile.getParent();
+		// make a version folder if one doesn't exist
+		GitRepoUtils.init(recipePath);
 	}
 
 	/**
@@ -1481,70 +1529,6 @@ public class UploadUtilities {
 		formMap.put("params", paramList);
 		formMap.put("execute", "Submit");
 		return formMap;
-	}
-
-	/**
-	 * Add grid delta insight for engine
-	 * 
-	 * @param insightDatabase
-	 * @param owl
-	 * @param appId
-	 */
-	public static void addUpdateInsights(RDBMSNativeEngine insightDatabase, OWLER owl, String appId) {
-		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
-		Map<String, Map<String, SemossDataType>> existingMetamodel = getExistingMetamodel(owl);
-		for (String concept : existingMetamodel.keySet()) {
-			String insightName = "Update " + concept;
-			String layout = "grid-delta";
-			Gson gson = GsonUtility.getDefaultGson();
-			String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>"
-					+ gson.toJson(createUpdateMap(appId, owl, concept, existingMetamodel.get(concept)))
-					+ "</encode>\");";
-			String[] pkqlRecipeToSave = { newPixel };
-			admin.addInsight(insightName, layout, pkqlRecipeToSave);
-		}
-		insightDatabase.commit();
-	}
-
-	/**
-	 * Add grid delta insight for a specific concept
-	 * 
-	 * @param insightDatabase
-	 * @param owl
-	 * @param appId
-	 * @param concept
-	 * @param propMap
-	 */
-	public static void addUpdateInsights(RDBMSNativeEngine insightDatabase, OWLER owl, String appId, String concept, Map<String, SemossDataType> propMap) {
-		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
-		String insightName = "Update " + concept;
-		String layout = "grid-delta";
-		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>"
-				+ gson.toJson(createUpdateMap(appId, owl, concept, propMap)) + "</encode>\");";
-		String[] pkqlRecipeToSave = { newPixel };
-		admin.addInsight(insightName, layout, pkqlRecipeToSave);
-		insightDatabase.commit();
-	}
-
-	/**
-	 * Add grid delta insight for excel form
-	 * 
-	 * @param insightDatabase
-	 * @param appId
-	 * @param sheetName
-	 * @param updateForm
-	 */
-	public static void addUpdateInsights(RDBMSNativeEngine insightDatabase, String appId, String sheetName, Map<String, Object> updateForm) {
-		InsightAdministrator admin = new InsightAdministrator(insightDatabase);
-		String insightName = "Update " + sheetName;
-		String layout = "grid-delta";
-		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>"
-				+ gson.toJson(updateForm) + "</encode>\");";
-		String[] pkqlRecipeToSave = { newPixel };
-		admin.addInsight(insightName, layout, pkqlRecipeToSave);
-		insightDatabase.commit();
 	}
 
 	public static Map<String, Object> createUpdateMap(String appId, OWLER owl, String concept,

@@ -273,8 +273,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, this.appName);
-		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
-		UploadUtilities.addGridDeltaInsight(this.appId, insightDatabase);
+		UploadUtilities.addExploreInstanceInsight(this.appId, this.appName, insightDatabase);
+		UploadUtilities.addGridDeltaInsight(this.appId, this.appName, insightDatabase);
 		engine.setInsightDatabase(insightDatabase);
 		// generate base insights
 		RDBMSEngineCreationHelper.insertAllTablesAsInsights(engine, owler);
