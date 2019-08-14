@@ -132,16 +132,18 @@ public class LazyTranslation extends DepthFirstAdapter {
 	public enum TypeOfOperation {PIPELINE, COMPOSITION};
 	protected TypeOfOperation operationType = TypeOfOperation.COMPOSITION;
 	
-	private ITableDataFrame currentFrame = null;
+	protected ITableDataFrame currentFrame = null;
 	
 	public LazyTranslation() {
 		this.planner = new PixelPlanner();
 	}
 	
 	public LazyTranslation(Insight insight) {
+		this();
 		this.insight = insight;
-		this.planner = new PixelPlanner();
-		this.planner.setVarStore(this.insight.getVarStore());
+		if(this.insight != null) {
+			this.planner.setVarStore(this.insight.getVarStore());
+		}
 	}
 	
 	protected void postProcess(String pixelExpression) {
@@ -168,7 +170,9 @@ public class LazyTranslation extends DepthFirstAdapter {
 		return this.planner;
 	}
 	
-/********************** First is the main level operation, script chain or other script operations ******************/
+	/*
+	 * This is the main level method to execute any pixel operations
+	 */
 	
 	@Override
 	public void caseAConfiguration(AConfiguration node) {
@@ -192,7 +196,7 @@ public class LazyTranslation extends DepthFirstAdapter {
             		postProcess(e.toString().trim());
         		} else {
         			// if we do want to stop
-        			// propogate the error up and the PixelRunner
+        			// propagate the error up and the PixelRunner
         			// will handle grabbing the meta and returning it to the FE
         			postRuntimeErrorProcess(e.toString(), ex.getNoun(), 
         					copy.subList(pixelstep+1, size).stream().map(p -> p.toString()).collect(Collectors.toList()));
@@ -213,18 +217,20 @@ public class LazyTranslation extends DepthFirstAdapter {
 	 * @param ex
 	 */
 	private void trackError(String pixel, boolean meta, Exception ex) {
-		IUserTracker tracker = UserTrackerFactory.getInstance();
-		if(tracker.isActive()) {
-			String curReactorName = null;
-			String parentReactorName = null;
-			if(this.curReactor != null) {
-				curReactorName = this.curReactor.getClass().getName();
-				IReactor parentReactor = this.curReactor.getParentReactor();
-				if(parentReactor != null) {
-					parentReactorName = parentReactor.getClass().getName();
+		if(this.insight != null) {
+			IUserTracker tracker = UserTrackerFactory.getInstance();
+			if(tracker.isActive()) {
+				String curReactorName = null;
+				String parentReactorName = null;
+				if(this.curReactor != null) {
+					curReactorName = this.curReactor.getClass().getName();
+					IReactor parentReactor = this.curReactor.getParentReactor();
+					if(parentReactor != null) {
+						parentReactorName = parentReactor.getClass().getName();
+					}
 				}
+				tracker.trackError(this.insight, pixel, curReactorName, parentReactorName, meta, ex);
 			}
-			tracker.trackError(this.insight, pixel, curReactorName, parentReactorName, meta, ex);
 		}
 	}
 
@@ -382,8 +388,8 @@ public class LazyTranslation extends DepthFirstAdapter {
         LOGGER.debug("Starting an operation");
         
         String reactorId = node.getId().toString().trim();
-        IReactor frameReactor = getReactor(reactorId, node.toString().trim());
-        initReactor(frameReactor);
+        IReactor newReactor = getReactor(reactorId, node.toString().trim());
+        initReactor(newReactor);
         syncResult();
 	}
 	
@@ -407,11 +413,11 @@ public class LazyTranslation extends DepthFirstAdapter {
     	}
 	}
 	
-    private void syncResult() {
+    protected void syncResult() {
     	// after we init the new reactor
         // we will add the result of the last reactor 
         // into the noun store of this new reactor
-    	NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
+    	NounMetadata prevResult = this.planner.getVariable("$RESULT");
     	if(prevResult != null) {
     		PixelDataType nounName = prevResult.getNounType();
     		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
@@ -542,11 +548,10 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	String idInput = (node.getId()+"").trim();
     	
-    	//how do we determine the difference between a column and a variable?
-    	//something could be a column but not loaded into a frame yet...i.e. select pixel in import
-    	//something could be a variable but not be loaded as a variable yet...i.e. loadclient when loading pixels one by one into the graph in any order
     	if(this.planner.hasVariable(idInput)) {
-    		NounMetadata varValue = this.planner.getVariableValue(idInput);
+    		// since this is lazy
+    		// varValue might be pointing to a lambda so no real way to know what it is yet
+    		NounMetadata varValue = this.planner.getVariable(idInput);
     		PixelDataType varType = varValue.getNounType();
     		if(curReactor != null) {
     			// we will do just a little bit of value validation
@@ -573,7 +578,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     				}
     			} else if(curReactor instanceof FrameReactor && varType == PixelDataType.FRAME) {
     				// add the frame based on the variable
-    				curReactor.getCurRow().add(this.planner.getVariableValue(idInput));
+    				curReactor.getCurRow().add(varValue);
     			} else if(curReactor instanceof AbstractQueryStructReactor) {
     				// if it is a join or an as 
 					curReactor.getCurRow().addColumn(idInput);
@@ -582,7 +587,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     				if(curReactor instanceof Assimilator) {
         				curReactor.getCurRow().addColumn(idInput);
     				} else {
-        				curReactor.getCurRow().add(this.planner.getVariableValue(idInput));
+        				curReactor.getCurRow().add(varValue);
     				}
     			}
     		} else {
@@ -669,18 +674,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     		fraction = "0";
     	}
 		Number retNum = new BigDecimal(whole + "." + fraction);
-    	// determine if it is a negative
-    	// in which case, multiply by -1
-//    	if(node.getPosOrNeg() != null) {
-//    		String posOrNeg = node.getPosOrNeg().toString().trim();
-//    		if(posOrNeg.equals("-")) {
-//    			if(isDouble) {
-//        			retNum = -1.0 * retNum.doubleValue();
-//    			} else {
-//        			retNum = -1 * retNum.intValue();
-//    			}
-//    		}
-//    	}
     	NounMetadata noun = null;
     	if(isDouble) {
     		noun = new NounMetadata(retNum.doubleValue(), PixelDataType.CONST_DECIMAL);
@@ -708,14 +701,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     	defaultIn(node);
     	String fraction = (node.getFraction()+"").trim();
 		Number retNum = new BigDecimal("0." + fraction);
-    	// determine if it is a negative
-    	// in which case, multiply by -1
-//    	if(node.getPosOrNeg() != null) {
-//    		String posOrNeg = node.getPosOrNeg().toString().trim();
-//    		if(posOrNeg.equals("-")) {
-//        		retNum = -1.0 * retNum.doubleValue();
-//    		}
-//    	}
 	   	// if its an assignment
     	// just put in results in case we are doing a |
     	if(curReactor != null && !(curReactor instanceof AssignmentReactor)) {
@@ -731,74 +716,6 @@ public class LazyTranslation extends DepthFirstAdapter {
     	}
     }
     
-//    @Override
-//    public void inAPercentageWholeDecimal(APercentageWholeDecimal node) {
-//    	defaultIn(node);
-//    	String whole = "";
-//    	String fraction = "";
-//    	// get the whole portion
-//    	if(node.getWhole() != null) {
-//    		whole = node.getWhole().toString().trim();
-//    	}
-//    	// get the fraction portion
-//    	if(node.getFraction() != null) {
-//    		fraction = (node.getFraction()+"").trim();
-//    	} else {
-//    		fraction = "0";
-//    	}
-//		Number retNum = new BigDecimal(whole + "." + fraction).divide(new BigDecimal(100));
-//    	// determine if it is a negative
-//    	// in which case, multiply by -1
-////    	if(node.getPosOrNeg() != null) {
-////    		String posOrNeg = node.getPosOrNeg().toString().trim();
-////    		if(posOrNeg.equals("-")) {
-////    			if(isDouble) {
-////        			retNum = -1.0 * retNum.doubleValue();
-////    			} else {
-////        			retNum = -1 * retNum.intValue();
-////    			}
-////    		}
-////    	}
-//    	NounMetadata noun = new NounMetadata(retNum.doubleValue(), PixelDataTypes.CONST_DECIMAL);
-//    	if(curReactor != null) {
-//    		curReactor.getCurRow().add(noun);
-//	    	// modify the parent such that the signature has the correct
-//	    	// value of the numerical without any extra spaces
-//	    	// plain string will always modify to a integer even if we return double value
-//	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
-//    	} else {
-//    		// looks like you just have a number...
-//    		// i guess i will return this?
-//    		this.planner.addVariable("$RESULT", noun);
-//    	}
-//    }
-//    
-//    @Override
-//    public void inAPercentageFractionDecimal(APercentageFractionDecimal node) {
-//    	defaultIn(node);
-//    	String fraction = (node.getFraction()+"").trim();
-//		Number retNum = new BigDecimal("0.00" + fraction);
-//    	// determine if it is a negative
-//    	// in which case, multiply by -1
-////    	if(node.getPosOrNeg() != null) {
-////    		String posOrNeg = node.getPosOrNeg().toString().trim();
-////    		if(posOrNeg.equals("-")) {
-////        		retNum = -1.0 * retNum.doubleValue();
-////    		}
-////    	}
-//    	if(curReactor != null) {
-//	    	// add the decimal to the cur row
-//	        curReactor.getCurRow().addDecimal(retNum.doubleValue());
-//	    	// modify the parent such that the signature has the correct
-//	    	// value of the numerical without any extra spaces
-//	    	// plain string will always modify to a integer even if we return double value
-//	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
-//    	} else {
-//    		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PixelDataTypes.CONST_DECIMAL);
-//    		this.planner.addVariable("$RESULT", noun);
-//    	}
-//    }
-
     @Override
     public void inADotcol(ADotcol node)
     {
@@ -1251,8 +1168,11 @@ public class LazyTranslation extends DepthFirstAdapter {
     /**************************************************
      *	End Expression Methods
      **************************************************/
-//----------------------------- Private methods
 
+    /*
+     * Reactor creation, init, and deinit 
+     */
+    
     protected void initReactor(IReactor reactor)
     {
     	// make a check to see if the curReactor is not null
@@ -1290,39 +1210,60 @@ public class LazyTranslation extends DepthFirstAdapter {
     	}
     }
 
-	protected void deInitReactor()
-	{
-		if(curReactor != null)
-		{
-			// merge up and update the plan
-			try {
-				curReactor.mergeUp();
-				curReactor.updatePlan();
-			} catch(Exception e) {
-				e.printStackTrace();
-				throw new IllegalArgumentException(e.getMessage());
-			}
-			// get the parent
-			Object parent = curReactor.Out();
-			
-			// set the parent as the curReactor if it is present
-			prevReactor = curReactor;
-			if(parent != null && parent instanceof IReactor) {
-				curReactor = (IReactor) parent;
-			} else {
-				curReactor = null;
-			}
-		}
-	}
-
-    public IDataMaker getDataMaker() {
-    	// TODO: need to account for multiple data makers
-    	// i.e. when a data maker is referenced
-    	// put it in the planner for use here
-    	if(this.insight != null) {
-    		return this.insight.getDataMaker();
+    protected void deInitReactor() {
+    	if(curReactor != null) {
+    		// merge up and update the plan
+    		try {
+    			curReactor.mergeUp();
+    			curReactor.updatePlan();
+    		} catch(Exception e) {
+    			e.printStackTrace();
+    			throw new IllegalArgumentException(e.getMessage());
+    		}
+    		// get the parent
+    		Object parent = curReactor.Out();
+    		// set the parent as the curReactor if it is present
+    		prevReactor = curReactor;
+    		if(parent != null && parent instanceof IReactor) {
+    			curReactor = (IReactor) parent;
+    		} else {
+    			curReactor = null;
+    		}
     	}
-    	return null;
+    }
+
+    /**
+     * Return the reactor based on the reactorId
+     * @param reactorId - reactor id or operation
+     * @param nodeString - full operation
+     * @return	IReactor		A new instance of the reactor
+     */
+    protected IReactor getReactor(String reactorId, String nodeString) {
+    	// oh wait why cant this be in reactor factory
+    	// because it doesn't have control of the insight
+    	// check if this is an insight specific DSL
+    	if(insight != null && insight.getInsightFolder() != null) {
+    		// TODO: make this consistent... why is this added w/o any consideration of existing flows
+    		// just wasting peoples time having to debug
+    		IReactor insightReactor = ReactorFactory.getIReactor(insight.getInsightFolder(), reactorId);
+	    	if(insightReactor != null) {
+	    		// setting this here and not in rector factory .. inconsistent...
+	    		insightReactor.setPixel(reactorId, nodeString);
+	    		return insightReactor;
+	    	}
+    	}   	
+    	if(this.currentFrame != null) {
+    		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
+    	}
+    	IDataMaker dataTable = null;
+    	if(this.insight != null) {
+    		dataTable = this.insight.getDataMaker();
+    	}
+    	if(dataTable != null) {
+    		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor);
+    	} else {
+    		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor);
+    	}
     }
     
     //////////////////////////////////////////////////////////////////
@@ -1402,39 +1343,9 @@ public class LazyTranslation extends DepthFirstAdapter {
     	
 		curRow.add(negNum);
     }
-        
+       
 	//////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////
-    
-    /**
-     * 
-     * @param reactorId - reactor id or operation
-     * @param nodeString - full operation
-     * @return
-     * 
-     * Return the reactor based on the reactorId
-     * Sets the pixel operations in the reactor
-     */
-    private IReactor getReactor(String reactorId, String nodeString) {
-    	// oh wait why cant this be in reactor factory
-    	// because it doesn't have control of the insight
-    	// check if this is an insight specific DSL
-    	if(insight != null && insight.getInsightFolder() != null) {
-    		IReactor insightReactor = ReactorFactory.getIReactor(insight.getInsightFolder(), reactorId);
-	    	if(insightReactor != null) { 
-	    		return insightReactor;
-	    	}
-    	}   	
-    	if(this.currentFrame != null) {
-    		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
-    	}
-    	IDataMaker dataTable = getDataMaker();
-    	if(dataTable != null) {
-    		return ReactorFactory.getReactor(reactorId, nodeString, (ITableDataFrame) dataTable, curReactor);
-    	} else {
-    		return ReactorFactory.getReactor(reactorId, nodeString, null, curReactor);
-    	}
-    }
     
     public void defaultIn(Node node)
     {
