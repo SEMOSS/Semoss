@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -34,15 +34,19 @@ public abstract class AbstractReactor implements IReactor {
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	protected Insight insight = null;
-	public PixelPlanner planner = null;
-	public Vector<IReactor> childReactor = new Vector<IReactor>();
+	protected PixelPlanner planner = null;
 
-	protected String operationName = null;
+	// keep track of parent reactor and all children reactors
+	protected IReactor parentReactor = null;
+	protected Vector<IReactor> childReactor = new Vector<IReactor>();
+
+	// keep track of the original signature passed in
+	// and the signature when we do basic replacements in the pixel
 	protected String signature = null;
 	protected String originalSignature = null;
+	protected String operationName = null;
 
 	protected String curNoun = null;
-	protected IReactor parentReactor = null;
 	
 	protected NounStore store = null;
 	protected IReactor.TYPE type = IReactor.TYPE.FLATMAP;
@@ -65,336 +69,29 @@ public abstract class AbstractReactor implements IReactor {
 	
 	// all the different keys to get
 	public String[] keysToGet = new String[]{"no keys defined"};
-	
-	// which of these are optional
-	// 1 means required, 0 means optional
+	// which of these are optional : 1 means required, 0 means optional
 	public int[] keyRequired = null;
 	
 	// defaults if one exists
 	// this I am not so sure.. but let us try
 	public Object[] keyDefaults = new Object[]{};
-	
 	public Map<String, String> keyValue = new Hashtable<String, String>();
-
-	// convenience method to allow order or named noun
-	public void organizeKeys()
-	{
-		if(this.getNounStore().size() > 1) {
-			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
-				String key = keysToGet[keyIndex];
-				if(this.store.getNoun(key) != null) {
-					GenRowStruct grs = this.store.getNoun(key);
-					if(!grs.isEmpty()) {
-						keyValue.put(keysToGet[keyIndex], grs.get(0)+"");	
-					}
-				}
-			}
-		}
+	
+	public AbstractReactor() {
 		
-		// if we still are empty
-		// try to fill via input indices in cur row
-		if(keyValue.isEmpty()) {
-			GenRowStruct struct = this.getCurRow();
-			int structSize = struct.size();
-			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
-				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
-			}
-		}
-		
-		// check which of these are optional
-		checkOptional();
 	}
 	
-	private void checkOptional()
-	{
-		StringBuilder nullMessage = new StringBuilder();
-		
-		for(int keyIndex = 0;keyRequired != null && keyIndex < keyRequired.length;keyIndex++)
-		{
-			int required = keyRequired[keyIndex];
-			if(required == 1)
-			{
-				String thisKey = keysToGet[keyIndex];
-			
-				
-				if(!keyValue.containsKey(thisKey))
-				{
-					// this is where the default would come in
-					nullMessage.append(thisKey).append("  ");
-				}
-			}
-		}
-		
-		if(nullMessage.length() != 0)
-		{
-			nullMessage.append("Cannot be empty").insert(0, "Fields  ");
-			throw new IllegalArgumentException(nullMessage.toString());
-		}
-	}
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
 	
-	/**
-	 * 	Organize a list of engines into the keyValue object of the reactor for
-	 *  engine name related searches in solr.
-	 * @param enginesList List of Engines(name) for the specific user
+	/*
+	 * Methods for merging up the noun store across reactors
 	 */
-	public void organizeKeysForEngines(HashSet<String> enginesList) {
-		int enginesSize = enginesList.size();
-		String[] engines = enginesList.toArray(new String[enginesList.size()]);
-		for (int enIdx = 0; enIdx < enginesSize; enIdx++) {
-			if (enIdx == 0)
-				keyValue.put(this.keysToGet[0], engines[enIdx] + "");
-			else
-				keyValue.put(this.keysToGet[0], keyValue.get(this.keysToGet[0]) + " OR " + engines[enIdx] + "");
-		}
-		if (enginesList.isEmpty()) {
-			keyValue.put(this.keysToGet[0], "");
-		}
-	}
-	
-	@Override
-	public String getHelp() {
-		if(keysToGet == null) {
-			return "No help text created for this reactor";
-		}
-		StringBuilder help = new StringBuilder();
-		help.append("Inputs:\n");
-		int size = keysToGet.length;
-		for(int i = 0; i < size; i++) {
-			String key = keysToGet[i];
-			help.append("\tinput ").append(i).append(":\t").append(key);
-			String description = getDescriptionForKey(key);
-			if(description != null) {
-				help.append(" =\t").append(description);
-			}
-			help.append("\n");
-		}
-		return help.toString();
-	}
-	
-	/**
-	 * Default is to grab keys from our standardized set
-	 * But users can override this method to append their own descriptions for keys
-	 * when they are not-standard / are extremely unique for their function
-	 * @param key
-	 * @return
-	 */
-	protected String getDescriptionForKey(String key) {
-		return ReactorKeysEnum.getDescriptionFromKey(key);
-	}
-	
-	@Override
-	public void setPixel(String operation, String fullOperation) {
-		this.operationName = operation;
-		this.signature = fullOperation;
-		this.originalSignature = signature;
-	}
-	
-	@Override
-	public void In() {
-        curNoun("all");
-	}
-	
-	@Override
-	public Object Out() {
-		return this.parentReactor;
-	}
-	
-	@Override
-	public void setInsight(Insight insight) {
-		this.insight = insight;
-	}
-
-	@Override
-	public String[] getPixel() {
-		String [] output = new String[3];
-		output[0] = operationName;
-		output[1] = signature;
-		return output;
-	}
-	
-	@Override
-	public void setParentReactor(IReactor parentReactor) {
-		this.parentReactor = parentReactor;
-	}
-	
-	@Override
-	public IReactor getParentReactor() {
-		return this.parentReactor;
-	}
-	
-	@Override
-	public void setName(String reactorName) {
-		this.reactorName = reactorName;
-	}
-	
-	@Override
-	public String getName() {
-		if(reactorName.length() == 0)
-			reactorName = this.getClass().getName().replace("Reactor", "");
-		return this.reactorName;
-	}
-	
-	@Override
-	public void setProp(String key, Object value) {
-		propStore.put(key, value);
-		
-	}
-
-	@Override
-	public Object getProp(String key) {
-		return propStore.get(key);
-	}
-	
-	@Override
-	public boolean hasProp(String key) {
-		return propStore.containsKey(key);
-	}
-	
-	@Override
-	public void setPixelPlanner(PixelPlanner planner) {
-		this.planner = planner;
-	}
-	
-	@Override
-	public void getErrorMessage() {
-
-	}
-
-	@Override
-	public STATUS getStatus() {
-		return this.status;
-	}
-	
-	@Override
-	public void setChildReactor(IReactor childReactor) {
-		this.childReactor.add(childReactor);
-	}
-	
-	@Override
-	public void curNoun(String noun) { 
-		this.curNoun = noun;
-		curRow = makeNoun(noun);
-	}
-	
-	// gets the current noun
-	@Override
-	public GenRowStruct getCurRow() {
-		return curRow;
-	}
-
-	@Override
-	public void closeNoun(String noun) {
-		curRow = store.getNoun("all");
-	}
-	
-	@Override
-	public NounStore getNounStore() {
-		// I need to see if I have a child
-		// if the child
-		if(this.store == null) {
-			store = new NounStore(operationName);
-		}
-		return store;
-	}
-	
-	@Override
-	public void setNounStore(NounStore store) {
-		this.store = store;
-	}
-
-	@Override
-	public TYPE getType() {
-		Object typeProp = getProp("type");
-		if(typeProp != null && ((String)typeProp).contains("reduce"))
-			this.type = TYPE.REDUCE;
-		return this.type;
-	}
-
-	@Override
-	public void setAs(String [] asName) {
-		this.asName = asName;
-		// need to set this up on planner as well
-		//if(outputFields == null)
-			outputFields = new Vector();
-		outputFields.addAll(Arrays.asList(asName));
-		// re add this to output
-		planner.addOutputs(signature, outputFields, type);
-	}
-	
-	
-	// get noun
-	GenRowStruct makeNoun(String noun) {
-		GenRowStruct newRow = null;
-		getNounStore();
-		newRow = store.makeNoun(noun);
-		return newRow;
-	}
-	
-	public void modifySignatureFromLambdas() {
-		List <NounMetadata> lamList = curRow.getNounsOfType(PixelDataType.LAMBDA);
-		// replace all the values that is inside this. this could be a recursive call
-		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++) {
-			NounMetadata thisLambdaMeta = lamList.get(lamIndex);
-			IReactor thisReactor = (IReactor)thisLambdaMeta.getValue();
-			String rSignature = thisReactor.getOriginalSignature();
-//			String rSignature = thisReactor.getSignature();
-			NounMetadata result = thisReactor.execute();// this might further trigger other things
-
-			//The result of a reactor could be a var, if we are doing string replacing we should just replace with the value of that var instead of the var itself
-			//reason being the variable is not initialized in the java runtime class through this flow
-			if(result.getNounType() == PixelDataType.COLUMN) {
-				NounMetadata resultValue = planner.getVariableValue(result.getValue().toString());
-				if(resultValue != null) {
-					result = resultValue;
-				}
-			}
-			// for compilation reasons
-			// if we have a double
-			// we dont want it to print with the exponential
-			Object replaceValue = result.getValue();
-			PixelDataType replaceType = result.getNounType();
-			if(replaceType == PixelDataType.CONST_DECIMAL || 
-					replaceType == PixelDataType.CONST_INT) {
-				// big decimal is easiest way i have seen to do this formatting
-				replaceValue = new BigDecimal( ((Number) replaceValue).doubleValue()).toPlainString();
-			} else {
-				replaceValue = replaceValue + "";
-			}
-			modifySignature(rSignature, replaceValue.toString());
-		}
-	}
-	
-	@Override
-	public void modifySignature(String stringToFind, String stringReplacement) {
-		LOGGER.debug("Original signature value = " + this.signature);
-		this.signature = StringUtils.replaceOnce( this.signature, stringToFind, stringReplacement);
-		LOGGER.debug("New signature value = " + this.signature);
-	}
-
-	// call for map
-	public IHeadersDataRow map(IHeadersDataRow row)
-	{
-		return null;
-	}
-	
-	// call for reeduce
-	public Object reduce(Iterator it)
-	{
-		return null;
-	}
 	
 	@Override
 	public void mergeUp() {
-		// need to figure out the best way to do this
-		// i dont want to always just push everything
-		// ... not sure if that is avoidable
-		
-		
-		// but i know for filter statements
-		// children definitely need to be pushed up
-		// based on the curnoun the filter has set
-		// we definitely need to define based on the type
-		
+		// merge this reactor into the parent reactor
 		if(parentReactor != null) {
 			NounMetadata data = new NounMetadata(this, PixelDataType.LAMBDA);
 			this.parentReactor.getCurRow().add(data);
@@ -468,7 +165,6 @@ public abstract class AbstractReactor implements IReactor {
 					strInputs.add(noun.getValue() + "");
 				}
 			}
-			
 			this.planner.addInputs(this.signature, strInputs, TYPE.FLATMAP);
 		}
 		
@@ -484,13 +180,132 @@ public abstract class AbstractReactor implements IReactor {
 			
 			this.planner.addOutputs(this.signature, strOutputs, TYPE.FLATMAP);
 		}
-		
-		// if no input or outputs
-		// no need to add this to the plan
-//		if(inputs != null || outputs != null) {
-//			// store the reactor itself onto the planner
-//			this.planner.addProperty(this.signature, PixelPlanner.REACTOR_CLASS, this);
-//		}
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Noun store methods
+	 */
+	
+	@Override
+	public void In() {
+        curNoun("all");
+	}
+	
+	@Override
+	public Object Out() {
+		return this.parentReactor;
+	}
+	
+	@Override
+	public void curNoun(String noun) { 
+		this.curNoun = noun;
+		curRow = makeNoun(noun);
+	}
+	
+	// gets the current noun
+	@Override
+	public GenRowStruct getCurRow() {
+		return curRow;
+	}
+
+	@Override
+	public void closeNoun(String noun) {
+		curRow = store.getNoun("all");
+	}
+	
+	// get noun
+	protected GenRowStruct makeNoun(String noun) {
+		GenRowStruct newRow = null;
+		getNounStore();
+		newRow = store.makeNoun(noun);
+		return newRow;
+	}
+	
+	@Override
+	public NounStore getNounStore() {
+		// I need to see if I have a child
+		// if the child
+		if(this.store == null) {
+			store = new NounStore(operationName);
+		}
+		return store;
+	}
+	
+	@Override
+	public void setNounStore(NounStore store) {
+		this.store = store;
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * General Setters / Getters
+	 */
+	
+	@Override
+	public void setPixel(String operation, String fullOperation) {
+		this.operationName = operation;
+		this.signature = fullOperation;
+		this.originalSignature = fullOperation;
+	}
+	
+	@Override
+	public void setInsight(Insight insight) {
+		this.insight = insight;
+	}
+	
+	@Override
+	public String[] getPixel() {
+		return new String[]{operationName, signature};
+	}
+	
+	@Override
+	public void setParentReactor(IReactor parentReactor) {
+		this.parentReactor = parentReactor;
+	}
+	
+	@Override
+	public IReactor getParentReactor() {
+		return this.parentReactor;
+	}
+
+	@Override
+	public void setChildReactor(IReactor childReactor) {
+		this.childReactor.add(childReactor);
+	}
+	
+	@Override
+	public List<IReactor> getChildReactors() {
+		return this.childReactor;
+	}
+	
+	@Override
+	public void setName(String reactorName) {
+		this.reactorName = reactorName;
+	}
+	
+	@Override
+	public String getName() {
+		if(reactorName.isEmpty()) {
+			reactorName = this.getClass().getName().replace("Reactor", "");
+		}
+		return this.reactorName;
+	}
+	
+	@Override
+	public void setPixelPlanner(PixelPlanner planner) {
+		this.planner = planner;
+	}
+	
+	@Override
+	public PixelPlanner getPixelPlanner() {
+		return this.planner;
 	}
 	
 	@Override
@@ -501,6 +316,86 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public String getOriginalSignature() {
 		return this.originalSignature;
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Utility methods
+	 */
+	
+	public void modifySignatureFromLambdas() {
+		List <NounMetadata> lamList = curRow.getNounsOfType(PixelDataType.LAMBDA);
+		// replace all the values that is inside this. this could be a recursive call
+		for(int lamIndex = 0;lamIndex < lamList.size();lamIndex++) {
+			NounMetadata thisLambdaMeta = lamList.get(lamIndex);
+			IReactor thisReactor = (IReactor)thisLambdaMeta.getValue();
+			String rSignature = thisReactor.getOriginalSignature();
+//			String rSignature = thisReactor.getSignature();
+			NounMetadata result = thisReactor.execute();// this might further trigger other things
+
+			//The result of a reactor could be a var, if we are doing string replacing we should just replace with the value of that var instead of the var itself
+			//reason being the variable is not initialized in the java runtime class through this flow
+			if(result.getNounType() == PixelDataType.COLUMN) {
+				NounMetadata resultValue = planner.getVariableValue(result.getValue().toString());
+				if(resultValue != null) {
+					result = resultValue;
+				}
+			}
+			// for compilation reasons
+			// if we have a double
+			// we dont want it to print with the exponential
+			Object replaceValue = result.getValue();
+			PixelDataType replaceType = result.getNounType();
+			if(replaceType == PixelDataType.CONST_DECIMAL || 
+					replaceType == PixelDataType.CONST_INT) {
+				// big decimal is easiest way i have seen to do this formatting
+				replaceValue = new BigDecimal( ((Number) replaceValue).doubleValue()).toPlainString();
+			} else {
+				replaceValue = replaceValue + "";
+			}
+			modifySignature(rSignature, replaceValue.toString());
+		}
+	}
+	
+	@Override
+	public void modifySignature(String stringToFind, String stringReplacement) {
+		LOGGER.debug("Original signature value = " + this.signature);
+		this.signature = StringUtils.replaceOnce( this.signature, stringToFind, stringReplacement);
+		LOGGER.debug("New signature value = " + this.signature);
+	}
+	
+	@Override
+	public String getHelp() {
+		if(keysToGet == null) {
+			return "No help text created for this reactor";
+		}
+		StringBuilder help = new StringBuilder();
+		help.append("Inputs:\n");
+		int size = keysToGet.length;
+		for(int i = 0; i < size; i++) {
+			String key = keysToGet[i];
+			help.append("\tinput ").append(i).append(":\t").append(key);
+			String description = getDescriptionForKey(key);
+			if(description != null) {
+				help.append(" =\t").append(description);
+			}
+			help.append("\n");
+		}
+		return help.toString();
+	}
+	
+	/**
+	 * Default is to grab keys from our standardized set
+	 * But users can override this method to append their own descriptions for keys
+	 * when they are not-standard / are extremely unique for their function
+	 * @param key
+	 * @return
+	 */
+	protected String getDescriptionForKey(String key) {
+		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}
 	
 	@Override
@@ -526,12 +421,72 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		return ThreadStore.getSessionId();
 	}
+	
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Methods to quickly retrieve inputs in the noun store
+	 */
+	
+	/**
+	 * Convenience method to allow order or named noun for basic string inputs
+	 */
+	public void organizeKeys() {
+		if(this.getNounStore().size() > 1) {
+			for(int keyIndex = 0; keyIndex < keysToGet.length; keyIndex++) {
+				String key = keysToGet[keyIndex];
+				if(this.store.getNoun(key) != null) {
+					GenRowStruct grs = this.store.getNoun(key);
+					if(!grs.isEmpty()) {
+						keyValue.put(keysToGet[keyIndex], grs.get(0)+"");	
+					}
+				}
+			}
+		}
+		
+		// if we still are empty
+		// try to fill via input indices in cur row
+		if(keyValue.isEmpty()) {
+			GenRowStruct struct = this.getCurRow();
+			int structSize = struct.size();
+			for(int keyIndex = 0; keyIndex < keysToGet.length && keyIndex < structSize; keyIndex++) {
+				keyValue.put(keysToGet[keyIndex], struct.get(keyIndex)+"");
+			}
+		}
+		
+		// check which of these are optional
+		checkOptional();
+	}
+	
+	/**
+	 * Check which inputs are optional or required and throw error if all required are not defined
+	 */
+	private void checkOptional() {
+		StringBuilder nullMessage = new StringBuilder();
+		for(int keyIndex = 0;keyRequired != null && keyIndex < keyRequired.length;keyIndex++) {
+			int required = keyRequired[keyIndex];
+			if(required == 1) {
+				String thisKey = keysToGet[keyIndex];
+				if(!keyValue.containsKey(thisKey)) {
+					// this is where the default would come in
+					nullMessage.append(thisKey).append("  ");
+				}
+			}
+		}
+		
+		if(nullMessage.length() != 0) {
+			nullMessage.append("Cannot be empty").insert(0, "Fields  ");
+			throw new IllegalArgumentException(nullMessage.toString());
+		}
+	}
 
 	public void checkMin(int numKey) {
 		// checks to see if the minmum number of keys are present else
 		// will throw an error
 		if(keyValue.size() < numKey) {
-			Hashtable details = new Hashtable();
+			Map<String, String> details = new HashMap<String, String>();
 			details.put("error", "Parameters are not present: was expecting " + numKey + " but found only " + keyValue.size());
 			details.put("message", "please try help on this command for more details");
 			throwLoginError(details);
@@ -573,4 +528,63 @@ public abstract class AbstractReactor implements IReactor {
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
 	}
+	
+	
+	/////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Methods in interface that are not really used at the moment...
+	 */
+
+	@Override
+	public void setAs(String [] asName) {
+		this.asName = asName;
+		// need to set this up on planner as well
+		outputFields = new Vector<String>();
+		outputFields.addAll(Arrays.asList(asName));
+		// re add this to output
+		planner.addOutputs(signature, outputFields, type);
+	}
+	
+	@Override
+	public void setProp(String key, Object value) {
+		propStore.put(key, value);
+	}
+
+	@Override
+	public Object getProp(String key) {
+		return propStore.get(key);
+	}
+	
+	@Override
+	public boolean hasProp(String key) {
+		return propStore.containsKey(key);
+	}
+	
+	@Override
+	public TYPE getType() {
+		Object typeProp = getProp("type");
+		if(typeProp != null && ((String)typeProp).contains("reduce")) {
+			this.type = TYPE.REDUCE;
+		}
+		return this.type;
+	}
+	
+	@Override
+	public STATUS getStatus() {
+		return this.status;
+	}
+	
+	@Override
+	public IHeadersDataRow map(IHeadersDataRow row) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Object reduce(Iterator iterator) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 }
