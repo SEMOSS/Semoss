@@ -153,10 +153,10 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
-		UploadUtilities.addExploreInstanceInsight(this.appId, insightDatabase);
-		UploadUtilities.addGridDeltaInsight(this.appId, insightDatabase);
-		UploadUtilities.addAuditModificationView(this.appId, insightDatabase);
-		UploadUtilities.addAuditTimelineView(this.appId, insightDatabase);
+		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addAuditModificationView(this.appId, newAppName, insightDatabase);
+		UploadUtilities.addAuditTimelineView(this.appId, newAppName, insightDatabase);
 		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
 		// create form insights
 		// user hasn't defined the data types
@@ -198,16 +198,12 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 						sheetName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
 						if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
 							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap,  Arrays.copyOf(headers, headers.length));
-							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
-							Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(this.appId, sheetName, dataValidationMap);
-							UploadUtilities.addUpdateInsights(insightDatabase, this.appId, sheetName, updateForm);
+							UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
 						} else {
 							// get header descriptions
 							dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
 							Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
-							UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);							
-							Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName);
-							UploadUtilities.addUpdateInsights(insightDatabase, owler, this.appId, sheetName, propMap);
+							UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);							
 						}
 					}
 				}
@@ -246,17 +242,12 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 					sheetName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
 					if (dataValidationMap != null && !dataValidationMap.isEmpty()) {
 						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
-						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
-						Map<String, Object> updateForm = ExcelDataValidationHelper.createUpdateForm(this.appId, sheetName, dataValidationMap);
-						UploadUtilities.addUpdateInsights(insightDatabase, this.appId, sheetName, updateForm);
-						;
+						UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
 					} else {
 						// get header descriptions
 						dataValidationMap = ExcelDataValidationHelper.getHeaderComments(sheet, newRangeHeaders, Arrays.copyOf(headers, headers.length), types, headerIndicies, startRow);
 						Map<String, Object> widgetJson = ExcelDataValidationHelper.createInsertForm(newAppName, sheetName, dataValidationMap, Arrays.copyOf(headers, headers.length));
-						UploadUtilities.addInsertFormInsight(insightDatabase, newAppName, sheetName, widgetJson);
-						Map<String, SemossDataType> propMap = existingMetamodel.get(sheetName);
-						UploadUtilities.addUpdateInsights(insightDatabase, owler, this.appId, sheetName, propMap);
+						UploadUtilities.addInsertFormInsight(insightDatabase, this.appId, newAppName, sheetName, widgetJson);
 					}
 				}
 			}
