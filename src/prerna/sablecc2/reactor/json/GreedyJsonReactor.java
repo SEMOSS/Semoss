@@ -441,7 +441,7 @@ public class GreedyJsonReactor extends AbstractReactor {
 			// if continuing with parent.. add all the child to the next list so we can continue to search
 			if(searchAllParent)
 			{
-				List <IReactor> childList = ((AbstractReactor)reactor).childReactor;
+				List <IReactor> childList = reactor.getChildReactors();
 				if(realValue != null)
 					((Vector)retObject).add(realValue);
 				nextSet.addAll(childList);

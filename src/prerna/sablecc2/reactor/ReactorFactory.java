@@ -585,11 +585,12 @@ public class ReactorFactory {
 						if(packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
 							tinkerFrameHash.put(reactorName, actualClass);
 						}
-						else // nullify the package name
+						else {// nullify the package name
 							packageName = null;
-						if(packageName != null)
+						}
+						if(packageName != null) {
 							reactorName = packageName + "_" + reactorName;
-						
+						}
 					} else {
 						reactorHash.put(reactorName, actualClass);
 					}
@@ -597,7 +598,6 @@ public class ReactorFactory {
 					classList.add(actualClass);
 					
 					reactors.put(reactorName.toUpperCase(), actualClass);
-					
 				}
 			}
 		} catch (Exception e) {
@@ -1203,6 +1203,7 @@ public class ReactorFactory {
 		rFrameHash.put("ExtractLetters", prerna.sablecc2.reactor.frame.r.ExtractLettersReactor.class);
 		rFrameHash.put("ExtractNumbers", prerna.sablecc2.reactor.frame.r.ExtractNumbersReactor.class);
 		rFrameHash.put("JoinColumns", prerna.sablecc2.reactor.frame.r.JoinColumnsReactor.class);
+		rFrameHash.put("Concatenate", prerna.sablecc2.reactor.frame.r.ConcatenateReactor.class);
 		rFrameHash.put("Pivot", prerna.sablecc2.reactor.frame.r.PivotReactor.class);
 		rFrameHash.put("RegexReplaceColumnValue", prerna.sablecc2.reactor.frame.r.RegexReplaceColumnValueReactor.class);
 		rFrameHash.put("RemoveDuplicateRows", prerna.sablecc2.reactor.frame.r.RemoveDuplicateRowsReactor.class);
@@ -1407,19 +1408,24 @@ public class ReactorFactory {
 					}
 				}
 				
-				// try the new method
-				IReactor freactor = getFReactor(frameName + reactorId);
-				if(freactor != null && reactor != null && reactor.getClass().toString().equalsIgnoreCase(freactor.getClass().toString()))
-				{
-					if(reactor != null)
-						reactor = freactor;
-				}
-				// should I also search the non frame ? would it help ?
-				else if(reactor != null)
-				{
-					System.err.println("Failed " + reactor + "<>" + freactor);
-					System.err.println("Tried with id " + reactorId + "in frame" + frameName);
-				}
+				// TODO:
+				// i do not see what getFReactor does???
+				// i do not see what getFReactor does???
+				// i do not see what getFReactor does???
+
+//				// try the new method
+//				IReactor freactor = getFReactor(frameName + reactorId);
+//				if(freactor != null && reactor != null && reactor.getClass().toString().equalsIgnoreCase(freactor.getClass().toString()))
+//				{
+//					if(reactor != null)
+//						reactor = freactor;
+//				}
+//				// should I also search the non frame ? would it help ?
+//				else if(reactor != null)
+//				{
+//					System.err.println("Failed " + reactor + "<>" + freactor);
+//					System.err.println("Tried with id " + reactorId + "in frame" + frameName);
+//				}
 				// if we have retrieved a reactor from a frame hash
 				if (reactor != null) {
 					reactor.setPixel(reactorId, nodeString);
@@ -1434,16 +1440,23 @@ public class ReactorFactory {
 			if (reactorHash.containsKey(reactorId)) {
 				reactor = (IReactor) reactorHash.get(reactorId).newInstance();
 				reactor.setPixel(reactorId, nodeString);
-
-				IReactor freactor = getFReactor(reactorId);
-				if(freactor != null && reactor != null && reactor.getClass().toString().equalsIgnoreCase(freactor.getClass().toString()))
-				{
-					if(reactor != null)
-						reactor = freactor;
-				}
-				else if(reactor != null)
-					System.err.println("Failed " + reactor + "<>" + freactor);
 				return reactor;
+				
+				// idk what this is ...
+				// but its breaking things
+				// seems unneeded
+				// the above has logic for frames
+				// so dont think we need this and all tests pass without it
+//				IReactor freactor = getFReactor(reactorId);
+//				if(freactor != null && reactor != null && reactor.getClass().toString().equalsIgnoreCase(freactor.getClass().toString())) {
+//					if(reactor != null) {
+//						reactor = freactor;
+//					}
+//				}
+//				else if(reactor != null) {
+//					System.err.println("Failed " + reactor + "<>" + freactor);
+//				}
+//				return reactor;
 			}
 		} catch (InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
@@ -1454,8 +1467,7 @@ public class ReactorFactory {
 		 * I will just create this as a generic function reactor 
 		 * that creates a function selector to return 
 		 */
-		if (parentReactor instanceof AbstractQueryStructReactor || 
-				parentReactor instanceof QuerySelectorExpressionAssimilator) {
+		if (parentReactor instanceof AbstractQueryStructReactor || parentReactor instanceof QuerySelectorExpressionAssimilator) {
 			reactor = new GenericSelectorFunctionReactor();
 			reactor.setPixel(reactorId, nodeString);
 			// set the fuction name
