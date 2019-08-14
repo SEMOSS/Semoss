@@ -28,6 +28,7 @@ import prerna.sablecc2.reactor.app.upload.rdbms.external.CustomTableAndViewItera
 import prerna.util.MosfetSyncHelper;
 import prerna.util.OWLER;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RDBMSEngineCreationHelper {
@@ -124,7 +125,12 @@ public class RDBMSEngineCreationHelper {
 				viewPixel.append("]}}}) | Collect(500);"); 
 				recipeArray[4] = viewPixel.toString();
 				String id = admin.addInsight(insightName, layout, recipeArray);
+				//write recipe to file
 				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdbmsEngine.getEngineName(), id, insightName, layout, recipeArray, false);
+				// add the git here
+				String recipePath = retFile.getParent();
+				// make a version folder if one doesn't exist
+				GitRepoUtils.init(recipePath);
 				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), id, insightName, false, layout);
 			}
 		} catch(RuntimeException e) {
