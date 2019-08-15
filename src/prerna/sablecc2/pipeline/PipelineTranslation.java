@@ -1,6 +1,7 @@
 package prerna.sablecc2.pipeline;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
@@ -319,7 +320,7 @@ public class PipelineTranslation extends LazyTranslation {
 		// the structure doesn't care about the qs source at the moment...
 		// so will set it here if reactor to id has the stuff
 		// the import/merge are not defined here
-		if(PipelineTranslation.reactorToId.containsKey(reactorId)) {
+		if(PipelineTranslation.reactorToId != null && PipelineTranslation.reactorToId.containsKey(reactorId)) {
 			op.setWidgetId(PipelineTranslation.reactorToId.get(reactorId));
 		}
 		
@@ -601,16 +602,19 @@ public class PipelineTranslation extends LazyTranslation {
     }
     
 	private static synchronized void init() {
-		if(reactorToId == null) {
+		if(PipelineTranslation.reactorToId == null) {
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			CSVFileHelper helper = new CSVFileHelper();
-			helper.parse(baseFolder + "/reactorToWidget.csv");
-			
-			reactorToId = new HashMap<String, String>();
-			
-			String[] row = null;
-			while( (row = helper.getNextRow()) != null ) {
-				reactorToId.put(row[0], row[1]);
+			File reactorWidgetFile = new File(baseFolder + "/reactorToWidget.csv");
+			if(reactorWidgetFile.exists()) {
+				CSVFileHelper helper = new CSVFileHelper();
+				helper.parse(reactorWidgetFile.getAbsolutePath());
+				
+				PipelineTranslation.reactorToId = new HashMap<String, String>();
+				
+				String[] row = null;
+				while( (row = helper.getNextRow()) != null ) {
+					PipelineTranslation.reactorToId.put(row[0], row[1]);
+				}
 			}
 		}
 	}
