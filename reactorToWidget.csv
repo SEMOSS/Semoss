@@ -33,3 +33,14 @@ ToCsv,export-file
 ToTsv,export-file
 ToTxt,export-file
 ToExcel,export-file
+RunSimilarity,analytics-similarity
+RunOutlier,analytics-outliers
+RunNumericalCorrelation,analytics-numerical-correlation
+RunNumericalColumnSimilarity,analytics-column-similarity
+RunMatrixRegression,analytics-matrix-regression
+RunLOF,analytics-lof
+SemanticDescription,analytics-explore-localmaster
+MetaSemanticSimilarity,analytics-explore-localmaster
+RunDocSimilarity,analytics-document-similarity
+RunDescriptionGenerator,analytics-description-generator
+RunClassification,analytics-classification
