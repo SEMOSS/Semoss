@@ -660,6 +660,7 @@ public class PipelineTranslation extends LazyTranslation {
 				+ "FRAME238470 | Convert(frameType=['R']);"
 				+ "FRAME238470 | DateExpander ( column = [ \"Cast_Formed\" ] , options = [ \"year\" , \"month\" , \"month-name\" ] ) ;"
 				+ "Frame(FRAME238470) | QueryAll() | ToCsv();"
+				+ "RunSimilarity(instance=[\"Title\"], attributes=[\"Cast_Formed\",\"DVD_Release\"]);"
 //				+ "if(true, 5+5, 6+6);" 
 //				+ "ifError ( ( Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
 				;
