@@ -66,6 +66,8 @@ public class PipelineTranslation extends LazyTranslation {
 	private static Map<String, String> reactorToId = null;
 	
 	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<AbstractQueryStruct.QUERY_STRUCT_TYPE, String>();
+	private static List<String> qsReactors = new Vector<String>();
+	private static List<String> fileReactors = new Vector<String>();
 	static {
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE, "pipeline-file");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, "pipeline-app");
@@ -75,13 +77,18 @@ public class PipelineTranslation extends LazyTranslation {
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, "pipeline-query");
 //		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY, "pipeline-query");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY, "pipeline-external");
-	}
-	
-	private static List<String> qsReactors = new Vector<String>();
-	static {
+		
+		// frame importing
 		qsReactors.add("Import");
 		qsReactors.add("Merge");
 		qsReactors.add("FuzzyMerge");
+		
+		// file + database importing
+		fileReactors.add("ToCsv");
+		fileReactors.add("ToTsv");
+		fileReactors.add("ToTxt");
+		fileReactors.add("ToExcel");
+		fileReactors.add("ToDatabase");
 	}
 	
 	private List<List<PipelineOperation>> allRoutines = new Vector<List<PipelineOperation>>();
@@ -303,10 +310,16 @@ public class PipelineTranslation extends LazyTranslation {
     	String reactorId = reactorInputs[0];
 		PipelineOperation op = new PipelineOperation(reactorId, reactorInputs[1]);
 		
-		if(PipelineTranslation.qsReactors.contains(reactorId)) {
+		if(PipelineTranslation.qsReactors.contains(reactorId) 
+				|| PipelineTranslation.fileReactors.contains(reactorId)) {
 			// we need to merge the previous QS portions into this reactor
 			combineQSComponents(op);
-		} else if(PipelineTranslation.reactorToId.containsKey(reactorId)) {
+		} 
+		// the file reactors do not set the widget id directly since 
+		// the structure doesn't care about the qs source at the moment...
+		// so will set it here if reactor to id has the stuff
+		// the import/merge are not defined here
+		if(PipelineTranslation.reactorToId.containsKey(reactorId)) {
 			op.setWidgetId(PipelineTranslation.reactorToId.get(reactorId));
 		}
 		
@@ -353,7 +366,20 @@ public class PipelineTranslation extends LazyTranslation {
     			
     			// grab the database id from the  input
     			String dbId = getStringOpNounInput("database", routine.getNounInputs());
+    			if(dbId == null) {
+    				dbId = getStringOpRowInput(0, routine.getRowInputs());
+    			}
     			qs.setEngineId(dbId);
+    			
+    		} else if(opName.equals("Frame")) {
+    			qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
+    			
+    			// grab the database id from the  input
+    			String frameName = getFrameNameOpNounInput("frame", routine.getNounInputs());
+    			if(frameName == null) {
+    				frameName = getFrameNameOpRowInput(0, routine.getRowInputs());
+    			}
+    			qs.setFrameName(frameName);
     			
     		} else if(opName.equals("Select")) {
     			List<Map> rowInputs = routine.getRowInputs();
@@ -427,7 +453,9 @@ public class PipelineTranslation extends LazyTranslation {
     	Map<String, Object> qsMap = new HashMap<String, Object>();
     	qsMap.put("value", qs);
     	op.addNounInputs("qs", qsMap);
-    	op.setWidgetId(PipelineTranslation.qsToWidget.get(qs.getQsType()));
+    	if(PipelineTranslation.qsReactors.contains(op.getOpName())) {
+    		op.setWidgetId(PipelineTranslation.qsToWidget.get(qs.getQsType()));
+    	}
 	}
     
     /**
@@ -475,6 +503,28 @@ public class PipelineTranslation extends LazyTranslation {
 			Map<String, Object> nounMap = nounInputs.get(index);
 			if(nounMap != null) {
 				output = (String) nounMap.get("value");
+			}
+		}
+    	return output;
+    }
+    
+    private String getFrameNameOpNounInput(String key, Map<String, List<Map>> nounInputs) {
+    	String output = null;
+    	if(nounInputs.containsKey(key)) {
+			List<Map> nounMap = nounInputs.get(key);
+			if(nounMap != null) {
+				output = (String) nounMap.get(0).get("name");
+			}
+		}
+    	return output;
+    }
+    
+    private String getFrameNameOpRowInput(int index, List<Map> nounInputs) {
+    	String output = null;
+    	if(nounInputs.size() > index) {
+			Map<String, Object> nounMap = nounInputs.get(index);
+			if(nounMap != null) {
+				output = (String) nounMap.get("name");
 			}
 		}
     	return output;
@@ -603,7 +653,9 @@ public class PipelineTranslation extends LazyTranslation {
 //				+ "FRAME238470 | Convert ( frameType = [ R ] ) .as ( [ 'FRAME238470' ] ) ;" 
 //				+ "Frame ( frame = [ FRAME238470 ] ) | Select ( Cast_Formed , Director , DVD_Release , Genre , MovieBudget , MOVIE_DATES , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ) .as ( [ Cast_Formed , Director , DVD_Release , Genre , MovieBudget , MOVIE_DATES , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Cast_Formed\" , \"Director\" , \"DVD_Release\" , \"Genre\" , \"MovieBudget\" , \"MOVIE_DATES\" , \"Nominated\" , \"Production_End\" , \"Production_Start\" , \"Revenue_Domestic\" , \"Revenue_International\" , \"RottenTomatoes_Audience\" , \"RottenTomatoes_Critics\" , \"Studio\" , \"Theatre_Release_Date\" , \"Title\" ] } } } ) | Collect ( 2000 ) ;" 
 //				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience ) .as ( [ MOVIE_DATES , Production_Start , Revenue_International , RottenTomatoes_Audience ] ) | Merge ( joins = [ ( MOVIE_DATES , inner.join , MOVIE_DATES ), ( x, inner.join, y ) ] , frame = [ FRAME238470 ] ) ;"
+				+ "FRAME238470 | Convert(frameType=['R']);"
 				+ "FRAME238470 | DateExpander ( column = [ \"Cast_Formed\" ] , options = [ \"year\" , \"month\" , \"month-name\" ] ) ;"
+				+ "Frame(FRAME238470) | QueryAll() | ToCsv();"
 //				+ "if(true, 5+5, 6+6);" 
 //				+ "ifError ( ( Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
 				;
