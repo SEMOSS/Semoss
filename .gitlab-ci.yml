@@ -108,6 +108,7 @@ build_deploy:
       - $RELEASE == "TRUE"
   script:
     - ls
+    - pwd
     - cat ver.txt
     - apt-get update
     - apt-get install -y openjfx
