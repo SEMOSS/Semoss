@@ -263,10 +263,12 @@
 			</snapshots>
 		</repository>
 		<!-- repository for Apache Storm -->
+		<!-- 
 		<repository>
 			<id>clojars.org</id>
 			<url>http://clojars.org/repo</url>
 		</repository>
+		-->
 		<repository>
 			<id>redshift</id>
 			<url>http://redshift-maven-repository.s3-website-us-east-1.amazonaws.com/release</url>
