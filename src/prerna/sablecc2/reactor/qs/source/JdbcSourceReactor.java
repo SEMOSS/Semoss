@@ -10,7 +10,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.JdbcHardSelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
@@ -57,7 +56,6 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 		JdbcHardSelectQueryStruct qs = new JdbcHardSelectQueryStruct();
 		qs.setConfig(config);
 		qs.setEngine(fakeEngine);
-		qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
 		return qs;
 	}
 	
