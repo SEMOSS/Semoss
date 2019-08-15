@@ -1,5 +1,5 @@
 Reactor,WidgetId
-AddColumn,clean-add-column
+AddColumn,clean-add-col
 AutoCleanColumn,clean-auto-clean-column
 ChangeColumnType,clean-change-col-type
 Collapse,clean-collapse
