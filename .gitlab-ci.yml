@@ -86,9 +86,11 @@ build_dev:
     variables:
       - $RELEASE == "TRUE"
   script:
+    - ls
+    - pwd
     - apt-get update
     - apt-get install -y openjfx
-    - mvn $MAVEN_CLI_OPTS clean install -Dci.version=${VERSION}-SNAPSHOT
+    - mvn $MAVEN_CLI_OPTS clean install -Dci.version=${VERSION}-SNAPSHOT -X
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
   artifacts:
