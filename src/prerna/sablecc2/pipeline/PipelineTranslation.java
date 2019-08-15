@@ -30,6 +30,7 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.JdbcHardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.LazyTranslation;
@@ -49,6 +50,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
@@ -354,7 +356,11 @@ public class PipelineTranslation extends LazyTranslation {
     }
     
     private void combineQSComponents(PipelineOperation op) {
+    	Map<String, Object> qsMap = new HashMap<String, Object>();
+    	// we will add the qs at the end
+    	// since we could reassign the qs object
     	SelectQueryStruct qs = new SelectQueryStruct();
+    	
     	// combine all the existing noun portions
     	// thankfully the QS is already a builder construct
     	for(PipelineOperation routine : this.curRoutine) {
@@ -448,10 +454,43 @@ public class PipelineTranslation extends LazyTranslation {
     			newQs.setNewHeaderNames(newHeaders);
     			
     			qs = newQs;
+    		
+    		} else if(opName.equals("DirectJDBCConnection")) {
+    			
+    			/*
+    			 * This is the same as the Query 
+    			 * But will need to add some additional parts after
+    			 */
+    			
+    			JdbcHardSelectQueryStruct newQs = new JdbcHardSelectQueryStruct();
+
+    			// get all the inputs
+    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
+
+    			String query = getStringOpNounInput(ReactorKeysEnum.QUERY_KEY.getKey(), nounInputs);
+    			query = Utility.decodeURIComponent(query);
+       			newQs.setQuery(query);
+       			
+    			String driver = getStringOpNounInput(ReactorKeysEnum.DB_DRIVER_KEY.getKey(), nounInputs);
+    			String username = getStringOpNounInput(ReactorKeysEnum.PASSWORD.getKey(), nounInputs);
+				String password = getStringOpNounInput(ReactorKeysEnum.USERNAME.getKey(), nounInputs);
+    			String connectionUrl = getStringOpNounInput(ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), nounInputs);
+    			
+    			Map<String, Object> config = new HashMap<String, Object>();
+    			config.put(ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), connectionUrl);
+    			config.put(ReactorKeysEnum.DB_DRIVER_KEY.getKey(), driver);
+    			config.put(ReactorKeysEnum.USERNAME.getKey(), username);
+    			config.put(ReactorKeysEnum.PASSWORD.getKey(), password);
+
+    			newQs.setConfig(config);
+    			
+    			// reset reference of qs to the new hard qs after merging the inputs
+    			qs = newQs;
     		}
     	}
     	
-    	Map<String, Object> qsMap = new HashMap<String, Object>();
+    	// we will add the qs at the end
+    	// since we could reassign the qs object
     	qsMap.put("value", qs);
     	op.addNounInputs("qs", qsMap);
     	if(PipelineTranslation.qsReactors.contains(op.getOpName())) {
@@ -661,7 +700,8 @@ public class PipelineTranslation extends LazyTranslation {
 				+ "FRAME238470 | DateExpander ( column = [ \"Cast_Formed\" ] , options = [ \"year\" , \"month\" , \"month-name\" ] ) ;"
 				+ "Frame(FRAME238470) | QueryAll() | ToCsv();"
 				+ "RunSimilarity(instance=[\"Title\"], attributes=[\"Cast_Formed\",\"DVD_Release\"]);"
-//				+ "if(true, 5+5, 6+6);" 
+				+ "DirectJDBCConnection(query = [\"<encode>select * from city</encode>\"], dbDriver = [\"MYSQL\"], connectionString = [\"jdbc:mysql://localhost:3306/world?user=root&password=password\"], username = [\"root\"], password = [\"password\"])|Import( frame=[FRAME238470] );"
+				//				+ "if(true, 5+5, 6+6);" 
 //				+ "ifError ( ( Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
 				;
 
