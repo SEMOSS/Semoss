@@ -113,7 +113,7 @@ build_deploy:
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
     - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
-    - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dci.version=${VERSION}-SNAPSHOT
+    - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dci.version=${VERSION}-SNAPSHOT -X
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
   artifacts:
