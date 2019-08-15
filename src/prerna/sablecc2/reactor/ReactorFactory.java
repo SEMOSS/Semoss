@@ -1,7 +1,13 @@
 package prerna.sablecc2.reactor;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
 import java.io.File;
 import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -9,11 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -446,6 +447,8 @@ import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendations
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class ReactorFactory {
 
 	// This holds the reactors that are frame agnostic and can be used by pixel
@@ -472,6 +475,8 @@ public class ReactorFactory {
 	
 	public static Map<String, Map<String, Class>> insightSpecificHash = new HashMap<String, Map<String, Class>>();
 	public static Map<String, Map<String, Class>> dbSpecificHash = new HashMap<String, Map<String, Class>>();
+	// caches the classpath
+	public static String envClassPath = null;
 	
 	
 	static {
@@ -1651,6 +1656,8 @@ public class ReactorFactory {
 	}
 	
 	// load insight specific reactors
+	// I need to shift this eventually to the insight
+	// which means I need access to a DB Structure within insight
 	
 	// get insight specific class
 	public static IReactor getIReactor(String insightFolder, String className) {	
@@ -1665,11 +1672,15 @@ public class ReactorFactory {
 //		String insightId = Utility.getInstanceName(insightFolder);
 //		String db = Utility.getClassName(insightFolder);
 
+		
 		IReactor retReac = null;
 		Map <String, Class> thisInsightMap = null;
 		String key = db + "." + insightId ;
+		
+		
 		if(!insightSpecificHash.containsKey(key)) 
 		{
+			//compileJava(insightFolder);
 			thisInsightMap = loadReactors(insightFolder, key);
 			insightSpecificHash.put(key, thisInsightMap);
 		}
@@ -1681,6 +1692,7 @@ public class ReactorFactory {
 				if(thisInsightMap.containsKey(className.toUpperCase())) {
 					Class thisReactorClass = thisInsightMap.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.newInstance();
+					return retReac;
 				}
 			} catch (InstantiationException e) {
 				e.printStackTrace();
@@ -1694,6 +1706,7 @@ public class ReactorFactory {
 
 		if(!dbSpecificHash.containsKey(db))
 		{
+			//compileJava(insightDirector.getParentFile().getAbsolutePath());
 			Map dbMap = loadReactors(insightDirector.getParentFile().getAbsolutePath(), db);
 			dbSpecificHash.put(db, dbMap);
 		}
@@ -1705,6 +1718,7 @@ public class ReactorFactory {
 				if(thisDbMap.containsKey(className.toUpperCase())) {
 					Class thisReactorClass = thisDbMap.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.newInstance();
+					return retReac;
 				}
 			} catch (InstantiationException e) {
 				e.printStackTrace();
@@ -1804,6 +1818,4 @@ public class ReactorFactory {
 		return thisMap;
 		
 	}
-
-	
 }
