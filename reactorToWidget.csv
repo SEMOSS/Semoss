@@ -27,3 +27,9 @@ TrimColumns,clean-trim
 Unpivot,clean-unpivot
 UpdateRowValues,clean-update-row
 ToUpperCase,clean-upper-case
+UpdateMatchColumnValues,column-cleaner
+Convert,convert-frame
+ToCsv,export-file
+ToTsv,export-file
+ToTxt,export-file
+ToExcel,export-file
