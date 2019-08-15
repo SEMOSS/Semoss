@@ -19,6 +19,11 @@ public class JdbcHardSelectQueryStruct extends HardSelectQueryStruct {
 	}
 	
 	@Override
+	public QUERY_STRUCT_TYPE getQsType() {
+		return QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY;
+	}
+	
+	@Override
 	public SelectQueryStruct getNewBaseQueryStruct() {
 		JdbcHardSelectQueryStruct newQs = new JdbcHardSelectQueryStruct();
 		newQs.setQsType(getQsType());
