@@ -27,10 +27,6 @@
  *******************************************************************************/
 package prerna.om;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -45,11 +41,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
-
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.NotFoundException;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -83,7 +74,6 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.git.GitAssetUtils;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -830,21 +820,21 @@ public class Insight {
 			// see if I need to compile this again
 			if(!ReactorFactory.compileCache.containsKey(insightId))
 			{
-				int status = Utility.compileJava(insightFolder, getCP());
-				if(status == 0)
-				{
-					ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
-					if(ReactorFactory.randomNumberAdder.containsKey(insightId))
-						randomNum = ReactorFactory.randomNumberAdder.get(insightId);				
-					randomNum++;
-					ReactorFactory.randomNumberAdder.put(insightId, randomNum);
-					
-					// add it to the key so we can reload
-					key = key + randomNum;
-					
-					// reset the insight specific hash ?
-					insightSpecificHash.clear();
-				}
+//				int status = Utility.compileJava(insightFolder, getCP());
+//				if(status == 0)
+//				{
+//					ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
+//					if(ReactorFactory.randomNumberAdder.containsKey(insightId))
+//						randomNum = ReactorFactory.randomNumberAdder.get(insightId);				
+//					randomNum++;
+//					ReactorFactory.randomNumberAdder.put(insightId, randomNum);
+//					
+//					// add it to the key so we can reload
+//					key = key + randomNum;
+//					
+//					// reset the insight specific hash ?
+//					insightSpecificHash.clear();
+//				}
 			}
 			
 			if(insightSpecificHash.size() == 0) 
