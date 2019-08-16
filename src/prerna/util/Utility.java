@@ -3082,7 +3082,7 @@ public class Utility {
 
 	
 	// compiler methods
-	public static void compileJava(String folder, String classpath)
+	public static int compileJava(String folder, String classpath)
 	{
 		// TODO Auto-generated method stub
 		com.sun.tools.javac.Main javac = new com.sun.tools.javac.Main();
@@ -3096,6 +3096,7 @@ public class Utility {
 		String javaFolder = folder + "/java";
 
 		File file = new File(javaFolder);
+		int status = -1;
 		
 		// one last piece of optimization I need to perform is  check timestamp before compiling
 		if(file.exists() && file.isDirectory())
@@ -3106,7 +3107,23 @@ public class Utility {
 			File outDir = new File(outputFolder);
 			if(!outDir.exists())
 				outDir.mkdir();
-			for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
+			
+			if(files.size() > 0)
+			{
+				String [] compiler = new String [files.size() + 5];
+				compiler[0] = "-d";
+				compiler[1] = outputFolder;
+				compiler[2] = "-cp";
+				compiler[3] = classpath;
+				compiler[4] = "-proc:none";
+
+				for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
+					compiler[fileIndex + 5] = files.get(fileIndex);
+
+			    status = javac.compile(compiler);
+			}
+				
+			/*for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
 			{
 				String inputFile = files.get(fileIndex);
 				// so need a way to set the classpath
@@ -3119,10 +3136,10 @@ public class Utility {
 				    };
 		
 				    int status = javac.compile(args2);
-			}
+			}*/
 			
 		}
-	
+		return status;
 	}
 
 //	/**
