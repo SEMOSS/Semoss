@@ -1200,18 +1200,21 @@ public abstract class AbstractEngine implements IEngine {
 		//ReactorFactory.compileCache.remove(engineId);
 		if(!ReactorFactory.compileCache.containsKey(engineId))
 		{
-			Utility.compileJava(dbFolder +"/version", getCP());
-			ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
-			
-			if(ReactorFactory.randomNumberAdder.containsKey(engineId))
-				randomNum = ReactorFactory.randomNumberAdder.get(engineId);				
-			randomNum++;
-			ReactorFactory.randomNumberAdder.put(engineId, randomNum);
-			
-			// add it to the key so we can reload
-			key = engineId + randomNum;
-
-			dbSpecificHash.clear();
+			int status = Utility.compileJava(dbFolder +"/version", getCP());
+			if(status == 0)
+			{
+				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
+				
+				if(ReactorFactory.randomNumberAdder.containsKey(engineId))
+					randomNum = ReactorFactory.randomNumberAdder.get(engineId);				
+				randomNum++;
+				ReactorFactory.randomNumberAdder.put(engineId, randomNum);
+				
+				// add it to the key so we can reload
+				key = engineId + randomNum;
+	
+				dbSpecificHash.clear();
+			}
 		}
 
 		
