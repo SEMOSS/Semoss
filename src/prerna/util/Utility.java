@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.util;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -77,6 +81,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.NotFoundException;
+
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
@@ -121,6 +130,7 @@ import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
+import prerna.util.git.GitAssetUtils;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -2981,6 +2991,140 @@ public class Utility {
 		}
 	}
 	
+	public static Map loadReactors(String folder, String key)
+	{
+		HashMap thisMap = new HashMap<String, Class>();
+		try {
+			// I should create the class pool everytime
+			// this way it doesn't keep others and try to get from other places
+			// does this end up loading all the other classes too ?
+			ClassPool pool = ClassPool.getDefault();
+			// takes a class and modifies the name of the package and then plugs it into the heap
+			
+			// the main folder to add here is
+			// basefolder/db/insightfolder/classes - right now I have it as classes. we can change it to something else if we want
+			String classesFolder = folder + "/classes"; 
+			classesFolder = classesFolder.replaceAll("\\\\", "/");
+			
+			File file = new File(classesFolder);
+			if(file.exists()) {
+				// loads a class and tried to change the package of the class on the fly
+				//CtClass clazz = pool.get("prerna.test.CPTest");
+				
+				System.err.println("Loading reactors from >> " + classesFolder);
+				
+				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
+				List<String> dirList = dirs.get("DIR_LIST");
+				
+				String [] packages = new String[dirList.size()];
+				for(int dirIndex = 0;dirIndex < dirList.size(); dirIndex++) {
+					packages[dirIndex] = (String)dirList.get(dirIndex);
+				}
+				
+				ScanResult sr = new ClassGraph()
+				//.whitelistPackages("prerna")
+						.overrideClasspath((new File(classesFolder).toURI().toURL()))
+						//.enableAllInfo()
+						//.enableClassInfo()
+						.whitelistPackages(packages)
+						.scan();
+				//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
+				//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
+
+				//ClassInfoList classes = sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
+				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
+
+				Map <String, Class> reactors = new HashMap<String, Class>();
+				// add the path to the insight classes so only this guy can load it
+				pool.insertClassPath(classesFolder);
+				
+				for(int classIndex = 0;classIndex < classes.size();classIndex++)
+				{
+					String name = classes.get(classIndex).getSimpleName();
+					String packageName = classes.get(classIndex).getPackageName();
+					//Class actualClass = classes.get(classIndex).loadClass();
+					
+					try {
+						// can I modify the class here
+						CtClass clazz = pool.get(packageName + "." + name);
+						clazz.defrost();
+						String qClassName = key + "." + packageName + "." + name;
+						// change the name of the classes
+						// ideally we would just have the pakcage name change to the insight
+						// this is to namespace it appropriately to have no issues
+						clazz.setName(qClassName);
+						Class newClass = clazz.toClass();
+
+						// add to the insight map
+						// we could do other instrumentation if we so chose to
+						// once I have created it is in the heap, I dont need to do much. One thing I could do is not load every class in the insight but give it out slowly
+						thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
+
+					} catch (NotFoundException e) {
+						e.printStackTrace();
+					} catch (CannotCompileException e) {
+						e.printStackTrace();
+					}
+					//System.out.println(newClass.getCanonicalName());
+					
+					// once the new instance has been done.. it has been injected into heap.. after this anyone can access it. 
+					// no way to remove this class from heap
+					// has to be garbage collected as it moves
+					//System.out.println(newClass.newInstance().getClass().getPackage());
+				}
+			}				
+		} catch(Exception ex) {
+			ex.printStackTrace();
+		}
+		return thisMap;
+		
+	}
+
+	
+	// compiler methods
+	public static void compileJava(String folder, String classpath)
+	{
+		// TODO Auto-generated method stub
+		com.sun.tools.javac.Main javac = new com.sun.tools.javac.Main();
+/*		String[] args2 = new String[] {
+		        "-d", "c:/users/pkapaleeswaran/workspacej3/SemossDev",
+		        "c:/users/pkapaleeswaran/workspacej3/SemossDev/independent/HelloReactor.java"
+		        , "-proc:none"
+		    };
+*/		
+		// do I have to compile individually
+		String javaFolder = folder + "/java";
+
+		File file = new File(javaFolder);
+		
+		// one last piece of optimization I need to perform is  check timestamp before compiling
+		if(file.exists() && file.isDirectory())
+		{
+			LOGGER.info("Compiling Java in Folder " + javaFolder);
+			List <String> files = GitAssetUtils.listAssets(javaFolder, "*.java", null, null, null);
+			String outputFolder = folder + "/classes";
+			File outDir = new File(outputFolder);
+			if(!outDir.exists())
+				outDir.mkdir();
+			for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
+			{
+				String inputFile = files.get(fileIndex);
+				// so need a way to set the classpath
+				//envClassPath = null;
+				String[] args2 = new String[] {
+				        "-d", outputFolder ,
+				        "-cp", classpath,
+				        inputFile
+				        , "-proc:none"
+				    };
+		
+				    int status = javac.compile(args2);
+			}
+			
+		}
+	
+	}
+
 //	/**
 //	 * Update old insights... hope we get rid of this soon
 //	 * @param insightRDBMS

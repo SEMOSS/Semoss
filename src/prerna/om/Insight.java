@@ -27,6 +27,14 @@
  *******************************************************************************/
 package prerna.om;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -37,6 +45,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
+
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.NotFoundException;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -49,6 +62,7 @@ import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.rdbms.h2.H2Frame;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc.PKQLRunner;
@@ -59,6 +73,8 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.reactor.IReactor;
+import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
@@ -66,6 +82,8 @@ import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
+import prerna.util.git.GitAssetUtils;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -138,6 +156,9 @@ public class Insight {
 	// need a way to shift between old and new insights...
 	// dont know how else to shift to this
 	protected boolean isOldInsight = false;
+	
+	// insight specific reactors
+	private transient Map<String, Class> insightSpecificHash = new HashMap<String, Class>();
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -346,6 +367,8 @@ public class Insight {
 	}
 	
 	public void setInsightFolder(String insightFolder) {
+		
+		// may be initiate the compile here ?
 		this.insightFolder = insightFolder;
 	}
 	
@@ -769,5 +792,116 @@ public class Insight {
 	///////////////////////////// END EXECUTION OF PKQL ////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
+	
+	
+	
+	
+	///////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	////////////////////LOAD REACTORS//////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	
+	
+	// get insight specific class
+	public IReactor getReactor(String className) {	
+		
+		
+		// try to get to see if this class already exists
+		// no need to recreate if it does
+		IReactor retReac = null;
+		if(getInsightFolder() != null)
+		{
+			File insightDirector = new File(insightFolder);
+			// replace the version name to start with
+			String insightId = insightDirector.getName();
+			// accounting for the version which is why the second getParent
+			String db = insightDirector.getParentFile().getParentFile().getName();
+	//		insightFolder = insightFolder.replaceAll("\\\\", "/");
+	//		String insightId = Utility.getInstanceName(insightFolder);
+	//		String db = Utility.getClassName(insightFolder);
+	
+			
+			//String key = db + "." + insightId ;
+			String key = insightId ;
+			int randomNum = 0;
+			//ReactorFactory.compileCache.remove(insightId);
+			
+			// see if I need to compile this again
+			if(!ReactorFactory.compileCache.containsKey(insightId))
+			{
+				Utility.compileJava(insightFolder, getCP());
+				ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
+				if(ReactorFactory.randomNumberAdder.containsKey(insightId))
+					randomNum = ReactorFactory.randomNumberAdder.get(insightId);				
+				randomNum++;
+				ReactorFactory.randomNumberAdder.put(insightId, randomNum);
+				
+				// add it to the key so we can reload
+				key = key + randomNum;
+				
+				// reset the insight specific hash ?
+				insightSpecificHash.clear();
+			}
+			
+			if(insightSpecificHash.size() == 0) 
+			{
+				//compileJava(insightFolder);
+				insightSpecificHash = Utility.loadReactors(insightFolder, key);
+			}
+			// creates the insight specific map
+			try {
+				if(insightSpecificHash.containsKey(className.toUpperCase())) {
+					Class thisReactorClass = insightSpecificHash.get(className.toUpperCase());
+					retReac = (IReactor) thisReactorClass.newInstance();
+					return retReac;
+				}
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			
+			// else try to find it the specific db
+			// loading it inside of version/classes
+			if(engineId != null)
+			{
+				IEngine engine = Utility.getEngine(engineId);
+				return engine.getReactor(className);
+		
+			}
+		}				
+		return retReac;
+	}
+
+	
+	
+	private String getCP()
+	{
+		String envClassPath = null;
+		
+		StringBuilder retClassPath = new StringBuilder("");
+		ClassLoader cl = getClass().getClassLoader();
+
+        URL[] urls = ((URLClassLoader)cl).getURLs();
+
+        for(URL url: urls){
+        	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+        	if(thisURL.endsWith("/"))
+        		thisURL = thisURL.substring(0, thisURL.length()-1);
+
+        	retClassPath
+        		//.append("\"")
+        		.append(thisURL)
+        		//.append("\"")
+        		.append(";");
+        	
+        }
+        envClassPath = "\"" + retClassPath.toString() + "\"";
+        
+        return envClassPath;
+	}
+
+
 
 }
