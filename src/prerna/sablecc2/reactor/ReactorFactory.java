@@ -473,8 +473,8 @@ public class ReactorFactory {
 	public static List <Class> classList = new ArrayList<Class>();
 	public static boolean write = true;
 	
-	public static Map<String, Map<String, Class>> insightSpecificHash = new HashMap<String, Map<String, Class>>();
-	public static Map<String, Map<String, Class>> dbSpecificHash = new HashMap<String, Map<String, Class>>();
+	public static Map<String, Boolean> compileCache = new HashMap<String, Boolean>();
+	public static Map<String, Integer> randomNumberAdder = new HashMap<String, Integer>();
 	// caches the classpath
 	public static String envClassPath = null;
 	
@@ -1655,167 +1655,14 @@ public class ReactorFactory {
 		return null;
 	}
 	
-	// load insight specific reactors
-	// I need to shift this eventually to the insight
-	// which means I need access to a DB Structure within insight
-	
-	// get insight specific class
-	public static IReactor getIReactor(String insightFolder, String className) {	
-		// try to get to see if this class already exists
-		// no need to recreate if it does
-		File insightDirector = new File(insightFolder);
-		// replace the version name to start with
-		String insightId = insightDirector.getName();
-		// accounting for the version which is why the second getParent
-		String db = insightDirector.getParentFile().getParentFile().getName();
-//		insightFolder = insightFolder.replaceAll("\\\\", "/");
-//		String insightId = Utility.getInstanceName(insightFolder);
-//		String db = Utility.getClassName(insightFolder);
-
-		
-		IReactor retReac = null;
-		Map <String, Class> thisInsightMap = null;
-		String key = db + "." + insightId ;
-		
-		
-		if(!insightSpecificHash.containsKey(key)) 
-		{
-			//compileJava(insightFolder);
-			thisInsightMap = loadReactors(insightFolder, key);
-			insightSpecificHash.put(key, thisInsightMap);
-		}
-		// creates the insight specific map
-		if(insightSpecificHash.containsKey(key)) 
-		{
-			try {
-				thisInsightMap = insightSpecificHash.get(db + "." + insightId);
-				if(thisInsightMap.containsKey(className.toUpperCase())) {
-					Class thisReactorClass = thisInsightMap.get(className.toUpperCase());
-					retReac = (IReactor) thisReactorClass.newInstance();
-					return retReac;
-				}
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		// else try to find it the specific db
-		// loading it inside of version/classes
-
-		if(!dbSpecificHash.containsKey(db))
-		{
-			//compileJava(insightDirector.getParentFile().getAbsolutePath());
-			Map dbMap = loadReactors(insightDirector.getParentFile().getAbsolutePath(), db);
-			dbSpecificHash.put(db, dbMap);
-		}
-		if(dbSpecificHash.containsKey(db))
-		{
-			try
-			{
-				Map <String, Class> thisDbMap = dbSpecificHash.get(db);
-				if(thisDbMap.containsKey(className.toUpperCase())) {
-					Class thisReactorClass = thisDbMap.get(className.toUpperCase());
-					retReac = (IReactor) thisReactorClass.newInstance();
-					return retReac;
-				}
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		return retReac;
-	}
-	
-	private static Map loadReactors(String folder, String key)
+	public static void recompile(String name)
 	{
-		HashMap thisMap = new HashMap<String, Class>();
-		try {
-			// I should create the class pool everytime
-			// this way it doesn't keep others and try to get from other places
-			// does this end up loading all the other classes too ?
-			ClassPool pool = ClassPool.getDefault();
-			// takes a class and modifies the name of the package and then plugs it into the heap
-			
-			// the main folder to add here is
-			// basefolder/db/insightfolder/classes - right now I have it as classes. we can change it to something else if we want
-			String classesFolder = folder + "/classes"; 
-			classesFolder = classesFolder.replaceAll("\\\\", "/");
-			
-			File file = new File(classesFolder);
-			if(file.exists()) {
-				// loads a class and tried to change the package of the class on the fly
-				//CtClass clazz = pool.get("prerna.test.CPTest");
-				
-				System.err.println("Loading reactors from >> " + classesFolder);
-				
-				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
-				List<String> dirList = dirs.get("DIR_LIST");
-				
-				String [] packages = new String[dirList.size()];
-				for(int dirIndex = 0;dirIndex < dirList.size(); dirIndex++) {
-					packages[dirIndex] = (String)dirList.get(dirIndex);
-				}
-				
-				ScanResult sr = new ClassGraph()
-				//.whitelistPackages("prerna")
-						.overrideClasspath((new File(classesFolder).toURI().toURL()))
-						//.enableAllInfo()
-						//.enableClassInfo()
-						.whitelistPackages(packages)
-						.scan();
-				//ScanResult sr = new ClassGraph().whitelistPackages("prerna").scan();
-				//ScanResult sr = new ClassGraph().enableClassInfo().whitelistPackages("prerna").whitelistPaths("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/target/classes").scan();
-
-				//ClassInfoList classes = sr.getAllClasses();//sr.getClassesImplementing("prerna.sablecc2.reactor.IReactor");
-				ClassInfoList classes = sr.getSubclasses("prerna.sablecc2.reactor.AbstractReactor");
-
-				Map <String, Class> reactors = new HashMap<String, Class>();
-				// add the path to the insight classes so only this guy can load it
-				pool.insertClassPath(classesFolder);
-				
-				for(int classIndex = 0;classIndex < classes.size();classIndex++)
-				{
-					String name = classes.get(classIndex).getSimpleName();
-					String packageName = classes.get(classIndex).getPackageName();
-					//Class actualClass = classes.get(classIndex).loadClass();
-					
-					try {
-						// can I modify the class here
-						CtClass clazz = pool.get(packageName + "." + name);
-						clazz.defrost();
-						String qClassName = key + "." + packageName + "." + name;
-						// change the name of the classes
-						// ideally we would just have the pakcage name change to the insight
-						// this is to namespace it appropriately to have no issues
-						clazz.setName(qClassName);
-						Class newClass = clazz.toClass();
-
-						// add to the insight map
-						// we could do other instrumentation if we so chose to
-						// once I have created it is in the heap, I dont need to do much. One thing I could do is not load every class in the insight but give it out slowly
-						thisMap.put(name.toUpperCase().replaceAll("REACTOR", ""), newClass);
-
-					} catch (NotFoundException e) {
-						e.printStackTrace();
-					} catch (CannotCompileException e) {
-						e.printStackTrace();
-					}
-					//System.out.println(newClass.getCanonicalName());
-					
-					// once the new instance has been done.. it has been injected into heap.. after this anyone can access it. 
-					// no way to remove this class from heap
-					// has to be garbage collected as it moves
-					//System.out.println(newClass.newInstance().getClass().getPackage());
-				}
-			}				
-		} catch(Exception ex) {
-			ex.printStackTrace();
-		}
-		return thisMap;
-		
+		compileCache.remove(name);
 	}
+	
+	public static void setCompile(String name)
+	{
+		compileCache.put(name, Boolean.TRUE);
+	}
+	
 }
