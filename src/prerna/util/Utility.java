@@ -3080,67 +3080,75 @@ public class Utility {
 		
 	}
 
-	
+	//TODO: commenting out for the moment for testing
+	//TODO: commenting out for the moment for testing
+	//TODO: commenting out for the moment for testing
+	//TODO: commenting out for the moment for testing
+	//TODO: commenting out for the moment for testing
+	//TODO: commenting out for the moment for testing
+	//TODO: commenting out for the moment for testing
+	//TODO: commenting out for the moment for testing
+
 	// compiler methods
-	public static int compileJava(String folder, String classpath)
-	{
-		// TODO Auto-generated method stub
-		com.sun.tools.javac.Main javac = new com.sun.tools.javac.Main();
-/*		String[] args2 = new String[] {
-		        "-d", "c:/users/pkapaleeswaran/workspacej3/SemossDev",
-		        "c:/users/pkapaleeswaran/workspacej3/SemossDev/independent/HelloReactor.java"
-		        , "-proc:none"
-		    };
-*/		
-		// do I have to compile individually
-		String javaFolder = folder + "/java";
-
-		File file = new File(javaFolder);
-		int status = -1;
-		
-		// one last piece of optimization I need to perform is  check timestamp before compiling
-		if(file.exists() && file.isDirectory())
-		{
-			LOGGER.info("Compiling Java in Folder " + javaFolder);
-			List <String> files = GitAssetUtils.listAssets(javaFolder, "*.java", null, null, null);
-			String outputFolder = folder + "/classes";
-			File outDir = new File(outputFolder);
-			if(!outDir.exists())
-				outDir.mkdir();
-			
-			if(files.size() > 0)
-			{
-				String [] compiler = new String [files.size() + 5];
-				compiler[0] = "-d";
-				compiler[1] = outputFolder;
-				compiler[2] = "-cp";
-				compiler[3] = classpath;
-				compiler[4] = "-proc:none";
-
-				for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
-					compiler[fileIndex + 5] = files.get(fileIndex);
-
-			    status = javac.compile(compiler);
-			}
-				
-			/*for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
-			{
-				String inputFile = files.get(fileIndex);
-				// so need a way to set the classpath
-				//envClassPath = null;
-				String[] args2 = new String[] {
-				        "-d", outputFolder ,
-				        "-cp", classpath,
-				        inputFile
-				        , "-proc:none"
-				    };
-		
-				    int status = javac.compile(args2);
-			}*/
-			
-		}
-		return status;
-	}
+//	public static int compileJava(String folder, String classpath)
+//	{
+//		// TODO Auto-generated method stub
+//		com.sun.tools.javac.Main javac = new com.sun.tools.javac.Main();
+///*		String[] args2 = new String[] {
+//		        "-d", "c:/users/pkapaleeswaran/workspacej3/SemossDev",
+//		        "c:/users/pkapaleeswaran/workspacej3/SemossDev/independent/HelloReactor.java"
+//		        , "-proc:none"
+//		    };
+//*/		
+//		// do I have to compile individually
+//		String javaFolder = folder + "/java";
+//
+//		File file = new File(javaFolder);
+//		int status = -1;
+//		
+//		// one last piece of optimization I need to perform is  check timestamp before compiling
+//		if(file.exists() && file.isDirectory())
+//		{
+//			LOGGER.info("Compiling Java in Folder " + javaFolder);
+//			List <String> files = GitAssetUtils.listAssets(javaFolder, "*.java", null, null, null);
+//			String outputFolder = folder + "/classes";
+//			File outDir = new File(outputFolder);
+//			if(!outDir.exists())
+//				outDir.mkdir();
+//			
+//			if(files.size() > 0)
+//			{
+//				String [] compiler = new String [files.size() + 5];
+//				compiler[0] = "-d";
+//				compiler[1] = outputFolder;
+//				compiler[2] = "-cp";
+//				compiler[3] = classpath;
+//				compiler[4] = "-proc:none";
+//
+//				for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
+//					compiler[fileIndex + 5] = files.get(fileIndex);
+//
+//			    status = javac.compile(compiler);
+//			}
+//				
+//			/*for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
+//			{
+//				String inputFile = files.get(fileIndex);
+//				// so need a way to set the classpath
+//				//envClassPath = null;
+//				String[] args2 = new String[] {
+//				        "-d", outputFolder ,
+//				        "-cp", classpath,
+//				        inputFile
+//				        , "-proc:none"
+//				    };
+//		
+//				    int status = javac.compile(args2);
+//			}*/
+//			
+//		}
+//		return status;
+//	}
 
 //	/**
 //	 * Update old insights... hope we get rid of this soon
