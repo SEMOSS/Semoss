@@ -820,21 +820,21 @@ public class Insight {
 			// see if I need to compile this again
 			if(!ReactorFactory.compileCache.containsKey(insightId))
 			{
-//				int status = Utility.compileJava(insightFolder, getCP());
-//				if(status == 0)
-//				{
-//					ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
-//					if(ReactorFactory.randomNumberAdder.containsKey(insightId))
-//						randomNum = ReactorFactory.randomNumberAdder.get(insightId);				
-//					randomNum++;
-//					ReactorFactory.randomNumberAdder.put(insightId, randomNum);
-//					
-//					// add it to the key so we can reload
-//					key = key + randomNum;
-//					
-//					// reset the insight specific hash ?
-//					insightSpecificHash.clear();
-//				}
+				int status = Utility.compileJava(insightFolder, getCP());
+				if(status == 0)
+				{
+					ReactorFactory.compileCache.put(insightId, Boolean.TRUE);
+					if(ReactorFactory.randomNumberAdder.containsKey(insightId))
+						randomNum = ReactorFactory.randomNumberAdder.get(insightId);				
+					randomNum++;
+					ReactorFactory.randomNumberAdder.put(insightId, randomNum);
+					
+					// add it to the key so we can reload
+					key = key + randomNum;
+					
+					// reset the insight specific hash ?
+					insightSpecificHash.clear();
+				}
 			}
 			
 			if(insightSpecificHash.size() == 0) 
