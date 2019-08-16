@@ -1247,11 +1247,18 @@ public class LazyTranslation extends DepthFirstAdapter {
     protected IReactor getReactor(String reactorId, String nodeString) {
     	
     	// try to see if there is java files to be compiled
-    	compileAllJava(insight.getInsightFolder());
+    	//compileAllJava(insight.getInsightFolder());
     	
     	// oh wait why cant this be in reactor factory
     	// because it doesn't have control of the insight
     	// check if this is an insight specific DSL
+    	IReactor insightReactor = insight.getReactor(reactorId);
+    	if(insightReactor != null)
+    	{
+    		insightReactor.setPixel(reactorId, nodeString);
+    		return insightReactor;
+    	}
+    	/*
     	if(insight != null && insight.getInsightFolder() != null) {
     		// TODO: make this consistent... why is this added w/o any consideration of existing flows
     		// just wasting peoples time having to debug
@@ -1261,7 +1268,8 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    		insightReactor.setPixel(reactorId, nodeString);
 	    		return insightReactor;
 	    	}
-    	}   	
+    	} */
+    	
     	if(this.currentFrame != null) {
     		return ReactorFactory.getReactor(reactorId, nodeString, this.currentFrame, curReactor);
     	}
@@ -1479,92 +1487,5 @@ public class LazyTranslation extends DepthFirstAdapter {
 		}
 	}*/
 	
-	public void compileAllJava(String folder)
-	{
-		File insightDirector = new File(folder);
-
-		String insightId = insightDirector.getName();
-		// accounting for the version which is why the second getParent
-		String db = insightDirector.getParentFile().getParentFile().getName();
-		
-		String key = db + "." + insightId ;
-
-		if(!ReactorFactory.insightSpecificHash.containsKey(key))
-			compileJava(folder);
-		if(!ReactorFactory.dbSpecificHash.containsKey(db))
-			compileJava(insightDirector.getParentFile().getAbsolutePath());
-
-	}	
-	
-	// compiler methods
-	private void compileJava(String folder)
-	{
-		// TODO Auto-generated method stub
-		com.sun.tools.javac.Main javac = new com.sun.tools.javac.Main();
-/*		String[] args2 = new String[] {
-		        "-d", "c:/users/pkapaleeswaran/workspacej3/SemossDev",
-		        "c:/users/pkapaleeswaran/workspacej3/SemossDev/independent/HelloReactor.java"
-		        , "-proc:none"
-		    };
-*/		
-		// do I have to compile individually
-		String javaFolder = folder + "/java";
-
-		File file = new File(javaFolder);
-		
-		// one last piece of optimization I need to perform is  check timestamp before compiling
-		if(file.exists() && file.isDirectory())
-		{
-			LOGGER.info("Compiling Java in Folder " + javaFolder);
-			List <String> files = GitAssetUtils.listAssets(javaFolder, "*.java", null, null, null);
-			String outputFolder = folder + "/classes";
-			File outDir = new File(outputFolder);
-			if(!outDir.exists())
-				outDir.mkdir();
-			for(int fileIndex = 0;fileIndex < files.size();fileIndex++)
-			{
-				String inputFile = files.get(fileIndex);
-				// so need a way to set the classpath
-				//envClassPath = null;
-				String[] args2 = new String[] {
-				        "-d", outputFolder ,
-				        "-cp", getCP(),
-				        inputFile
-				        , "-proc:none"
-				    };
-		
-				    int status = javac.compile(args2);
-			}
-			
-		}
-	
-	}
-	
-	private String getCP()
-	{
-		if(envClassPath != null)
-			return envClassPath;
-		StringBuilder retClassPath = new StringBuilder("");
-		ClassLoader cl = getClass().getClassLoader();
-
-        URL[] urls = ((URLClassLoader)cl).getURLs();
-
-        for(URL url: urls){
-        	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-        	if(thisURL.endsWith("/"))
-        		thisURL = thisURL.substring(0, thisURL.length()-1);
-
-        	retClassPath
-        		//.append("\"")
-        		.append(thisURL)
-        		//.append("\"")
-        		.append(";");
-        	
-        }
-        
-        envClassPath = "\"" + retClassPath.toString() + "\"";
-        
-        return envClassPath;
-	}
 
 }

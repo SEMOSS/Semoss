@@ -34,10 +34,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
@@ -52,8 +56,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
-
-import com.google.gson.Gson;
 
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
@@ -73,12 +75,16 @@ import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.reactor.IReactor;
+import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+
+import com.google.gson.Gson;
 
 /**
  * An Abstract Engine that sets up the base constructs needed to create an
@@ -134,6 +140,8 @@ public abstract class AbstractEngine implements IEngine {
 	 * This is used for tracking audit modifications 
 	 */
 	private AuditDatabase auditDatabase = null;
+	
+	private Map <String, Class> dbSpecificHash = null;
 
 	/**
 	 * Opens a database as defined by its properties file. What is included in
@@ -1162,6 +1170,99 @@ public abstract class AbstractEngine implements IEngine {
 			}
 		}
 	}
+	
+	
+	////////////////////////////////////////////////////////////////////////////////////
+	///////////////////// Load engine specific reactors ///////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	
+	
+	public IReactor getReactor(String className) 
+	{	
+		// try to get to see if this class already exists
+		// no need to recreate if it does
+		
+		// get the prop file and find the parent
+
+		File dbDirectory = new File(propFile);
+
+		String dbFolder = engineName + "_" + dbDirectory.getParent()+ "/" + engineId;
+
+		dbFolder = propFile.replaceAll(".smss", "");
+		
+		IReactor retReac = null;
+		//String key = db + "." + insightId ;
+		String key = engineId ;
+		if(dbSpecificHash == null)
+			dbSpecificHash = new HashMap<String, Class>();
+		
+		int randomNum = 0;
+		//ReactorFactory.compileCache.remove(engineId);
+		if(!ReactorFactory.compileCache.containsKey(engineId))
+		{
+			Utility.compileJava(dbFolder +"/version", getCP());
+			ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
+			
+			if(ReactorFactory.randomNumberAdder.containsKey(engineId))
+				randomNum = ReactorFactory.randomNumberAdder.get(engineId);				
+			randomNum++;
+			ReactorFactory.randomNumberAdder.put(engineId, randomNum);
+			
+			// add it to the key so we can reload
+			key = engineId + randomNum;
+
+			dbSpecificHash.clear();
+		}
+
+		
+		if(dbSpecificHash.size() == 0)
+		{
+			//compileJava(insightDirector.getParentFile().getAbsolutePath());
+			dbSpecificHash = Utility.loadReactors(dbFolder + "/version", key);
+		}
+		try
+		{
+			if(dbSpecificHash.containsKey(className.toUpperCase())) {
+				Class thisReactorClass = dbSpecificHash.get(className.toUpperCase());
+				retReac = (IReactor) thisReactorClass.newInstance();
+				return retReac;
+			}
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		}
+			
+		return retReac;
+	}
+
+
+	private String getCP()
+	{
+		String envClassPath = null;
+		
+		StringBuilder retClassPath = new StringBuilder("");
+		ClassLoader cl = getClass().getClassLoader();
+
+        URL[] urls = ((URLClassLoader)cl).getURLs();
+
+        for(URL url: urls){
+        	String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+        	if(thisURL.endsWith("/"))
+        		thisURL = thisURL.substring(0, thisURL.length()-1);
+
+        	retClassPath
+        		//.append("\"")
+        		.append(thisURL)
+        		//.append("\"")
+        		.append(";");
+        	
+        }
+        envClassPath = "\"" + retClassPath.toString() + "\"";
+        
+        return envClassPath;
+	}
+
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
