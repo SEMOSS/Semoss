@@ -57,6 +57,8 @@ import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDFS;
 
+import com.google.gson.Gson;
+
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -83,8 +85,6 @@ import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-
-import com.google.gson.Gson;
 
 /**
  * An Abstract Engine that sets up the base constructs needed to create an
@@ -1200,21 +1200,21 @@ public abstract class AbstractEngine implements IEngine {
 		//ReactorFactory.compileCache.remove(engineId);
 		if(!ReactorFactory.compileCache.containsKey(engineId))
 		{
-			int status = Utility.compileJava(dbFolder +"/version", getCP());
-			if(status == 0)
-			{
-				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
-				
-				if(ReactorFactory.randomNumberAdder.containsKey(engineId))
-					randomNum = ReactorFactory.randomNumberAdder.get(engineId);				
-				randomNum++;
-				ReactorFactory.randomNumberAdder.put(engineId, randomNum);
-				
-				// add it to the key so we can reload
-				key = engineId + randomNum;
-	
-				dbSpecificHash.clear();
-			}
+//			int status = Utility.compileJava(dbFolder +"/version", getCP());
+//			if(status == 0)
+//			{
+//				ReactorFactory.compileCache.put(engineId, Boolean.TRUE);
+//				
+//				if(ReactorFactory.randomNumberAdder.containsKey(engineId))
+//					randomNum = ReactorFactory.randomNumberAdder.get(engineId);				
+//				randomNum++;
+//				ReactorFactory.randomNumberAdder.put(engineId, randomNum);
+//				
+//				// add it to the key so we can reload
+//				key = engineId + randomNum;
+//	
+//				dbSpecificHash.clear();
+//			}
 		}
 
 		
