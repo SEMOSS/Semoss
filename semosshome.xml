@@ -106,5 +106,8 @@
 	<file>
       <source>ExploreInstanceDefaultWidget.json</source>
     </file>
+    <file>
+      <source>reactorToWidget.csv</source>
+    </file>
   </files>
 </assembly>
