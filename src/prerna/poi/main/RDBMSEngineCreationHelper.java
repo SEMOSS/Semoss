@@ -26,7 +26,7 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.MosfetSyncHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -41,12 +41,12 @@ public class RDBMSEngineCreationHelper {
 	 * Create existing metamodel from owl to create insights
 	 * @param owl
 	 */
-	public static void insertAllTablesAsInsights(IEngine rdbmsEngine, OWLER owl) {
+	public static void insertAllTablesAsInsights(IEngine rdbmsEngine, Owler owl) {
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl);
 		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel, existingMetaModel.keySet());
 	}
 	
-	public static void insertNewTablesAsInsights(IEngine rdbmsEngine, OWLER owl, Set<String> newTables) {
+	public static void insertNewTablesAsInsights(IEngine rdbmsEngine, Owler owl, Set<String> newTables) {
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl, newTables);
 		// use the keyset from the OWL to help with the upload
 		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel, existingMetaModel.keySet());
@@ -139,7 +139,7 @@ public class RDBMSEngineCreationHelper {
 		}
 	}
 	
-	public static Map<String, Map<String, String>> getExistingRDBMSStructure(OWLER owl) {
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(Owler owl) {
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owl.getOwlPath(), null, null);
 		// we create the meta helper to facilitate querying the engine OWL
@@ -182,7 +182,7 @@ public class RDBMSEngineCreationHelper {
 		return existingMetaModel;
 	}
 	
-	public static Map<String, Map<String, String>> getExistingRDBMSStructure(OWLER owl, Set<String> tablesToRetrieve) {
+	public static Map<String, Map<String, String>> getExistingRDBMSStructure(Owler owl, Set<String> tablesToRetrieve) {
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owl.getOwlPath(), null, null);
 		// we create the meta helper to facilitate querying the engine OWL

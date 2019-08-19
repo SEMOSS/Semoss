@@ -12,7 +12,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
@@ -70,7 +70,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 			}
 		}
 
-		OWLER owler = getOWLER(appId);
+		Owler owler = getOWLER(appId);
 		String physicalUri = owler.addConcept(concept, column, dataType, conceptual);
 
 		// now add the description (checks done in method)

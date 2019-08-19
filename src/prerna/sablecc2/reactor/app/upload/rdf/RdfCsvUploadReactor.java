@@ -22,7 +22,7 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
@@ -87,7 +87,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Start loading data..");
 		logger.setLevel(Level.WARN);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), this.engine.getEngineType());
+		Owler owler = new Owler(owlFile.getAbsolutePath(), this.engine.getEngineType());
 		owler.addCustomBaseURI(UploadInputUtility.getCustomBaseURI(this.store));
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES));
 		String[] headers = (String[]) headerTypesArr[0];
@@ -154,7 +154,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		OWLER owler = new OWLER(this.engine);
+		Owler owler = new Owler(this.engine);
 		processRelationships(this.engine, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -233,7 +233,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 	 * Create all the triples associated with the relationships specified in the prop file
 	 * @throws IOException 
 	 */
-	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper helper, List<String> headers, SemossDataType[] dataTypes, Map<String, Object> metamodel) {
+	private void processRelationships(IEngine engine, Owler owler, CSVFileHelper helper, List<String> headers, SemossDataType[] dataTypes, Map<String, Object> metamodel) {
 		// TODO user subjects
 		// parse metamodel
 		String customBaseURI = UploadInputUtility.getCustomBaseURI(this.store);

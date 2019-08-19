@@ -10,7 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
@@ -40,7 +40,7 @@ public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		// get the existing value if present
 		Set<String> existingLogicalNames = engine.getLogicalNames(physicalUri);
 
-		OWLER owler = new OWLER(engine);
+		Owler owler = new Owler(engine);
 		owler.deleteLogicalNames(physicalUri, existingLogicalNames);
 		owler.addLogicalNames(physicalUri, logicalNames);
 		try {

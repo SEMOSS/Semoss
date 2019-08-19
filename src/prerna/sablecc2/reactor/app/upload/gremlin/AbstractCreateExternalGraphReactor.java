@@ -30,7 +30,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -224,7 +224,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 		// create owl file
 		logger.info("4. Start generating engine metadata...");
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
 		// add concepts
 		for (String concept : concepts) {
 			String conceptType = conceptTypes.get(concept);

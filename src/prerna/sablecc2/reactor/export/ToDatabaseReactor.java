@@ -29,7 +29,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class ToDatabaseReactor extends TaskBuilderReactor {
@@ -331,7 +331,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		// just add everything
 		if(this.override || this.newTable) {
 			logger.info("Need to update the engine metadata for the new table");
-			OWLER owler = new OWLER(targetEngine);
+			Owler owler = new Owler(targetEngine);
 			// choose the first column as the prim key
 			owler.addConcept(targetTable, headers[0], sqlTypes[0]);
 			// add all others as properties
