@@ -13,7 +13,7 @@ DuplicateColumn,clean-duplicate-col
 ExtractLetters,clean-extract-numbers-letters
 ExtractNumbers,clean-extract-numbers-letters
 Concatenate,clean-join
-LowerCase,clean-lower-case
+ToLowerCase,clean-lower-case
 Pivot,clean-pivot
 ProperCase,clean-proper-case
 RemoveDuplicateRows,clean-remove-duplicate-rows
