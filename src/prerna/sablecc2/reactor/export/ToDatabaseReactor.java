@@ -331,7 +331,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 		// just add everything
 		if(this.override || this.newTable) {
 			logger.info("Need to update the engine metadata for the new table");
-			OWLER owler = new OWLER(targetEngine, targetEngine.getOWL());
+			OWLER owler = new OWLER(targetEngine);
 			// choose the first column as the prim key
 			owler.addConcept(targetTable, headers[0], sqlTypes[0]);
 			// add all others as properties

@@ -163,7 +163,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+		OWLER owler = new OWLER(this.engine);
 
 		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel

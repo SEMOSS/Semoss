@@ -48,7 +48,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		literalPreds.add(RDFS.LABEL);
 		literalPreds.add(OWL.sameAs.toString());
 		literalPreds.add(RDFS.COMMENT);
-		literalPreds.add(OWLER.BASE_URI + OWLER.DEFAULT_PROP_CLASS + "/UNIQUE");
+		literalPreds.add(OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_PROP_CLASS + "/UNIQUE");
 	}
 	
 	protected static final String CONCEPTUAL_NAME = "conceptual";
@@ -92,7 +92,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 
 	protected OWLER getOWLER(String appId) {
 		IEngine app = Utility.getEngine(appId);
-		OWLER owler = new OWLER(app, app.getOWL());
+		OWLER owler = new OWLER(app);
 		return owler;
 	}
 

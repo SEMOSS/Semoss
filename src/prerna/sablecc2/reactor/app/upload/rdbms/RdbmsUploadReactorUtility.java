@@ -51,7 +51,7 @@ public class RdbmsUploadReactorUtility {
 	 */
 	public static void generateTableMetadata(OWLER owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
 		// add the main column
-		owler.addConcept(tableName, uniqueRowId, OWLER.BASE_URI, "LONG");
+		owler.addConcept(tableName, uniqueRowId, "LONG", null);
 		// add the props
 		for (int i = 0; i < headers.length; i++) {
 			// NOTE ::: SQL_TYPES will have the added unique row id at index 0
