@@ -36,6 +36,26 @@ public class RdbmsModifier implements IEngineModifier {
 			
 		}
 	}
+	
+	@Override
+	public void editProperty(String existingConcept, String existingColumn, String newDataType) throws Exception {
+		if(queryUtil.allowAddColumn()) {
+			String sqlQuery = queryUtil.modColumnType(existingConcept, existingColumn, newDataType);
+			try {
+				this.engine.insertData(sqlQuery);
+			} catch (SQLException e) {
+				throw new SQLException("Error occured to alter the table. Error returned from driver: " + e.getMessage(), e);
+			}
+		} else {
+			// we need to make a new temp table with the new column we are adding
+			// we need to insert all the old values of the existing table
+			// we need to drop the existing table (we will rename it in case the last operation fails and only drop at end)
+			// we need to rename the temp table to the existing table name
+			
+			
+		}
+	}
+	
 
 	@Override
 	public void removeProperty(String existingConcept, String existingColumn) throws Exception {
