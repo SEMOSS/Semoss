@@ -114,7 +114,7 @@ public class ActiveSystemUpdater {
 		RDFFileSesameEngine existingEngine = (RDFFileSesameEngine) baseRelEngine;
 		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI, true});
 		existingEngine.addStatement(new Object[]{activeSystemURI, subclassURI, baseSemossSystemURI + "/System", true});
-		existingEngine.addStatement(new Object[]{activeSystemURI, OWLER.BASE_URI + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME, activeSystemURI, true});
+		existingEngine.addStatement(new Object[]{activeSystemURI, OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME, activeSystemURI, true});
 
 		RepositoryConnection exportRC = existingEngine.getRc();
 		
