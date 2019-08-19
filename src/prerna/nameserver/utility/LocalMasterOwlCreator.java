@@ -8,7 +8,7 @@ import java.util.Vector;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class LocalMasterOwlCreator {
@@ -88,7 +88,7 @@ public class LocalMasterOwlCreator {
 	 * @throws IOException
 	 */
 	private void writeNewOwl(String owlLocation) throws IOException {
-		OWLER owler = new OWLER(owlLocation, ENGINE_TYPE.RDBMS);
+		Owler owler = new Owler(owlLocation, ENGINE_TYPE.RDBMS);
 
 		// BITLY
 		owler.addConcept("BITLY", "EMBED", "VARCHAR(20000)");

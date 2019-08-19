@@ -36,7 +36,7 @@ public class CSVToOwlMaker {
 		
 		String identityColumn = cleanTableName + "_UNIQUE_ROW_ID";
 
-		OWLER owler = new OWLER(owlFileLocation, engineType);
+		Owler owler = new Owler(owlFileLocation, engineType);
 				
 		// need to add metadata
 		// the unique row id becomes the primary key for every other 
