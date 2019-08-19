@@ -71,7 +71,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		}
 
 		OWLER owler = getOWLER(appId);
-		String physicalUri = owler.addConcept(concept, column, OWLER.BASE_URI, dataType, conceptual);
+		String physicalUri = owler.addConcept(concept, column, dataType, conceptual);
 
 		// now add the description (checks done in method)
 		String description = this.keyValue.get(this.keysToGet[6]);

@@ -73,12 +73,11 @@ public class ExtractAppMetaReactor extends AbstractRFrameReactor {
 		if (engine == null) {
 			throw new IllegalArgumentException("Engine does not exist");
 		}
-		String owlPath = engine.getOWL();
 
 		// only executes for rdbms, tinker, and rdf
 		ENGINE_TYPE engineType = engine.getEngineType();
 		if (engineType.equals(ENGINE_TYPE.RDBMS) || engineType.equals(ENGINE_TYPE.SESAME) || engineType.equals(ENGINE_TYPE.TINKER)) {
-			OWLER owl = new OWLER(engine, owlPath);
+			OWLER owl = new OWLER(engine);
 			owl.addUniqueCounts(engine);
 		}
 
