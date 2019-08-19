@@ -32,7 +32,7 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
@@ -95,7 +95,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		// TODO additional types?
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.TINKER);
 		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel
 			Map<String, String> dataTypes = new HashMap<>();
@@ -163,7 +163,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		OWLER owler = new OWLER(this.engine);
+		Owler owler = new Owler(this.engine);
 
 		if (metamodelProps.get(Constants.DATA_TYPES) == null) {
 			// put in types to metamodel
@@ -216,7 +216,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 	 * 
 	 * @throws IOException
 	 */
-	private void processRelationships(IEngine engine, OWLER owler, CSVFileHelper csvHelper, List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
+	private void processRelationships(IEngine engine, Owler owler, CSVFileHelper csvHelper, List<String> headers, SemossDataType[] types, Map<String, Object> metamodel) {
 		// get all the relation
 		// overwrite this value if user specified the max rows to load
 		List<String> relationList = new ArrayList<String>();
@@ -386,7 +386,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + nodeType;
 	}
 
-	public void addNodeProperties(OWLER owler, IEngine engine, String nodeType, String instanceName,
+	public void addNodeProperties(Owler owler, IEngine engine, String nodeType, String instanceName,
 			Hashtable<String, Object> propHash) {
 		// create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
@@ -450,7 +450,7 @@ public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {
 		return retString;
 	}
 
-	private void parseMetamodel(Map<String, Object> metamodel, OWLER owler, List<String> relationList, List<String> nodePropList, List<String> relPropList) {
+	private void parseMetamodel(Map<String, Object> metamodel, Owler owler, List<String> relationList, List<String> nodePropList, List<String> relPropList) {
 		Set<String> concepts = new HashSet<>();
 		Map dataTypeMap = (Map) metamodel.get(Constants.DATA_TYPES);
 		if (metamodel.get(Constants.RELATION) != null) {

@@ -40,7 +40,7 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -250,7 +250,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start generating engine metadata...");
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), engine.getEngineType());
+		Owler owler = new Owler(owlFile.getAbsolutePath(), engine.getEngineType());
 		// get the existing datatypes
 		// table names -> column name, column type
 		Set<String> cleanTables = new HashSet<String>();
@@ -294,7 +294,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	 * @param dataTypes
 	 * @return
 	 */
-	private Map<String, String> parseNodesAndProps(OWLER owler, Map<String, List<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) {
+	private Map<String, String> parseNodesAndProps(Owler owler, Map<String, List<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) {
 		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(nodesAndProps.size());
 		for (String node : nodesAndProps.keySet()) {
 			String[] tableAndPrimaryKey = node.split("\\.");
@@ -356,7 +356,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	 * @param dataTypes
 	 * @param nodesAndPrimKeys
 	 */
-	private void parseRelationships(OWLER owler, List<Map<String, Object>> relationships, Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
+	private void parseRelationships(Owler owler, List<Map<String, Object>> relationships, Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
 		for (Map relation : relationships) {
 			String subject = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.FROM_TABLE).toString());
 			String object = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.TO_TABLE).toString());

@@ -13,7 +13,7 @@ import org.openrdf.model.vocabulary.RDFS;
 import prerna.engine.api.IEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RdfUploadReactorUtility {
@@ -22,19 +22,19 @@ public class RdfUploadReactorUtility {
 		
 	}
 
-	public static void loadMetadataIntoEngine(IEngine engine, OWLER owler) {
+	public static void loadMetadataIntoEngine(IEngine engine, Owler owler) {
 		Hashtable<String, String> hash = owler.getConceptHash();
-		String object = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_NODE_CLASS;
+		String object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_NODE_CLASS;
 		for(String concept : hash.keySet()) {
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(concept), RDFS.SUBCLASSOF + "", object, true});
 		}
 		hash = owler.getRelationHash();
-		object = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_RELATION_CLASS;
+		object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS;
 		for(String relation : hash.keySet()) {
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(relation), RDFS.SUBPROPERTYOF + "", object, true});
 		}
 		hash = owler.getPropHash();
-		object = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_PROP_CLASS;
+		object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_PROP_CLASS;
 		for(String prop : hash.keySet()) {
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(prop), RDF.TYPE + "", object, true});
 		}
@@ -49,7 +49,7 @@ public class RdfUploadReactorUtility {
 	 * @param relName							String containing the name of the relationship between the subject and object
 	 * @param propHash							Hashtable that contains all properties
 	 */
-	public static void createRelationship(IEngine engine, OWLER owler, String baseUri, String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) {
+	public static void createRelationship(IEngine engine, Owler owler, String baseUri, String subjectNodeType, String objectNodeType, String instanceSubjectName, String instanceObjectName, String relName, Hashtable<String, Object> propHash) {
 		subjectNodeType = Utility.cleanString(subjectNodeType, true);
 		objectNodeType = Utility.cleanString(objectNodeType, true);
 
@@ -93,7 +93,7 @@ public class RdfUploadReactorUtility {
 		addProperties(engine, owler, "", instanceRelURI, propHash);
 	}
 	
-	public static void addNodeProperties(IEngine engine, OWLER owler, String baseUri, String nodeType, String instanceName, Hashtable<String, Object> propHash) {
+	public static void addNodeProperties(IEngine engine, Owler owler, String baseUri, String nodeType, String instanceName, Hashtable<String, Object> propHash) {
 		//create the node in case its not in a relationship
 		instanceName = Utility.cleanString(instanceName, true);
 		nodeType = Utility.cleanString(nodeType, true); 
@@ -105,7 +105,7 @@ public class RdfUploadReactorUtility {
 		addProperties(engine, owler, nodeType, subjectNodeURI, propHash);
 	}
 	
-	public static void addProperties(IEngine engine, OWLER owler, String subjectNodeType, String instanceURI, Hashtable<String, Object> propHash) {
+	public static void addProperties(IEngine engine, Owler owler, String subjectNodeType, String instanceURI, Hashtable<String, Object> propHash) {
 		// add all properties
 		Enumeration<String> propKeys = propHash.keys();
 
