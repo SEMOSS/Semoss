@@ -28,7 +28,7 @@ import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.reactor.frame.r.MetaSemanticSimilarityReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.usertracking.TrackRequestThread;
 import prerna.util.usertracking.UserTrackerFactory;
@@ -77,7 +77,7 @@ public class ExtractAppMetaReactor extends AbstractRFrameReactor {
 		// only executes for rdbms, tinker, and rdf
 		ENGINE_TYPE engineType = engine.getEngineType();
 		if (engineType.equals(ENGINE_TYPE.RDBMS) || engineType.equals(ENGINE_TYPE.SESAME) || engineType.equals(ENGINE_TYPE.TINKER)) {
-			OWLER owl = new OWLER(engine);
+			Owler owl = new Owler(engine);
 			owl.addUniqueCounts(engine);
 		}
 
