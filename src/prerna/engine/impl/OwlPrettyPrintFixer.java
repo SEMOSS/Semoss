@@ -7,7 +7,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 
 @Deprecated
 public class OwlPrettyPrintFixer {
@@ -16,7 +16,7 @@ public class OwlPrettyPrintFixer {
 	public static void fixOwl(Properties prop) {
 		File owlFile = SmssUtilities.getOwlFile(prop);
 		if(owlFile != null && owlFile.exists()) {
-			String conceptualRel = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
+			String conceptualRel = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS + "/" + Owler.CONCEPTUAL_RELATION_NAME;
 			
 			// owl is stored as RDF/XML file
 			RDFFileSesameEngine rfse = new RDFFileSesameEngine();

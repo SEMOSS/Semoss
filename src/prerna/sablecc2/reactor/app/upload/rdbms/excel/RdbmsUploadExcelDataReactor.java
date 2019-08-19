@@ -48,7 +48,7 @@ import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
@@ -142,7 +142,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		this.helper.parse(filePath);
 		logger.info("Done loading excel file");
 
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
+		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
 		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, 
 				metaDescriptions, metaLogicalNames, clean, replace);
 		this.helper.clear();
@@ -294,7 +294,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		 * make new tables We need to go to the sheet level and determine it
 		 */
 
-		OWLER owler = new OWLER(this.engine);
+		Owler owler = new Owler(this.engine);
 		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, 
 				metaDescriptions, metaLogicalNames, clean, replace);
 		owler.export();
@@ -343,7 +343,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 */
 	private void processExcelSheets(
 			IEngine engine, 
-			OWLER owler, 
+			Owler owler, 
 			ExcelWorkbookFileHelper helper, 
 			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
 			Map<String, Map<String, Map<String, String>>> additionalDataTypeMap,
@@ -425,7 +425,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws Exception 
 	 */
-	private void processSheet(IEngine engine, OWLER owler, ExcelSheetFileIterator helper, 
+	private void processSheet(IEngine engine, Owler owler, ExcelSheetFileIterator helper, 
 			boolean singleRange, boolean clean, boolean replace, 
 			Map<String, String> descriptions, Map<String, List<String>> logicalNames) throws Exception {
 		logger.info("Start parsing sheet metadata");
@@ -679,7 +679,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @param descriptions
 	 * @param logicalNames
 	 */
-	private void insertOwlMetadata(OWLER owler, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+	private void insertOwlMetadata(Owler owler, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 		

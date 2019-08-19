@@ -38,7 +38,7 @@ import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.SqlQueryUtilFactor;
@@ -92,7 +92,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		 * Load Data
 		 */
 		logger.info(stepCounter + ". Parsing file metadata...");
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), this.engine.getEngineType());
+		Owler owler = new Owler(owlFile.getAbsolutePath(), this.engine.getEngineType());
 		importFileRDBMS((RDBMSNativeEngine) this.engine, owler, filePath);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
@@ -142,7 +142,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	public void importFileRDBMS(RDBMSNativeEngine engine, OWLER owler, String fileName) throws FileNotFoundException, IOException {
+	public void importFileRDBMS(RDBMSNativeEngine engine, Owler owler, String fileName) throws FileNotFoundException, IOException {
 		Workbook workbook = null;
 		FileInputStream poiReader = null;
 		try {
@@ -425,7 +425,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void createTable(RDBMSNativeEngine engine, OWLER owler, String thisConcept) {
+	private void createTable(RDBMSNativeEngine engine, Owler owler, String thisConcept) {
 		Hashtable<String, String> props = concepts.get(thisConcept);
 
 		String conceptType = props.get(thisConcept);
@@ -547,7 +547,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 	}
 
-	private void createRelations(RDBMSNativeEngine engine, OWLER owler, String fromName, List<String> toNameList, Workbook workbook) throws SQLException {
+	private void createRelations(RDBMSNativeEngine engine, Owler owler, String fromName, List<String> toNameList, Workbook workbook) throws SQLException {
 		int size = toNameList.size();
 		List<String> relsAdded = new ArrayList<String>();
 

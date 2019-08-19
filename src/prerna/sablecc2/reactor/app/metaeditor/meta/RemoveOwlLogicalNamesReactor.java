@@ -10,7 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
@@ -37,7 +37,7 @@ public class RemoveOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(concept, prop);
 		}
 		
-		OWLER owler = new OWLER(engine);
+		Owler owler = new Owler(engine);
 		owler.deleteLogicalNames(physicalUri, logicalNames);
 		
 		try {

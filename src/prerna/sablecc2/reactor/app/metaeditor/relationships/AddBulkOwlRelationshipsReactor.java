@@ -23,7 +23,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
@@ -61,7 +61,7 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		// we may have the alias
 		appId = getAppId(appId, true);
 
-		OWLER owler = getOWLER(appId);
+		Owler owler = getOWLER(appId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
 		IEngine engine = Utility.getEngine(appId);

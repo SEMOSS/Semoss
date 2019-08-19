@@ -21,7 +21,7 @@ import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
@@ -33,7 +33,7 @@ public class AbstractEngineCreator {
 	protected IEngine engine;
 	// OWL variables
 	protected String owlFile = "";
-	protected OWLER owler;
+	protected Owler owler;
 	
 	protected String semossURI;
 	protected String customBaseURI = "";
@@ -226,7 +226,7 @@ public class AbstractEngineCreator {
 
 	protected void openEngineWithConnection(String engineId) {
 		engine = Utility.getEngine(engineId);
-		owler = new OWLER(engine);
+		owler = new Owler(engine);
 	}
 	
 	/**
@@ -267,7 +267,7 @@ public class AbstractEngineCreator {
 	 * @throws EngineException
 	 */
 	protected void openOWLWithOutConnection(String owlFile, IEngine.ENGINE_TYPE type, String customBaseURI) {
-		owler = new OWLER(owlFile, type);
+		owler = new Owler(owlFile, type);
 		owler.addCustomBaseURI(customBaseURI);
 	}
 

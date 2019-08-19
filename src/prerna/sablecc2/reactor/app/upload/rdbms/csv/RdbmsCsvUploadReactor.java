@@ -33,7 +33,7 @@ import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.SqlQueryUtilFactor;
@@ -116,7 +116,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Parsing file metadata...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
-		OWLER owler = new OWLER(owlFile.getAbsolutePath(), this.engine.getEngineType());
+		Owler owler = new Owler(owlFile.getAbsolutePath(), this.engine.getEngineType());
 		try {
 			// open the csv file
 			// and get the headers
@@ -208,7 +208,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Parsing file metadata...");
-		OWLER owler = new OWLER(this.engine);
+		Owler owler = new Owler(this.engine);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES) );
 		String[] headers = (String[]) headerTypesArr[0];
@@ -298,7 +298,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		return sqlType;
 	}
 
-	private String[] parseMetamodel(Map<String, Object> metamodel, OWLER owler, List<String> headers, SemossDataType[] types) {
+	private String[] parseMetamodel(Map<String, Object> metamodel, Owler owler, List<String> headers, SemossDataType[] types) {
 		RdbmsUploadReactorUtility.createSQLTypes(this.sqlHash);
 		// create the data types list
 		String[] sqlDataTypes = new String[headers.size()];
