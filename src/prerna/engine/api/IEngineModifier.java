@@ -23,5 +23,14 @@ public interface IEngineModifier {
 	 * @throws Exception
 	 */
 	void removeProperty(String existingConcept, String existingColumn) throws Exception;
+
+	/**
+	 * Edit the data type of an existing property
+	 * @param existingConcept
+	 * @param existingColumn
+	 * @param newDataType
+	 * @throws Exception
+	 */
+	void editProperty(String existingConcept, String existingColumn, String newDataType) throws Exception;
 	
 }
