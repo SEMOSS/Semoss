@@ -9,7 +9,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReactor {
@@ -71,7 +71,7 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 			throw new IllegalArgumentException("This property conceptual name already exists");
 		}
 		
-		String conceptualRel = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
+		String conceptualRel = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS + "/" + Owler.CONCEPTUAL_RELATION_NAME;
 		// remove the current relationship
 		owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, conceptualRel, conceptualURI, true});
 		// add the new relationship

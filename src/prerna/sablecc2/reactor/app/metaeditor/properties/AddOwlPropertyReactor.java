@@ -12,7 +12,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
@@ -82,7 +82,7 @@ public class AddOwlPropertyReactor extends AbstractMetaEditorReactor {
 		}
 		
 		// set the owler
-		OWLER owler = getOWLER(appId);
+		Owler owler = getOWLER(appId);
 		setOwlerValues(engine, owler);
 		// add the property
 		

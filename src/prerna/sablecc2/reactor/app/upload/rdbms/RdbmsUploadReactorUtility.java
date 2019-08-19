@@ -6,7 +6,7 @@ import java.util.Map;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 
 public class RdbmsUploadReactorUtility {
 
@@ -49,7 +49,7 @@ public class RdbmsUploadReactorUtility {
 	 * @param headers
 	 * @param sqlTypes
 	 */
-	public static void generateTableMetadata(OWLER owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
+	public static void generateTableMetadata(Owler owler, String tableName, String uniqueRowId, String[] headers, String[] sqlTypes, String[] additionalTypes) {
 		// add the main column
 		owler.addConcept(tableName, uniqueRowId, "LONG", null);
 		// add the props

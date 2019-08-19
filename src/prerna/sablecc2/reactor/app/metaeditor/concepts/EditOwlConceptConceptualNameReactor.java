@@ -9,7 +9,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReactor {
@@ -59,7 +59,7 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
 		}
 		
-		String conceptualRel = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
+		String conceptualRel = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS + "/" + Owler.CONCEPTUAL_RELATION_NAME;
 		
 		// okay, not only do i need to change this concept
 		// but i have to change all the properties conceptual

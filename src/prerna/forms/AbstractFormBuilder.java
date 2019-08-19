@@ -18,7 +18,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public abstract class AbstractFormBuilder {
@@ -108,7 +108,7 @@ public abstract class AbstractFormBuilder {
 		}
 		wrapper.cleanUp();
 		if(!permissionTableExists) {
-			OWLER owler = new OWLER(formEng);
+			Owler owler = new Owler(formEng);
 			owler.addConcept("FORMS_USER_ACCESS", "USER_ID", "VARCHAR(100)");
 			owler.addProp("FORMS_USER_ACCESS", "USER_ID", "INSTANCE_NAME", "VARCHAR(255)", null);
 			owler.addProp("FORMS_USER_ACCESS", "USER_ID", "IS_SYS_ADMIN", "BOOLEAN", null);
@@ -142,7 +142,7 @@ public abstract class AbstractFormBuilder {
 		}
 		wrapper.cleanUp();
 		if(!auditTableExists) {
-			OWLER owler = new OWLER(this.formEng);
+			Owler owler = new Owler(this.formEng);
 			owler.addConcept(auditLogTableName, "ID", "INT");
 			owler.addProp(auditLogTableName, "ID", "USER", "VARCHAR(255)", null);
 			owler.addProp(auditLogTableName, "ID", "ACTION", "VARCHAR(100)", null);
@@ -182,7 +182,7 @@ public abstract class AbstractFormBuilder {
 			// need to make sure it has the tag cols
 			// since there can be multiple forms with different tags for searching on the same engine
 			
-			OWLER owler = new OWLER(this.formEng);
+			Owler owler = new Owler(this.formEng);
 
 			// 1) query to get the current cols
 			String allColsPresent = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + auditLogTableName.toUpperCase() + "'";

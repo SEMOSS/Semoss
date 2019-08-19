@@ -38,7 +38,7 @@ import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 
 public abstract class AbstractMetaEditorReactor extends AbstractReactor {
@@ -48,7 +48,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		literalPreds.add(RDFS.LABEL);
 		literalPreds.add(OWL.sameAs.toString());
 		literalPreds.add(RDFS.COMMENT);
-		literalPreds.add(OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_PROP_CLASS + "/UNIQUE");
+		literalPreds.add(Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_PROP_CLASS + "/UNIQUE");
 	}
 	
 	protected static final String CONCEPTUAL_NAME = "conceptual";
@@ -90,9 +90,9 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		return rfse;
 	}
 
-	protected OWLER getOWLER(String appId) {
+	protected Owler getOWLER(String appId) {
 		IEngine app = Utility.getEngine(appId);
-		OWLER owler = new OWLER(app);
+		Owler owler = new Owler(app);
 		return owler;
 	}
 
@@ -102,7 +102,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	 * @param engine
 	 * @param owler
 	 */
-	protected void setOwlerValues(IEngine engine, OWLER owler) {
+	protected void setOwlerValues(IEngine engine, Owler owler) {
 		Hashtable<String, String> conceptHash = new Hashtable<String, String>();
 		Hashtable<String, String> propHash = new Hashtable<String, String>();
 		Hashtable<String, String> relationHash = new Hashtable<String, String>();

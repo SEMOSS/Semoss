@@ -51,7 +51,7 @@ import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
-import prerna.util.OWLER;
+import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.gson.GsonUtility;
@@ -211,7 +211,7 @@ public class UploadUtilities {
 	 * @param descriptions
 	 * @param logicalNames
 	 */
-	public static void insertOwlMetadataToGraphicalEngine(OWLER owler, Map<String, List<String>> nodeProps, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+	public static void insertOwlMetadataToGraphicalEngine(Owler owler, Map<String, List<String>> nodeProps, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 		
@@ -270,7 +270,7 @@ public class UploadUtilities {
 	 * @param descriptions
 	 * @param logicalNames
 	 */
-	public static void insertFlatOwlMetadata(OWLER owler, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
+	public static void insertFlatOwlMetadata(Owler owler, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
 		// NOTE ::: We require the OWL to be loaded with the concepts and properties
 		// to get the proper physical URLs
 		
@@ -1307,7 +1307,7 @@ public class UploadUtilities {
 	 * @param owl
 	 * @param headers
 	 */
-	public static void addInsertFormInsight(String appId, String appName, RDBMSNativeEngine insightEngine, OWLER owl, String[] headers) {
+	public static void addInsertFormInsight(String appId, String appName, RDBMSNativeEngine insightEngine, Owler owl, String[] headers) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		Map<String, Map<String, SemossDataType>> metamodel = getExistingMetamodel(owl);
 		// assuming single sheet
@@ -1401,7 +1401,7 @@ public class UploadUtilities {
 	 * @param owl
 	 * @return
 	 */
-	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(OWLER owl) {
+	public static Map<String, Map<String, SemossDataType>> getExistingMetamodel(Owler owl) {
 		// need to get property types from the owl
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owl.getOwlPath(), null, null);
@@ -1531,7 +1531,7 @@ public class UploadUtilities {
 		return formMap;
 	}
 
-	public static Map<String, Object> createUpdateMap(String appId, OWLER owl, String concept,
+	public static Map<String, Object> createUpdateMap(String appId, Owler owl, String concept,
 			Map<String, SemossDataType> propMap) {
 		Map<String, Object> updateMap = new HashMap<>();
 		updateMap.put("database", appId);
