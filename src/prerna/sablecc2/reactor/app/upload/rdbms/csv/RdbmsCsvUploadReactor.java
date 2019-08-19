@@ -208,7 +208,7 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Parsing file metadata...");
-		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+		OWLER owler = new OWLER(this.engine);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.NEW_HEADERS));
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(helper, dataTypesMap, (Map<String, String>) metamodelProps.get(UploadInputUtility.ADDITIONAL_DATA_TYPES) );
 		String[] headers = (String[]) headerTypesArr[0];

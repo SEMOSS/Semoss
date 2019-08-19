@@ -71,7 +71,7 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 			throw new IllegalArgumentException("This property conceptual name already exists");
 		}
 		
-		String conceptualRel = OWLER.SEMOSS_URI + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
+		String conceptualRel = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
 		// remove the current relationship
 		owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, conceptualRel, conceptualURI, true});
 		// add the new relationship

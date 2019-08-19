@@ -59,7 +59,7 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
 		}
 		
-		String conceptualRel = OWLER.SEMOSS_URI + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
+		String conceptualRel = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
 		
 		// okay, not only do i need to change this concept
 		// but i have to change all the properties conceptual

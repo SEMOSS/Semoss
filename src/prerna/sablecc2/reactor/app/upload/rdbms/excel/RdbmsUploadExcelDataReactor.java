@@ -294,7 +294,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		 * make new tables We need to go to the sheet level and determine it
 		 */
 
-		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+		OWLER owler = new OWLER(this.engine);
 		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, 
 				metaDescriptions, metaLogicalNames, clean, replace);
 		owler.export();
