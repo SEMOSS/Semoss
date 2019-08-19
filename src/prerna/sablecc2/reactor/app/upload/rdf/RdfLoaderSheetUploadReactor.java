@@ -126,7 +126,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		}
 
 		logger.setLevel(Level.ERROR);
-		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+		OWLER owler = new OWLER(this.engine);
 		importFile(this.engine, owler, filePath, this.engine.getNodeBaseUri());
 		RdfUploadReactorUtility.loadMetadataIntoEngine(this.engine, owler);
 		owler.commit();

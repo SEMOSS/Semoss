@@ -16,7 +16,7 @@ public class OwlPrettyPrintFixer {
 	public static void fixOwl(Properties prop) {
 		File owlFile = SmssUtilities.getOwlFile(prop);
 		if(owlFile != null && owlFile.exists()) {
-			String conceptualRel = OWLER.SEMOSS_URI + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
+			String conceptualRel = OWLER.SEMOSS_URI_PREFIX + OWLER.DEFAULT_RELATION_CLASS + "/" + OWLER.CONCEPTUAL_RELATION_NAME;
 			
 			// owl is stored as RDF/XML file
 			RDFFileSesameEngine rfse = new RDFFileSesameEngine();

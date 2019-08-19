@@ -250,7 +250,7 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			stepCounter++;
 
 			logger.info(stepCounter + ". Start generating engine metadata...");
-			OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+			OWLER owler = new OWLER(this.engine);
 			RdbmsUploadReactorUtility.generateTableMetadata(owler, tableToInsertInto, uniqueRowId, headers, sqlTypes, additionalTypes);
 			UploadUtilities.insertFlatOwlMetadata(owler, tableToInsertInto, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 			owler.commit();

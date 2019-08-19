@@ -226,7 +226,7 @@ public class AbstractEngineCreator {
 
 	protected void openEngineWithConnection(String engineId) {
 		engine = Utility.getEngine(engineId);
-		openOWLWithConnection(engine, owlFile);
+		owler = new OWLER(engine);
 	}
 	
 	/**
@@ -269,19 +269,6 @@ public class AbstractEngineCreator {
 	protected void openOWLWithOutConnection(String owlFile, IEngine.ENGINE_TYPE type, String customBaseURI) {
 		owler = new OWLER(owlFile, type);
 		owler.addCustomBaseURI(customBaseURI);
-	}
-
-	/**
-	 * Creates a repository connection and puts all the existing base
-	 * relationships to create an updated OWL file
-	 * 
-	 * @param engine
-	 *            The database engine used to get all the existing base
-	 *            relationships
-	 * @throws EngineException
-	 */
-	protected void openOWLWithConnection(IEngine engine, String owlFile) {
-		owler = new OWLER(engine, owlFile);
 	}
 
 	/**

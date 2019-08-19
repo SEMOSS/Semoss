@@ -154,7 +154,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Start loading data..");
-		OWLER owler = new OWLER(this.engine, this.engine.getOWL());
+		OWLER owler = new OWLER(this.engine);
 		processRelationships(this.engine, owler, this.helper, Arrays.asList(headers), types, metamodelProps);
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
