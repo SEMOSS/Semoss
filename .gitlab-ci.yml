@@ -111,6 +111,7 @@ build_deploy:
   script:
     - ls
     - pwd
+    - cat /etc/debian_version
     - cat ver.txt
     - apt-get update
     - apt-get install -y openjfx
