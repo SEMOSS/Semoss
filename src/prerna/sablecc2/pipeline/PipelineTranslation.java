@@ -51,6 +51,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
@@ -98,7 +99,14 @@ public class PipelineTranslation extends LazyTranslation {
 	private List<PipelineOperation> curRoutine;
 	
 	public PipelineTranslation(Insight insight) {
-		super(insight);
+		super();
+		this.insight = insight;
+		if(this.insight != null) {
+			// we will copy the var store
+			VarStore copy = new VarStore();
+			copy.putAll(insight.getVarStore());
+			this.planner.setVarStore(this.insight.getVarStore());
+		}
 		if(reactorToId == null) {
 			init();
 		}
