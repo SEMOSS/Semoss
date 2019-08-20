@@ -105,7 +105,7 @@ public class PipelineTranslation extends LazyTranslation {
 			// we will copy the var store
 			VarStore copy = new VarStore();
 			copy.putAll(insight.getVarStore());
-			this.planner.setVarStore(this.insight.getVarStore());
+			this.planner.setVarStore(copy);
 		}
 		if(reactorToId == null) {
 			init();
@@ -278,6 +278,7 @@ public class PipelineTranslation extends LazyTranslation {
 	/**
 	 * Same method as in lazy with addition of addRoutine method
 	 */
+	@Override
     protected void deInitReactor() {
     	if(curReactor != null) {
     		// merge up and update the plan
