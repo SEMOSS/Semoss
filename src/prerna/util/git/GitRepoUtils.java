@@ -1,7 +1,9 @@
 package prerna.util.git;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -816,22 +818,37 @@ public class GitRepoUtils {
 			RevCommit comm = null;
 			if(commId == null)
 			{
-				ObjectId commId2 = thisGit.getRepository().resolve(Constants.HEAD);
-				RevWalk walk = new RevWalk(thisGit.getRepository());
-				comm = walk.lookupCommit(commId2);
+				// there is a good possibility the user has not saved this !?
+				File file = new File(gitFolder + "/" + fileName);
+				if(file.exists())
+				{
+					FileReader fis = new FileReader(file);
+					BufferedReader br = new BufferedReader(fis);
+					StringBuffer buff = new StringBuffer();
+					String temp = null;
+					while((temp = br.readLine()) != null)
+						buff.append(temp).append("\n");
+					
+					output = buff.toString();
+					// not going to process the head for now
+					//ObjectId commId2 = thisGit.getRepository().resolve(Constants.HEAD);
+					//RevWalk walk = new RevWalk(thisGit.getRepository());
+					//comm = walk.lookupCommit(commId2);
+				}
 			}
 			else
+			{
 				comm = findCommit(gitFolder, commId);
 			
-			TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
-			ObjectId blobId = treeWalk.getObjectId( 0 );
-			
-			ObjectReader objectReader = thisGit.getRepository().newObjectReader();
-			ObjectLoader objectLoader = objectReader.open( blobId );
-			byte[] bytes = objectLoader.getBytes();
-			objectReader.close();
-			
-			output = new String(bytes);
+				TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
+				ObjectId blobId = treeWalk.getObjectId( 0 );
+				
+				ObjectReader objectReader = thisGit.getRepository().newObjectReader();
+				ObjectLoader objectLoader = objectReader.open( blobId );
+				byte[] bytes = objectLoader.getBytes();
+				objectReader.close();
+				output = new String(bytes);
+			}			
 		} catch (MissingObjectException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
