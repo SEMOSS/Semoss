@@ -1313,10 +1313,10 @@ public class UploadUtilities {
 		// assuming single sheet
 		String sheetName = metamodel.keySet().iterator().next();
 		String insightName = getInsightFormName(sheetName);
-		String layout = "default-handle";
+		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
-				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "]}</encode>\");";
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
+				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
 		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
@@ -1343,10 +1343,10 @@ public class UploadUtilities {
 		metamodel.put(sheetName, propMap);
 		// assuming single sheet
 		String insightName = getInsightFormName(sheetName);
-		String layout = "default-handle";
+		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
-				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "]}</encode>\");";
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
+				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
 		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightDatabase.commit();
@@ -1369,10 +1369,10 @@ public class UploadUtilities {
 	public static void addInsertFormInsight(RDBMSNativeEngine insightEngine, String appId, String appName, String sheetName, Map<String, Object> widgetJson) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String insightName = getInsightFormName(sheetName);
-		String layout = "default-handle";
+		String layout = "form-builder";
 		Gson gson = GsonUtility.getDefaultGson();
-		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":["
-				+ gson.toJson(widgetJson) + "]}</encode>\");";
+		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
+				+ gson.toJson(widgetJson) + "}</encode>\");";
 		String[] pkqlRecipeToSave = { newPixel };
 		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
@@ -1440,6 +1440,8 @@ public class UploadUtilities {
 	 */
 	public static Map<String, Object> createInsertForm(String appId, Map<String, Map<String, SemossDataType>> existingMetamodel, String[] headers) {
 		Map<String, Object> formMap = new HashMap<>();
+		formMap.put("js", new Vector<>());
+		formMap.put("css", new Vector<>());
 		Map<String, SemossDataType> propMap = new HashMap<>();
 		// assuming this is a flat table so there is only one concept
 		String conceptualName = existingMetamodel.keySet().iterator().next();
@@ -1458,76 +1460,66 @@ public class UploadUtilities {
 		for (int i = 0; i < propertyList.size(); i++) {
 			String property = propertyList.get(i);
 			intoString.append(conceptualName + "__" + property);
-			valuesString.append("(\"<Parameter_" + i + ">\")");
+			valuesString.append("(<" + property + ">)");
 			if (i < propertyList.size() - 1) {
 				intoString.append(",");
 				valuesString.append(",");
 			}
 		}
-		String query = "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=["
-				+ valuesString + "]);";
-		formMap.put("query", query);
-		// TODO
-		formMap.put("label", "");
-		formMap.put("description", "");
+		// create insert pixel map
+		Map<String, Object> pixelMap = new HashMap<>();
+		Map<String, Object> insertMap = new HashMap<>();
+		insertMap.put("name", "Insert");
+		insertMap.put("pixel", "Database(database=[\"" + appId + "\"]) | Insert (into=[" + intoString + "], values=["
+				+ valuesString + "]);");
+		pixelMap.put("Insert", insertMap);
 
-		// build param list
-		List<Map<String, Object>> paramList = new Vector<>();
+		formMap.put("pixel", pixelMap);
+
+		StringBuilder htmlSb = new StringBuilder();
+		Map<String, Object> dataMap = new HashMap<>();
 		for (int i = 0; i < propertyList.size(); i++) {
 			String property = propertyList.get(i);
-			// build param for each property
-			Map<String, Object> paramMap = new HashMap<>();
-			paramMap.put("paramName", "Parameter_" + i);
+			htmlSb.append(FormUtility.getTextComponent(property));
 			SemossDataType propType = propMap.get(property);
-			// build view for param map
-			Map<String, Object> viewMap = new HashMap<>();
-			viewMap.put("label", property);
-			String description = "";
-			if(propType== SemossDataType.DATE) {
-				description = "Please enter a date (yyyy-mm-dd)";
-				viewMap.put("displayType", "freetext");
+			// build html based on input component
+			if (propType == SemossDataType.DATE) {
+				htmlSb.append(FormUtility.getDatePickerComponent());
+			} else if (propType == SemossDataType.STRING) {
+				htmlSb.append(FormUtility.getInputComponent(property));
+			} else if (Utility.isNumericType(propType.toString())) {
+				htmlSb.append(FormUtility.getNumberPickerComponent());
 			}
-			viewMap.put("description", description);
-			if (propType == SemossDataType.STRING) {
-				viewMap.put("displayType", "typeahead");
-			}
-			if (Utility.isNumericType(propType.toString())) {
-				viewMap.put("displayType", "number");
-			}
-			paramMap.put("view", viewMap);
+			
+			// build data property map for data binding
+			Map<String, Object> propertyMap = new HashMap<>();
+			propertyMap.put("defaultValue", "");
+			propertyMap.put("options", new Vector());
+			propertyMap.put("name", property);
+			propertyMap.put("dependsOn", new Vector());
+			propertyMap.put("required", true);
+			propertyMap.put("autoPopulate", false);
+			Map<String, Object> configMap = new HashMap<>();
+			configMap.put("table", conceptualName);
+			Map<String, Object> appMap = new HashMap<>();
+			appMap.put("value", appId);
+			configMap.put("app", appMap);
+			propertyMap.put("config", configMap);
+			propertyMap.put("pixel", "");
 
-			// build model for param map
-			Map<String, Object> modelMap = new HashMap<>();
-			modelMap.put("defaultValue", "");
-			modelMap.put("defaultOptions", new Vector());
+			// adding pixel data binding for non-numeric values
 			if (propType == SemossDataType.STRING) {
-				// if prop type is a string
-				modelMap.put("query",
-						"(Parameter_" + i + "_infinite = Database( database=[\"" + appId + "\"] )|" + "Select("
-								+ conceptualName + "__" + property + ").as([" + property + "])|" + "Filter("
-								+ conceptualName + "__" + property + " ?like \"<Parameter_" + i
-								+ "_search>\") | Iterate())| Collect(50);");
-				modelMap.put("infiniteQuery", "Parameter_" + i + "_infinite | Collect(50);");
-				modelMap.put("searchParam", "Parameter_" + i + "_search");
-				// add dependency
-				List<String> dependencies = new Vector<>();
-				dependencies.add("Parameter_" + i + "_search");
-				modelMap.put("dependsOn", dependencies);
-
-				// if prop type is a string build a search param
-				Map<String, Object> searchMap = new HashMap<>();
-				searchMap.put("paramName", "Parameter_" + i + "_search");
-				searchMap.put("view", false);
-				Map<String, Object> searchModelMap = new HashMap<>();
-				searchModelMap.put("defaultValue", "");
-				searchMap.put("model", searchModelMap);
-				paramList.add(searchMap);
+				String pixel = "Database( database=[\"" + appId + "\"] )|" + "Select(" + conceptualName + "__"
+						+ property + ").as([" + property + "])| Collect(-1);";
+				propertyMap.put("pixel", pixel);
+			} else if (Utility.isNumericType(propType.toString())) {
+				propertyMap.put("defaultValue", "0");
 			}
-			paramMap.put("model", modelMap);
-			paramList.add(paramMap);
+			dataMap.put(property, propertyMap);
 		}
-		formMap.put("params", paramList);
-		formMap.put("execute", "Submit");
+		htmlSb.append(FormUtility.getSubmitComponent());
+		formMap.put("html", htmlSb.toString());
+		formMap.put("data", dataMap);
 		return formMap;
 	}
 
