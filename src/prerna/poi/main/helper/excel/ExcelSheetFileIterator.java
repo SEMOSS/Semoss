@@ -143,7 +143,7 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 
 		// couple of things to take care of here
 		Object[] cleanRow = cleanRow(row, types, additionalTypes);
-		IHeadersDataRow nextData = new HeadersDataRow(this.headers, cleanRow, cleanRow);
+		IHeadersDataRow nextData = new HeadersDataRow(this.headers, cleanRow, row);
 		return nextData;
 	}
 	
