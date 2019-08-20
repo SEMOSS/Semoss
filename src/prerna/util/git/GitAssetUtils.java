@@ -2,7 +2,9 @@ package prerna.util.git;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +23,8 @@ public class GitAssetUtils {
 
 		List<String> files = new ArrayList<String>();
 		List<String> directories = new ArrayList<String>();
-		retHash.put("FILE_LIST", files);
-		retHash.put("DIR_LIST", directories);
+		List<String> fileDates = new ArrayList<String>();
+		List<String> dirDates = new ArrayList<String>();
 
 		File folder = new File(gitFolder);
 		File[] listOfFiles = folder.listFiles();
@@ -30,12 +32,17 @@ public class GitAssetUtils {
 
 		for (int i = 0; i < listOfFiles.length; i++) {
 			if (listOfFiles[i].isFile()) {
-				String path = listOfFiles[i].getAbsolutePath().replaceAll("\\\\", "/");
+				//String path = listOfFiles[i].getAbsolutePath().replaceAll("\\\\", "/");
+				String path = listOfFiles[i].getName();
+				// we probably dont need this anymore
+				/*
 				if(replacer != null) {
 					path = path.replaceAll(replacer, repString);
-				}
+				}*/
 				System.out.println("File " + path);
 				files.add(path.replaceFirst("/", ""));
+				String time = getDate(listOfFiles[i].lastModified());
+				fileDates.add(time);
 			} else if (listOfFiles[i].isDirectory()) {
 				// System.out.println("Directory " + listOfFiles[i].getName());
 				String path = listOfFiles[i].getName().replaceAll("\\\\", "/");
@@ -46,11 +53,27 @@ public class GitAssetUtils {
 					}
 					directories.add(path);
 				}
+				String time = getDate(listOfFiles[i].lastModified());
+				dirDates.add(time);
 			}
 		}
 
+		retHash.put("FILE_LIST", files);
+		retHash.put("DIR_LIST", directories);
+		retHash.put("FILE_DATE", fileDates);
+		retHash.put("DIR_DATE", dirDates);
+
+		
 		return retHash;
 	}
+	
+	
+	private static String getDate(long time)
+	{
+		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+		return dateFormat.format(time);
+	}
+	
 
 	// recursively print it
 	public void getAssets(String gitFolder, List <String> dirList) {
