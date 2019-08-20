@@ -31,6 +31,10 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 		varMap.put(varName, variable);
 	}
 	
+	public void putAll(VarStore otherStore) {
+		varMap.putAll(otherStore.varMap);
+	}
+	
 	@Override
 	public NounMetadata get(String varName) {
 		varName = cleanVarName(varName);
