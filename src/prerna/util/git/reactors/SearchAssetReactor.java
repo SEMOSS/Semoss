@@ -12,10 +12,10 @@ public class SearchAssetReactor extends AbstractReactor {
 	// pulls the latest for this project / asset
 	// the asset is basically the folder where it sits
 	// this can be used enroute in a pipeline
-	
+
 	public SearchAssetReactor() {
-		this.keysToGet = new String[]{"extn", ReactorKeysEnum.FILE_PATH.getKey()};
-		this.keyRequired = new int[]{1, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -25,17 +25,14 @@ public class SearchAssetReactor extends AbstractReactor {
 		String assetFolder = this.insight.getInsightFolder();
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
-		String extn = keyValue.get(keysToGet[0]);
+		String search = keyValue.get(keysToGet[0]);
 		String location = assetFolder;
 
-		if(keyValue.containsKey(keysToGet[1])) {
-			location = assetFolder + "/" + keyValue.get(keysToGet[1]); 		
+		if (keyValue.containsKey(keysToGet[1])) {
+			location = assetFolder + "/" + keyValue.get(keysToGet[1]);
 		}
-		
-		System.out.println(location);
-		System.out.println(extn);
-		System.out.println(assetFolder);
-		return new NounMetadata(GitAssetUtils.listAssetMetadata(location, extn,assetFolder,  null, null), PixelDataType.VECTOR, PixelOperationType.OPERATION);
+
+		return new NounMetadata(GitAssetUtils.listAssetMetadata(location, search, assetFolder, null, null), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 }

@@ -106,6 +106,7 @@ public enum ReactorKeysEnum {
 	ROW_COUNT("rowCount",                                   "Boolean get the number of rows"),
 	RULES_MAP("rulesMap",                                   "The map of rules for validation, including information such as the name of the rule, the rule definition, the columns, and the description"),
 	SCHEMA("schema",                                        "The database schema."),
+	SEARCH("search",                                        "The search term."),
 	SESSION_ID("sessionId", 								"Id of the session"),
 	SHEET_NAME("sheetName",                                 "The name of the excel sheet"),
 	SORT("sort", 											"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
