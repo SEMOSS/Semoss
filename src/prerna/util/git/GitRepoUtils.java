@@ -10,6 +10,7 @@ import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
@@ -803,6 +804,48 @@ public class GitRepoUtils {
 		return builder;
 	}
 	
+	/**
+	 * Get commit message with metadata
+	 * @param gitFolder
+	 * @param fileName optional if getting specific commit messages for a file
+	 * @return
+	 */
+	public static List<Map<String, Object>> getCommits(String gitFolder, String fileName) {
+		// list of lists
+		List<Map<String, Object>> commitList = new Vector<>();
+		try {
+			Git thisGit = Git.open(new File(gitFolder));
+			LogCommand lg = null;
+			if (fileName != null)
+				lg = thisGit.log().addPath(fileName).all();
+			else
+				lg = thisGit.log().all();
+			Iterator<RevCommit> commits = lg.call().iterator();
+
+			while (commits.hasNext()) {
+				RevCommit comm = commits.next();
+				// System.out.println(comm.getFullMessage());
+				Map<String, Object> commitMap = new HashMap();
+				commitMap.put("date", comm.getCommitTime());
+				commitMap.put("user", comm.getAuthorIdent().getName());
+				commitMap.put("message", comm.getFullMessage());
+				commitMap.put("id", comm.toObjectId().toString().replace("commit ", "").substring(0, 6));
+				commitList.add(commitMap);
+			}
+		} catch (NoHeadException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (GitAPIException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return commitList;
+	}
+	
 	// gets a particular file
 	// showing file content for a particular ID
 	// this will be utilized where the user goes
@@ -1223,6 +1266,5 @@ public class GitRepoUtils {
 		// commit it
 		GitRepoUtils.commitAddedFiles(folder);
 	}
-
 	
 }
