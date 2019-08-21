@@ -230,11 +230,9 @@ public class GitAssetUtils {
 
 					path.replaceFirst("/", "");
 					fileMap.put("type", FilenameUtils.getExtension(path));
-//					fileMap.put("size", f.length());
 					retList.add(fileMap);
 				}
 			} else if (f.isDirectory()) {
-				// System.out.println("Directory " + listOfFiles[i].getName());
 				String path = f.getName();
 				if (!path.startsWith(".")) { // no hidden files
 					dirList.add(f.getAbsolutePath());
