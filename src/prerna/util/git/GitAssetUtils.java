@@ -2,13 +2,16 @@ package prerna.util.git;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
+import org.apache.commons.io.FilenameUtils;
 import org.codehaus.plexus.util.FileUtils;
 
 import prerna.util.Utility;
@@ -74,6 +77,50 @@ public class GitAssetUtils {
 		return dateFormat.format(time);
 	}
 	
+
+	/**
+	 * Get all the assets with metadata
+	 * 
+	 * @param gitFolder
+	 * @param replacer
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAssetMetadata(String gitFolder, String replacer) {
+		List<Map<String, Object>> retList = new Vector<>();
+		File folder = new File(gitFolder);
+		File[] listOfFiles = folder.listFiles();
+		String repString = ""; // can be $IF
+
+		for (File f : listOfFiles) {
+			Map<String, Object> fileMap = new HashMap<>();
+			fileMap.put("name", f.getName());
+			fileMap.put("lastModified", getDate(f.lastModified()));
+			String relative = new File(replacer).toURI().relativize(new File(f.getAbsolutePath()).toURI()).getPath();
+			fileMap.put("path", relative);
+			if (f.isFile()) {
+				String path = f.getAbsolutePath().replaceAll("\\\\", "/");
+				if (replacer != null) {
+					path = path.replaceAll(replacer, repString);
+				}
+				// System.out.println("File " + path);
+				path = path.replaceFirst("/", "");
+				fileMap.put("type", FilenameUtils.getExtension(path));
+//				fileMap.put("size", f.length());
+			} else if (f.isDirectory()) {
+				String path = f.getName().replaceAll("\\\\", "/");
+				// no hidden files
+				if (!path.startsWith(".")) {
+					if (replacer != null) {
+						path = path.replaceAll(replacer, repString);
+					}
+				}
+				fileMap.put("type", "directory");
+			}
+			retList.add(fileMap);
+		}
+
+		return retList;
+	}
 
 	// recursively print it
 	public void getAssets(String gitFolder, List <String> dirList) {
@@ -152,6 +199,57 @@ public class GitAssetUtils {
 		if(!dirList.isEmpty()) {
 			return listAssets(dirList.remove(0), extn, replacer, dirList, retList);
 		} 
+
+		return retList;
+	}
+	
+	public static List<Map<String, Object>> listAssetMetadata(String gitFolder, String extn, String replacer, List<String> dirList, List<Map<String, Object>> retList) {
+		if (dirList == null) {
+			dirList = new ArrayList<String>();
+		}
+		if (retList == null) {
+			retList = new ArrayList<>();
+		}
+
+		File folder = new File(gitFolder);
+		File[] listOfFiles = folder.listFiles();
+
+		for (File f : listOfFiles) {
+			Map<String, Object> fileMap = new HashMap<>();
+			fileMap.put("name", f.getName());
+			String relative = new File(replacer).toURI().relativize(new File(f.getAbsolutePath()).toURI()).getPath();
+			fileMap.put("path", relative);
+			fileMap.put("lastModified", getDate(f.lastModified()));
+			if (f.isFile()) {
+				String path = f.getAbsolutePath();
+				path = path.replaceAll("\\\\", "/");
+				if (isMatch(Utility.getInstanceName(path), extn)) {
+					if (replacer != null) {
+						path = path.replaceAll(replacer, "");
+					}
+
+					path.replaceFirst("/", "");
+					fileMap.put("type", FilenameUtils.getExtension(path));
+//					fileMap.put("size", f.length());
+					retList.add(fileMap);
+				}
+			} else if (f.isDirectory()) {
+				// System.out.println("Directory " + listOfFiles[i].getName());
+				String path = f.getName();
+				if (!path.startsWith(".")) { // no hidden files
+					dirList.add(f.getAbsolutePath());
+					if (isMatch(path, extn)) {
+						fileMap.put("path", path);
+						fileMap.put("type", "directory");
+						retList.add(fileMap);
+					}
+				}
+			}
+		}
+
+		if (!dirList.isEmpty()) {
+			return listAssetMetadata(dirList.remove(0), extn, replacer, dirList, retList);
+		}
 
 		return retList;
 	}
