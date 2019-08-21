@@ -176,7 +176,7 @@ public class Owler extends AbstractOwler {
 	 * @return						Returns the physical URI for the node
 	 */
 	public String addConcept(String concept) {
-		return addConcept(concept, "", SEMOSS_URI_PREFIX, "STRING");
+		return addConcept(concept, "", "STRING");
 	}
 	
 	/////////////////// END ADDING CONCEPTS INTO THE OWL /////////////////////////////////
