@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Utility;
@@ -19,7 +20,7 @@ public class SaveAssetReactor extends AbstractReactor {
 	// this can be used enroute in a pipeline
 	
 	public SaveAssetReactor() {
-		this.keysToGet = new String[]{"filename", "content"};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.CONTENT.getKey()};
 		this.keyRequired = new int[]{1,1};
 	}
 
