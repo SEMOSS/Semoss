@@ -21,11 +21,15 @@ public class BrowseAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
+		// base asset folder path
 		String assetFolder = this.insight.getInsightFolder();
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		
+		// specific folder to browse
 		String locFolder = assetFolder;
 		if(keyValue.containsKey(keysToGet[0])) {
 			locFolder = assetFolder + "/" + keyValue.get(keysToGet[0]);
+			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
 
 		return new NounMetadata(GitAssetUtils.getAssetMetadata(locFolder, assetFolder), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);

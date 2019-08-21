@@ -14,12 +14,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitRepoUtils;
 
-public class UploadAssetReactor extends AbstractReactor{
-	
+public class UploadAssetReactor extends AbstractReactor {
+
 	public UploadAssetReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), "tempPath", ReactorKeysEnum.COMMENT_KEY.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), "tempPath",
+				ReactorKeysEnum.COMMENT_KEY.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -39,7 +40,7 @@ public class UploadAssetReactor extends AbstractReactor{
 		File tempFile = new File(tempPath);
 		try {
 			FileUtils.copyFileToDirectory(tempPath, assetFolder);
-			//TODO should I delete the old file?
+			// TODO should I delete the old file?
 			// tempFile.delete();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -53,13 +54,13 @@ public class UploadAssetReactor extends AbstractReactor{
 		List<String> files = new Vector<>();
 		files.add(assetPath);
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
-		
+
 		String author = this.insight.getUserId();
 		// TODO how can I get the user email
 		User user = this.insight.getUser();
 		String email = null;
 		// commit it
-		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);;
+		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
 
 		return NounMetadata.getSuccessNounMessage("Success!");
 	}
