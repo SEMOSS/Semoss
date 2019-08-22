@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
+import java.util.regex.Matcher;
 
 import org.codehaus.plexus.util.FileUtils;
 
@@ -26,6 +27,11 @@ public class UploadAssetReactor extends AbstractReactor {
 		organizeKeys();
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String tempPath = this.keyValue.get(this.keysToGet[1]);
+		
+		if(tempPath.startsWith("$IF")) {
+			tempPath = tempPath.replaceFirst("\\$IF", Matcher.quoteReplacement(this.insight.getInsightFolder()));
+		}
+		
 		String comment = this.keyValue.get(this.keysToGet[2]);
 
 		// get insight asset path
