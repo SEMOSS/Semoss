@@ -62,7 +62,7 @@ public class SaveAssetReactor extends AbstractReactor {
 		
 		// add file to git
 		List<String> files = new Vector<>();
-		files.add(filePath);
+		files.add(fileName);
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
 
 		String author = this.insight.getUserId();
