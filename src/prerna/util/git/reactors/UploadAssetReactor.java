@@ -44,8 +44,10 @@ public class UploadAssetReactor extends AbstractReactor {
 
 		// move temp file to asset file
 		File tempFile = new File(tempPath);
+		File newFile = new File(assetPath);
 		try {
 			FileUtils.copyFileToDirectory(tempPath, assetFolder);
+			FileUtils.rename(tempFile, newFile);
 			// TODO should I delete the old file?
 			// tempFile.delete();
 		} catch (IOException e) {
@@ -58,7 +60,7 @@ public class UploadAssetReactor extends AbstractReactor {
 
 		// add file to git
 		List<String> files = new Vector<>();
-		files.add(assetPath);
+		files.add(filePath);
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
 
 		String author = this.insight.getUserId();
