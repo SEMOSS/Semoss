@@ -1,5 +1,7 @@
 package prerna.util.git.reactors;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -20,16 +22,25 @@ public class GetAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		
+		// check if user is logged in
+		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		} else {
+			throwAnonymousUserError();
+		}
 
+		// get the asset folder path
 		String assetFolder = this.insight.getInsightFolder(); 
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
-		
-		// I need to do the job of creating this directory i.e. the name of the repo
-		// TBD
 
+		// specify a file
 		String asset = keyValue.get(keysToGet[0]);
+		// grab the version
 		String version = null;
-
 		if (keyValue.containsKey(keysToGet[1])) {
 			version = keyValue.get(keysToGet[1]);
 		}
@@ -37,7 +48,6 @@ public class GetAssetReactor extends AbstractReactor {
 		// I need a better way than output
 		// probably write the file and volley the file ?
 		String output = GitRepoUtils.getFile(version, asset, assetFolder);
-
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
