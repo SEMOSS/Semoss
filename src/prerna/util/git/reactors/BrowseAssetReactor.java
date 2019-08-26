@@ -1,5 +1,8 @@
 package prerna.util.git.reactors;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -14,24 +17,33 @@ public class BrowseAssetReactor extends AbstractReactor {
 	// this can be used enroute in a pipeline
 
 	public BrowseAssetReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		
+		// check if user is logged in
+		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		} else {
+			throwAnonymousUserError();
+		}
 
 		// base asset folder path
 		String assetFolder = this.insight.getInsightFolder();
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
-		
+
 		// specific folder to browse
 		String locFolder = assetFolder;
-		if(keyValue.containsKey(keysToGet[0])) {
+		if (keyValue.containsKey(keysToGet[0])) {
 			locFolder = assetFolder + "/" + keyValue.get(keysToGet[0]);
 			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
-
 		return new NounMetadata(GitAssetUtils.getAssetMetadata(locFolder, assetFolder), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 

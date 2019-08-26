@@ -3,6 +3,8 @@ package prerna.util.git.reactors;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -19,6 +21,16 @@ public class GetAssetCommentReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		
+		// check if user is logged in
+		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		} else {
+			throwAnonymousUserError();
+		}
 
 		// get the asset folder path
 		String assetFolder = this.insight.getInsightFolder();
@@ -27,8 +39,8 @@ public class GetAssetCommentReactor extends AbstractReactor {
 		// specify a file
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 
-		List<Map<String, Object>> commits = GitRepoUtils.getCommits(assetFolder, filePath);
-
-		return new NounMetadata(commits, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		// get comments
+		List<Map<String, Object>> comments = GitRepoUtils.getCommits(assetFolder, filePath);
+		return new NounMetadata(comments, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 }
