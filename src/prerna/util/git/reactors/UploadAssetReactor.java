@@ -8,7 +8,9 @@ import java.util.regex.Matcher;
 
 import org.codehaus.plexus.util.FileUtils;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -25,6 +27,15 @@ public class UploadAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		// check if user is logged in
+		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		} else {
+			throwAnonymousUserError();
+		}
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String tempPath = this.keyValue.get(this.keysToGet[1]);
 		
@@ -63,13 +74,12 @@ public class UploadAssetReactor extends AbstractReactor {
 		files.add(filePath);
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
 
+		// Get the user's email
 		String author = this.insight.getUserId();
-		// TODO how can I get the user email
-		User user = this.insight.getUser();
-		String email = null;
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
-
 		return NounMetadata.getSuccessNounMessage("Success!");
 	}
 
