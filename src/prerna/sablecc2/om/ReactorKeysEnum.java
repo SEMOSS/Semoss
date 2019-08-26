@@ -128,6 +128,7 @@ public enum ReactorKeysEnum {
 	VALUE("value", 											"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
 	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores"),
+	VERSION("version", 										"The version"),
 	SCALE("scale", 											"How much to scale the graph, default value is set at 20 based on screen size");
 	
 	private String key;
