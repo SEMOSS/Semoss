@@ -241,7 +241,7 @@ public class InsightUtility {
 				}
 			}
 			
-//			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);;
+//			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);
 //			if(sessionNoun != null) {
 //				String sessionId = sessionNoun.getValue().toString();
 //				Set<String> insightIdsForSesh = InsightStore.getInstance().getInsightIDsForSession(sessionId);
@@ -251,7 +251,7 @@ public class InsightUtility {
 //			}
 			
 			LOGGER.info("Successfully dropped insight " + insight.getInsightId());
-			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
+			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DROP_INSIGHT);
 		}
 	}
 }
