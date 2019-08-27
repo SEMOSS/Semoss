@@ -71,9 +71,9 @@ public class GitAssetUtils {
 	}
 	
 	
-	private static String getDate(long time)
+	public static String getDate(long time)
 	{
-		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+		SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 		return dateFormat.format(time);
 	}
 	

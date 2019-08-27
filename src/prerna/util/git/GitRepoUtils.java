@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -814,7 +813,6 @@ public class GitRepoUtils {
 	public static List<Map<String, Object>> getCommits(String gitFolder, String fileName) {
 		// list of lists
 		List<Map<String, Object>> commitList = new Vector<>();
-		SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 		try {
 			Git thisGit = Git.open(new File(gitFolder));
 			LogCommand lg = null;
@@ -828,7 +826,7 @@ public class GitRepoUtils {
 				RevCommit comm = commits.next();
 				// System.out.println(comm.getFullMessage());
 				Map<String, Object> commitMap = new HashMap();
-				commitMap.put("date", dateFormat.format(comm.getCommitTime()));
+				commitMap.put("date", GitAssetUtils.getDate(comm.getCommitTime()));
 				commitMap.put("user", comm.getAuthorIdent().getName());
 				commitMap.put("message", comm.getFullMessage());
 				commitMap.put("id", comm.toObjectId().toString().replace("commit ", "").substring(0, 6));
