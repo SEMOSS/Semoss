@@ -1,60 +1,54 @@
 package prerna.util.git.reactors;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-import org.kohsuke.github.GitHub;
+import java.util.List;
+import java.util.Vector;
 
 import prerna.auth.AccessToken;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.git.GitAssetMaker;
-import prerna.util.git.GitUtils;
+import prerna.util.git.GitDestroyer;
+import prerna.util.git.GitRepoUtils;
 
 public class DeleteAssetReactor extends GitBaseReactor {
 
 	public DeleteAssetReactor() {
-		// need repository
-		// Oauth
-		// File name
-		// Content
-		this.keysToGet = new String[]{ReactorKeysEnum.REPOSITORY.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.CONTENT.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
-
-		// need to get the user
-		
 		organizeKeys();
-		
-		String token = getToken();
-		// check for minmum
-		checkMin(3);
-		
-		Logger logger = getLogger(this.getClass().getName());
-		logger.info("Logging In...");
-		String repoName = this.keyValue.get(this.keysToGet[0]);
-		String fileName = this.keyValue.get(this.keysToGet[1]);
-		
-		
-		GitHub ret = GitUtils.login(token);
-
-		// create the repo.. just in case we dont have it
-		// even though we get repo name.. we are not using it for create asset
-		
-		//GitAssetMaker.createAssetRepo(gitAccess.getAccess_token());
-		GitAssetMaker.deleteAsset(token, repoName, fileName);
-
-		if(ret == null) {
-			throw new IllegalArgumentException("Could not properly login using credentials");
+		// check if user is logged in
+		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		} else {
+			throwAnonymousUserError();
 		}
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.MARKET_PLACE);
+		
+		// get asset base folder
+		String assetFolder = this.insight.getInsightFolder();
+		assetFolder = assetFolder.replaceAll("\\\\", "/");
+
+		// get the file path to delete
+		String fileName = keyValue.get(keysToGet[0]);
+		String comment = this.keyValue.get(this.keysToGet[1]);
+
+		List<String> files = new Vector<>();
+		files.add(fileName);
+		GitDestroyer.removeSpecificFiles(assetFolder, true, files);
+		
+		// Get the user's email
+		String author = this.insight.getUserId();
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		String email = accessToken.getEmail();
+		// commit it
+		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
+
+		return NounMetadata.getSuccessNounMessage("Success!");
 	}
 }
