@@ -22,11 +22,13 @@ import java.util.Vector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -37,7 +39,6 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -51,6 +52,9 @@ public class MasterDatabaseUtility {
 		if(owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
 		}
+		// Update OWL
+		OwlSeparatePixelFromConceptual.fixOwl(engine.getProp());
+		
 		Connection conn = engine.makeConnection();
 
 		String [] colNames = null;
@@ -60,7 +64,10 @@ public class MasterDatabaseUtility {
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
+		
+		// since i have major changes
+		requireRemakeAndAlter(engine, conn, queryUtil, schema, allowIfExistsTable);
+			
 		// engine table
 		colNames = new String[]{"ID", "ENGINENAME", "MODIFIEDDATE", "TYPE"};
 		types = new String[]{"varchar(255)", "varchar(255)", "timestamp", "varchar(255)"};
@@ -84,8 +91,8 @@ public class MasterDatabaseUtility {
 		}
 
 		// engine concept table
-		colNames = new String[]{"ENGINE", "PHYSICALNAME", "PARENTPHYSICALID", "PHYSICALNAMEID", "LOCALCONCEPTID", "PK", "PROPERTY", "ORIGINAL_TYPE", "PROPERTY_TYPE", "ADDITIONAL_TYPE"};
-		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "boolean", "varchar(255)", "varchar(255)", "varchar(255)"};
+		colNames = new String[]{"ENGINE", "PARENTSEMOSSNAME", "SEMOSSNAME", "PARENTPHYSICALNAME", "PARENTPHYSICALNAMEID", "PHYSICALNAME", "PHYSICALNAMEID", "PARENTLOCALCONCEPTID", "LOCALCONCEPTID", "IGNORE_DATA", "PK", "ORIGINAL_TYPE", "PROPERTY_TYPE", "ADDITIONAL_TYPE"};
+		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "varchar(255)", "boolean", "boolean", "varchar(255)", "varchar(255)", "varchar(255)"};
 		if(allowIfExistsTable) {
 			executeSql(conn, queryUtil.createTableIfNotExists("ENGINECONCEPT", colNames, types));
 		} else {
@@ -223,6 +230,64 @@ public class MasterDatabaseUtility {
 	}
 
 	@Deprecated
+	private static void requireRemakeAndAlter(RDBMSNativeEngine engine, 
+			Connection conn, 
+			AbstractSqlQueryUtil queryUtil, 
+			String schema, 
+			boolean allowIfExistsTable) throws SQLException {
+		boolean require = false;
+		String q = "select parentsemossname from engineconcept limit 1";
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, q);
+			if(!wrapper.hasNext()) {
+				require = true;
+			}
+		} catch(Exception e) {
+			require = true;
+		} finally {
+			wrapper.cleanUp();
+		}
+		
+		// just delete and let the other methods remake the tables
+		if(require) {
+			if(allowIfExistsTable) {
+				executeSql(conn, queryUtil.dropTableIfExists("ENGINE"));
+				executeSql(conn, queryUtil.dropTableIfExists("ENGINECONCEPT"));
+				executeSql(conn, queryUtil.dropTableIfExists("CONCEPT"));
+				executeSql(conn, queryUtil.dropTableIfExists("CONCEPTMETADATA"));
+				executeSql(conn, queryUtil.dropTableIfExists("ENGINERELATION"));
+				executeSql(conn, queryUtil.dropTableIfExists("RELATION"));
+				executeSql(conn, queryUtil.dropTableIfExists("KVSTORE"));
+			} else {
+				if(!tableExists(engine, queryUtil, "ENGINE", schema)) {
+					executeSql(conn, queryUtil.dropTable("ENGINE"));
+				}
+				if(!tableExists(engine, queryUtil, "ENGINECONCEPT", schema)) {
+					executeSql(conn, queryUtil.dropTable("ENGINECONCEPT"));
+				}
+				if(!tableExists(engine, queryUtil, "CONCEPT", schema)) {
+					executeSql(conn, queryUtil.dropTable("CONCEPT"));
+				}
+				if(!tableExists(engine, queryUtil, "CONCEPTMETADATA", schema)) {
+					executeSql(conn, queryUtil.dropTable("CONCEPTMETADATA"));
+				}
+				if(!tableExists(engine, queryUtil, "ENGINERELATION", schema)) {
+					executeSql(conn, queryUtil.dropTable("ENGINERELATION"));
+				}
+				if(!tableExists(engine, queryUtil, "RELATION", schema)) {
+					executeSql(conn, queryUtil.dropTable("RELATION"));
+				}
+				if(!tableExists(engine, queryUtil, "KVSTORE", schema)) {
+					executeSql(conn, queryUtil.dropTable("KVSTORE"));
+				}
+			}
+		}
+		
+		
+	}
+	
+	@Deprecated
 	private static void updateMetadataTable(RDBMSNativeEngine engine, Connection conn, AbstractSqlQueryUtil queryUtil, String tableName, String schema) throws SQLException {
 		if(tableExists(engine, queryUtil, tableName, schema)) {
 			boolean allowIfExists = queryUtil.allowIfExistsModifyColumnSyntax();
@@ -335,41 +400,36 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<Object[]> getAllTablesAndColumns(String engineId) {
-		String query = "select distinct c.conceptualname as column_name, c2.conceptualname as table_name, ec.property_type as type, ec.pk as pk "
-				+ "from engineconcept ec, engineconcept ec2, concept c, concept c2 "
-				+ "where ec.engine='" + engineId + "' "
-				+ "and ec.localconceptid = c.localconceptid "
-				+ "and ec.parentphysicalid = ec2.physicalnameid "
-				+ "and ec2.localconceptid = c2.localconceptid "
-				+ "order by table_name, pk desc, column_name, type";
-
-		List<Object[]> data = new Vector<Object[]>();
-
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while(rs.next()) {
-				String column = rs.getString(1);
-				String table = rs.getString(2);
-				String type = rs.getString(3);
-				if(type.equals("DOUBLE") || type.equals("INT")) {
-					type = "NUMBER";
-				}
-				boolean pk = rs.getBoolean(4);
 
-				data.add(new Object[]{table, column, type, pk});
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
+		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
+		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
+		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		List<Object[]> ret = new ArrayList<Object[]>();
+		while(wrapper.hasNext()) {
+			Object[] data = wrapper.next().getValues();
+			boolean isPk = (boolean) data[3];
+			if(isPk) {
+				data[0] = data[1];
 			}
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+			Object type = data[2];
+			if(type != null) {
+				if(type.equals("DOUBLE") || type.equals("INT")) {
+					data[2] = "NUMBER";
+				}
+			}
+			ret.add(data);
 		}
-		return data;
+		return ret;
 	}
 
 	/**
@@ -378,46 +438,37 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<Object[]> getAllTablesAndColumns(Collection<String> engineIds) {
-		String engineFilters = makeListToString(engineIds);
-
-		String query = "select distinct ec.engine, c.conceptualname as column_name, c2.conceptualname as table_name, ec.property_type as type, ec.pk as pk "
-				+ "from engineconcept ec, engineconcept ec2, concept c, concept c2 "
-				+ "where "
-				// if no filters defined, get for all engines
-				+ ( engineFilters.equals("()") ? "" : "ec.engine in " + engineFilters + " " )
-				+ "and ec.localconceptid = c.localconceptid "
-				+ "and ec.parentphysicalid = ec2.physicalnameid "
-				+ "and ec2.localconceptid = c2.localconceptid "
-				+ "order by table_name, pk desc, column_name, type";
-
-		List<Object[]> data = new Vector<Object[]>();
-
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while(rs.next()) {
-				String appId = rs.getString(1);
-				String column = rs.getString(2);
-				String table = rs.getString(3);
-				String type = rs.getString(4);
-				if(type.equals("DOUBLE") || type.equals("INT")) {
-					type = "NUMBER";
-				}
-				boolean pk = rs.getBoolean(5);
 
-				data.add(new Object[]{appId, table, column, type, pk});
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineIds));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
+		qs.addOrderBy("ENGINECONCEPT__ENGINE");
+		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
+		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		List<Object[]> ret = new ArrayList<Object[]>();
+		while(wrapper.hasNext()) {
+			Object[] data = wrapper.next().getValues();
+			boolean isPk = (boolean) data[4];
+			if(isPk) {
+				data[1] = data[2];
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+			Object type = data[3];
+			if(type != null) {
+				if(type.equals("DOUBLE") || type.equals("INT")) {
+					data[3] = "NUMBER";
+				}
+			}
+			ret.add(data);
 		}
-
-		return data;
+		return ret;
 	}
 
 	public static List<String[]> getRelationships(Collection<String> engineIds) {
@@ -443,254 +494,238 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getDatabaseConnections(List<String> logicalNames, List<String> engineFilter) {
-		StringBuilder sb = new StringBuilder();
-		int size = logicalNames.size();
-		for(int i = 0; i < size; i++) {
-			sb.append("'").append(logicalNames.get(i)).append("'");
-			if( (i+1) < size) {
-				sb.append(",");
-			}
-		}
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
-		// NOTE ::: IMPORTANT THAT THIS MATCHES ALL THE BELOW QUERY NAMES!!!
-		String engineFilterStr = "";
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			StringBuilder b = new StringBuilder();
-			for(int i = 0; i < engineFilter.size(); i++) {
-				b.append("'").append(engineFilter.get(i)).append("'");
-				if( (i+1) != engineFilter.size()) {
-					b.append(",");
-				}
-			}
-			engineFilterStr = " and ec.engine in (" + b.toString() + ")";
-		}
-
+		List<Map<String, Object>> returnData = new Vector<Map<String, Object>>();
+		
 		/*
 		 * Grab all the matching tables and columns based on the logical names
 		 * Once we have those, we will grab all the relationships for the tables
 		 * and all the other columns that we can traverse to
 		 */
 
-		// this will store the equivalent table ids to the table and column
+		// store a list of the parent ids to the Object[] of results 
+		// that were matches as something
+		// that is a possible join
 		Map<String, Object[]> parentEquivMap = new HashMap<String, Object[]>();
-
-		// this will store the ids for the columns we have
-		List<String> equivIds = new Vector<String>();
-
-		// this will store the parent physical name ids
-		List<String> tablePhysicalIds = new Vector<String>();
-
-
+		List<String> idsForRelationships = new Vector<String>();
+		List<String> idsForProperties = new Vector<String>();
+		
 		// this will give me all the tables that have the logical name or 
 		// have a column with the logical name 
-
-		String query = "select distinct ec.parentphysicalid as table_name, ec2.physicalnameid as equivTableId, ec.physicalnameid equivColumnId,"
-				+ " c2.conceptualname as equivConceptTableName, c.conceptualname as equivConceptColumnName, ec.pk as pk" 
-				+ " from engineconcept ec, engineconcept ec2, concept c, concept c2"
-				+ " where ec.localconceptid in (select localconceptid from concept where logicalname in (" + sb.toString() + "))"
-				+ engineFilterStr
-				+ " and ec.localconceptid = c.localconceptid"
-				+ " and ec.parentphysicalid = ec2.physicalnameid"
-				+ " and ec2.localconceptid = c2.localconceptid";
-
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while(rs.next()) {
-				String tableId = rs.getString(1);
-				tablePhysicalIds.add(tableId);
-
-				String equivTableId = rs.getString(2);
-				String equivColumnId = rs.getString(3);
-				String equivTableName = rs.getString(4);
-				String equivColumnName = rs.getString(5);
-				boolean equivPk = rs.getBoolean(6);
-
-				// store parent table to what we are joining on
-				// so we can extend from one property to other properties within the same table
-				parentEquivMap.put(equivTableId, new Object[]{equivTableName, equivColumnName, equivPk});
-
-				// store the physical id for the table or column
-				// so we can find relaitonships from this
-				equivIds.add(equivColumnId);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
 		}
+		{
+			// add filter based on logical names
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			// store first and fill in sub query after
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__LOCALCONCEPTID", "==", subQs));
 
-		// now that we have the list
-		// we will go ahead and create a filter string
-		sb = new StringBuilder();
-		size = tablePhysicalIds.size();
-		for(int i = 0; i < size; i++) {
-			sb.append("'").append(tablePhysicalIds.get(i)).append("'");
-			if( (i+1) < size) {
-				sb.append(",");
+			// fill in the sub query with the necessary column output + filters
+			subQs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "==", logicalNames));
+		}
+		
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] data = row.getValues();
+			// for the purposes of query
+			// if it is ignore_data (i.e. the table name matches but not a column)
+			// i do not know how to join
+			// so we will be ignoring those results for right now
+			boolean ignore = (boolean) data[5];
+			if(ignore) {
+				continue;
+			}
+
+			String parentName = (String) data[0];
+			String parentId = (String) data[1];
+			String columnName = (String) data[2];
+			String columnId = (String) data[3];
+			boolean pk = (boolean) data[4];
+			
+			if(parentId != null) {
+				// let me take your parent (table)
+				// and see what i can join to from the parent
+				// and add the properties as well
+				idsForRelationships.add(parentId);
+				idsForProperties.add(parentId);
+				// and the join for this parent is the column that matches
+				parentEquivMap.put(parentId, new Object[] {parentName, columnName, pk});
+			}
+
+			if(parentId == null && pk) {
+				// if you are a true concept
+				// i can join to you directly
+				// and attach to your properties
+				// or to your relationships
+				idsForRelationships.add(columnId);
+				idsForProperties.add(columnId);
+				// and the join is the concept itself
+				parentEquivMap.put(columnId, new Object[] {columnName, columnName, pk});
 			}
 		}
-
-		// let us first go ahead and get the properties we can connect to
-		query = "select distinct e.id, e.enginename, c2.conceptualname as table_name, c.conceptualname as column_name, ec.property_type as type, ec.pk as pk, ec2.physicalnameid"
-				+ " from engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
-				+ " where ec2.physicalnameid in (" + sb.toString() + ")"
-				+ engineFilterStr
-				+ " and e.id = ec.engine"
-				+ " and ec.localconceptid = c.localconceptid"
-				+ " and ec.parentphysicalid = ec2.physicalnameid"
-				+ " and ec2.localconceptid = c2.localconceptid"
-				+ " order by table_name, pk desc, column_name, type";
-
-		List<Map<String, Object>> returnData = new Vector<Map<String, Object>>();
-
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while(rs.next()) {
-				String engineId = rs.getString(1);
-				String engineName = rs.getString(2);
-				String table = rs.getString(3);
-				String column = rs.getString(4);
-				String type = rs.getString(5);
-				boolean pk = rs.getBoolean(6);
-				String equivId = rs.getString(7);
-
-				Object[] equivTableCol = parentEquivMap.get(equivId);
-
-				// above query will return the actual match columns as well
-				if(equivTableCol[0].toString().equals(table) && equivTableCol[1].toString().equals(column)) {
-					continue;
-				}
-
-				// if we passed the above test, add the valid connection
-				Map<String, Object> row = new HashMap<String, Object>();
-				// TODO: delete after FE updates payload acceptance
-				row.put("app", engineName);
-
-				row.put("app_id", engineId);
-				row.put("app_name", engineName);
-
-				row.put("table", table);
-				row.put("column", column);
-				row.put("pk", pk);
-				row.put("dataType", type);
-				row.put("type", "property");
-				row.put("equivTable", equivTableCol[0]);
-				row.put("equivColumn", equivTableCol[1]);
-				row.put("equivPk", equivTableCol[2]);
-				returnData.add(row);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+		
+		// now let me query for all the properties
+		qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
 		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", idsForProperties));
+		qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
+		qs.addOrderBy("ENGINE__ENGINENAME");
+		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
+		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
+		qs.addOrderBy("ENGINECONCEPT__PK");
+		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
+		
+		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] data = row.getValues();
 
+			String engineName = (String) data[0];
+			String engineId = (String) data[1];
+			String parent = (String) data[2];
+			String parentId = (String) data[3];
+			String column = (String) data[4];
+			String columnId = (String) data[5];
+			String type = (String) data[6];
+			boolean pk = (boolean) data[7];
+			boolean ignore = (boolean) data[8];
 
-		// yay, we are done adding the properties
-		// let us now go and add the relationships
-		sb = new StringBuilder();
-		size = equivIds.size();
-		for(int i = 0; i < size; i++) {
-			sb.append("'").append(equivIds.get(i)).append("'");
-			if( (i+1) < size) {
-				sb.append(",");
+			// these will all have parent ids based on the query
+			// i will just grab the details
+			Object[] equivTableCol = parentEquivMap.get(parentId);
+
+			// if the property we get is one where the table will be joined on
+			// we have to ignore it
+			if(equivTableCol[1].equals(column) && parent.equals(equivTableCol[0]) ) {
+				continue;
 			}
+
+			// if we passed the above test, add the valid connection
+			Map<String, Object> mapRow = new HashMap<String, Object>();
+			mapRow.put("app_id", engineId);
+			mapRow.put("app_name", engineName);
+			mapRow.put("table", parent);
+			mapRow.put("column", column);
+			mapRow.put("pk", pk);
+			mapRow.put("ignore", ignore);
+			mapRow.put("dataType", type);
+			mapRow.put("type", "property");
+			mapRow.put("equivTable", equivTableCol[0]);
+			mapRow.put("equivColumn", equivTableCol[1]);
+			mapRow.put("equivPk", equivTableCol[2]);
+			returnData.add(mapRow);
 		}
 
 		// let me find up and downstream connections for my equivalent concepts
-		query = "select distinct e.id, e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
-				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
-				+ " where er.sourceconceptid in (" + sb.toString() + ")"
-				+ engineFilterStr
-				+ " and e.id = er.engine "
-				+ " and er.sourceconceptid = ec.physicalnameid "
-				+ " and ec.localconceptid = c.localconceptid "
-				+ " and er.targetconceptid = ec2.physicalnameid "
-				+ " and ec2.localconceptid = c2.localconceptid";
-
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while(rs.next()) {
-				String engineId = rs.getString(1);
-				String engineName = rs.getString(2);
-				String upstream = rs.getString(3);
-				String downstream = rs.getString(4);
-				String type = rs.getString(5);
-
-				// the downstream nodes
-				// mean that the source is the equivalent concept
-
-				// if we passed the above test, add the valid connection
-				Map<String, Object> row = new HashMap<String, Object>();
-				// TODO: delete after FE updates payload acceptance
-				row.put("app", engineName);
-
-				row.put("app_id", engineId);
-				row.put("app_name", engineName);
-				row.put("equiv", upstream);
-				row.put("table", downstream);
-				row.put("dataType", type);
-				row.put("type", "downstream");
-
-				returnData.add(row);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+		qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__ENGINE"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCEPROPERTY"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineFilter));
 		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__SOURCECONCEPTID", "==", idsForRelationships));
+		qs.addRelation("ENGINE__ID", "ENGINERELATION__ENGINE", "inner.join");
+		qs.addRelation("ENGINERELATION__TARGETCONCEPTID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
+		qs.addOrderBy("ENGINERELATION__ENGINE");
+		
+		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] data = row.getValues();
+			
+			String engineName = (String) data[0];
+			String engineId = (String) data[1];
+			String upstream = (String) data[2];
+			String downstream = (String) data[3];
+			String relName = (String) data[4];
+			String type = (String) data[5];
 
-		// let me repeat for my upstream
-		query = "select distinct e.id, e.enginename, c.conceptualname, c2.conceptualname, ec2.property_type "
-				+ " from enginerelation er, engine e, engineconcept ec, engineconcept ec2, concept c, concept c2"
-				+ " where er.targetconceptid in (" + sb.toString() + ")"
-				+ engineFilterStr
-				+ " and e.id = er.engine "
-				+ " and er.sourceconceptid = ec.physicalnameid "
-				+ " and ec.localconceptid = c.localconceptid "
-				+ " and er.targetconceptid = ec2.physicalnameid "
-				+ " and ec2.localconceptid = c2.localconceptid";
+			// the downstream nodes
+			// mean that the source is the equivalent concept
 
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while(rs.next()) {
-				String engineId = rs.getString(1);
-				String engineName = rs.getString(2);
-				String upstream = rs.getString(3);
-				String downstream = rs.getString(4);
-				String type = rs.getString(5);
+			// if we passed the above test, add the valid connection
+			Map<String, Object> mapRow = new HashMap<String, Object>();
+			mapRow.put("app_id", engineId);
+			mapRow.put("app_name", engineName);
+			mapRow.put("equiv", upstream);
+			mapRow.put("table", downstream);
+			mapRow.put("dataType", type);
+			mapRow.put("type", "downstream");
+			mapRow.put("relName", relName);
 
-				// the downstream nodes
-				// mean that the source is the equivalent concept
-
-				// if we passed the above test, add the valid connection
-				Map<String, Object> row = new HashMap<String, Object>();
-				// TODO: delete after FE updates payload acceptance
-				row.put("app", engineName);
-
-				row.put("app_id", engineId);
-				row.put("app_name", engineName);
-				row.put("equiv", downstream);
-				row.put("table", upstream);
-				row.put("dataType", type);
-				row.put("type", "upstream");
-
-				returnData.add(row);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+			returnData.add(mapRow);
 		}
+		
+		// let me find up and upstream connections for my equivalent concepts
+		qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__ENGINE"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCEPROPERTY"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineFilter));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__TARGETCONCEPTID", "==", idsForRelationships));
+		qs.addRelation("ENGINE__ID", "ENGINERELATION__ENGINE", "inner.join");
+		qs.addRelation("ENGINERELATION__SOURCECONCEPTID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
+		qs.addOrderBy("ENGINERELATION__ENGINE");
+		
+		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] data = row.getValues();
+			
+			String engineName = (String) data[0];
+			String engineId = (String) data[1];
+			String upstream = (String) data[2];
+			String downstream = (String) data[3];
+			String relName = (String) data[4];
+			String type = (String) data[5];
 
+			// the downstream nodes
+			// mean that the source is the equivalent concept
+
+			// if we passed the above test, add the valid connection
+			Map<String, Object> mapRow = new HashMap<String, Object>();
+			mapRow.put("app_id", engineId);
+			mapRow.put("app_name", engineName);
+			mapRow.put("equiv", upstream);
+			mapRow.put("table", downstream);
+			mapRow.put("dataType", type);
+			mapRow.put("type", "upstream");
+			mapRow.put("relName", relName);
+
+			returnData.add(mapRow);
+		}
+		
 		return returnData;
 	}
 
@@ -701,20 +736,10 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getMetamodelRDBMS(String engineId, boolean includeDataTypes) {
-		// this needs to be moved to the name server
-		// and this needs to be based on local master database
-		// need this to be a simple OWL data
-		// I dont know if it is worth it to load the engine at this point ?
-		// or should I just load it ?
-		// need to get local master and pump out the metamodel
-
-		// need to get all the concepts first
-		// get the edges next
-
+		// TODO: should setup to return the physical name ids
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		// idHash - physical ID to the name of the node
-		Hashtable <String, String> idHash = new Hashtable<String, String>();
 		Hashtable <String, MetamodelVertex> nodeHash = new Hashtable <String, MetamodelVertex>();
 
 		Map<String, String> physicalDataTypes = new HashMap<String, String>();
@@ -722,64 +747,60 @@ public class MasterDatabaseUtility {
 		Map<String, String> additionalDataTypes = new HashMap<String, String>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__LOCALCONCEPTID"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALID"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
 		if(includeDataTypes) {
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ORIGINAL_TYPE"));
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ADDITIONAL_TYPE"));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PROPERTY"));
 
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
 
-			String conceptualName = row[0].toString();
-			String physicalId = row[3].toString();
-			String parentPhysicalId = row[4].toString(); 
-
-			// sets the physical id to conceptual name
-			idHash.put(physicalId, conceptualName);
-
-			// gets the conceptual name
-			String conceptName = idHash.get(physicalId);
-			// because it is ordered by property, this would already be there
-			String parentName = idHash.get(parentPhysicalId);
-
+			String semossName = (String) row[0];
+			String physicalName = (String) row[2];
+			String parentSemossName = (String) row[1];
+			String parentPhysicalName = (String) row[3];
+			boolean ignoreData = (boolean) row[4];
+			
 			MetamodelVertex node = null;
 			// if already there, should we still add it ?
-			if(nodeHash.containsKey(parentName)) {
-				node = nodeHash.get(parentName);
+			if(parentSemossName != null) {
+				// this has a parent
+				if(nodeHash.containsKey(parentSemossName)) {
+					node = nodeHash.get(parentSemossName);
+				} else {
+					node = new MetamodelVertex(parentSemossName);
+					nodeHash.put(parentSemossName, node);
+				}
 			} else {
-				node = new MetamodelVertex(parentName);
-				nodeHash.put(conceptualName, node);
+				// this is the parent
+				if(nodeHash.containsKey(semossName)) {
+					node = nodeHash.get(semossName);
+				} else {
+					node = new MetamodelVertex(semossName);
+					nodeHash.put(semossName, node);
+				}
 			}
 
-			String uniqueName = conceptName;
-
-			if(!conceptName.equalsIgnoreCase(parentName)) {
-				// store the property
-				node.addProperty(conceptName);
-				// update the unique name in case we need to include data types
-				uniqueName = parentName + "__" + conceptName;					
-			} else {
-				// store the key
-				node.addKey(conceptName);
+			String uniqueName = semossName;
+			if(parentSemossName != null) {
+				uniqueName = parentSemossName + "__" + uniqueName;
+				node.addProperty(semossName);
 			}
 
-			if(includeDataTypes) {
-				String origType = row[6].toString();
-				String cleanType = row[7].toString();
+			if(includeDataTypes && !ignoreData) {
+				String origType = row[5].toString();
+				String cleanType = row[6].toString();
 				String additionalType = null;
-				if(row[8] != null) {
-					additionalType = row[8].toString();
+				if(row[7] != null) {
+					additionalType = row[7].toString();
 				}
 
 				if(origType.contains("TYPE:")) {
@@ -793,38 +814,23 @@ public class MasterDatabaseUtility {
 
 		Map<String, Map<String, String>> edgeHash = new Hashtable<String, Map<String, String>>();
 		qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCECONCEPTID"));
-		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETCONCEPTID"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCEPROPERTY"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineId));
 		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
 			Object[] row = wrapper.next().getValues();
-			String startId = row[0].toString();
-			String endId = row[1].toString();
+			String startName = row[0].toString();
+			String endName = row[1].toString();
 			String relName = row[2].toString();
 
 			Map<String, String> newEdge = new Hashtable<String, String>();
 			// need to check to see if the idHash has it else put it in
-			String sourceName = idHash.get(startId);
-			String targetName = idHash.get(endId);
-			newEdge.put("source", sourceName);
-			newEdge.put("target", targetName);
+			newEdge.put("source", startName);
+			newEdge.put("target", endName);
 			newEdge.put("relation", relName);
-
-			boolean foundNode = true;
-			if(!nodeHash.containsKey(sourceName)) {
-				foundNode = false;
-			}
-			if(!nodeHash.containsKey(targetName)) {
-				foundNode = false;
-			}
-
-			if(foundNode) {
-				edgeHash.put(startId + "-" + endId + "-" + relName, newEdge);
-			} else {
-				System.out.println("Unable to find node " + targetName);
-			}
+			edgeHash.put(endName + "-" + endName + "-" + relName, newEdge);
 		}
 
 		Map<String, Object> finalHash = new Hashtable<String, Object>();
@@ -845,71 +851,64 @@ public class MasterDatabaseUtility {
 	 * @param engineId
 	 * @return
 	 */
-	public static Map<String, List<String>>  getConceptProperties(List<String> conceptLogicalNames, String engineFilter) {
-		//		String propQuery = "select distinct e.enginename, c.conceptualname, ec.physicalname, ec.parentphysicalid, ec.physicalnameid, ec.property "
-		//				+ "from engineconcept ec, concept c, engine e where ec.parentphysicalid in "
-		//				+ "(select physicalnameid from engineconcept ec where localconceptid in (select localconceptid from concept where conceptualname in" +  conceptString.toString() + ") )" 
-		//				+ engineString
-		//				+ " and ec.engine=e.id and c.localconceptid=ec.localconceptid order by ec.property";
-
+	public static Map<String, List<String>>  getConceptProperties(List<String> logicalNames, String engineFilter) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
-		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY"));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+		}
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALID", "==", subQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", subQs));
 
 			// fill in the sub query with the necessary column output + filters
-			subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+			subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
 			// we have a sub query again
 			SelectQueryStruct subQs2 = new SelectQueryStruct();
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__LOCALCONCEPTID", "==", subQs2));
 
 			// fill in the second sub query with the necessary column output + filters
 			subQs2.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
-			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptLogicalNames));
+			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", logicalNames));
 		}
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
-		}
-		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PROPERTY"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
+		
 		Map<String, List<String>> queryData = new HashMap<String, List<String>>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			Map<String, String> parentHash = new Hashtable<String, String>();
 			while(wrapper.hasNext()) {
+				IHeadersDataRow data = wrapper.next();
 				// keeps the id to the concept name
-				Object[] row = wrapper.next().getValues();
-				String propName = row[1].toString();
-				String parentId = row[3].toString();
-				String propId = row[4].toString();
-				if(parentId.equalsIgnoreCase(propId)) {
-					parentHash.put(parentId, propName);
-				}
+				Object[] row = data.getValues();
 
-				String parentName = parentHash.get(parentId);
-				if(!propName.equalsIgnoreCase(parentName)) {
-
-					List<String> propList = null;
-					if(queryData.containsKey(parentName)) {
-						propList = queryData.get(parentName);
-					} else {
-						propList = new ArrayList<>();
-					}
-					propList.add(propName);
+				String engineId = (String) row[0];
+				String parentName = (String) row[1];
+				String parentPhysicalId = (String) row[2];
+				String columnName = (String) row[3];
+				String columnPhysicalId = (String) row[4];
+				
+				// get or create the vertex
+				List<String> propList = null;
+				if(queryData.containsKey(parentName)) {
+					propList = queryData.get(parentName);
+				} else {
+					propList = new ArrayList<String>();
 					// add to the engine map
 					queryData.put(parentName, propList);
 				}
+
+				// add the property conceptual name
+				propList.add(columnName);
 			}
 		} finally {
 			if(wrapper != null) {
@@ -927,88 +926,77 @@ public class MasterDatabaseUtility {
 	 * @param engineId		optional filter for the properties
 	 * @return
 	 */
-	public static Map<String, Object[]> getConceptPropertiesRDBMS(List<String> conceptLogicalNames, List<String> engineFilter) {
-		//		String propQuery = "select distinct ec.engine, c.conceptualname, ec.physicalname, ec.parentphysicalid, ec.physicalnameid, ec.property "
-		//				+ "from engineconcept ec, concept c "
-		//				+ "where ec.parentphysicalid in "
-		//				+ "(select physicalnameid from engineconcept ec where localconceptid in (select localconceptid from concept where conceptualname in" +  conceptString.toString() + ") )" 
-		//				+ engineString
-		//				+ " and c.localconceptid=ec.localconceptid order by ec.property";
-
+	public static Map<String, Object[]> getConceptProperties(List<String> logicalNames, List<String> engineFilter) {
+		// query to get all the physical name ids that tie to the parent
+		// and then pull all of their properties
+		
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
-		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY"));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+		}
 		{
 			SelectQueryStruct subQs = new SelectQueryStruct();
 			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALID", "==", subQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", subQs));
 
 			// fill in the sub query with the necessary column output + filters
-			subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+			subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
 			// we have a sub query again
 			SelectQueryStruct subQs2 = new SelectQueryStruct();
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__LOCALCONCEPTID", "==", subQs2));
 
 			// fill in the second sub query with the necessary column output + filters
 			subQs2.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
-			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptLogicalNames));
+			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", logicalNames));
 		}
-		if(engineFilter != null && !engineFilter.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
-		}
-		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PROPERTY"));
-
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__ENGINE"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK"));
+		
 		Map<String, Object[]> returnHash = new TreeMap<String, Object[]>();
 		Map<String, Map<String, MetamodelVertex>> queryData = new TreeMap<String, Map<String, MetamodelVertex>>();
 
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			Map<String, String> parentHash = new Hashtable<String, String>();
 			while(wrapper.hasNext()) {
+				IHeadersDataRow data = wrapper.next();
 				// keeps the id to the concept name
-				Object[] row = wrapper.next().getValues();
+				Object[] row = data.getValues();
 
-				String engineName = row[0].toString();
-				String propName = row[1].toString();
-				String parentId = row[3].toString();
-				String propId = row[4].toString();
-
-				if(parentId.equalsIgnoreCase(propId)) {
-					parentHash.put(parentId, propName);
+				String engineId = (String) row[0];
+				String parentName = (String) row[1];
+				String parentPhysicalId = (String) row[2];
+				String columnName = (String) row[3];
+				String columnPhysicalId = (String) row[4];
+				
+				Map<String, MetamodelVertex> engineMap = null;
+				if(queryData.containsKey(engineId)) {
+					engineMap  = queryData.get(engineId);
+				} else {
+					engineMap = new TreeMap<String, MetamodelVertex>();
+					// add to query data map
+					queryData.put(engineId, engineMap);
 				}
 
-				String parentName = parentHash.get(parentId);
-				if(!propName.equalsIgnoreCase(parentName)) {
-					Map<String, MetamodelVertex> engineMap = null;
-					if(queryData.containsKey(engineName)) {
-						engineMap = queryData.get(engineName);
-					} else {
-						engineMap = new TreeMap<String, MetamodelVertex>();
-						// add to query data map
-						queryData.put(engineName, engineMap);
-					}
-
-					// get or create the vertex
-					MetamodelVertex vert = null;
-					if(engineMap.containsKey(parentName)) {
-						vert = engineMap.get(parentName);
-					} else {
-						vert = new MetamodelVertex(parentName);
-						// add to the engine map
-						engineMap.put(parentName, vert);
-					}
-
-					// add the property conceptual name
-					vert.addProperty(propName);
+				// get or create the vertex
+				MetamodelVertex vert = null;
+				if(engineMap.containsKey(parentName)) {
+					vert = engineMap.get(parentName);
+				} else {
+					vert = new MetamodelVertex(parentName);
+					// add to the engine map
+					engineMap.put(parentName, vert);
 				}
+
+				// add the property conceptual name
+				vert.addProperty(columnName);
 			}
 		} finally {
 			if(wrapper != null) {
@@ -1048,6 +1036,7 @@ public class MasterDatabaseUtility {
 	 * @param conceptType
 	 * @return
 	 */
+	@Deprecated
 	public static Map getConnectedConceptsRDBMS(List<String> conceptLogicalNames, List<String> engineFilters) {
 		// I technically need to do 3 queries
 		// first one is get the localconceptid / physicalids for all of these
@@ -1325,7 +1314,7 @@ public class MasterDatabaseUtility {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PROPERTY", "==", false, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
 		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
 
@@ -1340,6 +1329,7 @@ public class MasterDatabaseUtility {
 	 * @param column
 	 * @return
 	 */
+	@Deprecated
 	public static String getTableForColumn(String engineId, String column) {
 		// select ec.physicalname from engineconcept as ec inner join engineconcept ec2 on ec.physicalnameid=ec2.parentphysicalid where ec.engine='acd7bdc8-67a0-4fa7-8b30-7c39f5c0fc62' and ec2.physicalname='MOVIE_DATA' and ec2.pk = false;
 		String query = "select ec.physicalname "
@@ -1372,49 +1362,20 @@ public class MasterDatabaseUtility {
 	/**
 	 * Get the data type
 	 * @param engineId
-	 * @param conceptualName
-	 * @param parentConceptualName
+	 * @param pixelName
+	 * @param parentPixelName
 	 * @return
 	 */
-	public static String getBasicDataType(String engineId, String conceptualName, String parentConceptualName) {
-//		String query = null;
-//		if(parentConceptualName == null || parentConceptualName.isEmpty()) {
-//			query = "select distinct ec.property_type "
-//					+ "from engineconcept ec "
-//					+ "inner join concept c on ec.localconceptid = c.localconceptid "
-//					+ "where ec.engine = '" + engineId + "' and c.conceptualname = '" + conceptualName + "'";
-//		} else {
-//			query = "select distinct ec.property_type "
-//					+ "from engine e "
-//					+ "inner join engineconcept ec on e.id = ec.engine "
-//					+ "inner join concept c on ec.localconceptid = c.localconceptid "
-//					+ "where ec.engine = '" + engineId + "' and "
-//					+ "c.conceptualname = '" + conceptualName + "' and "
-//					+ "ec.parentphysicalid in "
-//					+ "(select distinct ec.physicalnameid "
-//					+ "from engineconcept ec "
-//					+ "inner join concept c on c.localconceptid = ec.localconceptid "
-//					+ "where ec.engine = '" + engineId + "' and "
-//					+ "c.conceptualname = '" + parentConceptualName + "')";
-//		}
-
+	public static String getBasicDataType(String engineId, String pixelName, String parentPixelName) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualName));
-		qs.addRelation("ENGINECONCEPT__LOCALCONCEPTID", "CONCEPT__LOCALCONCEPTID", "inner.join");
-		if(parentConceptualName != null && !parentConceptualName.isEmpty()) {
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", pixelName));
+		if(parentPixelName != null && !parentPixelName.isEmpty()) {
 			// additional filters
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALID", "==", subQs));
-			
-			// build out the sub query
-			subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", parentConceptualName));
-			subQs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentPixelName));
 		}
 		
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
@@ -1429,44 +1390,15 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static String getAdditionalDataType(String engineId, String conceptualName, String parentConceptualName) {
-//		String query = null;
-//		if(parentConceptualName == null || parentConceptualName.isEmpty()) {
-//			query = "select distinct ec.additional_type "
-//					+ "from engineconcept ec "
-//					+ "inner join concept c on ec.localconceptid = c.localconceptid "
-//					+ "where ec.engine = '" + engineId + "' and c.conceptualname = '" + conceptualName + "'";
-//		} else {
-//			query = "select distinct ec.additional_type "
-//					+ "from engine e "
-//					+ "inner join engineconcept ec on e.id = ec.engine "
-//					+ "inner join concept c on ec.localconceptid = c.localconceptid "
-//					+ "where ec.engine = '" + engineId + "' and "
-//					+ "c.conceptualname = '" + conceptualName + "' and "
-//					+ "ec.parentphysicalid in "
-//					+ "(select distinct ec.physicalnameid "
-//					+ "from engineconcept ec "
-//					+ "inner join concept c on c.localconceptid = ec.localconceptid "
-//					+ "where ec.engine = '" + engineId + "' and "
-//					+ "c.conceptualname = '" + parentConceptualName + "')";
-//		}
-
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ADDITIONAL_TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualName));
-		qs.addRelation("ENGINECONCEPT__LOCALCONCEPTID", "CONCEPT__LOCALCONCEPTID", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", conceptualName));
 		if(parentConceptualName != null && !parentConceptualName.isEmpty()) {
 			// additional filters
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALID", "==", subQs));
-			
-			// build out the sub query
-			subQs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", parentConceptualName));
-			subQs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentConceptualName));
 		}
 		
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
@@ -1480,145 +1412,75 @@ public class MasterDatabaseUtility {
 	 */
 
 	public static Map<String, List<String>> getEngineLogicalNames(String engineId) {
-		// select ec2.physicalname as parentPhysical, ec.physicalname as physicalname, c.conceptualname as conceptualname, c.logicalname as logicalname, ec.pk as isPrim from engineconcept ec inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid inner join concept c on ec.localconceptid=c.localconceptid where ec.engine='89850ba1-bafe-45a5-84ef-df8e21669267' order by isprim desc;		
-
-		Map<String, List<String>> engineLogicalNames = new HashMap<String, List<String>>();
-		Map<String, String> parentPhysicalToConceptual = getParentPhysicalToConceptual(engineId);
-
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection masterConn = engine.makeConnection();
-		Statement stmt = null;
-		ResultSet rs = null;
+		Map<String, List<String>> engineLogicalNames = new HashMap<String, List<String>>();
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("CONCEPTMETADATA__VALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__KEY", "==", "logical"));
+		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
-		try {
-			String query = "select distinct ec2.physicalname as parentPhysical, "
-					+ "c.conceptualname as conceptualname, "
-					+ "cmd.value as logicalname, "
-					+ "ec.pk as isPrim "
-					+ "from engineconcept ec "
-					+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
-					+ "inner join concept c on ec.localconceptid=c.localconceptid "
-					+ "inner join conceptmetadata cmd on ec.physicalnameid=cmd.physicalnameid "
-					+ "where ec.engine='"+ engineId + "' and cmd.key='logical'";
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			Object[] row = wrapper.next().getValues();
+			String parentName = (String) row[0];
+			String name = (String) row[1];
+			boolean pk = (boolean) row[2];
+			String logicalName = (String) row[3];
 
-			stmt = masterConn.createStatement();
-			rs = stmt.executeQuery(query);
-			while (rs.next()) {
-				String parentPhysical = rs.getString(1);
-				String conceptualName = rs.getString(2);
-				String logicalName = rs.getString(3);
-				boolean isPk = rs.getBoolean(4);
-
-				String uniqueName = conceptualName;
-				if(!isPk) {
-					uniqueName = parentPhysicalToConceptual.get(parentPhysical) + "__" + conceptualName;
-				}
-
-				List<String> logicalNames = null;
-				if(engineLogicalNames.containsKey(uniqueName)) {
-					logicalNames = engineLogicalNames.get(uniqueName);
-				} else {
-					logicalNames = new Vector<String>();
-					// store in the map
-					engineLogicalNames.put(uniqueName, logicalNames);
-				}
-				// add the new value
-				logicalNames.add(logicalName);
+			String uniqueName = name;
+			if(!pk) {
+				name = parentName + "__" + name;
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+			
+			List<String> logicalNames = null;
+			if(engineLogicalNames.containsKey(uniqueName)) {
+				logicalNames = engineLogicalNames.get(uniqueName);
+			} else {
+				logicalNames = new Vector<String>();
+				// store in the map
+				engineLogicalNames.put(uniqueName, logicalNames);
+			}
+			// add the new value
+			logicalNames.add(logicalName);
 		}
-
+		
 		return engineLogicalNames;
 	}
 
 	public static Map<String, String> getEngineDescriptions(String engineId) {
-		// select ec2.physicalname as parentPhysical, ec.localconceptid, ec.physicalname as physicalname, c.conceptualname as conceptualname, cmd.value as description, ec.pk as isPrim from engineconcept ec inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid inner join concept c on ec.localconceptid=c.localconceptid inner join conceptmetadata cmd on ec.localconceptid=cmd.localconceptid where ec.engine='89850ba1-bafe-45a5-84ef-df8e21669267' order by isprim desc;
-
-		Map<String, String> engineDescriptions = new HashMap<String, String>();
-		Map<String, String> parentPhysicalToConceptual = getParentPhysicalToConceptual(engineId);
-
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection masterConn = engine.makeConnection();
-		Statement stmt = null;
-		ResultSet rs = null;
+		Map<String, String> engineDescriptions = new HashMap<String, String>();
 
-		try {
-			String query = "select distinct ec2.physicalname as parentPhysical, "
-					+ "c.conceptualname as conceptualname, "
-					+ "cmd.value as description, "
-					+ "ec.pk as isPrim "
-					+ "from engineconcept ec "
-					+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
-					+ "inner join concept c on ec.localconceptid=c.localconceptid "
-					+ "inner join conceptmetadata cmd on ec.physicalnameid=cmd.physicalnameid "
-					+ "where ec.engine='"+ engineId + "' and cmd.key='description'";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("CONCEPTMETADATA__VALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPTMETADATA__KEY", "==", "description"));
+		qs.addRelation("CONCEPTMETADATA__PHYSICALNAMEID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 
-			stmt = masterConn.createStatement();
-			rs = stmt.executeQuery(query);
-			while (rs.next()) {
-				String parentPhysical = rs.getString(1);
-				String conceptualName = rs.getString(2);
-				String description = rs.getString(3);
-				boolean isPk = rs.getBoolean(4);
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			Object[] row = wrapper.next().getValues();
+			String parentName = (String) row[0];
+			String name = (String) row[1];
+			boolean pk = (boolean) row[2];
+			String description = (String) row[3];
 
-				String uniqueName = conceptualName;
-				if(!isPk) {
-					uniqueName = parentPhysicalToConceptual.get(parentPhysical) + "__" + conceptualName;
-				}
-
-				engineDescriptions.put(uniqueName, description);
+			String uniqueName = name;
+			if(!pk) {
+				name = parentName + "__" + name;
 			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+			engineDescriptions.put(uniqueName, description);
 		}
 
 		return engineDescriptions;
-	}
-
-	/**
-	 * Get the physical to conceptual names for all concepts in a given engine
-	 */
-	private static Map<String, String> getParentPhysicalToConceptual(String engineId) {
-		// select distinct ec.physicalname, c.conceptualname from engineconcept ec inner join concept c on ec.localconceptid=c.localconceptid where ec.pk=true and ec.engine='ffa65a5d-f8e1-4d66-a1da-2d87a27b343b';
-
-//		String query = "select distinct ec.physicalname, c.conceptualname "
-//				+ "from engineconcept ec "
-//				+ "inner join concept c on ec.localconceptid=c.localconceptid "
-//				+ "where ec.pk=true and ec.engine='" + engineId + "';";
-		
-
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAME"));
-		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-		qs.addRelation("ENGINECONCEPT__LOCALCONCEPTID", "CONCEPT__LOCALCONCEPTID", "inner.join");
-		
-		Map<String, String> parentPhysicalToConceptual = new HashMap<String, String>();
-		
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-			while(wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				String physical = row[0].toString();
-				String conceptual = row[1].toString();
-				parentPhysicalToConceptual.put(physical, conceptual);
-			}
-		} finally {
-			if(wrapper != null) {
-				wrapper.cleanUp();
-			}
-		}
-		
-		return parentPhysicalToConceptual;
 	}
 
 	/**
@@ -1627,80 +1489,66 @@ public class MasterDatabaseUtility {
 	 * @param engineId		the engine to get the properties for
 	 * @return
 	 */
-	public static List<String> getSpecificConceptPropertiesRDBMS(String conceptString, String engineId) {
-//		String propQuery = "select distinct ec.physicalname "
-//				+ "from engineconcept ec, concept c "
-//				+ "where " + engineString 
-//				+ " and c.localconceptid=ec.localconceptid "
-//				+ " and ec.parentphysicalid in (select physicalnameid from engineconcept ec "
-//				+ " where localconceptid in (select localconceptid from concept where conceptualname in ('" +  conceptString + "')) )"
-//				+ " order by ec.physicalname "; 
-
-		// get the bindings based on the input list
+	public static List<String> getSpecificConceptProperties(String parentName, String engineId) {
 		if(engineId == null || engineId.isEmpty()) {
 			throw new IllegalArgumentException("Must define a valid engine id");
 		}
 				
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// add in the sub query to filter
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__PARENTPHYSICALID", "==", subQs));
-			
-			// add in single column return for selector + other filters
-			subQs.addSelector(new QueryColumnOrderBySelector("ENGINECONCEPT__PHYSICALNAMEID"));
-			// need another sub query
-			SelectQueryStruct subQs2 = new SelectQueryStruct();
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__LOCALCONCEPTID", "==", subQs2));
-			
-			// add in single column return to sub query + filters
-			subQs2.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
-			subQs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptString));
-		}
-		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
-		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PHYSICALNAME"));
-
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentName));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		return flushToListString(wrapper);
 	}
-
-	//	/**
-	//	 * Get local concept id
-	//	 * 
-	//	 * @param engineId
-	//	 * @param concept
-	//	 * @return
-	//	 */
-	//	public static String getLocalConceptID(String engineId, String concept) {
-	//		String localConceptID = null;
-	//		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-	//		Statement stmt = null;
-	//		ResultSet rs = null;
-	//		try {
-	//			String query = "select localconceptid from concept "
-	//					+ "where localconceptid in (select localconceptid from engineconcept "
-	//					+ "where engine='" + engineId + "') "
-	//					+ "and conceptualname='" + concept + "';";
-	//			stmt = conn.createStatement();
-	//			rs = stmt.executeQuery(query);
-	//			while (rs.next()) {
-	//				localConceptID = rs.getString(1);
-	//			}
-	//		} catch (Exception ex) {
-	//			ex.printStackTrace();
-	//		} finally {
-	//			closeStreams(stmt, rs);
-	//		}
-	//		if (localConceptID == null) {
-	//			throw new IllegalArgumentException("Unable to get concept ID for " + engineId + " " + concept);
-	//		}
-	//		return localConceptID;
-	//	}
-
+	
+	/**
+	 * Get the queryable pixel selectors for the table
+	 * If RDBMS this will have all the properties
+	 * If RDF/Graph this will have the concept and all its properties
+	 * Return will be in TABLE__COLUMN format
+	 * @param parentName	String with the name of the concept
+	 * @param engineId		String with the engine to get the selectors for
+	 * @return
+	 */
+	public static List<String> getConceptPixelSelectors(String parentName, String engineId) {
+		if(engineId == null || engineId.isEmpty()) {
+			throw new IllegalArgumentException("Must define a valid engine id");
+		}
+				
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		// grab either
+		// 1) all rows where the parent is what is passed in
+		// or 
+		// 2) the parent itself has data (i.e column name is the parent + pk = true + ignoreData=false)
+		OrQueryFilter orFilter = new OrQueryFilter();
+		qs.addExplicitFilter(orFilter);
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", parentName));
+		// add an and filter to the or
+		AndQueryFilter andFilter = new AndQueryFilter();
+		orFilter.addFilter(andFilter);
+		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", parentName));
+		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
+		andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		List<String> retArr = new Vector<String>();
+		while(wrapper.hasNext()) {
+			Object[] row = wrapper.next().getValues();
+			if(row[0] != null) {
+				retArr.add(row[0] + "__" + row[1]);
+			} else {
+				retArr.add(row[1].toString());
+			}
+		}
+		return retArr;
+	}
 
 	/**
 	 * Get the physical concept id for a concept given the engine id + conceptual name
@@ -2026,6 +1874,14 @@ public class MasterDatabaseUtility {
 				strVals[i] = values[i] + "";
 			}
 			ret.add(strVals);
+		}
+		return ret;
+	}
+	
+	static List<Object[]> flushRsToListOfObjArray(IRawSelectWrapper wrapper) {
+		List<Object[]> ret = new ArrayList<Object[]>();
+		while(wrapper.hasNext()) {
+			ret.add(wrapper.next().getValues());
 		}
 		return ret;
 	}
@@ -2451,15 +2307,10 @@ public class MasterDatabaseUtility {
 	///////////////////////////////////////////////////////////////////////////////////
 
 	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
-		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\LocalMasterDatabase.smss";
-		IEngine coreEngine = new RDBMSNativeEngine();
-		coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-		coreEngine.openDB(engineProp);
-		DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME, coreEngine);
+		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
 		List<String> logicalNames = new Vector<String>();
-		logicalNames.add("MovieBudget");
+		logicalNames.add("Title");
 
 		Gson gson = new GsonBuilder()
 				.disableHtmlEscaping()
@@ -2467,7 +2318,8 @@ public class MasterDatabaseUtility {
 				.setPrettyPrinting()
 				.create();
 
-		System.out.println(gson.toJson(getDatabaseConnections(logicalNames, null)));
+		List<String> values = null;
+		System.out.println(gson.toJson(getConceptProperties(logicalNames, values)));
 	}
 
 }

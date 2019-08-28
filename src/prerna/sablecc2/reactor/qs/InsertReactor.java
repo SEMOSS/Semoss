@@ -28,7 +28,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.util.Utility;
 
 public class InsertReactor extends AbstractReactor {
 	
@@ -259,10 +258,8 @@ public class InsertReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getPrimKey(IEngine engine, String tableName) {
-		String tableURI = engine.getConceptPhysicalUriFromConceptualUri(tableName);
-		// since we also have the URI, just store the primary key as well
-		// will most likely be used
-		return Utility.getClassName(tableURI);
+		String physicalUri = engine.getPhysicalUriFromPixelSelector(tableName);
+		return engine.getLegacyPrimKey4Table(physicalUri);
 	}
 	
 	public static void main(String[] args) {

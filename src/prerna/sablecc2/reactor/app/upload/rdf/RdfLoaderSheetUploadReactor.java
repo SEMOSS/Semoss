@@ -23,6 +23,7 @@ import org.openrdf.sail.SailException;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.poi.main.helper.excel.ExcelParsing;
@@ -35,7 +36,6 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
@@ -100,7 +100,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		this.engine.commit();
 		((BigDataEngine) this.engine).infer();
 		logger.info(stepCounter + ". Complete...");
-		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
+		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(this.engine, owler.getPixelNames());
 		stepCounter++;
 
 		/*
@@ -109,7 +109,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		// note, on engine creation, we auto create an insights database + add explore an instance
-		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
+		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getPixelNames());
 		logger.info(stepCounter + ". Complete");
 	}
 
@@ -135,7 +135,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		this.engine.commit();
 		((BigDataEngine) this.engine).infer();
 		logger.info(stepCounter + ". Complete");
-		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
+		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getPixelNames());
 		// commit the created engine
 		this.engine.commit();
 		((BigDataEngine) this.engine).infer();
@@ -262,8 +262,8 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		for (int i = 1; i <= lastRow; i++) {
 			row = subclassSheet.getRow(i);
 
-			String parentURI = owler.addConcept(Utility.cleanString(row.getCell(0).toString(), true));
-			String childURI = owler.addConcept(Utility.cleanString(row.getCell(1).toString(), true));
+			String parentURI = owler.addConcept(Utility.cleanString(row.getCell(0).toString(), true), "STRING");
+			String childURI = owler.addConcept(Utility.cleanString(row.getCell(1).toString(), true), "STRING");
 			// add triples to engine
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[] { childURI, pred, parentURI, true });
 			// add triples to OWL

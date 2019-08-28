@@ -7,8 +7,8 @@ import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class SecurityOwlCreator {
@@ -44,7 +44,7 @@ public class SecurityOwlCreator {
 		 */
 		
 		List<String> cleanConcepts = new Vector<String>();
-		List<String> concepts = securityDb.getConcepts(true);
+		List<String> concepts = securityDb.getPhysicalConcepts();
 		for(String concept : concepts) {
 			if(concept.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
@@ -92,80 +92,89 @@ public class SecurityOwlCreator {
 		Owler owler = new Owler(owlLocation, ENGINE_TYPE.RDBMS);
 
 		// ENGINE
-		owler.addConcept("ENGINE", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ENGINE", "ENGINEID", "ENGINENAME", "VARCHAR(255)", null);
-		owler.addProp("ENGINE", "ENGINEID", "GLOBAL", "BOOLEAN", null);
-		owler.addProp("ENGINE", "ENGINEID", "TYPE", "VARCHAR(255)", null);
-		owler.addProp("ENGINE", "ENGINEID", "COST", "VARCHAR(255)", null);
+		owler.addConcept("ENGINE", null, null);
+		owler.addProp("ENGINE", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("ENGINE", "ENGINENAME", "VARCHAR(255)");
+		owler.addProp("ENGINE", "GLOBAL", "BOOLEAN");
+		owler.addProp("ENGINE", "TYPE", "VARCHAR(255)");
+		owler.addProp("ENGINE", "COST", "VARCHAR(255)");
 		
 		// ENGINEMETA
-		owler.addConcept("ENGINEMETA", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ENGINEMETA", "ENGINEID", "KEY", "VARCHAR(255)", null);
-		owler.addProp("ENGINEMETA", "ENGINEID", "VALUE", "VARCHAR(255)", null);
+		owler.addConcept("ENGINEMETA", null, null);
+		owler.addProp("ENGINEMETA", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("ENGINEMETA", "KEY", "VARCHAR(255)");
+		owler.addProp("ENGINEMETA", "VALUE", "VARCHAR(255)");
 
 		// ENGINEPERMISSION
-		owler.addConcept("ENGINEPERMISSION", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ENGINEPERMISSION", "ENGINEID", "USERID", "VARCHAR(255)", null);
-		owler.addProp("ENGINEPERMISSION", "ENGINEID", "PERMISSION", "INT", null);
-		owler.addProp("ENGINEPERMISSION", "ENGINEID", "VISIBILITY", "BOOLEAN", null);
+		owler.addConcept("ENGINEPERMISSION", null, null);
+		owler.addProp("ENGINEPERMISSION", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("ENGINEPERMISSION", "USERID", "VARCHAR(255)");
+		owler.addProp("ENGINEPERMISSION", "PERMISSION", "INT");
+		owler.addProp("ENGINEPERMISSION", "VISIBILITY", "BOOLEAN");
 
 		// WORKSPACEENGINE
-		owler.addConcept("WORKSPACEENGINE", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("WORKSPACEENGINE", "ENGINEID", "USERID", "VARCHAR(255)", null);
-		owler.addProp("WORKSPACEENGINE", "ENGINEID", "TYPE", "VARCHAR(255)", null);
+		owler.addConcept("WORKSPACEENGINE", null, null);
+		owler.addProp("WORKSPACEENGINE", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("WORKSPACEENGINE", "USERID", "VARCHAR(255)");
+		owler.addProp("WORKSPACEENGINE", "TYPE", "VARCHAR(255)");
 		
 		// ASSETENGINE
-		owler.addConcept("ASSETENGINE", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ASSETENGINE", "ENGINEID", "USERID", "VARCHAR(255)", null);
-		owler.addProp("ASSETENGINE", "ENGINEID", "TYPE", "VARCHAR(255)", null);
+		owler.addConcept("ASSETENGINE", null, null);
+		owler.addProp("ASSETENGINE", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("ASSETENGINE", "USERID", "VARCHAR(255)");
+		owler.addProp("ASSETENGINE", "TYPE", "VARCHAR(255)");
 		
 		// INSIGHT
-		owler.addConcept("INSIGHT", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("INSIGHT", "INSIGHTID", "ENGINEID", "VARCHAR(255)", null);
-		owler.addProp("INSIGHT", "INSIGHTID", "INSIGHTNAME", "VARCHAR(255)", null);
-		owler.addProp("INSIGHT", "INSIGHTID", "GLOBAL", "BOOLEAN", null);
-		owler.addProp("INSIGHT", "INSIGHTID", "EXECUTIONCOUNT", "BIGINT", null);
-		owler.addProp("INSIGHT", "INSIGHTID", "CREATEDON", "TIMESTAMP", null);
-		owler.addProp("INSIGHT", "INSIGHTID", "LASTMODIFIEDON", "TIMESTAMP", null);
-		owler.addProp("INSIGHT", "INSIGHTID", "LAYOUT", "VARCHAR(255)", null);
-		owler.addProp("INSIGHT", "INSIGHTID", "CACHEABLE", "BOOLEAN", null);
+		owler.addConcept("INSIGHT", null, null);
+		owler.addProp("INSIGHT", "INSIGHTID", "VARCHAR(255)");
+		owler.addProp("INSIGHT", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("INSIGHT", "INSIGHTNAME", "VARCHAR(255)");
+		owler.addProp("INSIGHT", "GLOBAL", "BOOLEAN");
+		owler.addProp("INSIGHT", "EXECUTIONCOUNT", "BIGINT");
+		owler.addProp("INSIGHT", "CREATEDON", "TIMESTAMP");
+		owler.addProp("INSIGHT", "LASTMODIFIEDON", "TIMESTAMP");
+		owler.addProp("INSIGHT", "LAYOUT", "VARCHAR(255)");
+		owler.addProp("INSIGHT", "CACHEABLE", "BOOLEAN");
 
 		// USERINSIGHTPERMISSION
-		owler.addConcept("USERINSIGHTPERMISSION", "INSIGHTID", "VARCHAR(255)");
-		owler.addProp("USERINSIGHTPERMISSION", "INSIGHTID", "USERID", "VARCHAR(255)", null);
-		owler.addProp("USERINSIGHTPERMISSION", "INSIGHTID", "ENGINEID", "VARCHAR(255)", null);
-		owler.addProp("USERINSIGHTPERMISSION", "INSIGHTID", "PERMISSION", "INT", null);
+		owler.addConcept("USERINSIGHTPERMISSION", null, null);
+		owler.addProp("USERINSIGHTPERMISSION", "INSIGHTID", "VARCHAR(255)");
+		owler.addProp("USERINSIGHTPERMISSION", "USERID", "VARCHAR(255)");
+		owler.addProp("USERINSIGHTPERMISSION", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("USERINSIGHTPERMISSION", "PERMISSION", "INT");
 
 		// USER
-		owler.addConcept("USER", "ID", "VARCHAR(255)");
-		owler.addProp("USER", "ID", "NAME", "VARCHAR(255)", null);
-		owler.addProp("USER", "ID", "EMAIL", "VARCHAR(255)", null);
-		owler.addProp("USER", "ID", "TYPE", "VARCHAR(255)", null);
-		owler.addProp("USER", "ID", "PASSWORD", "VARCHAR(255)", null);
-		owler.addProp("USER", "ID", "SALT", "VARCHAR(255)", null);
-		owler.addProp("USER", "ID", "USERNAME", "VARCHAR(255)", null);
-		owler.addProp("USER", "ID", "ADMIN", "BOOLEAN", null);
-		owler.addProp("USER", "ID", "PUBLISHER", "BOOLEAN", null);
+		owler.addConcept("USER", null, null);
+		owler.addProp("USER", "ID", "VARCHAR(255)");
+		owler.addProp("USER", "NAME", "VARCHAR(255)");
+		owler.addProp("USER", "EMAIL", "VARCHAR(255)");
+		owler.addProp("USER", "TYPE", "VARCHAR(255)");
+		owler.addProp("USER", "PASSWORD", "VARCHAR(255)");
+		owler.addProp("USER", "SALT", "VARCHAR(255)");
+		owler.addProp("USER", "USERNAME", "VARCHAR(255)");
+		owler.addProp("USER", "ADMIN", "BOOLEAN");
+		owler.addProp("USER", "PUBLISHER", "BOOLEAN");
 
 		// PERMISSION
-		owler.addConcept("PERMISSION", "ID", "INT");
-		owler.addProp("PERMISSION", "ID", "NAME", "VARCHAR(255)", null);
+		owler.addConcept("PERMISSION", null, null);
+		owler.addProp("PERMISSION", "ID", "INT");
+		owler.addProp("PERMISSION", "NAME", "VARCHAR(255)");
 		
 		// joins
-		owler.addRelation("ENGINE", "ENGINEID", "ENGINEMETA", "ENGINEID", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
-		owler.addRelation("ENGINE", "ENGINEID", "ENGINEPERMISSION", "ENGINEID", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
-		owler.addRelation("ENGINE", "ENGINEID", "WORKSPACEENGINE", "ENGINEID", "ENGINE.ENGINEID.WORKSPACEENGINE.ENGINEID");
-		owler.addRelation("ENGINE", "ENGINEID", "ASSETENGINE", "ENGINEID", "ENGINE.ENGINEID.ASSETENGINE.ENGINEID");
-		owler.addRelation("ENGINE", "ENGINEID", "INSIGHT", "INSIGHTID", "ENGINE.ENGINEID.INSIGHT.ENGINEID");
-		owler.addRelation("ENGINE", "ENGINEID", "USERINSIGHTPERMISSION", "INSIGHTID", "ENGINE.ENGINEID.USERINSIGHTPERMISSION.ENGINEID");
+		owler.addRelation("ENGINE", "ENGINEMETA", "ENGINE.ENGINEID.ENGINEMETA.ENGINEID");
+		owler.addRelation("ENGINE", "ENGINEPERMISSION", "ENGINE.ENGINEID.ENGINEPERMISSION.ENGINEID");
+		owler.addRelation("ENGINE", "WORKSPACEENGINE", "ENGINE.ENGINEID.WORKSPACEENGINE.ENGINEID");
+		owler.addRelation("ENGINE", "ASSETENGINE", "ENGINE.ENGINEID.ASSETENGINE.ENGINEID");
+		owler.addRelation("ENGINE", "INSIGHT", "ENGINE.ENGINEID.INSIGHT.ENGINEID");
+		owler.addRelation("ENGINE", "USERINSIGHTPERMISSION", "ENGINE.ENGINEID.USERINSIGHTPERMISSION.ENGINEID");
 
-		owler.addRelation("INSIGHT", "INSIGHTID", "USERINSIGHTPERMISSION", "INSIGHTID", "INSIGHT.INSIGHTID.USERINSIGHTPERMISSION.INSIGHTID");
+		owler.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "INSIGHT.INSIGHTID.USERINSIGHTPERMISSION.INSIGHTID");
 		
-		owler.addRelation("USER", "ID", "USERINSIGHTPERMISSION", "INSIGHTID", "USER.ID.USERINSIGHTPERMISSION.USERID");
-		owler.addRelation("USER", "ID", "ENGINEPERMISSION", "ENGINEID", "USER.ID.ENGINEPERMISSION.USERID");
+		owler.addRelation("USER", "USERINSIGHTPERMISSION", "USER.ID.USERINSIGHTPERMISSION.USERID");
+		owler.addRelation("USER", "ENGINEPERMISSION", "USER.ID.ENGINEPERMISSION.USERID");
 
-		owler.addRelation("ENGINEPERMISSION", "ENGINEID", "PERMISSION", "ID", "ENGINEPERMISSION.PERMISSION.PERMISSION.ID");
-		owler.addRelation("USERINSIGHTPERMISSION", "INSIGHTID", "PERMISSION", "ID", "USERINSIGHTPERMISSION.PERMISSION.PERMISSION.ID");
+		owler.addRelation("ENGINEPERMISSION", "PERMISSION", "ENGINEPERMISSION.PERMISSION.PERMISSION.ID");
+		owler.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "USERINSIGHTPERMISSION.PERMISSION.PERMISSION.ID");
 
 		owler.commit();
 		owler.export();

@@ -41,13 +41,13 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -148,8 +148,8 @@ public class AddToMasterDB {
 		
 		// get the list of all the physical names
 		// false denotes getting the physical names
-		Vector<String> concepts = helper.getConcepts(false);
-		Vector<String[]> relationships = helper.getRelationships(false);
+		List<String> concepts = helper.getPhysicalConcepts();
+		List<String[]> relationships = helper.getPhysicalRelationships();
 		LOGGER.info("For engine " + engineName + " : Total Concepts Found = " + concepts.size());
 		LOGGER.info("For engine " + engineName + " : Total Relationships Found = " + relationships.size());
 
@@ -195,9 +195,12 @@ public class AddToMasterDB {
 		// it will only be added once into this table
 		
 		// so grab the conceptual name
-		String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
-		String conceptualName = Utility.getInstanceName(conceptConceptualUri);
+		String conceptPixelUri = helper.getConceptPixelUriFromPhysicalUri(conceptPhysicalUri);
+		String semossName = Utility.getInstanceName(conceptPixelUri);
+
+		// grab the conceptual name
 		// grab the logical names
+		String conceptualName = helper.getConceptualName(conceptPhysicalUri);
 		Set<String> logicals = helper.getLogicalNames(conceptPhysicalUri);
 		// and check if it is already there or not
 		String conceptGuid = null;
@@ -244,6 +247,9 @@ public class AddToMasterDB {
 		// we can add this to the ENGINECONCEPT table
 		// but we need to grab some additional information
 
+		// a concept (or table) in RDBMS/R has no meaning - the data is in the properties (columns)
+		boolean ignoreData = MetadataUtility.ignoreConceptData(engineType);
+		
 		// generate a new id for the concept
 		String engineConceptGuid = UUID.randomUUID().toString();
 		// grab the data type of the concept
@@ -255,9 +261,23 @@ public class AddToMasterDB {
 		// get the engine id
 		String engineId = this.conceptIdHash.get(engineName + "_ENGINE");
 		
-		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type", "Additional_Type"};
-		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)","varchar(800)"};
-		String [] conceptInstanceData = {engineId, conceptPhysicalInstance, engineConceptGuid, engineConceptGuid, conceptGuid, "TRUE", "FALSE", dataTypes[0], dataTypes[1], adtlDataType};
+		// this is a concept
+		// and it has no parent
+		colNames = new String[]{"Engine", "ParentSemossName", "SemossName", 
+				"ParentPhysicalName", "ParentPhysicalNameID", "ParentLocalConceptID",
+				"PhysicalName", "PhysicalNameID", "LocalConceptID", 
+				"Ignore_Data", "PK", "Original_Type", "Property_Type", "Additional_Type"};
+		
+		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", 
+				"varchar(255)", "varchar(255)", "varchar(255)", 
+				"varchar(255)", "varchar(255)", "varchar(255)", 
+				"boolean", "boolean", "varchar(255)","varchar(255)","varchar(255)"};
+		
+		Object [] conceptInstanceData = {engineId, null, semossName, 
+				null, null, null, 
+				conceptPhysicalInstance, engineConceptGuid, conceptGuid, 
+				ignoreData, true, dataTypes[0], dataTypes[1], adtlDataType};
+		
 		insertQuery("EngineConcept", colNames, types, conceptInstanceData);
 		
 		// store it in the hash, we will need this for the engine relationships
@@ -288,11 +308,11 @@ public class AddToMasterDB {
 		}
 		
 		// now we need to add the properties for this concept + engine
-		List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
+		List<String> properties = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
 		for(int propIndex = 0; propIndex < properties.size(); propIndex++) {
 			String propertyPhysicalUri = properties.get(propIndex);
 			LOGGER.debug("For concept = " + conceptPhysicalUri + ", adding property ::: " + propertyPhysicalUri);
-			masterProperty(engineName, propertyPhysicalUri, engineConceptGuid, helper, engineType); 
+			masterProperty(engineName, conceptPhysicalUri, propertyPhysicalUri, engineConceptGuid, conceptPhysicalInstance, conceptGuid, conceptualName, helper, engineType); 
 		}
 	}
 	
@@ -308,7 +328,16 @@ public class AddToMasterDB {
 	 * @param helper
 	 * @param engineType
 	 */
-	private void masterProperty(String engineName, String propertyPhysicalUri, String parentEngineConceptGuid, MetaHelper helper, IEngine.ENGINE_TYPE engineType) {
+	private void masterProperty(String engineName, 
+			String conceptPhysicalUri, 
+			String propertyPhysicalUri, 
+			String parentEngineConceptGuid, 
+			String parentPhysicalName, 
+			String parentConceptGuid, 
+			String parentSemossName, 
+			MetaHelper helper, 
+			IEngine.ENGINE_TYPE engineType) 
+	{
 		String[] colNames = null;
 		String[] types = null;
 		String[] insertValues = null;
@@ -319,10 +348,13 @@ public class AddToMasterDB {
 		// the property it will only be added once into this table
 		
 		// so grab the conceptual name
-		String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(propertyPhysicalUri);
-		// property conceptual uris are always /Column/Table
-		String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+		String propertyPixelUri = helper.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propertyPhysicalUri);
+		// pixel URI is always column/table
+		String propertySemossName = Utility.getClassName(propertyPixelUri);
+		
+		// grab the conceptual name
 		// grab the logical names 
+		String propertyConceptualName = helper.getConceptualName(propertyPhysicalUri);
 		Set<String> logicals = helper.getLogicalNames(propertyPhysicalUri);
 
 		// and check if it is already there or not
@@ -389,9 +421,21 @@ public class AddToMasterDB {
 		// get the engine id
 		String engineId = this.conceptIdHash.get(engineName + "_ENGINE");
 		
-		colNames = new String[]{"Engine", "PhysicalName", "ParentPhysicalID", "PhysicalNameID", "LocalConceptID", "PK", "Property", "Original_Type", "Property_Type","Additional_Type"};
-		types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)", "boolean", "boolean", "varchar(800)","varchar(800)","varchar(800)"};
-		String [] conceptInstanceData = {engineId, propertyPhysicalInstance, parentEngineConceptGuid, enginePropertyGuid, propertyGuid, "FALSE", "TRUE", dataTypes[0], dataTypes[1], adtlDataType};
+		colNames = new String[]{"Engine", "ParentSemossName", "SemossName", 
+				"ParentPhysicalName", "ParentPhysicalNameID", "ParentLocalConceptID", 
+				"PhysicalName", "PhysicalNameID", "LocalConceptID", 
+				"Ignore_Data", "PK", "Original_Type", "Property_Type", "Additional_Type"};
+		
+		types = new String[]{"varchar(255)", "varchar(255)", "varchar(255)", 
+				"varchar(255)", "varchar(255)", "varchar(255)", 
+				"varchar(255)", "varchar(255)", "varchar(255)", 
+				"boolean", "boolean", "varchar(255)","varchar(255)","varchar(255)"};
+		
+		Object [] conceptInstanceData = {engineId, parentSemossName, propertySemossName, 
+				parentPhysicalName, parentEngineConceptGuid, parentConceptGuid,
+				propertyPhysicalInstance, enginePropertyGuid, propertyGuid, 
+				false, false, dataTypes[0], dataTypes[1], adtlDataType};
+		
 		insertQuery("EngineConcept", colNames, types, conceptInstanceData);
 		
 		{
@@ -431,8 +475,9 @@ public class AddToMasterDB {
 		if(helper != null) {
 			dataType = helper.getDataTypes(physicalUri);
 			if(dataType == null) {
-				originalType = "STRING";
-				dataType = "STRING";
+				// this is the case for a table in RDBMS
+				// or the fake root name in JSON 
+				return new String[] {null, null};
 			} else {
 				originalType = dataType;
 				dataType = dataType.replace("TYPE:", "");
@@ -483,30 +528,30 @@ public class AddToMasterDB {
 		// grab the conceptual names
 		// start node
 		String startNodePhysicalInstance = Utility.getInstanceName(startNodePhysicalUri); 
-		String conceptualStartNodeUri = helper.getConceptualUriFromPhysicalUri(startNodePhysicalUri);
-		String conceptualStartNodeName = Utility.getInstanceName(conceptualStartNodeUri);
+		String pixelStartNodeUri = helper.getConceptPixelUriFromPhysicalUri(startNodePhysicalUri);
+		String pixelStartNodeName = Utility.getInstanceName(pixelStartNodeUri);
 		// end node
 		String endNodePhysicalInstance = Utility.getInstanceName(endNodePhysicalUri); 
-		String conceptualEndNodeUri = helper.getConceptualUriFromPhysicalUri(endNodePhysicalUri);
-		String conceptualEndNodeName = Utility.getInstanceName(conceptualEndNodeUri);
+		String pixelEndNodeUri = helper.getConceptPixelUriFromPhysicalUri(endNodePhysicalUri);
+		String pixelEndNodeName = Utility.getInstanceName(pixelEndNodeUri);
 		
 		String relationGuid = null;
 		// The RELATION TABLE is engine agnostic
 		// So we need to check and see if this relationship has already been added or not
-		if(this.conceptIdHash.containsKey(conceptualStartNodeName + "_" + conceptualEndNodeName + "_RELATION")) {
-			relationGuid = this.conceptIdHash.get(conceptualStartNodeName + "_" + conceptualEndNodeName + "_RELATION");
+		if(this.conceptIdHash.containsKey(pixelStartNodeName + "_" + pixelEndNodeName + "_RELATION")) {
+			relationGuid = this.conceptIdHash.get(pixelStartNodeName + "_" + pixelEndNodeName + "_RELATION");
 		} else {
 			// we need to create it
 			relationGuid = UUID.randomUUID().toString();
 			
 			// store it in the hash
-			this.conceptIdHash.put(conceptualStartNodeName + "_" + conceptualEndNodeName + "_RELATION", relationGuid);
+			this.conceptIdHash.put(pixelStartNodeName + "_" + pixelEndNodeName + "_RELATION", relationGuid);
 			
 			colNames = new String[]{"ID", "SourceID", "TargetID", "GlobalID"};
 			types = new String[]{"varchar(800)", "varchar(800)", "varchar(800)", "varchar(800)"};
 			
-			String startConceptualGuid = this.conceptIdHash.get(conceptualStartNodeName + "_CONCEPTUAL");
-			String endConceptualGuid = this.conceptIdHash.get(conceptualEndNodeName + "_CONCEPTUAL");
+			String startConceptualGuid = this.conceptIdHash.get(pixelStartNodeName + "_CONCEPTUAL");
+			String endConceptualGuid = this.conceptIdHash.get(pixelEndNodeName + "_CONCEPTUAL");
 			insertValues = new String[]{relationGuid, startConceptualGuid, endConceptualGuid, ""};
 			insertQuery("Relation", colNames, types, insertValues);
 		}
@@ -522,7 +567,7 @@ public class AddToMasterDB {
 		String engineId = this.conceptIdHash.get(engineName + "_ENGINE");
 		String engineRelationGuid = UUID.randomUUID().toString();
 		insertValues = new String[]{engineId, relationGuid, engineRelationGuid, startConceptGuid, endConceptGuid, 
-				startNodePhysicalInstance, endNodePhysicalInstance, Utility.getInstanceName(relationshipUri)};
+				pixelStartNodeName, pixelEndNodeName, Utility.getInstanceName(relationshipUri)};
 		insertQuery("EngineRelation", colNames, types, insertValues);
 	}
 	
@@ -708,9 +753,6 @@ public class AddToMasterDB {
 		}
 	}
 
-	
-	
-	
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////

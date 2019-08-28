@@ -24,7 +24,7 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if(concept == null || concept.isEmpty()) {
@@ -42,7 +42,7 @@ public class EditOwlConceptDataTypeReactor extends AbstractMetaEditorReactor {
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
 		String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
-		String conceptPhysicalURI = engine.getConceptPhysicalUriFromConceptualUri(conceptualURI);
+		String conceptPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
 		if(conceptPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
 		}

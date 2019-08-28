@@ -21,7 +21,7 @@ public class GetOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		String appId = getAppId();
 		// we may have an alias
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		String concept = getConcept();
 		String prop = getProperty();
@@ -29,9 +29,9 @@ public class GetOwlDescriptionsReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
-			physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
+			physicalUri = engine.getPhysicalUriFromPixelSelector(concept);
 		} else {
-			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(prop, concept);
+			physicalUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
 		}
 		
 		String description = engine.getDescription(physicalUri);

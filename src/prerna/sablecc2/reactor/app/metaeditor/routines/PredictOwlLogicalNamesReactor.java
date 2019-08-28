@@ -54,7 +54,7 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		
 		String appId = getAppId();
 		// we may have an alias
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		String concept = getConcept();
 		String prop = getProperty();

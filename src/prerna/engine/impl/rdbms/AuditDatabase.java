@@ -44,6 +44,7 @@ public class AuditDatabase {
 	private String engineId;
 	private String engineName;
 	
+	@Deprecated
 	private Map<String, String[]> primaryKeyCache = new HashMap<String, String[]>();
 
 	public AuditDatabase() {
@@ -102,8 +103,6 @@ public class AuditDatabase {
 			e.printStackTrace();
 		}
 		
-		String uniqueIdentifier = SmssUtilities.getUniqueName(this.engineName, this.engineId);
-
 		// create the tables if necessary
 		String[] headers = new String[]{"AUTO_INCREMENT", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
 		String[] types = new String[]{"IDENTITY", "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
@@ -403,20 +402,18 @@ public class AuditDatabase {
 		return t.toString();
 	}
 	
-	private String[] getPrimKey(String conceptualName) {
-		if(primaryKeyCache.containsKey(conceptualName)){
-			return primaryKeyCache.get(conceptualName);
+	@Deprecated
+	private String[] getPrimKey(String pixelName) {
+		if(primaryKeyCache.containsKey(pixelName)){
+			return primaryKeyCache.get(pixelName);
 		}
 
 		// we dont have it.. so query for it
-		String uri = this.engine.getConceptPhysicalUriFromConceptualUri(conceptualName);
-		// since we also have the URI, just store it
-		String colName = Utility.getClassName(uri);
-		String tableName = Utility.getInstanceName(uri);
-		String[] split = new String[]{tableName, colName};
-		
+		String physicalUri = engine.getPhysicalUriFromPixelSelector(pixelName);
+		String column = engine.getLegacyPrimKey4Table(physicalUri);
+		String[] split = new String[]{pixelName, column};
 		// store the value
-		primaryKeyCache.put(conceptualName, split);
+		primaryKeyCache.put(pixelName, split);
 		return split;
 	}
 

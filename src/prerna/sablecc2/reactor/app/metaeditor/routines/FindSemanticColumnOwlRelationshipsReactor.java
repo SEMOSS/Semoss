@@ -40,7 +40,7 @@ public class FindSemanticColumnOwlRelationshipsReactor extends AbstractMetaEdito
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = getAppId(appId, false);
+		appId = testAppId(appId, false);
 		List<String> filters = getTableFilters();
 		
 		// make sure R is good to go

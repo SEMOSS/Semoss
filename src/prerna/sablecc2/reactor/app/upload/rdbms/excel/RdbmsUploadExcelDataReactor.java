@@ -20,6 +20,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.H2EmbeddedServerEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.om.Insight;
@@ -48,7 +49,6 @@ import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {

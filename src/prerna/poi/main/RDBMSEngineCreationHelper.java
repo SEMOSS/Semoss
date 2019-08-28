@@ -11,12 +11,12 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -26,7 +26,6 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.MosfetSyncHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -139,94 +138,90 @@ public class RDBMSEngineCreationHelper {
 		}
 	}
 	
+	/**
+	 * Get the existing RDBMS structure
+	 * All keys in the map are pixel values
+	 * @param owl
+	 * @return
+	 */
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(Owler owl) {
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owl.getOwlPath(), null, null);
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
-		Vector<String> conceptsList = helper.getConcepts(false);
+		List<String> conceptsList = helper.getPhysicalConcepts();
 		Map<String, Map<String, String>> existingMetaModel = new HashMap<>();
 		for(String conceptPhysicalUri: conceptsList) {
+			// the concept names are not important
+			// i will grab the pixel name
+			// but there is no data that exists 
 			// so grab the conceptual name
-			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
-			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
-			String conceptType = helper.getDataTypes(conceptPhysicalUri);
-			String type = "STRING";
-			if(conceptType != null && conceptType.toString().contains(":")) {
-				type = conceptType.split(":")[1];
-			}
+			String pixelTable = helper.getPixelSelectorFromPhysicalUri(conceptPhysicalUri);
+
+			// now we need to go and add all the props
 			Map<String, String> propMap = new HashMap<>();
-			// add the concept prim key
-			propMap.put(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER, type);
-			
 			// add the properties
-			List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
-			for(String propPhysicalUri : properties) {
+			List<String> propertyUris = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
+			for(String propPhysicalUri : propertyUris) {
 				// so grab the conceptual name
-				String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(propPhysicalUri);
+				String propertyPixelUri = helper.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propPhysicalUri);
 				// property conceptual uris are always /Column/Table
-				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+				String propertyPixelName = Utility.getClassName(propertyPixelUri);
 				String propertyType = helper.getDataTypes(propPhysicalUri);
 				String propType = "STRING";
 				if(propertyType != null && propertyType.toString().contains(":")) {
 					propType = propertyType.split(":")[1];
 				}
-				
-				propMap.put(propertyConceptualName, propType);
+				propMap.put(propertyPixelName, propType);
 			}
-			
-			
-			existingMetaModel.put(conceptualName, propMap);
+			existingMetaModel.put(pixelTable, propMap);
 		}
-		
 		return existingMetaModel;
 	}
 	
+	/**
+	 * Get the existing RDBMS structure
+	 * All keys in the map are pixel values
+	 * @param owl
+	 * @param tablesToRetrieve
+	 * @return
+	 */
 	public static Map<String, Map<String, String>> getExistingRDBMSStructure(Owler owl, Set<String> tablesToRetrieve) {
 		RDFFileSesameEngine rfse = new RDFFileSesameEngine();
 		rfse.openFile(owl.getOwlPath(), null, null);
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
-		Vector<String> conceptsList = helper.getConcepts(false);
+		List<String> conceptsList = helper.getPhysicalConcepts();
 		Map<String, Map<String, String>> existingMetaModel = new HashMap<>();
 		for(String conceptPhysicalUri: conceptsList) {
+			// the concept names are not important
+			// i will grab the pixel name
+			// but there is no data that exists 
 			// so grab the conceptual name
-			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
-			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
-			
-			if(!tablesToRetrieve.contains(conceptualName.toUpperCase())) {
+			String pixelTable = helper.getPixelSelectorFromPhysicalUri(conceptPhysicalUri);
+
+			if(!tablesToRetrieve.contains(pixelTable.toUpperCase())) {
 				continue;
 			}
 			
-			String conceptType = helper.getDataTypes(conceptPhysicalUri);
-			String type = "STRING";
-			if(conceptType != null && conceptType.toString().contains(":")) {
-				type = conceptType.split(":")[1];
-			}
+			// now we need to go and add all the props
 			Map<String, String> propMap = new HashMap<>();
-			// add the concept prim key
-			propMap.put(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER, type);
-			
 			// add the properties
-			List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
-			for(String propPhysicalUri : properties) {
+			List<String> propertyUris = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
+			for(String propPhysicalUri : propertyUris) {
 				// so grab the conceptual name
-				String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(propPhysicalUri);
+				String propertyPixelUri = helper.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propPhysicalUri);
 				// property conceptual uris are always /Column/Table
-				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+				String propertyPixelName = Utility.getClassName(propertyPixelUri);
 				String propertyType = helper.getDataTypes(propPhysicalUri);
 				String propType = "STRING";
 				if(propertyType != null && propertyType.toString().contains(":")) {
 					propType = propertyType.split(":")[1];
 				}
-				
-				propMap.put(propertyConceptualName, propType);
+				propMap.put(propertyPixelName, propType);
 			}
-			
-			
-			existingMetaModel.put(conceptualName, propMap);
+			existingMetaModel.put(pixelTable, propMap);
 		}
-		
 		return existingMetaModel;
 	}
 	
@@ -313,7 +308,6 @@ public class RDBMSEngineCreationHelper {
 	 * @return
 	 */
 	public static String cleanTableName(String s) {
-		
 		s = s.trim();
 		s = s.replaceAll(" ", "_");
 		s = s.replaceAll("[^a-zA-Z0-9\\_]", ""); // matches anything that is not alphanumeric or underscore
@@ -328,8 +322,8 @@ public class RDBMSEngineCreationHelper {
 		HeadersException check = HeadersException.getInstance();
 		if(check.isIllegalHeader(s)) {
 			s = check.appendNumOntoHeader(s);
-			}
-		
+		}
+
 		return s;
 	}
 	

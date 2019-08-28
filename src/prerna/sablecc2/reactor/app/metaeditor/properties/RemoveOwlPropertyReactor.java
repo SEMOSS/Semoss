@@ -27,7 +27,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if(concept == null || concept.isEmpty()) {
@@ -40,7 +40,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		// if RDBMS, we need to know the prim key of the column
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-		String physicalPropUri = engine.getPropertyPhysicalUriFromConceptualUri(column, concept);
+		String physicalPropUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + column);
 		if(physicalPropUri == null) {
 			throw new IllegalArgumentException("Cannot find property in existing metadata to remove");
 		}

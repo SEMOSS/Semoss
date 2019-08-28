@@ -58,7 +58,7 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 			}
 		}
 		
-		Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptPropertiesRDBMS(conceptLogicals, eFilters);
+		Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptProperties(conceptLogicals, eFilters);
 		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
 	}
 	

@@ -3,13 +3,13 @@ package prerna.sablecc2.reactor.app.metaeditor.properties;
 import java.util.List;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.AbstractOwler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReactor {
@@ -25,7 +25,7 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if(concept == null || concept.isEmpty()) {
@@ -48,34 +48,32 @@ public class EditOwlPropertyConceptualNameReactor extends AbstractMetaEditorReac
 		}
 		newConceptualName = newConceptualName.replaceAll("_{2,}", "_");
 		
-		String newConceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + newConceptualName + "/" + concept;
+		String newPixelURI = "http://semoss.org/ontologies/Relation/Contains/" + newConceptualName + "/" + concept;
 
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
-		String conceptualURI = "http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept;
-		String parentConcepturalURI = "http://semoss.org/ontologies/Concept/" + concept;
-		String parentPhysicalURI = engine.getConceptPhysicalUriFromConceptualUri(parentConcepturalURI);
+		String pixelURI = "http://semoss.org/ontologies/Relation/Contains/" + property + "/" + concept;
+		String parentPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
 		if(parentPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept");
 		}
 		
-		String propertyPhysicalURI = engine.getPropertyPhysicalUriFromConceptualUri(property, concept);
+		String propertyPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept + "__" + property);
 		if(propertyPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the property. Please define the property first before modifying the conceptual name");
 		}
 		
 		// make sure this isn't already a name for an existing property
-		List<String> otherConceptualProperties = engine.getProperties4Concept(parentPhysicalURI, true);
-		if(otherConceptualProperties.contains(newConceptualURI)) {
+		List<String> otherConceptualProperties = engine.getPropertyPixelSelectors(concept);
+		if(otherConceptualProperties.contains(newPixelURI)) {
 			throw new IllegalArgumentException("This property conceptual name already exists");
 		}
 		
-		String conceptualRel = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS + "/" + Owler.CONCEPTUAL_RELATION_NAME;
 		// remove the current relationship
-		owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, conceptualRel, conceptualURI, true});
+		owlEngine.doAction(IEngine.ACTION_TYPE.REMOVE_STATEMENT, new Object[]{propertyPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, pixelURI, true});
 		// add the new relationship
-		owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, conceptualRel, newConceptualURI, true});
+		owlEngine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propertyPhysicalURI, AbstractOwler.PIXEL_RELATION_URI, newPixelURI, true});
 		
 		try {
 			owlEngine.exportDB();

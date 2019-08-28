@@ -7,13 +7,13 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
@@ -35,7 +35,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		String appId = getAppInput();
 		// we may have the alias
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		// get tables
 		List<String> startTList = getValues(this.keysToGet[1], 1);
@@ -54,7 +54,7 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		// set all the existing values into the OWLER
 		// so that its state is updated
 		IEngine engine = Utility.getEngine(appId);
-		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
+//		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
 		setOwlerValues(engine, owler);
 		
 		for(int i = 0; i < size; i++) {
@@ -65,16 +65,16 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 			// define the rel
 			String rel = startT + "." + startC + "." + endT + "." + endC;
 			
-			// we do this after the above so the relationship is defined properly!
-			if(isRdbms) {
-				// the relation has the startC and endC
-				// what I really need is the primary key for the tables
-				startC = getPrim(engine, startT);
-				endC = getPrim(engine, endT);
-			}
+//			// we do this after the above so the relationship is defined properly!
+//			if(isRdbms) {
+//				// the relation has the startC and endC
+//				// what I really need is the primary key for the tables
+//				startC = getPrim(engine, startT);
+//				endC = getPrim(engine, endT);
+//			}
 			
 			// add the relationship
-			owler.removeRelation(startT, startC, endT, endC, rel);
+			owler.removeRelation(startT, endT, rel);
 		}
 		owler.commit();
 		
@@ -97,18 +97,18 @@ public class RemoveOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		return noun;
 	}
 	
-	/**
-	 * So we do not query for prim keys all the time
-	 * @param engine
-	 * @param tableName
-	 * @return
-	 */
-	private String getPrim(IEngine engine, String tableName) {
-		if(!tableToPrim.containsKey(tableName)) {
-			tableToPrim.put(tableName, Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(tableName)));
-		}
-		return tableToPrim.get(tableName);
-	}
+//	/**
+//	 * So we do not query for prim keys all the time
+//	 * @param engine
+//	 * @param tableName
+//	 * @return
+//	 */
+//	private String getPrim(IEngine engine, String tableName) {
+//		if(!tableToPrim.containsKey(tableName)) {
+//			tableToPrim.put(tableName, Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(tableName)));
+//		}
+//		return tableToPrim.get(tableName);
+//	}
 	
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
