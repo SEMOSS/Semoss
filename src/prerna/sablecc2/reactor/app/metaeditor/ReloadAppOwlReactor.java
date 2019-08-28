@@ -26,7 +26,7 @@ public class ReloadAppOwlReactor extends AbstractMetaEditorReactor {
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine oldOwlEngine =  engine.getBaseDataEngine();

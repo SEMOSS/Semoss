@@ -15,10 +15,10 @@ import org.apache.log4j.Logger;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.impl.util.Owler;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public abstract class AbstractFormBuilder {
@@ -109,9 +109,10 @@ public abstract class AbstractFormBuilder {
 		wrapper.cleanUp();
 		if(!permissionTableExists) {
 			Owler owler = new Owler(formEng);
-			owler.addConcept("FORMS_USER_ACCESS", "USER_ID", "VARCHAR(100)");
-			owler.addProp("FORMS_USER_ACCESS", "USER_ID", "INSTANCE_NAME", "VARCHAR(255)", null);
-			owler.addProp("FORMS_USER_ACCESS", "USER_ID", "IS_SYS_ADMIN", "BOOLEAN", null);
+			owler.addConcept("FORMS_USER_ACCESS", null, null);
+			owler.addProp("FORMS_USER_ACCESS", "USER_ID", "VARCHAR(100)");
+			owler.addProp("FORMS_USER_ACCESS", "INSTANCE_NAME", "VARCHAR(255)");
+			owler.addProp("FORMS_USER_ACCESS", "IS_SYS_ADMIN", "BOOLEAN");
 
 			LOGGER.info("CREATING PERMISSION TABLE!!!");
 			String query = RdbmsQueryBuilder.makeCreate("FORMS_USER_ACCESS", new String[]{"USER_ID", "INSTANCE_NAME", "IS_SYS_ADMIN"}, new String[]{"VARCHAR(100)", "VARCHAR(255)", "BOOLEAN"});
@@ -143,15 +144,16 @@ public abstract class AbstractFormBuilder {
 		wrapper.cleanUp();
 		if(!auditTableExists) {
 			Owler owler = new Owler(this.formEng);
-			owler.addConcept(auditLogTableName, "ID", "INT");
-			owler.addProp(auditLogTableName, "ID", "USER", "VARCHAR(255)", null);
-			owler.addProp(auditLogTableName, "ID", "ACTION", "VARCHAR(100)", null);
-			owler.addProp(auditLogTableName, "ID", "START_NODE", "VARCHAR(255)", null);
-			owler.addProp(auditLogTableName, "ID", "REL_NAME", "VARCHAR(255)", null);
-			owler.addProp(auditLogTableName, "ID", "END_NODE", "VARCHAR(255)", null);
-			owler.addProp(auditLogTableName, "ID", "PROP_NAME", "VARCHAR(255)", null);
-			owler.addProp(auditLogTableName, "ID", "PROP_VALUE", "CLOB", null);
-			owler.addProp(auditLogTableName, "ID", "TIME", "TIMESTAMP", null);
+			owler.addConcept(auditLogTableName, null, null);
+			owler.addProp(auditLogTableName, "ID", "INT");
+			owler.addProp(auditLogTableName, "USER", "VARCHAR(255)");
+			owler.addProp(auditLogTableName, "ACTION", "VARCHAR(100)");
+			owler.addProp(auditLogTableName, "START_NODE", "VARCHAR(255)");
+			owler.addProp(auditLogTableName, "REL_NAME", "VARCHAR(255)");
+			owler.addProp(auditLogTableName, "END_NODE", "VARCHAR(255)");
+			owler.addProp(auditLogTableName, "PROP_NAME", "VARCHAR(255)");
+			owler.addProp(auditLogTableName, "PROP_VALUE", "CLOB");
+			owler.addProp(auditLogTableName, "TIME", "TIMESTAMP");
 
 			LOGGER.info("CREATING NEW AUDIT LOG!!!");
 			StringBuilder createAuditTable = new StringBuilder("CREATE TABLE ");
@@ -199,7 +201,7 @@ public abstract class AbstractFormBuilder {
 				if(!cols.contains(tag)) {
 					colsToAdd.add(tag);
 					colsToAddTypes.add("VARCHAR(100)");
-					owler.addProp(auditLogTableName, "ID", tag.toUpperCase(), "VARCHAR(100)");
+					owler.addProp(auditLogTableName, tag.toUpperCase(), "VARCHAR(100)");
 				}
 			}
 			

@@ -6,13 +6,13 @@ import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
@@ -32,7 +32,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if(concept == null || concept.isEmpty()) {
@@ -61,7 +61,7 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 			conceptual = conceptual.replaceAll("_{2,}", "_");
 		}
 
-		Vector<String> concepts = engine.getConcepts(false);
+		List<String> concepts = engine.getPhysicalConcepts();
 		for(String conceptUri : concepts) {
 			String table = Utility.getInstanceName(conceptUri);
 			if(table.equalsIgnoreCase(concept)) {
@@ -71,16 +71,16 @@ public class AddOwlConceptReactor extends AbstractMetaEditorReactor {
 		}
 
 		Owler owler = getOWLER(appId);
-		String physicalUri = owler.addConcept(concept, column, dataType, conceptual);
-
-		// now add the description (checks done in method)
-		String description = this.keyValue.get(this.keysToGet[6]);
-		owler.addDescription(physicalUri, description);
-		// add the logical names (additional checks done in method)
-		List<String> logicalNames = getLogicalNames();
-		if(!logicalNames.isEmpty()) {
-			owler.addLogicalNames(physicalUri, logicalNames.toArray(new String[]{}));
-		}
+//		String physicalUri = owler.addConcept(concept, column, dataType, conceptual);
+//
+//		// now add the description (checks done in method)
+//		String description = this.keyValue.get(this.keysToGet[6]);
+//		owler.addDescription(physicalUri, description);
+//		// add the logical names (additional checks done in method)
+//		List<String> logicalNames = getLogicalNames();
+//		if(!logicalNames.isEmpty()) {
+//			owler.addLogicalNames(physicalUri, logicalNames.toArray(new String[]{}));
+//		}
 		
 		try {
 			owler.export();

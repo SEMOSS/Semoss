@@ -1019,7 +1019,7 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 
 			if(value == null) {
 				// append null without quotes
-				template.append("");
+				template.append("null");
 				continue;
 			}
 

@@ -36,14 +36,14 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = getAppId(appId, false);
+		appId = testAppId(appId, false);
 		List<String> filters = getTableFilters();
 
 		IEngine app = Utility.getEngine(appId);
 		
 		Map<String, List<String>> tableToCol = new TreeMap<String, List<String>>();
 		// grab all the concepts
-		Vector<String> concepts = app.getConcepts(false);
+		List<String> concepts = app.getPhysicalConcepts();
 		for(String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
 
@@ -61,7 +61,7 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			List<String> columnNames = new Vector<String>();
 
 			// grab all the properties
-			List<String> properties = app.getProperties4Concept(cUri, false);
+			List<String> properties = app.getPropertyUris4PhysicalUri(cUri);
 			for(String pUri : properties) {
 				// load all upper case to ignore case
 				columnNames.add(Utility.getClassName(pUri));

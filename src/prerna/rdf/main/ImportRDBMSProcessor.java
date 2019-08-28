@@ -132,7 +132,7 @@ public class ImportRDBMSProcessor extends AbstractEngineCreator {
 			String[] joinColumns = relationship[1].split("\\."); 
 			// predicate is: "fromTable.fromJoinCol.toTable.toJoinCol"
 			String predicate = subject + "." + joinColumns[0] + "." + object + "." + joinColumns[1]; 
-			owler.addRelation(subject, nodesAndPrimKeys.get(subject), object, nodesAndPrimKeys.get(object), predicate);
+			owler.addRelation(subject, object, predicate);
 		}
 	}
 

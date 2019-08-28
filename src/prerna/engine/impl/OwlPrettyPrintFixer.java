@@ -5,9 +5,9 @@ import java.util.Properties;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Owler;
 
 @Deprecated
 public class OwlPrettyPrintFixer {

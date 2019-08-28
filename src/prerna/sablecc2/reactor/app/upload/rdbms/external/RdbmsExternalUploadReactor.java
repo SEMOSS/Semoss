@@ -16,7 +16,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 //import org.python.google.common.io.Files;
 
-
 import com.google.common.io.Files;
 
 import prerna.auth.AuthProvider;
@@ -26,6 +25,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -40,7 +40,6 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -303,12 +302,13 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			nodesAndPrimKeys.put(nodeName, primaryKey);
 			String cleanConceptTableName = RDBMSEngineCreationHelper.cleanTableName(nodeName);
 			// add concepts
-			owler.addConcept(cleanConceptTableName, primaryKey, dataTypes.get(nodeName).get(primaryKey));
+			owler.addConcept(cleanConceptTableName, null, null);
+			owler.addProp(cleanConceptTableName, primaryKey, dataTypes.get(nodeName).get(primaryKey));
 			// add concept properties
 			for (String prop : nodesAndProps.get(node)) {
 				if (!prop.equals(primaryKey)) {
 					String cleanProp = RDBMSEngineCreationHelper.cleanTableName(prop);
-					owler.addProp(cleanConceptTableName, primaryKey, cleanProp, dataTypes.get(nodeName).get(prop), "");
+					owler.addProp(cleanConceptTableName, cleanProp, dataTypes.get(nodeName).get(prop));
 				}
 			}
 		}
@@ -364,7 +364,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			String[] joinColumns = relation.get(Constants.REL_NAME).toString().split("\\.");
 			// predicate is: "fromTable.fromJoinCol.toTable.toJoinCol"
 			String predicate = subject + "." + joinColumns[0] + "." + object + "." + joinColumns[1];
-			owler.addRelation(subject, nodesAndPrimKeys.get(subject), object, nodesAndPrimKeys.get(object), predicate);
+			owler.addRelation(subject, object, predicate);
 		}
 	}
 

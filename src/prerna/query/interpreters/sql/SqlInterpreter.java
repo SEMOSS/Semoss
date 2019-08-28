@@ -136,8 +136,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			// we are selecting all the columns
 			String table = froms.get(0)[0];
 			if(engine != null && !engine.isBasic()) {
-				String physicalUri = engine.getConceptPhysicalUriFromConceptualUri(table);
-				if( (engine.getConcepts(false).size() == 1) && (engine.getProperties4Concept(physicalUri, false).size() + 1) == selectorList.size()) {
+				String physicalUri = engine.getPhysicalUriFromPixelSelector(table);
+				if( (engine.getPhysicalConcepts().size() == 1) && (engine.getPropertyUris4PhysicalUri(physicalUri).size() + 1) == selectorList.size()) {
 					// plus one is for the concept itself
 					// no distinct needed
 					query.append(selectors);
@@ -1104,92 +1104,82 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	
 	//////////////////////////////////// caching utility methods /////////////////////////////////////////
 	
+	//////////////////////////////////// caching utility methods /////////////////////////////////////////
+
 	/**
-	 * Get the physical name of the 
-	 * @param conceptualTableName
+	 * Get the physical name of the table
+	 * @param tablePixelName						The pixel name of the table
 	 * @return
 	 */
-	protected String getPhysicalTableNameFromConceptualName(String conceptualTableName) {
+	protected String getPhysicalTableNameFromConceptualName(String tablePixelName) {
 		// if engine present
 		// get the appropriate physical storage name for the table
 		if(engine != null && !engine.isBasic()) {
 			// if we already have it, just grab from hash
-			if(conceptualConceptToPhysicalMap.containsKey(conceptualTableName)) {
-				return conceptualConceptToPhysicalMap.get(conceptualTableName);
+			if(conceptualConceptToPhysicalMap.containsKey(tablePixelName)) {
+				return conceptualConceptToPhysicalMap.get(tablePixelName);
 			}
-			// we dont have it.. so query for it
-			String tableURI = this.engine.getConceptPhysicalUriFromConceptualUri(conceptualTableName);
-			// table name is the instance name of the URI
-			String tableName = Utility.getInstanceName(tableURI);
 
-			// since we also have the URI, just store the primary key as well if we haven't already
-			if(!primaryKeyCache.containsKey(conceptualTableName)) {
-				// will most likely be used
-				String primKey = Utility.getClassName(tableURI);
-				primaryKeyCache.put(conceptualTableName, primKey);
-			}
-			
+			// we dont have it.. so query for it
+			String physicalTableUri = this.engine.getPhysicalUriFromPixelSelector(tablePixelName);
+			// table name is the instance name of the URI
+			String tableName = Utility.getInstanceName(physicalTableUri);
 			// store the physical name as well in case we get it later
-			conceptualConceptToPhysicalMap.put(conceptualTableName, tableName);
+			conceptualConceptToPhysicalMap.put(tablePixelName, tableName);
 			return tableName;
 		} else {
 			// no engine is defined, just return the value
-			return conceptualTableName;
+			return tablePixelName;
 		}
 	}
-	
+
 	/**
 	 * Get the physical name for a property
-	 * @param columnConceptualName					The conceptual name of the property
+	 * @param tablePixelName						The pixel name of the table
+	 * @param columnPixelName						The pixel name of the property
 	 * @return										The physical name of the property
 	 */
-	protected String getPhysicalPropertyNameFromConceptualName(String tableConceptualName, String columnConceptualName) {
+	protected String getPhysicalPropertyNameFromConceptualName(String tablePixelName, String columnPixelName) {
+		String pixelName = tablePixelName + "__" + columnPixelName;
 		if(engine != null && !engine.isBasic()) {
 			// if we already have it, just grab from hash
-			if(conceptualPropertyToPhysicalMap.containsKey(tableConceptualName+columnConceptualName)) {
-				return conceptualPropertyToPhysicalMap.get(tableConceptualName+columnConceptualName);
+			if(conceptualPropertyToPhysicalMap.containsKey(pixelName)) {
+				return conceptualPropertyToPhysicalMap.get(pixelName);
 			}
-			
 			// we don't have it... so query for it
-			String colURI = this.engine.getPropertyPhysicalUriFromConceptualUri(columnConceptualName, tableConceptualName);
-			// if the user has defined a column 
-			// but its not actually part of the OWL 
-			// this is annoying since we do this for the _FK columns
-			// in the addJoins in the NoOuterJoin class
-			if(colURI == null) {
-				return columnConceptualName;
-			}
+			String colURI = this.engine.getPhysicalUriFromPixelSelector(pixelName);
 			// the class is the name of the column
 			String colName = Utility.getClassName(colURI);
-			conceptualPropertyToPhysicalMap.put(tableConceptualName+columnConceptualName, colName);
+			conceptualPropertyToPhysicalMap.put(pixelName, colName);
 			return colName;
 		} else {
 			// no engine is defined, just return the value
-			return columnConceptualName;
+			return columnPixelName;
 		}
 	}
-	
+
 	/**
 	 * Get the primary key from the conceptual table name
 	 * @param table						The conceptual table name
 	 * @return							The physical table name
 	 */
+	@Deprecated
 	protected String getPrimKey4Table(String conceptualTableName){
 		if(primaryKeyCache.containsKey(conceptualTableName)){
 			return primaryKeyCache.get(conceptualTableName);
 		}
 		else if (engine != null && !engine.isBasic()) {
 			// we dont have it.. so query for it
-			String tableURI = this.engine.getConceptPhysicalUriFromConceptualUri(conceptualTableName);
-			// since we also have the URI, just store the primary key as well
-			// will most likely be used
-			String primKey = Utility.getClassName(tableURI);
-			primaryKeyCache.put(conceptualTableName, primKey);
-			return primKey;
+			String physicalUri = this.engine.getPhysicalUriFromPixelSelector(conceptualTableName);
+			if(physicalUri != null) {
+				String primKey = this.engine.getLegacyPrimKey4Table(physicalUri);
+				primaryKeyCache.put(conceptualTableName, primKey);
+				return primKey;
+			}
 		}
 		return conceptualTableName;
 	}
-	
+
 	/**
 	 * Get the alias for each table name
 	 * @param tableName				The table name
@@ -1198,31 +1188,33 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	public String getAlias(String curTableName)
 	{
 		return curTableName;
-//		// try to find if the table name has schema in it
-//		String [] tableTokens = curTableName.split("[.]");
-//	
-//		// now just take the latest one
-//		String tableName = tableTokens[tableTokens.length - 1];
-//		
-//		// alias already exists
-//		if(aliases.containsKey(tableName)) {
-//			return aliases.get(tableName);
-//		} else {
-//			boolean aliasComplete = false;
-//			int count = 0;
-//			String tryAlias = "";
-//			while(!aliasComplete)
-//			{
-//				if(tryAlias.length()>0){
-//					tryAlias+="_"; //prevent an error where you may create an alias that is a reserved word (ie, we did this with "as")
-//				}
-//				tryAlias = (tryAlias + tableName.charAt(count)).toUpperCase();
-//				aliasComplete = !aliases.containsValue(tryAlias);
-//				count++;
-//			}
-//			aliases.put(tableName, tryAlias);
-//			return tryAlias;
-//		}
+		/*
+		// try to find if the table name has schema in it
+		String [] tableTokens = curTableName.split("[.]");
+
+		// now just take the latest one
+		String tableName = tableTokens[tableTokens.length - 1];
+
+		// alias already exists
+		if(aliases.containsKey(tableName)) {
+			return aliases.get(tableName);
+		} else {
+			boolean aliasComplete = false;
+			int count = 0;
+			String tryAlias = "";
+			while(!aliasComplete)
+			{
+				if(tryAlias.length()>0){
+					tryAlias+="_"; //prevent an error where you may create an alias that is a reserved word (ie, we did this with "as")
+				}
+				tryAlias = (tryAlias + tableName.charAt(count)).toUpperCase();
+				aliasComplete = !aliases.containsValue(tryAlias);
+				count++;
+			}
+			aliases.put(tableName, tryAlias);
+			return tryAlias;
+		}
+		 */
 	}
 	
 	////////////////////////////// end caching utility methods //////////////////////////////////////
@@ -1315,11 +1307,11 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String fromURI = null;
 			String toURI = null;
 			
-			String fromConceptual = "http://semoss.org/ontologies/Concept/" + fromString;
-			String toConceptual = "http://semoss.org/ontologies/Concept/" + toString;
-			
-			fromURI = this.engine.getConceptPhysicalUriFromConceptualUri(fromConceptual);
-			toURI = this.engine.getConceptPhysicalUriFromConceptualUri(toConceptual);
+//			String fromConceptual = "http://semoss.org/ontologies/Concept/" + fromString;
+//			String toConceptual = "http://semoss.org/ontologies/Concept/" + toString;
+
+			fromURI = this.engine.getPhysicalUriFromPixelSelector(fromString);
+			toURI = this.engine.getPhysicalUriFromPixelSelector(toString);
 
 			// need to figure out what the predicate is from the owl
 			// also need to determine the direction of the relationship -- if it is forward or backward
