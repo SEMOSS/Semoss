@@ -29,13 +29,28 @@ public interface IRJavaTranslator {
 	 * @param rScript
 	 */
 	Object executeR(String rScript);
+
 	
+	/**
+	 * Execute an R Script
+	 * FOR INTERNAL USE ONLY - IF YOU TRY TO CALL IT WONT WORK
+	 * @param rScript
+	 */
+	Object executeRunR(String rScript);
+
 	/**
 	 * Execute an R Script without a return
 	 * @param rScript
 	 */
 	void executeEmptyR(String rScript);
-	
+
+	/**
+	 * Execute an R Script without a return
+	 * FOR INTERNAL USE ONLY - IF YOU TRY TO CALL IT WONT WORK
+	 * @param rScript
+	 */
+	void executeEmptyRunR(String rScript);
+
 	/**
 	 * Cancel the execution of the currently running R script. Different from
 	 * stopRProcess in that the R service still runs. Similar to stop in R Studio.
