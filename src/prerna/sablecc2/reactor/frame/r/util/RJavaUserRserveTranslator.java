@@ -51,7 +51,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				// Then initialize
 				rcon.initializeConnection();
 				rcon.loadDefaultPackages();
-				initREnv(); // TODO>>>timb: R - why do we need these? They are not called in recover methods of the RUserConnection framework (later)
+				// this needs to be at the every instance level. so moved this to factory
+				//initREnv(); // TODO>>>timb: R - why do we need these? They are not called in recover methods of the RUserConnection framework (later)
 				setMemoryLimit();
 			}
 		} catch (Exception e) {
@@ -123,11 +124,20 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	////////////////////////////////////////
 	@Override
 	public Object executeR(String rScript) {
+		// escape quotes
+		rScript = rScript.replaceAll("\"", "\\\"");
+		rScript = rScript.replaceAll("'", "\\'");
+		// attempt to put it into environment
+		rScript = "eval(parse(text='" + rScript + "'), envir=" + this.env +");";
+
 		return rcon.eval(rScript);
 	}
 	
 	@Override
 	public void executeEmptyR(String rScript) {
+		rScript = rScript.replaceAll("\"", "\\\"");
+		rScript = rScript.replaceAll("'", "\\'");
+
 		rcon.voidEval(rScript);
 	}
 	
@@ -581,4 +591,16 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		
 		return retArr;
 	}
+
+	@Override
+	public Object executeRunR(String rScript) {
+		// TODO Auto-generated method stub
+		return rcon.eval(rScript);
+	}
+	
+	@Override
+	public void executeEmptyRunR(String rScript) {
+		rcon.voidEval(rScript);
+	}
+
 }
