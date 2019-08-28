@@ -44,13 +44,16 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		if(themeDb == null) {
 			return new HashMap();
 		}
-		String query = "SELECT theme_map FROM ADMIN_THEME WHERE is_active=TRUE;";
+
+		String query = "SELECT id, theme_name, theme_map, is_active FROM ADMIN_THEME WHERE is_active=TRUE;";
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, query);
-		Object retVal = flushRsToObject(wrapper);
-		if(retVal == null) {
+		List<Map<String, Object>> retVal = flushRsToMap(wrapper);
+		
+		if(retVal.isEmpty()) {
 			return new HashMap();
 		}
-		return retVal;
+		
+		return retVal.get(0);
 	}
 	
 	
