@@ -649,21 +649,21 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 				// otherwise, normal filter
 				if(thisComparator.equals("?like")) {
 					if(isProp) {
-						if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
+//						if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
 							for(int i = 0; i < numObjects; i++) {
 								if(i != 0) {
 									filterBuilder.append(" || ");
 								}
 								filterBuilder.append("REGEX(STR(?").append(leftCleanVarName).append("), \"").append(rightObjects.get(i)).append("\", 'i')");
 							}
-						} else {
-							for(int i = 0; i < numObjects; i++) {
-								if(i != 0) {
-									filterBuilder.append(" || ");
-								}
-								filterBuilder.append("REGEX(?").append(leftCleanVarName).append(", \"").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
-							}
-						}
+//						} else {
+//							for(int i = 0; i < numObjects; i++) {
+//								if(i != 0) {
+//									filterBuilder.append(" || ");
+//								}
+//								filterBuilder.append("REGEX(?").append(leftCleanVarName).append(", \"").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
+//							}
+//						}
 					} else {
 						String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
 						for(int i = 0; i < numObjects; i++) {
