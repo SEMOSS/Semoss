@@ -14,6 +14,7 @@ import org.openrdf.model.vocabulary.RDF;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -22,7 +23,6 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
@@ -118,7 +118,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 		logger.info(stepCounter + ". Start generating default app insights");
 		// note, on engine creation, we auto create an insights database + add explore an instance
-		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
+		RDFEngineCreationHelper.insertSelectConceptsAsInsights(this.engine, owler.getPixelNames());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -172,7 +172,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 		logger.info(stepCounter + ". Start generating default app insights");
-		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(this.engine, owler.getConceptualNodes());
+		RDFEngineCreationHelper.insertNewSelectConceptsAsInsights(this.engine, owler.getPixelNames());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

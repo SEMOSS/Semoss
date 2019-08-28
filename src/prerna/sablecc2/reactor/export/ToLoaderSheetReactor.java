@@ -77,43 +77,43 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		Workbook workbook = new XSSFWorkbook();
 		
 		// get a list of all the tables and properties
-		Vector<String> concepts = engine.getConcepts(false);
+		List<String> concepts = engine.getPhysicalConcepts();
 
 		for(String conceptPhysicalUri : concepts) {
 			if(conceptPhysicalUri.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
 			}
 			String physicalConceptName = Utility.getInstanceName(conceptPhysicalUri);
-			String conceptConceptualUri = engine.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
-			if(conceptConceptualUri == null) {
+			String conceptPixelUri = engine.getConceptPixelUriFromPhysicalUri(conceptPhysicalUri);
+			if(conceptPixelUri == null) {
 				// this is most likely because you have a weird subclass you added
 				// but didn't give it a proper conceptual name
 				// like ActiveSystem
 				continue;
 			}
-			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
+			String conceptPixelName = Utility.getInstanceName(conceptPixelUri);
 			
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 			qs.setEngine(engine);
-			qs.addSelector(new QueryColumnSelector(conceptualName));
+			qs.addSelector(new QueryColumnSelector(conceptPixelName));
 			
-			List<String> properties = engine.getProperties4Concept(conceptPhysicalUri, false);
+			List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysicalUri);
 			for(int i = 0; i < properties.size(); i++) {
 				String propertyPhysicalUri = properties.get(i);
-				String propertyConceptualUri = engine.getConceptualUriFromPhysicalUri(propertyPhysicalUri);
-				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
-				qs.addSelector(new QueryColumnSelector(conceptualName + "__" + propertyConceptualName));
+				String propertyPixelUri = engine.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propertyPhysicalUri);
+				String propertyConceptualName = Utility.getClassName(propertyPixelUri);
+				qs.addSelector(new QueryColumnSelector(conceptPixelName + "__" + propertyConceptualName));
 			}
 			
-			logger.info("Start node sheet for concept = " + conceptualName);
+			logger.info("Start node sheet for concept = " + conceptPixelName);
 			IRawSelectWrapper iterator = WrapperManager.getInstance().getRawWrapper(engine, qs);
 			writeNodePropSheet(engine, workbook, iterator, physicalConceptName, properties);
-			logger.info("Finsihed node sheet for concept = " + conceptualName);
+			logger.info("Finsihed node sheet for concept = " + conceptPixelName);
 		}
 		
 		// now i need all the relationships
-		Vector<String[]> rels = engine.getRelationships(true);
+		List<String[]> rels = engine.getPhysicalRelationships();
 		if(engine.getEngineType() == ENGINE_TYPE.SESAME) {
 			for(String[] rel : rels) {
 				logger.info("Start rel sheet for " + Arrays.toString(rel));
@@ -225,8 +225,8 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		{
 			Row row = sheet.createRow(0);
 			row.createCell(0).setCellValue("Relation");
-			row.createCell(1).setCellValue(getPhysicalColumnHeader(engine, rel[0]));
-			row.createCell(2).setCellValue(getPhysicalColumnHeader(engine, rel[1]));
+			row.createCell(1).setCellValue(Utility.getInstanceName(rel[0]));
+			row.createCell(2).setCellValue(Utility.getInstanceName(rel[1]));
 			if(edgeProps != null) {
 				for(int i = 0; i < edgeProps.size(); i++) {
 					row.createCell(3+i).setCellValue(edgeProps.get(i));
@@ -296,9 +296,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		String query = null;
 		if(edgeProps.isEmpty()) {
 			query = "select distinct ?start ?end where { "
-				+ "{?start a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, startNode) + ">}"
-				+ "{?end a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, endNode) + ">}"
-				+ "{?start <http://semoss.org/ontologies/Relation/" + Utility.getInstanceName(relName) + "> ?end}"
+				+ "{?start a <" + startNode + ">}"
+				+ "{?end a <" + endNode + ">}"
+				+ "{?start <" + relName + "> ?end}"
 				+ "} order by ?start";
 		} else {
 			StringBuilder b = new StringBuilder();
@@ -307,9 +307,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 				b.append("?prop").append(i).append(" ");
 			}
 			b.append("where { "
-					+ "{?start a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, startNode) + ">}"
-					+ "{?end a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, endNode) + ">}"
-					+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/" + Utility.getInstanceName(relName) + ">}"
+					+ "{?start a <" + startNode + ">}"
+					+ "{?end a <" + endNode + ">}"
+					+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <" + relName + ">}"
 					+ "{?start ?rel ?end}");
 			for(int i = 0; i < edgeProps.size(); i++) {
 				b.append("OPTIONAL{?rel <http://semoss.org/ontologies/Relation/Contains/").append(edgeProps.get(i)).append("> ?prop").append(i).append("}");
@@ -322,9 +322,9 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 	
 	public static List<String> getEdgeProperties(IEngine engine, String startNode, String endNode, String relName) {
 		String startQ = "select distinct ?propUri where { "
-				+ "{?start a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, startNode) + ">}"
-				+ "{?end a <http://semoss.org/ontologies/Concept/" + getPhysicalColumnHeader(engine, endNode) + ">}"
-				+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation/" + Utility.getInstanceName(relName) + ">}"
+				+ "{?start a <" + startNode + ">}"
+				+ "{?end a <" + endNode + ">}"
+				+ "{?rel <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <" + relName + ">}"
 				+ "{?start ?rel ?end}"
 				+ "{?propUri a <http://semoss.org/ontologies/Relation/Contains>}"
 				+ "{?rel ?propUri ?prop}"
@@ -338,11 +338,12 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 		return props;
 	}
 
-	public static String getPhysicalColumnHeader(IEngine engine, String conceptualName) {
-		String physicalNodeUri = engine.getConceptPhysicalUriFromConceptualUri(conceptualName);
-		String physicalNodeName = Utility.getInstanceName(physicalNodeUri);
-		return physicalNodeName;
-	}
+//	public static String getPhysicalColumnHeader(IEngine engine, String conceptPixelUri) {
+//		String conceptPixelName = Utility.getInstanceName(conceptPixelUri);
+//		String physicalNodeUri = engine.getPhysicalUriFromPixelSelector(conceptPixelName);
+//		String physicalNodeName = Utility.getInstanceName(physicalNodeUri);
+//		return physicalNodeName;
+//	}
 	
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");

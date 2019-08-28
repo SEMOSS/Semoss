@@ -104,7 +104,7 @@ public class RNativeEngine extends AbstractEngine {
 			Map <String,String> conceptAndType = this.getDataTypes(conceptsArray);
 			for(int conceptIndex = 0;conceptIndex < conceptsArray.length;conceptIndex++)
 			{
-				List <String> propList = getProperties4Concept(conceptsArray[conceptIndex], false);
+				List <String> propList = getPropertyUris4PhysicalUri(conceptsArray[conceptIndex]);
 				if(propList.size() > 0) {
 					fakeHeader = conceptsArray[conceptIndex];
 				}

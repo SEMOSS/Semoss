@@ -3,13 +3,13 @@ package prerna.sablecc2.reactor.app.metaeditor.concepts;
 import java.util.List;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.AbstractOwler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReactor {
@@ -25,7 +25,7 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if(concept == null || concept.isEmpty()) {
@@ -49,24 +49,23 @@ public class EditOwlConceptConceptualNameReactor extends AbstractMetaEditorReact
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
 		// make sure this name isn't currently present in the engine
-		if(engine.getConceptPhysicalUriFromConceptualUri(newConceptualURI) != null) {
+		if(engine.getPhysicalUriFromPixelSelector(newConceptualName) != null) {
 			throw new IllegalArgumentException("This conceptual name already exists");
 		}
 		
 		String conceptualURI = "http://semoss.org/ontologies/Concept/" + concept;
-		String conceptPhysicalURI = engine.getConceptPhysicalUriFromConceptualUri(conceptualURI);
+		String conceptPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
 		if(conceptPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept. Please define the concept first before modifying the conceptual name");
 		}
 		
-		String conceptualRel = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS + "/" + Owler.CONCEPTUAL_RELATION_NAME;
+		String conceptualRel = AbstractOwler.SEMOSS_URI_PREFIX + AbstractOwler.DEFAULT_RELATION_CLASS + "/" + AbstractOwler.CONCEPTUAL_RELATION_NAME;
 		
 		// okay, not only do i need to change this concept
 		// but i have to change all the properties conceptual
-		List<String> properties = engine.getProperties4Concept(conceptPhysicalURI, false);
+		List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysicalURI);
 		for(String propertyPhysicalUri : properties) {
-			String propertyConceptualUri = engine.getConceptualUriFromPhysicalUri(propertyPhysicalUri);
-			
+			String propertyConceptualUri = engine.getPropertyPixelUriFromPhysicalUri(conceptPhysicalURI, propertyPhysicalUri);
 			String propConceptualName = Utility.getClassName(propertyConceptualUri);
 			String newPropertyConceptualUri = "http://semoss.org/ontologies/Relation/Contains/" + propConceptualName + "/" + newConceptualName;
 			

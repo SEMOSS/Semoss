@@ -11,9 +11,9 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class RdfUploadReactorUtility {
@@ -57,11 +57,11 @@ public class RdfUploadReactorUtility {
 		instanceObjectName = Utility.cleanString(instanceObjectName, true);
 
 		// get base URIs for subject node at instance and semoss level
-		String subjectSemossBaseURI = owler.addConcept(subjectNodeType);
+		String subjectSemossBaseURI = owler.addConcept(subjectNodeType, "STRING");
 		String subjectInstanceBaseURI = getInstanceURI(baseUri, subjectNodeType);
 
 		// get base URIs for object node at instance and semoss level
-		String objectSemossBaseURI = owler.addConcept(objectNodeType);
+		String objectSemossBaseURI = owler.addConcept(objectNodeType, "STRING");
 		String objectInstanceBaseURI = getInstanceURI(baseUri, objectNodeType);
 
 		// create the full URI for the subject instance

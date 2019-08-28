@@ -14,7 +14,11 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.StringUtils;
 
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.comm.InMemoryConsole;
@@ -443,6 +447,36 @@ public abstract class AbstractReactor implements IReactor {
 			return session.getValue() +"";
 		}
 		return ThreadStore.getSessionId();
+	}
+	
+	/**
+	 * Test the app id and grab the correct value and check if the user needs edit access or just read access
+	 * @param appId			String the app id to test
+	 * @param edit			Boolean true means the user needs edit access
+	 * @return
+	 */
+	protected String testAppId(String appId, boolean edit) {
+		String testId = appId;
+		if(AbstractSecurityUtils.securityEnabled()) {
+			testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
+			if(edit) {
+				// need edit permission
+				if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), testId)) {
+					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
+				}
+			} else {
+				// just need read access
+				if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), testId)) {
+					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
+				}
+			}
+		} else {
+			testId = MasterDatabaseUtility.testEngineIdIfAlias(testId);
+			if(!MasterDatabaseUtility.getAllEngineIds().contains(testId)) {
+				throw new IllegalArgumentException("App " + appId + " does not exist");
+			}
+		}
+		return testId;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////

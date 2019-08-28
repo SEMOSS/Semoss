@@ -772,15 +772,7 @@ public class TableUserTracker implements IUserTracker {
 			RDFFileSesameEngine owlEngine = ((AbstractEngine) engine).getBaseDataEngine();
 			
 			// are we dealing with a concept or a property
-			String physicalUri = null;
-			if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-				// table
-				physicalUri = engine.getConceptPhysicalUriFromConceptualUri(table);
-			} else {
-				// property
-				physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(column, table);
-			}
-			
+			String physicalUri = engine.getPhysicalUriFromPixelSelector(table + "__" + column);
 			if(physicalUri != null) {
 				try {
 					String uniqueValQuery = "SELECT DISTINCT ?concept ?unique WHERE "

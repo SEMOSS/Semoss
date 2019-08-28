@@ -34,6 +34,7 @@ import prerna.engine.api.IConstructWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectWrapper;
+import prerna.engine.impl.json.JmesWrapper;
 import prerna.engine.impl.json.JsonWrapper;
 import prerna.engine.impl.json.JsonWrapper2;
 import prerna.engine.impl.web.WebWrapper;
@@ -97,6 +98,10 @@ public class WrapperManager {
 		}
 		case JSON2 : {
 			returnWrapper = new JsonWrapper2();
+			break;
+		}
+		case JMES_API : {
+			returnWrapper = new JmesWrapper();
 			break;
 		}
 		case WEB : {
@@ -194,6 +199,10 @@ public class WrapperManager {
 		}
 		case JSON2 : {
 			returnWrapper = new JsonWrapper2();
+			break;
+		}
+		case JMES_API : {
+			returnWrapper = new JmesWrapper();
 			break;
 		}
 		case WEB : {

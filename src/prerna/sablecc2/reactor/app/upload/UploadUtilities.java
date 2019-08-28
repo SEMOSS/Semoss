@@ -32,6 +32,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
@@ -51,7 +52,6 @@ import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.gson.GsonUtility;
@@ -1407,26 +1407,27 @@ public class UploadUtilities {
 		rfse.openFile(owl.getOwlPath(), null, null);
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
-		Vector<String> conceptsList = helper.getConcepts(false);
+		
+		List<String> conceptsList = helper.getPhysicalConcepts();
 		Map<String, Map<String, SemossDataType>> existingMetaModel = new HashMap<>();
 		for (String conceptPhysicalUri : conceptsList) {
-			Map<String, SemossDataType> propMap = new HashMap<>();
 			// so grab the conceptual name
-			String conceptConceptualUri = helper.getConceptualUriFromPhysicalUri(conceptPhysicalUri);
-			String conceptualName = Utility.getInstanceName(conceptConceptualUri);
-			List<String> properties = helper.getProperties4Concept(conceptPhysicalUri, false);
+			String conceptName = helper.getPixelSelectorFromPhysicalUri(conceptPhysicalUri);
+			// and grab its properties
+			List<String> properties = helper.getPropertyUris4PhysicalUri(conceptPhysicalUri);
+			
+			Map<String, SemossDataType> propMap = new HashMap<>();
 			for (String prop : properties) {
 				// grab the conceptual name
-				String propertyConceptualUri = helper.getConceptualUriFromPhysicalUri(prop);
-				// get owl type
-				String owlType = helper.getDataTypes(propertyConceptualUri);
+				String propertyPixelName = helper.getPixelSelectorFromPhysicalUri(prop);
+				String owlType = helper.getDataTypes(prop);
 				owlType = owlType.replace("TYPE:", "");
 				SemossDataType type = SemossDataType.convertStringToDataType(owlType);
 				// property conceptual uris are always /Column/Table
-				String propertyConceptualName = Utility.getClassName(propertyConceptualUri);
+				String propertyConceptualName = propertyPixelName.split("__")[1];
 				propMap.put(propertyConceptualName, type);
 			}
-			existingMetaModel.put(conceptualName, propMap);
+			existingMetaModel.put(conceptName, propMap);
 		}
 		return existingMetaModel;
 	}

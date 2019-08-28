@@ -2700,7 +2700,7 @@ public class Translation extends DepthFirstAdapter {
 			engineName = node.getEngineName().toString().trim();
 			List<String> eList = new Vector<String>();
 			eList.add(engineName);
-			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptPropertiesRDBMS(logicalNames, eList);
+			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptProperties(logicalNames, eList);
 			//iterate through cause not sure if engine key will get reformatted
 			for(String engineKey : retData.keySet()) {
 				Object[] props = retData.get(engineKey);
@@ -2716,7 +2716,7 @@ public class Translation extends DepthFirstAdapter {
 				break;
 			}
 		} else {
-			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptPropertiesRDBMS(logicalNames, null);
+			Map<String, Object[]> retData = MasterDatabaseUtility.getConceptProperties(logicalNames, new ArrayList<String>());
 			runner.setReturnData(retData);
 		}
 		

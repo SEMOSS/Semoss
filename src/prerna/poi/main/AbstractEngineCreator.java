@@ -11,6 +11,7 @@ import org.openrdf.model.vocabulary.RDF;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
@@ -21,7 +22,6 @@ import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;

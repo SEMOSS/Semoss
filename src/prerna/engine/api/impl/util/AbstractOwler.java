@@ -1,4 +1,4 @@
-package prerna.util;
+package prerna.engine.api.impl.util;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -22,13 +22,18 @@ public abstract class AbstractOwler {
 	public static final String DEFAULT_RELATION_CLASS = "Relation";
 	public static final String DEFAULT_PROP_CLASS = "Relation/Contains";
 	public static final String CONCEPTUAL_RELATION_NAME = "Conceptual";
+	public static final String PIXEL_RELATION_NAME = "Pixel";
 
 	// since we keep making these URIs often
 	public static final String BASE_NODE_URI = SEMOSS_URI_PREFIX + DEFAULT_NODE_CLASS;
 	public static final String BASE_RELATION_URI = SEMOSS_URI_PREFIX + DEFAULT_RELATION_CLASS;
 	public static final String BASE_PROPERTY_URI = SEMOSS_URI_PREFIX + DEFAULT_PROP_CLASS;
 	public static final String CONCEPTUAL_RELATION_URI = BASE_RELATION_URI + "/" + CONCEPTUAL_RELATION_NAME;
-		
+	public static final String PIXEL_RELATION_URI = BASE_RELATION_URI + "/" + PIXEL_RELATION_NAME;
+
+	@Deprecated
+	public static final String LEGACY_PRIM_KEY_URI = BASE_RELATION_URI + "/" + "LEGACY_PRIM_KEY";
+	
 	// hashtable of concepts
 	protected Hashtable<String, String> conceptHash = new Hashtable<String, String>();
 	// hashtable of relationships
@@ -36,7 +41,7 @@ public abstract class AbstractOwler {
 	// hashtable of properties
 	protected Hashtable<String, String> propHash = new Hashtable<String, String>();
 	// set of conceptual names
-	protected Set<String> conceptualNames = new HashSet<String>();
+	protected Set<String> pixelNames = new HashSet<String>();
 	// need to know the database type due to differences in URIs when the
 	// database is RDF vs. RDBMS
 	protected IEngine.ENGINE_TYPE type = null;
@@ -225,8 +230,8 @@ public abstract class AbstractOwler {
 		return propHash;
 	}
 	
-	public Set<String> getConceptualNodes() {
-		return conceptualNames;
+	public Set<String> getPixelNames() {
+		return pixelNames;
 	}
 	
 	///////////////// END GETTERS ///////////////////////

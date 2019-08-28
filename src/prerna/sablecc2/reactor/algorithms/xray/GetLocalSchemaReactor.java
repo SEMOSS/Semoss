@@ -46,7 +46,7 @@ public class GetLocalSchemaReactor extends AbstractReactor {
 			}
 			colInfo.put("type", dataType);
 			allCols.add(colInfo);
-			List<String> properties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(table, engineId);
+			List<String> properties = MasterDatabaseUtility.getSpecificConceptProperties(table, engineId);
 			for (String prop : properties) {
 				HashMap<String, String> propInfo = new HashMap<String, String>();
 				propInfo.put("name", prop);

@@ -42,6 +42,11 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		this.orderBySelectors.add(selector);
 	}
 	
+	public void addOrderBy(String qsName) {
+		QueryColumnOrderBySelector selector = new QueryColumnOrderBySelector(qsName);
+		this.orderBySelectors.add(selector);
+	}
+	
 	public void addOrderBy(String qsName, String sortDir) {
 		QueryColumnOrderBySelector selector = new QueryColumnOrderBySelector(qsName);
 		selector.setSortDir(sortDir);

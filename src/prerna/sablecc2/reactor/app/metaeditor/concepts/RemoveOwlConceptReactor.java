@@ -28,7 +28,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if(concept == null || concept.isEmpty()) {
@@ -40,8 +40,8 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 		// and then everything related to this node
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
-		String conceptPhysical = engine.getConceptPhysicalUriFromConceptualUri(concept);
-		List<String> properties = engine.getProperties4Concept(conceptPhysical, false);
+		String conceptPhysical = engine.getPhysicalUriFromPixelSelector(concept);
+		List<String> properties = engine.getPropertyUris4PhysicalUri(conceptPhysical);
 		StringBuilder bindings = new StringBuilder();
 		for(String prop : properties) {
 			bindings.append("(<").append(prop).append(">)");

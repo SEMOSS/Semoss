@@ -46,9 +46,9 @@ import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.AbstractOwler;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.util.Constants;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public abstract class AbstractFileReader extends AbstractEngineCreator {
@@ -125,17 +125,17 @@ public abstract class AbstractFileReader extends AbstractEngineCreator {
 
 	protected void loadMetadataIntoEngine() {
 		Hashtable<String, String> hash = owler.getConceptHash();
-		String object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_NODE_CLASS;
+		String object = AbstractOwler.SEMOSS_URI_PREFIX + AbstractOwler.DEFAULT_NODE_CLASS;
 		for(String concept : hash.keySet()) {
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(concept), RDFS.SUBCLASSOF + "", object, true});
 		}
 		hash = owler.getRelationHash();
-		object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_RELATION_CLASS;
+		object = AbstractOwler.SEMOSS_URI_PREFIX + AbstractOwler.DEFAULT_RELATION_CLASS;
 		for(String relation : hash.keySet()) {
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(relation), RDFS.SUBPROPERTYOF + "", object, true});
 		}
 		hash = owler.getPropHash();
-		object = Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_PROP_CLASS;
+		object = AbstractOwler.SEMOSS_URI_PREFIX + AbstractOwler.DEFAULT_PROP_CLASS;
 		for(String prop : hash.keySet()) {
 			engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{hash.get(prop), RDF.TYPE + "", object, true});
 		}

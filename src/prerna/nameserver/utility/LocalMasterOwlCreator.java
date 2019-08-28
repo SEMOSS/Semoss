@@ -7,8 +7,8 @@ import java.util.Vector;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class LocalMasterOwlCreator {
@@ -43,7 +43,7 @@ public class LocalMasterOwlCreator {
 		 */
 		
 		List<String> cleanConcepts = new Vector<String>();
-		List<String> concepts = localMasterDb.getConcepts(true);
+		List<String> concepts = localMasterDb.getPhysicalConcepts();
 		for(String concept : concepts) {
 			if(concept.equals("http://semoss.org/ontologies/Concept")) {
 				continue;
@@ -91,71 +91,83 @@ public class LocalMasterOwlCreator {
 		Owler owler = new Owler(owlLocation, ENGINE_TYPE.RDBMS);
 
 		// BITLY
-		owler.addConcept("BITLY", "EMBED", "VARCHAR(20000)");
-		owler.addProp("BITLY", "EMBED", "FANCY", "VARCHAR(800)", null);
+		owler.addConcept("BITLY", null, null);
+		owler.addProp("BITLY", "EMBED", "VARCHAR(20000)");
+		owler.addProp("BITLY", "FANCY", "VARCHAR(800)");
 		
 		// CONCEPT
-		owler.addConcept("CONCEPT", "LOCALCONCEPTID", "VARCHAR(800)");
-		owler.addProp("CONCEPT", "LOCALCONCEPTID", "CONCEPTUALNAME", "VARCHAR(800)", null);
-		owler.addProp("CONCEPT", "LOCALCONCEPTID", "LOGICALNAME", "VARCHAR(800)", null);
-		owler.addProp("CONCEPT", "LOCALCONCEPTID", "DOMAINNAME", "VARCHAR(800)", null);
-		owler.addProp("CONCEPT", "LOCALCONCEPTID", "GLOBALID", "VARCHAR(800)", null);
+		owler.addConcept("CONCEPT", null, null);
+		owler.addProp("CONCEPT", "LOCALCONCEPTID", "VARCHAR(255)");
+		owler.addProp("CONCEPT", "CONCEPTUALNAME", "VARCHAR(255)");
+		owler.addProp("CONCEPT", "LOGICALNAME", "VARCHAR(255)");
+		owler.addProp("CONCEPT", "DOMAINNAME", "VARCHAR(255)");
+		owler.addProp("CONCEPT", "GLOBALID", "VARCHAR(255)");
 
 		// CONCEPTMETADATA
-		owler.addConcept("CONCEPTMETADATA", "PHYSICALNAMEID", "VARCHAR(800)");
-		owler.addProp("CONCEPTMETADATA", "PHYSICALNAMEID", "KEY", "VARCHAR(800)", null);
-		owler.addProp("CONCEPTMETADATA", "PHYSICALNAMEID", "VALUE", "VARCHAR(800)", null);
+		owler.addConcept("CONCEPTMETADATA", null, null);
+		owler.addProp("CONCEPTMETADATA", "PHYSICALNAMEID", "VARCHAR(255)");
+		owler.addProp("CONCEPTMETADATA", "KEY", "VARCHAR(255)");
+		owler.addProp("CONCEPTMETADATA", "VALUE", "VARCHAR(255)");
 
 		// ENGINE
-		owler.addConcept("ENGINE", "ID", "VARCHAR(800)");
-		owler.addProp("ENGINE", "ID", "ENGINENAME", "VARCHAR(800)", null);
-		owler.addProp("ENGINE", "ID", "MODIFIEDDATE", "TIMESTAMP", null);
-		owler.addProp("ENGINE", "ID", "TYPE", "VARCHAR(800)", null);
+		owler.addConcept("ENGINE", null, null);
+		owler.addProp("ENGINE", "ID", "VARCHAR(255)");
+		owler.addProp("ENGINE", "ENGINENAME", "VARCHAR(255)");
+		owler.addProp("ENGINE", "MODIFIEDDATE", "TIMESTAMP");
+		owler.addProp("ENGINE", "TYPE", "VARCHAR(255)");
 
 		// ENGINECONCEPT
-		owler.addConcept("ENGINECONCEPT", "LOCALCONCEPTID", "VARCHAR(800)");
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "ENGINE", "VARCHAR(800)", null);
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "PHYSICALNAME", "VARCHAR(800)", null);
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "PARENTPHYSICALID", "VARCHAR(800)", null);
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "PHYSICALNAMEID", "VARCHAR(800)", null);
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "PK", "BOOLEAN", null);
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "PROPERTY", "BOOLEAN", null);
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "ORIGINAL_TYPE", "VARCHAR(800)", null);
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "PROPERTY_TYPE", "VARCHAR(800)", null);
-		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "ADDITIONAL_TYPE", "VARCHAR(800)", null);
+		owler.addConcept("ENGINECONCEPT", null, null);
+		owler.addProp("ENGINECONCEPT", "ENGINE", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "PARENTSEMOSSNAME", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "SEMOSSNAME", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "PARENTPHYSICALNAME", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "PARENTPHYSICALNAMEID", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "PHYSICALNAME", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "PHYSICALNAMEID", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "PARENTLOCALCONCEPTID", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "LOCALCONCEPTID", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "PK", "BOOLEAN");
+		owler.addProp("ENGINECONCEPT", "IGNORE_DATA", "BOOLEAN");
+		owler.addProp("ENGINECONCEPT", "ORIGINAL_TYPE", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "PROPERTY_TYPE", "VARCHAR(255)");
+		owler.addProp("ENGINECONCEPT", "ADDITIONAL_TYPE", "VARCHAR(255)");
 		
 		// ENGINERELATION
-		owler.addConcept("ENGINERELATION", "RELATIONID", "VARCHAR(800)");
-		owler.addProp("ENGINERELATION", "RELATIONID", "ENGINE", "VARCHAR(800)", null);
-		owler.addProp("ENGINERELATION", "RELATIONID", "INSTANCERELATIONID", "VARCHAR(800)", null);
-		owler.addProp("ENGINERELATION", "RELATIONID", "SOURCECONCEPTID", "VARCHAR(800)", null);
-		owler.addProp("ENGINERELATION", "RELATIONID", "TARGETCONCEPTID", "VARCHAR(800)", null);
-		owler.addProp("ENGINERELATION", "RELATIONID", "SOURCEPROPERTY", "VARCHAR(800)", null);
-		owler.addProp("ENGINERELATION", "RELATIONID", "TARGETPROPERTY", "VARCHAR(800)", null);
-		owler.addProp("ENGINERELATION", "RELATIONID", "RELATIONNAME", "VARCHAR(800)", null);
+		owler.addConcept("ENGINERELATION", null, null);
+		owler.addProp("ENGINERELATION", "RELATIONID", "VARCHAR(255)");
+		owler.addProp("ENGINERELATION", "ENGINE", "VARCHAR(255)");
+		owler.addProp("ENGINERELATION", "INSTANCERELATIONID", "VARCHAR(255)");
+		owler.addProp("ENGINERELATION", "SOURCECONCEPTID", "VARCHAR(255)");
+		owler.addProp("ENGINERELATION", "TARGETCONCEPTID", "VARCHAR(255)");
+		owler.addProp("ENGINERELATION", "SOURCEPROPERTY", "VARCHAR(255)");
+		owler.addProp("ENGINERELATION", "TARGETPROPERTY", "VARCHAR(255)");
+		owler.addProp("ENGINERELATION", "RELATIONNAME", "VARCHAR(255)");
 
 		// KVSTORE
-		owler.addConcept("KVSTORE", "K", "VARCHAR(800)");
-		owler.addProp("KVSTORE", "K", "V", "VARCHAR(800)", null);
+		owler.addConcept("KVSTORE", null, null);
+		owler.addProp("KVSTORE", "K", "VARCHAR(800)");
+		owler.addProp("KVSTORE", "V", "VARCHAR(800)");
 
 		// RELATION
-		owler.addConcept("RELATION", "ID", "VARCHAR(800)");
-		owler.addProp("RELATION", "ID", "SOURCEID", "VARCHAR(800)", null);
-		owler.addProp("RELATION", "ID", "TARGETID", "VARCHAR(800)", null);
-		owler.addProp("RELATION", "ID", "GLOBALID", "VARCHAR(800)", null);
+		owler.addConcept("RELATION", null, null);
+		owler.addProp("RELATION", "ID", "VARCHAR(255)");
+		owler.addProp("RELATION", "SOURCEID", "VARCHAR(255)");
+		owler.addProp("RELATION", "TARGETID", "VARCHAR(255)");
+		owler.addProp("RELATION", "GLOBALID", "VARCHAR(255)");
 
 		// joins
-		owler.addRelation("ENGINE", "ID", "ENGINECONCEPT", "ENGINE", "ENGINE.ID.ENGINECONCEPT.ENGINE");
-		owler.addRelation("ENGINE", "ID", "ENGINERELATION", "ENGINE", "ENGINE.ID.ENGINERELATION.ENGINE");
+		owler.addRelation("ENGINE", "ENGINECONCEPT", "ENGINE.ID.ENGINECONCEPT.ENGINE");
+		owler.addRelation("ENGINE", "ENGINERELATION", "ENGINE.ID.ENGINERELATION.ENGINE");
 
-		owler.addRelation("ENGINECONCEPT", "LOCALCONCEPTID", "CONCEPT", "LOCALCONCEPTID", "ENGINECONCEPT.LOCALCONCEPTID.CONCEPT.LOCALCONCEPTID");
-		owler.addRelation("ENGINECONCEPT", "LOCALCONCEPTID", "ENGINERELATION", "RELATIONID", "ENGINECONCEPT.LOCALCONCEPTID.ENGINERELATION.SOURCECONCEPTID");
-		owler.addRelation("ENGINECONCEPT", "LOCALCONCEPTID", "ENGINERELATION", "RELATIONID", "ENGINECONCEPT.LOCALCONCEPTID.ENGINERELATION.TARGETCONCEPTID");
+		owler.addRelation("ENGINECONCEPT", "CONCEPT", "ENGINECONCEPT.LOCALCONCEPTID.CONCEPT.LOCALCONCEPTID");
+		owler.addRelation("ENGINECONCEPT", "ENGINERELATION", "ENGINECONCEPT.LOCALCONCEPTID.ENGINERELATION.SOURCECONCEPTID");
+		owler.addRelation("ENGINECONCEPT", "ENGINERELATION", "ENGINECONCEPT.LOCALCONCEPTID.ENGINERELATION.TARGETCONCEPTID");
 
-		owler.addRelation("ENGINERELATION", "RELATIONID", "RELATION", "ID", "ENGINERELATION.RELATIONID.RELATION.ID");
+		owler.addRelation("ENGINERELATION", "RELATION", "ENGINERELATION.RELATIONID.RELATION.ID");
 
-		owler.addRelation("CONCEPT", "LOCALCONCEPTID", "RELATION", "ID", "CONCEPT.LOCALCONCEPTID.RELATION.SOURCEID");
-		owler.addRelation("CONCEPT", "LOCALCONCEPTID", "RELATION", "ID", "CONCEPT.LOCALCONCEPTID.RELATION.TARGETID");
+		owler.addRelation("CONCEPT", "RELATION", "CONCEPT.LOCALCONCEPTID.RELATION.SOURCEID");
+		owler.addRelation("CONCEPT", "RELATION", "CONCEPT.LOCALCONCEPTID.RELATION.TARGETID");
 		
 		owler.commit();
 		owler.export();

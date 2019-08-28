@@ -19,6 +19,7 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.engine.api.IScriptReactor;
 import prerna.sablecc.expressions.IExpressionBuilder;
 
+@Deprecated
 public abstract class AbstractReactor implements IScriptReactor {
 
 	// every single thing I am listening to
