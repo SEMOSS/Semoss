@@ -86,6 +86,7 @@ public class Insight {
 	// we will use a special key 
 	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
 	public static transient final String INSIGHT_FILE_KEY = "$IF";
+	
 
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
@@ -150,6 +151,7 @@ public class Insight {
 	// insight specific reactors
 	private transient Map<String, Class> insightSpecificHash = new HashMap<String, Class>();
 	
+	public static Boolean isjavac = null;
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////// START CONSTRUCTORS //////////////////////////////////
@@ -796,17 +798,21 @@ public class Insight {
 	// get insight specific class
 	public IReactor getReactor(String className) {	
 		
+		// check to see if I can access javac class
 		
 		// try to get to see if this class already exists
 		// no need to recreate if it does
 		IReactor retReac = null;
-		if(getInsightFolder() != null)
+		
+		//String cp = getCP();
+		
+		if(isValidJava() && getInsightFolder() != null)
 		{
-			File insightDirector = new File(insightFolder);
+			File insightDirectory = new File(insightFolder);
 			// replace the version name to start with
-			String insightId = insightDirector.getName();
+			String insightId = insightDirectory.getName();
 			// accounting for the version which is why the second getParent
-			String db = insightDirector.getParentFile().getParentFile().getName();
+			String db = insightDirectory.getParentFile().getParentFile().getName();
 	//		insightFolder = insightFolder.replaceAll("\\\\", "/");
 	//		String insightId = Utility.getInstanceName(insightFolder);
 	//		String db = Utility.getClassName(insightFolder);
@@ -866,10 +872,27 @@ public class Insight {
 		}				
 		return retReac;
 	}
+	
+	public boolean isValidJava()
+	{
+		if(isjavac == null)
+		{
+			try
+			{
+				Class.forName("com.sun.tools.javac.Main");
+				isjavac = true;
+			}catch(ClassNotFoundException ex)
+			{
+				isjavac = false;
+			}
+		}
+		return isjavac;
+
+	}
 
 	
 	
-	private String getCP()
+	public String getCP()
 	{
 		String envClassPath = null;
 		
@@ -890,11 +913,28 @@ public class Insight {
         		.append(";");
         	
         }
+        // Adding it, even though this might not exist
+        if(insightFolder != null)
+        {
+	        File file = new File(insightFolder);
+	        if(file.exists())
+	        {
+	        	retClassPath.append(insightFolder + "/classes;");        
+	        
+	        //now the db
+		        String dbDir = file.getParentFile().getParent() + "/classes";
+		        retClassPath.append(dbDir);
+	        }        
+	        // this should also add the db classes folder and the insight classes folder if one exists
+        }        
         envClassPath = "\"" + retClassPath.toString() + "\"";
         
         return envClassPath;
+        
+        // we should also add to sys.path for py and then also remove it
+        // sys.path.add
+        // sys.path.remove - the remove is tricky however
 	}
 
-
-
+	
 }
