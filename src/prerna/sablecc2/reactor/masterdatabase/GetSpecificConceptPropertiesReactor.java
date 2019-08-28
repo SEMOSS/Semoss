@@ -44,7 +44,7 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
 		}
 		
-		List<String> conceptProperties = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(conceptLogicals, engineId);
+		List<String> conceptProperties = MasterDatabaseUtility.getSpecificConceptProperties(conceptLogicals, engineId);
 		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
 	}
 

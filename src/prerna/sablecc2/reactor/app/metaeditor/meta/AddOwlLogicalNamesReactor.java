@@ -3,13 +3,13 @@ package prerna.sablecc2.reactor.app.metaeditor.meta;
 import java.io.IOException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
@@ -22,7 +22,7 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 	public NounMetadata execute() {
 		String appId = getAppId();
 		// we may have an alias
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		String concept = getConcept();
 		String prop = getProperty();
@@ -31,9 +31,9 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		String physicalUri = null;
 		if(prop == null || prop.isEmpty()) {
-			physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
+			physicalUri = engine.getPhysicalUriFromPixelSelector(concept);
 		} else {
-			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(concept, prop);
+			physicalUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + prop);
 		}
 		
 		Owler owler = new Owler(engine);

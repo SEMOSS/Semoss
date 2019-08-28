@@ -3,6 +3,7 @@ package prerna.util;
 import java.io.IOException;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
 
@@ -44,7 +45,8 @@ public class CSVToOwlMaker {
 		// TODO: should we add it as LONG, or as VARCHAR... 
 		//		as a VARCHAR, it would make it default to always (and only) be used with counts via the UI
 		//		don't see why a person would every want to do sum/avg/etc. on it....
-		owler.addConcept(cleanTableName, identityColumn, "LONG");
+		owler.addConcept(cleanTableName, null, null);
+		owler.addProp(cleanTableName, identityColumn, "LONG");
 		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
 			String cleanHeader = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
 			owler.addProp(cleanTableName, identityColumn, cleanHeader, typePredictions[headerIndex][1].toString());

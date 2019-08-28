@@ -47,7 +47,7 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = getAppId(appId, false);
+		appId = testAppId(appId, false);
 		List<String> filters = getTableFilters();
 
 		// make sure R is good to go
@@ -69,7 +69,7 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 		// also store a matrix of instances
 		List<List<String>> sampleInstances = new Vector<List<String>>();
 		
-		Vector<String> concepts = app.getConcepts(false);
+		List<String> concepts = app.getPhysicalConcepts();
 		for(String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
 			
@@ -105,7 +105,7 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 			}
 				
 			// grab all the properties
-			List<String> properties = app.getProperties4Concept(cUri, false);
+			List<String> properties = app.getPropertyUris4PhysicalUri(cUri);
 			for(String pUri : properties) {
 				// we will only store string values!!!
 				SemossDataType pDataType = SemossDataType.convertStringToDataType(app.getDataTypes(pUri).replace("TYPE:", ""));

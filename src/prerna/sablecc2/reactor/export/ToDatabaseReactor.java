@@ -19,6 +19,7 @@ import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
@@ -29,7 +30,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.concepts.RemoveOwlConceptReactor;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class ToDatabaseReactor extends TaskBuilderReactor {
@@ -187,7 +187,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			logger.info("Finished creating new table");
 		} else {
 			// # of columns must match
-			List<String> cols = MasterDatabaseUtility.getSpecificConceptPropertiesRDBMS(targetTable, engineId);
+			List<String> cols = MasterDatabaseUtility.getSpecificConceptProperties(targetTable, engineId);
 			if(cols.size() != size) {
 				throw new SemossPixelException(new NounMetadata("Header size does not match for existing table. Please create a new table or have override=true", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
@@ -333,10 +333,11 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			logger.info("Need to update the engine metadata for the new table");
 			Owler owler = new Owler(targetEngine);
 			// choose the first column as the prim key
-			owler.addConcept(targetTable, headers[0], sqlTypes[0]);
+			owler.addConcept(targetTable, null, null);
+			owler.addProp(targetTable, headers[0], sqlTypes[0]);
 			// add all others as properties
 			for(int i = 1; i < targetSize; i++) {
-				owler.addProp(targetTable, headers[0], headers[i], sqlTypes[i], null);
+				owler.addProp(targetTable, headers[i], sqlTypes[i], null);
 			}
 			
 			logger.info("Persisting engine metadata and synchronizing with local master");

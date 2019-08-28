@@ -23,6 +23,7 @@ import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -56,6 +57,9 @@ public abstract class AbstractSecurityUtils {
 		if(owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
 		}
+		// Update OWL
+		OwlSeparatePixelFromConceptual.fixOwl(securityDb.getProp());
+		
 		initialize();
 		
 		Object security = DIHelper.getInstance().getLocalProp(Constants.SECURITY_ENABLED);

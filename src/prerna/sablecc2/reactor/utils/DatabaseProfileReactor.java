@@ -2,7 +2,6 @@ package prerna.sablecc2.reactor.utils;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -14,7 +13,6 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -54,6 +52,11 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			}
 		}
 
+		IEngine engine = Utility.getEngine(engineId);
+		if(engine == null) {
+			throw new IllegalArgumentException("Could not find database " + engineId);
+		}
+		
 		// output frame
 		ITableDataFrame table = getFrame();
 		if(!(table instanceof H2Frame)) {
@@ -77,67 +80,46 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			metaData.setDataTypeToProperty(uniqueHeader, dataType);
 		}
 		
-		IEngine engine = Utility.getEngine(engineId);
-		if(engine == null) {
-			throw new IllegalArgumentException("Could not find database " + engineId);
-		}
-		
 		List<String> conceptList = getConceptList();
 		// get concept properties from local master
-		Map<String, List<String>> conceptMap = MasterDatabaseUtility.getConceptProperties(conceptList, engineId);
-		for (String concept : conceptList) {
-			// first add concept profile data
-			String primKey = AbstractQueryStruct.PRIM_KEY_PLACEHOLDER;
-			String conceptDataType = null;
-			conceptDataType = MasterDatabaseUtility.getBasicDataType(engineId,  concept, null);
-			// concept data type now get profile data based on type
-			if (Utility.isNumericType(conceptDataType)) {
-				String[] row = getNumericalProfileData(engine, concept, primKey);
-				frame.addRow(tableName, headers, row, dataTypes);
-			} else {
-				if (Utility.isStringType(conceptDataType)) {
-					String[] cells = getStringProfileData(engine, concept, primKey);
+		for(String concept : conceptList) {
+			List<String> pixelSelectors = MasterDatabaseUtility.getConceptPixelSelectors(concept, engineId);
+			// the pixel selectors will already be in TABLE__COLUMN format
+			for(String selector : pixelSelectors) {
+				String semossName = selector;
+				String parentSemossName = null;
+				if(semossName.contains("__")) {
+					String[] split = selector.split("__");
+					semossName = split[1];
+					parentSemossName = split[0];
+				}
+				String dataType = MasterDatabaseUtility.getBasicDataType(engineId, semossName, parentSemossName);
+				if (Utility.isNumericType(dataType)) {
+					String[] row = getNumericalProfileData(engine, selector);
+					frame.addRow(tableName, headers, row, dataTypes);
+				} else {
+					String[] cells = getStringProfileData(engine, selector);
 					frame.addRow(tableName, headers, cells, dataTypes);
 				}
 			}
-			if (conceptMap != null) {
-				// now get property profile data
-				List<String> properties = conceptMap.get(concept);
-				if (properties != null) {
-					for (String prop : properties) {
-						// check property data type
-						String dataType = MasterDatabaseUtility.getBasicDataType(engineId, prop, concept);
-						if (Utility.isNumericType(dataType)) {
-							String[] cells = getNumericalProfileData(engine, concept, prop);
-							frame.addRow(tableName, headers,  cells, dataTypes);
-						} else {
-							if (Utility.isStringType(dataType)) {
-								String[] cells = getStringProfileData(engine, concept, prop);
-								frame.addRow(tableName, headers,  cells, dataTypes);
-							}
-						}
-					}
-				}
-			}
 		}
+		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
-	private String[] getStringProfileData(IEngine engine, String concept, String primKey) {
+	private String[] getStringProfileData(IEngine engine, String selector) {
 		String[] retRow = new String[9];
-		// table name
-		retRow[0] = concept;
-		// column name
-		if (primKey.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-			// we dont have it.. so query for it
-			String tableURI = engine.getConceptPhysicalUriFromConceptualUri(concept);
-			// since we also have the URI, just store the primary key as well
-			// will most likely be used
-			primKey = Utility.getClassName(tableURI);
-			retRow[1] = primKey;
+		if(selector.contains("__")) {
+			String[] split = selector.split("__");
+			// table name
+			retRow[0] = split[0];
+			// column name
+			retRow[1] = split[1];
 		} else {
-			// property
-			retRow[1] = primKey;
+			// table name
+			retRow[0] = selector;
+			// column name
+			retRow[1] = null;
 		}
 		// num of blanks
 		SelectQueryStruct qs2 = new SelectQueryStruct();
@@ -145,14 +127,10 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		{
 			QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
 			uniqueCountSelector.setFunction(QueryFunctionHelper.COUNT);
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			innerSelector.setTable(concept);
-			innerSelector.setColumn(primKey);
+			QueryColumnSelector innerSelector = new QueryColumnSelector(selector);
 			uniqueCountSelector.addInnerSelector(innerSelector);
 			qs2.addSelector(uniqueCountSelector);
-			QueryColumnSelector col = new QueryColumnSelector();
-			col.setTable(concept);
-			col.setColumn(primKey);
+			QueryColumnSelector col = new QueryColumnSelector(selector);
 			SimpleQueryFilter filter = new SimpleQueryFilter(
 					new NounMetadata(col, PixelDataType.COLUMN), "==",
 					new NounMetadata("", PixelDataType.CONST_STRING));
@@ -173,7 +151,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		retRow[2] = blankCount + "";
 
 		// num of unique vals
-		retRow[3] = getValue(engine, concept, primKey, QueryFunctionHelper.UNIQUE_COUNT, true) + "";
+		retRow[3] = getValue(engine, selector, QueryFunctionHelper.UNIQUE_COUNT, true) + "";
 
 		// get null values count
 		Iterator<IHeadersDataRow> nullIt = WrapperManager.getInstance().getRawWrapper(engine, qs_nulls);
@@ -185,12 +163,20 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return retRow;
 	}
 
-	private String[] getNumericalProfileData(IEngine engine, String concept, String prop) {
+	private String[] getNumericalProfileData(IEngine engine, String selector) {
 		String[] retRow = new String[9];
-		// table name
-		retRow[0] = concept;
-		// column name
-		retRow[1] = prop;
+		if(selector.contains("__")) {
+			String[] split = selector.split("__");
+			// table name
+			retRow[0] = split[0];
+			// column name
+			retRow[1] = split[1];
+		} else {
+			// table name
+			retRow[0] = selector;
+			// column name
+			retRow[1] = null;
+		}
 		// # of blanks
 		retRow[2] = 0 + "";
 		// create qs
@@ -198,9 +184,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		SelectQueryStruct qs_nulls = new SelectQueryStruct();
 		{
 			// inner selector
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			innerSelector.setTable(concept);
-			innerSelector.setColumn(prop);
+			QueryColumnSelector innerSelector = new QueryColumnSelector(selector);
 			// unique count
 			QueryFunctionSelector uniqueCount = new QueryFunctionSelector();
 			uniqueCount.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
@@ -226,8 +210,6 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			sum.setFunction(QueryFunctionHelper.SUM);
 			sum.addInnerSelector(innerSelector);
 			qs2.addSelector(sum);
-
-
 		}
 		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		Iterator<IHeadersDataRow> it = WrapperManager.getInstance().getRawWrapper(engine, qs2);
@@ -260,9 +242,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			QueryFunctionSelector countNonNulls = new QueryFunctionSelector();
 			countNonNulls.setFunction(QueryFunctionHelper.COUNT);
 			{
-				QueryColumnSelector innerSelector = new QueryColumnSelector();
-				innerSelector.setTable(concept);
-				innerSelector.setColumn(prop);
+				QueryColumnSelector innerSelector = new QueryColumnSelector(selector);
 				countNonNulls.addInnerSelector(innerSelector);
 			}
 			arithmaticSelector.setLeftSelector(countAllRows);
@@ -277,14 +257,12 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return retRow;
 	}
 
-	private Object getValue(IEngine engine, String concept, String prop, String functionName, boolean distinct) {
+	private Object getValue(IEngine engine, String selector, String functionName, boolean distinct) {
 		SelectQueryStruct qs2 = new SelectQueryStruct();
 		{
 			QueryFunctionSelector funSelector = new QueryFunctionSelector();
 			funSelector.setFunction(functionName);
-			QueryColumnSelector innerSelector = new QueryColumnSelector();
-			innerSelector.setTable(concept);
-			innerSelector.setColumn(prop);
+			QueryColumnSelector innerSelector = new QueryColumnSelector(selector);
 			funSelector.addInnerSelector(innerSelector);
 			funSelector.setDistinct(distinct);
 			qs2.addSelector(funSelector);
@@ -295,6 +273,10 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		return value;
 	}
 
+	/**
+	 * Get the list of concepts to profile
+	 * @return
+	 */
 	private List<String> getConceptList() {
 		Vector<String> inputs = null;
 		GenRowStruct valuesGrs = this.store.getNoun(keysToGet[2]);

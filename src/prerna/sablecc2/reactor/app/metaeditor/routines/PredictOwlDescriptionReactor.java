@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -56,7 +55,7 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		
 		String appId = getAppId();
 		// we may have an alias
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 		
 		String physicalUri = null;
 		String concept = getConcept();
@@ -68,14 +67,13 @@ public class PredictOwlDescriptionReactor extends AbstractMetaEditorReactor {
 		if(prop == null || prop.isEmpty()) {
 			values.add(concept);
 			qsName = concept;
-			dataType = SemossDataType.convertStringToDataType(MasterDatabaseUtility.getBasicDataType(appId, qsName, null));
-			physicalUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
 		} else {
 			values.add(prop);
 			qsName = concept + "__" + prop;
-			dataType = SemossDataType.convertStringToDataType(MasterDatabaseUtility.getBasicDataType(appId, prop, concept));
-			physicalUri = engine.getPropertyPhysicalUriFromConceptualUri(prop, concept);
 		}
+		
+		physicalUri = engine.getPhysicalUriFromPixelSelector(qsName);
+		dataType = SemossDataType.convertStringToDataType(engine.getDataTypes(physicalUri));
 		
 		Set<String> logicalNames = engine.getLogicalNames(physicalUri);
 		values.addAll(logicalNames);
