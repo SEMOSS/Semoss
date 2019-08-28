@@ -12,7 +12,7 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.openrdf.model.vocabulary.RDFS;
 
-import com.google.gson.Gson;import com.google.inject.internal.UniqueAnnotations;
+import com.google.gson.Gson;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -75,8 +75,11 @@ public class OwlSeparatePixelFromConceptual {
 		// i need to grab all the property conceptual names - done
 		// i need to grab all the relationships - done
 		// i need the data types - done
+		// the BASE URI
 		// then i will delete everything from the rfse
 		// then i will insert new triples via owler
+		
+		String baseUri = getBaseUri(rfse);
 		
 		Map<String, String> physicalConceptsAndConceptuals = getConceptPhsysicalToConceptual(rfse);
 		System.out.println("Concept physical to conceptual");
@@ -155,6 +158,11 @@ public class OwlSeparatePixelFromConceptual {
 			owler.addRelation(fromTable, toTable, predicate);
 		}
 		
+		if(baseUri != null) {
+			String baseUriInput = baseUri.replace("/"+AbstractOwler.DEFAULT_NODE_CLASS+"/", "");
+			owler.addCustomBaseURI(baseUriInput);
+		}
+		
 		// save!
 		owler.commit();
 		try {
@@ -167,6 +175,16 @@ public class OwlSeparatePixelFromConceptual {
 	//////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////
+
+	private static String getBaseUri(RDFFileSesameEngine rfse) {
+		String query = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
+		IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(rfse, query);
+		if(wrap.hasNext()) {
+			IHeadersDataRow data = wrap.next();
+			return data.getRawValues()[0] + "";
+		}
+		return null;
+	}
 
 	/**
 	 * For each concept, get its URI and its conceptual URI
