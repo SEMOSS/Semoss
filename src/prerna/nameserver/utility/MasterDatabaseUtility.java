@@ -1313,13 +1313,42 @@ public class MasterDatabaseUtility {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
-
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		return flushToSetString(wrapper, true);
+	}
+	
+	/**
+	 * Get the list of concepts for a given engine
+	 * @param engineId
+	 * @return
+	 */
+	public static Collection<String> getSelectorsWithinEngineRDBMS(String engineId) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PK", "desc"));
+		
+		Set<String> selectors = new TreeSet<String>();
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			Object[] row = wrapper.next().getValues();
+			if(row[0] == null) {
+				selectors.add(row[1].toString());
+			} else {
+				selectors.add(row[0] + "__" + row[1].toString());
+			}
+		}
+		return selectors;
 	}
 	
 
