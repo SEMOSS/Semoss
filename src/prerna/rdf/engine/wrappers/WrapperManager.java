@@ -100,10 +100,10 @@ public class WrapperManager {
 			returnWrapper = new JsonWrapper2();
 			break;
 		}
-		case JMES_API : {
-			returnWrapper = new JmesWrapper();
-			break;
-		}
+//		case JMES_API : {
+//			returnWrapper = new JmesWrapper();
+//			break;
+//		}
 		case WEB : {
 			returnWrapper = new WebWrapper();
 			break;
