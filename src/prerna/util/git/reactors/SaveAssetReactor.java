@@ -31,14 +31,18 @@ public class SaveAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		// check if user is logged in
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+		String author = null;
+		String email = null;
+		// check if user is logged in
+		if (AbstractSecurityUtils.securityEnabled()) {
 			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				throwAnonymousUserError();
 			}
-		} else {
-			throwAnonymousUserError();
+			// Get the user's email
+			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+			email = accessToken.getEmail();
+			author = accessToken.getUsername();
 		}
 		
 		String comment = this.keyValue.get(this.keysToGet[2]);
@@ -69,10 +73,6 @@ public class SaveAssetReactor extends AbstractReactor {
 		files.add(fileName);
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
 
-		// Get the user's email
-		String author = this.insight.getUserId();
-		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String email = accessToken.getEmail();
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
 
