@@ -23,6 +23,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.tinker.TinkerEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
@@ -32,7 +33,6 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class TinkerCsvUploadReactor extends AbstractUploadFileReactor {

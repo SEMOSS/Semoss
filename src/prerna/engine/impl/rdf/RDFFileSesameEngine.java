@@ -600,7 +600,6 @@ public class RDFFileSesameEngine extends AbstractEngine implements IEngine {
 	@Override
 	public void removeData(String query) {
 		insertData(query);
-
 	}
 
 	@Override

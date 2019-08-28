@@ -16,15 +16,12 @@ import org.semarglproject.vocab.RDFS;
 
 import com.hp.hpl.jena.vocabulary.OWL;
 
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAppUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -38,7 +35,6 @@ import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public abstract class AbstractMetaEditorReactor extends AbstractReactor {
@@ -54,30 +50,6 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	protected static final String CONCEPTUAL_NAME = "conceptual";
 	protected static final String TABLES_FILTER = ReactorKeysEnum.TABLES.getKey();
 	protected static final String STORE_VALUES_FRAME = "store";
-
-	protected String getAppId(String appId, boolean edit) {
-		String testId = appId;
-		if(AbstractSecurityUtils.securityEnabled()) {
-			testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
-			if(edit) {
-				// need edit permission
-				if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), testId)) {
-					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
-				}
-			} else {
-				// just need read access
-				if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), testId)) {
-					throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to app");
-				}
-			}
-		} else {
-			testId = MasterDatabaseUtility.testEngineIdIfAlias(testId);
-			if(!MasterDatabaseUtility.getAllEngineIds().contains(testId)) {
-				throw new IllegalArgumentException("App " + appId + " does not exist");
-			}
-		}
-		return testId;
-	}
 
 	protected RDFFileSesameEngine loadOwlEngineFile(String appId) {
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
@@ -110,18 +82,18 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || 
 				engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
 
-		Vector<String> concepts = engine.getConcepts(false);
-		for(String c : concepts) {
-			String tableName = Utility.getInstanceName(c);
+		List<String> concepts = engine.getPhysicalConcepts();
+		for(String cUri : concepts) {
+			String tableName = Utility.getInstanceName(cUri);
 			String cKey = tableName;
 			if(isRdbms) {
-				cKey = Utility.getClassName(c) + cKey;
+				cKey = Utility.getClassName(cUri) + cKey;
 			}
 			// add to concept hash
-			conceptHash.put(cKey, c);
+			conceptHash.put(cKey, cUri);
 
 			// add all the props as well
-			List<String> props = engine.getProperties4Concept(c, false);
+			List<String> props = engine.getPropertyUris4PhysicalUri(cUri);
 			for(String p : props) {
 				String propName = null;
 				if(isRdbms) {
@@ -134,7 +106,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			}
 		}
 
-		Vector<String[]> rels = engine.getRelationships(false);
+		List<String[]> rels = engine.getPhysicalRelationships();
 		for(String[] r : rels) {
 			String startT = null;
 			String startC = null;
@@ -208,7 +180,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		List<String> tableNamesList = new Vector<String>();
 		List<String> columnNamesList = new Vector<String>();
 
-		Vector<String> concepts = app.getConcepts(false);
+		List<String> concepts = app.getPhysicalConcepts();
 		for(String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
 			String tablePrimCol = Utility.getClassName(cUri);
@@ -227,7 +199,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			columnNamesList.add(tablePrimCol);
 
 			// grab all the properties
-			List<String> properties = app.getProperties4Concept(cUri, false);
+			List<String> properties = app.getPropertyUris4PhysicalUri(cUri);
 			for(String pUri : properties) {
 				tableNamesList.add(tableName);
 				columnNamesList.add(Utility.getClassName(pUri));

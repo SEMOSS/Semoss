@@ -169,7 +169,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 				String [] conceptsArray = concepts.toArray(new String[concepts.size()]);
 				Map <String,String> conceptAndType = this.getDataTypes(conceptsArray);
 				for(int conceptIndex = 0;conceptIndex < conceptsArray.length;conceptIndex++) {
-					List <String> propList = getProperties4Concept(conceptsArray[conceptIndex], false);
+					List<String> propList = getPropertyUris4PhysicalUri(conceptsArray[conceptIndex]);
 					String [] propArray = propList.toArray(new String[propList.size()]);
 					Map<String, String> typeMap = getDataTypes(propArray);
 					conceptAndType.putAll(typeMap);

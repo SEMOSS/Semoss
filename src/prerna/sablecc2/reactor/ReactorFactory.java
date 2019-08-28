@@ -1,13 +1,7 @@
 package prerna.sablecc2.reactor;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-
 import java.io.File;
 import java.lang.reflect.Modifier;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,10 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.NotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
 import me.xdrop.fuzzywuzzy.FuzzySearch;
 import me.xdrop.fuzzywuzzy.model.ExtractedResult;
 import prerna.algorithm.api.ITableDataFrame;
@@ -206,7 +201,6 @@ import prerna.sablecc2.reactor.frame.py.PyReactor;
 import prerna.sablecc2.reactor.frame.r.CancelRReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.sablecc2.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
-import prerna.sablecc2.reactor.frame.r.MetaSemanticSimilarityReactor;
 import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticBlendingReactor;
 import prerna.sablecc2.reactor.frame.r.SemanticDescription;
@@ -420,7 +414,6 @@ import prerna.solr.reactor.SetAppTagsReactor;
 //import prerna.solr.reactor.SetInsightTagsReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.git.GitAssetUtils;
 import prerna.util.git.reactors.AddAppCollaborator;
 import prerna.util.git.reactors.CopyAppRepo;
 import prerna.util.git.reactors.DeleteAppRepo;
@@ -446,8 +439,6 @@ import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReactorFactory {
 
@@ -1019,7 +1010,7 @@ public class ReactorFactory {
 		reactorHash.put("GetCSVSchema",GetCSVSchemaReactor.class);
 		reactorHash.put("GetExternalSchema", GetExternalSchemaReactor.class);
 		reactorHash.put("XrayMetamodel", XrayMetamodelReactor.class);
-		reactorHash.put("MetaSemanticSimilarity", MetaSemanticSimilarityReactor.class);
+//		reactorHash.put("MetaSemanticSimilarity", MetaSemanticSimilarityReactor.class);
 		
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
 		reactorHash.put("SemanticDescription", SemanticDescription.class);
@@ -1259,7 +1250,7 @@ public class ReactorFactory {
 		rFrameHash.put("RunSimilarityHeat", prerna.sablecc2.reactor.frame.r.analytics.RunSimilarityHeatReactor.class);
 		rFrameHash.put("MatchColumnValues", prerna.sablecc2.reactor.frame.r.MatchColumnValuesReactor.class);
 		rFrameHash.put("UpdateMatchColumnValues", prerna.sablecc2.reactor.frame.r.UpdateMatchColumnValuesReactor.class);
-		rFrameHash.put("MetaSemanticSimilarity", prerna.sablecc2.reactor.frame.r.MetaSemanticSimilarityReactor.class);
+//		rFrameHash.put("MetaSemanticSimilarity", prerna.sablecc2.reactor.frame.r.MetaSemanticSimilarityReactor.class);
 
 		// data quality rectors
 		rFrameHash.put("RunDataQuality",RunDataQualityReactor.class);

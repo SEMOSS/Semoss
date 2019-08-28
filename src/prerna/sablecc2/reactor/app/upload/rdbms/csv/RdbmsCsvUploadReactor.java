@@ -23,6 +23,7 @@ import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
@@ -33,7 +34,6 @@ import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.SqlQueryUtilFactor;
@@ -333,7 +333,10 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 						propMap.put(concept, "VARCHAR(800)");
 					}
 					// need to add the actual concept as a column
-					owler.addConcept(cleanConceptTableName, propMap.get(concept).trim());
+					// this means adding the concept
+					// and adding itself again as a property
+					owler.addConcept(cleanConceptTableName, null, null);
+					owler.addProp(cleanConceptTableName, cleanConceptTableName, propMap.get(concept).trim());
 				}
 				// properties
 				List<String> conceptProps = (List<String>) nodeProps.get(concept);
@@ -386,7 +389,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 						// Default to string
 						propMap.put(fromConcept, "VARCHAR(800)");
 					}
-					owler.addConcept(cleanFromConceptTableName, propMap.get(fromConcept));
+					owler.addConcept(cleanFromConceptTableName, null, null);
+					owler.addProp(cleanFromConceptTableName, cleanFromConceptTableName, propMap.get(fromConcept));
 					concepts.put(fromConcept, propMap);
 				}
 				if (!concepts.containsKey(toConcept)) {
@@ -404,13 +408,14 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 						// Default to string
 						propMap.put(toConcept, "VARCHAR(800)");
 					}
-					owler.addConcept(cleanToConceptTableName, propMap.get(toConcept));
+					owler.addConcept(cleanToConceptTableName, null, null);
+					owler.addProp(cleanToConceptTableName, cleanToConceptTableName, propMap.get(toConcept));
 					concepts.put(toConcept, propMap);
 				}
 
 				// add relationships
 				List<String> relList = null;
-				String predicate = cleanToConceptTableName + "." + cleanFromConceptTableName + FK + "."
+				String predicate = cleanToConceptTableName + "." + cleanFromConceptTableName + FK + "." 
 						+ cleanFromConceptTableName + "." + cleanFromConceptTableName;
 				// determine order based on *
 				// if it is fromConcept *has toConcept
@@ -423,6 +428,11 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					}
 					relList.add(fromConcept);
 					relations.put(toConcept, relList);
+					
+					// add the FK as a property to view
+					owler.addProp(cleanToConceptTableName, cleanFromConceptTableName + FK, 
+							concepts.get(fromConcept).get(fromConcept));
+					
 					// add FK as property
 					// String dataType = null;
 					// if (csvColumnToIndex.containsKey(toConcept)) {
@@ -455,6 +465,10 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					predicate = cleanToConceptTableName + "." + cleanToConceptTableName + "."
 							+ cleanFromConceptTableName + "." + cleanToConceptTableName + FK;
 
+					// add the FK as a property to view
+					owler.addProp(cleanFromConceptTableName, cleanToConceptTableName + FK, 
+							concepts.get(toConcept).get(toConcept));
+					
 					// add FK as property
 					// String dataType = null;
 					// if (csvColumnToIndex.containsKey(toConcept)) {
@@ -483,6 +497,10 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 					relList.add(fromConcept);
 					relations.put(toConcept, relList);
 
+					// add the FK as a property to view
+					owler.addProp(cleanToConceptTableName, cleanFromConceptTableName + FK, 
+							concepts.get(fromConcept).get(fromConcept));
+					
 					// add FK as property
 					// String dataType = null;
 					// if (csvColumnToIndex.containsKey(toConcept)) {
