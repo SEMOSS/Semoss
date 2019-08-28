@@ -20,6 +20,8 @@ public class RJavaTranslatorFactory {
 
 	// get the OS type
 	private static String OS = System.getProperty("os.name").toLowerCase();
+	private static int envNum = 0;
+	private static String prefix = "env";
 
 	private static boolean isWin = false;
 	static {
@@ -173,6 +175,11 @@ public class RJavaTranslatorFactory {
 		try {
 			newInstance = (AbstractRJavaTranslator) translatorClass.newInstance();
 			newInstance.setLogger(logger);
+			
+			// make the environment here
+			newInstance.env = prefix+envNum;
+			envNum++;
+			
 
 			// TODO: until we get everythign using this
 			// let us pass the r connection info
@@ -183,6 +190,9 @@ public class RJavaTranslatorFactory {
 				if(dm != null && dm instanceof RDataTable) {
 					newInstance.setConnection(((RDataTable) dm).getConnection());
 					newInstance.setPort(((RDataTable) dm).getPort());
+					
+					newInstance.initREnv();
+
 				}
 			}
 		} catch (InstantiationException e) {

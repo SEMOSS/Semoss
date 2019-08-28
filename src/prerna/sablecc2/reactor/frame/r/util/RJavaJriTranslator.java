@@ -94,12 +94,15 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 					}
 					// data table
 					ret = retEngine.eval("library(data.table);");
+					//ret = retEngine.eval("library(parallel);");
+					//ret = retEngine.eval("core <- detectCores();");
+					//ret = retEngine.eval("setDTthreads(core)");
 					if(ret == null) {
 						throw new ClassNotFoundException("Package data.table could not be found!");
 					} else {
 						logger.info("Successfully loaded packages data.table");
 					}
-					// reshape2
+					// reshape2 
 					ret = retEngine.eval("library(reshape2);");
 					if(ret == null) {
 						throw new ClassNotFoundException("Package reshape2 could not be found!");
@@ -164,12 +167,14 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			}
 		}
 		this.engine = retEngine;
-//		initREnv();
+		initREnv();
 	}
 	
 	@Override
 	public Object executeR(String rScript) {
 		try {
+			rScript = encapsulateForEnv(rScript);
+			
 			REXP rexp = engine.eval(encapsulateForEnv(rScript));
 			if(rexp == null) {
 				logger.info("Hmmm... REXP returned null for script = " + rScript);
@@ -183,6 +188,8 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public void executeEmptyR(String rScript) {
+		rScript = rScript.replaceAll("\"", "\\\"");
+		rScript = rScript.replaceAll("'", "\\'");
 		engine.eval(encapsulateForEnv(rScript), false);
 	}
 	
@@ -194,7 +201,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public String getString(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asString();
 		}
@@ -203,7 +212,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public String[] getStringArray(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asStringArray();
 		}
@@ -219,7 +230,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	@Override
 	public String[] getColumnTypes(String frameName) {
 		String script = "sapply(" + frameName + ", class);";
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			int typeInt = val.getType();
 			if(typeInt == REXP.XT_ARRAY_STR || typeInt == REXP.XT_STR) {
@@ -250,7 +263,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override 
 	public int getInt(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asInt();
 		}
@@ -259,7 +274,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public int[] getIntArray(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asIntArray();
 		}
@@ -268,7 +285,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public double getDouble(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asDouble();
 		}
@@ -277,7 +296,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public double[] getDoubleArray(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asDoubleArray();
 		}
@@ -286,7 +307,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public double[][] getDoubleMatrix(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asDoubleMatrix();
 		}
@@ -295,7 +318,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public boolean getBoolean(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asBool().isTRUE();
 		}
@@ -304,7 +329,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public Object getFactor(String script) {
-		REXP val = engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP val = engine.eval(script);
 		if(val != null) {
 			return val.asFactor();
 		}
@@ -313,7 +340,9 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
-		REXP histR = (REXP) engine.eval(encapsulateForEnv(script));
+		script = encapsulateForEnv(script);
+
+		REXP histR = engine.eval(script);
 		if(histR != null) {
 			RVector vectorR = histR.asVector();
 			double[] breaks = vectorR.at("breaks").asDoubleArray();
@@ -561,6 +590,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public void initREnv() {
+
 		if(engine != null) {
 			engine.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
 		}
@@ -569,6 +599,29 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void stopRProcess() {
 		engine.rniStop(0);
+	}
+
+	@Override
+	public Object executeRunR(String rScript) {
+		try {
+			REXP rexp = engine.eval(encapsulateForEnv(rScript));
+			if(rexp == null) {
+				logger.info("Hmmm... REXP returned null for script = " + rScript);
+			}
+			return rexp;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	@Override
+	public void executeEmptyRunR(String rScript) {
+		rScript = encapsulateForEnv(rScript);
+
+		engine.eval(rScript, false);
+		// TODO Auto-generated method stub
+		
 	}
 
 }
