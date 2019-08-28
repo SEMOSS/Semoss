@@ -100,8 +100,6 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 					this.insight.getVarStore().put(AbstractBaseRClass.R_PORT, new NounMetadata(port, PixelDataType.CONST_STRING));
 				}
 
-				// initialize the r environment
-				initREnv();
 			} catch (Exception e) {
 				System.out.println(
 						"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
@@ -112,6 +110,9 @@ public class RJavaRemoteRserveTranslator extends RJavaRserveTranslator {
 								+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
 			}
 		}
+		// initialize the r environment
+		initREnv();
+
 	}
 
 	private void transferToServer( String client_file, String server_file ){
