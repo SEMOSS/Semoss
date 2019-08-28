@@ -1313,11 +1313,10 @@ public class MasterDatabaseUtility {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
-		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINECONCEPT__SEMOSSNAME"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		return flushToSetString(wrapper, true);
 	}
