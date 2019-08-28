@@ -8,10 +8,11 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
-public class DeleteAssetReactor extends GitBaseReactor {
+public class DeleteAssetReactor extends AbstractReactor {
 
 	public DeleteAssetReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey()};
@@ -22,12 +23,17 @@ public class DeleteAssetReactor extends GitBaseReactor {
 		organizeKeys();
 		// check if user is logged in
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+		String author = null;
+		String email = null;
+		// check if user is logged in
+		if (AbstractSecurityUtils.securityEnabled()) {
 			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				throwAnonymousUserError();
 			}
-		} else {
-			throwAnonymousUserError();
+			// Get the user's email
+			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+			email = accessToken.getEmail();
+			author = accessToken.getUsername();
 		}
 		
 		// get asset base folder
@@ -42,10 +48,6 @@ public class DeleteAssetReactor extends GitBaseReactor {
 		files.add(fileName);
 		GitDestroyer.removeSpecificFiles(assetFolder, true, files);
 		
-		// Get the user's email
-		String author = this.insight.getUserId();
-		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String email = accessToken.getEmail();
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
 
