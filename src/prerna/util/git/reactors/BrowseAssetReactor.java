@@ -26,12 +26,10 @@ public class BrowseAssetReactor extends AbstractReactor {
 		
 		// check if user is logged in
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+		if (AbstractSecurityUtils.securityEnabled()) {
 			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				throwAnonymousUserError();
 			}
-		} else {
-			throwAnonymousUserError();
 		}
 
 		// base asset folder path

@@ -25,12 +25,10 @@ public class GetAssetReactor extends AbstractReactor {
 		
 		// check if user is logged in
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled() && user != null) {
+		if (AbstractSecurityUtils.securityEnabled()) {
 			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 				throwAnonymousUserError();
 			}
-		} else {
-			throwAnonymousUserError();
 		}
 
 		// get the asset folder path
