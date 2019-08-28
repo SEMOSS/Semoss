@@ -12,7 +12,7 @@
           "label": "Select a Concept To Explore"
         },
         "model": {
-          "query": "GetDatabaseConcepts(database=[\"<<ENGINE>>\"]);"
+          "query": "GetDatabaseSelectors(database=[\"<<ENGINE>>\"]);"
         }
       },
       {
