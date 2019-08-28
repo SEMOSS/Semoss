@@ -20,7 +20,7 @@ public class GetOwlMetamodelReactor extends AbstractMetaEditorReactor {
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have the alias
-		appId = getAppId(appId, false);
+		appId = testAppId(appId, false);
 		
 		IEngine app = Utility.getEngine(appId);
 		Map<String, Object[]> metamodelObject = app.getMetamodel();

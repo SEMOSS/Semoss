@@ -149,9 +149,9 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		query.append(this.bindingsWhereClause.toString());
 		
 		if(query.length() > 500) {
-			logger.info("SPARQL QUERY....  " + query.substring(0,  500) + "...");
+			logger.debug("SPARQL QUERY....  " + query.substring(0,  500) + "...");
 		} else {
-			logger.info("SPARQL QUERY....  " + query);
+			logger.debug("SPARQL QUERY....  " + query);
 		}
 
 		return query.toString();
@@ -270,7 +270,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	 */
 	private String addNodeSelectorTriple(String nodeVarName, String concept) {
 		if(!this.addedSelectors.containsKey(nodeVarName)) {
-			String nodeUri = engine.getConceptPhysicalUriFromConceptualUri(concept);
+			String nodeUri = engine.getPhysicalUriFromPixelSelector(concept);
 			// add the pattern around the concept
 			this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(RDF.TYPE).append("> <").append(nodeUri).append(">}");
 			this.addedSelectors.put(nodeVarName, nodeUri);
@@ -286,7 +286,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	 */
 	private String addNodePropertySelectorTriple(String propVarName, String property, String concept, String conceptVarName) {
 		if(!this.addedSelectors.containsKey(propVarName)) {
-			String propUri = engine.getPropertyPhysicalUriFromConceptualUri(property, concept);
+			String propUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + property);
 			// add the pattern around the property
 			// if filtered and not to a null
 			// no need for optional
@@ -312,9 +312,9 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 
 	private void addJoin(String fromNode, String joinType, String toNode) {
 		String fromNodeVarName = Utility.cleanVariableString(fromNode);
-		String fromURI = this.engine.getConceptPhysicalUriFromConceptualUri(fromNode);
+		String fromURI = this.engine.getPhysicalUriFromPixelSelector(fromNode);
 		String toNodeVarName = Utility.cleanVariableString(toNode);
-		String toURI = this.engine.getConceptPhysicalUriFromConceptualUri(toNode);
+		String toURI = this.engine.getPhysicalUriFromPixelSelector(toNode);
 		
 		// need to figure out what the predicate is from the owl
 		// also need to determine the direction of the relationship -- if it is forward or backward

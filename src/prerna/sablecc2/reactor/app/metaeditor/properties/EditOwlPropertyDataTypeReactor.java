@@ -24,7 +24,7 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// perform translation if alias is passed
 		// and perform security check
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 
 		String concept = this.keyValue.get(this.keysToGet[1]);
 		if(concept == null || concept.isEmpty()) {
@@ -46,13 +46,12 @@ public class EditOwlPropertyDataTypeReactor extends AbstractMetaEditorReactor {
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		
-		String parentConcepturalURI = "http://semoss.org/ontologies/Concept/" + concept;
-		String parentPhysicalURI = engine.getConceptPhysicalUriFromConceptualUri(parentConcepturalURI);
+		String parentPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept);
 		if(parentPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the concept");
 		}
 		
-		String propertyPhysicalURI = engine.getPropertyPhysicalUriFromConceptualUri(property, concept);
+		String propertyPhysicalURI = engine.getPhysicalUriFromPixelSelector(concept + "__" + property);
 		if(propertyPhysicalURI == null) {
 			throw new IllegalArgumentException("Could not find the property. Please define the property first before modifying the conceptual name");
 		}

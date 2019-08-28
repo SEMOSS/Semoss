@@ -24,6 +24,7 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.poi.main.helper.excel.ExcelRange;
@@ -38,7 +39,6 @@ import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Owler;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.SqlQueryUtilFactor;
@@ -431,7 +431,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 		String conceptType = props.get(thisConcept);
 
 		// add it to OWL
-		owler.addConcept(thisConcept, conceptType);
+		owler.addConcept(thisConcept, null, null);
+		owler.addProp(thisConcept, thisConcept, conceptType);
 
 		String createString = "CREATE TABLE " + thisConcept + " (";
 		createString = createString + " " + thisConcept + " " + conceptType;
@@ -591,7 +592,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				predicate = tableToSet + "." + tableToSet + "." + tableToInsert + "." + tableToSet + "_FK";
 			}
 			owler.addRelation(tableToSet, tableToInsert, predicate);
-
+			// TODO: figure out where to find the data type for the join column to add it as a property!!!
+			
 			createIndices(engine, tableToSet, tableToSet);
 
 			for (int rowIndex = 1; rowIndex <= lastRow; rowIndex++) {

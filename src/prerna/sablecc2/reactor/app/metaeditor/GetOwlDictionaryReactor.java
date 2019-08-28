@@ -33,7 +33,7 @@ public class GetOwlDictionaryReactor extends AbstractMetaEditorReactor {
 		organizeKeys();
 		String appId = this.keyValue.get(this.keysToGet[0]);
 		// we may have an alias
-		appId = getAppId(appId, false);
+		appId = testAppId(appId, false);
 		
 		// we have some ordering requirements
 		// so can't just flush these results straight to the FE

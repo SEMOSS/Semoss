@@ -43,6 +43,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.OwlPrettyPrintFixer;
+import prerna.engine.impl.OwlSeparatePixelFromConceptual;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
@@ -92,6 +93,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			
 			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD
 			OwlPrettyPrintFixer.fixOwl(prop);
+			// Update OWL
+			OwlSeparatePixelFromConceptual.fixOwl(prop);
 			
 			engineId = prop.getProperty(Constants.ENGINE);
 			if(engines.startsWith(engineId) || engines.contains(";"+engineId+";") || engines.endsWith(";"+engineId)) {
@@ -132,6 +135,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			
 			// TODO: TO FIX ERRORS WITH PRETTY PRINT METHOD
 			OwlPrettyPrintFixer.fixOwl(prop);
+			// Update OWL
+			OwlSeparatePixelFromConceptual.fixOwl(prop);
+
 			
 			engineId = prop.getProperty(Constants.ENGINE);
 			

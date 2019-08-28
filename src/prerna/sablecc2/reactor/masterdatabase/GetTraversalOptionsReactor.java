@@ -15,6 +15,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
+@Deprecated
 public class GetTraversalOptionsReactor extends AbstractReactor {
 
 	private static final String USING_LOGICAL = "logical";
@@ -44,7 +45,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 		if(logicals != null && !logicals.isEmpty()) {
 			Map<String, Object> traversalOptions = new HashMap<String, Object>();
 			Map connectedConcepts = MasterDatabaseUtility.getConnectedConceptsRDBMS(logicals, engineFilters);
-			Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptPropertiesRDBMS(logicals, engineFilters);
+			Map<String, Object[]> conceptProperties = MasterDatabaseUtility.getConceptProperties(logicals, engineFilters);
 			
 			// so if this is a property from a node.. then I need to find what that node is
 			// and then from that node traverse to other things.. although.. I have no idea why I would do that

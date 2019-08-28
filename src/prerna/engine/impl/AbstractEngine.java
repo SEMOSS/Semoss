@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
@@ -68,7 +67,6 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.nameserver.utility.MetamodelVertex;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.poi.main.RDBMSEngineCreationHelper;
@@ -502,51 +500,6 @@ public abstract class AbstractEngine implements IEngine {
 	}
 	
 	/**
-	 * Get the list of the concepts within the database
-	 * @param conceptualNames		Return the conceptualNames if present within the database
-	 */
-	public Vector<String> getConcepts(boolean conceptualNames) {
-		return owlHelper.getConcepts(conceptualNames);
-	}
-	
-	public Vector<String[]> getRelationships(boolean conceptualNames) {
-		return owlHelper.getRelationships(conceptualNames);
-	}
-	
-	/**
-	 * Returns the set of properties for a given concept
-	 * @param concept					The concept URI
-	 * 									Assumes the concept URI is the conceptual URI
-	 * @param conceptualNames			Boolean to determine if the return should be the properties
-	 * 									conceptual names or physical names
-	 * @return							List containing the property URIs for the given concept
-	 */
-	public List<String> getProperties4Concept(String conceptPhysicalUri, Boolean conceptualNames) {
-		return owlHelper.getProperties4Concept(conceptPhysicalUri, conceptualNames);
-	}
-	
-	/**
-	 * Get the physical URI from the conceptual URI
-	 * @param conceptualURI			The conceptual URI
-	 * 								If it is not a valid URI, we will assume it is the instance_name and create the URI
-	 * @return						Return the physical URI 					
-	 */
-	@Override
-	public String getConceptPhysicalUriFromConceptualUri(String conceptualURI) {
-		return owlHelper.getConceptPhysicalUriFromConceptualUri(conceptualURI);
-	}
-	
-	@Override
-	public String getPropertyPhysicalUriFromConceptualUri(String conceptualURI, String parentConceptualUri) {
-		return owlHelper.getPropertyPhysicalUriFromConceptualUri(conceptualURI, parentConceptualUri);
-	}
-	
-	@Override
-	public String getConceptualUriFromPhysicalUri(String physicalURI) {
-		return owlHelper.getConceptualUriFromPhysicalUri(physicalURI);
-	}
-	
-	/**
 	 * Runs a select query on the base data engine of this engine
 	 */
 	public Object execOntoSelectQuery(String query) {
@@ -877,46 +830,6 @@ public abstract class AbstractEngine implements IEngine {
 		return this.owlHelper.getAdtlDataTypes(uris);
 	}
 	
-	@Override
-	public Set<String> getLogicalNames(String physicalURI) {
-		return this.owlHelper.getLogicalNames(physicalURI);
-	}
-	
-	@Override
-	public String getDescription(String physicalURI) {
-		return this.owlHelper.getDescription(physicalURI);
-	}
-	
-	public String getParentOfProperty(String prop) {
-		if(!prop.startsWith("http://")) {
-			prop = "http://semoss.org/ontologies/Relation/Contains/" + prop;
-		}
-		
-		String query = "SELECT DISTINCT ?concept WHERE { ?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> <" + prop + "> }";
-		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
-		String[] names = wrapper.getPhysicalVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String node = ss.getRawVar(names[0]).toString();
-			return node;
-		}
-		
-		// in new schema, try the conceptual
-		query = "SELECT DISTINCT ?concept WHERE { "
-				+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?phyProp }"
-				+ "{?phyProp <http://semoss.org/ontologies/Relation/Conceptual> <" + prop + ">}"
-				+ "}";
-		
-		wrapper = WrapperManager.getInstance().getSWrapper(baseDataEngine, query);
-		names = wrapper.getPhysicalVariables();
-		while(wrapper.hasNext()) {
-			ISelectStatement ss = wrapper.next();
-			String node = ss.getRawVar(names[0]).toString();
-			return node;
-		}
-		return null;
-	}
-	
 	/**
 	 * This method will return a query struct which when interpreted would produce a query to 
 	 * get all the data within the engine.  Will currently assume all joins to be inner.join
@@ -990,76 +903,7 @@ public abstract class AbstractEngine implements IEngine {
 	 * @return
 	 */
 	public Map<String, Object[]> getMetamodel() {
-		// create this from the query struct
-		Map<String, MetamodelVertex> tableToVert = new TreeMap<String, MetamodelVertex>();
-		
-		String getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { "
-				+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
-				+ "OPTIONAL {"
-					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + CONTAINS_BASE_URI + "> } "
-					+ "{?concept <" + OWL.DATATYPEPROPERTY.toString() + "> ?property } "
-				+ "}" // END OPTIONAL
-				+ "}"; // END WHERE
-
-		// execute the query and loop through and add the nodes and props
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getSelectorsInformation);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow hrow = wrapper.next();
-			Object[] raw = hrow.getRawValues();
-			if(raw[0].toString().equals("http://semoss.org/ontologies/Concept")) {
-				continue;
-			}
-			
-			String concept = Utility.getInstanceName(raw[0].toString());
-			Object property = raw[1];
-
-			if(!tableToVert.containsKey(concept)) {
-				MetamodelVertex vert = new MetamodelVertex(concept);
-				tableToVert.put(concept, vert);
-				vert.addKey(Utility.getClassName(raw[0].toString()));
-			}
-			
-			if(property != null && !property.toString().isEmpty()) {
-				tableToVert.get(concept).addProperty(Utility.getClassName(property.toString()));
-			}
-		}
-		
-		List<Map<String, String>> relationships = new Vector<Map<String, String>>();
-
-		// query to get all the relationships 
-		String getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?rel ?toConceptualConcept WHERE { "
-				+ "{?fromConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "{?toConcept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept>} "
-				+ "{?rel <" + RDFS.SUBPROPERTYOF.toString() + "> <http://semoss.org/ontologies/Relation>} "
-				+ "{?fromConcept ?rel ?toConcept} "
-				+ "{?fromConcept <http://semoss.org/ontologies/Relation/Conceptual> ?fromConceptualConcept }"
-				+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }"
-				+ "}"; // END WHERE
-
-		wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getRelationshipsInformation);
-		while(wrapper.hasNext()) {
-			IHeadersDataRow hrow = wrapper.next();
-			Object[] row = hrow.getValues();
-			
-			if(hrow.getRawValues()[1].toString().equals("http://semoss.org/ontologies/Relation")) {
-				continue;
-			}
-			
-			String fromConcept = row[0].toString();
-			String rel = row[1].toString();
-			String toConcept = row[2].toString();
-			
-			Map<String, String> edgeMap = new TreeMap<String, String>();
-			edgeMap.put("source", fromConcept);
-			edgeMap.put("target", toConcept + "");
-			edgeMap.put("rel", rel);
-			relationships.add(edgeMap);
-		}
-		
-		Map<String, Object[]> retObj = new Hashtable<String, Object[]>();
-		retObj.put("nodes", tableToVert.values().toArray());
-		retObj.put("edges", relationships.toArray());
-		return retObj;
+		return owlHelper.getMetamodel();
 	}
 	
 	// load the prop file
@@ -1085,21 +929,91 @@ public abstract class AbstractEngine implements IEngine {
 		return this.auditDatabase;
 	}
 	
+	/*
+	 * NEW PIXEL TO REPLACE CONCEPTUAL NAMES
+	 */
+	
+	@Override
+	public List<String> getPixelConcepts() {
+		return owlHelper.getPixelConcepts();
+	}
+	
+	@Override
+	public List<String> getPixelSelectors(String conceptPixelName) {
+		return owlHelper.getPixelSelectors(conceptPixelName);
+	}
+	
+	@Override
+	public List<String> getPropertyPixelSelectors(String conceptPixelName) {
+		return owlHelper.getPropertyPixelSelectors(conceptPixelName);
+	}
+	
+	@Override
+	public List<String> getPhysicalConcepts() {
+		return owlHelper.getPhysicalConcepts();
+	}
+	
+	@Override
+	public List<String[]> getPhysicalRelationships() {
+		return owlHelper.getPhysicalRelationships();
+	}
+	
+	public List<String> getPropertyUris4PhysicalUri(String physicalUri) {
+		return owlHelper.getPropertyUris4PhysicalUri(physicalUri);
+	}
+	
+	@Override
+	public String getPhysicalUriFromPixelSelector(String pixelSelector) {
+		return owlHelper.getPhysicalUriFromPixelSelector(pixelSelector);
+	}
+	
+	@Override
+	@Deprecated
+	public String getPixelUriFromPhysicalUri(String physicalUri) {
+		return owlHelper.getPixelUriFromPhysicalUri(physicalUri);
+	}
+
+	@Override
+	public String getConceptPixelUriFromPhysicalUri(String conceptPhysicalUri) {
+		return owlHelper.getConceptPixelUriFromPhysicalUri(conceptPhysicalUri);
+	}
+	
+	@Override
+	public String getPropertyPixelUriFromPhysicalUri(String conceptPhysicalUri, String propertyPhysicalUri) {
+		return owlHelper.getPropertyPixelUriFromPhysicalUri(conceptPhysicalUri, propertyPhysicalUri);
+	}
+	
+	@Override
+	public String getPixelSelectorFromPhysicalUri(String physicalUri) {
+		return owlHelper.getPixelSelectorFromPhysicalUri(physicalUri);
+	}
+	
+	@Override
+	public String getConceptualName(String physicalUri) {
+		return this.owlHelper.getConceptualName(physicalUri);
+	}
+	
+	@Override
+	public Set<String> getLogicalNames(String physicalUri) {
+		return this.owlHelper.getLogicalNames(physicalUri);
+	}
+	
+	@Override
+	public String getDescription(String physicalUri) {
+		return this.owlHelper.getDescription(physicalUri);
+	}
+	
+	@Override
+	@Deprecated
+	public String getLegacyPrimKey4Table(String physicalUri) {
+		return this.owlHelper.getLegacyPrimKey4Table(physicalUri);
+	}
+	
 	////////////////////////////////////////////////////////////////////////////////////////
 	
 	/*
 	 * Methods that exist only to automate changes to databases
 	 */
-	
-//	@Deprecated
-//	private void updateToPixelInsights() {
-//		InsightsConverter2 converter = new InsightsConverter2(this);
-//		try {
-//			converter.modifyInsightsDatabase();
-//		} catch (IOException e) {
-//			lOGGER.error(e.getMessage());
-//		}
-//	}
 	
 	@Deprecated
 	private void updateExploreInstanceQuery(RDBMSNativeEngine insightRDBMS) {
@@ -1295,7 +1209,7 @@ public abstract class AbstractEngine implements IEngine {
 			}
 		}
 		IEngine eng = (IEngine) DIHelper.getInstance().getLocalProp("Movie_Test");
-		List<String> props = eng.getProperties4Concept("http://semoss.org/ontologies/Concept/Title", false);
+		List<String> props = eng.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/Title");
 		while(!props.isEmpty()){
 			System.out.println(props.remove(0));
 		}

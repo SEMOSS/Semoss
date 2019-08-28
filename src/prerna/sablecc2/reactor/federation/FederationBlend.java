@@ -190,7 +190,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 			// since i dont know if it is a concept or a property
 			// if i get a valid data type, new col is a property for new table
 			// if i dont, then newtable is a concept with a prim key that i need to use
-			if(newColEngine.getParentOfProperty(additionalColumnInput + "/" + newTable) == null) {
+			if(newColEngine.getPhysicalUriFromPixelSelector(newTable + "__" + newCol) == null) {
 				// we couldn't find a parent for this property
 				// this means it is a concept itself
 				// and we should only use table

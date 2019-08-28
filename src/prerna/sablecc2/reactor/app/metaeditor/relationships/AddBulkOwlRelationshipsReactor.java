@@ -12,6 +12,7 @@ import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.impl.util.Owler;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -23,7 +24,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.reactor.frame.r.util.IRJavaTranslator;
 import prerna.sablecc2.reactor.imports.ImportUtility;
-import prerna.util.Owler;
 import prerna.util.Utility;
 
 public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
@@ -59,14 +59,14 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 		boolean canOptimize = (frame instanceof RDataTable);
 		
 		// we may have the alias
-		appId = getAppId(appId, true);
+		appId = testAppId(appId, true);
 
 		Owler owler = getOWLER(appId);
 		// set all the existing values into the OWLER
 		// so that its state is updated
 		IEngine engine = Utility.getEngine(appId);
-		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || 
-				engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
+//		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || 
+//				engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
 		setOwlerValues(engine, owler);
 		
 		// get tables
@@ -102,15 +102,15 @@ public class AddBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor {
 			// generate the relationship
 			String rel = startT + "." + startC + "." + endT + "." + endC;
 			
-			if(isRdbms) {
-				// the relation has the startC and endC
-				// what I really need is the primary key for the tables
-				startC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(startT));
-				endC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(endT));
-			}
+//			if(isRdbms) {
+//				// the relation has the startC and endC
+//				// what I really need is the primary key for the tables
+//				startC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(startT));
+//				endC = Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(endT));
+//			}
 			
 			// add the relationship
-			owler.addRelation(startT, startC, endT, endC, rel);
+			owler.addRelation(startT, endT, rel);
 			counter++;
 		}
 		logger.info("Done adding relationships");
