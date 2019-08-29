@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.regex.Matcher;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -521,7 +522,11 @@ public class Insight {
 	}
 	
 	public String getExportFileLocation(String uniqueKey) {
-		return this.exportFiles.get(uniqueKey);
+		String fileLocation = this.exportFiles.get(uniqueKey);
+		if(fileLocation.startsWith("$IF")) {
+			fileLocation = fileLocation.replaceFirst("\\$IF", Matcher.quoteReplacement(getInsightFolder()));
+		}
+		return fileLocation;
 	}
 	
 	public Map<String, String> getExportFiles() {

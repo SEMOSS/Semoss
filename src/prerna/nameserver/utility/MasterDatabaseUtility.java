@@ -283,8 +283,6 @@ public class MasterDatabaseUtility {
 				}
 			}
 		}
-		
-		
 	}
 	
 	@Deprecated
@@ -372,17 +370,6 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getAllLogicalNamesFromConceptualRDBMS(String conceptualName) {
-		List<String> vec = new Vector<String>(2);
-		vec.add(conceptualName);
-		return getAllLogicalNamesFromConceptualRDBMS(vec);
-	}
-
-	/**
-	 * Return all the logical names for a given conceptual name
-	 * @param conceptualName
-	 * @return
-	 */
-	public static List<String> getAllLogicalNamesFromConceptualRDBMS(List<String> conceptualName) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -394,6 +381,57 @@ public class MasterDatabaseUtility {
 		return flushToListString(wrapper);
 	}
 
+	/**
+	 * Return all the logical names for a given conceptual name
+	 * @param conceptualName
+	 * @return
+	 */
+	public static List<String> getAllLogicalNamesFromPixelName(List<String> pixelNames) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CONCEPT__LOGICALNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", pixelNames));
+		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("CONCEPT__LOGICALNAME"));
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		return flushToListString(wrapper);
+	}
+	
+	/**
+	 * Return all the logical names for a given conceptual name
+	 * @param conceptualName
+	 * @return
+	 */
+	public static List<String> getLocalConceptIdsFromPixelName(List<String> pixelNames) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", pixelNames));
+		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		return flushToListString(wrapper);
+	}
+	
+	/**
+	 * Return all the logical names for a given conceptual name
+	 * @param conceptualName
+	 * @return
+	 */
+	public static List<String> getLocalConceptIdsFromSimilarLogicalNames(List<String> logicalNames) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "?like", logicalNames));
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		return flushToListString(wrapper);
+	}
+	
 	/**
 	 * Get a list of arrays containing [table, column, type] for a given database
 	 * @param engineId
@@ -493,7 +531,7 @@ public class MasterDatabaseUtility {
 	 * @param engineId
 	 * @return
 	 */
-	public static List<Map<String, Object>> getDatabaseConnections(List<String> logicalNames, List<String> engineFilter) {
+	public static List<Map<String, Object>> getDatabaseConnections(List<String> localConceptIds, List<String> engineFilter) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
 		List<Map<String, Object>> returnData = new Vector<Map<String, Object>>();
@@ -520,20 +558,10 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__LOCALCONCEPTID", "==", localConceptIds));
 		if(engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
 		}
-		{
-			// add filter based on logical names
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINECONCEPT__LOCALCONCEPTID", "==", subQs));
-
-			// fill in the sub query with the necessary column output + filters
-			subQs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__LOGICALNAME", "==", logicalNames));
-		}
-		
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
 			IHeadersDataRow row = wrapper.next();
