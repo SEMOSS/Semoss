@@ -27,7 +27,6 @@ import prerna.cache.InsightCacheUtility;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.PixelPreProcessor;
@@ -51,6 +50,7 @@ import prerna.util.insight.InsightUtility;
 
 public class InsightAdapter extends TypeAdapter<Insight> {
 
+	private static final String CLASS_NAME = InsightAdapter.class.getName();
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
 	// this var is only used so we have a way
@@ -376,8 +376,8 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				if(frame instanceof PandasFrame) {
 					((PandasFrame)frame).setJep(insight.getPy());
 				}
-				else if(RserveUtil.IS_USER_RSERVE && frame instanceof RDataTable) {
-					frame = new RDataTable(insight.getUser());
+				else if(frame instanceof RDataTable) {
+					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
 				}
 				
 				frame.open(cf);

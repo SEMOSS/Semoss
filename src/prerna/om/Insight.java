@@ -476,6 +476,11 @@ public class Insight {
 		return this.insightOrnament;
 	}
 	
+	public AbstractRJavaTranslator getRJavaTranslator(String className) {
+		Logger logger = LogManager.getLogger(className);
+		return getRJavaTranslator(logger);
+	}
+	
 	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
 		if(this.rJavaTranslator == null) {
 			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
@@ -483,6 +488,10 @@ public class Insight {
 			this.rJavaTranslator.setLogger(logger);
 		}
 		return this.rJavaTranslator;
+	}
+	
+	public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
+		this.rJavaTranslator = rJavaTranslator;
 	}
 	
 	public void setPy(PyExecutorThread jepThread) {
@@ -935,6 +944,4 @@ public class Insight {
         // sys.path.add
         // sys.path.remove - the remove is tricky however
 	}
-
-	
 }
