@@ -86,7 +86,6 @@ public final class ZipUtils {
 			try {
 				int length;
 				fis = new FileInputStream(file);
-				System.out.println(file.getAbsolutePath());
 				while ((length = fis.read(buffer)) >= 0) {
 					zos.write(buffer, 0, length);
 				}
