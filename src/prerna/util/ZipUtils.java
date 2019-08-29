@@ -11,27 +11,94 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 
-import prerna.engine.impl.SmssUtilities;
-
-public final class ZipDatabase {
+public final class ZipUtils {
 
 	// buffer for read and write data to file
 	private static byte[] buffer = new byte[2048];
 	
-	private static final String FILE_SEPARATOR = "/";//System.getProperty("file.separator");
-	
-	private static final String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/export/ZIPs";
-	
-	private ZipDatabase() {
+	public static final String FILE_SEPARATOR = "/";//System.getProperty("file.separator");
+		
+	private ZipUtils() {
 
 	}
 
-	public static void main(String[] args) {
-		String path = "C:\\Development\\ZipDB\\AR_Quarterly.zip";
-		String destination = "C:\\Development\\ZipDB";
-		ZipDatabase.unZipEngine(destination, path);
+	/**
+	 * Zip files within a dir
+	 * @param folderPath
+	 * @param zipFilePath
+	 * @return
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static ZipOutputStream zipFolder(String folderPath, String zipFilePath)
+			throws FileNotFoundException, IOException {
+		FileOutputStream fos = new FileOutputStream(zipFilePath);
+		ZipOutputStream zos = new ZipOutputStream(fos);
+		// add every file
+		File dir = new File(folderPath);
+		File[] files = dir.listFiles();
+		if (files != null) {
+			for (File file : files) {
+				String prefix = file.getParent().substring(file.getParent().lastIndexOf("\\") + 1);
+				addAllToZip(file, zos, prefix);
+			}
+		}
+		return zos;
+	}
+	/**
+	 * Add file to ZipOutputStream
+	 * @param file
+	 * @param zos
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void addToZipFile(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
+		ZipEntry zipEntry = new ZipEntry(file.getName());
+		zos.putNextEntry(zipEntry);
+
+		FileInputStream fis = null;
+		try {
+			int length;
+			fis = new FileInputStream(file);
+			while ((length = fis.read(buffer)) >= 0) {
+				zos.write(buffer, 0, length);
+			}
+		} finally {
+			if(fis != null) {
+				fis.close();
+			}
+		}
+		zos.closeEntry();
 	}
 
+	private static void addAllToZip(File file, ZipOutputStream zos, String prefix) throws FileNotFoundException, IOException {
+		if(file.isDirectory()) {
+			String subPrefix = prefix + FILE_SEPARATOR + file.getName();
+			File[] files = file.listFiles();
+			for(File subF : files) {
+				addAllToZip(subF, zos, subPrefix);
+			}
+		} else {
+			ZipEntry zipEntry = new ZipEntry(prefix + FILE_SEPARATOR + file.getName());
+			zos.putNextEntry(zipEntry);
+	
+			FileInputStream fis = null;
+			try {
+				int length;
+				fis = new FileInputStream(file);
+				System.out.println(file.getAbsolutePath());
+				while ((length = fis.read(buffer)) >= 0) {
+					zos.write(buffer, 0, length);
+				}
+			} finally {
+				if(fis != null) {
+					fis.close();
+				}
+			}
+			zos.closeEntry();
+		}
+	}
+	
 	private static void unZipEngine(String destinationFolder, String zipFile) {
 		File directory = new File(destinationFolder);
 
@@ -139,102 +206,13 @@ public final class ZipDatabase {
 			}
 		}
 	}
-
-	public static File zipEngine(String engineId, String engineName) 
-	{
-		String engineDir = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/db/" + SmssUtilities.getUniqueName(engineName, engineId);
-		String zipFilePath = OUTPUT_PATH + "/" + engineName + ".zip";
-		
-		FileOutputStream fos = null;
-		ZipOutputStream zos = null;
-		try {
-			fos = new FileOutputStream(zipFilePath);
-			zos = new ZipOutputStream(fos);
-
-			// add every file in engine dir folder
-			File dir = new File(engineDir);
-			File[] files = dir.listFiles();
-			if(files != null) {
-				for(File file : files) {
-					String prefix = file.getParent().substring(file.getParent().lastIndexOf("\\") + 1);
-					addAllToZip(file, zos, prefix);
-				}
-			}
-
-			// add smss file
-			File smss = new File(engineDir + "/../" + SmssUtilities.getUniqueName(engineName, engineId) + ".smss");
-			System.out.println("Saving file " + smss.getName());
-			addToZipFile(smss, zos);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				if(zos != null) {
-					zos.flush();
-					zos.close();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			try {
-				if(fos != null) {
-					fos.flush();
-					fos.close();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		return new File(zipFilePath);
-	}
-
-	private static void addAllToZip(File file, ZipOutputStream zos, String prefix) throws FileNotFoundException, IOException {
-		if(file.isDirectory()) {
-			String subPrefix = prefix + FILE_SEPARATOR + file.getName();
-			File[] files = file.listFiles();
-			for(File subF : files) {
-				addAllToZip(subF, zos, subPrefix);
-			}
-		} else {
-			ZipEntry zipEntry = new ZipEntry(prefix + FILE_SEPARATOR + file.getName());
-			zos.putNextEntry(zipEntry);
 	
-			FileInputStream fis = null;
-			try {
-				int length;
-				fis = new FileInputStream(file);
-				while ((length = fis.read(buffer)) >= 0) {
-					zos.write(buffer, 0, length);
-				}
-			} finally {
-				if(fis != null) {
-					fis.close();
-				}
-			}
-			zos.closeEntry();
-		}
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		String path = "C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\db\\newMov__a2127aa7-e953-435f-a3ab-53f97028c795\\version\\d4375e9a-6d9d-4954-9385-e93d44e8aa63";
+		String destination = "C:\\Users\\rramirezjimenez\\Desktop\\test.zip";
+		ZipOutputStream zos = ZipUtils.zipFolder(path, destination);
+		zos.close();
 	}
 
-	private static void addToZipFile(File file, ZipOutputStream zos) throws FileNotFoundException, IOException {
-		ZipEntry zipEntry = new ZipEntry(file.getName());
-		zos.putNextEntry(zipEntry);
-
-		FileInputStream fis = null;
-		try {
-			int length;
-			fis = new FileInputStream(file);
-			while ((length = fis.read(buffer)) >= 0) {
-				zos.write(buffer, 0, length);
-			}
-		} finally {
-			if(fis != null) {
-				fis.close();
-			}
-		}
-		zos.closeEntry();
-	}
 
 }
