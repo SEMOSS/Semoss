@@ -733,8 +733,8 @@ public class MasterDatabaseUtility {
 			
 			String engineName = (String) data[0];
 			String engineId = (String) data[1];
-			String upstream = (String) data[2];
-			String downstream = (String) data[3];
+			String downstream = (String) data[2];
+			String upstream  = (String) data[3];
 			String relName = (String) data[4];
 			String type = (String) data[5];
 
