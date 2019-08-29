@@ -11,7 +11,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -50,9 +49,8 @@ public class InsightUtility {
 			}
 		}
 		newInsight.setPy(origInsight.getPy());
-		if(RserveUtil.IS_USER_RSERVE && origInsight.getUser() != null){
-			newInsight.setUser(origInsight.getUser());
-		}
+		newInsight.setUser(origInsight.getUser());
+		newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(LOGGER));
 	}
 	
 	/**
