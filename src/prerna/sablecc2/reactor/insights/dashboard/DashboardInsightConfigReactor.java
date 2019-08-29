@@ -16,10 +16,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 public class DashboardInsightConfigReactor extends AbstractReactor {
+	
+	private static final String CLASS_NAME = DashboardInsightConfigReactor.class.getName();
 	
 	private static final String INSIGHT_KEY = "insights";
 	private static final String OLD_ID_KEY = "oldIds";
@@ -40,11 +43,19 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Saved dashboard does not contain equal number of insights and ids");
 		}
 		
+		// set the same r for each insight in the dashboard
+		AbstractRJavaTranslator sharedR = null;
+		
 		List<Map<String, String>> insightConfig = new ArrayList<Map<String, String>>();
 		for(int i = 0; i < numInsights; i++) {
 			Map<String, String> insightMap = new HashMap<String, String>();
 			// return to the FE the recipe
 			Insight insight = getInsight(insightStrings.get(i));
+			if(sharedR == null) {
+				sharedR = insight.getRJavaTranslator(CLASS_NAME);
+			} else {
+				insight.setRJavaTranslator(sharedR);
+			}
 			insightMap.put("name", insight.getInsightName());
 			// keys below match those in solr
 			insightMap.put("app_id", insight.getEngineId());
