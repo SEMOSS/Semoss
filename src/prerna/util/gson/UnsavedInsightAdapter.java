@@ -16,7 +16,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
-import prerna.engine.impl.r.RserveUtil;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
@@ -26,6 +25,8 @@ import prerna.sablecc2.om.task.TaskStore;
 import prerna.util.insight.InsightUtility;
 
 public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
+
+	private static final String CLASS_NAME = UnsavedInsightAdapter.class.getName();
 
 	private File folderDir;
 	private Insight existingInsight;
@@ -243,8 +244,8 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 				if(frame instanceof PandasFrame) {
 					((PandasFrame)frame).setJep(insight.getPy());
 				}
-				else if(RserveUtil.IS_USER_RSERVE && frame instanceof RDataTable) {
-					frame = new RDataTable(insight.getUser());
+				else if(frame instanceof RDataTable) {
+					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
 				}
 				
 				frame.open(cf);
