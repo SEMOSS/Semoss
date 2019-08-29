@@ -47,7 +47,7 @@ public class DeleteAppReactor extends AbstractReactor {
 				if(!isAdmin) {
 					boolean isOwner = SecurityAppUtils.userIsOwner(user, appId);
 					if(!isOwner) {
-						throw new IllegalArgumentException("App " + appId + " does not exist or user does not have permissions to database");
+						throw new IllegalArgumentException("App " + appId + " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
 					}
 				}
 			} else {
