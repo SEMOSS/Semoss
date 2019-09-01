@@ -20,6 +20,7 @@ import org.apache.http.message.BasicNameValuePair;
 
 import prerna.om.AbstractValueObject;
 import prerna.security.AbstractHttpHelper;
+import prerna.util.git.GitRepoUtils;
 
 public class AppTokens extends AbstractValueObject{
 	
@@ -75,6 +76,7 @@ public class AppTokens extends AbstractValueObject{
 		// getting the bearer token on twitter for app authentication is a lot simpler
 		// need to just combine the id and secret
 		// base 64 and send as authorization
+		GitRepoUtils.addCertForDomain("https://twitter.com");
 		
 		InputStream is = null;
 		InputStreamReader isr = null;
