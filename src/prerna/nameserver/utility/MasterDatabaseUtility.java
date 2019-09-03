@@ -448,7 +448,7 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
-		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
+		qs.addOrderBy("ENGINECONCEPT__PK");
 		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
@@ -1377,43 +1377,6 @@ public class MasterDatabaseUtility {
 		}
 		return selectors;
 	}
-	
-
-	/**
-	 * Execute a query to get the table name for a column
-	 * @param engineId
-	 * @param column
-	 * @return
-	 */
-	@Deprecated
-	public static String getTableForColumn(String engineId, String column) {
-		// select ec.physicalname from engineconcept as ec inner join engineconcept ec2 on ec.physicalnameid=ec2.parentphysicalid where ec.engine='acd7bdc8-67a0-4fa7-8b30-7c39f5c0fc62' and ec2.physicalname='MOVIE_DATA' and ec2.pk = false;
-		String query = "select ec.physicalname "
-				+ "from engineconcept as ec "
-				+ "inner join engineconcept ec2 on ec.physicalnameid=ec2.parentphysicalid "
-				+ "where ec2.pk = false "
-				+ "and ec.engine='" + engineId + "' "
-				+ "and ec2.physicalname='" + column + "'";
-
-		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-		Statement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while(rs.next()) {
-				String parentName = rs.getString(1);
-				return parentName;
-			}
-		} catch(SQLException ex) {
-			ex.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
-		}
-
-		return null;
-	}
 
 	/**
 	 * Get the data type
@@ -1761,6 +1724,25 @@ public class MasterDatabaseUtility {
 			qs.addRelation("ENGINECONCEPT", "CONCEPT", "inner.join");
 		}
 		qs.addOrderBy(new QueryColumnOrderBySelector("LNAME"));
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		return flushToListString(wrapper);
+	}
+	
+	
+	/**
+	 * Get a list of the conceptual names that are primary keys for a db
+	 * @param engineId
+	 * @return
+	 */
+	public static Collection<String> getPKColumnsWithData(String engineId) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
 
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		return flushToListString(wrapper);
@@ -2374,8 +2356,13 @@ public class MasterDatabaseUtility {
 				.setPrettyPrinting()
 				.create();
 
-		List<String> values = null;
-		System.out.println(gson.toJson(getConceptProperties(logicalNames, values)));
+//		List<String> values = null;
+//		System.out.println(gson.toJson(getConceptProperties(logicalNames, values)));
+		
+		System.out.println(gson.toJson(getPKColumnsWithData("2da0688f-fc35-4427-aba5-7bd7b7ac9472"))); 
+		System.out.println(gson.toJson(getPKColumnsWithData("67b6499d-03b2-463f-9169-396f4cce8955"))); 
+		System.out.println(gson.toJson(getPKColumnsWithData("3cbd547f-9ff9-43bc-9b59-a4d170c45b26"))); 
+		
 	}
 
 }

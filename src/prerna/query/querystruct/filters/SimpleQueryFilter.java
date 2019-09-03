@@ -893,6 +893,21 @@ public class SimpleQueryFilter implements IQueryFilter {
 	}
 	
 	/**
+	 * Helper method to generate a column to values filter
+	 * @param colQs				The string representing the pixel for a unique column
+	 * @param comparator		The comparator for the filter
+	 * @param values			The value for the filter - can be List or scalar (interpreter handles both)
+	 * @param rightDataType		The data type for the object (if list, the values inside the list)
+	 * @return
+	 */
+	public static SimpleQueryFilter makeColToValFilter(QueryColumnSelector colSelector, String comparator, Object values, PixelDataType rightDataType) {
+		NounMetadata lComparison = new NounMetadata(colSelector, PixelDataType.COLUMN);
+		NounMetadata rComparison = new NounMetadata(values, rightDataType);
+		SimpleQueryFilter filter = new SimpleQueryFilter(lComparison, comparator, rComparison);
+		return filter;
+	}
+	
+	/**
 	 * Helper method to generate a column to subquery filter 
 	 * @param colQs
 	 * @param comparator
