@@ -19,6 +19,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.impl.r.IRUserConnection;
+import prerna.engine.impl.r.RUserConnectionSingle;
 import prerna.engine.impl.r.RserveUtil;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -26,7 +27,7 @@ import prerna.util.DIHelper;
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 	private IRUserConnection rcon;
-	
+	private boolean envConfig = false;
 	
 	////////////////////////////////////////
 	// Starting R
@@ -53,7 +54,17 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				rcon.loadDefaultPackages();
 				// this needs to be at the every instance level. so moved this to factory
 				//initREnv(); // TODO>>>timb: R - why do we need these? They are not called in recover methods of the RUserConnection framework (later)
-				setMemoryLimit();
+			}
+			//TODO 
+			if ( !envConfig){
+				//Doesnt setMemoryLimit need to be moved as well? Every insight is a new env so we need to reset that every time.
+				 initREnv();
+				 setMemoryLimit();
+				 if(rcon instanceof RUserConnectionSingle){
+					 //likely can move this to all R User Types but testing in Single
+						removeRFunctions();
+				 }
+				 envConfig = true;
 			}
 		} catch (Exception e) {
 			
@@ -69,6 +80,17 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			}
 			throw new IllegalArgumentException("Failed to start R: " +  e.getMessage(), e);
 		}
+	}
+
+	private void removeRFunctions() {
+		//adding all the calls i want removed from R. GG hackers. 
+		String rScript="getenv <- function() {};Sys.chmod<-getenv;Sys.date<-getenv;Sys.getenv<-getenv;Sys.getlocate<-getenv;"
+				+ "Sys.getpid<-getenv;Sys.glob<-getenv;Sys.info<-getenv;Sys.localeconv<-getenv;"
+				+ "sys.on.exit<-getenv;sys.parent<-getenv;Sys.readlink<-getenv;Sys.setenv<-getenv;"
+				+ "Sys.setlocale<-getenv;Sys.sleep<-getenv;sys.source<-getenv;sys.status<-getenv;"
+				+ "Sys.time<-getenv;Sys.timezone<-getenv;Sys.umask<-getenv;Sys.unsetenv<-getenv;"
+				+ "Sys.which<-getenv;Sys<-getenv;sys<-getenv;";
+		this.runR(rScript);
 	}
 
 	private boolean userRconIsDefined() {
@@ -129,6 +151,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		rScript = rScript.replaceAll("'", "\\'");
 		// attempt to put it into environment
 		rScript = "eval(parse(text='" + rScript + "'), envir=" + this.env +");";
+		initREnv();
+		rScript = encapsulateForEnv(rScript);
 
 		return rcon.eval(rScript);
 	}
@@ -137,7 +161,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	public void executeEmptyR(String rScript) {
 		rScript = rScript.replaceAll("\"", "\\\"");
 		rScript = rScript.replaceAll("'", "\\'");
-
+		initREnv();
+		rScript = encapsulateForEnv(rScript);
 		rcon.voidEval(rScript);
 	}
 	
@@ -168,6 +193,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public String getString(String rScript) {
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asString();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a string.");
@@ -177,6 +204,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public String[] getStringArray(String rScript) {
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asStrings();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a string array.");
@@ -189,8 +218,10 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	 * @param frameName
 	 */
 	public String[] getColumnTypes(String frameName) {
-		String script = "sapply(" + frameName + ", class);";
-		REXP val = rcon.eval(script);
+		String rScript = "sapply(" + frameName + ", class);";
+		initREnv();
+		rScript = encapsulateForEnv(rScript);
+		REXP val = rcon.eval(rScript);
 		try {
 			 return val.asStrings();
 		} catch (REXPMismatchException e) {
@@ -230,7 +261,10 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public int getInt(String rScript) {
+
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asInteger();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to an integer.");
@@ -240,6 +274,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public int[] getIntArray(String rScript) {
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asIntegers();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to an integer array.");
@@ -249,6 +285,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double getDouble(String rScript) {
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asDouble();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a double.");
@@ -258,6 +296,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double[] getDoubleArray(String rScript) {
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asDoubles();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a double array.");
@@ -267,6 +307,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public double[][] getDoubleMatrix(String rScript) {
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asDoubleMatrix();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a double matrix.");
@@ -276,6 +318,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public boolean getBoolean(String rScript) {
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asInteger() == 1;
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a inter.");
@@ -285,6 +329,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Object getFactor(String rScript) {
 		try {
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
 			return rcon.eval(rScript).asFactor();
 		} catch (REXPMismatchException e) {
 			throw new IllegalArgumentException("R did not evaluate to a factor.");
@@ -323,11 +369,13 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	}
 
 	@Override
-	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
+	public Map<String, Object> getHistogramBreaksAndCounts(String rScript) {
+		initREnv();
+		rScript = encapsulateForEnv(rScript);
 		try {
 			double[] breaks;
 			@SuppressWarnings("unchecked")
-			Map<String, Object> histJ = (Map<String, Object>) (rcon.eval(script).asNativeJavaObject());
+			Map<String, Object> histJ = (Map<String, Object>) (rcon.eval(rScript).asNativeJavaObject());
 			if (histJ.get("breaks") instanceof int[]) {
 				int[] breaksInt = (int[]) histJ.get("breaks");
 				breaks = Arrays.stream(breaksInt).asDoubleStream().toArray();
@@ -347,12 +395,15 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public Map<String, Object> flushFrameAsTable(String framename, String[] colNames) {
+		
 		List<Object[]> dataMatrix = new ArrayList<Object[]>();
 
 		int numCols = colNames.length;
 		for (int i = 0; i < numCols; i++) {
-			String script = framename + "$" + colNames[i];
-			REXP val = rcon.eval(script);
+			String rScript = framename + "$" + colNames[i];
+			initREnv();
+			rScript = encapsulateForEnv(rScript);
+			REXP val = rcon.eval(rScript);
 
 			if (val.isNumeric()) {
 				// for a double array
@@ -434,13 +485,16 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
+		initREnv();
+		rScript = encapsulateForEnv(rScript);
 		return getBulkDataRow(rScript, headerOrdering).get(0);
 	}
 
 	@Override
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
 		List<Object[]> retArr = new Vector<Object[]>(500);
-
+		initREnv();
+		rScript = encapsulateForEnv(rScript);
 		REXP rs = rcon.eval(rScript);
 		try {
 			RList result = rs.asList();
@@ -594,13 +648,17 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public Object executeRunR(String rScript) {
-		// TODO Auto-generated method stub
+		initREnv();
+		rScript = encapsulateForEnv(rScript);		// TODO Auto-generated method stub
 		return rcon.eval(rScript);
 	}
 	
 	@Override
 	public void executeEmptyRunR(String rScript) {
+		initREnv();
+		rScript = encapsulateForEnv(rScript);
 		rcon.voidEval(rScript);
 	}
 
+	
 }
