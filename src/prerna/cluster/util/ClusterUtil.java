@@ -33,7 +33,7 @@ public class ClusterUtil {
 
 	private static final String STORAGE_PROVIDER_KEY = "SEMOSS_STORAGE_PROVIDER";
 	public static final String STORAGE_PROVIDER = (DIHelper.getInstance().getProperty(STORAGE_PROVIDER_KEY) != null && !(DIHelper.getInstance().getProperty(STORAGE_PROVIDER_KEY).isEmpty())) 
-			? DIHelper.getInstance().getProperty(IS_CLUSTER_KEY) : System.getenv(STORAGE_PROVIDER_KEY);
+			? DIHelper.getInstance().getProperty(STORAGE_PROVIDER_KEY) : System.getenv(STORAGE_PROVIDER_KEY);
 
 	private static final String REMOTE_RSERVE_KEY = "REMOTE_RSERVE";
 	public static final boolean REMOTE_RSERVE = (DIHelper.getInstance().getProperty(REMOTE_RSERVE_KEY) != null && !(DIHelper.getInstance().getProperty(IS_CLUSTER_KEY).isEmpty())) 
