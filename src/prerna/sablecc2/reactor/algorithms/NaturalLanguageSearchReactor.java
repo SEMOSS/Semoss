@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.algorithms;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -189,24 +190,30 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			String rTableNames = "c(";
 			String rColNames = "c(";
 			String rColTypes = "c(";
+			String rPrimKey = "c(";
 
 			// create R vector of appid, tables, and columns
 			for (int i = 0; i < totalColCount; i++) {
 				Object[] entry = allTableCols.get(i);
 				String appId = entry[0].toString();
 				String table = entry[1].toString();
-				String column = entry[2].toString();
-				String dataType = entry[3].toString();
-				if (i == 0) {
-					rAppIds += "'" + appId + "'";
-					rTableNames += "'" + table + "'";
-					rColNames += "'" + column + "'";
-					rColTypes += "'" + dataType + "'";
-				} else {
-					rAppIds += ",'" + appId + "'";
-					rTableNames += ",'" + table + "'";
-					rColNames += ",'" + column + "'";
-					rColTypes += ",'" + dataType + "'";
+				if (entry[0] != null && entry[1] != null && entry[2] != null && entry[3] != null && entry[4] != null) {
+					String column = entry[2].toString();
+					String dataType = entry[3].toString();
+					String pk = entry[4].toString().toUpperCase();
+					if (i == 0) {
+						rAppIds += "'" + appId + "'";
+						rTableNames += "'" + table + "'";
+						rColNames += "'" + column + "'";
+						rColTypes += "'" + dataType + "'";
+						rPrimKey += "'" + pk + "'";
+					} else {
+						rAppIds += ",'" + appId + "'";
+						rTableNames += ",'" + table + "'";
+						rColNames += ",'" + column + "'";
+						rColTypes += ",'" + dataType + "'";
+						rPrimKey += ",'" + pk + "'";
+					}
 				}
 			}
 
@@ -255,6 +262,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						rTableNames += ",'" + sourceTable + "'";
 						rColNames += ",'" + sourceColumn + "'";
 						rColTypes += ", 'STRING' ";
+						rPrimKey += ", 'FALSE' ";
 					}
 					// no longer adding the first row to this data frame, increment..
 					firstRel++;
@@ -287,6 +295,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			rTableNames += ")";
 			rColNames += ")";
 			rColTypes += ")";
+			rPrimKey += ")";
 			rAppIDs_join += ")";
 			rTbl1 += ")";
 			rTbl2 += ")";
@@ -294,7 +303,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			rJoinBy2 += ")";
 			
 			// create the session tables
-			sessionTableBuilder.append(rSessionTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", stringsAsFactors = FALSE);");
+			sessionTableBuilder.append(rSessionTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", Key = " + rPrimKey + ", stringsAsFactors = FALSE);");
 			sessionTableBuilder.append(rSessionJoinTable + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = " + rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rAppIDs_join + ", stringsAsFactors = FALSE);");
 			this.rJavaTranslator.runR(sessionTableBuilder.toString());
 		}
@@ -350,6 +359,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		List<SelectQueryStruct> qsList = new Vector<SelectQueryStruct>();
 		// when this value doesn't match the previous, we know to add a new QS
 		String currAppId = null;
+		Collection<String> primKeys = null;
 		SelectQueryStruct curQs = null;
 		int numRows = retData.size();
 		for(int i = 0; i < numRows; i++) {
@@ -364,6 +374,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			String rowAppId = row[0].toString();
 			if(currAppId == null) {
 				currAppId = rowAppId;
+				primKeys = MasterDatabaseUtility.getPKColumnsWithData(currAppId);
 				curQs = new SelectQueryStruct();
 				curQs.setEngineId(currAppId);
 				qsList.add(curQs);
@@ -372,6 +383,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// this row is now starting a new QS
 				// we gotta init another one
 				currAppId = rowAppId;
+				primKeys = MasterDatabaseUtility.getPKColumnsWithData(currAppId);
 				curQs = new SelectQueryStruct();
 				curQs.setEngineId(currAppId);
 				qsList.add(curQs);
@@ -385,11 +397,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				boolean agg = !row[4].toString().isEmpty();
 				
 				IQuerySelector selector = null;
-				// if it is a table
-				// we do not know the correct primary key
-				// so we exec a query to determine if we should use the current selectedProperty
-				// or keep it as PRIM_KEY_PLACEHOLDER
-				if(MasterDatabaseUtility.getTableForColumn(currAppId, selectProperty) == null) {
+				// TODO: need to properly send/receive null values in case there is a
+				// property with the same name as the node
+				if(primKeys.contains(selectProperty)) {
 					selector = new QueryColumnSelector(selectConcept);
 				} else {
 					selector = new QueryColumnSelector(selectConcept + "__" + selectProperty);
@@ -430,7 +440,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// so we exec a query to determine if we should use the current selectedProperty
 				// or keep it as PRIM_KEY_PLACEHOLDER
 				IQuerySelector selector = null;
-				if(MasterDatabaseUtility.getTableForColumn(currAppId, whereCol) == null) {
+				if(primKeys.contains(whereCol)) {
 					selector = new QueryColumnSelector(whereTable);
 				} else {
 					selector = new QueryColumnSelector(whereTable + "__" + whereCol);
@@ -501,7 +511,6 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						curQs.addExplicitFilter(filter);
 					}
 				}
-				
 			} 
 			else if(part.equalsIgnoreCase("having")) {
 				String havingTable = row[2].toString();
@@ -524,7 +533,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// so we exec a query to determine if we should use the current selectedProperty
 				// or keep it as PRIM_KEY_PLACEHOLDER
 				IQuerySelector selector = null;
-				if(MasterDatabaseUtility.getTableForColumn(currAppId, havingCol) == null) {
+				if(primKeys.contains(havingCol)) {
 					selector = new QueryColumnSelector(havingTable);
 				} else {
 					selector = new QueryColumnSelector(havingTable + "__" + havingCol);
@@ -557,11 +566,14 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 					
 					// my rhs is another column agg
 					IQuerySelector selectorR = null;
-					if(MasterDatabaseUtility.getTableForColumn(currAppId, havingValue2.toString()) == null) {
-						selectorR = new QueryColumnSelector(havingTable);
+					// TODO: need to properly send/receive null values in case there is a
+					// property with the same name as the node
+					if(primKeys.contains(havingValue2.toString())) {
+						selector = new QueryColumnSelector(havingTable);
 					} else {
-						selectorR = new QueryColumnSelector(havingTable + "__" + havingValue2);
+						selector = new QueryColumnSelector(havingTable + "__" + havingValue2);
 					}
+					
 					QueryFunctionSelector fSelectorR = new QueryFunctionSelector();
 					fSelectorR.setFunction(havingValueAgg.toString());
 					fSelectorR.addInnerSelector(selectorR);
@@ -620,7 +632,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 				// we do not know the correct primary key
 				// so we exec a query to determine if we should use the current selectedProperty
 				// or keep it as PRIM_KEY_PLACEHOLDER
-				if (MasterDatabaseUtility.getTableForColumn(currAppId, groupProperty) == null) {
+				if (primKeys.contains(groupProperty)) {
 					curQs.addGroupBy(groupConcept, null);
 				} else {
 					curQs.addGroupBy(groupConcept, groupProperty);
@@ -748,7 +760,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 						// if it is an RDF database make sure that the wild card is *
 						String value = rhs.getValue().toString();
 						if(value.contains("%") && getAppTypeFromId(appId).equals("TYPE:RDF")) {
-							value = value.replaceAll("%", "*");
+							value = value.replaceAll("%", "/.*");
 						}
 						psb.append("\"" + value + "\"");
 					}
