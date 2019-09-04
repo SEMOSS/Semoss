@@ -92,7 +92,8 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				// need to come back for when/if we use this for other things
 				// aside from preview
 				in.setDeleteFilesOnDropInsight(false);
-				
+				in.setDeleteREnvOnDropInsight(false);
+
 				// since R and Py share the same user space
 				// i will need to go through and modify them to have another variable name
 				VarStore vStore = in.getVarStore();

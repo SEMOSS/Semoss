@@ -206,7 +206,7 @@ public class InsightUtility {
 			// if R is instantiated
 			// remove all the variables
 			// this will happen in your environment
-			if(insight.rInstantiated()) {
+			if(insight.rInstantiated() && insight.isDeleteREnvOnDropInsight()) {
 				try {
 					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(LOGGER);
 					rJava.runR("rm(list=ls())");
@@ -256,7 +256,7 @@ public class InsightUtility {
 			
 			// if R is instantiated
 			// remove the environment
-			if(insight.rInstantiated()) {
+			if(insight.rInstantiated() && insight.isDeleteREnvOnDropInsight()) {
 				try {
 					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(LOGGER);
 					rJava.removeEnv();
