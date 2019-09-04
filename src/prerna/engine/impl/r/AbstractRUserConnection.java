@@ -39,17 +39,18 @@ public abstract class AbstractRUserConnection implements IRUserConnection {
 	private Object rconMonitor = new Object();
 	protected RConnection rcon;
 	
+	private String env;
+	
 	////////////////////////////////////////
 	// Constructors, overloaded for defaults
 	////////////////////////////////////////
 	public AbstractRUserConnection(String rDataFile) {		
-		this.rDataFile = rDataFile; 		
+		this.rDataFile = rDataFile;
 	}
 
 	public AbstractRUserConnection() {
 		this(RserveUtil.getRDataFile(Utility.getRandomString(12)));
 	}
-		
 	
 	////////////////////////////////////////
 	// Mirroring RConnection methods

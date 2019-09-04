@@ -85,8 +85,12 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 */
 	protected void setMemoryLimit() {
 		String script = "memory.limit(" + RJavaTranslatorFactory.rMemory + ");";
-		this.executeRunR(script);
-		
+		this.executeEmptyRDirect(script);
+	}
+	
+	@Override
+	public void initREnv() {
+		this.executeEmptyRDirect("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
 	}
 	
 	protected String encapsulateForEnv(String rScript) {
@@ -100,7 +104,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 * This should only be called when you drop the entire insight
 	 */
 	public void removeEnv() {
-		executeRunR("rm(" + this.env + ");");
+		executeEmptyRDirect("rm(" + this.env + ");");
 	}
 	
 	/**
@@ -398,7 +402,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			rootPath = this.insight.getInsightFolder().replace('\\', '/');
 			rTemp = rootPath + "/R/Temp/";
 			addRootVariable = "ROOT <- '" + rootPath + "';";
-			removeRootVar = ", ROOT";
+			removeRootVar = "ROOT";
 		} else {
 			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
 		}
@@ -419,7 +423,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		}
 
 		try {
-			this.executeEmptyRunR("source(\"" + scriptPath + "\", local=TRUE)");
+			this.executeEmptyRDirect("source(\"" + scriptPath + "\", local=TRUE)");
 		} finally {
 			rTempF.delete();
 			try {
@@ -482,7 +486,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
 			RuntimeException error = null;
 			try {
-				this.executeRunR(finalScript);
+				this.executeEmptyRDirect(finalScript);
 			} catch (RuntimeException e) {
 				error = e; // Save the error so we can report it
 			}
