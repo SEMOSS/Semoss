@@ -106,7 +106,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		newFile.delete();
 		
 		// execute the scripts
-		this.rJavaTranslator.executeR(rTable1);
+		this.rJavaTranslator.executeEmptyR(rTable1);
 
 		// generate script based on what george wants - empty list of selected
 		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\") ; "

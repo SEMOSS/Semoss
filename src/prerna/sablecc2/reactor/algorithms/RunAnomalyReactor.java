@@ -72,21 +72,21 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 		String argsScript = "args <- list('" + timeColumn + "', '" + seriesColumn + "', '" + aggregateFunction + "', "
 				+ maxAnoms + ", '" + anomDirection.toString().toLowerCase() + "', " + alpha + ", " + period + ")";
 		String createFrame = "this.dt.is.reserved.for.anomaly.detection <- " + table;
-		this.rJavaTranslator.executeR(argsScript);
-		this.rJavaTranslator.executeR(createFrame);
+		this.rJavaTranslator.executeEmptyR(argsScript);
+		this.rJavaTranslator.executeEmptyR(createFrame);
 
 		String script = "source(\"" + getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\AnomalyDetection.R" + "\");";
 		script = script.replace("\\", "\\\\");
 
-		this.rJavaTranslator.executeR(script);
+		this.rJavaTranslator.executeEmptyR(script);
 
 		// do something with the results df
 		String frameUpdate = table + " <- " + "this.dt.is.reserved.for.anomaly.detection";
-		this.rJavaTranslator.executeR(frameUpdate);
+		this.rJavaTranslator.executeEmptyR(frameUpdate);
 
 		// garbage cleanup
 		String gc = "rm( args , this.dt.is.reserved.for.anomaly.detection); gc();";
-		this.rJavaTranslator.executeR(gc);
+		this.rJavaTranslator.executeEmptyR(gc);
 
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + aggregateFunction + "_" + seriesColumn);
