@@ -388,26 +388,48 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override    
 	public void runR(String script) {
-		// TODO >>>timb: R - refactor (later)
-		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
-		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		String baseDir = insightCacheLoc + "\\" + csvInsightCacheFolder + "\\";
-		String tempFileLocation = baseDir + Utility.getRandomString(15) + ".R";
-		tempFileLocation = tempFileLocation.replace("\\", "/");
+		// Get temp folder and file locations
+		// also define a ROOT variable
+		String removeRootVar = "";
+		String addRootVariable = "";
+		String rootPath = null;
+		String rTemp = null;
+		if(this.insight != null) {
+			rootPath = this.insight.getInsightFolder().replace('\\', '/');
+			rTemp = rootPath + "/R/Temp/";
+			addRootVariable = "ROOT <- '" + rootPath + "';";
+			removeRootVar = ", ROOT";
+		} else {
+			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
+		}
+		
+		File rTempF = new File(rTemp);
+		if(!rTempF.exists()) {
+			rTempF.mkdirs();
+		}
 
-		File f = new File(tempFileLocation);
+		String scriptPath = rTemp + Utility.getRandomString(12) + ".R";
+		File scriptFile = new File(scriptPath);
 		try {
-			script = encapsulateForEnv(script);
-			FileUtils.writeStringToFile(f, script);
+			script = encapsulateForEnv(addRootVariable + script);
+			FileUtils.writeStringToFile(scriptFile, script);
 		} catch (IOException e1) {
 			System.out.println("Error in writing R script for execution!");
 			e1.printStackTrace();
 		}
 
 		try {
-			this.executeEmptyRunR("source(\"" + tempFileLocation + "\", local=TRUE)");
+			this.executeEmptyRunR("source(\"" + scriptPath + "\", local=TRUE)");
 		} finally {
-			f.delete();
+			rTempF.delete();
+			try {
+				if(!removeRootVar.isEmpty()) {
+					this.executeEmptyR("rm(" + removeRootVar + ");");
+					this.executeEmptyR("gc();"); // Garbage collection
+				}
+			} catch (Exception e) {
+				logger.warn("Unable to cleanup R.", e);
+			}
 		}
 	}
 
