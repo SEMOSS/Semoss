@@ -25,6 +25,9 @@ public class AddPanelConfigReactor extends AbstractInsightPanelReactor {
 	public NounMetadata execute() {
 		// get the insight panel
 		InsightPanel insightPanel = getInsightPanel();
+		if(insightPanel == null) {
+			throw new IllegalArgumentException("Cannot find the insight panel");
+		}
 		// get the map
 		Map<String, Object> mapInput = getMapInput();
 		if(mapInput == null) {
@@ -41,7 +44,7 @@ public class AddPanelConfigReactor extends AbstractInsightPanelReactor {
 		}
 		if (!config.containsKey("labelOverride")) {
 			config.put("labelOverride", false);
-		}  
+		}
 		// merge the map options
 		insightPanel.addConfig(config);
 		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_CONFIG);
