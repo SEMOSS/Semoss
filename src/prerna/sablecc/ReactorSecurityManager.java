@@ -4,6 +4,7 @@ import java.security.Permission;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.engine.impl.r.RSingleton;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
 import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
@@ -53,6 +54,9 @@ public class ReactorSecurityManager extends SecurityManager {
 
 	private boolean blockThread() {
 		for (StackTraceElement elem : Thread.currentThread().getStackTrace()) {
+			if(elem.getClassName().equals(RSingleton.class.getName())) {
+				return false;
+			}
 			if (classNamesToIgnore.contains(elem.getClassName()) ) {
 				return true;
 			}

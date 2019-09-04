@@ -85,7 +85,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 */
 	protected void setMemoryLimit() {
 		String script = "memory.limit(" + RJavaTranslatorFactory.rMemory + ");";
-		this.runR(script);
+		this.executeRunR(script);
 		
 	}
 	
@@ -93,6 +93,14 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		//return rScript;
 		String newRScript = "with(" + this.env + ", {" + rScript + "});";
 		return newRScript;
+	}
+	
+	/**
+	 * Remove the existing R environment
+	 * This should only be called when you drop the entire insight
+	 */
+	public void removeEnv() {
+		executeRunR("rm(" + this.env + ");");
 	}
 	
 	/**
@@ -380,13 +388,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override    
 	public void runR(String script) {
-	
-		// trying the thread local
-		ThreadLocal <String> local = new ThreadLocal<String>();
-		System.out.println("Local data is..  " + local.get());
-
-		
-		
 		// TODO >>>timb: R - refactor (later)
 		String insightCacheLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
 		String csvInsightCacheFolder = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
@@ -394,18 +395,9 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		String tempFileLocation = baseDir + Utility.getRandomString(15) + ".R";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
 
-		// initialize r environment if not already
-		//initREnv();
-		
 		File f = new File(tempFileLocation);
 		try {
-			// modify the script
-			//script = "eval(parse(text=\'" + script + "\'), envir=" + this.env + ")";
-			//if(script.endsWith(";"))
-			//	script = script.substring(0, script.length()-1);
 			script = encapsulateForEnv(script);
-			//script = "eval(parse(text='" + script + "'), envir=" + this.env + ")";
-			//script = "eval(" + script + ");";
 			FileUtils.writeStringToFile(f, script);
 		} catch (IOException e1) {
 			System.out.println("Error in writing R script for execution!");
@@ -421,52 +413,52 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 	@Override
 	public String runRAndReturnOutput(String script) {
-
-
-		
 		// Clean the script
 		script = script.trim();
-		if(!script.endsWith(";")) {
-			//script = script +";";
-		}
-		
 		
 		// Get temp folder and file locations
-		String rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R" + "/" + "Temp" + "/").replace('\\', '/');
+		// also define a ROOT variable
+		String rootVariable = "";
+		String rootPath = null;
+		String rTemp = null;
+		if(this.insight != null) {
+			rootPath = this.insight.getInsightFolder().replace('\\', '/');
+			rTemp = rootPath + "/R/Temp/";
+			rootVariable = "ROOT <- '" + rootPath + "';";
+		} else {
+			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
+		}
+		File rTempF = new File(rTemp);
+		if(!rTempF.exists()) {
+			rTempF.mkdirs();
+		}
+		
 		String scriptPath = rTemp + Utility.getRandomString(12) + ".R";
 		File scriptFile = new File(scriptPath);	
 		String outputPath = rTemp + Utility.getRandomString(12) + ".txt";
 		File outputFile = new File(outputPath);
 		
 		// initialize the environment if not already
-		//initREnv();
 		// Wrap the script with our capture logic
 		String randomVariable = "con" + Utility.getRandomString(7);
-		/*script = randomVariable + "<- file(\"" + outputPath + "\"); " + 
-					"sink(" + randomVariable + ", append=TRUE, type=\"output\"); " +
-					"sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + 
-					script + " " + 
-					"sink();";*/
 
 		// attempt to put it into environment
 		script = randomVariable + "<- file(\"" + outputPath + "\"); " + 
+				rootVariable + 
 				"sink(" + randomVariable + ", append=TRUE, type=\"output\"); " +
 				"sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + 
 				encapsulateForEnv(script) +
-				//"eval(parse(text='" + script + "'), envir=" + this.env +");" + 
 				"sink();";
 
 		
 		// Try writing the script to a file
 		try {
-			//script = "eval(parse(text=\'" + script + "\'), envir=" + environment + ")";
-			//script = "eval(parse(text=\'" + script + "\'))";
-			//script = "eval(script)";
 			FileUtils.writeStringToFile(scriptFile, script);
 			String finalScript = "print(source(\"" + scriptPath + "\", print.eval=TRUE, local=TRUE)); ";
 			
 			// Try running the script, which saves the output to a file
-			RuntimeException error = null; // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
+			 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
+			RuntimeException error = null;
 			try {
 				this.executeRunR(finalScript);
 			} catch (RuntimeException e) {
@@ -476,7 +468,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			// Finally, read the output and return, or throw the appropriate error
 			try {
 				String output = FileUtils.readFileToString(outputFile).trim();
-				
 				// Error cases
 				if (output.startsWith("Error in")) {
 					throw new IllegalArgumentException(cleanErrorOutput(output));
@@ -484,10 +475,14 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 					throw error;
 				}
 				
+				// clean up the output
+				if(rootPath != null && output.contains(rootPath)) {
+					output = output.replace(rootPath, "$IF");
+				}
+				
 				// Successful case
 				return output;
 			} catch (IOException e) {
-				
 				// If we have the detailed error, then throw it
 				if (error != null) {
 					throw error;
@@ -496,7 +491,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				// Otherwise throw a generic one
 				throw new IllegalArgumentException("Failed to run R script.");
 			} finally {
-				
 				// Cleanup
 				outputFile.delete();
 				try {

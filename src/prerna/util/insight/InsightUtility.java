@@ -22,6 +22,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.reactor.PixelPlanner;
+import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.job.JobReactor;
 
@@ -50,7 +51,9 @@ public class InsightUtility {
 		}
 		newInsight.setPy(origInsight.getPy());
 		newInsight.setUser(origInsight.getUser());
-		newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(LOGGER));
+		if(origInsight.rInstantiated()) {
+			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(LOGGER));
+		}
 	}
 	
 	/**
@@ -200,6 +203,18 @@ public class InsightUtility {
 				}
 			}
 			
+			// if R is instantiated
+			// remove all the variables
+			// this will happen in your environment
+			if(insight.rInstantiated()) {
+				try {
+					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(LOGGER);
+					rJava.runR("rm(list=ls())");
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+			
 			LOGGER.info("Successfully cleared insight " + insight.getInsightId());
 			return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.CLEAR_INSIGHT);
 		}
@@ -236,6 +251,17 @@ public class InsightUtility {
 				Set<String> insightIdsForSesh = InsightStore.getInstance().getInsightIDsForSession(sessionId);
 				if(insightIdsForSesh != null) {
 					insightIdsForSesh.remove(insightId);
+				}
+			}
+			
+			// if R is instantiated
+			// remove the environment
+			if(insight.rInstantiated()) {
+				try {
+					AbstractRJavaTranslator rJava = insight.getRJavaTranslator(LOGGER);
+					rJava.removeEnv();
+				} catch(Exception e) {
+					e.printStackTrace();
 				}
 			}
 			
