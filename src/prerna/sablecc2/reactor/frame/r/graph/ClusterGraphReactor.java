@@ -44,10 +44,10 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 			String clusterName = "clus" + Utility.getRandomString(8);
 			// run iGraph routine
 			if (routine.toLowerCase().equals("clusters")) {
-				this.rJavaTranslator.executeR(clusterName + " <- " + routine + "(" + graphName + ")");
+				this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ")");
 
 			} else if (routine.toLowerCase().equals("cluster_walktrap")) {
-				this.rJavaTranslator.executeR(clusterName + " <- " + routine + "(" + graphName + ", membership=TRUE)");
+				this.rJavaTranslator.executeEmptyR(clusterName + " <- " + routine + "(" + graphName + ", membership=TRUE)");
 			} else {
 				throw new IllegalArgumentException("Invalid igraph routine");
 			}
@@ -55,7 +55,7 @@ public class ClusterGraphReactor extends AbstractRFrameReactor {
 			logger.info("Done calculating graph clusters...");
 			colorClusters(clusterName);
 			// clean up temp variable
-			this.rJavaTranslator.executeR("rm(" + clusterName + ")");
+			this.rJavaTranslator.executeEmptyR("rm(" + clusterName + ")");
 			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		} catch (Exception ex) {
 			ex.printStackTrace();

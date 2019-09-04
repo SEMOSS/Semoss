@@ -55,8 +55,8 @@ public class RiGraph extends AbstractTableDataFrame {
 	public void setRJavaTranslator(AbstractRJavaTranslator rJavaTranslator) {
 		this.rJavaTranslator = rJavaTranslator;
 		this.rJavaTranslator.startR();
-		this.rJavaTranslator.executeR("library(igraph)");
-		this.rJavaTranslator.executeR(this.graphName + "<- make_empty_graph()");
+		this.rJavaTranslator.executeEmptyR("library(igraph)");
+		this.rJavaTranslator.executeEmptyR(this.graphName + "<- make_empty_graph()");
 	}
 	
 	@Override
@@ -149,7 +149,7 @@ public class RiGraph extends AbstractTableDataFrame {
 
 		// execute the script which has all the insertions
 		String script = "source(\"" + path.replace("\\", "/") + "\")";
-		this.rJavaTranslator.executeR(script);
+		this.rJavaTranslator.executeEmptyR(script);
 		ICache.deleteFile(new File(path));
 	}
 	
@@ -207,12 +207,12 @@ public class RiGraph extends AbstractTableDataFrame {
 		// if we have a relationship, execute the r script
 		// else we just need to insert a single node
 		if(hasRel) {
-			this.rJavaTranslator.executeR(rScriptBuilder.toString());
+			this.rJavaTranslator.executeEmptyR(rScriptBuilder.toString());
 		} else {
 			String node = headers[0];
 			Object nodeValue = values[0];
 			String nodeId = node + ":" + nodeValue;
-			this.rJavaTranslator.executeR(upsertVertexSyntax(nodeId, node, nodeValue));
+			this.rJavaTranslator.executeEmptyR(upsertVertexSyntax(nodeId, node, nodeValue));
 		}
 	}
 	
@@ -255,7 +255,7 @@ public class RiGraph extends AbstractTableDataFrame {
 	public void removeColumn(String columnHeader) {
 		String deleteColScript = this.graphName + " <- delete_vertices(" + this.graphName + ", V(" + this.graphName + ")[vertex_attr("
 			+ this.graphName + ", \"type\") == \"" + columnHeader + "\"])";
-		this.rJavaTranslator.executeR(deleteColScript);
+		this.rJavaTranslator.executeEmptyR(deleteColScript);
 	}
 	
 	@Override
