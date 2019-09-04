@@ -418,13 +418,15 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		
 		// Get temp folder and file locations
 		// also define a ROOT variable
-		String rootVariable = "";
+		String removeRootVar = "";
+		String addRootVariable = "";
 		String rootPath = null;
 		String rTemp = null;
 		if(this.insight != null) {
 			rootPath = this.insight.getInsightFolder().replace('\\', '/');
 			rTemp = rootPath + "/R/Temp/";
-			rootVariable = "ROOT <- '" + rootPath + "';";
+			addRootVariable = "ROOT <- '" + rootPath + "';";
+			removeRootVar = ", ROOT";
 		} else {
 			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
 		}
@@ -444,13 +446,11 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 		// attempt to put it into environment
 		script = randomVariable + "<- file(\"" + outputPath + "\"); " + 
-				rootVariable + 
 				"sink(" + randomVariable + ", append=TRUE, type=\"output\"); " +
 				"sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + 
-				encapsulateForEnv(script) +
+				encapsulateForEnv(addRootVariable + script) +
 				"sink();";
 
-		
 		// Try writing the script to a file
 		try {
 			FileUtils.writeStringToFile(scriptFile, script);
@@ -494,8 +494,8 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				// Cleanup
 				outputFile.delete();
 				try {
-					this.executeEmptyR("rm(" + randomVariable + ")");
-					this.executeEmptyR("gc()"); // Garbage collection
+					this.executeEmptyR("rm(" + randomVariable + removeRootVar + ");");
+					this.executeEmptyR("gc();"); // Garbage collection
 				} catch (Exception e) {
 					logger.warn("Unable to cleanup R.", e);
 				}
