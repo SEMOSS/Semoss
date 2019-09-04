@@ -57,7 +57,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	 */
 	@Override
 	public void startR() {
-		if(this.insight != null) {
+		if(this.retCon == null && this.insight != null) {
 			NounMetadata noun = (NounMetadata) this.insight.getVarStore().get(R_CONN);
 			if (noun != null) {
 				retCon = (RConnection) this.insight.getVarStore().get(R_CONN).getValue();
@@ -122,11 +122,11 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 					}
 				} catch (Exception e) {
 					System.out.println(
-							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
+							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n "
 									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
 					e.printStackTrace();
 					throw new IllegalArgumentException(
-							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n"
+							"ERROR ::: Could not find connection.\nPlease make sure RServe is running and the following libraries are installed:\n "
 									+ "1)splitstackshape\n 2)data.table\n 3)reshape2\n 4)stringr\n 5)lubridate\n 6)dplyr");
 				} finally {
 					lock.unlock();

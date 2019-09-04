@@ -51,11 +51,6 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			Map<String, String> insightMap = new HashMap<String, String>();
 			// return to the FE the recipe
 			Insight insight = getInsight(insightStrings.get(i));
-			if(sharedR == null) {
-				sharedR = insight.getRJavaTranslator(CLASS_NAME);
-			} else {
-				insight.setRJavaTranslator(sharedR);
-			}
 			insightMap.put("name", insight.getInsightName());
 			// keys below match those in solr
 			insightMap.put("app_id", insight.getEngineId());
@@ -78,6 +73,11 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 			newInsight.setPixelRecipe(insight.getPixelRecipe());
 			
 			InsightUtility.transferDefaultVars(this.insight, newInsight);
+			if(sharedR == null) {
+				sharedR = newInsight.getRJavaTranslator(CLASS_NAME);
+			} else {
+				newInsight.setRJavaTranslator(sharedR);
+			}
 			InsightStore.getInstance().put(newInsight);
 			InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 			insightMap.put("newId", newInsight.getInsightId());

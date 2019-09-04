@@ -495,6 +495,10 @@ public class Insight {
 		this.rJavaTranslator = rJavaTranslator;
 	}
 	
+	public boolean rInstantiated() {
+		return this.rJavaTranslator != null;
+	}
+	
 	public void setPy(PyExecutorThread jepThread) {
 		this.jepThread = jepThread;
 	}
