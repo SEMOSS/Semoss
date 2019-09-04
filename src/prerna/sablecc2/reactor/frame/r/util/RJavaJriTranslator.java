@@ -94,9 +94,6 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 					}
 					// data table
 					ret = retEngine.eval("library(data.table);");
-					//ret = retEngine.eval("library(parallel);");
-					//ret = retEngine.eval("core <- detectCores();");
-					//ret = retEngine.eval("setDTthreads(core)");
 					if(ret == null) {
 						throw new ClassNotFoundException("Package data.table could not be found!");
 					} else {
@@ -590,7 +587,6 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public void initREnv() {
-
 		if(engine != null) {
 			engine.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
 		}
@@ -618,10 +614,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	@Override
 	public void executeEmptyRunR(String rScript) {
 		rScript = encapsulateForEnv(rScript);
-
 		engine.eval(rScript, false);
-		// TODO Auto-generated method stub
-		
 	}
 
 }
