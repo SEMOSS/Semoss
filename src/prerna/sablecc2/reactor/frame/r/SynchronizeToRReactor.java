@@ -152,11 +152,11 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		this.rJavaTranslator.executeR("library(data.table);");
-		this.rJavaTranslator.executeR(rDataTableName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
+		this.rJavaTranslator.executeEmptyR("library(data.table);");
+		this.rJavaTranslator.executeEmptyR(rDataTableName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
 		File f = new File(outputLocation);
 		f.delete();
-		this.rJavaTranslator.executeR("setDT(" + rDataTableName + ")");
+		this.rJavaTranslator.executeEmptyR("setDT(" + rDataTableName + ")");
 
 		// modify the headers to be what they used to be because the query
 		// return everything in
@@ -193,7 +193,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 			wd = wd.replace("\\", "/");
 
 			// set the working directory
-			this.rJavaTranslator.executeR("setwd(\"" + wd + "\")");
+			this.rJavaTranslator.executeEmptyR("setwd(\"" + wd + "\")");
 			// load the library
 			Object ret = this.rJavaTranslator.executeR("library(\"igraph\");");
 			if (ret == null) {
@@ -203,8 +203,8 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 			String loadGraphScript = rDataTableName + "<- read_graph(\"" + fileName + "\", \"graphml\");";
 			java.lang.System.out.println(" Load !! " + loadGraphScript);
 			// load the graph
-			this.rJavaTranslator.executeR(loadGraphScript);
-			this.rJavaTranslator.executeR(rDataTableName);
+			this.rJavaTranslator.executeEmptyR(loadGraphScript);
+			this.rJavaTranslator.executeEmptyR(rDataTableName);
 
 			System.out.println("Successfully synchronized, your graph is now available as " + rDataTableName);
 			// store the graph name for future use
@@ -224,7 +224,7 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 		} finally {
 			// reset back to the original wd
 			if (curWd != null) {
-				this.rJavaTranslator.executeR("setwd(\"" + curWd + "\")");
+				this.rJavaTranslator.executeEmptyR("setwd(\"" + curWd + "\")");
 			}
 		}
 		// java.lang.System.setSecurityManager(reactorManager);

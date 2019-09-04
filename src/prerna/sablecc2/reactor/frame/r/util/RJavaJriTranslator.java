@@ -170,9 +170,11 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Object executeR(String rScript) {
 		try {
+			rScript = rScript.replaceAll("\"", "\\\"");
+			rScript = rScript.replaceAll("'", "\\'");
 			rScript = encapsulateForEnv(rScript);
-			
-			REXP rexp = engine.eval(encapsulateForEnv(rScript));
+			logger.debug("Running rscript > " + rScript);
+			REXP rexp = engine.eval(rScript);
 			if(rexp == null) {
 				logger.info("Hmmm... REXP returned null for script = " + rScript);
 			}
@@ -187,7 +189,30 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	public void executeEmptyR(String rScript) {
 		rScript = rScript.replaceAll("\"", "\\\"");
 		rScript = rScript.replaceAll("'", "\\'");
-		engine.eval(encapsulateForEnv(rScript), false);
+		rScript = encapsulateForEnv(rScript);
+		logger.debug("Running rscript > " + rScript);
+		engine.eval(rScript, false);
+	}
+	
+	@Override
+	public Object executeRDirect(String rScript) {
+		try {
+			logger.debug("Running rscript > " + rScript);
+			REXP rexp = engine.eval(rScript);
+			if(rexp == null) {
+				logger.info("Hmmm... REXP returned null for script = " + rScript);
+			}
+			return rexp;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	@Override
+	public void executeEmptyRDirect(String rScript) {
+		logger.debug("Running rscript > " + rScript);
+		engine.eval(rScript, false);
 	}
 	
 	@Override
@@ -586,35 +611,7 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 	}
 
 	@Override
-	public void initREnv() {
-		if(engine != null) {
-			engine.eval("if(!exists(\"" + this.env + "\")) {" + this.env  + " <- new.env();}");
-		}
-	}
-
-	@Override
 	public void stopRProcess() {
 		engine.rniStop(0);
 	}
-
-	@Override
-	public Object executeRunR(String rScript) {
-		try {
-			REXP rexp = engine.eval(encapsulateForEnv(rScript));
-			if(rexp == null) {
-				logger.info("Hmmm... REXP returned null for script = " + rScript);
-			}
-			return rexp;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	@Override
-	public void executeEmptyRunR(String rScript) {
-		rScript = encapsulateForEnv(rScript);
-		engine.eval(rScript, false);
-	}
-
 }

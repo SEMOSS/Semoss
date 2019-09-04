@@ -41,17 +41,17 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 		try {
 			logger.info("Determining vertex positions...");
 			String tempOutputLayout = "xy_layout" + Utility.getRandomString(8);
-			this.rJavaTranslator.executeR("" + tempOutputLayout + " <- " + inputLayout + "(" + graphName + ")");
+			this.rJavaTranslator.executeEmptyR("" + tempOutputLayout + " <- " + inputLayout + "(" + graphName + ")");
 			// default normalization scale
 			String yMin = getYMin();
 			String yMax = getYMax();
 			String xMin = getXMin();
 			String xMax = getXMax();
-			this.rJavaTranslator.executeR(tempOutputLayout + "<-layout.norm("+tempOutputLayout+", ymin="+yMin+", ymax="+yMax+", xmin="+xMin+", xmax="+xMax+")");
+			this.rJavaTranslator.executeEmptyR(tempOutputLayout + "<-layout.norm("+tempOutputLayout+", ymin="+yMin+", ymax="+yMax+", xmin="+xMin+", xmax="+xMax+")");
 			logger.info("Done calculating positions...");
 			synchronizeXY(tempOutputLayout);
 			// clean up temp variable
-			this.rJavaTranslator.executeR("rm(" + tempOutputLayout + ")");
+			this.rJavaTranslator.executeEmptyR("rm(" + tempOutputLayout + ")");
 			return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		} catch (Exception ex) {
 			ex.printStackTrace();
