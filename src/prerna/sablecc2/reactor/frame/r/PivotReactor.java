@@ -123,7 +123,7 @@ public class PivotReactor extends AbstractRFrameReactor {
         //we should replace any dashes with underscores
         String colScript = table + "$" + pivotCol;
         String cleanScript = colScript + "= gsub(" + "\"-\"" + "," + "\"_\"" + ", " + colScript + ");";
-        this.rJavaTranslator.executeR(cleanScript);
+        this.rJavaTranslator.executeEmptyR(cleanScript);
 
 		String script = newFrame + " <- dcast(" + table + keepString + aggregateString + ");";
 		script += RSyntaxHelper.asDataTable(newFrame, newFrame);

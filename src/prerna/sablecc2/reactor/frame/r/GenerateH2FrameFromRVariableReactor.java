@@ -70,7 +70,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 	public void syncFromR(AbstractRJavaTranslator rJavaTranslator, String rFrameName, H2Frame frame) {
 		// generate the QS
 		// set the column names and types
-		rJavaTranslator.executeR(RSyntaxHelper.asDataTable(rFrameName, rFrameName));
+		rJavaTranslator.executeEmptyR(RSyntaxHelper.asDataTable(rFrameName, rFrameName));
 		// recreate a new frame and set the frame name
 		String[] colNames = rJavaTranslator.getColumns(rFrameName);
 		rJavaTranslator.runR(RSyntaxHelper.cleanFrameHeaders(rFrameName, colNames));
@@ -103,7 +103,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		tempFileLocation += "\\" + Utility.getRandomString(10) + ".csv";
 		tempFileLocation = tempFileLocation.replace("\\", "/");
-		rJavaTranslator.executeR("fwrite(" + rFrameName + ", file='" + tempFileLocation + "')");
+		rJavaTranslator.executeEmptyR("fwrite(" + rFrameName + ", file='" + tempFileLocation + "')");
 
 		// iterate through file and insert values
 		qs.setFilePath(tempFileLocation);

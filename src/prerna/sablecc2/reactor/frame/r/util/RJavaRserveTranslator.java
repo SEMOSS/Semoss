@@ -136,7 +136,6 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 			}
 		}
 		initREnv();
-
 	}
 
 	/**
@@ -146,14 +145,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	 * @throws RserveException 
 	 */
 	private synchronized REXP evalRSync(String rScript) throws RserveException {
-		//initREnv();
 		ReentrantLock lock = getConnectionLock("execR");
 		lock.lock();
-		//if(rScript.endsWith(";"))
-		//	rScript = rScript.substring(0,  rScript.length() - 1);
-		//rScript = "with(" + this.env +", " + rScript + ")";
-		System.err.println("r Script >> " + rScript);
 		try {
+			logger.debug("Running rscript > " + rScript);
 			return retCon.eval(rScript);
 		} finally {
 			lock.unlock();
@@ -170,6 +165,7 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 		ReentrantLock lock = getConnectionLock("execR");
 		lock.lock();
 		try {
+			logger.debug("Running rscript > " + rScript);
 			retCon.voidEval(rScript);
 		} finally {
 			lock.unlock();
@@ -179,17 +175,11 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public synchronized Object executeR(String rScript) {
 		try {
-			// check to see if there is already a environment
-			// if not.. then slap
-			
 			// escape quotes
 			rScript = rScript.replaceAll("\"", "\\\"");
 			rScript = rScript.replaceAll("'", "\\'");
-
-			// attempt to put it into environment
-			rScript = "with(" + this.env + ", {" + rScript + "})";
-
-			System.out.println("executeR: " + rScript);
+			rScript = encapsulateForEnv(rScript);
+			logger.debug("Running rscript > " + rScript);
 			return evalRSync(rScript);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -200,17 +190,10 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public synchronized void executeEmptyR(String rScript) {
 		try {
-			initREnv();
-			//if(rScript.endsWith(";"))
-			//	rScript = rScript.substring(0, rScript.length() - 1);
 			rScript = rScript.replaceAll("\"", "\\\"");
 			rScript = rScript.replaceAll("'", "\\'");
-			//if(rScript.indexOf(";") < rScript.length() && rScript.indexOf(";") > 0)
-		//		rScript = "eval(parse(text='" + rScript + "'), envir=" + this.env +");";
-			//else
 			rScript = encapsulateForEnv(rScript);
-			//System.out.println("executeR: " + rScript);
-			//retCon.eval(rScript);
+			logger.debug("Running rscript > " + rScript);
 			voidEvalRSync(rScript);
 		} catch (RserveException e) {
 			e.printStackTrace();
@@ -225,9 +208,8 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 
 	@Override
 	public String getString(String script) {
-		if(!script.contains("with"))
-			script = encapsulateForEnv(script);
 		try {
+			script = encapsulateForEnv(script);
 			return evalRSync(script).asString();
 		} catch (RserveException e) {
 			e.printStackTrace();
@@ -241,7 +223,6 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	public String[] getStringArray(String script) {
 		try {
 			script = encapsulateForEnv(script);
-
 			return evalRSync(script).asStrings();
 		} catch (RserveException e) {
 			e.printStackTrace();
@@ -403,7 +384,6 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	@Override
 	public Map<String, Object> getHistogramBreaksAndCounts(String script) {
 		try {
-			//script = "with(" + this.env + ", {" + script + "})";
 			script = encapsulateForEnv(script);
 			double[] breaks;
 			Map<String, Object> histJ = (Map<String, Object>) (evalRSync(script).asNativeJavaObject());
@@ -712,18 +692,6 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	}
 
 	@Override
-	public void initREnv() {
-
-		try {
-			if(this.retCon != null) {
-				this.evalRSync("if(!exists(\"" + this.env + "\")) {" + this.env  + "<- new.env();}");
-			}
-		} catch (RserveException e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
 	public void stopRProcess() {
 		try {
 			this.retCon.detach();
@@ -733,11 +701,8 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	}
 
 	@Override
-	public Object executeRunR(String rScript) {
+	public Object executeRDirect(String rScript) {
 		try {
-			// check to see if there is already a environment
-			// if not.. then slap
-			System.out.println("executeR: " + rScript);
 			return evalRSync(rScript);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -746,9 +711,8 @@ public class RJavaRserveTranslator extends AbstractRJavaTranslator {
 	}
 	
 	@Override
-	public synchronized void executeEmptyRunR(String rScript) {
+	public synchronized void executeEmptyRDirect(String rScript) {
 		try {
-			System.out.println("executeR: " + rScript);
 			voidEvalRSync(rScript);
 		} catch (RserveException e) {
 			e.printStackTrace();
