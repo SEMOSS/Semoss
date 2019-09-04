@@ -131,8 +131,10 @@ public class Insight {
 	*/
 	private transient String insightFolder;
 	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();
-	private transient boolean deleteFilesOnDropInsight = true;
 	private transient Map<String, String> exportFiles = new Hashtable<String, String>();
+
+	private transient boolean deleteFilesOnDropInsight = true;
+	private transient boolean deleteREnvOnDropInsight = true;
 	
 	// insight comments
 	private transient LinkedList<InsightComment> insightCommentList = null;
@@ -556,7 +558,15 @@ public class Insight {
 	public void setDeleteFilesOnDropInsight(boolean deleteFilesOnDropInsight) {
 		this.deleteFilesOnDropInsight = deleteFilesOnDropInsight;
 	}
-
+	
+	public boolean isDeleteREnvOnDropInsight() {
+		return this.deleteREnvOnDropInsight;
+	}
+	
+	public void setDeleteREnvOnDropInsight(boolean deleteREnvOnDropInsight) {
+		this.deleteREnvOnDropInsight = deleteREnvOnDropInsight;
+	}
+	
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
 	// TODO: methods i have but dont want to keep
