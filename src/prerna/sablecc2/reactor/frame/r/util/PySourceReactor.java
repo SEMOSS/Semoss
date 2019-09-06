@@ -2,15 +2,16 @@ package prerna.sablecc2.reactor.frame.r.util;
 
 import java.io.File;
 
+import prerna.ds.py.PyExecutorThread;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.DIHelper;
 
-public class RSourceReactor extends AbstractReactor {
+public class PySourceReactor extends AbstractReactor {
 
-	public RSourceReactor() {
+	public PySourceReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
 	}
 	
@@ -18,10 +19,11 @@ public class RSourceReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String relativePath = this.keyValue.get(this.keysToGet[0]);
-		String path = getBaseFolder() + "/R/" + relativePath;
+		String path = getBaseFolder() + "/Py/" + relativePath;
 		
-		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
-		rJavaTranslator.startR(); 
+		PyExecutorThread py = this.insight.getPy();
+		
+		Object monitor = py.getMonitor();
 		
 		File file = new File(path);
 		
@@ -30,9 +32,21 @@ public class RSourceReactor extends AbstractReactor {
 			path = insight.getInsightFolder() + "/" + relativePath;
 		path = path.replace("\\", "/");
 		
-		String env = rJavaTranslator.env;
-		
-		rJavaTranslator.executeEmptyRunR("source(\"" + path + "\"," + env + ");");
+		file = new File(path);
+		String name = file.getName();
+		name = name.replaceAll(".py", "");
+		synchronized(monitor)
+		{
+			try {
+				String []  commands = new String[]{"import smssutil",name + " = smssutil.loadScript(\"smss\", \"" + path + "\")"};
+				py.command = commands;
+				monitor.notify();
+				monitor.wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
