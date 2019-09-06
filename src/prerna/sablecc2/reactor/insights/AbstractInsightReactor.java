@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-import java.util.regex.Matcher;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
@@ -24,6 +23,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.Insight;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -299,9 +299,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				// we have a file we want to shift
 				String filePixelPortion = ((Map<String, List<String>>) datasourceMap.get("params")).get("filePath").get(0);
 				String fileLoc = filePixelPortion;
-				if(fileLoc.startsWith("$IF")) {
-					fileLoc = fileLoc.replaceFirst("\\$IF", Matcher.quoteReplacement(this.insight.getInsightFolder()));
-				}
+				fileLoc = this.insight.getAbsoluteInsightFolderPath(fileLoc);
 				String filename = FilenameUtils.getName(fileLoc);
 				File origF = new File(fileLoc);
 				String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
@@ -323,7 +321,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 					}
 				}
 				
-				String newFilePixel = "$IF" + DIR_SEPARATOR + "data" + DIR_SEPARATOR + filename;
+				String newFilePixel = Insight.getAppInsightFolderKey() + DIR_SEPARATOR + "data" + DIR_SEPARATOR + filename;
 				// need to make new pixel
 				String newPixel = datasourceMap.get("expression").toString().replace(filePixelPortion, newFilePixel);
 				Map<String, Object> modificationMap = new HashMap<String, Object>();

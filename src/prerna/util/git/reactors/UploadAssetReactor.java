@@ -1,18 +1,13 @@
 package prerna.util.git.reactors;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 import java.util.regex.Matcher;
-
-import org.codehaus.plexus.util.FileUtils;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.git.GitRepoUtils;
@@ -58,20 +53,20 @@ public class UploadAssetReactor extends AbstractReactor {
 		assetPath = assetPath.replaceAll("\\\\", "/");
 
 		// move temp file to asset file
-		File tempFile = new File(tempPath);
-		File newFile = new File(assetPath);
-		try {
-			FileUtils.copyFileToDirectory(tempPath, assetFolder);
-			FileUtils.rename(tempFile, newFile);
-			// TODO should I delete the old file?
-			// tempFile.delete();
-		} catch (IOException e) {
-			e.printStackTrace();
-			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to Upload Asset");
-			SemossPixelException exception = new SemossPixelException(error);
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
+//		File tempFile = new File(tempPath);
+//		File newFile = new File(assetPath);
+//		try {
+//			FileUtils.copyFileToDirectory(tempPath, assetFolder);
+//			FileUtils.rename(tempFile, newFile);
+//			// TODO should I delete the old file?
+//			// tempFile.delete();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to Upload Asset");
+//			SemossPixelException exception = new SemossPixelException(error);
+//			exception.setContinueThreadOfExecution(false);
+//			throw exception;
+//		}
 
 		// add file to git
 		List<String> files = new Vector<>();

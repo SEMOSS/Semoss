@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.qs.source;
 
 import java.util.Map;
-import java.util.regex.Matcher;
 
 import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -177,10 +176,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		}
 		
 		// we will need to translate the file path from the parameterized insight form
-		if(fileLocation.startsWith("$IF")) {
-			fileLocation = fileLocation.replaceFirst("\\$IF", Matcher.quoteReplacement(this.insight.getInsightFolder()));
-		}
-		
+		fileLocation = this.insight.getAbsoluteInsightFolderPath(fileLocation);
 		return fileLocation;
 	}
 	

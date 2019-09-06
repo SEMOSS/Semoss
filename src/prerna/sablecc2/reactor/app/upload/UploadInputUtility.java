@@ -76,10 +76,10 @@ public class UploadInputUtility {
 		}
 		
 		String fileLocation = grs.get(0).toString();
-		if(fileLocation.startsWith("$IF")) {
-			fileLocation = fileLocation.replaceFirst("\\$IF", Matcher.quoteReplacement(in.getInsightFolder()));
+		String relPath = Insight.getInsightRelativeFolderKey(in);
+		if(fileLocation.startsWith(relPath)) {
+			fileLocation = fileLocation.replaceFirst(relPath, Matcher.quoteReplacement(in.getInsightFolder()));
 		}
-		
 		return fileLocation;
 	}
 
@@ -259,9 +259,7 @@ public class UploadInputUtility {
 		GenRowStruct grs = store.getNoun(PROP_FILE);
 		if (!(grs == null || grs.isEmpty())) {
 			String metamodelPath = grs.get(0).toString();
-			if(metamodelPath.startsWith("$IF")) {
-				metamodelPath = metamodelPath.replaceFirst("\\$IF", Matcher.quoteReplacement(in.getInsightFolder()));
-			}
+			metamodelPath = in.getAbsoluteInsightFolderPath(metamodelPath);
 			if (metamodelPath.toLowerCase().endsWith(".prop")) {
 				// using old prop file need to convert
 				return convertPropFile(metamodelPath, store, in);
