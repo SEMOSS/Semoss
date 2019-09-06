@@ -3,6 +3,7 @@ AddColumn,clean-add-col
 AutoCleanColumn,clean-auto-clean-column
 ChangeColumnType,clean-change-col-type
 Collapse,clean-collapse
+Concatenate,clean-join
 CountIf,clean-count-if
 DateAddValue,clean-date-add
 DateDifference,clean-date-diff
@@ -20,7 +21,7 @@ RemoveDuplicateRows,clean-remove-duplicate-rows
 RenameColumn,clean-rename-col
 ReplaceColumnValue,clean-replace
 RegexReplaceColumnValue,clean-replace
-Split,clean-split
+SplitColumns,clean-split
 SplitUnpivot,clean-split-unpivot
 Transpose,clean-transpose
 TrimColumns,clean-trim
