@@ -44,3 +44,5 @@ MetaSemanticSimilarity,analytics-explore-localmaster
 RunDocSimilarity,analytics-document-similarity
 RunDescriptionGenerator,analytics-description-generator
 RunClassification,analytics-classification
+R,pipeline-codeblock
+Py,pipeline-codeblock

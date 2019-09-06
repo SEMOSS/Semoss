@@ -335,28 +335,42 @@ public class PipelineTranslation extends LazyTranslation {
 			op.setWidgetId(PipelineTranslation.reactorToId.get(reactorId));
 		}
 		
-		// now add all the inputs
-		NounStore store = reactor.getNounStore();
-		Set<String> nounKeys = store.nounRow.keySet();
-		for(String nounKey : nounKeys) {
-			// grab the genrowstruct for the noun
-			// and add its vector to the inputs list
-			GenRowStruct struct = store.getNoun(nounKey);
-			if(nounKey.equals("all")) {
-				// this is passed directly into the reactor
-				for(int i = 0; i < struct.size(); i++) {
-					NounMetadata noun = struct.getNoun(i);
-					// handles if lambda, frame, or basic input
-					Map<String, Object> nounMapRet = processNounMetadata(noun);
-					op.addRowInput(nounMapRet);
-				}
-			} else {
-				// this is passed based on a key
-				for(int i = 0; i < struct.size(); i++) {
-					NounMetadata noun = struct.getNoun(i);
-					// handles if lambda, frame, or basic input
-					Map<String, Object> nounMapRet = processNounMetadata(noun);
-					op.addNounInputs(nounKey, nounMapRet);
+		if(reactorId.equals("R") || reactorId.equals("Py") || reactorId.equals("Java")) {
+			// we need to process codeblock a bit different
+			// we want to decode what we input
+			NounStore store = reactor.getNounStore();
+			GenRowStruct struct = store.getNoun("all");
+			if(struct != null && !struct.isEmpty()) {
+				String value = struct.get(0).toString();
+				value = Utility.decodeURIComponent(value);
+				NounMetadata noun = new NounMetadata(value, PixelDataType.CONST_STRING);
+				Map<String, Object> nounMapRet = processNounMetadata(noun);
+				op.addRowInput(nounMapRet);
+			}
+		} else {
+			// now add all the inputs
+			NounStore store = reactor.getNounStore();
+			Set<String> nounKeys = store.nounRow.keySet();
+			for(String nounKey : nounKeys) {
+				// grab the genrowstruct for the noun
+				// and add its vector to the inputs list
+				GenRowStruct struct = store.getNoun(nounKey);
+				if(nounKey.equals("all")) {
+					// this is passed directly into the reactor
+					for(int i = 0; i < struct.size(); i++) {
+						NounMetadata noun = struct.getNoun(i);
+						// handles if lambda, frame, or basic input
+						Map<String, Object> nounMapRet = processNounMetadata(noun);
+						op.addRowInput(nounMapRet);
+					}
+				} else {
+					// this is passed based on a key
+					for(int i = 0; i < struct.size(); i++) {
+						NounMetadata noun = struct.getNoun(i);
+						// handles if lambda, frame, or basic input
+						Map<String, Object> nounMapRet = processNounMetadata(noun);
+						op.addNounInputs(nounKey, nounMapRet);
+					}
 				}
 			}
 		}
@@ -687,7 +701,7 @@ public class PipelineTranslation extends LazyTranslation {
 //		coreEngine.openDB("C:\\workspace2\\Semoss_Dev\\db\\MovieDatesH2__f77ba49e-a8a3-41bd-94c5-91d0a3103bbb.smss");
 //		DIHelper.getInstance().setLocalProperty(coreEngine.getEngineId(), coreEngine);
 
-		TestUtilityMethods.loadDIHelper("C:\\workspace2\\Semoss_Dev\\RDF_Map.prop");
+		TestUtilityMethods.loadDIHelper("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 		
 		String pixel = "" 
 //				+ "AddPanel ( 0 ) ;" 
@@ -697,19 +711,20 @@ public class PipelineTranslation extends LazyTranslation {
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" , \"<encode>{\"type\":\"echarts\"}</encode>\" ) ;" 
 //				+ "Panel ( 0 ) | SetPanelView ( \"federate-view\" , \"<encode>{\"app_id\":\"NEWSEMOSSAPP\"}</encode>\" ) ;" 
 //				+ "CreateFrame ( frameType = [ GRID ] ) .as ( [ 'FRAME238470' ] ) ;" 
-				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Cast_Formed , MOVIE_DATES__DVD_Release , MOVIE_DATES__Director , MOVIE_DATES__Genre , MOVIE_DATES__MovieBudget , MOVIE_DATES__Nominated , MOVIE_DATES__Production_End , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_Domestic , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience , MOVIE_DATES__RottenTomatoes_Critics , MOVIE_DATES__Studio , MOVIE_DATES__Theatre_Release_Date , MOVIE_DATES__Title ) .as ( [ MOVIE_DATES , Cast_Formed , DVD_Release , Director , Genre , MovieBudget , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Import ( frame = [ FRAME238470 ] ) ;" 
-				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
-				+ "FileRead( filePath=[\"$IF\\diabetes_____UNIQUE2019_08_14_15_20_44_0226.csv\" ], dataTypeMap=[{\"patient\":\"INT\",\"chol\":\"INT\",\"stab_glu\":\"INT\",\"hdl\":\"INT\",\"ratio\":\"DOUBLE\",\"glyhb\":\"DOUBLE\",\"location\":\"STRING\",\"age\":\"INT\",\"gender\":\"STRING\",\"height\":\"INT\",\"weight\":\"INT\",\"frame\":\"STRING\",\"bp_1s\":\"INT\",\"bp_1d\":\"INT\",\"bp_2s\":\"INT\",\"bp_2d\":\"INT\",\"waist\":\"INT\",\"hip\":\"INT\",\"time_ppn\":\"INT\",\"Drug\":\"STRING\",\"start_date\":\"DATE\",\"end_date\":\"DATE\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"diabetes.csv\"], additionalDataTypes=[{\"start_date\":\"M/d/yyyy\",\"end_date\":\"M/d/yyyy\"}])|Select(DND__patient, DND__chol, DND__stab_glu, DND__hdl, DND__ratio, DND__glyhb, DND__location, DND__age, DND__gender, DND__height, DND__weight, DND__frame, DND__bp_1s, DND__bp_1d, DND__bp_2s, DND__bp_2d, DND__waist, DND__hip, DND__time_ppn, DND__Drug, DND__start_date, DND__end_date).as([patient, chol, stab_glu, hdl, ratio, glyhb, location, age, gender, height, weight, frame, bp_1s, bp_1d, bp_2s, bp_2d, waist, hip, time_ppn, Drug, start_date, end_date])|Import( frame=[FRAME238470] );"
+//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Cast_Formed , MOVIE_DATES__DVD_Release , MOVIE_DATES__Director , MOVIE_DATES__Genre , MOVIE_DATES__MovieBudget , MOVIE_DATES__Nominated , MOVIE_DATES__Production_End , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_Domestic , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience , MOVIE_DATES__RottenTomatoes_Critics , MOVIE_DATES__Studio , MOVIE_DATES__Theatre_Release_Date , MOVIE_DATES__Title ) .as ( [ MOVIE_DATES , Cast_Formed , DVD_Release , Director , Genre , MovieBudget , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Import ( frame = [ FRAME238470 ] ) ;" 
+//				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Query(\"<encode> select * from movie_dates </encode>\") | Import ( frame = [ FRAME238470 ] ) ;" 
+//				+ "FileRead( filePath=[\"$IF\\diabetes_____UNIQUE2019_08_14_15_20_44_0226.csv\" ], dataTypeMap=[{\"patient\":\"INT\",\"chol\":\"INT\",\"stab_glu\":\"INT\",\"hdl\":\"INT\",\"ratio\":\"DOUBLE\",\"glyhb\":\"DOUBLE\",\"location\":\"STRING\",\"age\":\"INT\",\"gender\":\"STRING\",\"height\":\"INT\",\"weight\":\"INT\",\"frame\":\"STRING\",\"bp_1s\":\"INT\",\"bp_1d\":\"INT\",\"bp_2s\":\"INT\",\"bp_2d\":\"INT\",\"waist\":\"INT\",\"hip\":\"INT\",\"time_ppn\":\"INT\",\"Drug\":\"STRING\",\"start_date\":\"DATE\",\"end_date\":\"DATE\"}],delimiter=[\",\"],newHeaders=[{}],fileName=[\"diabetes.csv\"], additionalDataTypes=[{\"start_date\":\"M/d/yyyy\",\"end_date\":\"M/d/yyyy\"}])|Select(DND__patient, DND__chol, DND__stab_glu, DND__hdl, DND__ratio, DND__glyhb, DND__location, DND__age, DND__gender, DND__height, DND__weight, DND__frame, DND__bp_1s, DND__bp_1d, DND__bp_2s, DND__bp_2d, DND__waist, DND__hip, DND__time_ppn, DND__Drug, DND__start_date, DND__end_date).as([patient, chol, stab_glu, hdl, ratio, glyhb, location, age, gender, height, weight, frame, bp_1s, bp_1d, bp_2s, bp_2d, waist, hip, time_ppn, Drug, start_date, end_date])|Import( frame=[FRAME238470] );"
 //				+ "Panel ( 0 ) | SetPanelView ( \"visualization\" ) ;" 
 //				+ "Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ;" 
 //				+ "FRAME238470 | Convert ( frameType = [ R ] ) .as ( [ 'FRAME238470' ] ) ;" 
 //				+ "Frame ( frame = [ FRAME238470 ] ) | Select ( Cast_Formed , Director , DVD_Release , Genre , MovieBudget , MOVIE_DATES , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ) .as ( [ Cast_Formed , Director , DVD_Release , Genre , MovieBudget , MOVIE_DATES , Nominated , Production_End , Production_Start , Revenue_Domestic , Revenue_International , RottenTomatoes_Audience , RottenTomatoes_Critics , Studio , Theatre_Release_Date , Title ] ) | Format ( type = [ 'table' ] ) | TaskOptions ( { \"0\" : { \"layout\" : \"Grid\" , \"alignment\" : { \"label\" : [ \"Cast_Formed\" , \"Director\" , \"DVD_Release\" , \"Genre\" , \"MovieBudget\" , \"MOVIE_DATES\" , \"Nominated\" , \"Production_End\" , \"Production_Start\" , \"Revenue_Domestic\" , \"Revenue_International\" , \"RottenTomatoes_Audience\" , \"RottenTomatoes_Critics\" , \"Studio\" , \"Theatre_Release_Date\" , \"Title\" ] } } } ) | Collect ( 2000 ) ;" 
 //				+ "Database ( database = [ \"f77ba49e-a8a3-41bd-94c5-91d0a3103bbb\" ] ) | Select ( MOVIE_DATES , MOVIE_DATES__Production_Start , MOVIE_DATES__Revenue_International , MOVIE_DATES__RottenTomatoes_Audience ) .as ( [ MOVIE_DATES , Production_Start , Revenue_International , RottenTomatoes_Audience ] ) | Merge ( joins = [ ( MOVIE_DATES , inner.join , MOVIE_DATES ), ( x, inner.join, y ) ] , frame = [ FRAME238470 ] ) ;"
-				+ "FRAME238470 | Convert(frameType=['R']);"
-				+ "FRAME238470 | DateExpander ( column = [ \"Cast_Formed\" ] , options = [ \"year\" , \"month\" , \"month-name\" ] ) ;"
-				+ "Frame(FRAME238470) | QueryAll() | ToCsv();"
-				+ "RunSimilarity(instance=[\"Title\"], attributes=[\"Cast_Formed\",\"DVD_Release\"]);"
-				+ "DirectJDBCConnection(query = [\"<encode>select * from city</encode>\"], dbDriver = [\"MYSQL\"], connectionString = [\"jdbc:mysql://localhost:3306/world?user=root&password=password\"], username = [\"root\"], password = [\"password\"])|Import( frame=[FRAME238470] );"
+//				+ "FRAME238470 | Convert(frameType=['R']);"
+//				+ "FRAME238470 | DateExpander ( column = [ \"Cast_Formed\" ] , options = [ \"year\" , \"month\" , \"month-name\" ] ) ;"
+//				+ "Frame(FRAME238470) | QueryAll() | ToCsv();"
+//				+ "RunSimilarity(instance=[\"Title\"], attributes=[\"Cast_Formed\",\"DVD_Release\"]);"
+//				+ "DirectJDBCConnection(query = [\"<encode>select * from city</encode>\"], dbDriver = [\"MYSQL\"], connectionString = [\"jdbc:mysql://localhost:3306/world?user=root&password=password\"], username = [\"root\"], password = [\"password\"])|Import( frame=[FRAME238470] );"
+				+ "R(\"<encode>2+2</encode>\");"
 				//				+ "if(true, 5+5, 6+6);" 
 //				+ "ifError ( ( Frame ( frame = [ FRAME238470 ] ) | QueryAll ( ) | AutoTaskOptions ( panel = [ \"0\" ] , layout = [ \"Grid\" ] ) | Collect ( 2000 ) ) , ( true ) ) ;"
 				;
