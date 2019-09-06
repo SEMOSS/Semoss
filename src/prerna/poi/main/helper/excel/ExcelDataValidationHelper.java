@@ -352,17 +352,19 @@ public class ExcelDataValidationHelper {
 				// add comment
 				Row row = sheet.getRow(startRow - 1);
 				Cell c = row.getCell(headerIndicies[i] - 1);
-				// add header comment as description
-				Comment cellComment = c.getCellComment();
-				if (cellComment != null) {
-					RichTextString commentStr = cellComment.getString();
-					String comment = commentStr.getString();
-					// comment may have author
-					String author = cellComment.getAuthor();
-					if (author != null) {
-						comment = comment.replace(author + ":\n", "");
+				if (c != null) {
+					// add header comment as description
+					Comment cellComment = c.getCellComment();
+					if (cellComment != null) {
+						RichTextString commentStr = cellComment.getString();
+						String comment = commentStr.getString();
+						// comment may have author
+						String author = cellComment.getAuthor();
+						if (author != null) {
+							comment = comment.replace(author + ":\n", "");
+						}
+						headerMeta.put("description", comment);
 					}
-					headerMeta.put("description", comment);
 				}
 				validationMap.put(header, headerMeta);
 			}
