@@ -147,6 +147,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		this.insight.setInsightName(insightName);
 		// this is to reset it
 		this.insight.setInsightFolder(null);
+		this.insight.setAppFolder(null);
 		
 		ClusterUtil.reactorPushApp(appId);
 		
