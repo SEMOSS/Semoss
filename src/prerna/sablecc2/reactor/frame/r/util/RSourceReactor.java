@@ -32,7 +32,7 @@ public class RSourceReactor extends AbstractReactor {
 		
 		String env = rJavaTranslator.env;
 		
-		rJavaTranslator.executeEmptyRunR("source(\"" + path + "\"," + env + ");");
+		rJavaTranslator.executeEmptyRDirect("source(\"" + path + "\"," + env + ");");
 		
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
