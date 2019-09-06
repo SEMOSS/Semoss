@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -86,8 +87,8 @@ public class Insight {
 	// need to account for multiple frames to be saved on the insight
 	// we will use a special key 
 	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
-	public static transient final String INSIGHT_FILE_KEY = "$IF";
-	
+	private static transient final String INSIGHT_FOLDER_KEY = "INSIGHT_FOLDER";
+	private static transient final String APP_FOLDER_KEY = "APP_FOLDER";
 
 	// this is the id it is assigned within the InsightCache
 	// it varies from one instance of an insight to another instance of the same insight
@@ -130,6 +131,7 @@ public class Insight {
 	 * if the insight is saved
 	*/
 	private transient String insightFolder;
+	private transient String appFolder;
 	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();
 	private transient Map<String, String> exportFiles = new Hashtable<String, String>();
 
@@ -341,6 +343,34 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * Get the app relative file key
+	 * @return
+	 */
+	public static String getAppRelativeFolderKey() {
+		return Insight.APP_FOLDER_KEY;
+	}
+	
+	/**
+	 * Get the APP_FOLDER/INSIGHT_FOLDER key
+	 * @return
+	 */
+	public static String getAppInsightFolderKey() {
+		return Insight.APP_FOLDER_KEY + DIR_SEPARATOR + Insight.INSIGHT_FOLDER_KEY;	
+	}
+	
+	/**
+	 * Get the prefix as APP_FOLDER/INSIGHT_FOLDER or INSIGHT_FOLDER depending on if it is saved
+	 * This is so we know what to send the FE
+	 * @return
+	 */
+	public static String getInsightRelativeFolderKey(Insight in) {
+		if(in.isSavedInsight()) {
+			return Insight.APP_FOLDER_KEY + DIR_SEPARATOR + Insight.INSIGHT_FOLDER_KEY;
+		}
+		return Insight.INSIGHT_FOLDER_KEY;
+	}
+	
 	public String getInsightFolder() {
 		if(this.insightFolder == null) {
 			// account for unsaved insights vs. saved insights
@@ -350,11 +380,7 @@ public class Insight {
 			} else {
 				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
 				// need to grab from engine
-				this.insightFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
-						+ DIR_SEPARATOR + "db" 
-						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-						+ DIR_SEPARATOR + "version"
-						+ DIR_SEPARATOR + this.rdbmsId;
+				this.insightFolder = getAppFolder() + DIR_SEPARATOR + this.rdbmsId;
 			}
 		}
 		
@@ -362,9 +388,43 @@ public class Insight {
 	}
 	
 	public void setInsightFolder(String insightFolder) {
-		
-		// may be initiate the compile here ?
 		this.insightFolder = insightFolder;
+	}
+	
+	public String getAppFolder() {
+		if(this.appFolder == null) {
+			// account for unsaved insights vs. saved insights
+			if(!isSavedInsight()) {
+				return null;
+			} else {
+				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
+				// need to grab from engine
+				this.appFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+						+ DIR_SEPARATOR + "db" 
+						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ DIR_SEPARATOR + "version";
+			}
+		}
+		
+		return this.appFolder;
+	}
+	
+	public void setAppFolder(String appFolder) {
+		this.appFolder = appFolder;
+	}
+	
+	/**
+	 * If the path is a relative one, modify it for the specific insight
+	 * @param filePath
+	 * @return
+	 */
+	public String getAbsoluteInsightFolderPath(String filePath) {
+		String relPath = Insight.getInsightRelativeFolderKey(this);
+		if(filePath.startsWith(relPath)) {
+			filePath = Pattern.compile(Matcher.quoteReplacement(relPath))
+					.matcher(filePath).replaceFirst(Matcher.quoteReplacement(getInsightFolder()));
+		}
+		return filePath;
 	}
 	
 	public boolean isSavedInsight() {
@@ -529,8 +589,9 @@ public class Insight {
 	
 	public String getExportFileLocation(String uniqueKey) {
 		String fileLocation = this.exportFiles.get(uniqueKey);
-		if(fileLocation.startsWith("$IF")) {
-			fileLocation = fileLocation.replaceFirst("\\$IF", Matcher.quoteReplacement(getInsightFolder()));
+		String relPath = Insight.getInsightRelativeFolderKey(this);
+		if(fileLocation.startsWith(relPath)) {
+			fileLocation = fileLocation.replaceFirst(relPath, Matcher.quoteReplacement(getInsightFolder()));
 		}
 		return fileLocation;
 	}
