@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Matcher;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -187,8 +186,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
 
 		// TODO: consolidate with below if statement
-		if(host != null && host.startsWith("$IF")) {
-			String testUpdatedHost = host.replaceFirst("\\$IF", Matcher.quoteReplacement(this.insight.getInsightFolder()));
+		if(host != null) {
+			String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
 			if(new File(testUpdatedHost).exists()) {
 				host = testUpdatedHost;
 			}
