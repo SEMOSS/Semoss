@@ -39,6 +39,7 @@ import prerna.poi.main.helper.excel.GetExcelFormReactor;
 import prerna.query.querystruct.delete.DeleteReactor;
 import prerna.query.querystruct.update.reactors.UpdateReactor;
 import prerna.sablecc2.reactor.algorithms.CreateNLPVizReactor;
+import prerna.sablecc2.reactor.algorithms.NLPInstanceCacheReactor;
 import prerna.sablecc2.reactor.algorithms.NLSQueryHelperReactor;
 import prerna.sablecc2.reactor.algorithms.NaturalLanguageSearchReactor;
 import prerna.sablecc2.reactor.algorithms.RAlgReactor;
@@ -53,7 +54,6 @@ import prerna.sablecc2.reactor.algorithms.RunMultiClusteringReactor;
 import prerna.sablecc2.reactor.algorithms.RunNumericalCorrelationReactor;
 import prerna.sablecc2.reactor.algorithms.RunOutlierReactor;
 import prerna.sablecc2.reactor.algorithms.RunSimilarityReactor;
-import prerna.sablecc2.reactor.algorithms.StoreColumnValuesReactor;
 import prerna.sablecc2.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.sablecc2.reactor.algorithms.dataquality.GetDQRulesReactor;
 import prerna.sablecc2.reactor.algorithms.dataquality.RunDataQualityReactor;
@@ -669,7 +669,7 @@ public class ReactorFactory {
 		reactorHash.put("PredictMetamodel", PredictMetamodelReactor.class);
 		reactorHash.put("ParseMetamodel", ParseMetamodelReactor.class);
 		reactorHash.put("ExtractAppMeta", ExtractAppMetaReactor.class);
-		reactorHash.put("StoreColumnValues", StoreColumnValuesReactor.class);
+		reactorHash.put("NLPInstanceCache", NLPInstanceCacheReactor.class);
 		
 		// Excel Data validation
 		reactorHash.put("GetExcelForm", GetExcelFormReactor.class);
