@@ -546,6 +546,7 @@ public class MasterDatabaseUtility {
 		// that were matches as something
 		// that is a possible join
 		Map<String, Object[]> parentEquivMap = new HashMap<String, Object[]>();
+		Set<String> parentIds = new HashSet<String>();
 		List<String> idsForRelationships = new Vector<String>();
 		List<String> idsForProperties = new Vector<String>();
 		
@@ -589,8 +590,11 @@ public class MasterDatabaseUtility {
 				idsForProperties.add(parentId);
 				// and the join for this parent is the column that matches
 				parentEquivMap.put(parentId, new Object[] {parentName, columnName, pk});
+				
+				// i also want to be able to join to this table directly (this is for rdf/graph)
+				parentIds.add(parentId);
 			}
-
+			
 			if(parentId == null && pk) {
 				// if you are a true concept
 				// i can join to you directly
@@ -603,6 +607,65 @@ public class MasterDatabaseUtility {
 			}
 		}
 		
+		// let me add in all the concepts that are my parent
+		qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
+		if(engineFilter != null && !engineFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PK", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__IGNORE_DATA", "==", false, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PHYSICALNAMEID", "==", parentIds));
+		qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
+		qs.addOrderBy("ENGINE__ENGINENAME");
+		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
+		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
+		qs.addOrderBy("ENGINECONCEPT__PK");
+		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
+		
+		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow row = wrapper.next();
+			Object[] data = row.getValues();
+
+			String engineName = (String) data[0];
+			String engineId = (String) data[1];
+			String parent = (String) data[2];
+			String parentId = (String) data[3];
+			String column = (String) data[4];
+			String columnId = (String) data[5];
+			String type = (String) data[6];
+			boolean pk = (boolean) data[7];
+			boolean ignore = (boolean) data[8];
+
+			// these will all have column ids based on the query
+			// i will just grab the details
+			Object[] equivTableCol = parentEquivMap.get(columnId);
+
+			// if we passed the above test, add the valid connection
+			Map<String, Object> mapRow = new HashMap<String, Object>();
+			mapRow.put("app_id", engineId);
+			mapRow.put("app_name", engineName);
+			mapRow.put("table", column);
+//			mapRow.put("column", parent);
+			mapRow.put("pk", pk);
+			mapRow.put("ignore", ignore);
+			mapRow.put("dataType", type);
+			mapRow.put("type", "property");
+			mapRow.put("equivTable", equivTableCol[0]);
+			mapRow.put("equivColumn", equivTableCol[1]);
+			mapRow.put("equivPk", equivTableCol[2]);
+			returnData.add(mapRow);
+		}
+
 		// now let me query for all the properties
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
