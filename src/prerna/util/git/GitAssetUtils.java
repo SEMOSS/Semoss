@@ -22,52 +22,7 @@ public class GitAssetUtils {
 	// gives the information in 2 chunks
 	// files and directories
 	public static Map<String, List<String>> browse(String gitFolder, String replacer) {
-		Map<String, List<String>> retHash = new Hashtable<String, List<String>>();
-
-		List<String> files = new ArrayList<String>();
-		List<String> directories = new ArrayList<String>();
-		List<String> fileDates = new ArrayList<String>();
-		List<String> dirDates = new ArrayList<String>();
-
-		File folder = new File(gitFolder);
-		File[] listOfFiles = folder.listFiles();
-		String repString = ""; // can be $IF
-
-		for (int i = 0; i < listOfFiles.length; i++) {
-			if (listOfFiles[i].isFile()) {
-				//String path = listOfFiles[i].getAbsolutePath().replaceAll("\\\\", "/");
-				String path = listOfFiles[i].getName();
-				// we probably dont need this anymore
-				/*
-				if(replacer != null) {
-					path = path.replaceAll(replacer, repString);
-				}*/
-				System.out.println("File " + path);
-				files.add(path.replaceFirst("/", ""));
-				String time = getDate(listOfFiles[i].lastModified());
-				fileDates.add(time);
-			} else if (listOfFiles[i].isDirectory()) {
-				// System.out.println("Directory " + listOfFiles[i].getName());
-				String path = listOfFiles[i].getName().replaceAll("\\\\", "/");
-				// no hidden files
-				if(!path.startsWith(".")) {
-					if(replacer != null) {
-						path = path.replaceAll(replacer, repString);
-					}
-					directories.add(path);
-				}
-				String time = getDate(listOfFiles[i].lastModified());
-				dirDates.add(time);
-			}
-		}
-
-		retHash.put("FILE_LIST", files);
-		retHash.put("DIR_LIST", directories);
-		retHash.put("FILE_DATE", fileDates);
-		retHash.put("DIR_DATE", dirDates);
-
-		
-		return retHash;
+		return browse(gitFolder, replacer, "");
 	}
 	
 	
@@ -122,6 +77,63 @@ public class GitAssetUtils {
 		return retList;
 	}
 
+	/**
+	 * Get all the assets with metadata
+	 * 
+	 * @param gitFolder
+	 * @param replacer
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAssetMetadata(String gitFolder, String replacer, String prefix, boolean addApp) {
+		List<Map<String, Object>> retList = new Vector<>();
+		File folder = new File(gitFolder);
+		File[] listOfFiles = folder.listFiles();
+		String repString = ""; // can be $IF
+
+		for (File f : listOfFiles) {
+			Map<String, Object> fileMap = new HashMap<>();
+			fileMap.put("name", f.getName());
+			fileMap.put("lastModified", getDate(f.lastModified()));
+			String relative = new File(replacer).toURI().relativize(new File(f.getAbsolutePath()).toURI()).getPath();
+			relative = prefix + relative;
+			fileMap.put("path", relative);
+			if (f.isFile()) {
+				String path = f.getAbsolutePath().replaceAll("\\\\", "/");
+				if (replacer != null) {
+					path = path.replaceAll(replacer, repString);
+				}
+				// System.out.println("File " + path);
+				path = path.replaceFirst("/", "");
+				fileMap.put("type", FilenameUtils.getExtension(path));
+//				fileMap.put("size", f.length());
+			} else if (f.isDirectory()) {
+				String path = f.getName().replaceAll("\\\\", "/");
+				// no hidden files
+				if (!path.startsWith(".")) {
+					if (replacer != null) {
+						path = path.replaceAll(replacer, repString);
+					}
+				}
+				fileMap.put("type", "directory");
+			}
+			retList.add(fileMap);
+		}
+		if(addApp)
+		{
+			Map <String, Object> appFolder = new HashMap<>();
+			
+			appFolder.put("name", "app_assets");
+			appFolder.put("lastModified", "");
+			appFolder.put("path", "app_assets/");
+			appFolder.put("type",  "directory");
+			retList.add(appFolder);
+		}
+
+		return retList;
+	}
+
+	
+	
 	// recursively print it
 	public void getAssets(String gitFolder, List <String> dirList) {
 		File folder = new File(gitFolder);
@@ -281,5 +293,58 @@ public class GitAssetUtils {
 	 
 		return j == p.length();
 	}
+	
+	// gets all the information on assets
+	// gives the information in 2 chunks
+	// files and directories
+	public static Map<String, List<String>> browse(String gitFolder, String replacer, String replaceWith) {
+		Map<String, List<String>> retHash = new Hashtable<String, List<String>>();
+
+		List<String> files = new ArrayList<String>();
+		List<String> directories = new ArrayList<String>();
+		List<String> fileDates = new ArrayList<String>();
+		List<String> dirDates = new ArrayList<String>();
+
+		File folder = new File(gitFolder);
+		File[] listOfFiles = folder.listFiles();
+		String repString = replaceWith; // can be $IF
+
+		for (int i = 0; i < listOfFiles.length; i++) {
+			if (listOfFiles[i].isFile()) {
+				//String path = listOfFiles[i].getAbsolutePath().replaceAll("\\\\", "/");
+				String path = listOfFiles[i].getName();
+				// we probably dont need this anymore
+				/*
+				if(replacer != null) {
+					path = path.replaceAll(replacer, repString);
+				}*/
+				System.out.println("File " + path);
+				files.add(path.replaceFirst("/", ""));
+				String time = getDate(listOfFiles[i].lastModified());
+				fileDates.add(time);
+			} else if (listOfFiles[i].isDirectory()) {
+				// System.out.println("Directory " + listOfFiles[i].getName());
+				String path = listOfFiles[i].getName().replaceAll("\\\\", "/");
+				// no hidden files
+				if(!path.startsWith(".")) {
+					if(replacer != null) {
+						path = path.replaceAll(replacer, repString);
+					}
+					directories.add(path);
+				}
+				String time = getDate(listOfFiles[i].lastModified());
+				dirDates.add(time);
+			}
+		}
+
+		retHash.put("FILE_LIST", files);
+		retHash.put("DIR_LIST", directories);
+		retHash.put("FILE_DATE", fileDates);
+		retHash.put("DIR_DATE", dirDates);
+
+		
+		return retHash;
+	}
+
 	
 }
