@@ -12,7 +12,7 @@ import prerna.util.git.GitRepoUtils;
 public class CommitAssetReactor extends AbstractReactor {
 
 	public CommitAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.IN_APP.getKey() };
 	}
 
 	@Override
@@ -23,7 +23,14 @@ public class CommitAssetReactor extends AbstractReactor {
 		String comment = this.keyValue.get(this.keysToGet[1]);
 
 		// get asset base folder to create relative path
-		String assetFolder = this.insight.getInsightFolder();
+		//boolean app = keyValue.containsKey(keysToGet[2]);
+		boolean app = keyValue.containsKey(keysToGet[2]) || (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+
+		// get the asset folder path
+		String assetFolder = this.insight.getInsightFolder(); 
+		if(app)
+			assetFolder = this.insight.getAppFolder();
+		
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
 		// get path
@@ -32,6 +39,10 @@ public class CommitAssetReactor extends AbstractReactor {
 			filePath = assetFolder + "/" + keyValue.get(keysToGet[0]);
 			filePath = filePath.replaceAll("\\\\", "/");
 		}
+		
+		// neutraize app_assets
+		//filePath = filePath.replaceAll("app_assets", "");
+
 		
 		// add file to git
 		List<String> files = new Vector<>();
