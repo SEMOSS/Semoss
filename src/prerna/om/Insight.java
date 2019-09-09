@@ -76,6 +76,7 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -380,7 +381,12 @@ public class Insight {
 			} else {
 				// grab from db folder... technically shouldn't be binding on db + we allow multiple locations
 				// need to grab from engine
-				this.insightFolder = getAppFolder() + DIR_SEPARATOR + this.rdbmsId;
+				this.insightFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
+						+ DIR_SEPARATOR + "db" 
+						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
+						+ DIR_SEPARATOR + "version"
+						+ DIR_SEPARATOR + this.rdbmsId;
+
 			}
 		}
 		
@@ -402,7 +408,15 @@ public class Insight {
 				this.appFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 						+ DIR_SEPARATOR + "db" 
 						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
-						+ DIR_SEPARATOR + "version";
+						+ DIR_SEPARATOR + "version"
+						+ DIR_SEPARATOR + "assets";
+				// if this folder does not exist create it and git init it
+				File file = new File(appFolder);
+				if(!file.exists())
+				{
+					file.mkdir();
+					GitRepoUtils.init(appFolder);
+				}
 			}
 		}
 		
@@ -901,6 +915,7 @@ public class Insight {
 			// replace the version name to start with
 			String insightId = insightDirectory.getName();
 			// accounting for the version which is why the second getParent
+			// This needs to be tagged to assets here
 			String db = insightDirectory.getParentFile().getParentFile().getName();
 	//		insightFolder = insightFolder.replaceAll("\\\\", "/");
 	//		String insightId = Utility.getInstanceName(insightFolder);

@@ -15,8 +15,8 @@ public class GetAssetReactor extends AbstractReactor {
 	// if the version is not provided - this gets the head
 
 	public GetAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.VERSION.getKey() };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.VERSION.getKey(), ReactorKeysEnum.IN_APP.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -31,12 +31,16 @@ public class GetAssetReactor extends AbstractReactor {
 			}
 		}
 
+		boolean app = keyValue.containsKey(keysToGet[2]) || (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
 		// get the asset folder path
 		String assetFolder = this.insight.getInsightFolder(); 
+		if(app)
+			assetFolder = this.insight.getAppFolder();
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
 		// specify a file
 		String asset = keyValue.get(keysToGet[0]);
+		asset = asset.replaceAll("app_assets", "");
 		// grab the version
 		String version = null;
 		if (keyValue.containsKey(keysToGet[1])) {
