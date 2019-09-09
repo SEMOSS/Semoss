@@ -10,8 +10,8 @@ import prerna.util.git.GitAssetUtils;
 public class SearchAssetReactor extends AbstractReactor {
 
 	public SearchAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IN_APP.getKey()};
+		this.keyRequired = new int[] { 1, 0,0 };
 	}
 
 	@Override
@@ -19,7 +19,13 @@ public class SearchAssetReactor extends AbstractReactor {
 		organizeKeys();
 
 		// get asset base folder to create relative path
-		String assetFolder = this.insight.getInsightFolder();
+		//boolean app = keyValue.containsKey(keysToGet[2]);
+		boolean app = keyValue.containsKey(keysToGet[2]) || (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+
+		// get the asset folder path
+		String assetFolder = this.insight.getInsightFolder(); 
+		if(app)
+			assetFolder = this.insight.getAppFolder();
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
 		// get search term
@@ -32,6 +38,7 @@ public class SearchAssetReactor extends AbstractReactor {
 			location = location.replaceAll("\\\\", "/");
 		}
 
+		//location = location.replaceAll("/app_assets", "");
 		return new NounMetadata(GitAssetUtils.listAssetMetadata(location, search, assetFolder, null, null), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
