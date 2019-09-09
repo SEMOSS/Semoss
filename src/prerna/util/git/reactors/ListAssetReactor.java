@@ -20,16 +20,26 @@ public class ListAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		boolean app = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).startsWith("app_assets"));
 
 		String assetFolder = this.insight.getInsightFolder();
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
-		String extn = keyValue.get(keysToGet[0]);
+		if(app)
+			assetFolder = this.insight.getAppFolder();
+
+		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		
+		String extn = keyValue.get(keysToGet[0]); 
 		String location = assetFolder;
 
 		if(keyValue.containsKey(keysToGet[1])) {
 			location = assetFolder + "/" + keyValue.get(keysToGet[1]); 		
 		}
+		
+		location = location.replaceAll("/app_assets", "");
+		
+		
+		// I wonder if we should list fromt the app level as well
 		
 		return new NounMetadata(GitAssetUtils.listAssets(location, extn,assetFolder,  null, null), PixelDataType.VECTOR, PixelOperationType.OPERATION);
 	}

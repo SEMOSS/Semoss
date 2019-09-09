@@ -15,7 +15,7 @@ import prerna.util.git.GitRepoUtils;
 public class GetAssetCommentReactor extends AbstractReactor {
 
 	public GetAssetCommentReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IN_APP.getKey() };
 	}
 
 	@Override
@@ -31,11 +31,16 @@ public class GetAssetCommentReactor extends AbstractReactor {
 		}
 
 		// get the asset folder path
-		String assetFolder = this.insight.getInsightFolder();
+		boolean app = keyValue.containsKey(keysToGet[1]) || (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets")); ;
+		// get the asset folder path
+		String assetFolder = this.insight.getInsightFolder(); 
+		if(app)
+			assetFolder = this.insight.getAppFolder();
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
 		// specify a file
 		String filePath = this.keyValue.get(this.keysToGet[0]);
+		//filePath = filePath.replaceAll("app_assets", "");
 
 		// get comments
 		List<Map<String, Object>> comments = GitRepoUtils.getCommits(assetFolder, filePath);
