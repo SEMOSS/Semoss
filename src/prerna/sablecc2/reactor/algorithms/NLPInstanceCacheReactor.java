@@ -26,22 +26,20 @@ import prerna.sablecc2.reactor.frame.r.AbstractRFrameReactor;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-//TODO: change to NLPInstanceCacheReactor
-public class StoreColumnValuesReactor extends AbstractRFrameReactor {
+public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 
 	/**
 	 * Reads in the Databases and Creates an RDS file of all unique instances in the AnalyticsRoutineScripts Folder
 	 */
 
-	// StoreColumnValues(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],table=[],columns=[],addDuplicates=[false]);
-	// StoreColumnValues(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],table=["Title"],columns=["Title"],addDuplicates=[false]);
+	// NLPInstanceCache(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],table=[],columns=[],updateExistingValues=[false]);
+	// NLPInstanceCache(app=["2c8c41da-391a-4aa8-a170-9925211869c8"],table=["Title"],columns=["Title"],updateExistingValues=[false]);
 
-	// TODO: change addDuplicates to updateExistingValues
-	private static final String ADD_DUPLICATES = "addDuplicates";
-	protected static final String CLASS_NAME = StoreColumnValuesReactor.class.getName();
+	private static final String UPDATE_EXISTING_VALUES = "updateExistingValues";
+	protected static final String CLASS_NAME = NLPInstanceCacheReactor.class.getName();
 
-	public StoreColumnValuesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TABLE.getKey() , ReactorKeysEnum.COLUMNS.getKey(), ADD_DUPLICATES };
+	public NLPInstanceCacheReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.TABLE.getKey() , ReactorKeysEnum.COLUMNS.getKey(), UPDATE_EXISTING_VALUES };
 	}
 
 	@Override
@@ -54,9 +52,12 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 		List<String> columnsToUpdate = getSpecificColumns(appId, table);
 		boolean updateExistingValues = updateExistingValues();
 		boolean allValues = false;
+		String gc = "";
 		
 		// if no columns were entered, default to all string columns
-		if(columnsToUpdate == null || columnsToUpdate.isEmpty()) {
+		// currently have to reuse input in the case that user accidentally
+		// inputs only non-string columns
+		if(this.store.getNoun(this.keysToGet[2]) == null || this.store.getNoun(this.keysToGet[2]).isEmpty()) {
 			allValues = true;
 		}
 		
@@ -65,11 +66,12 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 		String filePath = baseFolder + "/R/AnalyticsRoutineScripts/unique-values-table.rds";
 		File rdsFile = new File(filePath);
 		String rdsFrame = "rdsFrame_" + Utility.getRandomString(5);
+		String rdsFrameTrim = "rdsFrame_" + Utility.getRandomString(5);
 		boolean rdsExists = rdsFile.exists();
 
-		//TODO: need to fix the rdsExist
-		//TODO: need to delete with table name
-		//TODO: if you are allValues, then delete just based on appID
+		// keep the existing cols and tables lists to skip 
+		// through later when not updating values
+		List<String> existingTableCols = new Vector<String>();
 		
 		// if the rds exists, the filter out the existing cols from colFilters if
 		// desired
@@ -80,32 +82,56 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 			// if updating existing, then remove the current values
 			// otherwise, skip the duplicate columns to improve performance
 			if (!updateExistingValues) {
-				String existingColsScript = "unique(" + rdsFrame + "[" + rdsFrame + "$AppID == \"" + appId + "\",]$Column);";
-				String[] existingCols = this.rJavaTranslator.getStringArray(existingColsScript);
-				columnsToUpdate.removeAll(Arrays.asList(existingCols));
-			} else {
-				// get the current columns that we have in that app
-				String existingColsScript = "unique(" + rdsFrame + "[" + rdsFrame + "$AppID == \"" + appId + "\",]$Column);";
-				List<String> existingCols = Arrays.asList(this.rJavaTranslator.getStringArray(existingColsScript));
-				
-				// get the intersection of existing columns and columns inputted
-				ArrayList<String> colsToRemove = new ArrayList<String>(existingCols);
-				colsToRemove.retainAll(columnsToUpdate);
-				
-				// now remove the current ones that we are about to replace with this script
-				String removeScript = rdsFrame + " <- " + rdsFrame + "[( ";
-				String amp = "";
-				for (String col : colsToRemove ) {
-					removeScript += amp;
-					amp = " & ";
-					removeScript += "!("+rdsFrame+"$AppID==\""+appId+"\" & "+rdsFrame+"$Column==\""+col+"\")";
+				if(allValues) {
+					// in this case, we need to store all the cols/tables that we already have
+					// then we will filter these out when adding cols
+					
+					// get the unique columns and tables into arrays
+					String uniqueColsTables = rdsFrameTrim + " <- unique(" + rdsFrame + "[c(\"Table\", \"Column\", \"AppID\")])"; 
+					this.rJavaTranslator.runR(uniqueColsTables);
+					gc = rdsFrameTrim;
+					String existingColsScript = rdsFrameTrim + "[" + rdsFrameTrim + "$AppID == \"" + appId + "\",]$Column;";
+					String existingTablesScript = rdsFrameTrim + "[" + rdsFrameTrim + "$AppID == \"" + appId + "\",]$Table;";
+					String[] existingCols = this.rJavaTranslator.getStringArray(existingColsScript);
+					String[] existingTables = this.rJavaTranslator.getStringArray(existingTablesScript);
+					
+					// store all the cols/tables that we already have
+					for(int x = 0; x < existingCols.length ; x++) {
+						String existingTable = existingTables[x].toString();
+						String existingCol = existingCols[x].toString();
+						if(existingTableCols == null || !existingTableCols.contains(existingTable+existingCol)) {
+							existingTableCols.add(existingTable+existingCol+"");
+						}
+					}	
+				} else {
+					// in this case, we know the table of the columns and columnsToUpdate is not null
+					// so just remove those columns that match by app id, table, and column
+					String existingColsScript = "unique(" + rdsFrame + "[" + rdsFrame + "$AppID == \"" + appId + "\" & " + rdsFrame + "$Table == \"" + table + "\" ,]$Column);";
+					String[] existingCols = this.rJavaTranslator.getStringArray(existingColsScript);
+					columnsToUpdate.removeAll(Arrays.asList(existingCols));
 				}
-				removeScript += " ),];";
+			} else {
+				String removeScript = "";
+				if(allValues) {
+					// in this case, we can just delete all values for this db
+					removeScript = rdsFrame + " <- " + rdsFrame + "[( " + "!( " + rdsFrame + "$AppID==\"" + appId + "\")),];";
+				} else {
+					// in this case, we need to delete based on cols and tables provided
+					// Assumption: The User used the UI and, therefore, only one table is possible
+					removeScript = rdsFrame + " <- " + rdsFrame + "[( ";
+					String amp = "";
+					for (String col : columnsToUpdate ) {
+						removeScript += amp;
+						amp = " & ";
+						removeScript += "!("+rdsFrame+"$AppID==\""+appId+"\" & " + rdsFrame +"$Column==\"" + col + "\" & " + rdsFrame +"$Table==\"" + table + "\")";
+					}
+					removeScript += " ),];";
+				}
 				this.rJavaTranslator.runR(removeScript);
 			}
 		}
 		
-		if(columnsToUpdate.isEmpty()) {
+		if((columnsToUpdate == null || columnsToUpdate.isEmpty()) && !allValues) {
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		}
 
@@ -138,15 +164,25 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 				if(!tableCol[2].equals(SemossDataType.STRING.toString())) {
 					continue;
 				}
+				
+				// get the values
 				String parent = tableCol[0].toString();
 				String name = tableCol[1].toString();
+				Boolean pk = (boolean) tableCol[3];
 				String colQs = null;
-				if(parent == null) {
+				if(pk) {
+					parent = name;
 					colQs = name;
 				} else {
 					colQs = parent + "__" + name;
 				}
 				
+				// drop columns we already have if not updating values
+				if(!updateExistingValues && existingTableCols.contains(parent+name)) {
+					continue;
+				}
+				
+				// add the columns in batches of 20
 				counter++;
 				if(counter % 20 == 0) {
 					// add the info
@@ -187,11 +223,12 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 		}
 
 		// create gc string
-		String gc = retFrame + "," + tempFrame;
+		gc += " , " + retFrame + "," + tempFrame;
+		
 		// now save it to an RDS Files
 		StringBuilder saveBuilder = new StringBuilder();
 		if (rdsExists) {
-			gc += " , " + rdsFrame;
+			gc += " , " + rdsFrame + rdsFrameTrim;
 			saveBuilder.append(retFrame + " <- rbind(" + retFrame + "," + rdsFrame + ");");
 		}
 		saveBuilder.append("saveRDS(" + retFrame + ", file = \"unique-values-table.rds\");");
@@ -202,10 +239,11 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 
 		// garbage cleanup
 		this.rJavaTranslator.executeEmptyR("rm( " + gc + " , origDir ); gc();");
+		System.out.println("");
 
 		// return true
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully indexed data for NLP searching", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully cached instances for NLP searching", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 	
@@ -247,7 +285,7 @@ public class StoreColumnValuesReactor extends AbstractRFrameReactor {
 			if(colQs.contains("__")) {
 				String[] split = colQs.split("__");
 				tableVector.add(split[0]);
-				tableVector.add(split[1]);
+				colVector.add(split[1]);
 			} else {
 				tableVector.add(colQs);
 				colVector.add(colQs);
