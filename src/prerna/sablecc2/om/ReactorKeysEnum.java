@@ -62,6 +62,7 @@ public enum ReactorKeysEnum {
 	INSIGHT_NAME("insightName", 							"Name of the insight"),
 	INSIGHT_ORNAMENT("insightOrnament", 					"Insight ornament map"),
 	INSTANCE_KEY("instance", 								"Column representing the objects being used to perform the operation"),
+	IN_APP("in_app", 										"Is the save relative to app"),
 	JOB_GROUP("jobGroup",                                   "The name of the job group"),
 	JOB_ID("jobId", 										"Id of the job"),
 	JOB_NAME("jobName",                                     "The name of the job"),
