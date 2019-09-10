@@ -43,8 +43,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	
 	private static final String CLASS_NAME = OpenInsightReactor.class.getName();
 	
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	
 	public OpenInsightReactor() {
 		this.keysToGet = new String[]{
 				ReactorKeysEnum.APP.getKey(), 
@@ -283,15 +281,12 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 * @return
 	 */
 	protected PixelRunner getCachedInsightData(Insight insight) throws IOException, JsonSyntaxException {
-		// I will create a temp insight
 		// so that I don't mess up the insight recipe
-		Insight tempInsight = new Insight(insight.getEngineId(), insight.getEngineName(), insight.getRdbmsId());
-		tempInsight.setInsightId(insight.getInsightId());
-		tempInsight.setInsightName(insight.getInsightName());
-		tempInsight.setVarStore(insight.getVarStore());
+		List<String> origRecipe = insight.getPixelRecipe();
+		insight.setPixelRecipe(new Vector<String>());
 		
 		PixelRunner runner = new PixelRunner();
-		runner.setInsight(tempInsight);
+		runner.setInsight(insight);
 		
 		// send the view data
 		Map<String, Object> viewData = InsightCacheUtility.getCachedInsightViewData(insight);
@@ -321,10 +316,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			}
 		}
 		
-		// we need to reset the tempInsight recipe to the original recipe
-		tempInsight.setPixelRecipe(insight.getPixelRecipe());
+		// we need to reset the recipe
+		insight.setPixelRecipe(origRecipe);
 		return runner;
 	}
-	
 	
 }
