@@ -1,6 +1,5 @@
 package prerna.util.git.reactors;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +19,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 	// this can be used enroute in a pipeline
 
 	public BrowseAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), "app" };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(),  ReactorKeysEnum.IN_APP.getKey() };
 	}
 
 	@Override
