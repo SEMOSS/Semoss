@@ -32,9 +32,11 @@ public class PyReactor extends AbstractReactor {
 		PyExecutorThread pyThread = this.insight.getPy();
 		Object lock = pyThread.getMonitor();
 
+		String rootPath = this.insight.getInsightFolder().replace('\\', '/');
+		
 		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
 		logger.info("Execution python script: " + code);
-		pyThread.command = new String[]{code};
+		pyThread.command = new String[]{"ROOT = \"" + rootPath + "\"", code, "del ROOT"};
 		
 		Object output = "";
 		synchronized(lock) {
@@ -46,6 +48,11 @@ public class PyReactor extends AbstractReactor {
 			}
 			// waking up now
 			output = pyThread.response.get(code);
+		}
+		
+		// clean up the output
+		if(output != null && output.toString().contains(rootPath)) {
+			output = output.toString().replace(rootPath, "$IF");
 		}
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
