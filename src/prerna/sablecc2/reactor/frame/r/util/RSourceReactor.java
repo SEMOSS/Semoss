@@ -22,7 +22,7 @@ public class RSourceReactor extends AbstractReactor {
 		String path = insight.getInsightFolder() + "/" + relativePath;
 		path = path.replace('\\', '/');
 		
-		rJavaTranslator.executeEmptyR("source(\"" + path + "\");");
+		rJavaTranslator.executeEmptyRDirect("source(\"" + path + "\", " + rJavaTranslator.env + ");");
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 }
