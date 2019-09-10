@@ -39,7 +39,27 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	///////////////////////////////////////////////////////////////////
 
 	/*
-	 * Abstract methods defined here
+	 * abstract internal methods
+	 * should not be used outside of the translator
+	 */
+
+	/**
+	 * Execute an R Script without a return
+	 * FOR INTERNAL USE ONLY - IF YOU TRY TO CALL IT WONT WORK
+	 * @param rScript
+	 */
+	abstract void executeEmptyRDirect(String rScript);
+	
+	/**
+	 * Execute an R Script
+	 * FOR INTERNAL USE ONLY - IF YOU TRY TO CALL IT WONT WORK
+	 * @param rScript
+	 */
+	abstract Object executeRDirect(String rScript);
+	
+	
+	/*
+	 * public abstract methods defined here
 	 */
 	
 	/**

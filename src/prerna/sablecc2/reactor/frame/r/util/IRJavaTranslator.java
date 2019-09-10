@@ -30,26 +30,11 @@ public interface IRJavaTranslator {
 	 */
 	Object executeR(String rScript);
 
-	
-	/**
-	 * Execute an R Script
-	 * FOR INTERNAL USE ONLY - IF YOU TRY TO CALL IT WONT WORK
-	 * @param rScript
-	 */
-	Object executeRDirect(String rScript);
-
 	/**
 	 * Execute an R Script without a return
 	 * @param rScript
 	 */
 	void executeEmptyR(String rScript);
-
-	/**
-	 * Execute an R Script without a return
-	 * FOR INTERNAL USE ONLY - IF YOU TRY TO CALL IT WONT WORK
-	 * @param rScript
-	 */
-	void executeEmptyRDirect(String rScript);
 
 	/**
 	 * Cancel the execution of the currently running R script. Different from
