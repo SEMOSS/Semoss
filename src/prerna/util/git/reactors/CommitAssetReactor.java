@@ -9,13 +9,14 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.git.GitRepoUtils;
 
 public class CommitAssetReactor extends AbstractReactor {
 
 	public CommitAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(),
-				ReactorKeysEnum.IN_APP.getKey() };
+				ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
@@ -36,20 +37,8 @@ public class CommitAssetReactor extends AbstractReactor {
 		}
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String comment = this.keyValue.get(this.keysToGet[1]);
-
-		// get insight asset path
-		boolean app = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
-		boolean isUser = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("user")) ;
-
-		String assetFolder = this.insight.getInsightFolder();
-		if(isUser)
-		{
-			// do other things
-		}
-		if (app) {
-			assetFolder = this.insight.getAppFolder();
-		}
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		String space = this.keyValue.get(this.keysToGet[2]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
 
 		// add file to git
 		List<String> files = new Vector<>();
