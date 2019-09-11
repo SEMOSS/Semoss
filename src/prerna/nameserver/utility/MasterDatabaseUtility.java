@@ -611,13 +611,10 @@ public class MasterDatabaseUtility {
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
 		if(engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
 		}
@@ -626,10 +623,10 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PHYSICALNAMEID", "==", parentIds));
 		qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
 		qs.addOrderBy("ENGINE__ENGINENAME");
-		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
-		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
-		qs.addOrderBy("ENGINECONCEPT__PK");
-		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
+//		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
+//		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
+//		qs.addOrderBy("ENGINECONCEPT__PK");
+//		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 		
 		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
@@ -638,13 +635,10 @@ public class MasterDatabaseUtility {
 
 			String engineName = (String) data[0];
 			String engineId = (String) data[1];
-			String parent = (String) data[2];
-			String parentId = (String) data[3];
-			String column = (String) data[4];
-			String columnId = (String) data[5];
-			String type = (String) data[6];
-			boolean pk = (boolean) data[7];
-			boolean ignore = (boolean) data[8];
+			String column = (String) data[2];
+			String columnId = (String) data[3];
+			String type = (String) data[4];
+			boolean pk = (boolean) data[5];
 
 			// these will all have column ids based on the query
 			// i will just grab the details
@@ -655,9 +649,7 @@ public class MasterDatabaseUtility {
 			mapRow.put("app_id", engineId);
 			mapRow.put("app_name", engineName);
 			mapRow.put("table", column);
-//			mapRow.put("column", parent);
 			mapRow.put("pk", pk);
-			mapRow.put("ignore", ignore);
 			mapRow.put("dataType", type);
 			mapRow.put("type", "property");
 			mapRow.put("equivTable", equivTableCol[0]);
@@ -676,17 +668,16 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
-		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
 		if(engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", idsForProperties));
 		qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
 		qs.addOrderBy("ENGINE__ENGINENAME");
-		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
-		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
-		qs.addOrderBy("ENGINECONCEPT__PK");
-		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
+//		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
+//		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
+//		qs.addOrderBy("ENGINECONCEPT__PK");
+//		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 		
 		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
@@ -701,7 +692,7 @@ public class MasterDatabaseUtility {
 			String columnId = (String) data[5];
 			String type = (String) data[6];
 			boolean pk = (boolean) data[7];
-			boolean ignore = (boolean) data[8];
+//			boolean ignore = (boolean) data[8];
 
 			// these will all have parent ids based on the query
 			// i will just grab the details
@@ -720,7 +711,6 @@ public class MasterDatabaseUtility {
 			mapRow.put("table", parent);
 			mapRow.put("column", column);
 			mapRow.put("pk", pk);
-			mapRow.put("ignore", ignore);
 			mapRow.put("dataType", type);
 			mapRow.put("type", "property");
 			mapRow.put("equivTable", equivTableCol[0]);
@@ -733,10 +723,14 @@ public class MasterDatabaseUtility {
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__ENGINE"));
-		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCEPROPERTY"));
-		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
-		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCECONCEPTID"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETCONCEPTID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
 		if(engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineFilter));
 		}
@@ -745,18 +739,31 @@ public class MasterDatabaseUtility {
 		qs.addRelation("ENGINERELATION__TARGETCONCEPTID", "ENGINECONCEPT__PHYSICALNAMEID", "inner.join");
 		qs.addOrderBy("ENGINERELATION__ENGINE");
 		
+		Map<String, Object[]> relationshipEquivMap = new HashMap<String, Object[]>();
+		
 		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
 			IHeadersDataRow row = wrapper.next();
 			Object[] data = row.getValues();
 			
+			String sourceId = (String) data[2];
+			String downstreamId = (String) data[3];
+			boolean downstreamIgnore = (boolean) data[7];
+
+			Object[] equivTableCol = parentEquivMap.get(sourceId);
+			if(downstreamIgnore) {
+				relationshipEquivMap.put(downstreamId, equivTableCol);
+				continue;
+			}
+			
 			String engineName = (String) data[0];
 			String engineId = (String) data[1];
-			String upstream = (String) data[2];
-			String downstream = (String) data[3];
-			String relName = (String) data[4];
-			String type = (String) data[5];
-
+			String downstreamParent = (String) data[4];
+			String downstreamName = (String) data[5];
+			boolean downstreamPK = (boolean) data[6];
+			String type = (String) data[8];
+			String relName = (String) data[9];
+			
 			// the downstream nodes
 			// mean that the source is the equivalent concept
 
@@ -764,23 +771,85 @@ public class MasterDatabaseUtility {
 			Map<String, Object> mapRow = new HashMap<String, Object>();
 			mapRow.put("app_id", engineId);
 			mapRow.put("app_name", engineName);
-			mapRow.put("equiv", upstream);
-			mapRow.put("table", downstream);
+			if(downstreamParent == null) {
+				mapRow.put("table", downstreamName);
+			} else {
+				mapRow.put("table", downstreamParent);
+				mapRow.put("column", downstreamName);
+			}
+			mapRow.put("pk", downstreamPK);
 			mapRow.put("dataType", type);
 			mapRow.put("type", "downstream");
 			mapRow.put("relName", relName);
+			mapRow.put("equivTable", equivTableCol[0]);
+			mapRow.put("equivColumn", equivTableCol[1]);
+			mapRow.put("equivPk", equivTableCol[2]);
 
+			// to delete
+			mapRow.put("equiv", equivTableCol[0]);
 			returnData.add(mapRow);
 		}
+		
+		// let me pull all the relationships that are ignore
+		// this means i use the relationship to pull in any query
+		if(!relationshipEquivMap.isEmpty()) {
+			qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+			if(engineFilter != null && !engineFilter.isEmpty()) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+			}
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", new Vector<String>(relationshipEquivMap.keySet())));
+			qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
+			qs.addOrderBy("ENGINECONCEPT__ENGINE");
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] data = row.getValues();
+				
+				String engineName = (String) data[0];
+				String engineId = (String) data[1];
+				String parentName = (String) data[2];
+				String name = (String) data[3];
+				String type = (String) data[4];
+				String parentId = (String) data[5];
+	
+				Object[] equivTableCol = relationshipEquivMap.get(parentId);
+				
+				// if we passed the above test, add the valid connection
+				Map<String, Object> mapRow = new HashMap<String, Object>();
+				mapRow.put("app_id", engineId);
+				mapRow.put("app_name", engineName);
+				mapRow.put("table", parentName);
+				mapRow.put("column", name);
+				mapRow.put("pk", false);
+				mapRow.put("dataType", type);
+				mapRow.put("type", "downstream");
+//				mapRow.put("relName", relName);
+				mapRow.put("equivTable", equivTableCol[0]);
+				mapRow.put("equivColumn", equivTableCol[1]);
+				mapRow.put("equivPk", equivTableCol[2]);
+				returnData.add(mapRow);
+			}
+		}
+		relationshipEquivMap.clear();
 		
 		// let me find up and upstream connections for my equivalent concepts
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__ENGINE"));
-		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCEPROPERTY"));
-		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETPROPERTY"));
-		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__TARGETCONCEPTID"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__SOURCECONCEPTID"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__IGNORE_DATA"));
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+		qs.addSelector(new QueryColumnSelector("ENGINERELATION__RELATIONNAME"));
 		if(engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINERELATION__ENGINE", "==", engineFilter));
 		}
@@ -794,13 +863,24 @@ public class MasterDatabaseUtility {
 			IHeadersDataRow row = wrapper.next();
 			Object[] data = row.getValues();
 			
+			String targetId = (String) data[2];
+			String upstreamId = (String) data[3];
+			boolean upstreamIgnore = (boolean) data[7];
+
+			Object[] equivTableCol = parentEquivMap.get(targetId);
+			if(upstreamIgnore) {
+				relationshipEquivMap.put(upstreamId, equivTableCol);
+				continue;
+			}
+			
 			String engineName = (String) data[0];
 			String engineId = (String) data[1];
-			String downstream = (String) data[2];
-			String upstream  = (String) data[3];
-			String relName = (String) data[4];
-			String type = (String) data[5];
-
+			String upstreamParent = (String) data[4];
+			String upstreamName = (String) data[5];
+			boolean upstreamPK = (boolean) data[6];
+			String type = (String) data[8];
+			String relName = (String) data[9];
+			
 			// the downstream nodes
 			// mean that the source is the equivalent concept
 
@@ -808,14 +888,72 @@ public class MasterDatabaseUtility {
 			Map<String, Object> mapRow = new HashMap<String, Object>();
 			mapRow.put("app_id", engineId);
 			mapRow.put("app_name", engineName);
-			mapRow.put("equiv", upstream);
-			mapRow.put("table", downstream);
+			if(upstreamParent == null) {
+				mapRow.put("table", upstreamName);
+			} else {
+				mapRow.put("table", upstreamParent);
+				mapRow.put("column", upstreamName);
+			}
+			mapRow.put("pk", upstreamPK);
 			mapRow.put("dataType", type);
 			mapRow.put("type", "upstream");
 			mapRow.put("relName", relName);
+			mapRow.put("equivTable", equivTableCol[0]);
+			mapRow.put("equivColumn", equivTableCol[1]);
+			mapRow.put("equivPk", equivTableCol[2]);
 
+			// to delete
+			mapRow.put("equiv", equivTableCol[0]);
 			returnData.add(mapRow);
 		}
+		
+		// let me pull all the relationships that are ignore
+		// this means i use the relationship to pull in any query
+		if(!relationshipEquivMap.isEmpty()) {
+			qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
+			qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTPHYSICALNAMEID"));
+			if(engineFilter != null && !engineFilter.isEmpty()) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilter));
+			}
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", new Vector<String>(relationshipEquivMap.keySet())));
+			qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
+			qs.addOrderBy("ENGINECONCEPT__ENGINE");
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+			while(wrapper.hasNext()) {
+				IHeadersDataRow row = wrapper.next();
+				Object[] data = row.getValues();
+				
+				String engineName = (String) data[0];
+				String engineId = (String) data[1];
+				String parentName = (String) data[2];
+				String name = (String) data[3];
+				String type = (String) data[4];
+				String parentId = (String) data[5];
+	
+				Object[] equivTableCol = relationshipEquivMap.get(parentId);
+				
+				// if we passed the above test, add the valid connection
+				Map<String, Object> mapRow = new HashMap<String, Object>();
+				mapRow.put("app_id", engineId);
+				mapRow.put("app_name", engineName);
+				mapRow.put("table", parentName);
+				mapRow.put("column", name);
+				mapRow.put("pk", false);
+				mapRow.put("dataType", type);
+				mapRow.put("type", "upstream");
+//				mapRow.put("relName", relName);
+				mapRow.put("equivTable", equivTableCol[0]);
+				mapRow.put("equivColumn", equivTableCol[1]);
+				mapRow.put("equivPk", equivTableCol[2]);
+				returnData.add(mapRow);
+			}
+		}
+		relationshipEquivMap.clear();
 		
 		return returnData;
 	}
@@ -2410,21 +2548,22 @@ public class MasterDatabaseUtility {
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
 
-		List<String> logicalNames = new Vector<String>();
-		logicalNames.add("Title");
-
+		List<String> pixelNames = new Vector<String>();
+		pixelNames.add("Studio");
+		List<String> ids = getLocalConceptIdsFromPixelName(pixelNames);
+		
 		Gson gson = new GsonBuilder()
 				.disableHtmlEscaping()
 				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
 				.setPrettyPrinting()
 				.create();
 
-//		List<String> values = null;
-//		System.out.println(gson.toJson(getConceptProperties(logicalNames, values)));
+		List<String> values = null;
+		System.out.println(gson.toJson(getDatabaseConnections(ids, values)));
 		
-		System.out.println(gson.toJson(getPKColumnsWithData("2da0688f-fc35-4427-aba5-7bd7b7ac9472"))); 
-		System.out.println(gson.toJson(getPKColumnsWithData("67b6499d-03b2-463f-9169-396f4cce8955"))); 
-		System.out.println(gson.toJson(getPKColumnsWithData("3cbd547f-9ff9-43bc-9b59-a4d170c45b26"))); 
+//		System.out.println(gson.toJson(getPKColumnsWithData("2da0688f-fc35-4427-aba5-7bd7b7ac9472"))); 
+//		System.out.println(gson.toJson(getPKColumnsWithData("67b6499d-03b2-463f-9169-396f4cce8955"))); 
+//		System.out.println(gson.toJson(getPKColumnsWithData("3cbd547f-9ff9-43bc-9b59-a4d170c45b26"))); 
 		
 	}
 
