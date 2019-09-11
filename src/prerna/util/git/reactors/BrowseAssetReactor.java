@@ -10,6 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.git.GitAssetUtils;
 
 public class BrowseAssetReactor extends AbstractReactor {
@@ -19,13 +20,12 @@ public class BrowseAssetReactor extends AbstractReactor {
 	// this can be used enroute in a pipeline
 
 	public BrowseAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(),  ReactorKeysEnum.IN_APP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(),  ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
 		
 		// check if user is logged in
 		User user = this.insight.getUser();
@@ -34,27 +34,10 @@ public class BrowseAssetReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
-
-		// base asset folder path
-		
-		boolean app = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
-		boolean isUser = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("user")) ;
-
-		String assetFolder = this.insight.getInsightFolder();
+		String space = this.keyValue.get(this.keysToGet[1]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
 		String replacer = "";
 		
-		if(app)
-		{
-			assetFolder = this.insight.getAppFolder();
-			replacer = "app_assets/";
-			replacer = "";
-		}
-		if(isUser)
-		{
-			// do other things
-		}
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
-
 		// specific folder to browse
 		String locFolder = assetFolder;
 		if (keyValue.containsKey(keysToGet[0])) {
@@ -65,7 +48,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 		//locFolder = locFolder.replaceAll("/app_assets", "");
 		
 		// forcing so we dont add the app
-		app = true;
+		boolean app = true;
 
 		List <Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, !app);
 		

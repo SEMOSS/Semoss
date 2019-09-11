@@ -10,18 +10,19 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.git.GitRepoUtils;
 
 public class GetAssetCommentReactor extends AbstractReactor {
 
 	public GetAssetCommentReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IN_APP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		// check if user is logged in
 		User user = this.insight.getUser();
 		if (AbstractSecurityUtils.securityEnabled()) {
@@ -29,26 +30,11 @@ public class GetAssetCommentReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
-
-		// get the asset folder path
-		boolean app = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
-		boolean isUser = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("user")) ;
-
-		String assetFolder = this.insight.getInsightFolder();
-		if(isUser)
-		{
-			// do other things
-		}
-		if (app) {
-			assetFolder = this.insight.getAppFolder();
-		}
-		if(app)
-			assetFolder = this.insight.getAppFolder();
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		String space = this.keyValue.get(this.keysToGet[1]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
 
 		// specify a file
 		String filePath = this.keyValue.get(this.keysToGet[0]);
-		//filePath = filePath.replaceAll("app_assets", "");
 
 		// get comments
 		List<Map<String, Object>> comments = GitRepoUtils.getCommits(assetFolder, filePath);
