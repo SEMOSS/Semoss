@@ -5,40 +5,26 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.git.GitAssetUtils;
 
 public class SearchAssetReactor extends AbstractReactor {
 
 	public SearchAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IN_APP.getKey()};
-		this.keyRequired = new int[] { 1, 0,0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.SPACE.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
-		// get asset base folder to create relative path
-		//boolean app = keyValue.containsKey(keysToGet[2]);
-		boolean app = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
-		boolean isUser = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("user")) ;
-
-		String assetFolder = this.insight.getInsightFolder();
-		String replacer = "";
-		
-		if(isUser)
-		{
-			// do other things
-		}
-		if (app) {
-			assetFolder = this.insight.getAppFolder();
-		}
-
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		String space = this.keyValue.get(this.keysToGet[2]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
 
 		// get search term
 		String search = keyValue.get(keysToGet[0]);
-		
+
 		// get specific search location
 		String location = assetFolder;
 		if (keyValue.containsKey(keysToGet[1])) {
@@ -46,8 +32,9 @@ public class SearchAssetReactor extends AbstractReactor {
 			location = location.replaceAll("\\\\", "/");
 		}
 
-		//location = location.replaceAll("/app_assets", "");
-		return new NounMetadata(GitAssetUtils.listAssetMetadata(location, search, assetFolder, null, null), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		// location = location.replaceAll("/app_assets", "");
+		return new NounMetadata(GitAssetUtils.listAssetMetadata(location, search, assetFolder, null, null),
+				PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 }
