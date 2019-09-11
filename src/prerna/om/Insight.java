@@ -397,7 +397,7 @@ public class Insight {
 		this.insightFolder = insightFolder;
 	}
 	
-	public String getAppFolder(String engineName, String engineId) {
+	public String getAppFolder() {
 		if(this.appFolder == null) {
 			// account for unsaved insights vs. saved insights
 			if(!isSavedInsight()) {
@@ -407,7 +407,7 @@ public class Insight {
 				// need to grab from engine
 				this.appFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 						+ DIR_SEPARATOR + "db" 
-						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId) 
+						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 						+ DIR_SEPARATOR + "version"
 						+ DIR_SEPARATOR + "assets";
 				// if this folder does not exist create it and git init it
