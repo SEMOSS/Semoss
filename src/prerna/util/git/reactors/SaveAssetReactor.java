@@ -14,6 +14,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -24,7 +25,8 @@ public class SaveAssetReactor extends AbstractReactor {
 	// this can be used enroute in a pipeline
 
 	public SaveAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.IN_APP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.CONTENT.getKey(),
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.SPACE.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
@@ -44,25 +46,12 @@ public class SaveAssetReactor extends AbstractReactor {
 			email = accessToken.getEmail();
 			author = accessToken.getUsername();
 		}
-		
+
 		String comment = this.keyValue.get(this.keysToGet[2]);
-		boolean app = (keyValue.containsKey(keysToGet[3]) && keyValue.get(keysToGet[3]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
-		boolean isUser = (keyValue.containsKey(keysToGet[3]) && keyValue.get(keysToGet[3]).equalsIgnoreCase("user")) ;
-
-		String assetFolder = this.insight.getInsightFolder();
-		if(isUser)
-		{
-			// do other things
-		}
-		if (app) {
-			assetFolder = this.insight.getAppFolder();
-		}
-		
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
-
+		String space = this.keyValue.get(this.keysToGet[3]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
 		String fileName = keyValue.get(keysToGet[0]);
 		String filePath = assetFolder + "/" + fileName;
-		//filePath = filePath.replaceAll("/app_assets", "");
 		String content = keyValue.get(keysToGet[1]);
 
 		// write content to file

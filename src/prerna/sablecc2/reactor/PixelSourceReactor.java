@@ -11,38 +11,25 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 
 public class PixelSourceReactor extends AbstractReactor {
 
 	public PixelSourceReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IN_APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
 	}
 	
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String relativePath = this.keyValue.get(this.keysToGet[0]);
-		
-		
-		boolean app = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
-		boolean isUser = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("user")) ;
-
-		String assetFolder = this.insight.getInsightFolder();
-		if(isUser)
-		{
-			// do other things
-		}
-		if (app) {
-			assetFolder = this.insight.getAppFolder();
-		}
-
-		
+		String space = this.keyValue.get(this.keysToGet[1]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
 		String path = assetFolder + DIR_SEPARATOR + relativePath;
 
 		// read in the file
 		// execute it within this insight
 		// return the results
-		
 		File file = new File(path);
 		if(!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path : " + relativePath);
