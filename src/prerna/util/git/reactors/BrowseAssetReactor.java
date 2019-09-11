@@ -37,14 +37,21 @@ public class BrowseAssetReactor extends AbstractReactor {
 
 		// base asset folder path
 		
-		boolean app = keyValue.containsKey(keysToGet[1]) || (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean app = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean isUser = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("user")) ;
+
 		String assetFolder = this.insight.getInsightFolder();
 		String replacer = "";
+		
 		if(app)
 		{
 			assetFolder = this.insight.getAppFolder();
 			replacer = "app_assets/";
 			replacer = "";
+		}
+		if(isUser)
+		{
+			// do other things
 		}
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
