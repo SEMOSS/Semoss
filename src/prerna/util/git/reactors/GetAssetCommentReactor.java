@@ -31,9 +31,17 @@ public class GetAssetCommentReactor extends AbstractReactor {
 		}
 
 		// get the asset folder path
-		boolean app = keyValue.containsKey(keysToGet[1]) || (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets")); ;
-		// get the asset folder path
-		String assetFolder = this.insight.getInsightFolder(); 
+		boolean app = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean isUser = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("user")) ;
+
+		String assetFolder = this.insight.getInsightFolder();
+		if(isUser)
+		{
+			// do other things
+		}
+		if (app) {
+			assetFolder = this.insight.getAppFolder();
+		}
 		if(app)
 			assetFolder = this.insight.getAppFolder();
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
