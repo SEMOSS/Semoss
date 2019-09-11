@@ -9,13 +9,14 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
 public class DeleteAssetReactor extends AbstractReactor {
 
 	public DeleteAssetReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.SPACE.getKey()};
 	}
 
 	@Override
@@ -37,8 +38,8 @@ public class DeleteAssetReactor extends AbstractReactor {
 		}
 		
 		// get asset base folder
-		String assetFolder = this.insight.getInsightFolder();
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		String space = this.keyValue.get(this.keysToGet[2]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
 
 		// get the file path to delete
 		String fileName = keyValue.get(keysToGet[0]);
