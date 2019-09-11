@@ -816,7 +816,7 @@ public class GitRepoUtils {
 		try {
 			Git thisGit = Git.open(new File(gitFolder));
 			LogCommand lg = null;
-			if (fileName != null)
+			if (fileName != null && !fileName.isEmpty())
 				lg = thisGit.log().addPath(fileName).all();
 			else
 				lg = thisGit.log().all();

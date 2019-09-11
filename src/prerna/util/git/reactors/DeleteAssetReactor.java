@@ -3,6 +3,8 @@ package prerna.util.git.reactors;
 import java.util.List;
 import java.util.Vector;
 
+import org.h2.store.fs.FileUtils;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -47,6 +49,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 
 		List<String> files = new Vector<>();
 		files.add(fileName);
+		FileUtils.delete(assetFolder + DIR_SEPARATOR + fileName);
 		GitDestroyer.removeSpecificFiles(assetFolder, true, files);
 		
 		// commit it
