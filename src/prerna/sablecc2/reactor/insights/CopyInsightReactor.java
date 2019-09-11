@@ -121,7 +121,7 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				in.setInsightId(UUID.randomUUID().toString());
 				// need to set the paths so it can access all the same assets
 				in.setInsightFolder(this.insight.getInsightFolder());
-				in.setAppFolder(this.insight.getAppFolder());
+				in.setAppFolder(this.insight.getAppFolder(this.insight.getEngineName(), this.insight.getEngineId()));
 				InsightStore.getInstance().put(in);
 				
 				List<String> recipe = new ArrayList<String>();
