@@ -20,12 +20,20 @@ public class SearchAssetReactor extends AbstractReactor {
 
 		// get asset base folder to create relative path
 		//boolean app = keyValue.containsKey(keysToGet[2]);
-		boolean app = keyValue.containsKey(keysToGet[2]) || (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).startsWith("app_assets"));
+		boolean app = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean isUser = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("user")) ;
 
-		// get the asset folder path
-		String assetFolder = this.insight.getInsightFolder(); 
-		if(app)
+		String assetFolder = this.insight.getInsightFolder();
+		String replacer = "";
+		
+		if(isUser)
+		{
+			// do other things
+		}
+		if (app) {
 			assetFolder = this.insight.getAppFolder();
+		}
+
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
 		// get search term

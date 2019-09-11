@@ -12,7 +12,7 @@ import prerna.util.DIHelper;
 public class PySourceReactor extends AbstractReactor {
 
 	public PySourceReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IN_APP.getKey()};
 	}
 	
 	@Override
@@ -25,14 +25,26 @@ public class PySourceReactor extends AbstractReactor {
 		
 		Object monitor = py.getMonitor();
 		
-		File file = new File(path);
+		
+		boolean app = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean isUser = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("user")) ;
+
+		String assetFolder = this.insight.getInsightFolder();
+		if(isUser)
+		{
+			// do other things
+		}
+		if (app) {
+			assetFolder = this.insight.getAppFolder();
+		}
+
 		
 		// if the file is not there try in the insight
-		if(!file.exists())
-			path = insight.getInsightFolder() + "/" + relativePath;
+		//if(!file.exists())
+		path = assetFolder + "/" + relativePath;
 		path = path.replace("\\", "/");
 		
-		file = new File(path);
+		File file = new File(path);
 		String name = file.getName();
 		name = name.replaceAll(".py", "");
 		synchronized(monitor)

@@ -8,7 +8,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public class RSourceReactor extends AbstractReactor {
 
 	public RSourceReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.IN_APP.getKey()};
 	}
 	
 	@Override
@@ -19,7 +19,21 @@ public class RSourceReactor extends AbstractReactor {
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
 		rJavaTranslator.startR(); 
 		
-		String path = insight.getInsightFolder() + "/" + relativePath;
+		boolean app = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean isUser = (keyValue.containsKey(keysToGet[1]) && keyValue.get(keysToGet[1]).equalsIgnoreCase("user")) ;
+
+		String assetFolder = this.insight.getInsightFolder();
+		
+		if(isUser)
+		{
+			// do other things
+		}
+		if (app) {
+			assetFolder = this.insight.getAppFolder();
+		}
+
+		
+		String path = assetFolder + "/" + relativePath;
 		path = path.replace('\\', '/');
 		
 		rJavaTranslator.executeEmptyRDirect("source(\"" + path + "\", " + rJavaTranslator.env + ");");

@@ -46,20 +46,18 @@ public class SaveAssetReactor extends AbstractReactor {
 		}
 		
 		String comment = this.keyValue.get(this.keysToGet[2]);
-		boolean app = keyValue.containsKey(keysToGet[3]) || (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean app = (keyValue.containsKey(keysToGet[3]) && keyValue.get(keysToGet[3]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean isUser = (keyValue.containsKey(keysToGet[3]) && keyValue.get(keysToGet[3]).equalsIgnoreCase("user")) ;
 
-		// get asset base folder to create relative path
 		String assetFolder = this.insight.getInsightFolder();
-		
-		if(app)
+		if(isUser)
 		{
-			// create the asset folder if one doesn't exist
-			assetFolder = this.insight.getAppFolder() ;
-			File file = new File(assetFolder);
-			if(!file.exists())
-				file.mkdir();
-			GitRepoUtils.init(assetFolder);
+			// do other things
 		}
+		if (app) {
+			assetFolder = this.insight.getAppFolder();
+		}
+		
 		assetFolder = assetFolder.replaceAll("\\\\", "/");
 
 		String fileName = keyValue.get(keysToGet[0]);
