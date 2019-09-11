@@ -38,9 +38,14 @@ public class CommitAssetReactor extends AbstractReactor {
 		String comment = this.keyValue.get(this.keysToGet[1]);
 
 		// get insight asset path
-		boolean app = keyValue.containsKey(keysToGet[2])
-				|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean app = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("app")) ;//|| (keyValue.containsKey(keysToGet[0]) && keyValue.get(keysToGet[0]).startsWith("app_assets"));
+		boolean isUser = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("user")) ;
+
 		String assetFolder = this.insight.getInsightFolder();
+		if(isUser)
+		{
+			// do other things
+		}
 		if (app) {
 			assetFolder = this.insight.getAppFolder();
 		}
