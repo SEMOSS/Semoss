@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import prerna.ds.OwlTemporalEngineMeta;
@@ -10,7 +9,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -33,7 +31,7 @@ public class DuplicateColumnReactor extends AbstractFramePyReactor {
 
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
-		String table = frame.getName();
+		String wrapperFrameName = frame.getWrapperName();
 
 		// get source column to duplicate
 		String srcCol = this.keyValue.get(this.keysToGet[0]);
@@ -45,10 +43,10 @@ public class DuplicateColumnReactor extends AbstractFramePyReactor {
 		}
 
 		// clean and validate new column name or use default name
-		String newColName = getCleanNewColName(table, srcCol + "_DUPLICATE");
+		String newColName = getCleanNewColName(frame, srcCol + "_DUPLICATE");
 		String inputColName = this.keyValue.get(this.keysToGet[1]);
 		if (inputColName != null && !inputColName.isEmpty()) {
-			inputColName = getCleanNewColName(table, inputColName);
+			inputColName = getCleanNewColName(frame, inputColName);
 			// entire new name could be invalid characters
 			if (!inputColName.equals("")) {
 				newColName = inputColName;
@@ -56,16 +54,16 @@ public class DuplicateColumnReactor extends AbstractFramePyReactor {
 		}
 
 		// run duplicate script
-		frame.runScript(table + ".dupecol('" + srcCol + "', '" + newColName + "')");
+		frame.runScript(wrapperFrameName + ".dupecol('" + srcCol + "', '" + newColName + "')");
 
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
+		String dataType = metaData.getHeaderTypeAsString(frame.getName() + "__" + srcCol);
 
 		// update meta data
-		metaData.addProperty(table, table + "__" + newColName);
-		metaData.setAliasToProperty(table + "__" + newColName, newColName);
-		metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
+		metaData.addProperty(frame.getName(), frame.getName() + "__" + newColName);
+		metaData.setAliasToProperty(frame.getName() + "__" + newColName, newColName);
+		metaData.setDataTypeToProperty(frame.getName() + "__" + newColName, dataType);
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

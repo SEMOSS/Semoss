@@ -28,14 +28,14 @@ public class CountIfReactor extends AbstractFrameReactor {
 			table = split[0];
 			columnToCount = split[1];
 		}
-		String[] existCols = getColNames(columnToCount);
+		String[] existCols = getColNames(frame);
 		if (Arrays.asList(existCols).contains(columnToCount) != true) {
 			throw new IllegalArgumentException("Column: " + columnToCount + " doesn't exist.");
 		}
 		// new column datatype is set to numeric
 		String dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType("NUMBER"));
 		// clean new column name
-		newColumnName = getCleanNewColName(table, newColumnName);
+		newColumnName = getCleanNewColName(frame, newColumnName);
 
 		// escape single quote for sql
 		if (regex.contains("'")) {

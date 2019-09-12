@@ -18,6 +18,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.cache.InsightCacheUtility;
+import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -109,6 +111,17 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 							String newName = oldName + "_COPY";
 							dt.executeRScript(newName + "<- " + oldName);
 							dt.setName(newName);
+							dt.getMetaData().modifyVertexName(oldName, newName);
+						} else if(variable.getValue() instanceof PandasFrame) {
+							PandasFrame dt = (PandasFrame) variable.getValue();
+							String oldName = dt.getName();
+							String newName = oldName + "_COPY";
+							dt.runScript(newName + " = " + oldName);
+							// also do the wrapper
+							dt.setName(newName);
+							// the wrapper name is auto generated when you set name
+							String newWrapperName = dt.getWrapperName();
+							dt.runScript(PandasSyntaxHelper.makeWrapper(newWrapperName, newName));
 							dt.getMetaData().modifyVertexName(oldName, newName);
 						}
 					}

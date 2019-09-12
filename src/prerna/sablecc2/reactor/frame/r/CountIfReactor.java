@@ -51,7 +51,7 @@ public class CountIfReactor extends AbstractRFrameReactor {
 			newColName = getNewColumn();
 		}
 		// check if new colName is valid
-		newColName = getCleanNewColName(table, newColName);
+		newColName = getCleanNewColName(frame, newColName);
 
 		// this function only works on strings, so we must convert the data to a
 		// string if it is not already

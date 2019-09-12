@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.frame.py;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -28,11 +27,9 @@ public class TrimColumnsReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// initialize rJavaTranslator
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
-		String table = frame.getName();
-		OwlTemporalEngineMeta metaData = frame.getMetaData();
+		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
 		List<String> columns = getColumns();
@@ -41,11 +38,10 @@ public class TrimColumnsReactor extends AbstractFrameReactor {
 			if (col.contains("__")) {
 				String[] split = col.split("__");
 				col = split[1];
-				table = split[0];
+				wrapperFrameName = split[0];
 			}
-			frame.runScript(table + "w.trim_col('" + col + "')");
+			frame.runScript(wrapperFrameName + ".trim_col('" + col + "')");
 		}
-
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
