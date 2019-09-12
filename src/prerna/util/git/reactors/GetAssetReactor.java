@@ -1,5 +1,7 @@
 package prerna.util.git.reactors;
 
+import java.io.File;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -45,9 +47,14 @@ public class GetAssetReactor extends AbstractReactor {
 			version = keyValue.get(keysToGet[1]);
 		}
 
+		assetFolder = insight.getInsightFolder();
+		File file2 = new File(assetFolder);
+		String insightDir = file2.getName();
+		assetFolder = file2.getParentFile().getAbsolutePath();
+
 		// I need a better way than output
 		// probably write the file and volley the file ?
-		String output = GitRepoUtils.getFile(version, asset, assetFolder);
+		String output = GitRepoUtils.getFile(version, insightDir + "/" + asset, assetFolder);
 		return new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
 
