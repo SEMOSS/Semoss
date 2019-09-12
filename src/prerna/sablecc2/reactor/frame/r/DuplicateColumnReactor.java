@@ -44,10 +44,10 @@ public class DuplicateColumnReactor extends AbstractRFrameReactor {
 		}
 
 		// clean and validate new column name or use default name
-		String newColName = getCleanNewColName(table, srcCol + "_DUPLICATE");
+		String newColName = getCleanNewColName(frame, srcCol + "_DUPLICATE");
 		String inputColName = this.keyValue.get(this.keysToGet[1]);
 		if (inputColName != null && !inputColName.isEmpty()) {
-			inputColName = getCleanNewColName(table, inputColName);
+			inputColName = getCleanNewColName(frame, inputColName);
 			// entire new name could be invalid characters
 			if (!inputColName.equals("")) {
 				newColName = inputColName;

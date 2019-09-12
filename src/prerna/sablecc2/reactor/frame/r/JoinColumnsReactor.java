@@ -51,7 +51,7 @@ public class JoinColumnsReactor extends AbstractRFrameReactor {
 			newColName = getNewColName();
 		}
 		// check if new colName is valid
-		newColName = getCleanNewColName(table, newColName);
+		newColName = getCleanNewColName(frame, newColName);
 		
 		// second input is the delimeter/separator
 		String separator = this.keyValue.get(this.keysToGet[1]);

@@ -168,7 +168,6 @@ public class RImporter extends AbstractImporter {
 			//execute r command
 			String mergeString = RSyntaxHelper.getMergeSyntax(returnTable, leftTableName, rightTableName, joinType, joinCols);
 			this.dataframe.executeRScript(mergeString);
-			this.dataframe.syncHeaders();
 			
 //			System.out.println(Arrays.toString(this.dataframe.getColumnNames()));
 //			System.out.println(Arrays.toString(this.dataframe.getColumnTypes()));

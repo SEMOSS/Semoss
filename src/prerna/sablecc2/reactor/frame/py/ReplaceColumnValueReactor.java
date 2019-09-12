@@ -1,11 +1,6 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-
-import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -35,7 +30,7 @@ public class ReplaceColumnValueReactor extends AbstractFrameReactor{
 		PandasFrame frame = (PandasFrame) getFrame();
 
 		// get wrapper name
-		String table = frame.getName() + "w";
+		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
 		// first input is the column that we are updating
@@ -50,15 +45,12 @@ public class ReplaceColumnValueReactor extends AbstractFrameReactor{
 		// third input is the new value
 		String newValue = this.keyValue.get(this.keysToGet[2]);
 		
-		
-		String neededQuote = (boolean)frame.runScript(table + ".is_numeric('" + column + "')")?"":"'";
-		
+		String neededQuote = (boolean)frame.runScript(wrapperFrameName + ".is_numeric('" + column + "')")?"":"'";
 
-		String script = "";
 		if (oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("NA")) {
 			frame.runScript(frame.getName() + ".fillna({'" + column + "':" + neededQuote + newValue + neededQuote + "})");
 		} else {
-			frame.runScript(table + ".replace_val('" + column + "'," + neededQuote + oldValue + neededQuote + " , " + neededQuote + newValue + neededQuote + ")");
+			frame.runScript(wrapperFrameName + ".replace_val('" + column + "'," + neededQuote + oldValue + neededQuote + " , " + neededQuote + newValue + neededQuote + ")");
 		}
 		
 		// NEW TRACKING

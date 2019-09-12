@@ -99,7 +99,6 @@ public class RDataTable extends AbstractTableDataFrame {
 			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
 		}
 		this.addRowsViaIterator(it, this.getName(), dataTypeMap);
-		syncHeaders();
 	}
 	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> dataTypeMap) {

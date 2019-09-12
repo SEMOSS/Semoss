@@ -65,7 +65,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
-					String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
+					String newColumn = getCleanNewColName(frame, column + NUMERIC_COLUMN_NAME);
 					String update = table + "$" + newColumn + " <- \"\";";
 					frame.executeRScript(update);
 					update = table + "$" + newColumn + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";

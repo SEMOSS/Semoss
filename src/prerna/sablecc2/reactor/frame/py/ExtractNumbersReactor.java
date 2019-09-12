@@ -29,8 +29,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		// get table name
-		String table = frame.getName();
-		System.out.println("table...  " +table);
+		String wrapperFrameName = frame.getWrapperName();
 		// get columns to extract numeric characters
 		List<String> columns = getColumns();
 		// check if user want to override the column or create new columns
@@ -44,12 +43,12 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 		if (overrideColumn) {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				SemossDataType dataType = metadata.getHeaderTypeAsEnum(frame.getName() + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					try {
-						frame.runScript(table + ".extract_num('" + column + "')");
-						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table,
-								SemossDataType.DOUBLE.toString());
+						frame.runScript(wrapperFrameName + ".extract_num('" + column + "')");
+						frame.getMetaData().modifyDataTypeToProperty(frame.getName() + "__" + column, 
+								frame.getName(), SemossDataType.DOUBLE.toString());
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -63,13 +62,13 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 			opTypes.add(PixelOperationType.FRAME_HEADERS_CHANGE);
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				SemossDataType dataType = metadata.getHeaderTypeAsEnum(frame.getName() + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
-					String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
-					frame.runScript(table + ".extract_num('" + column + "',  '" + newColumn + "')");
-					metaData.addProperty(table, table + "__" + newColumn);
-					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
-					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.DOUBLE.toString());
+					String newColumn = getCleanNewColName(frame, column + NUMERIC_COLUMN_NAME);
+					frame.runScript(wrapperFrameName + ".extract_num('" + column + "',  '" + newColumn + "')");
+					metaData.addProperty(frame.getName(), frame.getName() + "__" + newColumn);
+					metaData.setAliasToProperty(frame.getName() + "__" + newColumn, newColumn);
+					metaData.setDataTypeToProperty(frame.getName() + "__" + newColumn, SemossDataType.DOUBLE.toString());
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}

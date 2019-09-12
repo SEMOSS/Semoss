@@ -31,8 +31,7 @@ public class CountIfReactor extends AbstractFrameReactor {
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 		// get frame name
-		String table = frame.getName();
-		System.out.println("Table.. " + table);
+		String wrapperFrameName = frame.getWrapperName();
 		// get inputs
 		String column = this.keyValue.get(this.keysToGet[0]);
 		if (column == null) {
@@ -51,14 +50,13 @@ public class CountIfReactor extends AbstractFrameReactor {
 			newColName = getNewColumn();
 		}
 		// check if new colName is valid
-		newColName = getCleanNewColName(table, newColName);
+		newColName = getCleanNewColName(frame, newColName);
 
 		// this function only works on strings, so we must convert the data to a
 		// string if it is not already
-		boolean numeric = (boolean)frame.runScript(table + ".is_numeric('" + column + "')");
-
+		boolean numeric = (boolean)frame.runScript(wrapperFrameName + ".is_numeric('" + column + "')");
 		if(!numeric)
-			frame.runScript(table + ".countif('" + column + "', '" + regexToCount + "', '" + newColName + "')");
+			frame.runScript(wrapperFrameName + ".countif('" + column + "', '" + regexToCount + "', '" + newColName + "')");
 		//else
 			// return an error ?
 
@@ -79,15 +77,11 @@ public class CountIfReactor extends AbstractFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
-
-
-
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-
 
 	private String getExistingColumn() {
 		// first input is the name of the column

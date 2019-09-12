@@ -28,42 +28,31 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		// initialize rJavaTranslator
-		//init();
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
 		// get the wrapper name
 		// which is the framename with w in the end
-		String table = frame.getName();
+		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
 		List<String> columns = getColumns();
-		StringBuilder builder = new StringBuilder();
-		
-		for (int i = 0; i < columns.size(); i++) 
-		{
+		for (int i = 0; i < columns.size(); i++) {
 			String col = columns.get(i);
-			if (col.contains("__")) 
-			{
+			if (col.contains("__")) {
 				String[] split = col.split("__");
 				col = split[1];
-				table = split[0];
+//				wrapperFrameName = split[0];
 			}
 		
 			String dataType = metaData.getHeaderTypeAsString(frame.getName() + "__" + col);
-			if (dataType.equalsIgnoreCase("STRING")) 
-			{
-				// define the script to be executed
-				// execute the r script
+			if (dataType.equalsIgnoreCase("STRING")) {
 				// script will be of the form:
 				// wrapper.toupper(column_name)
-
-				frame.runScript(table + ".lower('" + col + "')");
+				frame.runScript(wrapperFrameName + ".lower('" + col + "')");
 			}
 		}
-		
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

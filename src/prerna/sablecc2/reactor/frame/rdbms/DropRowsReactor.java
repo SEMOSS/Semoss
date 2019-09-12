@@ -56,7 +56,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 					}
 
 					// check the column exists, if not then throw warning
-					String[] allCol = getColNames(table);
+					String[] allCol = getColNames(frame);
 					if (Arrays.asList(allCol).contains(column) != true) {
 						throw new IllegalArgumentException("Column doesn't exist.");
 					}
