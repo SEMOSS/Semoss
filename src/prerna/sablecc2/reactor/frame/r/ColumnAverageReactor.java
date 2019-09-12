@@ -43,7 +43,7 @@ public class ColumnAverageReactor extends AbstractRFrameReactor {
 		Map<String, SemossDataType> dataTypeMap = metadata.getHeaderToTypeMap();
 		for (i = 0; i < columns.size() - 1; i++) {
 			String column = columns.get(i);
-			SemossDataType dataType = dataTypeMap.get(column);
+			SemossDataType dataType = dataTypeMap.get(frameName + "__" + column);
 			if (!Utility.isNumericType(dataType.toString())) {
 				throw new IllegalArgumentException(column + " must be a numeric column");
 			}
