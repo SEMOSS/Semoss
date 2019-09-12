@@ -124,7 +124,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		// adding all the git here
 		// make a version folder if one doesn't exist
-		GitRepoUtils.init(recipePath);
+		//GitRepoUtils.init(recipePath);
 		
 		
 		// write pipeline

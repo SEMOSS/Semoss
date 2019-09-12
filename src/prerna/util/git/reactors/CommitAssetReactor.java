@@ -1,5 +1,6 @@
 package prerna.util.git.reactors;
 
+import java.io.File;
 import java.util.List;
 import java.util.Vector;
 
@@ -43,6 +44,11 @@ public class CommitAssetReactor extends AbstractReactor {
 		// add file to git
 		List<String> files = new Vector<>();
 		files.add(filePath);
+		
+		assetFolder = insight.getInsightFolder();
+		File file2 = new File(assetFolder);
+		assetFolder = file2.getParentFile().getAbsolutePath();
+
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
 
 		// commit it
