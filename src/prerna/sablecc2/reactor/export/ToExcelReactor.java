@@ -2,9 +2,10 @@ package prerna.sablecc2.reactor.export;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
@@ -20,15 +21,11 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.poi.main.helper.excel.ExcelParsing;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 
 public class ToExcelReactor extends TaskBuilderReactor {
 
@@ -48,24 +45,23 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		this.task = getTask();
 		NounMetadata retNoun = null;
 		// get a random file name
-		String randomKey = UUID.randomUUID().toString();
+		String exportName = getExportFileName("xlsx");
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (this.fileLocation == null) {
-			this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + randomKey + ".xlsx";
+			this.fileLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 			// store it in the insight so the FE can download it
 			// only from the given insight
-			this.insight.addExportFile(randomKey, this.fileLocation);
-			retNoun = new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
-		} else {
-			retNoun = NounMetadata.getSuccessNounMessage("Successfully generated the excel file.");
+			this.insight.addExportFile(exportName, this.fileLocation);
+			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		}
 		buildTask();
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 		return retNoun;
 	}
-
+	
 	@Override
 	protected void buildTask() {
 		SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
@@ -207,6 +203,19 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Getting a file name
+	 * @param extension
+	 * @return
+	 */
+	protected String getExportFileName(String extension) {
+		// get a random file name
+		Date date = new Date();
+		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
+		String exportName = "SEMOSS_Export_" + modifiedDate + "." + extension;
+		return exportName;
 	}
 	
 }
