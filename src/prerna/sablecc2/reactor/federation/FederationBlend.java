@@ -203,7 +203,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 			// add the selector to the qs
 			qs.addSelector(selector);
 			
-			String name = getCleanNewColName(frame.getName(), selector.getAlias());
+			String name = getCleanNewColName(frame, selector.getAlias());
 
 			// get semoss type, update meta data and keep track
 			SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);

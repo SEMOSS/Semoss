@@ -53,7 +53,7 @@ public class DateDifferenceReactor extends AbstractRFrameReactor {
 		String unit = this.keyValue.get(this.keysToGet[4]);
 		String newColName = this.keyValue.get(this.keysToGet[5]);
 				
-		newColName = getCleanNewColName(frame, table, newColName);
+		newColName = getCleanNewColName(frame, newColName);
 		
 		// make sure columns are in list and the proper inputs are given
 		String[] startingColumns = getColumns(table);

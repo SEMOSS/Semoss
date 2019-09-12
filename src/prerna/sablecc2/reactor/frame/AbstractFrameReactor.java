@@ -73,8 +73,8 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	 * @param colName
 	 * @return
 	 */
-	protected String getCleanNewColName(String frameName, String colName) {
-		return getCleanNewColName(getFrame(), frameName, colName);
+	protected String getCleanNewColName(String colName) {
+		return getCleanNewColName(getFrame(), colName);
 	}
 	
 	/**
@@ -84,19 +84,19 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	 * @param colName
 	 * @return
 	 */
-	protected String[] getColNames(String frameName) {
-		return getColNames(getFrame(), frameName);
+	protected String[] getColNames() {
+		return getColNames(getFrame());
 	}
 	
-	protected String getCleanNewColName(ITableDataFrame frame, String frameName, String colName) {
+	protected String getCleanNewColName(ITableDataFrame frame, String colName) {
 		// make the new column name valid
 		HeadersException colNameChecker = HeadersException.getInstance();
-		String[] currentColumnNames = getColNames(frame, frameName);
+		String[] currentColumnNames = getColNames(frame);
 		String validNewHeader = colNameChecker.recursivelyFixHeaders(colName, currentColumnNames);
 		return validNewHeader;
 	}
 	
-	protected String[] getColNames(ITableDataFrame frame, String frameName) {
+	protected String[] getColNames(ITableDataFrame frame) {
 		List<String> colNames = frame.getMetaData().getFrameColumnNames();
 		String[] colString = new String[colNames.size()];
 		for (int i = 0; i < colNames.size(); i++) {

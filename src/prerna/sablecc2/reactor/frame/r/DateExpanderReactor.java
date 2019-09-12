@@ -60,7 +60,7 @@ public class DateExpanderReactor extends AbstractRFrameReactor {
 		StringBuilder script = new StringBuilder();
 		for(int i = 0; i < numColumnsToAdd; i++){
 			String newColName = srcCol + "_" + options.get(i);
-			newColName = getCleanNewColName(table, newColName);
+			newColName = getCleanNewColName(frame, newColName);
 			addedColumnNames.add(newColName);
 			if(options.get(i).equalsIgnoreCase(YEAR)){
 				script.append(table).append("$").append(newColName).append(" <- format( ").append(table).append("$").append(srcCol).append(", \"%Y\");");

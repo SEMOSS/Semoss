@@ -27,7 +27,6 @@ public class PivotReactor extends AbstractFrameReactor {
 	 * 2) the column to turn into values for the selected pivot column
 	 * 3) the aggregate function
 	 * 4) the other columns to maintain
-	 
 	 */
 	
 	private static final String PIVOT_COLUMN_KEY = "pivotCol";
@@ -66,7 +65,7 @@ public class PivotReactor extends AbstractFrameReactor {
 		
 		String valuesCol = getValuesCol(); 
 		
-		boolean canAgg = (boolean)frame.runScript(table + "w.is_numeric('" + valuesCol + "')");
+		boolean canAgg = (boolean)frame.runScript(frame.getWrapperName() + ".is_numeric('" + valuesCol + "')");
 		
 		if(canAgg)
 		{
@@ -139,9 +138,7 @@ public class PivotReactor extends AbstractFrameReactor {
 	        colScript = table + " = " + randomVar;
 	        frame.runScript(colScript);
 
-	        
 			recreateMetadata(frame);
-			
 			//clean up temp r variables
 		}
 		else

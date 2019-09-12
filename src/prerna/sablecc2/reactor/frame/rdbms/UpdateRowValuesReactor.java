@@ -44,7 +44,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		}
 
 		// validate updateColumn exists
-		String[] existCols = getColNames(updateTable);
+		String[] existCols = getColNames(frame);
 		if (Arrays.asList(existCols).contains(updateColumn) != true) {
 			throw new IllegalArgumentException("Column " + updateColumn + " doesn't exist.");
 		}

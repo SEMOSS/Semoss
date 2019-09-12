@@ -34,10 +34,7 @@ public class JoinColumnsReactor extends AbstractFramePyReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 
 		// get table name
-		String table = frame.getName();
-
-		// create string builder to build the r script
-		StringBuilder rsb = new StringBuilder();
+		String wrapperFrameName = frame.getWrapperName();
 
 		// first input is what we want to name the new column
 		String newColName = this.keyValue.get(this.keysToGet[0]);
@@ -45,7 +42,7 @@ public class JoinColumnsReactor extends AbstractFramePyReactor {
 			newColName = getNewColName();
 		}
 		// check if new colName is valid
-		newColName = getCleanNewColName(table, newColName);
+		newColName = getCleanNewColName(frame, newColName);
 		
 		// second input is the delimeter/separator
 		String separator = this.keyValue.get(this.keysToGet[1]);
@@ -64,13 +61,13 @@ public class JoinColumnsReactor extends AbstractFramePyReactor {
 			}
 			
 			if(i > 0)
-				colList.append(".str.cat(" + table + ".cache['data']['").append(column).append("'], sep='" + separator + "')");
+				colList.append(".str.cat(" + wrapperFrameName + ".cache['data']['").append(column).append("'], sep='" + separator + "')");
 			else
-				colList.append(table + ".cache['data']['").append(column).append("'").append("]");			
+				colList.append(wrapperFrameName + ".cache['data']['").append(column).append("'").append("]");			
 		}
 		
 		// change it
-		frame.runScript(table + ".cache['data']['" + newColName + "'] = " + colList);
+		frame.runScript(wrapperFrameName + ".cache['data']['" + newColName + "'] = " + colList);
 		//frame.runScript(table + "w.cache['data'] = " + table);
 		
 		recreateMetadata(frame, false);

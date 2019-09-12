@@ -30,11 +30,11 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 			column = split[1];
 		}
 		// validate column exists and clean new name
-		String[] allCol = getColNames(table);
+		String[] allCol = getColNames(frame);
 		if (Arrays.asList(allCol).contains(column) != true) {
 			throw new IllegalArgumentException("Column doesn't exist.");
 		}
-		newColName = getCleanNewColName(table, newColName);
+		newColName = getCleanNewColName(frame, newColName);
 
 		String update = "ALTER TABLE " + table + " RENAME COLUMN " + column + " TO " + newColName + " ; ";
 		try {

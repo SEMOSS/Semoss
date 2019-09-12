@@ -29,7 +29,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		// get table name
-		String table = frame.getName() ;
+		String wrapperFrameName = frame.getWrapperName();
 		// get columns to extract alphabet characters
 		List<String> columns = getColumns();
 		// check if user want to override the column or create new columns
@@ -44,10 +44,10 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				// check data type this is only valid on non numeric values
-				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				SemossDataType dataType = metadata.getHeaderTypeAsEnum(frame.getName() + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					try {
-						frame.runScript(table + ".extract_alpha('" + column + "')");
+						frame.runScript(wrapperFrameName + ".extract_alpha('" + column + "')");
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -62,14 +62,14 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 			opTypes.add(PixelOperationType.FRAME_HEADERS_CHANGE);
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
+				SemossDataType dataType = metadata.getHeaderTypeAsEnum(frame.getName() + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
-					String newColumn = getCleanNewColName(table, column + ALPHA_COLUMN_NAME);
-					frame.runScript(table + ".extract_alpha('" + column + "',  '" + newColumn + "')");
+					String newColumn = getCleanNewColName(frame, column + ALPHA_COLUMN_NAME);
+					frame.runScript(wrapperFrameName + ".extract_alpha('" + column + "',  '" + newColumn + "')");
 					
-					metaData.addProperty(table, table + "__" + newColumn);
-					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
-					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.STRING.toString());
+					metaData.addProperty(frame.getName(), frame.getName() + "__" + newColumn);
+					metaData.setAliasToProperty(frame.getName() + "__" + newColumn, newColumn);
+					metaData.setDataTypeToProperty(frame.getName() + "__" + newColumn, SemossDataType.STRING.toString());
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}

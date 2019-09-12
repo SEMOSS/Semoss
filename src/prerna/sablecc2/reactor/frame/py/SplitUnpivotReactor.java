@@ -1,19 +1,14 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.sablecc2.reactor.imports.ImportUtility;
-import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -32,26 +27,11 @@ public class SplitUnpivotReactor extends AbstractFramePyReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// use init to initialize rJavaTranslator object that will be used later
-
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 
 		// get table name
-		String table = frame.getName();
-		System.out.println("Table.. " + table);
-
-		// make a temporary table name
-		// we will reassign the table to this variable
-		// then assign back to the original table name
-		String tempName = Utility.getRandomString(8);
-		// script to change the name of the table back to the original name -
-		// will be used later
-		String frameReplaceScript = table + " <- " + tempName + ";";
-		// false columnReplaceScript indicates that we will not drop the
-		// original column of data
-		String columnReplaceScript = "FALSE";
-		String direction = "long";
+		String wrapperFrameName = frame.getWrapperName();
 
 		// get the columns
 		// already cleaned to exclude the frame name
@@ -79,7 +59,7 @@ public class SplitUnpivotReactor extends AbstractFramePyReactor {
 
 			// split_unpivot(column, delimiter)
 			// build the script to execute
-			frame.runScript(table + ".split_unpivot('"
+			frame.runScript(wrapperFrameName + ".split_unpivot('"
 					+ column + "', '" + delimiter + "')");
 		}
 

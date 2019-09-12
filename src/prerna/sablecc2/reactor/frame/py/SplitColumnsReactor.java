@@ -3,16 +3,12 @@ package prerna.sablecc2.reactor.frame.py;
 import java.util.ArrayList;
 import java.util.List;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.sablecc2.reactor.imports.ImportUtility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -37,14 +33,13 @@ public class SplitColumnsReactor extends AbstractFramePyReactor {
 	public NounMetadata execute() {
 		List<String> cols = getColumns();
 		String separator = getSeparator();
-		boolean isRegex = isRegex();
+		boolean isRegdex = isRegex();
 
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 
 		// get table name
-		String table = frame.getName();
-		System.out.println("Table Name " + table);
+		String wrapperFrameName = frame.getWrapperName();
 		
 		// get length of input to use when iterating through
 		int inputSize = cols.size();
@@ -59,10 +54,8 @@ public class SplitColumnsReactor extends AbstractFramePyReactor {
 				column = column.split("__")[1];
 			}
 
-			// evaluate the r script
-			//frame.getName() + " = " + 
-			frame.runScript(table + ".split('" + column + "', '" + separator + "')");
-
+			// eval py script
+			frame.runScript(wrapperFrameName + ".split('" + column + "', '" + separator + "')");
 		}
 
 		// NEW TRACKING
@@ -74,7 +67,6 @@ public class SplitColumnsReactor extends AbstractFramePyReactor {
 
 		// column header data is changing so we must recreate metadata
 		recreateMetadata(frame, false);
-		
 		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
