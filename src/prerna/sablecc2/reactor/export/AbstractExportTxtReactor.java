@@ -4,6 +4,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +27,19 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	 */
 	protected void setDelimiter(String delimiter) {
 		this.delimiter = delimiter;
+	}
+	
+	/**
+	 * Getting a file name
+	 * @param extension
+	 * @return
+	 */
+	protected String getExportFileName(String extension) {
+		// get a random file name
+		Date date = new Date();
+		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
+		String exportName = "SEMOSS_Export_" + modifiedDate + "." + extension;
+		return exportName;
 	}
 	
 	@Override
