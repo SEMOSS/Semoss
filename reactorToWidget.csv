@@ -4,10 +4,12 @@ AutoCleanColumn,clean-auto-clean-column
 ChangeColumnType,clean-change-col-type
 Collapse,clean-collapse
 Concatenate,clean-join
+ColumnAverage,clean-column-average
 CountIf,clean-count-if
 DateAddValue,clean-date-add
 DateDifference,clean-date-diff
 DateExpander,clean-date-expander
+Division,clean-division
 DropColumn,clean-drop-col
 DropRows,clean-drop-rows
 DuplicateColumn,clean-duplicate-col
