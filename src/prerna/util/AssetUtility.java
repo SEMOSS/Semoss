@@ -64,7 +64,7 @@ public class AssetUtility {
 		File file = new File(appFolder);
 		if (!file.exists()) {
 			file.mkdir();
-			GitRepoUtils.init(appFolder);
+			//GitRepoUtils.init(appFolder);
 		}
 		return appFolder;
 		
