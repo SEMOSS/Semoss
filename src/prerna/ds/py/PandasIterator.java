@@ -1,6 +1,5 @@
 package prerna.ds.py;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -11,7 +10,7 @@ import prerna.om.HeadersDataRow;
 public class PandasIterator implements Iterator<IHeadersDataRow>{
 
 	private String[] headers = null;
-	private ArrayList <String> actHeaders = null;
+	private List<String> actHeaders = null;
 	private boolean transform = false;
 
 	// Current implementation.. pulls the data into the memory.. we will change it after
@@ -28,7 +27,7 @@ public class PandasIterator implements Iterator<IHeadersDataRow>{
 	}
 	
 	// set actual headers and transform
-	public void setTransform(ArrayList <String> actHeaders, boolean transform) {
+	public void setTransform(List<String> actHeaders, boolean transform) {
 		this.transform = transform;
 		this.actHeaders = actHeaders;
 	}

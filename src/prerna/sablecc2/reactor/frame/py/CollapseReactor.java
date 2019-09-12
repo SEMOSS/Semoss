@@ -1,25 +1,18 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.sablecc2.reactor.imports.ImportUtility;
-import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
-
 
 public class CollapseReactor extends AbstractFramePyReactor {
 
@@ -32,17 +25,14 @@ public class CollapseReactor extends AbstractFramePyReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		PandasFrame frame = (PandasFrame) getFrame();
-		String frameName = frame.getName();
+		String wrapperFrameName = frame.getWrapperName();
 		List<String> groupByCol = getGroupByCols();
 		String valueCol = ", '" + this.keyValue.get(this.keysToGet[1]) + "'";
 		String delim = ", '" + this.keyValue.get(this.keysToGet[2]) + "'";
 
-		StringBuilder rsb = new StringBuilder();
 		String groupByColsR = "[";
-		
 		// group by cols
-		for (int i = 0; i < groupByCol.size(); i++) 
-		{
+		for (int i = 0; i < groupByCol.size(); i++) {
 			String groupCol = groupByCol.get(i);
 			if(i == 0)
 				groupByColsR = groupByColsR + "'" + groupCol + "'";
@@ -73,7 +63,7 @@ public class CollapseReactor extends AbstractFramePyReactor {
 			maintainCols.append("]");			
 		}
 
-		String script = frameName + ".cache['data'] = " + frameName + ".collapse(" + groupByColsR + valueCol + delim + maintainCols + ")";
+		String script = wrapperFrameName + ".cache['data'] = " + wrapperFrameName + ".collapse(" + groupByColsR + valueCol + delim + maintainCols + ")";
 		frame.runScript(script);
 						
 		frame = (PandasFrame) recreateMetadata(frame);

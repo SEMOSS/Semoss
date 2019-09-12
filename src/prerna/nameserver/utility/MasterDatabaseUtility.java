@@ -784,9 +784,6 @@ public class MasterDatabaseUtility {
 			mapRow.put("equivTable", equivTableCol[0]);
 			mapRow.put("equivColumn", equivTableCol[1]);
 			mapRow.put("equivPk", equivTableCol[2]);
-
-			// to delete
-			mapRow.put("equiv", equivTableCol[0]);
 			returnData.add(mapRow);
 		}
 		
@@ -901,9 +898,6 @@ public class MasterDatabaseUtility {
 			mapRow.put("equivTable", equivTableCol[0]);
 			mapRow.put("equivColumn", equivTableCol[1]);
 			mapRow.put("equivPk", equivTableCol[2]);
-
-			// to delete
-			mapRow.put("equiv", equivTableCol[0]);
 			returnData.add(mapRow);
 		}
 		
@@ -2101,7 +2095,6 @@ public class MasterDatabaseUtility {
 		return values;
 	}
 	
-
 	static List<String[]> flushRsToListOfStrArray(IRawSelectWrapper wrapper) {
 		List<String[]> ret = new ArrayList<String[]>();
 		while(wrapper.hasNext()) {

@@ -52,9 +52,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractFrameReactor {
 		// and set up teverything else
 		PandasFrame pf = new PandasFrame(varName);
 		pf.setJep(this.insight.getPy());
-		
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(pf.getMetaData(), colNames, colTypes, varName);
-		pf.setDataTypeMap(pf.getMetaData().getHeaderToTypeMap());
 
 		NounMetadata noun = new NounMetadata(pf, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);		
 		if(overrideFrame()) {

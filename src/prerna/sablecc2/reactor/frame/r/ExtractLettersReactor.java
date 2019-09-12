@@ -64,7 +64,7 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
-					String newColumn = getCleanNewColName(table, column + ALPHA_COLUMN_NAME);
+					String newColumn = getCleanNewColName(frame, column + ALPHA_COLUMN_NAME);
 					String update = table + "$" + newColumn + " <- \"\";";
 					update += table + "$" + newColumn + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ");";
 					this.rJavaTranslator.runR(update);

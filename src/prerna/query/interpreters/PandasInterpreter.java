@@ -395,8 +395,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	}
 	
 	
-	public Map functionMap()
-	{
+	public Map<String, String> functionMap() {
 		return this.functionMap;
 	}
 	

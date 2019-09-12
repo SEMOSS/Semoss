@@ -50,7 +50,7 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 			newColName = split[1];
 		}
 		// clean the column name to ensure that it is valid
-		newColName = getCleanNewColName(table, newColName);
+		newColName = getCleanNewColName(frame, newColName);
 
 		// define the script to be executed;
 		// this assigns a new column name with no data in columns

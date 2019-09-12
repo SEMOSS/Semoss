@@ -31,20 +31,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private static final String PANDAS_IMPORT_VAR = "pandas_import_var";
 	private static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
 	
-	static Hashtable <String, SemossDataType> pyS = new Hashtable();
-	static Hashtable  spy = new Hashtable();
+	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
+	static Map<Object, String> spy = new Hashtable<Object, String>();
 	
 	// gets all the commands in one fell swoop
 	List <String> commands = new ArrayList<String>();
 	
-	PandasFrame prevFrame = null;
-	
 	private PyExecutorThread py = null;
-	PandasInterpreter interp = new PandasInterpreter();
+	private String wrapperFrameName = null;
 	
-	Map<String, SemossDataType>  dataTypeMap = null;
-	
-	static{
+	static {
 		pyS.put("object", SemossDataType.STRING);
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
@@ -64,7 +60,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		spy.put("dtype('int64')", "int64");
 		spy.put("dtype('float64')", "float64");
 	}
-	
+
 	public PandasFrame() {
 		this(null);
 	}
@@ -73,10 +69,24 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(tableName == null || tableName.trim().isEmpty()) {
 			tableName = "PYFRAME_" + UUID.randomUUID().toString().replace("-", "_");
 		}
-		this.frameName = tableName + "w";
+		this.frameName = tableName;
+		this.wrapperFrameName = createFrameWrapperName(tableName);
+	}
 	
-
-
+	@Override
+	public void setName(String name) {
+		if(name != null && !name.isEmpty()) {
+			this.frameName = name;
+			this.wrapperFrameName = createFrameWrapperName(name);
+		}
+	}
+	
+	/**
+	 * Get the name of the frame wrapper object
+	 * @return
+	 */
+	public String getWrapperName() {
+		return this.wrapperFrameName;
 	}
 	
 	public void setJep(PyExecutorThread py) {
@@ -87,12 +97,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return this.py ;
 	}
 	
+	private String createFrameWrapperName(String frameName) {
+		return frameName + "w";
+	}
+	
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
 		// we really need another way to get the data types....
 		Map<String, SemossDataType> rawDataTypeMap = this.metaData.getHeaderToTypeMap();
 		
 		// TODO: this is annoying, need to get the frame on the same page as the meta
-		dataTypeMap = new HashMap<String, SemossDataType>();
+		Map<String, SemossDataType> dataTypeMap = new HashMap<String, SemossDataType>();
 		for(String rawHeader : rawDataTypeMap.keySet()) {
 			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
 		}
@@ -118,35 +132,22 @@ public class PandasFrame extends AbstractTableDataFrame {
 			
 			String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
 			// generate the script
-			runScript(tableName + "=1");
 			String fileLocation = newFile.getAbsolutePath();
-
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
 			// execute the script
 			runScript(importS, loadS);
-			String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
+			String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
 			runScript(makeWrapper);
-			
-			// replacing the name here
-			tableName = tableName + "w";
-			frameName = tableName;
-			// create the wrapper
-			// it is just the frame name with w on it
-			//String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
-			//runScript(makeWrapper);
 
 			// delete the generated file
 			newFile.delete();
 		}
 		syncHeaders();
 		
-		runScript("list(locals())");
 		// need to get a pandas frame types and then see if this is the same as 
-		if(!isEmpty(frameName)) {
-			adjustDataTypes(frameName);
+		if(!isEmpty(tableName)) {
+			adjustDataTypes(tableName, dataTypeMap);
 		}
-		
-
 	}
 	
 	/**
@@ -177,207 +178,82 @@ public class PandasFrame extends AbstractTableDataFrame {
 		runScript(importS, loadS, headerS);
 		
 		// need to set up the name here as well as make the frame
-		String makeWrapper = tableName+"w = PyFrame.makefm(" + tableName +")";
+		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
 		runScript(makeWrapper);
-		
-		// replacing the name here
-		tableName = tableName + "w";
-		frameName = tableName;
-		
 	}
 	
+	/**
+	 * Merge the pandas frame with another frame
+	 * @param returnTable
+	 * @param leftTableName
+	 * @param rightTableName
+	 * @param joinType
+	 * @param joinCols
+	 */
 	public void merge(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
 		String mergeString = PandasSyntaxHelper.getMergeSyntax(PANDAS_IMPORT_VAR, returnTable, leftTableName, rightTableName, joinType, joinCols);
 		runScript(mergeString);
 	}
 	
-	private void adjustDataTypes(String tableName) {
+	/**
+	 * Adjust the data types of the frame in case we messed up and readjust
+	 * @param tableName
+	 * @param dataTypeMap
+	 */
+	private void adjustDataTypes(String tableName, Map<String, SemossDataType> dataTypeMap) {
+		String wrapperTableName = createFrameWrapperName(tableName);
+		String colScript = PandasSyntaxHelper.getColumns(wrapperTableName + ".cache['data']");
+		String typeScript = PandasSyntaxHelper.getTypes(wrapperTableName + ".cache['data']");
 		
-		// get the data types from python first
-		// check against current
-		// if they are different change it
+		List<String> headerList = (List) runScript(colScript);
+		String[] headers = headerList.toArray(new String[] {});
 		
-		String colScript = PandasSyntaxHelper.getColumns(tableName + ".cache['data']");
-		String typeScript = PandasSyntaxHelper.getTypes(tableName + ".cache['data']");
-		
-		//run
-		
-		//Hashtable response = (Hashtable)runScript(colScript, typeScript);
-		
-		ArrayList headerList = (ArrayList)runScript(colScript);
-		String [] headers = new String[headerList.size()];
-		
-		headerList.toArray(headers);
-		SemossDataType [] stypes = new SemossDataType[headers.length];
-		
-		
-		ArrayList <String> types = (ArrayList)runScript(typeScript);
+//		SemossDataType [] stypes = new SemossDataType[headers.length];
+		List<String> types = (List<String>) runScript(typeScript);
 
-		// should we jsut run script inline ?
+		// here we run and see if the types are good
+		// or if we messed up, we perform a switch
 		
-		for(int colIndex = 0;colIndex < headers.length;colIndex++)
-		{
+		for(int colIndex = 0; colIndex < headers.length; colIndex++) {
 			String colName = headers[colIndex];
 			String colType = types.get(colIndex);
-			
-			
-			if(colType == null)
-				colType = "STRING";
 
-			//System.out.println("Working with col type and name " + colType + " <<>> " + colName);
+			if(types == null || colType == null) {
+				colType = "STRING";
+			}
 			
-			SemossDataType pysColType = (SemossDataType)pyS.get(colType);
-			SemossDataType proposedType = dataTypeMap.get(colName);
-			
-			//System.out.println("Working with col type and name " + proposedType + " <<>>  " + colName);
+			SemossDataType pysColType = (SemossDataType) pyS.get(colType);
+			SemossDataType proposedType = dataTypeMap.get(frameName + "__" + colName);
 			
 			String pyproposedType = colType;
-			if(proposedType != null)
-				pyproposedType = (String)spy.get(proposedType);
-			else
-				pyproposedType = (String)spy.get(colType);
-				
+			if(proposedType != null) {
+				pyproposedType = spy.get(proposedType);
+			} else {
+				pyproposedType = spy.get(colType);
+			}
 			
-			if(proposedType != null && pysColType != proposedType)
-			{
+			if(proposedType != null && pysColType != proposedType) {
 				// create and execute the type
-				if(proposedType != SemossDataType.DATE && proposedType != SemossDataType.TIMESTAMP)
-				{
-					String	typeChanger = tableName + "['" + colName + "'] = " + tableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
+				if(proposedType != SemossDataType.DATE && proposedType != SemossDataType.TIMESTAMP) {
+					String	typeChanger = wrapperTableName + "['" + colName + "'] = " + wrapperTableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
 					runScript(typeChanger);
-				}
-				else
-				{
-					String	typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
+				} else {
+					String	typeChanger = wrapperTableName + "['" + colName + "'] = pd.to_datetime(" + wrapperTableName + "['" + colName + "'], errors='ignore')";
 					runScript(typeChanger);
 				}
 			}
-			else
-			{
-				//System.out.println("Types Matched.. !!!!!!!!!!");
-			}
-			stypes[colIndex] = pysColType;
+//			stypes[colIndex] = pysColType;
 		}
-		Object [] retObject = new Object[2];
-		retObject[1] = headers;
-	}
-	
-	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap) {
-		this.dataTypeMap = dataTypeMap;
-		interp.setDataTypeMap(dataTypeMap);
-	}
-	
-	private void alignColumns(String tableName, Map<String, SemossDataType> dataTypeMap)
-	{
-		// look at what are the column types
-		// see if they are the same as data type map
-		
-		String colScript = PandasSyntaxHelper.getColumns(tableName);
-		String typeScript = PandasSyntaxHelper.getTypes(tableName);
-		
-		Hashtable columnTypes = (Hashtable)runScript(colScript, typeScript);
-		// get the column names
-		ArrayList <String> cols = (ArrayList)columnTypes.get(colScript);
-		ArrayList <String> types = (ArrayList)columnTypes.get(typeScript);
-
-		List <String> colChanger = new ArrayList<String>();
-
-		for(int colIndex = 0;colIndex < cols.size();colIndex++)
-		{
-			String colName = cols.get(colIndex);
-			String colType = types.get(colIndex);
-			
-			SemossDataType pysColType = (SemossDataType)pyS.get(colType);
-			
-			SemossDataType sColType = dataTypeMap.get(colName);
-		
-			colChanger = checkColumn(tableName, colName, pysColType, sColType, colChanger);
-		}
-		
-		runScript((String [])colChanger.toArray());
-	}
-	
-	private List<String> checkColumn(String tableName, String colName, SemossDataType curType, SemossDataType newType, List <String> colChanger)
-	{
-		if(curType == newType)
-			return colChanger;
-		
-		else
-		{
-			// get the pytype
-			String pyType = (String)spy.get(curType);
-			
-			// get the as type
-			String asType = (String)spy.get(pyType);
-			
-			// column change
-			String script = PandasSyntaxHelper.getColumnChange(tableName, colName, asType);
-			colChanger.add(script);
-			
-			return colChanger;
-		}
-	}
-	
-	@Override
-	public IRawSelectWrapper query(String query) {
-		
-		System.out.println(".");
-		Object output = runScript(query);
-		ArrayList response = null;
-		
-		String [] headers = interp.getHeaders();
-		SemossDataType [] types = interp.getTypes();
-		ArrayList <String> actHeaders = null;
-		
-		boolean sync = true;	
-		
-		// get the types for headers also
-		if(interp.isScalar())
-		{
-			ArrayList val = new ArrayList();
-			val.add(output);
-			response = new ArrayList();
-			response.add(val);
-		}
-		else if(output instanceof HashMap)
-		{
-			HashMap map = (HashMap)output;
-			
-			response = (ArrayList)map.get("data");
-			
-			// get the columns
-			ArrayList columns = (ArrayList)map.get("columns");
-			
-			actHeaders = mapColumns(columns);
-			sync = sync(headers, actHeaders);
-		}else if(output instanceof ArrayList)
-		{
-			response = (ArrayList)output;
-			actHeaders = null;
-			sync = true;
-		}
-		
-		PandasIterator pi = new PandasIterator(headers, response, types);
-		
-		// set the actual headers so that it can be processed
-		// if not in sync then transform
-		pi.setTransform(actHeaders, !sync);
-			
-		RawPandasWrapper rpw = new RawPandasWrapper();
-		rpw.setPandasIterator(pi);
-		return rpw	;
 	}
 	
 	// tries to see if the order in which pandas is giving is valid with the order that is being requested
-	public boolean sync(String [] headers, ArrayList <String> actHeaders)
-	{
+	public boolean sync(String[] headers, List<String> actHeaders) {
 		boolean sync = true;
-		for(int headerIndex = 0;headerIndex < headers.length && sync;headerIndex++)
+		for(int headerIndex = 0;headerIndex < headers.length && sync;headerIndex++) {
 			sync = sync && (headers[headerIndex].equals(actHeaders.get(headerIndex)));
-		
+		}
 		return sync;
 	}
-
 	
 	// get the types of headers
 	public Object [] getHeaderAndTypes() {
@@ -404,50 +280,137 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		return retObject;
 	}
-	
-	
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
-		this.metaData.getHeaderToTypeMap();
-		interp.setDataTableName(this.frameName + ".cache['data']");
-		interp.setDataTypeMap(dataTypeMap);
+		PandasInterpreter interp = new PandasInterpreter();
+		interp.setDataTableName(this.wrapperFrameName + ".cache['data']");
+		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
 		interp.setQueryStruct(qs);
-		String query = interp.composeQuery();
-		return query(query);
-	}
-
-	@Override
-	public String getDataMakerName() {
-		return DATA_MAKER_NAME;
+		return processInterpreter(interp);
 	}
 	
-	private ArrayList mapColumns(ArrayList columns)
-	{
-		ArrayList newHeaders = new ArrayList();
-		Map <String, String> funcMap = interp.functionMap();
+	@Override
+	public IRawSelectWrapper query(String query) {
+		//TODO: this only works if you have an interp!
+		//TODO: this only works if you have an interp!
+		//TODO: this only works if you have an interp!
 
-		for(int colIndex = 0;colIndex < columns.size();colIndex++)
-		{
+		// need to redo this when you have a pandas script you want to run
+		// need to grab the headers and types via the output object
+		
+		Object output = runScript(query);
+		List<Object> response = null;
+		
+		PandasInterpreter interp = new PandasInterpreter();
+		String [] headers = interp.getHeaders();
+		SemossDataType [] types = interp.getTypes();
+		List<String> actHeaders = null;
+		
+		boolean sync = true;	
+		// get the types for headers also
+		if(interp.isScalar()) {
+			List<Object> val = new ArrayList<Object>();
+			val.add(output);
+			response = new ArrayList<Object>();
+			response.add(val);
+			
+		} else if(output instanceof HashMap) {
+			HashMap map = (HashMap) output;
+			response = (List<Object>) map.get("data");
+			
+			// get the columns
+			List<Object> columns = (List<Object>) map.get("columns");
+			actHeaders = mapColumns(interp, columns);
+			sync = sync(headers, actHeaders);
+		}
+		
+		else if(output instanceof List) {
+			response = (List) output;
+			actHeaders = null;
+			sync = true;
+		}
+		
+		PandasIterator pi = new PandasIterator(headers, response, types);
+		// set the actual headers so that it can be processed
+		// if not in sync then transform
+		pi.setTransform(actHeaders, !sync);
+		RawPandasWrapper rpw = new RawPandasWrapper();
+		rpw.setPandasIterator(pi);
+		return rpw	;
+	}
+	
+	private IRawSelectWrapper processInterpreter(PandasInterpreter interp) {
+		String query = interp.composeQuery();
+		Object output = runScript(query);
+		List<Object> response = null;
+		
+		String [] headers = interp.getHeaders();
+		SemossDataType [] types = interp.getTypes();
+		List<String> actHeaders = null;
+		
+		boolean sync = true;	
+		// get the types for headers also
+		if(interp.isScalar()) {
+			List<Object> val = new ArrayList<Object>();
+			val.add(output);
+			response = new ArrayList<Object>();
+			response.add(val);
+			
+		} else if(output instanceof HashMap) {
+			HashMap map = (HashMap) output;
+			response = (List<Object>)map.get("data");
+			
+			// get the columns
+			List<Object> columns = (List<Object>)map.get("columns");
+			actHeaders = mapColumns(interp, columns);
+			sync = sync(headers, actHeaders);
+		}
+		
+		else if(output instanceof List) {
+			response = (List) output;
+			actHeaders = null;
+			sync = true;
+		}
+		
+		PandasIterator pi = new PandasIterator(headers, response, types);
+		// set the actual headers so that it can be processed
+		// if not in sync then transform
+		pi.setTransform(actHeaders, !sync);
+		RawPandasWrapper rpw = new RawPandasWrapper();
+		rpw.setPandasIterator(pi);
+		return rpw;
+	}
+
+	private List<String> mapColumns(PandasInterpreter interp, List<Object> columns) {
+		List<String> newHeaders = new ArrayList<String>();
+		Map<String, String> funcMap = interp.functionMap();
+		for(int colIndex = 0;colIndex < columns.size();colIndex++) {
 			// every element here is List
 			Object item = columns.get(colIndex);
-			if(item instanceof List)
-			{
-				List elem = (List)columns.get(colIndex);
-				String key = elem.get(1)+ "" +elem.get(0);
-				if(funcMap.containsKey(key))
+			if(item instanceof List) {
+				List elem = (List) columns.get(colIndex);
+				String key = elem.get(1) + "" + elem.get(0);
+				if(funcMap.containsKey(key)) {
 					newHeaders.add(funcMap.get(key));
-				else
-					newHeaders.add(elem.get(0));
-			}
-			else
+				} else {
+					newHeaders.add(elem.get(0)+"");
+				}
+			} else {
 				newHeaders.add(item+"");
+			}
 		}
 		return newHeaders;
 	}
 	
+	/**
+	 * Run the script
+	 * By default return the first script passed in
+	 * use the Executor to grab the specific code portion if running multiple
+	 * @param script
+	 * @return
+	 */
 	public Object runScript(String... script) {
-		// so I am nto sure we need to write it to a file etc. for now.. I will run it
 		py.command = script;
 		Object monitor = py.getMonitor();
 		Object response = null;
@@ -456,7 +419,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				monitor.notify();
 				monitor.wait(4000);
 			} catch (Exception ignored) {
-
+				
 			}
 			if(script.length == 1) {
 				response = py.response.get(script[0]);
@@ -465,22 +428,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 			}
 		}
 
-		/*		// write the script to a file
-		File f = new File(this.scripFolder + "/" + Utility.getRandomString(6) + ".py");
-		try {
-			FileUtils.writeStringToFile(f, script);
-		} catch (IOException e1) {
-			System.out.println("Error in writing python script for execution!");
-			e1.printStackTrace();
-		}
-
-		// execute the file
-		jep.runScript(f.getAbsolutePath());
-
-		// delete the file
-		f.delete();
-
-		 */	
 		commands.add(script[0]);
 		return response;
 	}
@@ -497,61 +444,60 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// this should take the variable name and kill it
 		// if the user has created others, nothing can be done
 		logger.info("Removing variable " + this.frameName);
-		runScript("del " + this.frameName);
-		// this should take the variable name and kill it
-		// if the user has created others, nothing can be done
-		
-		//logger.info("Removing variable " + tableName + " with GC ");
-		//runScript("del " + tableName);
+		runScript("del " + this.frameName, "del " + this.wrapperFrameName);
 		runScript("gc.collect()");
-		
 	}
 	
 	@Override
 	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		// save frame
-		String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".pkl";
+		String frameFilePath = folderDir + DIR_SEPARATOR + this.frameName + ".pkl";
 		cf.setFrameCacheLocation(frameFilePath);
-		String command = this.frameName + ".cache['data'].to_pickle(\"" + frameFilePath.replace("\\", "/") + "\")";
+		String command = this.wrapperFrameName + ".cache['data'].to_pickle(\"" + frameFilePath.replace("\\", "/") + "\")";
 		runScript(command);
 		
 		// also save the meta details
-		this.saveMeta(cf, folderDir, frameName);
+		this.saveMeta(cf, folderDir, this.frameName);
 		return cf;
-	}
-	
-	private void makeDefaultImports()
-	{
-		
 	}
 	
 	@Override
 	public void open(CachePropFileFrameObject cf) {
+		// open the meta details
+		this.openCacheMeta(cf);
+		// set the wrapper frame name once the frame name is set
+		this.wrapperFrameName = getWrapperName();
+				
 		// load the pandas library
 		runScript(PANDAS_IMPORT_STRING);
 		// load the frame
-		String command = this.frameName + "= PyFrame.makefm(" + PANDAS_IMPORT_VAR + ".read_pickle(\"" +  cf.getFrameCacheLocation().replace("\\", "/") + "\")" + ")";
-		runScript(command);
-		// open the meta details
-		this.openCacheMeta(cf);
-		setDataTypeMap(this.metaData.getHeaderToTypeMap());
+		runScript(this.frameName + " = " + PANDAS_IMPORT_VAR + ".read_pickle(\"" +  cf.getFrameCacheLocation().replace("\\", "/") + "\")");
+		runScript(PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return isEmpty(this.frameName);
+		return isEmpty(this.wrapperFrameName);
 	}
 	
 	public boolean isEmpty(String tableName) {
-		String command = "\"" + tableName + "\" in vars() and len(" + tableName + ".cache['data']) <= 0";
+		String command = "\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) <= 0";
 		Boolean isEmpty = (Boolean) runScript(command);
 		return isEmpty;
 	}
 	
+	@Override
+	public String getDataMakerName() {
+		return DATA_MAKER_NAME;
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////
-	
-	
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
 	@Override
 	public void addRow(Object[] cleanCells, String[] headers) {
 		// TODO Auto-generated method stub
@@ -570,15 +516,66 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 	}
 	
-	// set the previous frame
-	public void setPrevFrame(PandasFrame frame)
-	{
-		this.prevFrame = prevFrame;
-	}
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
 	
-	public PandasFrame getPrevFrame()
-	{
-		return this.prevFrame;
-	}
-
+	/*
+	 * Unused methods...
+	 */
+	
+//	private void alignColumns(String tableName, Map<String, SemossDataType> dataTypeMap) {
+//		// look at what are the column types
+//		// see if they are the same as data type map
+//		
+//		String colScript = PandasSyntaxHelper.getColumns(tableName);
+//		String typeScript = PandasSyntaxHelper.getTypes(tableName);
+//		
+//		Hashtable columnTypes = (Hashtable)runScript(colScript, typeScript);
+//		// get the column names
+//		ArrayList <String> cols = (ArrayList)columnTypes.get(colScript);
+//		ArrayList <String> types = (ArrayList)columnTypes.get(typeScript);
+//
+//		List <String> colChanger = new ArrayList<String>();
+//
+//		for(int colIndex = 0;colIndex < cols.size();colIndex++)
+//		{
+//			String colName = cols.get(colIndex);
+//			String colType = types.get(colIndex);
+//			
+//			SemossDataType pysColType = (SemossDataType)pyS.get(colType);
+//			
+//			SemossDataType sColType = dataTypeMap.get(colName);
+//		
+//			colChanger = checkColumn(tableName, colName, pysColType, sColType, colChanger);
+//		}
+//		
+//		runScript((String [])colChanger.toArray());
+//	}
+	
+//	private List<String> checkColumn(String tableName, String colName, SemossDataType curType, SemossDataType newType, List <String> colChanger) {
+//		if(curType == newType) {
+//			return colChanger;
+//		} else {
+//			// get the pytype
+//			String pyType = (String)spy.get(curType);
+//			
+//			// get the as type
+//			String asType = (String)spy.get(pyType);
+//			
+//			// column change
+//			String script = PandasSyntaxHelper.getColumnChange(tableName, colName, asType);
+//			colChanger.add(script);
+//			
+//			return colChanger;
+//		}
+//	}
+	
+//	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap) {
+//		this.dataTypeMap = dataTypeMap;
+//		interp.setDataTypeMap(dataTypeMap);
+//	}
+	
 }

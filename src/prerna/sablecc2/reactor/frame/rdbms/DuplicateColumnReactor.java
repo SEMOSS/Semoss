@@ -37,16 +37,16 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		String srcCol = this.keyValue.get(this.keysToGet[0]);
 
 		// make sure source column exists
-		String[] allCol = getColNames(table);
+		String[] allCol = getColNames(frame);
 		if (srcCol == null || !Arrays.asList(allCol).contains(srcCol)) {
 			throw new IllegalArgumentException("Need to define an existing column to duplicate.");
 		}
 
 		// clean and validate new column name or use default name
-		String newColName = getCleanNewColName(table, srcCol + "_DUPLICATE");
+		String newColName = getCleanNewColName(frame, srcCol + "_DUPLICATE");
 		String inputColName = this.keyValue.get(this.keysToGet[1]);
 		if (inputColName != null && !inputColName.isEmpty()) {
-			inputColName = getCleanNewColName(table, inputColName);
+			inputColName = getCleanNewColName(frame, inputColName);
 			// entire new name could be invalid characters
 			if (!inputColName.equals("")) {
 				newColName = inputColName;

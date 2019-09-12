@@ -16,6 +16,16 @@ public class PandasSyntaxHelper {
 	}
 
 	/**
+	 * Get the syntax to construct get the wrapper for a pandas frame
+	 * @param wrapper
+	 * @param tableName
+	 * @return
+	 */
+	public static String makeWrapper(String wrapper, String tableName) {
+		return wrapper + " = PyFrame.makefm(" + tableName +")";
+	}
+	
+	/**
 	 * Execute a .py file
 	 * @param fileLocation
 	 * @return
