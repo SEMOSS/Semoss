@@ -29,7 +29,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 			String table = frame.getName();
 
 			// validate new column name
-			colName = getCleanNewColName(table, colName);
+			colName = getCleanNewColName(frame, colName);
 
 			// create sql statement to add new column
 			String addColumn = "ALTER TABLE " + table + " ADD " + colName + " " + dataType + ";";
@@ -59,7 +59,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 					updateColumn += column + " , " + separator + " , ";
 				}
 				// does the column exist?
-				String[] existCols = getColNames(column);
+				String[] existCols = getColNames(frame);
 				if (Arrays.asList(existCols).contains(column) != true) {
 					throw new IllegalArgumentException("Column: " + column + " doesn't exist.");
 				}

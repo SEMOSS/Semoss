@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
@@ -48,12 +48,12 @@ public class ColumnCountReactor extends AbstractFrameReactor {
 		//get frame name
 		String table = frame.getName();
 
-		ArrayList output = (ArrayList)frame.runScript(table+".get_hist('" + column + "')");
+		List output = (List) frame.runScript(table+".get_hist('" + column + "')");
 
 		// create the object with the right size
 		// the length will be the same as the number of unique values in the column
-		ArrayList keys = (ArrayList)output.get(0);
-		ArrayList vals = (ArrayList)output.get(1);
+		List keys = (List) output.get(0);
+		List vals = (List) output.get(1);
 		Object[][] retOutput = new Object[keys.size()][2];
 
 		for (int outputIndex = 0; outputIndex < keys.size(); outputIndex++) {
@@ -64,7 +64,6 @@ public class ColumnCountReactor extends AbstractFrameReactor {
 
 		// create and return a task
 		ITask taskData = ConstantTaskCreationHelper.getBarChartInfo(panelId, column, "Frequency", retOutput);
-
 		// variable cleanup
 		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}

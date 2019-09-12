@@ -1,7 +1,5 @@
 package prerna.sablecc2.reactor.frame.py.analytics;
 
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -34,7 +32,7 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = getFrame();
 		PandasFrame frame = (PandasFrame)dataFrame;
-		String frameName = dataFrame.getName();
+		String frameName = frame.getWrapperName();
 		dataFrame.setLogger(logger);
 		
 		// figure out inputs
@@ -70,7 +68,7 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 		// get the correlation data from the run r correlation algorithm
 		logger.info("Start iterating through data to determine correlation");
 		String correlationDataTable = Utility.getRandomString(6);
-		frame.runScript(correlationDataTable + " = " + frameName + "w.get_correlation(" + columns +")");
+		frame.runScript(correlationDataTable + " = " + frameName + ".get_correlation(" + columns +")");
 		logger.info("Done iterating through data to determine correlation");
 		
 		// create the object to return to the FE
@@ -81,12 +79,10 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 		
 		// need to fill in the object with the data values
 		// retrieve data using getBulkDataRow
-		String[] heatMapHeaders = new String[]{"Column_Header_X", "Column_Header_Y", "Correlation"};
-		String query = correlationDataTable + "[" + 1 + ":" + length + "]";
-		List bulkRow = (List)frame.runScript(correlationDataTable + ".values.tolist()");
+		List bulkRow = (List) frame.runScript(correlationDataTable + ".values.tolist()");
 		// each entry into the list is a row - we need to put this in the form of Object[][]
 		for (int i = 0; i < bulkRow.size(); i++) {
-			ArrayList oneRow = (ArrayList)bulkRow.get(i);
+			List oneRow = (List) bulkRow.get(i);
 			retOutput[i] = new String[oneRow.size()];
 			oneRow.toArray(retOutput);
 		}
@@ -98,9 +94,6 @@ public class PyNumericalCorrelationReactor extends AbstractFrameReactor {
 		// variable cleanup
 		frame.runScript("del " + correlationDataTable);
 
-		// track GA data
-//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "NumericalCorrelation");
-		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 

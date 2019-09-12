@@ -14,8 +14,6 @@ import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-import com.hp.hpl.jena.sparql.function.library.pi;
-
 public class UpdateRowValuesReactor extends AbstractFrameReactor {
 
 	/**
@@ -36,12 +34,11 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// initialize the rJavaTranslator
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 
 		// get frame name
-		String table = frame.getName();
+		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
 		String updateCol = getUpdateColumn();
@@ -54,7 +51,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		String value = getNewValue();
 
 		// get data type of column being updated
-		SemossDataType updateDataType = frame.getMetaData().getHeaderTypeAsEnum(table + "__" + updateCol);
+		SemossDataType updateDataType = frame.getMetaData().getHeaderTypeAsEnum(frame.getName() + "__" + updateCol);
 
 		// account for quotes around the new value if needed
 		if (updateDataType == SemossDataType.STRING || updateDataType == SemossDataType.FACTOR) {
@@ -77,13 +74,13 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		// use RInterpreter to create filter syntax
 		StringBuilder pyFilterBuilder = new StringBuilder();
 		PandasInterpreter pi = new PandasInterpreter();
-		pi.setDataTableName(table + ".cache['data']");
+		pi.setDataTableName(wrapperFrameName + ".cache['data']");
 		pi.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
-		pi.addFilters(grf.getFilters(), table + ".cache['data']", pyFilterBuilder, true);
+		pi.addFilters(grf.getFilters(), wrapperFrameName + ".cache['data']", pyFilterBuilder, true);
 
 		// execute the r scripts
 		if (pyFilterBuilder.length() > 0) {
-			String script = table + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ updateCol +"'] = " + value ;
+			String script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ updateCol +"'] = " + value ;
 			frame.runScript(script);
 		}
 		

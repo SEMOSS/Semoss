@@ -50,7 +50,7 @@ public class PandasImporter extends AbstractImporter {
 	@Override
 	public void insertData() {
 		// pre making the frame name
-		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName() + "w", this.it);
+		ImportUtility.parseQueryStructToFlatTable(this.dataframe, this.qs, this.dataframe.getName(), this.it);
 		processInsertData();
 	}
 	
@@ -153,11 +153,9 @@ public class PandasImporter extends AbstractImporter {
 			
 			//execute r command
 			this.dataframe.merge(returnTable, leftTableName, rightTableName, joinType, joinCols);
-			this.dataframe.syncHeaders();
 		}
 		
 		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
-		this.dataframe.setDataTypeMap(this.dataframe.getMetaData().getHeaderToTypeMap());
 		return this.dataframe;
 	}
 }

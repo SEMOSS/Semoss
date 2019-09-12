@@ -36,7 +36,7 @@ public class AddColumnReactor extends AbstractFrameReactor {
 		if (dataType == null || dataType.isEmpty()) {
 			dataType = "STRING";
 		}
-		colName = getCleanNewColName(table, colName);
+		colName = getCleanNewColName(frame, colName);
 		// get new column type or set default to string
 		// make sql data type
 		dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(dataType));

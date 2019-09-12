@@ -17,15 +17,14 @@ public class RemoveDuplicateRowsReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 		
 		//get table name
-		String table = frame.getName();
+		String wrapperFrameName = frame.getWrapperName();
 		
 		//define the r script to be executed
-		String script = table + "w.drop_dup()";
+		String script = wrapperFrameName + "w.drop_dup()";
 		
 		//execute the r script
 		frame.runScript(script);

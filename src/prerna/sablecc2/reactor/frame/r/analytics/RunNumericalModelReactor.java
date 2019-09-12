@@ -55,7 +55,7 @@ public class RunNumericalModelReactor extends AbstractRFrameReactor {
 		// columns with same name
 		String newColName = instanceColumn + "_Predicted";
 		// clean the column name to ensure that it is valid
-		newColName = getCleanNewColName(dataFrame.getName(), newColName);
+		newColName = getCleanNewColName(dataFrame, newColName);
 
 		// get the data from the numerical similarity algorithm
 		logger.info("Start iterating through data to determine model");

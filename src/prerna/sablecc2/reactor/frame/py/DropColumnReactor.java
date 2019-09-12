@@ -34,32 +34,31 @@ public class DropColumnReactor extends AbstractFrameReactor {
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 
 		// get table name
-		String table = frame.getName();
+		String wrapperFrameName = frame.getName();
 
 		// store the list of names being removed
 		List<String> remCols = new Vector<String>();
 		
 		// get inputs
 		List<String> columns = getColumns();
-		StringBuilder builder = new StringBuilder();
+		String[] remCommands = new String[columns.size()];
 		for (int i = 0; i < columns.size(); i++) {
 			String col = columns.get(i);
 			if (col.contains("__")) {
 				String[] split = col.split("__");
 				col = split[1];
-				table = split[0];
+//				wrapperFrameName = split[0];
 			}
 			// define the script to be executed
-			
-			builder.append(table + ".drop_col('" + col + "')");
+			remCommands[i] = wrapperFrameName + ".drop_col('" + col + "')";
 			remCols.add(col);
-
+			
 			metaData.dropProperty(frame.getName() + "__" + col, frame.getName());
 			// drop filters with this column
 			frame.getFrameFilters().removeColumnFilter(col);
 		}
-
 		// run the script
+		frame.runScript(remCommands);
 		
 		// reset the frame headers
 		frame.syncHeaders();
