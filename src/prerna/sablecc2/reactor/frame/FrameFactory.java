@@ -101,7 +101,7 @@ public class FrameFactory {
 			}
 			
 			default: { 
-				return new SQLiteFrame(alias); 
+				return getGrid(alias); 
 			}
 		
 		}
