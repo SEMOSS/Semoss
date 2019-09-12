@@ -41,20 +41,20 @@ public class DeleteAssetReactor extends AbstractReactor {
 		
 		// get asset base folder
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
+		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 
 		// get the file path to delete
 		String fileName = keyValue.get(keysToGet[0]);
 		String comment = this.keyValue.get(this.keysToGet[1]);
 
 		List<String> files = new Vector<>();
-		files.add(fileName);
-		FileUtils.delete(assetFolder + DIR_SEPARATOR + fileName);
+		files.add(relativePath + "/" + fileName);
+		FileUtils.delete(AssetUtility.getAssetBasePath(this.insight, space) + "/" + fileName);
 		GitDestroyer.removeSpecificFiles(assetFolder, true, files);
 		
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
-
 		return NounMetadata.getSuccessNounMessage("Success!");
 	}
 }

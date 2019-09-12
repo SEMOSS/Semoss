@@ -31,10 +31,11 @@ public class GetAssetCommentReactor extends AbstractReactor {
 			}
 		}
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
+		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 
 		// specify a file
-		String filePath = this.keyValue.get(this.keysToGet[0]);
+		String filePath = relativePath + "/" + this.keyValue.get(this.keysToGet[0]);
 
 		// get comments
 		List<Map<String, Object>> comments = GitRepoUtils.getCommits(assetFolder, filePath);
