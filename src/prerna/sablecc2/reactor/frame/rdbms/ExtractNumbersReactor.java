@@ -42,7 +42,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 		else {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				String newColumn = getCleanNewColName(table, column + NUMERIC_COLUMN_NAME);
+				String newColumn = getCleanNewColName(frame, column + NUMERIC_COLUMN_NAME);
 				// add new column
 				String update = "ALTER TABLE " + table + " ADD " + newColumn + " varchar(800);";
 				// update extract alpha characters and underscores

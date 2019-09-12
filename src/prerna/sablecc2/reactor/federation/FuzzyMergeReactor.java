@@ -130,7 +130,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		}
 		
 		// rename the linkFrame col2 name so it is prettier
-		String fuzzyColName = getCleanNewColName(frame, rFrameVar, "Fuzzy_" + frameCol);
+		String fuzzyColName = getCleanNewColName(frame, "Fuzzy_" + frameCol);
 		script.append("names(" + linkFrame + ")[names(" + linkFrame + ") == \"col2\"] <- \"" + fuzzyColName + "\";");
 		
 		// we will merge on col1

@@ -34,7 +34,7 @@ public class DescriptiveStatsReactor extends AbstractFrameReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 
 		//get frame name
-		String table = frame.getName();
+		String wrapperFrameName = frame.getWrapperName();
 				
 		//get inputs
 		String column = getColumn();
@@ -46,8 +46,8 @@ public class DescriptiveStatsReactor extends AbstractFrameReactor {
 		//need panel id to display
 		String panelId = getPanelId();
 		
-		HashMap output = (HashMap)frame.runScript(table+"w.stat('" + column + "')");
-		ArrayList sum_median = (ArrayList)frame.runScript(table+"w.sum_median('" + column + "')");
+		HashMap output = (HashMap)frame.runScript(wrapperFrameName+".stat('" + column + "')");
+		ArrayList sum_median = (ArrayList)frame.runScript(wrapperFrameName+".sum_median('" + column + "')");
 		
 		//if(output.size() == 8) // this was numeric and seems like we can only handle that ?
 		//{

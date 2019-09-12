@@ -1,14 +1,11 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PandasSyntaxHelper;
-import prerna.poi.main.HeadersException;
 import prerna.query.querystruct.transform.QSRenameColumnConverter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -42,29 +39,29 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		String updatedColName = keyValue.get(this.keysToGet[1]);
 
 		// check that the frame isn't null
-		String table = frame.getName();
+		String wrapperFrameName = frame.getName();
 		// check if new colName is valid
-		updatedColName = getCleanNewColName(table, updatedColName);
+		updatedColName = getCleanNewColName(frame, updatedColName);
 		if (originalColName.contains("__")) {
 			String[] split = originalColName.split("__");
-			table = split[0];
+			wrapperFrameName = split[0];
 			originalColName = split[1];
 		}
 		// ensure new header name is valid
 		// make sure that the new name we want to use is valid
-		String[] existCols = getColNames(originalColName);
+		String[] existCols = getColNames(frame);
 		if (Arrays.asList(existCols).contains(originalColName) != true) {
 			throw new IllegalArgumentException("Column doesn't exist.");
 		}
 		
-		String validNewHeader = getCleanNewHeader(table, updatedColName);
+		String validNewHeader = getCleanNewColName(frame, updatedColName);
 		
 		if (validNewHeader.equals("")) 
 		{
 			throw new IllegalArgumentException("Provide valid new column name (no special characters)");
 		}
 		// script is of the form: wrapper.rename_col('Genre', 'Genre_new')"
-		frame.runScript(table + ".rename_col('" + originalColName + "', '" + validNewHeader + "')");
+		frame.runScript(wrapperFrameName + ".rename_col('" + originalColName + "', '" + validNewHeader + "')");
 		// FE passes the column name
 		// but meta will still be table __ column
 		// update the metadata because column names have changed
@@ -92,33 +89,5 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		// return the output
 		return retNoun;
 	}
-	
-	/**
-	 * This method is used to fix the frame headers to be valid
-	 * 
-	 * @param frameName
-	 * @param newColName
-	 */
-	protected String getCleanNewHeader(String frameName, String newColName) {
-		// make the new column name valid
-		HeadersException headerChecker = HeadersException.getInstance();
-		String[] currentColumnNames = getColumns(frameName);
-		String validNewHeader = headerChecker.recursivelyFixHeaders(newColName, currentColumnNames);
-		return validNewHeader;
-	}
-	
-	
-	protected String [] getColumns(String frameName)
-	{
-		String colScript = PandasSyntaxHelper.getColumns(frameName + ".cache['data']");
-		PandasFrame pyf = (PandasFrame)this.getFrame();
-		ArrayList <String> outArray = (ArrayList<String>)pyf.runScript(colScript);
-		String [] cols = new String[outArray.size()];
-		outArray.toArray(cols);
-		return cols;
-	}
-	
-	
-
 }
 

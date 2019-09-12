@@ -40,7 +40,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// check that the frame isn't null
 		String table = frame.getName();
 		// check if new colName is valid
-		updatedColName = getCleanNewColName(table, updatedColName);
+		updatedColName = getCleanNewColName(frame, updatedColName);
 		if (originalColName.contains("__")) {
 			String[] split = originalColName.split("__");
 			table = split[0];
@@ -48,7 +48,7 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		}
 		// ensure new header name is valid
 		// make sure that the new name we want to use is valid
-		String[] existCols = getColNames(originalColName);
+		String[] existCols = getColNames(frame);
 		if (Arrays.asList(existCols).contains(originalColName) != true) {
 			throw new IllegalArgumentException("Column doesn't exist.");
 		}
