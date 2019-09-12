@@ -70,6 +70,10 @@ public class SaveAssetReactor extends AbstractReactor {
 		// add file to git
 		List<String> files = new Vector<>();
 		files.add(fileName);
+		assetFolder = insight.getInsightFolder();
+		File file2 = new File(assetFolder);
+		assetFolder = file2.getParentFile().getAbsolutePath();
+		
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
 
 		// commit it

@@ -415,7 +415,7 @@ public class Insight {
 				if(!file.exists())
 				{
 					file.mkdir();
-					GitRepoUtils.init(appFolder);
+					//GitRepoUtils.init(appFolder);
 				}
 			}
 		}
