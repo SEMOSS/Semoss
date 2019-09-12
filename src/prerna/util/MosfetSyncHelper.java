@@ -287,7 +287,7 @@ public class MosfetSyncHelper {
 		File path = new File(recipePath);
 		// create insight directory
 		path.mkdirs();
-		recipePath += "\\" + RECIPE_FILE;
+		recipePath += DIR_SEPARATOR + RECIPE_FILE;
 		// create file
 		File f = new File(recipePath);
 		try {
