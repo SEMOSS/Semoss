@@ -623,10 +623,10 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PHYSICALNAMEID", "==", parentIds));
 		qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
 		qs.addOrderBy("ENGINE__ENGINENAME");
-//		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
-//		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
-//		qs.addOrderBy("ENGINECONCEPT__PK");
-//		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
+		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
+		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
+		qs.addOrderBy("ENGINECONCEPT__PK");
+		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 		
 		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
@@ -674,10 +674,10 @@ public class MasterDatabaseUtility {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTPHYSICALNAMEID", "==", idsForProperties));
 		qs.addRelation("ENGINE__ID", "ENGINECONCEPT__ENGINE", "inner.join");
 		qs.addOrderBy("ENGINE__ENGINENAME");
-//		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
-//		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
-//		qs.addOrderBy("ENGINECONCEPT__PK");
-//		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
+		qs.addOrderBy("ENGINECONCEPT__PARENTSEMOSSNAME");
+		qs.addOrderBy("ENGINECONCEPT__IGNORE_DATA");
+		qs.addOrderBy("ENGINECONCEPT__PK");
+		qs.addOrderBy("ENGINECONCEPT__SEMOSSNAME");
 		
 		wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		while(wrapper.hasNext()) {
