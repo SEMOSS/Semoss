@@ -163,7 +163,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		this.qs.merge(qs);
 	}
 	
-	public String getEngineName() {
+	public String getEngineId() {
 		return qs.getEngineId();
 	}
 	
