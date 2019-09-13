@@ -87,7 +87,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		String linkFrame = matchesFrame + "_LINK";
 		// grab the subset of the data required
 		
-		script.append(linkFrame + "<- " +  matchesFrame + "[" + matchesFrame + "$distance <= " + propagationValue + ",];");
+		script.append(linkFrame + "<- " +  matchesFrame + "[" + matchesFrame + "$distance >= " + propagationValue + ",];");
 
 		// grab the lists to append
 		// using the combined lookup column, we will be able to just rbind those results with the current linkframe
