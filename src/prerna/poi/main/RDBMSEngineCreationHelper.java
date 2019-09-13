@@ -129,7 +129,7 @@ public class RDBMSEngineCreationHelper {
 				// add the git here
 				String recipePath = retFile.getParent();
 				// make a version folder if one doesn't exist
-				GitRepoUtils.init(recipePath);
+				//GitRepoUtils.init(recipePath);
 				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), id, insightName, false, layout);
 			}
 		} catch(RuntimeException e) {
