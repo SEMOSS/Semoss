@@ -1204,7 +1204,7 @@ public class UploadUtilities {
 				// add the git here
 				String recipePath = retFile.getParent();
 				// make a version folder if one doesn't exist
-				GitRepoUtils.init(recipePath);
+				//GitRepoUtils.init(recipePath);
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1228,7 +1228,7 @@ public class UploadUtilities {
 		// add the git here
 		String recipePath = retFile.getParent();
 		// make a version folder if one doesn't exist
-		GitRepoUtils.init(recipePath);
+		//GitRepoUtils.init(recipePath);
 		return insightId;
 	}
 	
@@ -1257,7 +1257,7 @@ public class UploadUtilities {
 				// add the git here
 				String recipePath = retFile.getParent();
 				// make a version folder if one doesn't exist
-				GitRepoUtils.init(recipePath);
+				//GitRepoUtils.init(recipePath);
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1290,7 +1290,7 @@ public class UploadUtilities {
 				// add the git here
 				String recipePath = retFile.getParent();
 				// make a version folder if one doesn't exist
-				GitRepoUtils.init(recipePath);
+				//GitRepoUtils.init(recipePath);
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1325,7 +1325,7 @@ public class UploadUtilities {
 		// add the git here
 		String recipePath = retFile.getParent();
 		// make a version folder if one doesn't exist
-		GitRepoUtils.init(recipePath);
+		//GitRepoUtils.init(recipePath);
 	}
 	
 	/**
@@ -1355,7 +1355,7 @@ public class UploadUtilities {
 		// add the git here
 		String recipePath = retFile.getParent();
 		// make a version folder if one doesn't exist
-		GitRepoUtils.init(recipePath);
+		//GitRepoUtils.init(recipePath);
 	}
 
 	/**
@@ -1381,7 +1381,7 @@ public class UploadUtilities {
 		// add the git here
 		String recipePath = retFile.getParent();
 		// make a version folder if one doesn't exist
-		GitRepoUtils.init(recipePath);
+		//GitRepoUtils.init(recipePath);
 	}
 
 	/**
