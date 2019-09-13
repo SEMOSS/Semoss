@@ -771,9 +771,9 @@ public class ImportUtility {
 	 * @param qs
 	 * @param frameTableName
 	 */
-	public static void parseNativeQueryStructIntoMeta(ITableDataFrame dataframe, SelectQueryStruct qs) {
+	public static void parseNativeQueryStructIntoMeta(ITableDataFrame dataframe, SelectQueryStruct qs, boolean ignore) {
 		List<IQuerySelector> selectors = qs.getSelectors();
-		String engineName = qs.getEngineId();
+		String engineId = qs.getEngineId();
 		
 		OwlTemporalEngineMeta metaData = dataframe.getMetaData();
 		Set<String> addedQsNames = new HashSet<String>();
@@ -792,15 +792,21 @@ public class ImportUtility {
 				
 				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					metaData.addVertex(table);
-					metaData.setQueryStructNameToVertex(table, engineName, qsName);
-					String type = MasterDatabaseUtility.getBasicDataType(engineName, table, null);
+					metaData.setQueryStructNameToVertex(table, engineId, qsName);
+					String type = MasterDatabaseUtility.getBasicDataType(engineId, table, null);
 					metaData.setDataTypeToVertex(table, type);
 					metaData.setAliasToVertex(table, alias);
 				} else {
+					// need to account for RDBMS vs. RDF
+					if(ignore) {
+						// add the vertex since we never get a prim key placeholder
+						metaData.addVertex(table);
+						metaData.setPrimKeyToVertex(table, true);
+					}
 					String uniqueName = qsName;
 					metaData.addProperty(table, uniqueName);
-					metaData.setQueryStructNameToProperty(uniqueName, engineName, qsName);
-					String type = MasterDatabaseUtility.getBasicDataType(engineName, column, table);
+					metaData.setQueryStructNameToProperty(uniqueName, engineId, qsName);
+					String type = MasterDatabaseUtility.getBasicDataType(engineId, column, table);
 					metaData.setDataTypeToProperty(uniqueName, type);
 					metaData.setAliasToProperty(uniqueName, alias);
 				}
@@ -813,7 +819,7 @@ public class ImportUtility {
 				// it could be opaque
 				// countless possibilities .. (jk, just the above)
 				metaData.addVertex(alias);
-				metaData.setQueryStructNameToVertex(alias, engineName, qsName);
+				metaData.setQueryStructNameToVertex(alias, engineId, qsName);
 				metaData.setAliasToVertex(alias, alias);
 				metaData.setDataTypeToVertex(alias, selector.getDataType());
 
@@ -834,16 +840,26 @@ public class ImportUtility {
 			String joinType = rel[1];
 			String downVertex = rel[2];
 			
+			String upKey = upVertex;
+			String downKey = downVertex;
+			
 			if(!addedQsNames.contains(upVertex)) {
-				metaData.addVertex(upVertex);
-				metaData.setPrimKeyToVertex(upVertex, true);
+				if(upKey.contains("__")) {
+					upKey = upKey.split("__")[0];
+				}
+				metaData.addVertex(upKey);
+				metaData.setPrimKeyToVertex(upKey, true);
 				addedQsNames.add(upVertex);
 			}
 			if(!addedQsNames.contains(downVertex)) {
-				metaData.addVertex(downVertex);
-				metaData.setPrimKeyToVertex(downVertex, true);
+				if(downKey.contains("__")) {
+					downKey = downKey.split("__")[0];
+				}
+				metaData.addVertex(downKey);
+				metaData.setPrimKeyToVertex(downKey, true);
 				addedQsNames.add(downVertex);
 			}
+			
 			metaData.addRelationship(upVertex, downVertex, joinType);
 		}
 		

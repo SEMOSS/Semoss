@@ -3,6 +3,7 @@ package prerna.engine.api.impl.util;
 import java.util.List;
 
 import prerna.engine.api.IEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.util.Utility;
 
 public class MetadataUtility {
@@ -17,6 +18,14 @@ public class MetadataUtility {
 				|| type == IEngine.ENGINE_TYPE.R
 //				|| type == IEngine.ENGINE_TYPE.JMES_API
 				;
+	}
+	
+	public static boolean ignoreConceptData(String engineId) {
+		String eType = MasterDatabaseUtility.getEngineTypeForId(engineId);
+		if(eType.startsWith("TYPE:")) {
+			eType = eType.replace("TYPE:", "");
+		}
+		return ignoreConceptData(IEngine.ENGINE_TYPE.valueOf(eType));
 	}
 	
 	/**
