@@ -26,7 +26,7 @@ public final class ZipUtils {
 	// buffer for read and write data to file
 	private static byte[] buffer = new byte[2048];
 
-	public static final String FILE_SEPARATOR = "/";// System.getProperty("file.separator");
+	public static final String FILE_SEPARATOR = System.getProperty("file.separator");
 
 	private ZipUtils() {
 
@@ -50,7 +50,7 @@ public final class ZipUtils {
 		File[] files = dir.listFiles();
 		if (files != null) {
 			for (File file : files) {
-				String prefix = file.getParent().substring(file.getParent().lastIndexOf("\\") + 1);
+				String prefix = file.getParent().substring(file.getParent().lastIndexOf(FILE_SEPARATOR) + 1);
 				addAllToZip(file, zos, prefix);
 			}
 		}
