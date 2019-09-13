@@ -25,6 +25,7 @@ import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	
@@ -122,6 +123,14 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		String appNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
 		appNames = appNames + ";" + appId;
 		DIHelper.getInstance().setLocalProperty(Constants.ENGINES, appNames);
+		
+		// adding all the git here
+		String versionFolder = appFolder.getAbsolutePath() + FS + "version";
+		File file = new File(versionFolder);
+		if (!file.exists())
+			file.mkdir();
+		// I will assume the directory is there now
+		GitRepoUtils.init(versionFolder);
 		
 		// Rename .temp to .smss
 		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
