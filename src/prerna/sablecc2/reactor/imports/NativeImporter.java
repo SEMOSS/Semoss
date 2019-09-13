@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.imports;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -8,11 +9,13 @@ import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 
+import net.snowflake.client.jdbc.internal.org.bouncycastle.util.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.query.parsers.OpaqueSqlParser;
@@ -66,7 +69,8 @@ public class NativeImporter extends AbstractImporter {
 				e.printStackTrace();
 			}
 		}
-		ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs);
+		boolean ignore = MetadataUtility.ignoreConceptData(this.qs.getEngineId());
+		ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore);
 		this.dataframe.mergeQueryStruct(this.qs);
 	}
 
@@ -79,9 +83,15 @@ public class NativeImporter extends AbstractImporter {
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) {
 		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
-		if(qsType == QUERY_STRUCT_TYPE.ENGINE && this.dataframe.getEngineName().equals(this.qs.getEngineId())) {
-			// this is the case where we can do an easy merge
-			ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs);
+		String engineId = this.dataframe.getEngineId();
+		if(qsType == QUERY_STRUCT_TYPE.ENGINE && engineId.equals(this.qs.getEngineId())) {
+			boolean ignore = MetadataUtility.ignoreConceptData(engineId);
+			if(ignore) {
+				// this join may not be defined within the QS itself
+				// as we join on all properties
+				appendNecessaryRels(joins);
+			}
+			ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore);
 			this.dataframe.mergeQueryStruct(this.qs);
 			return this.dataframe;
 		} else {
@@ -89,6 +99,46 @@ public class NativeImporter extends AbstractImporter {
 			// need to persist the data so we can do this
 			// we will flush and return a new frame to accomplish this
 			return generateNewFrame(joins);
+		}
+	}
+	
+	/**
+	 * Need to add additional joins that are part of the merge
+	 * Since we do not really have TABLE, join, TABLE anymore in RDBMS
+	 * Yet I need to know what the join is
+	 * @param joins
+	 */
+	private void appendNecessaryRels(List<Join> joins) {
+		Set<String[]> relations = this.qs.getRelations();
+		List<IQuerySelector> selectors = this.qs.getSelectors();
+		
+		int numJoins = joins.size();
+		List<String[]> relsToAdd = new Vector<String[]>();
+		
+		J_LOOP : for(int i = 0; i < numJoins; i++) {
+			Join j = joins.get(i);
+			String[] jRel = new String[] {j.getQualifier(), j.getJoinType(), j.getSelector()};
+			for(String[] rel : relations) {
+				if(Arrays.areEqual(rel, jRel)) {
+					continue J_LOOP;
+				}
+			}
+			relsToAdd.add(jRel);
+			// go through the selectors
+			// if the qualifier is a selector
+			// we want to remove it
+			// since it is the join column
+			Iterator<IQuerySelector> it = selectors.iterator();
+			while(it.hasNext()) {
+				if(it.next().getQueryStructName().equals(j.getQualifier())) {
+					it.remove();
+					break;
+				}
+			}
+		}
+		
+		for(String[] rel : relsToAdd) {
+			this.qs.addRelation(rel[0], rel[2], rel[1]);
 		}
 	}
 	
