@@ -441,6 +441,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	@Override
 	public void close() {
+		super.close();
 		// this should take the variable name and kill it
 		// if the user has created others, nothing can be done
 		logger.info("Removing variable " + this.frameName);
@@ -452,9 +453,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		// save frame
-		String frameFilePath = folderDir + DIR_SEPARATOR + this.frameName + ".pkl";
+		String frameFilePath = folderDir + DIR_SEPARATOR + this.frameName + ".tsv";
 		cf.setFrameCacheLocation(frameFilePath);
-		String command = this.wrapperFrameName + ".cache['data'].to_pickle(\"" + frameFilePath.replace("\\", "/") + "\")";
+		String command = PandasSyntaxHelper.getWriteCsvFile(this.frameName, frameFilePath, "\t");
 		runScript(command);
 		
 		// also save the meta details
@@ -472,13 +473,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// load the pandas library
 		runScript(PANDAS_IMPORT_STRING);
 		// load the frame
-		runScript(this.frameName + " = " + PANDAS_IMPORT_VAR + ".read_pickle(\"" +  cf.getFrameCacheLocation().replace("\\", "/") + "\")");
+		runScript(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName, "\t"));
 		runScript(PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return isEmpty(this.wrapperFrameName);
+		return isEmpty(this.frameName);
 	}
 	
 	public boolean isEmpty(String tableName) {
