@@ -51,13 +51,68 @@ public class PandasSyntaxHelper {
 	 * @param pandas import var
 	 * @param fileLocation
 	 * @param tableName
+	 * @param sep
+	 */
+	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName, String sep) {
+		if(sep == null || sep.isEmpty()) {
+			sep = ",";
+		}
+		return getCsvFileRead(pandasImportVar, fileLocation, tableName, sep, null);
+	}
+	
+	/**
+	 * Get the syntax to load a csv file
+	 * @param pandas import var
+	 * @param fileLocation
+	 * @param tableName
+	 * @param sep
 	 * @param encoding
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName, String encoding) {
+	public static String getCsvFileRead(String pandasImportVar, String fileLocation, String tableName, String sep, String encoding) {
 		if(encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
-		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', encoding='" + encoding + "')";
+		String readCsv = tableName + " = " + pandasImportVar + ".read_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', sep='" + sep + "', encoding='" + encoding + "')";
+		return readCsv;
+	}
+	
+	/**
+	 * 
+	 * @param tableName
+	 * @param fileLocation
+	 * @return
+	 */
+	public static String getWriteCsvFile(String tableName, String fileLocation) {
+		return getWriteCsvFile(tableName, fileLocation, null);
+	}
+	
+	/**
+	 * 
+	 * @param tableName
+	 * @param fileLocation
+	 * @param sep
+	 * @return
+	 */
+	public static String getWriteCsvFile(String tableName, String fileLocation, String sep) {
+		if(sep == null || sep.isEmpty()) {
+			sep = ",";
+		}
+		return getWriteCsvFile(tableName, fileLocation, sep, null);
+	}
+	
+	/**
+	 * 
+	 * @param tableName
+	 * @param fileLocation
+	 * @param sep
+	 * @param encoding
+	 * @return
+	 */
+	public static String getWriteCsvFile(String tableName, String fileLocation, String sep, String encoding) {
+		if(encoding == null || encoding.isEmpty()) {
+			encoding = "utf-8";
+		}
+		String readCsv = tableName + ".to_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', sep='" + sep + "', encoding='" + encoding + "', index=False)";
 		return readCsv;
 	}
 	
