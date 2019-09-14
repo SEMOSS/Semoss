@@ -11,12 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.InsightCacheUtility;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
@@ -100,29 +102,38 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 				// i will need to go through and modify them to have another variable name
 				VarStore vStore = in.getVarStore();
 				Set<String> varKeys = vStore.getKeys();
+				List<ITableDataFrame> copiedAlready = new Vector<ITableDataFrame>();
 				for(String var : varKeys) {
 					NounMetadata variable = vStore.get(var);
 					if(variable.getNounType() == PixelDataType.FRAME) {
 						// if R or Py, we have to change
 						// update the name of the table + update the metadata
-						if(variable.getValue() instanceof RDataTable) {
+						Object o = variable.getValue();
+						if(copiedAlready.contains(o)) {
+							continue;
+						}
+						if(o instanceof RDataTable) {
 							RDataTable dt = (RDataTable) variable.getValue();
 							String oldName = dt.getName();
 							String newName = oldName + "_COPY";
 							dt.executeRScript(newName + "<- " + oldName);
 							dt.setName(newName);
 							dt.getMetaData().modifyVertexName(oldName, newName);
-						} else if(variable.getValue() instanceof PandasFrame) {
+							// store so we dont do this multiple times if frame is referenced more than once
+							copiedAlready.add(dt);
+						} else if(o instanceof PandasFrame) {
 							PandasFrame dt = (PandasFrame) variable.getValue();
 							String oldName = dt.getName();
 							String newName = oldName + "_COPY";
-							dt.runScript(newName + " = " + oldName);
+							dt.runScript(newName + " = " + oldName + ".copy(deep=True)");
 							// also do the wrapper
 							dt.setName(newName);
 							// the wrapper name is auto generated when you set name
 							String newWrapperName = dt.getWrapperName();
 							dt.runScript(PandasSyntaxHelper.makeWrapper(newWrapperName, newName));
 							dt.getMetaData().modifyVertexName(oldName, newName);
+							// store so we dont do this multiple times if frame is referenced more than once
+							copiedAlready.add(dt);
 						}
 					}
 				}

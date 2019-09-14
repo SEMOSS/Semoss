@@ -88,29 +88,28 @@ public class PyExecutorThread extends Thread {
 	public Jep getJep() {
 		try {
 			if(this.jep == null) {
-				
 				//https://github.com/ninia/jep/issues/140
 				JepConfig aJepConfig = new JepConfig();
-				aJepConfig.addSharedModules("pandas");		
-				aJepConfig.addSharedModules("numpy");
-				aJepConfig.addSharedModules("sys");
-				aJepConfig.addSharedModules("fuzzywuzzy");
-				aJepConfig.addSharedModules("string");
-				aJepConfig.addSharedModules("random");
-				aJepConfig.addSharedModules("datetime");
-				aJepConfig.addSharedModules("annoy");
-				
+				aJepConfig.addSharedModules("pandas", 
+						"numpy",
+						"sys", 
+						"fuzzywuzzy", 
+						"string", 
+						"random", 
+						"datetime", 
+						"annoy");
 				
 				// add the sys.path to python libraries for semoss
 				String pyBase = null;
 				pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
-				//pyBase = "c:/users/pkapaleeswaran/workspacej3/SemossWeb/py";
-				pyBase = pyBase.replaceAll("\\\\", "/");
-
-				// add the include path
+				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
+				
+				// add the libraries
 				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
-				aJepConfig.addIncludePaths(sitepackages);
+				if(sitepackages != null && !sitepackages.isEmpty()) {
+					aJepConfig.addIncludePaths(sitepackages);
+				}
 				
 				jep = new Jep(aJepConfig);
 
@@ -126,10 +125,10 @@ public class PyExecutorThread extends Thread {
 				jep.eval("from annoy import AnnoyIndex");
 				jep.eval("import numpy");
 				jep.eval("import sys");
-				System.err.println("Adding Syspath " + pyBase);				
+				
+				LOGGER.debug("Adding Syspath " + pyBase);				
 				jep.eval("sys.path.append('" + pyBase + "')" );
-
-				LOGGER.info(jep.getValue("sys.path"));
+				LOGGER.debug(jep.getValue("sys.path"));
 				
 				jep.eval("from clean import PyFrame");
 			}
