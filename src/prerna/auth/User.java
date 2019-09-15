@@ -12,6 +12,7 @@ import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.AbstractValueObject;
+import prerna.om.CopyObject;
 
 public class User extends AbstractValueObject {
 	
@@ -37,6 +38,8 @@ public class User extends AbstractValueObject {
 	
 	private boolean anonymous;
 	private String anonymousId;
+	
+	CopyObject cp = null;
 	
 	/**
 	 * Set the access token for a given provider
@@ -275,4 +278,30 @@ public class User extends AbstractValueObject {
 		
 		return retMap;
 	}
+	
+	public void ctrlC(String source, String showSource)
+	{
+		this.cp = new CopyObject();
+		cp.source = source;
+		cp.showSource = showSource;
+	}
+	
+	public CopyObject getCtrlC()
+	{
+		return cp;
+	}
+	
+	public void ctrlX(String source, String showSource)
+	{
+		this.cp = new CopyObject();
+		cp.source = source;
+		cp.showSource = showSource;
+		cp.delete = true;
+	}
+	
+	public void escapeCopy()
+	{
+		this.cp = null;
+	}
+	
 }
