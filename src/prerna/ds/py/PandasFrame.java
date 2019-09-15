@@ -456,6 +456,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String frameFilePath = folderDir + DIR_SEPARATOR + this.frameName + ".tsv";
 		cf.setFrameCacheLocation(frameFilePath);
 		String command = PandasSyntaxHelper.getWriteCsvFile(this.frameName, frameFilePath, "\t");
+		
+		// trying to write the pickle instead
+		frameFilePath = frameFilePath.replaceAll("\\\\", "/");
+		runScript("import pickle");
+		command = "pickle.dump(" + this.frameName + ",open(\"" + frameFilePath + "\", \"wb\"))";
+		
 		runScript(command);
 		
 		// also save the meta details
