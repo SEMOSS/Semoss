@@ -22,14 +22,18 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.reactor.insights.copy.CopyInsightReactor;
 import prerna.util.insight.InsightUtility;
 
 public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 
 	private static final String CLASS_NAME = UnsavedInsightAdapter.class.getName();
 
-	private File folderDir;
-	private Insight existingInsight;
+	private File folderDir = null;
+	private Insight existingInsight = null;
+	
+	private boolean cacheFrames = false;
+	private List<FrameCacheHelper> frames;
 	
 	/**
 	 * Constructor 
@@ -63,7 +67,7 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		
 		// consolidate frames due to alias
 		// that point to the same frame
-		List<FrameCacheHelper> frames = new Vector<FrameCacheHelper>();
+		this.frames = new Vector<FrameCacheHelper>();
 		Set<String> keys = varStore.getKeys();
 		for(String k : keys) {
 			NounMetadata noun = varStore.get(k);
@@ -84,27 +88,33 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		// now that we have consolidated, write the frames
 		out.name("frames");
 		out.beginArray();
-		for(FrameCacheHelper fObj : frames) {
-			CachePropFileFrameObject saveFrame = null;
-			try {
-				saveFrame = fObj.frame.save(folderDir.getAbsolutePath());
-			} catch(Exception e) {
-				e.printStackTrace();
-				continue;
+		// we put the logic here if we want to cache the frames
+		// i still want the frames : [] so the read doesn't need
+		// to be modified
+		if(this.cacheFrames) {
+			for(FrameCacheHelper fObj : frames) {
+				CachePropFileFrameObject saveFrame = null;
+				try {
+					saveFrame = fObj.getFrame().save(folderDir.getAbsolutePath());
+				} catch(Exception e) {
+					e.printStackTrace();
+					continue;
+				}
+				out.beginObject();
+				out.name("file").value(saveFrame.getFrameCacheLocation());
+				out.name("meta").value(saveFrame.getFrameMetaCacheLocation());
+				out.name("state").value(saveFrame.getFrameStateCacheLocation());
+				out.name("type").value(saveFrame.getFrameType());
+				out.name("name").value(saveFrame.getFrameName());
+				out.name("keys");
+				out.beginArray();
+				List<String> alias = fObj.getAlias();
+				for(int i = 0; i < alias.size(); i++) {
+					out.value(alias.get(i));
+				}
+				out.endArray();
+				out.endObject();
 			}
-			out.beginObject();
-			out.name("file").value(saveFrame.getFrameCacheLocation());
-			out.name("meta").value(saveFrame.getFrameMetaCacheLocation());
-			out.name("state").value(saveFrame.getFrameStateCacheLocation());
-			out.name("type").value(saveFrame.getFrameType());
-			out.name("name").value(saveFrame.getFrameName());
-			out.name("keys");
-			out.beginArray();
-			for(int i = 0; i < fObj.alias.size(); i++) {
-				out.value(fObj.alias.get(i));
-			}
-			out.endArray();
-			out.endObject();
 		}
 		out.endArray();
 		
@@ -153,8 +163,6 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		
 		return null;
 	}
-	
-	
 	
 	@Override
 	public Insight read(JsonReader in) throws IOException {
@@ -300,4 +308,22 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		this.existingInsight = existingInsight;		
 	}
 	
+	/**
+	 * Can set to cache all the values except the frames
+	 * This is useful for the {@link CopyInsightReactor}
+	 * where we copy the insight but only a subset of the data
+	 * @param cacheFrames
+	 */
+	public void setCacheFrames(boolean cacheFrames) {
+		this.cacheFrames = cacheFrames;
+	}
+	
+	/**
+	 * This will only return a value when you call the write
+	 * to return the frames in the insight
+	 * @return
+	 */
+	public List<FrameCacheHelper> getFrames() {
+		return this.frames;
+	}
 }
