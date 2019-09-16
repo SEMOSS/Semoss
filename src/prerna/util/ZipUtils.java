@@ -19,8 +19,6 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
 
-import prerna.util.gson.GsonUtility;
-
 public final class ZipUtils {
 
 	// buffer for read and write data to file
@@ -45,15 +43,8 @@ public final class ZipUtils {
 			throws FileNotFoundException, IOException {
 		FileOutputStream fos = new FileOutputStream(zipFilePath);
 		ZipOutputStream zos = new ZipOutputStream(fos);
-		// add every file
 		File dir = new File(folderPath);
-		File[] files = dir.listFiles();
-		if (files != null) {
-			for (File file : files) {
-				String prefix = file.getParent().substring(file.getParent().lastIndexOf(FILE_SEPARATOR) + 1);
-				addAllToZip(file, zos, prefix);
-			}
-		}
+		addAllToZip(dir, zos, null);
 		return zos;
 	}
 
@@ -87,15 +78,21 @@ public final class ZipUtils {
 	private static void addAllToZip(File file, ZipOutputStream zos, String prefix)
 			throws FileNotFoundException, IOException {
 		if (file.isDirectory()) {
-			String subPrefix = prefix + FILE_SEPARATOR + file.getName();
+			String subPrefix = file.getName();
+			if (prefix != null) {
+				subPrefix = prefix + FILE_SEPARATOR + file.getName();
+			}
 			File[] files = file.listFiles();
 			for (File subF : files) {
 				addAllToZip(subF, zos, subPrefix);
 			}
 		} else {
-			ZipEntry zipEntry = new ZipEntry(prefix + FILE_SEPARATOR + file.getName());
+			String fileName = file.getName();
+			if (prefix != null) {
+				fileName = prefix + FILE_SEPARATOR + file.getName();
+			}
+			ZipEntry zipEntry = new ZipEntry(fileName);
 			zos.putNextEntry(zipEntry);
-
 			FileInputStream fis = null;
 			try {
 				int length;
@@ -223,6 +220,7 @@ public final class ZipUtils {
 
 	/**
 	 * Unzip files to a folder and track files that have been added
+	 * 
 	 * @param zipFilePath
 	 * @param destDirectory
 	 * @return Map of list of files depending on if it is a DIR or FILE
@@ -257,6 +255,7 @@ public final class ZipUtils {
 
 	/**
 	 * Copy file to path
+	 * 
 	 * @param zipIn
 	 * @param filePath
 	 * @throws IOException
@@ -272,7 +271,7 @@ public final class ZipUtils {
 	}
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
-		String path = "C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\db\\newMov__a2127aa7-e953-435f-a3ab-53f97028c795\\version\\d4375e9a-6d9d-4954-9385-e93d44e8aa63";
+		String path = "C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\db\\test__bbefe20a-8267-4bec-95dc-45aefec409b7";
 		String destination = "C:\\Users\\rramirezjimenez\\Desktop\\test.zip";
 		ZipOutputStream zos = ZipUtils.zipFolder(path, destination);
 		zos.close();
