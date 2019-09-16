@@ -57,10 +57,8 @@ public class PyExecutorThread extends Thread {
 						    		response.put(thisCommand, "");
 						    	}
 						    	
-//						    	jep.eval("from java.lang import System");
-//						    	jep.eval("s = 'Hello World'");
-//							    jep.eval("System.out.println(s)"); 
-//						    	jep.eval("System.out.println(\".\")");
+						    	jep.eval("from java.lang import System");
+						    	jep.eval("System.out.println('.')");
 
 						    	daLock.notify();
 								// seems like when there is an exception..I need to restart the thread
@@ -131,7 +129,7 @@ public class PyExecutorThread extends Thread {
 				jep.eval("import numpy");
 				jep.eval("import sys");
 				// this is so we do not get a GIL
-//				jep.eval("from java.lang import System");
+				jep.eval("from java.lang import System");
 				
 				LOGGER.debug("Adding Syspath " + pyBase);				
 				jep.eval("sys.path.append('" + pyBase + "')" );
