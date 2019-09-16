@@ -99,6 +99,6 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 				"ChangeColumnType", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 }
