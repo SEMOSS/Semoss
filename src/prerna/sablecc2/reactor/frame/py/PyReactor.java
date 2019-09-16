@@ -12,6 +12,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class PyReactor extends AbstractReactor {
@@ -32,11 +33,53 @@ public class PyReactor extends AbstractReactor {
 		PyExecutorThread pyThread = this.insight.getPy();
 		Object lock = pyThread.getMonitor();
 
-		String rootPath = this.insight.getInsightFolder().replace('\\', '/');
+		int size = 3;
+		// will always have an insight path
+		String removePathVariables = "del ROOT";
 		
+		String insightRootAssignment = "";
+		String appRootAssignment = "";
+		String userRootAssignment = "";
+
+		String insightRootPath = null;
+		String appRootPath = null;
+		String userRootPath = null;
+		
+		insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
+		insightRootAssignment = "ROOT = \"" + insightRootPath + "\"";
+		
+		if(this.insight.isSavedInsight()) {
+			appRootPath = this.insight.getAppFolder();
+			appRootPath = appRootPath.replace('\\', '/');
+			appRootAssignment = "APP_ROOT = \"" + appRootPath + "\"";
+			removePathVariables += ", APP_ROOT";
+			size++;
+		}
+		try {
+			userRootPath = AssetUtility.getAssetBasePath(this.insight, "USER");
+			userRootPath = userRootPath.replace('\\', '/');
+			userRootAssignment = "USER_ROOT = \"" + userRootPath + "\"";
+			removePathVariables += ", USER_ROOT";
+			size++;
+		} catch(Exception ignore) {
+			// ignore
+		}
+		
+		String[] commands = new String[size];
+		int counter = 0;
+		commands[counter++] = insightRootAssignment;
+		if(appRootAssignment != null) {
+			commands[counter++] = appRootAssignment;
+		}
+		if(userRootAssignment != null) {
+			commands[counter++] = userRootAssignment;
+		}
 		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		commands[counter++] = code;
+		commands[counter++] = removePathVariables;
+		
 		logger.info("Execution python script: " + code);
-		pyThread.command = new String[]{"ROOT = \"" + rootPath + "\"", code, "del ROOT"};
+		pyThread.command = commands;
 		
 		Object output = "";
 		synchronized(lock) {
@@ -51,8 +94,15 @@ public class PyReactor extends AbstractReactor {
 		}
 		
 		// clean up the output
-		if(output != null && output.toString().contains(rootPath)) {
-			output = output.toString().replace(rootPath, "$IF");
+		// clean up the output
+		if(userRootPath != null && output.toString().contains(userRootPath)) {
+			output = output.toString().replace(userRootPath, "$USER_IF");
+		}
+		if(appRootPath != null && output.toString().contains(appRootPath)) {
+			output = output.toString().replace(appRootPath, "$APP_IF");
+		}
+		if(insightRootPath != null && output.toString().contains(insightRootPath)) {
+			output = output.toString().replace(insightRootPath, "$IF");
 		}
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);

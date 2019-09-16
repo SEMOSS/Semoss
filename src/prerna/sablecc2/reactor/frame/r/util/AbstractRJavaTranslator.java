@@ -23,6 +23,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -464,15 +465,37 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		
 		// Get temp folder and file locations
 		// also define a ROOT variable
-		String removeRootVar = "";
-		String addRootVariable = "";
-		String rootPath = null;
+		String removePathVariables = "";
+		String insightRootAssignment = "";
+		String appRootAssignment = "";
+		String userRootAssignment = "";
+
+		String insightRootPath = null;
+		String appRootPath = null;
+		String userRootPath = null;
+		
 		String rTemp = null;
 		if(this.insight != null) {
-			rootPath = this.insight.getInsightFolder().replace('\\', '/');
-			rTemp = rootPath + "/R/Temp/";
-			addRootVariable = "ROOT <- '" + rootPath + "';";
-			removeRootVar = ", ROOT";
+			insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
+			insightRootAssignment = "ROOT <- '" + insightRootPath + "';";
+			removePathVariables = ", ROOT";
+			
+			if(this.insight.isSavedInsight()) {
+				appRootPath = this.insight.getAppFolder();
+				appRootPath = appRootPath.replace('\\', '/');
+				appRootAssignment = "APP_ROOT <- '" + appRootPath + "';";
+				removePathVariables += ", APP_ROOT";
+			}
+			try {
+				userRootPath = AssetUtility.getAssetBasePath(this.insight, "USER");
+				userRootPath = userRootPath.replace('\\', '/');
+				userRootAssignment = "USER_ROOT <- '" + userRootPath + "';";
+				removePathVariables += ", USER_ROOT";
+			} catch(Exception ignore) {
+				// ignore
+			}
+			
+			rTemp = insightRootPath + "/R/Temp/";
 		} else {
 			rTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/R/Temp/").replace('\\', '/');
 		}
@@ -494,7 +517,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		script = randomVariable + "<- file(\"" + outputPath + "\"); " + 
 				"sink(" + randomVariable + ", append=TRUE, type=\"output\"); " +
 				"sink(" + randomVariable + ", append=TRUE, type=\"message\"); " + 
-				encapsulateForEnv(addRootVariable + script) +
+				encapsulateForEnv(insightRootAssignment + appRootAssignment + userRootAssignment + script) +
 				"sink();";
 
 		// Try writing the script to a file
@@ -522,8 +545,14 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				}
 				
 				// clean up the output
-				if(rootPath != null && output.contains(rootPath)) {
-					output = output.replace(rootPath, "$IF");
+				if(userRootPath != null && output.contains(userRootPath)) {
+					output = output.replace(userRootPath, "$USER_IF");
+				}
+				if(appRootPath != null && output.contains(appRootPath)) {
+					output = output.replace(appRootPath, "$APP_IF");
+				}
+				if(insightRootPath != null && output.contains(insightRootPath)) {
+					output = output.replace(insightRootPath, "$IF");
 				}
 				
 				// Successful case
@@ -540,7 +569,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				// Cleanup
 				outputFile.delete();
 				try {
-					this.executeEmptyR("rm(" + randomVariable + removeRootVar + ");");
+					this.executeEmptyR("rm(" + randomVariable + removePathVariables + ");");
 					this.executeEmptyR("gc();"); // Garbage collection
 				} catch (Exception e) {
 					logger.warn("Unable to cleanup R.", e);

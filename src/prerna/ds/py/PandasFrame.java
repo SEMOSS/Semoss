@@ -477,6 +477,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// load the pandas library
 		runScript(PANDAS_IMPORT_STRING);
 		// load the frame
+		runScript("import pickle");
 		runScript(PandasSyntaxHelper.getReadPickleToPandas(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName));
 		runScript(PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
 	}
