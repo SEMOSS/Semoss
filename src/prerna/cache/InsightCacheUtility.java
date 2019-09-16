@@ -30,6 +30,7 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.util.Constants;
@@ -267,6 +268,7 @@ public class InsightCacheUtility {
 		for(File f : cacheFiles) {
 			ICache.deleteFile(f);
 		}
+		ClusterUtil.reactorPushApp(engineId);
 	}
 	
 	public static void unzipFile(ZipFile zip, String name, String path) throws FileNotFoundException {
