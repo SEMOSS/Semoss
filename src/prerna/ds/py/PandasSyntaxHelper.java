@@ -116,6 +116,14 @@ public class PandasSyntaxHelper {
 		return readCsv;
 	}
 	
+	public static String getWritePandasToPickle(String pickleVarName, String tableName, String fileLocation) {
+		return pickleVarName + ".dump(" + tableName + ", open(\"" + fileLocation.replaceAll("\\\\+", "/") + "\", \"wb\"))";
+	}
+	
+	public static String getReadPickleToPandas(String pandasImportVar, String fileLocation, String tableName) {
+		return tableName + " = " + pandasImportVar + ".read_pickle(\"" + fileLocation.replaceAll("\\\\+", "/") + "\")";
+	}
+	
 	/**
 	 * 
 	 * @param leftTableName

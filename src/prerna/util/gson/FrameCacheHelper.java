@@ -11,8 +11,8 @@ public class FrameCacheHelper {
 	 * Simple object to help cache frames in Insight Caching
 	 */
 	
-	ITableDataFrame frame;
-	List<String> alias = new Vector<String>();
+	private ITableDataFrame frame;
+	private List<String> alias = new Vector<String>();
 	
 	FrameCacheHelper(ITableDataFrame frame) {
 		this.frame = frame;
@@ -24,5 +24,13 @@ public class FrameCacheHelper {
 	
 	public boolean sameFrame(ITableDataFrame frame) {
 		return this.frame == frame;
+	}
+	
+	public ITableDataFrame getFrame() {
+		return this.frame;
+	}
+	
+	public List<String> getAlias() {
+		return this.alias;
 	}
 }
