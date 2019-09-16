@@ -58,10 +58,8 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				// Doesnt setMemoryLimit need to be moved as well? Every insight is a new env so we need to reset that every time.
 				initREnv();
 				setMemoryLimit();
-				if(rcon instanceof RUserConnectionSingle){
-					//likely can move this to all R User Types but testing in Single
-					removeRFunctions();
-				}
+				removeRFunctions();
+				
 				envConfig = true;
 			}
 		} catch (Exception e) {
