@@ -122,6 +122,7 @@ public class PandasSyntaxHelper {
 	
 	public static String getReadPickleToPandas(String pandasImportVar, String fileLocation, String tableName) {
 		return tableName + " = " + pandasImportVar + ".read_pickle(\"" + fileLocation.replaceAll("\\\\+", "/") + "\")";
+//		return tableName + " = " + pickleVarName + ".load(open(\"" + fileLocation.replaceAll("\\\\+", "/") + "\", \"wb\"))";
 	}
 	
 	/**
