@@ -134,7 +134,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		out.name("frames");
 		out.beginArray();
 		for(FrameCacheHelper fObj : frames) {
-			CachePropFileFrameObject saveFrame = fObj.frame.save(folderDir);
+			CachePropFileFrameObject saveFrame = fObj.getFrame().save(folderDir);
 			out.beginObject();
 			out.name("file").value(parameterizePath(saveFrame.getFrameCacheLocation(), baseFolder, engineName, engineId));
 			out.name("meta").value(parameterizePath(saveFrame.getFrameMetaCacheLocation(), baseFolder, engineName, engineId));
@@ -143,8 +143,9 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			out.name("name").value(saveFrame.getFrameName());
 			out.name("keys");
 			out.beginArray();
-			for(int i = 0; i < fObj.alias.size(); i++) {
-				out.value(fObj.alias.get(i));
+			List<String> alias = fObj.getAlias();
+			for(int i = 0; i < alias.size(); i++) {
+				out.value(alias.get(i));
 			}
 			out.endArray();
 			out.endObject();
