@@ -453,15 +453,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		// save frame
-		String frameFilePath = folderDir + DIR_SEPARATOR + this.frameName + ".tsv";
+		String frameFilePath = folderDir + DIR_SEPARATOR + this.frameName + ".pkl";
 		cf.setFrameCacheLocation(frameFilePath);
-		String command = PandasSyntaxHelper.getWriteCsvFile(this.frameName, frameFilePath, "\t");
 		
 		// trying to write the pickle instead
 		frameFilePath = frameFilePath.replaceAll("\\\\", "/");
 		runScript("import pickle");
-		command = "pickle.dump(" + this.frameName + ",open(\"" + frameFilePath + "\", \"wb\"))";
-		
+		String command = PandasSyntaxHelper.getWritePandasToPickle("pickle", this.frameName, frameFilePath);
 		runScript(command);
 		
 		// also save the meta details
@@ -479,7 +477,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// load the pandas library
 		runScript(PANDAS_IMPORT_STRING);
 		// load the frame
-		runScript(PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName, "\t"));
+		runScript(PandasSyntaxHelper.getReadPickleToPandas(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName));
 		runScript(PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
 	}
 
