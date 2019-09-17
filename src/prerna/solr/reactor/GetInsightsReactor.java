@@ -1,13 +1,21 @@
 package prerna.solr.reactor;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Clob;
+import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.commons.io.IOUtils;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -17,6 +25,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class GetInsightsReactor extends AbstractReactor {
+	
+	private static List<String> META_KEYS_LIST = new Vector<String>();
+	static {
+		META_KEYS_LIST.add("description");
+		META_KEYS_LIST.add("tag");
+	}
 	
 	public GetInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
@@ -58,6 +72,83 @@ public class GetInsightsReactor extends AbstractReactor {
 			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, limit,offset);
 		} else {
 			results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, limit, offset);
+		}
+		
+		// this entire block is to add the additional metadata to the insights
+		{
+			// now i will aggregate each app id to its insight ids
+			// and then i will query to get all the tags + descriptions
+			int size = results.size();
+			Map<String, List<String>> appIdsToInsight = new HashMap<String, List<String>>();
+			Map<String, Integer> index = new HashMap<String, Integer>(size);
+			for(int i = 0; i < size; i++) {
+				Map<String, Object> res = results.get(i);
+				String appId = (String) res.get("app_id");
+				String insightId = (String) res.get("app_insight_id");
+				
+				// aggregate + store
+				List<String> inIds = null;
+				if(appIdsToInsight.containsKey(appId)) {
+					inIds = appIdsToInsight.get(appId);
+				} else {
+					inIds = new Vector<String>();
+					appIdsToInsight.put(appId, inIds);
+				}
+				
+				inIds.add(insightId);
+				
+				// store so we can search by index
+				index.put(appId + insightId, new Integer(i));
+			}
+			
+			for(String appId : appIdsToInsight.keySet()) {
+				IRawSelectWrapper wrapper = SecurityInsightUtils.getInsightMetadataWrapper(appId, appIdsToInsight.get(appId), META_KEYS_LIST);
+				while(wrapper.hasNext()) {
+					Object[] data = wrapper.next().getValues();
+					String metaKey = (String) data[2];
+					String value = null;
+					
+					Clob inputClob = (Clob) data[3];
+					InputStream inputstream = null;
+					if(inputClob != null) {
+						try {
+							inputstream = inputClob.getAsciiStream();
+							value = IOUtils.toString(inputstream);
+						} catch (SQLException e) {
+							e.printStackTrace();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					if(value == null) {
+						continue;
+					}
+					
+					String unique = data[0] + "" + data[1];
+					int indextofind = index.get(unique);
+					
+					Map<String, Object> res = results.get(indextofind);
+					// right now only handling description + tags
+					if(metaKey.equals("description")) {
+						// we only have 1 description per insight
+						// so just push
+						res.put("description", value);
+					} else {
+						// multiple tags per insight
+						List<String> tags = null;
+						if(res.containsKey("tags")) {
+							tags = (List<String>) res.get("tags");
+						} else {
+							tags = new Vector<String>();
+							res.put("tags", tags);
+						}
+						
+						// add to the list
+						tags.add(value);
+					}
+				}
+			}
 		}
 		
 		NounMetadata retNoun = new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.APP_INSIGHTS);
