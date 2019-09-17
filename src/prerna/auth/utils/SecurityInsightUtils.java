@@ -1004,6 +1004,31 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 	
+	/**
+	 * Get the wrapper for additional insight metadata
+	 * @param engineId
+	 * @param insightIds
+	 * @param metaKeys
+	 * @return
+	 */
+	public static IRawSelectWrapper getInsightMetadataWrapper(String engineId, List<String> insightIds, List<String> metaKeys) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
+		// filters
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__INSIGHTID", "==", insightIds));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
+		// order
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return wrapper;
+	}
+	
 	//////////////////////////////////////////////////////////////////
 	
 	/*
