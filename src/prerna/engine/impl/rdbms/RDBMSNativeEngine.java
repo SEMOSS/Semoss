@@ -747,14 +747,22 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		}
 		sql.append(")");
 
+		return bulkInsertPreparedStatement(sql.toString());
+	}
+	
+	/**
+	 * This is to get a prepared statement based on the input query
+	 * @param query
+	 * @return
+	 */
+	public java.sql.PreparedStatement bulkInsertPreparedStatement(String sql) {
 		java.sql.PreparedStatement ps = null;
 		try {
 			// create the prepared statement using the sql query defined
-			ps = this.engineConn.prepareStatement(sql.toString());
+			ps = this.engineConn.prepareStatement(sql);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
 		return ps;
 	}
 

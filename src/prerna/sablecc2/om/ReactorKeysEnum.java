@@ -118,6 +118,7 @@ public enum ReactorKeysEnum {
 	SYNC_DATABASE("syncDatabase", 							"True/False value to detetermine if the database should be published with the app"),
 	TABLE("table", 											"The name of the table"),
 	TABLES("tables", 										"List of table names"),
+	TAGS("tags",											"Metadata tags"),		
 	TASK("task", 											"Task object (can retrieve the object by using Task(taskId) where taskId is the unique id for the task)"),
 	TASK_ID("taskId", 										"Unique id of the task within the insight"),
 	TRAVERSAL("traversal", 									"The traversal path within the map"),
