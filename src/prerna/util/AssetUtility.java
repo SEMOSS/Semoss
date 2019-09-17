@@ -6,6 +6,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
@@ -18,7 +19,11 @@ public class AssetUtility {
 	public static String INSIGHT_SPACE_KEY = "INSIGHT";
 
 	/**
-	 * Grab the workspace to work with assets
+	 * Grab the workspace to work with asset files
+	 * 
+	 * APP-ID: db/app/version/assets 
+	 * USER: db/userApp/version/assets 
+	 * INSIGHT: db/app/version/insightID
 	 * 
 	 * @param in
 	 * @param space
@@ -33,24 +38,25 @@ public class AssetUtility {
 					User user = in.getUser();
 					if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 						throw new IllegalArgumentException("Must be logged in to perform this operation");
-					}		
+					}
 					AuthProvider provider = user.getPrimaryLogin();
 					String appId = user.getAssetEngineId(provider);
 					String appName = "Asset";
 					assetFolder = getAppAssetFolder(appName, appId);
 				}
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
-				assetFolder = in.getInsightFolder();
+				// default
 			} else {
 				// user has passed an id
 				String appId = space;
-				String appName = MasterDatabaseUtility.getEngineAliasForId(appId);
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
 					if (!SecurityAppUtils.userCanEditEngine(in.getUser(), space)) {
 						throw new IllegalArgumentException("User does not have permission for this app");
 					}
 				}
+				IEngine engine = Utility.getEngine(appId);
+				String appName = engine.getEngineName();
 				assetFolder = getAppAssetFolder(appName, appId);
 			}
 		}
@@ -81,7 +87,7 @@ public class AssetUtility {
 					assetFolder = getAppAssetVersionFolder(appName, appId);
 				}
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
-				assetFolder = getAppAssetVersionFolder(in.getEngineName(), in.getEngineId());
+				// default
 			} else {
 				// user has passed an id
 				String appId = space;

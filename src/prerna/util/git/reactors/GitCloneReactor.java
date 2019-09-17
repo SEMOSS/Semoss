@@ -1,43 +1,58 @@
 package prerna.util.git.reactors;
 
+import java.io.File;
+
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
-import prerna.security.InstallCertNow;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitFetchUtils;
-import prerna.util.git.GitRepoUtils;
 
 public class GitCloneReactor extends AbstractReactor {
 
-	// pulls the latest for this project / asset
-	// the asset is basically the folder where it sits
-	// this can be used enroute in a pipeline
-	
 	public GitCloneReactor() {
-		this.keysToGet = new String[]{"repository"};
-		this.keyRequired = new int[]{1};
+		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.SPACE.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
-		String assetFolder = this.insight.getInsightFolder(); // we need it where this would be the cache
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		String repoURL = keyValue.get(keysToGet[0]);
+		if (!repoURL.startsWith("http")) {
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Not a valid URL - " + repoURL));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		// get base asset folder path
+		String filePath = this.keyValue.get(this.keysToGet[1]);
+		String space = this.keyValue.get(this.keysToGet[2]);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
 		
-		// I need to do the job of creating this directory i.e. the name of the repo
-		// TBD
-
-		String repo = keyValue.get(keysToGet[0]);
-		if(!repo.startsWith("http"))
-			return new NounMetadata("Not a valid URL - " + repo, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		// add relative path in asset folder if specified
+		if (filePath != null && !filePath.isEmpty()) {
+			assetFolder += filePath;
+		}
 		
-		String assetLocation = Utility.getInstanceName(repo);
-		//GitRepoUtils.addCertForDomain(repo);
+		// clone repo
+		String repoName = Utility.getInstanceName(repoURL);
+		String repoPath = assetFolder + DIR_SEPARATOR + repoName;
+		GitFetchUtils.cloneApp(repoURL, repoPath);
 		
-		GitFetchUtils.cloneApp(repo, assetFolder + "/" + assetLocation);
+		//check if clone was successful
+		File clonePath = new File(repoPath);
+		if(!clonePath.exists()) {
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to clone " + repoURL));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 		
 		return new NounMetadata("Success!", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
