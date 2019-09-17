@@ -2,8 +2,6 @@ package prerna.util.git.reactors;
 
 import java.io.File;
 
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -54,7 +52,7 @@ public class GitCloneReactor extends AbstractReactor {
 			throw exception;
 		}
 		
-		return new NounMetadata("Success!", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+		return NounMetadata.getSuccessNounMessage("Successfully cloned " + repoURL);
 	}
 
 }

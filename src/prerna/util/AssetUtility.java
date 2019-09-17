@@ -10,6 +10,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 
 public class AssetUtility {
 
@@ -102,6 +104,10 @@ public class AssetUtility {
 			}
 		}
 		assetFolder = assetFolder.replace('\\', '/');
+		
+		if(!GitUtils.isGit(assetFolder)) {
+			GitRepoUtils.init(assetFolder);
+		}
 		return assetFolder;
 	}
 	
