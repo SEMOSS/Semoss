@@ -4,7 +4,6 @@ import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -46,19 +45,15 @@ public class SetInsightDescriptionReactor extends AbstractInsightReactor {
 	 * Assume it is passed by the key or it is the last string passed into the curRow
 	 * @return
 	 */
-	private String getDescription() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
-		if(grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
+	protected String getDescription() {
+		String desc = super.getDescription();
+		if(desc == null) {
+			// just return the last input
+			List<String> strInputs = this.curRow.getAllStrValues();
+			if(!strInputs.isEmpty()) {
+				return strInputs.get(strInputs.size()-1);
+			}
 		}
-		
-		// just return the last input
-		List<String> strInputs = this.curRow.getAllStrValues();
-		if(!strInputs.isEmpty()) {
-			return strInputs.get(strInputs.size()-1);
-		}
-		
-		return null;
+		return desc;
 	}
-	
 }
