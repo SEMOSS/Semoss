@@ -2,7 +2,9 @@ package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -19,6 +21,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
@@ -103,22 +106,18 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 	 * @param recipeToSave
 	 */
 	protected void updateRecipeFile(Logger logger, String appId, String appName, String rdbmsID, String insightName) {
-		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
 		File mosfet = new File(recipeLocation);
 		if(mosfet.exists()) {
-			File mosfetFile = MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
-			
-			// Git
-			String folder = mosfetFile.getParent();
-			//String mosfetFileName = Utility.getInstanceName(folder);
-			//folder = folder.replaceAll("\\\\", "/");
-			//folder = folder.replace("/" + mosfetFileName, "");
-			GitRepoUtils.addSpecificFiles(folder, new File[]{mosfetFile});
-			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("File Name Changed on : "));
-
+			MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
+			// git
+			String folder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			List<String> files = new Vector<>();
+			files.add(rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
+			GitRepoUtils.addSpecificFiles(folder, files);
+			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Recipe Changed on : "));
 		} else {
 			logger.info("... Could not find existing mosfet file. Ignoring update.");
 		}
