@@ -241,7 +241,6 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createIndex("ASSETENGINE_USERID_INDEX", "ASSETENGINE", "USERID"));
 			}
 		}
-		
 
 		// INSIGHT
 		colNames = new String[] { "engineid", "insightid", "insightname", "global", "executioncount", "createdon", "lastmodifiedon", "layout", "cacheable" };
@@ -299,6 +298,31 @@ public abstract class AbstractSecurityUtils {
 			}
 			if(!indexExists(queryUtil, "USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", schema)) {
 				securityDb.insertData(queryUtil.createIndex("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION", "USERID"));
+			}
+		}
+		
+		// INSIGHTMETA
+		colNames = new String[] { "engineid", "insightid", "metakey", "metavalue", "metaorder"};
+		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "clob", "int"};
+		if(allowIfExistsTable) {
+			securityDb.insertData(queryUtil.createTableIfNotExists("INSIGHTMETA", colNames, types));
+		} else {
+			// see if table exists
+			if(!queryUtil.tableExists(conn, "INSIGHTMETA", schema)) {
+				// make the table
+				securityDb.insertData(queryUtil.createTable("INSIGHTMETA", colNames, types));
+			}
+		}
+		if(allowIfExistsIndexs) {
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+			securityDb.insertData(queryUtil.createIndexIfNotExists("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
+		} else {
+			// see if index exists
+			if(!indexExists(queryUtil, "INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_ENGINEID_INDEX", "INSIGHT", "ENGINEID"));
+			}
+			if(!indexExists(queryUtil, "INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", schema)) {
+				securityDb.insertData(queryUtil.createIndex("INSIGHTMETA_INSIGHTID_INDEX", "INSIGHT", "INSIGHTID"));
 			}
 		}
 
@@ -377,35 +401,6 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(queryUtil.createTable("ACCESSREQUEST", colNames, types));
 			}
 		}
-		
-		// THIS IS FOR LEGACY !!!!
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-		// TODO: maher EVENTUALLY WE WILL DELETE THIS
-
-		// MAKE SURE VARCHAR(255)
-//		securityDb.insertData("ALTER TABLE ASSETENGINE MODIFY ENGINEID VARCHAR(255) NOT NULL;");
-//		securityDb.insertData("ALTER TABLE WORKSPACEENGINE MODIFY ENGINEID VARCHAR(255) NOT NULL;");
-//		// ADD NEW COLUMN FOR CACHEABLE INSIGHTS
-//		securityDb.insertData("ALTER TABLE INSIGHT ADD COLUMN IF NOT EXISTS CACHEABLE BOOLEAN DEFAULT TRUE");
-//		// ADD NEW COLUMN FOR USER CAN BE PUBLISHER 
-//		securityDb.insertData("ALTER TABLE USER ADD COLUMN IF NOT EXISTS PUBLISHER BOOLEAN DEFAULT TRUE");
-//		// DROP COLUMN SUBMITTEDTO IN TABLE ACCESSREQUEST
-//		securityDb.removeData("ALTER TABLE ACCESSREQUEST DROP COLUMN IF EXISTS SUBMITTEDTO");
-//		// CHANGE TYPES TO BE STRINGS WHERE APPROPRIATE
-//		wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "SELECT COLUMN_NAME, TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ACCESSREQUEST' and COLUMN_NAME IN ('ID','ENGINE')");
-//		while(wrapper.hasNext()) {
-//			Object[] row = wrapper.next().getValues();
-//			String column = row[0].toString();
-//			String type = row[1].toString();
-//			if(!type.equals("VARCHAR")) {
-//				securityDb.insertData("ALTER TABLE ACCESSREQUEST ALTER COLUMN " + column + " VARCHAR(255);");
-//			}
-//		}
-//		wrapper.cleanUp();
-
 		
 		////////////////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////////
