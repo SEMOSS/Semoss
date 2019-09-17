@@ -751,7 +751,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, String limit, String offset) {
+	public static List<Map<String, Object>> searchUserInsights(User user, List<String> engineFilter, String searchTerm, List<String> tags, String limit, String offset) {
 //		String userFilters = getUserFilters(user);
 //
 //		String query = "SELECT DISTINCT "
@@ -908,8 +908,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			filter.setFunctionSelector(regexFunction);
 			qs.addExplicitFilter(filter);
 		}
+		// if we have tag filters
+		boolean tagFiltering = tags != null && !tags.isEmpty();
+		if(tagFiltering) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+		}
+		
 		// joins
 		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		if(tagFiltering) {
+			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
+			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addRelation("INSIGHT", "USERINSIGHTPERMISSION", "left.outer.join");
 		// sort
@@ -934,7 +945,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> searchInsights(List<String> engineFilter, String searchTerm, String limit, String offset) {
+	public static List<Map<String, Object>> searchInsights(List<String> engineFilter, String searchTerm, List<String> tags, String limit, String offset) {
 //		String query = "SELECT DISTINCT "
 //				+ "INSIGHT.ENGINEID AS \"app_id\", "
 //				+ "ENGINE.ENGINENAME AS \"app_name\", "
@@ -988,8 +999,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			filter.setFunctionSelector(regexFunction);
 			qs.addExplicitFilter(filter);
 		}
+		// if we have tag filters
+		boolean tagFiltering = tags != null && !tags.isEmpty();
+		if(tagFiltering) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAVALUE", "==", tags));
+		}
 		// joins
 		qs.addRelation("ENGINE", "INSIGHT", "inner.join");
+		if(tagFiltering) {
+			qs.addRelation("INSIGHT__INSIGHTID", "INSIGHTMETA__INSIGHTID", "inner.join");
+			qs.addRelation("INSIGHT__ENGINEID", "INSIGHTMETA__ENGINEID", "inner.join");
+		}
 		// sort
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
 		// limit 
@@ -1027,6 +1048,31 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		return wrapper;
+	}
+	
+	/**
+	 * Get all the available tags and their count
+	 * @param engineFilters
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAvailableInsightTagsAndCounts(List<String> engineFilters) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "tag"));
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+		fSelector.setAlias("count");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+		qs.addSelector(fSelector);
+		// filters
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", "tag"));
+		if(engineFilters != null && !engineFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__ENGINEID", "==", engineFilters));
+		}
+		// group
+		qs.addGroupBy(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "tag"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return flushRsToMap(wrapper);
 	}
 	
 	//////////////////////////////////////////////////////////////////
