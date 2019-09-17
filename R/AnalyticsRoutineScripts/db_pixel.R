@@ -435,11 +435,41 @@ build_pixel<-function(appid,pixel_aggr_select,pixel_single_select,pixel_where,pi
 			pixel<-rbind(pixel,pixel_having)
 		}
 	}
-	if(nrow(pixel)>0){
-		pixel$appid<-appid
-		pixel<-pixel[,c(9,1,2,3,4,5,6,7,8)]
+	pixel<-normalize_pixel(appid,pixel)
+	gc()
+	return(pixel)
+}
+
+normalize_pixel<-function(appid,pixel){
+	N<-nrow(pixel)
+	M<-ncol(pixel)
+	if(N>0 & M>0){
+		pixel$label<-""
+		pixel$appid<-""
+		pixel$appid2<-""
+		pixel<-pixel[,c(9,10,11,1,2,3,4,5,6,7,8)]
+		for(i in 1:N){
+			rec<-as.character(pixel[i,])
+			k<-0
+			for(j in 4:(M+3)){
+				if(rec[j]!="") {
+					items<-unlist(strsplit(rec[j],"._.",fixed=TRUE))
+					if(length(items)==2){
+						pixel[i,2+k]<-items[1]
+						pixel[i,j]<-items[2]
+						if(k==1) {
+							break
+						}else{
+							k<-k+1
+						}
+					}
+				}else{
+					break
+				}
+			}
+		}
+		pixel$label<-appid
 	}
 	gc()
 	return(pixel)
 }
-	
