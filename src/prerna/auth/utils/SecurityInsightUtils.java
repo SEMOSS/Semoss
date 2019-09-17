@@ -557,7 +557,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}		
-		query = "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		query = "DELETE FROM INSIGHTMETA WHERE INSIGHTID ='" + insightId + "' AND ENGINEID='" + engineId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
