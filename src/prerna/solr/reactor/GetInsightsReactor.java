@@ -1,15 +1,9 @@
 package prerna.solr.reactor;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.sql.Clob;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-
-import org.apache.commons.io.IOUtils;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
@@ -23,6 +17,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class GetInsightsReactor extends AbstractReactor {
 	
@@ -34,7 +29,7 @@ public class GetInsightsReactor extends AbstractReactor {
 	
 	public GetInsightsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey() };
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.TAGS.getKey() };
 	}
 
 	@Override
@@ -65,13 +60,15 @@ public class GetInsightsReactor extends AbstractReactor {
 		String searchTerm = this.keyValue.get(this.keysToGet[1]);
 		String limit = this.keyValue.get(this.keysToGet[2]);
 		String offset = this.keyValue.get(this.keysToGet[3]);
+		List<String> tagFilters = getTags();
+		
 		// get results
 		List<Map<String, Object>> results = null;
 		// method handles if filters are null or not
 		if (AbstractSecurityUtils.securityEnabled()) {
-			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, limit,offset);
+			results = SecurityInsightUtils.searchUserInsights(this.insight.getUser(), eFilters, searchTerm, tagFilters, limit, offset);
 		} else {
-			results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, limit, offset);
+			results = SecurityInsightUtils.searchInsights(eFilters, searchTerm, tagFilters, limit, offset);
 		}
 		
 		// this entire block is to add the additional metadata to the insights
@@ -106,21 +103,7 @@ public class GetInsightsReactor extends AbstractReactor {
 				while(wrapper.hasNext()) {
 					Object[] data = wrapper.next().getValues();
 					String metaKey = (String) data[2];
-					String value = null;
-					
-					Clob inputClob = (Clob) data[3];
-					InputStream inputstream = null;
-					if(inputClob != null) {
-						try {
-							inputstream = inputClob.getAsciiStream();
-							value = IOUtils.toString(inputstream);
-						} catch (SQLException e) {
-							e.printStackTrace();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-					
+					String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[3]);
 					if(value == null) {
 						continue;
 					}
@@ -161,4 +144,19 @@ public class GetInsightsReactor extends AbstractReactor {
 		return retNoun;
 	}
 	
+	/**
+	 * Get the tags to set for the insight
+	 * @return
+	 */
+	private List<String> getTags() {
+		List<String> tags = new Vector<String>();
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TAGS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			for(int i = 0; i < grs.size(); i++) {
+				tags.add(grs.get(i).toString());
+			}
+		}
+		
+		return tags;
+	}
 }

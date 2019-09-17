@@ -767,7 +767,12 @@ public abstract class AbstractSecurityUtils {
 			Object[] values = headerRow.getValues();
 			Map<String, Object> map = new HashMap<String, Object>();
 			for(int i = 0; i < headers.length; i++) {
-				map.put(headers[i], values[i]);
+				if(values[i] instanceof java.sql.Clob) {
+					String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
+					map.put(headers[i], value);
+				} else {
+					map.put(headers[i], values[i]);
+				}
 			}
 			result.add(map);
 		}
