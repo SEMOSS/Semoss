@@ -1,11 +1,9 @@
 package prerna.sablecc2.reactor.insights.save.metadata;
 
 import java.util.List;
-import java.util.Vector;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -42,20 +40,4 @@ public class SetInsightTagsReactor extends AbstractInsightReactor {
 		return noun;
 	}
 
-	/**
-	 * Get the tags to set for the insight
-	 * @return
-	 */
-	private List<String> getTags() {
-		List<String> tags = new Vector<String>();
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
-		if(grs != null && !grs.isEmpty()) {
-			for(int i = 0; i < grs.size(); i++) {
-				tags.add(grs.get(i).toString());
-			}
-		}
-		
-		return tags;
-	}
-	
 }
