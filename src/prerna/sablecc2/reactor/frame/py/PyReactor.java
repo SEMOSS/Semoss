@@ -68,10 +68,10 @@ public class PyReactor extends AbstractReactor {
 		String[] commands = new String[size];
 		int counter = 0;
 		commands[counter++] = insightRootAssignment;
-		if(appRootAssignment != null) {
+		if(appRootAssignment != null && !appRootAssignment.isEmpty()) {
 			commands[counter++] = appRootAssignment;
 		}
-		if(userRootAssignment != null) {
+		if(userRootAssignment != null && !userRootAssignment.isEmpty()) {
 			commands[counter++] = userRootAssignment;
 		}
 		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
