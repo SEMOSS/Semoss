@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -37,6 +39,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.commons.io.IOUtils;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -207,6 +211,26 @@ public abstract class AbstractSqlQueryUtil {
 		s = s.replace("(", "\\(");
 		s = s.replace(")", "\\)");
 		return s;
+	}
+	
+	/**
+	 * Flush clob to string
+	 * @param inputClob
+	 * @return
+	 */
+	public static String flushClobToString(java.sql.Clob inputClob) {
+		InputStream inputstream = null;
+		if(inputClob != null) {
+			try {
+				inputstream = inputClob.getAsciiStream();
+				return IOUtils.toString(inputstream);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return null;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
