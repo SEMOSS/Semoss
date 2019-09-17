@@ -21,6 +21,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("WORKSPACEENGINE");
 		conceptsRequired.add("ASSETENGINE");
 		conceptsRequired.add("INSIGHT");
+		conceptsRequired.add("INSIGHTMETA");
 		conceptsRequired.add("USERINSIGHTPERMISSION");
 		conceptsRequired.add("USER");
 		conceptsRequired.add("PERMISSION");
@@ -143,6 +144,14 @@ public class SecurityOwlCreator {
 		owler.addProp("USERINSIGHTPERMISSION", "ENGINEID", "VARCHAR(255)");
 		owler.addProp("USERINSIGHTPERMISSION", "PERMISSION", "INT");
 
+		// INSIGHTMETA
+		owler.addConcept("INSIGHTMETA", null, null);
+		owler.addProp("INSIGHTMETA", "INSIGHTID", "VARCHAR(255)");
+		owler.addProp("INSIGHTMETA", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("INSIGHTMETA", "METAKEY", "VARCHAR(255)");
+		owler.addProp("INSIGHTMETA", "METAVALUE", "CLOB");
+		owler.addProp("INSIGHTMETA", "METAORDER", "INT");
+		
 		// USER
 		owler.addConcept("USER", null, null);
 		owler.addProp("USER", "ID", "VARCHAR(255)");
@@ -175,6 +184,9 @@ public class SecurityOwlCreator {
 
 		owler.addRelation("ENGINEPERMISSION", "PERMISSION", "ENGINEPERMISSION.PERMISSION.PERMISSION.ID");
 		owler.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "USERINSIGHTPERMISSION.PERMISSION.PERMISSION.ID");
+
+		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.INSIGHTID.INSIGHTMETA.INSIGHTID");
+		owler.addRelation("INSIGHT", "INSIGHTMETA", "INSIGHT.ENGINEID.INSIGHTMETA.ENGINEID");
 
 		owler.commit();
 		owler.export();
