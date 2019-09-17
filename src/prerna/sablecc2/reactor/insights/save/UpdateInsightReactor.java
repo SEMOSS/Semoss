@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -20,6 +21,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
@@ -162,18 +164,15 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param recipeToSave
 	 */
 	protected void updateRecipeFile(String appId, String appName, String rdbmsID, String insightName, String layout, String imageName, String[] recipeToSave, boolean hidden) {
-		final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
-		File mosfetFile = MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
-		
+		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
 		// git
-		String folder = mosfetFile.getParent();
-		//String mosfetFileName = Utility.getInstanceName(folder);
-		//folder = folder.replaceAll("\\\\", "/");
-		//folder = folder.replace("/" + mosfetFileName, "");
-		GitRepoUtils.addSpecificFiles(folder, new File[]{mosfetFile});
+		String folder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+		List<String> files = new Vector<>();
+		files.add(rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
+		GitRepoUtils.addSpecificFiles(folder, files);
 		GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Recipe Changed on : "));
 	}
 	

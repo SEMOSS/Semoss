@@ -1,10 +1,10 @@
 package prerna.sablecc2.reactor.insights.save;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -20,8 +20,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
+import prerna.util.AssetUtility;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
@@ -115,15 +118,15 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info("3) Add recipe to file...");
-		File retFile = MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
+		MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
 		logger.info("3) Done...");
-		
-		// add the git here
-		String recipePath = retFile.getParent();
 
 		// adding all the git here
-		// make a version folder if one doesn't exist
-		//GitRepoUtils.init(recipePath);
+		String folder = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId);
+		List<String> files = new Vector<>();
+		files.add(newRdbmsId + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
+		GitRepoUtils.addSpecificFiles(folder, files);
+		GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Recipe Changed on : "));
 		
 		// write pipeline
 		if(pipeline != null && !pipeline.isEmpty()) {
