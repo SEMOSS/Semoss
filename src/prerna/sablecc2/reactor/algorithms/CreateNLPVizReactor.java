@@ -55,7 +55,10 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		Map<String, String> aliasHash = new HashMap<String, String>();
 		String fileroot = "dataitem";
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
-		String appName = MasterDatabaseUtility.getEngineAliasForId(appId).replace(" ", "_");
+		String appName = "Multiple";
+		if(!appId.contains("Multiple")) {
+			appName = MasterDatabaseUtility.getEngineAliasForId(appId).replace(" ", "_");
+		}
 		boolean allStrings = true;
 		
 		// if it only has one column or one row, just return it as a grid
