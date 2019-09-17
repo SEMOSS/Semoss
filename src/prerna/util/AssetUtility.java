@@ -11,7 +11,11 @@ import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 
 public class AssetUtility {
+
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+
+	public static String USER_SPACE_KEY = "USER";
+	public static String INSIGHT_SPACE_KEY = "INSIGHT";
 
 	/**
 	 * Grab the workspace to work with assets
@@ -24,7 +28,7 @@ public class AssetUtility {
 		String assetFolder = in.getInsightFolder();
 		// find out what space the user wants to use to get the base asset path
 		if (space != null) {
-			if ("USER".equalsIgnoreCase(space)) {
+			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
 				if (AbstractSecurityUtils.securityEnabled()) {
 					User user = in.getUser();
 					if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
@@ -35,7 +39,7 @@ public class AssetUtility {
 					String appName = "Asset";
 					assetFolder = getAppAssetFolder(appName, appId);
 				}
-			} else if ("INSIGHT".equalsIgnoreCase(space)) {
+			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				assetFolder = in.getInsightFolder();
 			} else {
 				// user has passed an id
@@ -50,7 +54,7 @@ public class AssetUtility {
 				assetFolder = getAppAssetFolder(appName, appId);
 			}
 		}
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		assetFolder = assetFolder.replace('\\', '/');
 		return assetFolder;
 	}
 	
@@ -65,7 +69,7 @@ public class AssetUtility {
 		String assetFolder = getAppAssetVersionFolder(in.getEngineName(), in.getEngineId());
 		// find out what space the user wants to use to get the base asset path
 		if (space != null) {
-			if ("USER".equalsIgnoreCase(space)) {
+			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
 				if (AbstractSecurityUtils.securityEnabled()) {
 					User user = in.getUser();
 					if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
@@ -76,7 +80,7 @@ public class AssetUtility {
 					String appName = "Asset";
 					assetFolder = getAppAssetVersionFolder(appName, appId);
 				}
-			} else if ("INSIGHT".equalsIgnoreCase(space)) {
+			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				assetFolder = getAppAssetVersionFolder(in.getEngineName(), in.getEngineId());
 			} else {
 				// user has passed an id
@@ -91,7 +95,7 @@ public class AssetUtility {
 				assetFolder = getAppAssetVersionFolder(appName, appId);
 			}
 		}
-		assetFolder = assetFolder.replaceAll("\\\\", "/");
+		assetFolder = assetFolder.replace('\\', '/');
 		return assetFolder;
 	}
 	
@@ -124,7 +128,7 @@ public class AssetUtility {
 	
 	public static String getAssetRelativePath(Insight in, String space) {
 		String relativePath = "";
-		if(space == null || space.equals("INSIGHT")) {
+		if(space == null || space.equals(INSIGHT_SPACE_KEY)) {
 			relativePath = in.getRdbmsId();
 		} else {
 			// user space or asset app
