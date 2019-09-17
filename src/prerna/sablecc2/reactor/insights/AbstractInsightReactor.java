@@ -244,6 +244,36 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	}
 	
 	/**
+	 * Get the tags to set for the insight
+	 * @return
+	 */
+	protected List<String> getTags() {
+		List<String> tags = new Vector<String>();
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.TAGS.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			for(int i = 0; i < grs.size(); i++) {
+				tags.add(grs.get(i).toString());
+			}
+		}
+		
+		return tags;
+	}
+	
+	/**
+	 * Get the description for the insight
+	 * Assume it is passed by the key or it is the last string passed into the curRow
+	 * @return
+	 */
+	protected String getDescription() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.DESCRIPTION.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return grs.get(0).toString();
+		}
+		
+		return null;
+	}
+	
+	/**
 	 * Save base64 encoded image to file
 	 * Semoss/images/engineName_insightID.png
 	 * @param base64Image
