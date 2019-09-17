@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +97,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		
 		if(!hidden) {
 			logger.info("2) Updated registered insight...");
-			editRegisteredInsightAndMetadata(engine.getEngineId(), existingId, insightName, layout, "", new ArrayList<String>());
+			editRegisteredInsightAndMetadata(engine.getEngineId(), existingId, insightName, layout, getDescription(), getTags());
 			logger.info("2) Done...");
 		}
 		
@@ -137,27 +136,22 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	}
 
 	/**
-	 * Edit an existing insight saved within solr
-	 * 
-	 * @param engineName
+	 * Edit an existing insight saved within security database
+	 * @param appId
 	 * @param existingRdbmsId
 	 * @param insightName
 	 * @param layout
 	 * @param description
 	 * @param tags
-	 * @param userId
-	 * @param imageURL
 	 */
 	private void editRegisteredInsightAndMetadata(String appId, String existingRdbmsId, String insightName, String layout, String description, List<String> tags) {
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
-		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
 		SecurityInsightUtils.updateInsight(appId, existingRdbmsId, insightName, true, layout);
+		if(description != null) {
+			SecurityInsightUtils.updateInsightDescription(appId, existingRdbmsId, description);
+		}
+		if(tags != null && tags.isEmpty()) {
+			SecurityInsightUtils.updateInsightTags(appId, existingRdbmsId, tags);
+		}
 	}
 	
 	/**

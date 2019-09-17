@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +22,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
 public class SaveInsightReactor extends AbstractInsightReactor {
 
@@ -31,8 +29,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	
 	public SaveInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.LAYOUT_KEY.getKey(),
-				HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
-				ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.PIPELINE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
+				HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.PARAM_KEY.getKey(), 
+				ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.TAGS.getKey(), 
+				ReactorKeysEnum.PIPELINE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
 	}
 	
 	@Override
@@ -108,7 +107,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		if(!hidden) {
 			logger.info("2) Regsiter insight...");
-			registerInsightAndMetadata(engine.getEngineId(), newRdbmsId, insightName, layout, "", new ArrayList<String>());
+			registerInsightAndMetadata(engine.getEngineId(), newRdbmsId, insightName, layout, getDescription(), getTags());
 			logger.info("2) Done...");
 		} else {
 			logger.info("2) Insight is hidden ... do not add to solr");
@@ -125,7 +124,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// adding all the git here
 		// make a version folder if one doesn't exist
 		//GitRepoUtils.init(recipePath);
-		
 		
 		// write pipeline
 		if(pipeline != null && !pipeline.isEmpty()) {
@@ -162,15 +160,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	}
 	
 	/**
-	 * Add an insight into solr
+	 * Save a new insight within security database
 	 * @param appId
-	 * @param appName
 	 * @param insightIdToSave
 	 * @param insightName
 	 * @param layout
 	 * @param description
 	 * @param tags
-	 * @param userId
 	 */
 	private void registerInsightAndMetadata(String appId, String insightIdToSave, String insightName, String layout, String description, List<String> tags) {
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
@@ -178,6 +174,11 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, insightIdToSave);
 		}
-		// TODO: add the description + tags
+		if(description != null) {
+			SecurityInsightUtils.updateInsightDescription(appId, insightIdToSave, description);
+		}
+		if(tags != null && tags.isEmpty()) {
+			SecurityInsightUtils.updateInsightTags(appId, insightIdToSave, tags);
+		}
 	}
 }
