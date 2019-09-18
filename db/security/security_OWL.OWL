@@ -108,32 +108,46 @@
 	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINEID</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/KEY/ENGINEMETA">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METAKEY/ENGINEMETA">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEMETA">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/KEY/ENGINEMETA"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METAKEY/ENGINEMETA"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/KEY/ENGINEMETA">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METAKEY/ENGINEMETA">
 	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/KEY/ENGINEMETA"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">KEY</Conceptual>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METAKEY/ENGINEMETA"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">METAKEY</Conceptual>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VALUE/ENGINEMETA">
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METAVALUE/ENGINEMETA">
 	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEMETA">
-	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VALUE/ENGINEMETA"/>
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METAVALUE/ENGINEMETA"/>
 </rdf:Description>
 
-<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/VALUE/ENGINEMETA">
-	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:VARCHAR(255)"/>
-	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/VALUE/ENGINEMETA"/>
-	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">VALUE</Conceptual>
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METAVALUE/ENGINEMETA">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METAVALUE/ENGINEMETA"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">METAVALUE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METAORDER/ENGINEMETA">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEMETA">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METAORDER/ENGINEMETA"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METAORDER/ENGINEMETA">
+	<Class xmlns="http://www.w3.org/2000/01/rdf-schema#" rdf:resource="TYPE:INT"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METAORDER/ENGINEMETA"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">METAORDER</Conceptual>
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/ENGINEPERMISSION">
@@ -843,7 +857,7 @@
 </rdf:Description>
 
 <rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
-	<TIME xmlns="ENGINE:">2019:09:17 08:14:25</TIME>
+	<TIME xmlns="ENGINE:">2019:09:18 16:53:06</TIME>
 </rdf:Description>
 
 </rdf:RDF>
