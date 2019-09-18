@@ -1,6 +1,8 @@
 package prerna.auth.utils;
 
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +18,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityAppUtils extends AbstractSecurityUtils {
 
@@ -439,6 +442,96 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
 		return true;
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * App Metadata
+	 */
+	
+	/**
+	 * Update the app description
+	 * Will perform an insert if the description doesn't currently exist
+	 * @param engineId
+	 * @param insideId
+	 */
+	public static void updateAppDescription(String engineId, String description) {
+		// try to do an update
+		// if nothing is updated
+		// do an insert
+		String query = "UPDATE ENGINEMETA SET METAVALUE='" 
+				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
+				+ "WHERE METAKEY='description' AND ENGINEID='" + engineId + "'";
+		Statement stmt = null;
+		try {
+			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
+			if(stmt.getUpdateCount() == 0) {
+				// need to perform an insert
+				query = securityDb.getQueryUtil().insertIntoTable("ENGINEMETA", 
+						new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"}, 
+						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
+						new Object[]{engineId, "description", description, 0});
+				securityDb.insertData(query);
+			}
+		} catch(SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Update the app tags
+	 * Will delete existing values and then perform a bulk insert
+	 * @param engineId
+	 * @param insightId
+	 * @param tags
+	 */
+	public static void updateAppTags(String engineId, List<String> tags) {
+		// first do a delete
+		String query = "DELETE FROM ENGINEMETA WHERE METAKEY='tag' AND ENGINEID='" + engineId + "'";
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		// now we do the new insert with the order of the tags
+		query = securityDb.getQueryUtil().createInsertPreparedStatementString("ENGINEMETA", 
+				new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"});
+		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		try {
+			for(int i = 0; i < tags.size(); i++) {
+				String tag = tags.get(i);
+				ps.setString(1, engineId);
+				ps.setString(2, "tag");
+				ps.setString(3, tag);
+				ps.setInt(4, i);
+				ps.addBatch();;
+			}
+			
+			ps.executeBatch();
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 	
 }

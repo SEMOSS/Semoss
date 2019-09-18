@@ -598,6 +598,22 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 	}
 	
+	/**
+	 * Update the total execution count
+	 * @param engineId
+	 * @param insightId
+	 */
+	public static void updateExecutionCount(String engineId, String insightId) {
+		String updateQuery = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 "
+				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "'";
+		try {
+			securityDb.insertData(updateQuery);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
