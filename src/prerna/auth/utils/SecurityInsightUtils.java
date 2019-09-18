@@ -5,8 +5,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.AuthProvider;
@@ -1050,6 +1052,49 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return wrapper;
 	}
 	
+	public static Map<String, Object> getSpecificInsightMetadata(String engineId, String insightId, List<String> metaKeys) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
+		// filters
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__INSIGHTID", "==", insightId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHTMETA__METAKEY", "==", metaKeys));
+		// order
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		while(wrapper.hasNext()) {
+			Object[] data = wrapper.next().getValues();
+			String metaKey = data[2].toString();
+			String metaValue = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[3]);
+
+			// AS THIS LIST EXPANDS
+			// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
+			if(metaKey.equals("tag")) {
+				List<String> listVal = null;
+				if(retMap.containsKey("tags")) {
+					listVal = (List<String>) retMap.get("tags");
+				} else {
+					listVal = new Vector<String>();
+					retMap.put("tags", listVal);
+				}
+				listVal.add(metaValue);
+			}
+			// these will be the single valued parameters
+			else {
+				retMap.put(metaKey, metaValue);
+			}
+		}
+
+		return retMap;
+	}
+
 	/**
 	 * Get all the available tags and their count
 	 * @param engineFilters
