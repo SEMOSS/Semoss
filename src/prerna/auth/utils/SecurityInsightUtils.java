@@ -1050,7 +1050,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param metaKeys
 	 * @return
 	 */
-	public static IRawSelectWrapper getInsightMetadataWrapper(String engineId, List<String> insightIds, List<String> metaKeys) {
+	public static IRawSelectWrapper getInsightMetadataWrapper(String engineId, Collection<String> insightIds, List<String> metaKeys) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__ENGINEID"));
@@ -1068,6 +1068,13 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		return wrapper;
 	}
 	
+	/**
+	 * Get the insight metadata for a specific insight
+	 * @param engineId
+	 * @param insightId
+	 * @param metaKeys
+	 * @return
+	 */
 	public static Map<String, Object> getSpecificInsightMetadata(String engineId, String insightId, List<String> metaKeys) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
