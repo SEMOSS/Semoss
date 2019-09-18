@@ -8,13 +8,16 @@ import org.apache.log4j.Logger;
 import jep.Jep;
 import jep.JepConfig;
 import jep.JepException;
+import prerna.sablecc.ReactorSecurityManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 public class PyExecutorThread extends Thread {
 
-	private static final Logger LOGGER = LogManager.getLogger(PyExecutorThread.class.getName());
-	
+	private static final String CLASS_NAME = PyExecutorThread.class.getName();
+	private static final Logger LOGGER = LogManager.getLogger(CLASS_NAME);
+	private static transient SecurityManager defaultManager = System.getSecurityManager();
+
 	private Jep jep = null;
 	private Object daLock = new Object();
 	
@@ -42,6 +45,11 @@ public class PyExecutorThread extends Thread {
 					// process the command
 					// set the response go back to sleep
 					if(this.keepAlive) {
+						
+						ReactorSecurityManager tempManager = new ReactorSecurityManager();
+						tempManager.addClass(CLASS_NAME);
+						System.setSecurityManager(tempManager);
+						
 						for(int cmdLength = 0;cmdLength < command.length;cmdLength++) {
 							String thisCommand = command[cmdLength];
 							Object thisResponse = null;
@@ -71,6 +79,10 @@ public class PyExecutorThread extends Thread {
 								e.printStackTrace();
 							}
 						}
+						
+						// set back the original security manager
+						tempManager.removeClass(CLASS_NAME);
+						System.setSecurityManager(defaultManager);	
 					}
 				}
 			} catch (InterruptedException e) {
