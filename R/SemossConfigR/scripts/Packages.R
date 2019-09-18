@@ -216,6 +216,22 @@ install.packages("arules", dependencies=TRUE)
 #install.packages("lambda.r", dependencies=TRUE)
 #install.packages("text2vec", dependencies=TRUE)
 
+# Document Summary
+install.packages("readtext", dependencies=TRUE)
+install.packages("xml2", dependencies=TRUE)
+install.packages("rvest", dependencies=TRUE)
+install.packages("lexRankr", dependencies=TRUE)
+install.packages("textrank", dependencies=TRUE)
+install.packages("textmineR", dependencies=TRUE)
+install.packages("textreadr", dependencies=TRUE)
+install.packages("pdftools", dependencies=TRUE)
+install.packages("antiword", dependencies=TRUE)
+#install.packages("textreuse", dependencies=TRUE)
+#install.packages("stringr", dependencies=TRUE)
+#install.packages("dplyr", dependencies=TRUE)
+#install.packages("tm", dependencies=TRUE)
+#install.packages("udpipe", dependencies=TRUE)
+
 #Natural Language Search
 install.packages("udpipe", dependencies=TRUE)
 install.packages("tokenizers", dependencies=TRUE)
@@ -226,5 +242,3 @@ install.packages("openNLPmodels.en", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 #install.packages("stringr", dependencies=TRUE)
 #install.packages("stringdist", dependencies=TRUE)
-
-
