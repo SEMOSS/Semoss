@@ -418,29 +418,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return flushRsToMap(wrapper);
 	}
 	
-	public static Map<String, List<String>> getAggregateEngineMetadata(String engineId) {
-//		String query = "SELECT KEY, VALUE FROM ENGINEMETA WHERE ENGINEID='" + engineId + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEMETA__KEY"));
-		qs.addSelector(new QueryColumnSelector("ENGINEMETA__VALUE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
-		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-		
-		Map<String, List<String>> engineMeta = new HashMap<String, List<String>>();
-		while(wrapper.hasNext()) {
-			Object[] data = wrapper.next().getValues();
-			String key = data[0].toString();
-			String value = data[1].toString();
-			if(!engineMeta.containsKey(key)) {
-				engineMeta.put(key, new Vector<String>());
-			}
-			engineMeta.get(key).add(value);
-		}
-		return engineMeta;
-	}
-	
 	/**
 	 * Get user engines + global engines 
 	 * @param userId
