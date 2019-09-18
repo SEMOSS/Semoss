@@ -139,6 +139,9 @@ public class MergeReactor extends AbstractReactor {
 						continue;
 					}
 					
+					if(frame.isEmpty()) {
+						throw new IllegalArgumentException("Attemping to join new data with an empty frame. End result is still an empty frame.");
+					}
 					SelectQueryStruct filterQs = new SelectQueryStruct();
 					QueryColumnSelector column = new QueryColumnSelector(s);
 					filterQs.addSelector(column);
