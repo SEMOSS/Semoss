@@ -180,7 +180,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		if(description != null) {
 			SecurityInsightUtils.updateInsightDescription(appId, insightIdToSave, description);
 		}
-		if(tags != null && tags.isEmpty()) {
+		if(tags != null && !tags.isEmpty()) {
 			SecurityInsightUtils.updateInsightTags(appId, insightIdToSave, tags);
 		}
 	}
