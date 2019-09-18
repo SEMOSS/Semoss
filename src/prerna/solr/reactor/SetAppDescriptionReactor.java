@@ -1,15 +1,10 @@
 package prerna.solr.reactor;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -19,7 +14,7 @@ public class SetAppDescriptionReactor extends AbstractReactor {
 	public static final String DESCRIPTIONS = "description";
 
 	public SetAppDescriptionReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), DESCRIPTIONS};
+		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.DESCRIPTION.getKey()};
 	}
 
 	@Override
@@ -36,15 +31,11 @@ public class SetAppDescriptionReactor extends AbstractReactor {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
 		}
 		
-		if(!SecurityQueryUtils.getEngineIds().contains(appId)) {
-			throw new IllegalArgumentException("App id does not exist");
-		}
-		
-		String descriptions = this.keyValue.get(this.keysToGet[1]);
-		List<String> descList = new ArrayList<String>();
-		descList.add(descriptions);
-		SecurityUpdateUtils.setEngineMeta(appId, "description", descList);
+		String description = this.keyValue.get(this.keysToGet[1]);
+		SecurityAppUtils.updateAppDescription(appId, description);
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.APP_INFO);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new description for app"));
+		return noun;
 	}
 }

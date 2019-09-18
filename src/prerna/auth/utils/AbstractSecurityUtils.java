@@ -150,8 +150,21 @@ public abstract class AbstractSecurityUtils {
 		}
 		
 		// ENGINEMETA
-		colNames = new String[] { "engineid", "key", "value" };
-		types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)" };
+		// check if column exists
+		// TEMPORARY CHECK!
+		{
+			List<String> allCols = queryUtil.getTableColumns(securityDb.getConnection(), "ENGINEMETA", schema);
+			// this should return in all upper case
+			if(!allCols.contains("METAORDER")) {
+				if(allowIfExistsTable) {
+					securityDb.insertData(queryUtil.dropTableIfExists("ENGINEMETA"));
+				} else if(queryUtil.tableExists(conn, "ENGINEMETA", schema)) {
+					securityDb.insertData(queryUtil.dropTable("ENGINEMETA"));
+				}
+			}
+		}
+		colNames = new String[] { "engineid", "metakey", "metavalue", "metaorder" };
+		types = new String[] { "varchar(255)", "varchar(255)", "clob", "int" };
 		if(allowIfExistsTable) {
 			securityDb.insertData(queryUtil.createTableIfNotExists("ENGINEMETA", colNames, types));
 		} else {

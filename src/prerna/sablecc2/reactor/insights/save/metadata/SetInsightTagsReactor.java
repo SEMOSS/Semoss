@@ -36,7 +36,7 @@ public class SetInsightTagsReactor extends AbstractInsightReactor {
 		SecurityInsightUtils.updateInsightTags(appId, existingId, tags);
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new description for insight"));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully saved new tags for insight"));
 		return noun;
 	}
 

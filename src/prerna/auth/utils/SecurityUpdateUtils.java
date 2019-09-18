@@ -422,65 +422,6 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 	}
 	
-	/*
-	 * Adding engine meta
-	 */
-	
-	/**
-	 * 
-	 * @param appId
-	 * @param metaValues
-	 * @param metaType
-	 * @throws SQLException
-	 */
-	public static void setEngineMeta(String engineId, String metaType, List<String> metaValues) {
-		metaType = metaType.toLowerCase();
-		// first delete existing values
-		String deleteQuery = "DELETE FROM ENGINEMETA WHERE ENGINEID='" + engineId + "' AND KEY='" + metaType + "'";
-		try {
-			securityDb.removeData(deleteQuery);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		// second set new values
-		try {
-			PreparedStatement ps = securityDb.bulkInsertPreparedStatement(new Object[]{"ENGINEMETA", "ENGINEID", "KEY", "VALUE"});
-			boolean added = false;
-			for (String val : metaValues) {
-				if(val == null || val.isEmpty()) {
-					continue;
-				}
-				ps.setString(1, engineId);
-				ps.setString(2, metaType);
-				ps.setString(3, val);
-				ps.addBatch();
-				added = true;
-			}
-			if(added) {
-				ps.executeBatch();
-			}
-			ps.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	/**
-	 * Update the total execution count
-	 * @param engineId
-	 * @param insightId
-	 */
-	public static void updateExecutionCount(String engineId, String insightId) {
-		String updateQuery = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 "
-				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "'";
-		try {
-			securityDb.insertData(updateQuery);
-			securityDb.commit();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-
 	/**
 	 * Adds a new user to the database. Does not create any relations, simply the node.
 	 * @param userName	String representing the name of the user to add
