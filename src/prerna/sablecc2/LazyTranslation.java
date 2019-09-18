@@ -203,7 +203,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         	}
         }
 	}
-	
+
 	/**
 	 * Track the error
 	 * @param pixel
