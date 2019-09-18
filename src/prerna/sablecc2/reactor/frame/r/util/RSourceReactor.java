@@ -27,7 +27,42 @@ public class RSourceReactor extends AbstractReactor {
 		String path = assetFolder + "/" + relativePath;
 		path = path.replace('\\', '/');
 
-		rJavaTranslator.executeEmptyRDirect("source(\"" + path + "\", " + rJavaTranslator.env + ");");
+		// in case your script is using other files
+		// we must load in the ROOT, APP_ROOT, and USER_ROOT
+		String removePathVariables = "";
+		String insightRootAssignment = "";
+		String appRootAssignment = "";
+		String userRootAssignment = "";
+	
+		String insightRootPath = null;
+		String appRootPath = null;
+		String userRootPath = null;
+		
+		insightRootPath = this.insight.getInsightFolder().replace('\\', '/');
+		insightRootAssignment = "ROOT <- '" + insightRootPath + "';";
+		removePathVariables = "ROOT";
+		
+		if(this.insight.isSavedInsight()) {
+			appRootPath = this.insight.getAppFolder();
+			appRootPath = appRootPath.replace('\\', '/');
+			appRootAssignment = "APP_ROOT <- '" + appRootPath + "';";
+			removePathVariables += ", APP_ROOT";
+		}
+		try {
+			userRootPath = AssetUtility.getAssetBasePath(this.insight, "USER");
+			userRootPath = userRootPath.replace('\\', '/');
+			userRootAssignment = "USER_ROOT <- '" + userRootPath + "';";
+			removePathVariables += ", USER_ROOT";
+		} catch(Exception ignore) {
+			// ignore
+		}
+		
+		String rScript = "with(" + rJavaTranslator.env + ", {" + insightRootAssignment + appRootAssignment + userRootAssignment + "});"; 
+		rJavaTranslator.executeEmptyRDirect(rScript);
+		rScript = "source(\"" + path + "\", " + rJavaTranslator.env + ");";
+		rJavaTranslator.executeEmptyRDirect(rScript);
+		rScript = "with(" + rJavaTranslator.env + ", { rm(" + removePathVariables + ") });"; 
+		rJavaTranslator.executeEmptyRDirect(rScript);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 }
