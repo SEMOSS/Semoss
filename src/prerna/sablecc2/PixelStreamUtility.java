@@ -219,6 +219,10 @@ public class PixelStreamUtility {
 
 		// add expression if there
 		if(expression != null) {
+			expression = expression.trim();
+			while(expression.endsWith("; ;")) {
+				expression = expression.substring(0, expression.length()-2);
+			}
 			ps.print("\"pixelExpression\":" + gson.toJson(expression) + ",");
 		}
 		// add is meta if there
