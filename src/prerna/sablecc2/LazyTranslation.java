@@ -1,11 +1,6 @@
 package prerna.sablecc2;
 
-import java.io.File;
 import java.math.BigDecimal;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,13 +11,6 @@ import java.util.stream.Collectors;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.NotFoundException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
@@ -40,7 +28,6 @@ import prerna.sablecc2.node.ACodeNoun;
 import prerna.sablecc2.node.ACommentExpr;
 import prerna.sablecc2.node.AComplexAndComparisonExpr;
 import prerna.sablecc2.node.AComplexOrComparisonExpr;
-import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.ADivBaseExpr;
 import prerna.sablecc2.node.ADotcol;
 import prerna.sablecc2.node.AEmbeddedScriptchainExprComponent;
@@ -70,6 +57,7 @@ import prerna.sablecc2.node.APlusBaseExpr;
 import prerna.sablecc2.node.APower;
 import prerna.sablecc2.node.AProp;
 import prerna.sablecc2.node.ARcol;
+import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.ASelectNoun;
 import prerna.sablecc2.node.ASubRoutine;
 import prerna.sablecc2.node.AWholeDecimal;
@@ -112,7 +100,6 @@ import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
 import prerna.sablecc2.reactor.runtime.JavaReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.util.git.GitAssetUtils;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -181,7 +168,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	 */
 	
 	@Override
-	public void caseAConfiguration(AConfiguration node) {
+	public void caseARoutineConfiguration(ARoutineConfiguration node) {
         List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
         int size = copy.size();
         for(int pixelstep = 0; pixelstep < size; pixelstep++)

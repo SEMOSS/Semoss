@@ -6,59 +6,59 @@ import java.util.*;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class AConfiguration extends PConfiguration
+public final class AEmptyroutine extends PEmptyroutine
 {
-    private final LinkedList<PRoutine> _routine_ = new LinkedList<PRoutine>();
+    private final LinkedList<TSemicolon> _semicolon_ = new LinkedList<TSemicolon>();
 
-    public AConfiguration()
+    public AEmptyroutine()
     {
         // Constructor
     }
 
-    public AConfiguration(
-        @SuppressWarnings("hiding") List<?> _routine_)
+    public AEmptyroutine(
+        @SuppressWarnings("hiding") List<?> _semicolon_)
     {
         // Constructor
-        setRoutine(_routine_);
+        setSemicolon(_semicolon_);
 
     }
 
     @Override
     public Object clone()
     {
-        return new AConfiguration(
-            cloneList(this._routine_));
+        return new AEmptyroutine(
+            cloneList(this._semicolon_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseAConfiguration(this);
+        ((Analysis) sw).caseAEmptyroutine(this);
     }
 
-    public LinkedList<PRoutine> getRoutine()
+    public LinkedList<TSemicolon> getSemicolon()
     {
-        return this._routine_;
+        return this._semicolon_;
     }
 
-    public void setRoutine(List<?> list)
+    public void setSemicolon(List<?> list)
     {
-        for(PRoutine e : this._routine_)
+        for(TSemicolon e : this._semicolon_)
         {
             e.parent(null);
         }
-        this._routine_.clear();
+        this._semicolon_.clear();
 
         for(Object obj_e : list)
         {
-            PRoutine e = (PRoutine) obj_e;
+            TSemicolon e = (TSemicolon) obj_e;
             if(e.parent() != null)
             {
                 e.parent().removeChild(e);
             }
 
             e.parent(this);
-            this._routine_.add(e);
+            this._semicolon_.add(e);
         }
     }
 
@@ -66,14 +66,14 @@ public final class AConfiguration extends PConfiguration
     public String toString()
     {
         return ""
-            + toString(this._routine_);
+            + toString(this._semicolon_);
     }
 
     @Override
     void removeChild(@SuppressWarnings("unused") Node child)
     {
         // Remove child
-        if(this._routine_.remove(child))
+        if(this._semicolon_.remove(child))
         {
             return;
         }
@@ -85,13 +85,13 @@ public final class AConfiguration extends PConfiguration
     void replaceChild(@SuppressWarnings("unused") Node oldChild, @SuppressWarnings("unused") Node newChild)
     {
         // Replace child
-        for(ListIterator<PRoutine> i = this._routine_.listIterator(); i.hasNext();)
+        for(ListIterator<TSemicolon> i = this._semicolon_.listIterator(); i.hasNext();)
         {
             if(i.next() == oldChild)
             {
                 if(newChild != null)
                 {
-                    i.set((PRoutine) newChild);
+                    i.set((TSemicolon) newChild);
                     newChild.parent(this);
                     oldChild.parent(null);
                     return;

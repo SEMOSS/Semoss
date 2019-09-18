@@ -75,7 +75,13 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseAConfiguration(AConfiguration node)
+    public void caseARoutineConfiguration(ARoutineConfiguration node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAEmptyConfiguration(AEmptyConfiguration node)
     {
         defaultCase(node);
     }
@@ -100,6 +106,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseAMainCommentRoutine(AMainCommentRoutine node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseAEmptyroutine(AEmptyroutine node)
     {
         defaultCase(node);
     }
