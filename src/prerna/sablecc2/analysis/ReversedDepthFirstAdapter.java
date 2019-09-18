@@ -36,20 +36,20 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
         outStart(node);
     }
 
-    public void inAConfiguration(AConfiguration node)
+    public void inARoutineConfiguration(ARoutineConfiguration node)
     {
         defaultIn(node);
     }
 
-    public void outAConfiguration(AConfiguration node)
+    public void outARoutineConfiguration(ARoutineConfiguration node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAConfiguration(AConfiguration node)
+    public void caseARoutineConfiguration(ARoutineConfiguration node)
     {
-        inAConfiguration(node);
+        inARoutineConfiguration(node);
         {
             List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
             Collections.reverse(copy);
@@ -58,7 +58,28 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
                 e.apply(this);
             }
         }
-        outAConfiguration(node);
+        outARoutineConfiguration(node);
+    }
+
+    public void inAEmptyConfiguration(AEmptyConfiguration node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEmptyConfiguration(AEmptyConfiguration node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEmptyConfiguration(AEmptyConfiguration node)
+    {
+        inAEmptyConfiguration(node);
+        if(node.getEmptyroutine() != null)
+        {
+            node.getEmptyroutine().apply(this);
+        }
+        outAEmptyConfiguration(node);
     }
 
     public void inAOutputRoutine(AOutputRoutine node)
@@ -75,9 +96,13 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAOutputRoutine(AOutputRoutine node)
     {
         inAOutputRoutine(node);
-        if(node.getSemicolon() != null)
         {
-            node.getSemicolon().apply(this);
+            List<TSemicolon> copy = new ArrayList<TSemicolon>(node.getSemicolon());
+            Collections.reverse(copy);
+            for(TSemicolon e : copy)
+            {
+                e.apply(this);
+            }
         }
         if(node.getScript() != null)
         {
@@ -100,9 +125,13 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAAssignRoutine(AAssignRoutine node)
     {
         inAAssignRoutine(node);
-        if(node.getSemicolon() != null)
         {
-            node.getSemicolon().apply(this);
+            List<TSemicolon> copy = new ArrayList<TSemicolon>(node.getSemicolon());
+            Collections.reverse(copy);
+            for(TSemicolon e : copy)
+            {
+                e.apply(this);
+            }
         }
         if(node.getAssignment() != null)
         {
@@ -125,9 +154,13 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
     public void caseAMetaRoutine(AMetaRoutine node)
     {
         inAMetaRoutine(node);
-        if(node.getSemicolon() != null)
         {
-            node.getSemicolon().apply(this);
+            List<TSemicolon> copy = new ArrayList<TSemicolon>(node.getSemicolon());
+            Collections.reverse(copy);
+            for(TSemicolon e : copy)
+            {
+                e.apply(this);
+            }
         }
         if(node.getMetaRoutine() != null)
         {
@@ -155,6 +188,31 @@ public class ReversedDepthFirstAdapter extends AnalysisAdapter
             node.getComment().apply(this);
         }
         outAMainCommentRoutine(node);
+    }
+
+    public void inAEmptyroutine(AEmptyroutine node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEmptyroutine(AEmptyroutine node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEmptyroutine(AEmptyroutine node)
+    {
+        inAEmptyroutine(node);
+        {
+            List<TSemicolon> copy = new ArrayList<TSemicolon>(node.getSemicolon());
+            Collections.reverse(copy);
+            for(TSemicolon e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outAEmptyroutine(node);
     }
 
     public void inAScript(AScript node)
