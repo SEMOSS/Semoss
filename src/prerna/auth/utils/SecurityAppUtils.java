@@ -4,8 +4,10 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.auth.AccessPermission;
 import prerna.auth.User;
@@ -532,6 +534,67 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Get the wrapper for additional app metadata
+	 * @param engineId
+	 * @param metaKeys
+	 * @return
+	 */
+	public static IRawSelectWrapper getAppMetadataWrapper(Collection<String> engineId, List<String> metaKeys) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		// selectors
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAORDER"));
+		// filters
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", metaKeys));
+		// order
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAORDER"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return wrapper;
+	}
+	
+	/**
+	 * Get the metadata for a specific app
+	 * @param engineId
+	 * @return
+	 */
+	public static Map<String, Object> getAggregateAppMetadata(String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__ENGINEID", "==", engineId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		
+		Map<String, Object> retMap = new HashMap<String, Object>();
+		while(wrapper.hasNext()) {
+			Object[] data = wrapper.next().getValues();
+			String metaKey = data[0].toString();
+			String metaValue = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) data[1]);
+
+			// AS THIS LIST EXPANDS
+			// WE NEED TO KNOW IF THESE ARE MULTI VALUED OR SINGLE
+			if(metaKey.equals("tag")) {
+				List<String> listVal = null;
+				if(retMap.containsKey("tags")) {
+					listVal = (List<String>) retMap.get("tags");
+				} else {
+					listVal = new Vector<String>();
+					retMap.put("tags", listVal);
+				}
+				listVal.add(metaValue);
+			}
+			// these will be the single valued parameters
+			else {
+				retMap.put(metaKey, metaValue);
+			}
+		}
+
+		return retMap;
 	}
 	
 }
