@@ -152,7 +152,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(description != null) {
 			SecurityInsightUtils.updateInsightDescription(appId, existingRdbmsId, description);
 		}
-		if(tags != null && !tags.isEmpty()) {
+		if(tags != null) {
 			SecurityInsightUtils.updateInsightTags(appId, existingRdbmsId, tags);
 		}
 	}
