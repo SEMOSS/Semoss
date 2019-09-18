@@ -96,6 +96,10 @@ public class GetInsightsReactor extends AbstractReactor {
 				
 				// store so we can search by index
 				index.put(appId + insightId, new Integer(i));
+				
+				// i will put an empty description + tag placeholder
+				res.put("description", "");
+				res.put("tags", new Vector<String>());
 			}
 			
 			for(String appId : appIdsToInsight.keySet()) {
