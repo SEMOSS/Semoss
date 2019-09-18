@@ -39,9 +39,9 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.ABooleanScalar;
-import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AIdWordOrId;
+import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.PRoutine;
@@ -118,7 +118,7 @@ public class PipelineTranslation extends LazyTranslation {
 	}
 	
 	@Override
-	public void caseAConfiguration(AConfiguration node) {
+	public void caseARoutineConfiguration(ARoutineConfiguration node) {
         List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
         int size = copy.size();
         for(int pixelstep = 0; pixelstep < size; pixelstep++)

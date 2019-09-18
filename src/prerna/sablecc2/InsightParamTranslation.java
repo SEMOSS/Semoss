@@ -9,8 +9,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.analysis.DepthFirstAdapter;
-import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.AOperation;
+import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.POpInput;
 import prerna.sablecc2.node.PRoutine;
 
@@ -23,7 +23,7 @@ public class InsightParamTranslation extends DepthFirstAdapter {
 	
 	
 	@Override
-	public void caseAConfiguration(AConfiguration node) {
+	public void caseARoutineConfiguration(ARoutineConfiguration node) {
         List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
         for(PRoutine e : copy) {
 //        	String expression = e.toString();

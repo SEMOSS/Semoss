@@ -36,20 +36,20 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outStart(node);
     }
 
-    public void inAConfiguration(AConfiguration node)
+    public void inARoutineConfiguration(ARoutineConfiguration node)
     {
         defaultIn(node);
     }
 
-    public void outAConfiguration(AConfiguration node)
+    public void outARoutineConfiguration(ARoutineConfiguration node)
     {
         defaultOut(node);
     }
 
     @Override
-    public void caseAConfiguration(AConfiguration node)
+    public void caseARoutineConfiguration(ARoutineConfiguration node)
     {
-        inAConfiguration(node);
+        inARoutineConfiguration(node);
         {
             List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
             for(PRoutine e : copy)
@@ -57,7 +57,28 @@ public class DepthFirstAdapter extends AnalysisAdapter
                 e.apply(this);
             }
         }
-        outAConfiguration(node);
+        outARoutineConfiguration(node);
+    }
+
+    public void inAEmptyConfiguration(AEmptyConfiguration node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEmptyConfiguration(AEmptyConfiguration node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEmptyConfiguration(AEmptyConfiguration node)
+    {
+        inAEmptyConfiguration(node);
+        if(node.getEmptyroutine() != null)
+        {
+            node.getEmptyroutine().apply(this);
+        }
+        outAEmptyConfiguration(node);
     }
 
     public void inAOutputRoutine(AOutputRoutine node)
@@ -78,9 +99,12 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getScript().apply(this);
         }
-        if(node.getSemicolon() != null)
         {
-            node.getSemicolon().apply(this);
+            List<TSemicolon> copy = new ArrayList<TSemicolon>(node.getSemicolon());
+            for(TSemicolon e : copy)
+            {
+                e.apply(this);
+            }
         }
         outAOutputRoutine(node);
     }
@@ -103,9 +127,12 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getAssignment().apply(this);
         }
-        if(node.getSemicolon() != null)
         {
-            node.getSemicolon().apply(this);
+            List<TSemicolon> copy = new ArrayList<TSemicolon>(node.getSemicolon());
+            for(TSemicolon e : copy)
+            {
+                e.apply(this);
+            }
         }
         outAAssignRoutine(node);
     }
@@ -128,9 +155,12 @@ public class DepthFirstAdapter extends AnalysisAdapter
         {
             node.getMetaRoutine().apply(this);
         }
-        if(node.getSemicolon() != null)
         {
-            node.getSemicolon().apply(this);
+            List<TSemicolon> copy = new ArrayList<TSemicolon>(node.getSemicolon());
+            for(TSemicolon e : copy)
+            {
+                e.apply(this);
+            }
         }
         outAMetaRoutine(node);
     }
@@ -154,6 +184,30 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getComment().apply(this);
         }
         outAMainCommentRoutine(node);
+    }
+
+    public void inAEmptyroutine(AEmptyroutine node)
+    {
+        defaultIn(node);
+    }
+
+    public void outAEmptyroutine(AEmptyroutine node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseAEmptyroutine(AEmptyroutine node)
+    {
+        inAEmptyroutine(node);
+        {
+            List<TSemicolon> copy = new ArrayList<TSemicolon>(node.getSemicolon());
+            for(TSemicolon e : copy)
+            {
+                e.apply(this);
+            }
+        }
+        outAEmptyroutine(node);
     }
 
     public void inAScript(AScript node)

@@ -25,8 +25,8 @@ import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.AOperation;
+import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
@@ -65,7 +65,7 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 	}
 	
 	@Override
-	public void caseAConfiguration(AConfiguration node) {
+	public void caseARoutineConfiguration(ARoutineConfiguration node) {
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
 		for(PRoutine e : copy) {
 			String expression = e.toString();

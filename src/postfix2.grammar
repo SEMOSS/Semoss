@@ -82,16 +82,18 @@ Productions
  ///////////////////////// START HIGHEST LEVEL /////////////////////////
  ///////////////////////////////////////////////////////////////////////
  
- configuration = routine* ;
+ configuration = {routine} routine* | {empty} emptyroutine;
  
  // all routines are a series of scripts
  // or an assignment from the series of scripts
  routine = 
-	{output} script semicolon 
-	| {assign} assignment semicolon
-	| {meta} meta_routine semicolon
+	{output} script semicolon+
+	| {assign} assignment semicolon+
+	| {meta} meta_routine semicolon+
 	| {main_comment} comment
 	;
+ 
+ emptyroutine = semicolon+;
  
  script = master_expr otherscript*;
  otherscript = custom master_expr;

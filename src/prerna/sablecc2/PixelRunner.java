@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 import prerna.om.Insight;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.AConfiguration;
+import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.PixelDataType;
@@ -205,7 +205,7 @@ public class PixelRunner {
 		Parser p = new Parser(new Lexer(new PushbackReader(new InputStreamReader(new ByteArrayInputStream(expression.getBytes("UTF-8")), "UTF-8"), expression.length())));
 		Start tree = p.parse();
 
-		AConfiguration configNode = (AConfiguration)tree.getPConfiguration();
+		ARoutineConfiguration configNode = (ARoutineConfiguration)tree.getPConfiguration();
 
 		List<String> pixelList = new ArrayList<>();
 		for(PRoutine script : configNode.getRoutine()) {

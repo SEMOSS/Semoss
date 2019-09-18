@@ -12,11 +12,13 @@ public interface Analysis extends Switch
     void setOut(Node node, Object o);
 
     void caseStart(Start node);
-    void caseAConfiguration(AConfiguration node);
+    void caseARoutineConfiguration(ARoutineConfiguration node);
+    void caseAEmptyConfiguration(AEmptyConfiguration node);
     void caseAOutputRoutine(AOutputRoutine node);
     void caseAAssignRoutine(AAssignRoutine node);
     void caseAMetaRoutine(AMetaRoutine node);
     void caseAMainCommentRoutine(AMainCommentRoutine node);
+    void caseAEmptyroutine(AEmptyroutine node);
     void caseAScript(AScript node);
     void caseAOtherscript(AOtherscript node);
     void caseAAssignment(AAssignment node);

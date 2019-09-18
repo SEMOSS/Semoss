@@ -162,10 +162,11 @@ public class PixelStreamUtility {
 			// but when we run a saved insight within a pixel
 			// we do not want to shift the index
 			int startIndex = 0;
-			if(resultList.get(0).getOpType().contains(PixelOperationType.JOB_ID)) {
+			boolean firstIsJob = resultList.get(0).getOpType().contains(PixelOperationType.JOB_ID);
+			if(firstIsJob) {
 				startIndex = 1;
 			}
-			if(size == 1) {
+			if(size == 1 && !firstIsJob) {
 				startIndex = 0;
 			}
 			for (int i = startIndex; i < size; i++) {
