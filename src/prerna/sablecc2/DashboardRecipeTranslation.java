@@ -7,8 +7,8 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import prerna.sablecc2.analysis.DepthFirstAdapter;
-import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.AOperation;
+import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.PRoutine;
 
 public class DashboardRecipeTranslation extends DepthFirstAdapter {
@@ -17,14 +17,15 @@ public class DashboardRecipeTranslation extends DepthFirstAdapter {
 	private boolean isDashboard = false;
 	
 	@Override
-	public void caseAConfiguration(AConfiguration node) {
-        List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
+	public void caseARoutineConfiguration(ARoutineConfiguration node) {
+		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
         for(PRoutine e : copy) {
 //        	String expression = e.toString();
 //        	LOGGER.info("Processing " + expression);
         	e.apply(this);
         }
 	}
+	
 	
 	@Override
 	public void inAOperation(AOperation node) {

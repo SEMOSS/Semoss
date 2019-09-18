@@ -23,9 +23,9 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
-import prerna.sablecc2.node.AConfiguration;
 import prerna.sablecc2.node.AGeneric;
 import prerna.sablecc2.node.AOperation;
+import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.AScalarRegTerm;
 import prerna.sablecc2.node.POpInput;
 import prerna.sablecc2.node.PRoutine;
@@ -114,7 +114,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	 * @param node
 	 */
 	@Override
-	public void caseAConfiguration(AConfiguration node) {
+	public void caseARoutineConfiguration(ARoutineConfiguration node) {
         List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
         for(PRoutine e : copy) {
         	// for each expression, reset whether it contains TaskOptions

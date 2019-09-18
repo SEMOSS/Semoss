@@ -2,13 +2,14 @@
 
 package prerna.sablecc2.node;
 
+import java.util.*;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
 public final class AAssignRoutine extends PRoutine
 {
     private PAssignment _assignment_;
-    private TSemicolon _semicolon_;
+    private final LinkedList<TSemicolon> _semicolon_ = new LinkedList<TSemicolon>();
 
     public AAssignRoutine()
     {
@@ -17,7 +18,7 @@ public final class AAssignRoutine extends PRoutine
 
     public AAssignRoutine(
         @SuppressWarnings("hiding") PAssignment _assignment_,
-        @SuppressWarnings("hiding") TSemicolon _semicolon_)
+        @SuppressWarnings("hiding") List<?> _semicolon_)
     {
         // Constructor
         setAssignment(_assignment_);
@@ -31,7 +32,7 @@ public final class AAssignRoutine extends PRoutine
     {
         return new AAssignRoutine(
             cloneNode(this._assignment_),
-            cloneNode(this._semicolon_));
+            cloneList(this._semicolon_));
     }
 
     @Override
@@ -65,29 +66,30 @@ public final class AAssignRoutine extends PRoutine
         this._assignment_ = node;
     }
 
-    public TSemicolon getSemicolon()
+    public LinkedList<TSemicolon> getSemicolon()
     {
         return this._semicolon_;
     }
 
-    public void setSemicolon(TSemicolon node)
+    public void setSemicolon(List<?> list)
     {
-        if(this._semicolon_ != null)
+        for(TSemicolon e : this._semicolon_)
         {
-            this._semicolon_.parent(null);
+            e.parent(null);
         }
+        this._semicolon_.clear();
 
-        if(node != null)
+        for(Object obj_e : list)
         {
-            if(node.parent() != null)
+            TSemicolon e = (TSemicolon) obj_e;
+            if(e.parent() != null)
             {
-                node.parent().removeChild(node);
+                e.parent().removeChild(e);
             }
 
-            node.parent(this);
+            e.parent(this);
+            this._semicolon_.add(e);
         }
-
-        this._semicolon_ = node;
     }
 
     @Override
@@ -108,9 +110,8 @@ public final class AAssignRoutine extends PRoutine
             return;
         }
 
-        if(this._semicolon_ == child)
+        if(this._semicolon_.remove(child))
         {
-            this._semicolon_ = null;
             return;
         }
 
@@ -127,10 +128,22 @@ public final class AAssignRoutine extends PRoutine
             return;
         }
 
-        if(this._semicolon_ == oldChild)
+        for(ListIterator<TSemicolon> i = this._semicolon_.listIterator(); i.hasNext();)
         {
-            setSemicolon((TSemicolon) newChild);
-            return;
+            if(i.next() == oldChild)
+            {
+                if(newChild != null)
+                {
+                    i.set((TSemicolon) newChild);
+                    newChild.parent(this);
+                    oldChild.parent(null);
+                    return;
+                }
+
+                i.remove();
+                oldChild.parent(null);
+                return;
+            }
         }
 
         throw new RuntimeException("Not a child.");
