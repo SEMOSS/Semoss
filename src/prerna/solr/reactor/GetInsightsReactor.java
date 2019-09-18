@@ -113,24 +113,17 @@ public class GetInsightsReactor extends AbstractReactor {
 					}
 					
 					String unique = data[0] + "" + data[1];
-					int indextofind = index.get(unique);
+					int indexToFind = index.get(unique);
 					
-					Map<String, Object> res = results.get(indextofind);
+					Map<String, Object> res = results.get(indexToFind);
 					// right now only handling description + tags
 					if(metaKey.equals("description")) {
 						// we only have 1 description per insight
 						// so just push
 						res.put("description", value);
-					} else {
+					} else if(metaKey.equals("tag")){
 						// multiple tags per insight
-						List<String> tags = null;
-						if(res.containsKey("tags")) {
-							tags = (List<String>) res.get("tags");
-						} else {
-							tags = new Vector<String>();
-							res.put("tags", tags);
-						}
-						
+						List<String> tags = (List<String>) res.get("tags");;
 						// add to the list
 						tags.add(value);
 					}
