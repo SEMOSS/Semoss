@@ -54,7 +54,14 @@ public class SecurityOwlCreator {
 			cleanConcepts.add(cTable);
 		}
 		
-		return !cleanConcepts.containsAll(conceptsRequired);
+		boolean check1 = cleanConcepts.containsAll(conceptsRequired);
+		if(check1) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEMETA");
+			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/METAORDER/ENGINEMETA")) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**
@@ -103,8 +110,9 @@ public class SecurityOwlCreator {
 		// ENGINEMETA
 		owler.addConcept("ENGINEMETA", null, null);
 		owler.addProp("ENGINEMETA", "ENGINEID", "VARCHAR(255)");
-		owler.addProp("ENGINEMETA", "KEY", "VARCHAR(255)");
-		owler.addProp("ENGINEMETA", "VALUE", "VARCHAR(255)");
+		owler.addProp("ENGINEMETA", "METAKEY", "VARCHAR(255)");
+		owler.addProp("ENGINEMETA", "METAVALUE", "CLOB");
+		owler.addProp("ENGINEMETA", "METAORDER", "INT");
 
 		// ENGINEPERMISSION
 		owler.addConcept("ENGINEPERMISSION", null, null);
