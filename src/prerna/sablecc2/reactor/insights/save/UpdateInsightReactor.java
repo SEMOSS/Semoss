@@ -36,6 +36,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	public UpdateInsightReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.INSIGHT_NAME.getKey(), ReactorKeysEnum.ID.getKey(), 
 				 ReactorKeysEnum.LAYOUT_KEY.getKey(), HIDDEN_KEY, ReactorKeysEnum.RECIPE.getKey(), 
+				 ReactorKeysEnum.DESCRIPTION.getKey(), ReactorKeysEnum.TAGS.getKey(), 
 				 ReactorKeysEnum.PARAM_KEY.getKey(), ReactorKeysEnum.PIPELINE.getKey(), ReactorKeysEnum.IMAGE.getKey()};
 	}
 
@@ -151,7 +152,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		if(description != null) {
 			SecurityInsightUtils.updateInsightDescription(appId, existingRdbmsId, description);
 		}
-		if(tags != null && tags.isEmpty()) {
+		if(tags != null && !tags.isEmpty()) {
 			SecurityInsightUtils.updateInsightTags(appId, existingRdbmsId, tags);
 		}
 	}
