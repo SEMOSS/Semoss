@@ -25,6 +25,7 @@ import prerna.sablecc2.reactor.qs.filter.FilterReactor;
 import prerna.sablecc2.reactor.qs.selectors.QuerySelectorExpressionAssimilator;
 import prerna.sablecc2.reactor.qs.selectors.SelectReactor;
 import prerna.sablecc2.reactor.qs.source.FrameReactor;
+import prerna.sablecc2.reactor.utils.RemoveVariableReactor;
 
 public class GreedyTranslation extends LazyTranslation {
 
@@ -49,9 +50,12 @@ public class GreedyTranslation extends LazyTranslation {
     		NounMetadata varValue = this.planner.getVariableValue(idInput);
     		PixelDataType varType = varValue.getNounType();
     		if(curReactor != null) {
+    			if(curReactor instanceof RemoveVariableReactor) {
+    				curReactor.getCurRow().addLiteral(idInput);
+    			}
     			// we will do just a little bit of value validation
     			// so that we only push in basic data types
-    			if(curReactor instanceof SelectReactor 
+    			else if(curReactor instanceof SelectReactor 
     					|| curReactor instanceof QuerySelectorExpressionAssimilator 
     					|| curReactor instanceof FilterReactor) {
     				if(varType == PixelDataType.CONST_STRING || varType == PixelDataType.CONST_INT || varType == PixelDataType.CONST_DECIMAL
