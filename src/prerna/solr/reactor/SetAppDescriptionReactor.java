@@ -8,6 +8,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 
 public class SetAppDescriptionReactor extends AbstractReactor {
 	
@@ -20,7 +21,7 @@ public class SetAppDescriptionReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = this.keyValue.get(this.keysToGet[0]);
+		String appId = UploadInputUtility.getAppName(this.store);
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
