@@ -476,7 +476,7 @@ public class ExcelDataValidationHelper {
 			} else if (wc == WIDGET_COMPONENT.TEXTAREA) {
 				htmlSb.append(FormUtility.getTextAreaComponent());
 			} else {
-				htmlSb.append(FormUtility.getInputComponent(property));
+				htmlSb.append(FormUtility.getInputComponent());
 			}
 
 			if (description.length() > 0) {
