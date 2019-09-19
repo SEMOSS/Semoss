@@ -1487,7 +1487,7 @@ public class UploadUtilities {
 			if (propType == SemossDataType.DATE) {
 				htmlSb.append(FormUtility.getDatePickerComponent());
 			} else if (propType == SemossDataType.STRING) {
-				htmlSb.append(FormUtility.getInputComponent(property));
+				htmlSb.append(FormUtility.getInputComponent());
 			} else if (Utility.isNumericType(propType.toString())) {
 				htmlSb.append(FormUtility.getNumberPickerComponent());
 			}
