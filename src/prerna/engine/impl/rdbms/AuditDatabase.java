@@ -205,6 +205,12 @@ public class AuditDatabase {
 			}
 		}
 		
+		// define table where change is occurring
+		if (primaryKeyTable == null) {
+			QueryColumnSelector s = (QueryColumnSelector) selectors.get(0);
+			primaryKeyTable = s.getTable();
+		}
+		
 		StringBuilder auditUpdates = new StringBuilder();
 		
 		String id = UUID.randomUUID().toString();
