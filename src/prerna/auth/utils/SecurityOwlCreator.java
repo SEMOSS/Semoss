@@ -61,7 +61,7 @@ public class SecurityOwlCreator {
 				return true;
 			}
 		}
-		return false;
+		return !check1;
 	}
 	
 	/**
