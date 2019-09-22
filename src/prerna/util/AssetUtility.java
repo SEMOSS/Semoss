@@ -6,6 +6,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -48,6 +49,10 @@ public class AssetUtility {
 				}
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
+				// but need to perform check
+				if(editRequired && !SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+					throw new IllegalArgumentException("User does not have permission for this insight");
+				}
 			} else {
 				// user has passed an id
 				String appId = space;
