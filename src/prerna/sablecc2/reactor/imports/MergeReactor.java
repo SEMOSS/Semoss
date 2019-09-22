@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -92,7 +93,6 @@ public class MergeReactor extends AbstractReactor {
 	
 	private ITableDataFrame mergeNative(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
 		// track GA data
-//		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 
 		IImporter importer = ImportFactory.getImporter(frame, qs);
@@ -111,73 +111,88 @@ public class MergeReactor extends AbstractReactor {
 	 */
 	private ITableDataFrame mergeFromQs(ITableDataFrame frame, SelectQueryStruct qs, List<Join> joins) {
 		// track GA data
-//		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 		UserTrackerFactory.getInstance().trackDataImport(this.insight, qs);
 
 		// if we have an inner join, add the current values as a filter on the query
 		// important for performance on large dbs when the user has already 
 		// filtered to small subset
-		if(!(qs instanceof HardSelectQueryStruct)) {
-			for(Join j : joins) {
-				// s is the frame name
-				String s = j.getSelector();
-				// q is part of the query we are merging
-				String q = j.getQualifier();
-				String type = j.getJoinType();
-				if(type.equals("inner.join") || type.equals("left.outer.join")) {
-					// we need to make sure we apply the filter correctly!
-					// remember, q is the alias we provide the selector
-					// but might not match the physical
-					if(!qs.hasColumn(q)) {
-						IQuerySelector selector = qs.findSelectorFromAlias(q);
-						// get the correct q
-						q = selector.getQueryStructName();
-					}
-					// we will add a filter frame existing values in frame
-					// but wait... need to make sure an existing filter isn't there
-					if(qs.hasFiltered(q)) {
-						continue;
-					}
-					
-					if(frame.isEmpty()) {
-						throw new IllegalArgumentException("Attemping to join new data with an empty frame. End result is still an empty frame.");
-					}
-					SelectQueryStruct filterQs = new SelectQueryStruct();
-					QueryColumnSelector column = new QueryColumnSelector(s);
-					filterQs.addSelector(column);
-					try {
-						Iterator<IHeadersDataRow> it = frame.query(filterQs);
-						List<Object> values = new ArrayList<Object>();
-						while(it.hasNext()) {
-							values.add(it.next().getValues()[0]);
+		boolean noDataError = false;
+		try {
+			if(!(qs instanceof HardSelectQueryStruct)) {
+				for(Join j : joins) {
+					// s is the frame name
+					String s = j.getSelector();
+					// q is part of the query we are merging
+					String q = j.getQualifier();
+					String type = j.getJoinType();
+					if(type.equals("inner.join") || type.equals("left.outer.join")) {
+						// we need to make sure we apply the filter correctly!
+						// remember, q is the alias we provide the selector
+						// but might not match the physical
+						if(!qs.hasColumn(q)) {
+							IQuerySelector selector = qs.findSelectorFromAlias(q);
+							// get the correct q
+							q = selector.getQueryStructName();
 						}
-						// if we get no values back
-						// i.e. your frame right now is empty :/
-						if(values.isEmpty()) {
+						// we will add a filter frame existing values in frame
+						// but wait... need to make sure an existing filter isn't there
+						if(qs.hasFiltered(q)) {
 							continue;
 						}
-						// create a selector
-						// just set the table to be the alias
-						// the frame will auto convert to physical
-						QueryColumnSelector qSelector = new QueryColumnSelector(q);
-						NounMetadata lNoun = new NounMetadata(qSelector, PixelDataType.COLUMN);
-						NounMetadata rNoun = null;
-						SemossDataType dataType = frame.getMetaData().getHeaderTypeAsEnum(s);
-						if(dataType == SemossDataType.INT) {
-							rNoun = new NounMetadata(values, PixelDataType.CONST_INT);
-						} else if(dataType == SemossDataType.DOUBLE) {
-							rNoun = new NounMetadata(values, PixelDataType.CONST_DECIMAL);
-						} else {
-							rNoun = new NounMetadata(values, PixelDataType.CONST_STRING);
+						
+						// if current frame is empty
+						// well, you will end up with no data
+						// unless you are on a graph, which will just append nodes
+						// as there is no real concept of joins currently
+						if(frame.isEmpty()) {
+							noDataError = true;
+							throw new IllegalArgumentException("Attemping to join new data with an empty frame. End result is still an empty frame.");
 						}
-						SimpleQueryFilter filter = new SimpleQueryFilter(lNoun, "==", rNoun);
-						qs.addImplicitFilter(filter);
-					} catch(Exception e) {
-						e.printStackTrace();
-						throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
+						
+						SelectQueryStruct filterQs = new SelectQueryStruct();
+						QueryColumnSelector column = new QueryColumnSelector(s);
+						filterQs.addSelector(column);
+						try {
+							Iterator<IHeadersDataRow> it = frame.query(filterQs);
+							List<Object> values = new ArrayList<Object>();
+							while(it.hasNext()) {
+								values.add(it.next().getValues()[0]);
+							}
+
+							// create a selector
+							// just set the table to be the alias
+							// the frame will auto convert to physical
+							
+							PixelDataType dataType = PixelDataType.CONST_STRING;
+							SemossDataType sDataType = frame.getMetaData().getHeaderTypeAsEnum(s);
+							if(sDataType == SemossDataType.INT) {
+								dataType = PixelDataType.CONST_INT;
+							} else if(sDataType == SemossDataType.DOUBLE) {
+								dataType = PixelDataType.CONST_DECIMAL;
+							}
+							
+							qs.addImplicitFilter(SimpleQueryFilter.makeColToValFilter(q, "==", values, dataType));
+						} catch(Exception e) {
+							e.printStackTrace();
+							throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
+						}
 					}
 				}
 			}
+		} catch(IllegalArgumentException e) {
+			if(!noDataError) {
+				throw e;
+			}
+		}
+		
+		// i already know
+		// that the current frame has no data
+		// this will return nothing when we attempt to do the join
+		// so add limit of 1
+		// adding exception for tinker since we never actually do 
+		// join types and everything is an outer
+		if(noDataError && !(frame instanceof TinkerFrame) ) {
+			qs.setLimit(1);
 		}
 		
 		IRawSelectWrapper it = null;
