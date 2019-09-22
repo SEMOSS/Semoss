@@ -16,7 +16,10 @@ public class QueryAllReactor extends AbstractQueryStructReactor {
 		if(frame != null) {
 			SelectQueryStruct frameQs = frame.getMetaData().getFlatTableQs();
 			if(frameQs.getSelectors().size() == 0) {
-				throw new IllegalArgumentException("There are no selectors in this frame to query");
+				if(frame.isEmpty()) {
+					throw new IllegalArgumentException("Frame is empty and contains no data");
+				}
+				throw new IllegalArgumentException("Frame metadata is empty and does not contain any selectors to query");
 			}
 			this.qs.merge(frameQs);
 			this.qs.setImplicitFilters(frame.getFrameFilters());
