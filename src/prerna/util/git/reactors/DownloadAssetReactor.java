@@ -27,7 +27,7 @@ public class DownloadAssetReactor extends AbstractReactor {
 		organizeKeys();
 		// get base asset folder
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String downloadPath = assetFolder;
 		// create path for a zip file
 		String randomKey = UUID.randomUUID().toString();

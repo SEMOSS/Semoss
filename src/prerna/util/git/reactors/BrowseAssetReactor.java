@@ -35,7 +35,7 @@ public class BrowseAssetReactor extends AbstractReactor {
 			}
 		}
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String replacer = "";
 		
 		// specific folder to browse

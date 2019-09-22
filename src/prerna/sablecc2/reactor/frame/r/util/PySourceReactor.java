@@ -24,7 +24,7 @@ public class PySourceReactor extends AbstractReactor {
 		PyExecutorThread py = this.insight.getPy();
 		Object monitor = py.getMonitor();
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 
 		// if the file is not there try in the insight
 		// if(!file.exists())
