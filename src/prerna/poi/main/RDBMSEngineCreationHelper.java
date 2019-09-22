@@ -11,6 +11,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -22,12 +23,10 @@ import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
-import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.reactor.app.upload.rdbms.external.CustomTableAndViewIterator;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RDBMSEngineCreationHelper {
@@ -42,16 +41,16 @@ public class RDBMSEngineCreationHelper {
 	 */
 	public static void insertAllTablesAsInsights(IEngine rdbmsEngine, Owler owl) {
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl);
-		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel, existingMetaModel.keySet());
+		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel.keySet());
 	}
 	
 	public static void insertNewTablesAsInsights(IEngine rdbmsEngine, Owler owl, Set<String> newTables) {
 		Map<String, Map<String, String>> existingMetaModel = getExistingRDBMSStructure(owl, newTables);
 		// use the keyset from the OWL to help with the upload
-		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel, existingMetaModel.keySet());
+		insertNewTablesAsInsights(rdbmsEngine, existingMetaModel.keySet());
 	}
 	
-	public static void insertNewTablesAsInsights(IEngine rdbmsEngine,  Map<String, Map<String, String>> existingMetaModel, Set<String> newTables) {
+	public static void insertNewTablesAsInsights(IEngine rdbmsEngine, Set<String> newTables) {
 		String appId = rdbmsEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(rdbmsEngine.getInsightDatabase());
 		
@@ -69,71 +68,26 @@ public class RDBMSEngineCreationHelper {
 				recipeArray[0] = "AddPanel(0);";
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				StringBuilder importPixel = new StringBuilder("Database(\"" + appId + "\") | Select(");
-				Map<String, String> colToTypes = existingMetaModel.get(newTable);
-				// inconsistent case for rdbms existingMetamodel passed in from reactors and building it from DatabaseMetaData 
-				if(colToTypes == null) {
-				   colToTypes = existingMetaModel.get(newTable.toUpperCase());
-				}
+				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + newTable + ") | Limit(500) | Import();"; 
+				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
 
-				Set<String> columnNames = colToTypes.keySet();
-				int size = columnNames.size();
-				int counter = 0;
-				for(String col : columnNames) {
-					if(col.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-						importPixel.append(newTable);
-					} else {
-						importPixel.append(newTable).append("__").append(col);
-					}
-					if(counter + 1 != size) {
-						importPixel.append(", ");
-					}
-					counter++;
-				}
-				importPixel.append(") | Limit(500) | Import();"); 
-				recipeArray[3] = importPixel.toString();
-				
-				StringBuilder viewPixel = new StringBuilder("Frame() | Select(");
-				counter = 0;
-				for(String col : columnNames) {
-					if(col.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-						viewPixel.append(newTable);
-					} else {
-						viewPixel.append(col);
-					}
-					if(counter + 1 != size) {
-						viewPixel.append(", ");
-					}
-					counter++;
-				}
-				viewPixel.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[");
-				counter = 0;
-				for(String col : columnNames) {
-					viewPixel.append("\"");
-					if(col.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
-						viewPixel.append(newTable);
-					} else {
-						viewPixel.append(col);
-					}
-					viewPixel.append("\"");
-					if(counter + 1 != size) {
-						viewPixel.append(", ");
-					}
-					counter++;
-				}
-				viewPixel.append("]}}}) | Collect(500);"); 
-				recipeArray[4] = viewPixel.toString();
-				String id = admin.addInsight(insightName, layout, recipeArray);
+				String insightId = admin.addInsight(insightName, layout, recipeArray);
 				//write recipe to file
-				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdbmsEngine.getEngineName(), id, insightName, layout, recipeArray, false);
+				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdbmsEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
 				// add the git here
 				String recipePath = retFile.getParent();
 				// make a version folder if one doesn't exist
 				//GitRepoUtils.init(recipePath);
-				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), id, insightName, false, layout);
+				SecurityInsightUtils.addInsight(rdbmsEngine.getEngineId(), insightId, insightName, false, layout);
+				
+				List<String> tags = new Vector<String>();
+				tags.add("default");
+				tags.add("preview");
+				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
+				SecurityInsightUtils.updateInsightDescription(appId, insightId, "Preview of the table " + newTable + " and all of its columns");
 			}
 		} catch(RuntimeException e) {
-			System.out.println("caught exception while adding question.................");
+			System.out.println("Caught exception while adding question.................");
 			e.printStackTrace();
 		}
 	}
