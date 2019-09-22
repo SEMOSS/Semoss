@@ -24,7 +24,7 @@ public class PixelSourceReactor extends AbstractReactor {
 		this.organizeKeys();
 		String relativePath = this.keyValue.get(this.keysToGet[0]);
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String path = assetFolder + DIR_SEPARATOR + relativePath;
 
 		// read in the file
