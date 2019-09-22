@@ -31,7 +31,7 @@ public class GitCloneReactor extends AbstractReactor {
 		// get base asset folder path
 		String filePath = this.keyValue.get(this.keysToGet[1]);
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
 		
 		// add relative path in asset folder if specified
 		if (filePath != null && !filePath.isEmpty()) {

@@ -50,7 +50,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 
 		List<String> files = new Vector<>();
 		files.add(relativePath + "/" + fileName);
-		FileUtils.delete(AssetUtility.getAssetBasePath(this.insight, space) + "/" + fileName);
+		FileUtils.delete(AssetUtility.getAssetBasePath(this.insight, space, true) + "/" + fileName);
 		GitDestroyer.removeSpecificFiles(assetFolder, true, files);
 		
 		// commit it
