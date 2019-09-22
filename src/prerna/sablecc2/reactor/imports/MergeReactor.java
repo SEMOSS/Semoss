@@ -18,6 +18,8 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
@@ -46,6 +48,13 @@ public class MergeReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute()  {
 		ITableDataFrame frame = getFrame();
+		SelectQueryStruct qs = getQueryStruct();
+		if(qs != null) {
+			AbstractQueryStruct.QUERY_STRUCT_TYPE type = qs.getQsType();
+			if( (type == QUERY_STRUCT_TYPE.FRAME || type == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) && qs.getFrame() == null) {
+				qs.setFrame(frame);
+			}
+		}
 		// set the logger into the frame
 		Logger logger = getLogger(frame.getClass().getName());
 		frame.setLogger(logger);
@@ -59,7 +68,6 @@ public class MergeReactor extends AbstractReactor {
 		// in either case, we will not return anything but just update the frame
 		
 		ITableDataFrame mergeFrame = null;
-		SelectQueryStruct qs = getQueryStruct();
 		if(frame instanceof NativeFrame) {
 			mergeFrame = mergeNative(frame, qs, joins);
 		} else if(qs != null) {
