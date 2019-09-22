@@ -1593,7 +1593,12 @@ public class MasterDatabaseUtility {
 		}
 		
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-		return flushToString(wrapper);
+		String result = flushToString(wrapper);
+//		if(result == null) {
+//			// this is for really legacy DB OWLs that do not have a dataytpe
+//			result = "STRING";
+//		}
+		return result;
 	}
 
 	/**
@@ -2054,7 +2059,7 @@ public class MasterDatabaseUtility {
 	static String flushToString(IRawSelectWrapper wrapper) {
 		try {
 			while(wrapper.hasNext()) {
-				return wrapper.next().getValues()[0].toString();
+				return (String) wrapper.next().getValues()[0];
 			}
 		} finally {
 			wrapper.cleanUp();
