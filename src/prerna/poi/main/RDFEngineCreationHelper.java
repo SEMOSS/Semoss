@@ -1,7 +1,9 @@
 package prerna.poi.main;
 
 import java.io.File;
+import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.engine.api.IEngine;
@@ -10,7 +12,6 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.MosfetSyncHelper;
-import prerna.util.git.GitRepoUtils;
 
 public class RDFEngineCreationHelper {
 
@@ -21,9 +22,9 @@ public class RDFEngineCreationHelper {
 	/**
 	 * Insert new insights that return a distinct list of each concept
 	 * @param rdfEngine
-	 * @param conceptualNames
+	 * @param pixelNames
 	 */
-	public static void insertSelectConceptsAsInsights(IEngine rdfEngine, Set<String> conceptualNames) {
+	public static void insertSelectConceptsAsInsights(IEngine rdfEngine, Set<String> pixelNames) {
 		String appId = rdfEngine.getEngineId();
 		InsightAdministrator admin = new InsightAdministrator(rdfEngine.getInsightDatabase());
 		
@@ -33,27 +34,29 @@ public class RDFEngineCreationHelper {
 		String layout = ""; 
 
 		try {
-			for(String conceptualName : conceptualNames) {
-				insightName = "Show first 500 records from " + conceptualName;
+			for(String pixelName : pixelNames) {
+				insightName = "Show first 500 records from " + pixelName;
 				layout = "Grid";
 				recipeArray = new String[5];
 				recipeArray[0] = "AddPanel(0);";
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				recipeArray[3] = "Database(\"" + appId + "\") | Select(" + conceptualName + ") | Limit(500) | Import();"; 
-				
-				StringBuilder viewPixel = new StringBuilder("Frame() | Select(").append(conceptualName)
-						.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"")
-						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
-				recipeArray[4] = viewPixel.toString();
+				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"; 
+				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
 				String insightId = admin.addInsight(insightName, layout, recipeArray);
 				//write recipe to file
 				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
 				// add the git here
-				String recipePath = retFile.getParent();
+//				String recipePath = retFile.getParent();
 				// make a version folder if one doesn't exist
 				//GitRepoUtils.init(recipePath);
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout); 
+				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout);
+				
+				List<String> tags = new Vector<String>();
+				tags.add("default");
+				tags.add("preview");
+				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
+				SecurityInsightUtils.updateInsightDescription(appId, insightId, "Preview of the concept " + pixelName + " and all of its properties");
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -65,10 +68,10 @@ public class RDFEngineCreationHelper {
 	 * Insert new insights that return a distinct list of each concept
 	 * Will run a query to make sure we are not adding an insight that was previously added via autogeneration
 	 * @param rdfEngine
-	 * @param conceptualNames
+	 * @param pixelNames
 	 */
-	public static void insertNewSelectConceptsAsInsights(IEngine rdfEngine, Set<String> conceptualNames) {
-		String engineId = rdfEngine.getEngineId();
+	public static void insertNewSelectConceptsAsInsights(IEngine rdfEngine, Set<String> pixelNames) {
+		String appId = rdfEngine.getEngineId();
 		RDBMSNativeEngine insightsDatabase = rdfEngine.getInsightDatabase();
 		InsightAdministrator admin = new InsightAdministrator(insightsDatabase);
 		
@@ -79,9 +82,9 @@ public class RDFEngineCreationHelper {
 
 		String query = null;
 		try {
-			NEXT_CONCEPT : for(String conceptualName : conceptualNames) {
+			NEXT_CONCEPT : for(String pixelName : pixelNames) {
 				// make sure insight doesn't already exist
-				insightName = "Show first 500 records from " + conceptualName;
+				insightName = "Show first 500 records from " + pixelName;
 
 				query = "select id from question_id where question_name='"+insightName+"'";
 				IRawSelectWrapper containsIt = WrapperManager.getInstance().getRawWrapper(insightsDatabase, query);
@@ -97,20 +100,22 @@ public class RDFEngineCreationHelper {
 				recipeArray[0] = "AddPanel(0);";
 				recipeArray[1] = "Panel(0)|SetPanelView(\"visualization\");";
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
-				recipeArray[3] = "Database(\"" + engineId + "\") | Select(" + conceptualName + ") | Limit(500) | Import();"; 
-				
-				StringBuilder viewPixel = new StringBuilder("Frame() | Select(").append(conceptualName)
-						.append(") | Format ( type = [ 'table' ] ) | TaskOptions({\"0\":{\"layout\":\"Grid\",\"alignment\":{\"label\":[\"")
-						.append(conceptualName).append("\"").append("]}}}) | Collect(500);"); 
-				recipeArray[4] = viewPixel.toString();
-				String id = admin.addInsight(insightName, layout, recipeArray);
+				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"; 
+				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
+				String insightId = admin.addInsight(insightName, layout, recipeArray);
 				//write recipe to file
-				File retFile = MosfetSyncHelper.makeMosfitFile(engineId, rdfEngine.getEngineName(), id, insightName, layout, recipeArray, false);
+				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
 				// add the git here
-				String recipePath = retFile.getParent();
+//				String recipePath = retFile.getParent();
 				// make a version folder if one doesn't exist
 				//GitRepoUtils.init(recipePath);
-				SecurityInsightUtils.addInsight(engineId, id, insightName, false, layout); 
+				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout); 
+				
+				List<String> tags = new Vector<String>();
+				tags.add("default");
+				tags.add("preview");
+				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
+				SecurityInsightUtils.updateInsightDescription(appId, insightId, "Preview of the concept " + pixelName + " and all of its properties");
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
