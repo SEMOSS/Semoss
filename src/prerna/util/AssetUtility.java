@@ -31,7 +31,7 @@ public class AssetUtility {
 	 * @param space
 	 * @return
 	 */
-	public static String getAssetBasePath(Insight in, String space) {
+	public static String getAssetBasePath(Insight in, String space, boolean editRequired) {
 		String assetFolder = in.getInsightFolder();
 		// find out what space the user wants to use to get the base asset path
 		if (space != null) {
@@ -53,8 +53,15 @@ public class AssetUtility {
 				String appId = space;
 				// check if the user has permission for the app
 				if (AbstractSecurityUtils.securityEnabled()) {
-					if (!SecurityAppUtils.userCanEditEngine(in.getUser(), space)) {
-						throw new IllegalArgumentException("User does not have permission for this app");
+					if(editRequired) {
+						if(!SecurityAppUtils.userCanEditEngine(in.getUser(), space)) {
+							throw new IllegalArgumentException("User does not have permission for this app");
+						}
+					} else {
+						// only read access
+						if(!SecurityAppUtils.userCanViewEngine(in.getUser(), space)) {
+							throw new IllegalArgumentException("User does not have permission for this app");
+						}
 					}
 				}
 				IEngine engine = Utility.getEngine(appId);
