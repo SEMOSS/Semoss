@@ -487,7 +487,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
-				userRootPath = AssetUtility.getAssetBasePath(this.insight, "USER");
+				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 				userRootPath = userRootPath.replace('\\', '/');
 				userRootAssignment = "USER_ROOT <- '" + userRootPath + "';";
 				removePathVariables += ", USER_ROOT";

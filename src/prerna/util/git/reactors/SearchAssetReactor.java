@@ -20,7 +20,7 @@ public class SearchAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String space = this.keyValue.get(this.keysToGet[2]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space);
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 
 		// get search term
 		String search = keyValue.get(keysToGet[0]);

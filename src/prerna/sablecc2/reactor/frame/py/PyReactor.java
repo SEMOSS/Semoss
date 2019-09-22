@@ -56,7 +56,7 @@ public class PyReactor extends AbstractReactor {
 			size++;
 		}
 		try {
-			userRootPath = AssetUtility.getAssetBasePath(this.insight, "USER");
+			userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 			userRootPath = userRootPath.replace('\\', '/');
 			userRootAssignment = "USER_ROOT = \"" + userRootPath + "\"";
 			removePathVariables += ", USER_ROOT";
