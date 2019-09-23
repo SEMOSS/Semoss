@@ -6,6 +6,7 @@ import java.util.Vector;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -44,9 +45,11 @@ public class CommitAssetReactor extends AbstractReactor {
 		List<String> files = new Vector<>();
 		files.add(relativePath + DIR_SEPARATOR + filePath);		
 		GitRepoUtils.addSpecificFiles(assetFolder, files);
-
+		
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
+		ClusterUtil.reactorPushApp(this.insight.getEngineId());
+
 		return NounMetadata.getSuccessNounMessage("Success!");
 
 	}
