@@ -8,6 +8,7 @@ import org.h2.store.fs.FileUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -55,6 +56,8 @@ public class DeleteAssetReactor extends AbstractReactor {
 		
 		// commit it
 		GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
+		ClusterUtil.reactorPushApp(this.insight.getEngineId());
+
 		return NounMetadata.getSuccessNounMessage("Success!");
 	}
 }
