@@ -353,11 +353,18 @@ public class RFrameBuilder {
 //		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) ) );
 //		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) ) );
 
-		evalR( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) );
-		evalR( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) );
-		evalR( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) );
-		evalR( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) );
-
+		if(!charColumns.isEmpty()) {
+			evalR( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) );
+		}
+		if(!intColumns.isEmpty()) {
+			evalR( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) );
+		}
+		if(!doubleColumns.isEmpty()) {
+			evalR( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) );
+		}
+		if(!booleanColumns.isEmpty()) {
+			evalR( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) );
+		}
 		
 		// if the original file type is excel, then need to assess if there are date/time cols that have been parsed to numbers first 
 		// and handle those separately
