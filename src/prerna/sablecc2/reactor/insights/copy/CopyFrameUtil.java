@@ -71,7 +71,7 @@ public class CopyFrameUtil {
 
 				String newName = oldName + "_COPY";
 				if(limit > 0) {
-					dt.executeRScript(newName + "<- " + oldName + "[1," + limit + ", ]");
+					dt.executeRScript(newName + "<- " + oldName + "[1:" + limit + ", ]");
 				} else {
 					dt.executeRScript(newName + "<- " + oldName);
 				}
