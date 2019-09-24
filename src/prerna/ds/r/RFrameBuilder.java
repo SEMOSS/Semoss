@@ -86,15 +86,15 @@ public class RFrameBuilder {
 		this.rJavaTranslator.executeEmptyR(r);
 	}
 	
-	/**
-	 * Wrap the R script in a try-eval in order to get the same error message that a user would see if using
-	 * the R console
-	 * @param rscript			The R script to execute
-	 * @return					The R script wrapped in a try-eval statement
-	 */
-	public String addTryEvalToScript(String rscript) {
-		return "try(eval(" + rscript + "), silent=FALSE)";
-	}
+//	/**
+//	 * Wrap the R script in a try-eval in order to get the same error message that a user would see if using
+//	 * the R console
+//	 * @param rscript			The R script to execute
+//	 * @return					The R script wrapped in a try-eval statement
+//	 */
+//	public String addTryEvalToScript(String rscript) {
+//		return "try(eval(" + rscript + "), silent=FALSE)";
+//	}
 
 	/**
 	 * Creates a new data table from an iterator
@@ -348,11 +348,17 @@ public class RFrameBuilder {
 		
 		// now that we have everything
 		// execute everything
-		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) ) );
-		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) ) );
-		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) ) );
-		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) ) );
+//		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) ) );
+//		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) ) );
+//		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) ) );
+//		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) ) );
 
+		evalR( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) );
+		evalR( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) );
+		evalR( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) );
+		evalR( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) );
+
+		
 		// if the original file type is excel, then need to assess if there are date/time cols that have been parsed to numbers first 
 		// and handle those separately
 		if (fileType.equals("excel")) {
