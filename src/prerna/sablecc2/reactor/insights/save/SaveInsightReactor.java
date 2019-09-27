@@ -1,11 +1,21 @@
 package prerna.sablecc2.reactor.insights.save;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -120,13 +130,30 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		logger.info("3) Add recipe to file...");
 		MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
 		logger.info("3) Done...");
+		
+		// Move assets to new insight folder
+		File tempInsightFolder = new File(this.insight.getInsightFolder());
+		File newInsightFolder = new File(AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), engine.getEngineId()) + DIR_SEPARATOR + newRdbmsId);
+	    try {
+			FileUtils.copyDirectory(tempInsightFolder, newInsightFolder);
+		} catch (IOException e) {
+			logger.info("Unable to save assets");
+		}
 
 		// adding all the git here
-		String folder = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId);
-		List<String> files = new Vector<>();
-		files.add(newRdbmsId + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
-		GitRepoUtils.addSpecificFiles(folder, files);
-		GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Recipe Changed on : "));
+	    try {
+			String folder = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId);
+	    	Stream<Path> walk = Files.walk(Paths.get(newInsightFolder.toURI()));
+	    	List<String> files = walk.map(x -> newInsightId + DIR_SEPARATOR + newInsightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString()).collect(Collectors.toList());
+	    	files.remove(0);
+	    	GitRepoUtils.init(folder);
+			GitRepoUtils.addSpecificFiles(folder, files);
+			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved insight on : "));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	
+
 		
 		// write pipeline
 		if(pipeline != null && !pipeline.isEmpty()) {
