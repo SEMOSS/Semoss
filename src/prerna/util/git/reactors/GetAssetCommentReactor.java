@@ -22,6 +22,9 @@ public class GetAssetCommentReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		if(!this.insight.isSavedInsight()) {
+			return NounMetadata.getWarningNounMessage("Unable to get comments the insight must be saved to allow commenting.");
+		}
 
 		// check if user is logged in
 		User user = this.insight.getUser();
