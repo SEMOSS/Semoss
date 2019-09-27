@@ -23,6 +23,9 @@ public class CommitAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		if(!this.insight.isSavedInsight()) {
+			return NounMetadata.getWarningNounMessage("Unable to commit file. All files will be commited once the insight is saved.");
+		}
 		User user = this.insight.getUser();
 		String author = null;
 		String email = null;
