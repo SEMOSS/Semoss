@@ -117,7 +117,8 @@ public class AssetUtility {
 		}
 		assetFolder = assetFolder.replace('\\', '/');
 		
-		if(!GitUtils.isGit(assetFolder)) {
+		
+		if(in.isSavedInsight() && !GitUtils.isGit(assetFolder)) {
 			GitRepoUtils.init(assetFolder);
 		}
 		return assetFolder;
@@ -150,6 +151,20 @@ public class AssetUtility {
 			GitRepoUtils.init(gitFolder);
 		}
 		return gitFolder;
+		
+	}
+	
+	public static String getInsightFolder(String appName, String appId, String rdbmsID) {
+		String insightFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
+				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsID;
+
+		// if this folder does not exist create it
+		File file = new File(insightFolder);
+		if (!file.exists()) {
+			file.mkdir();
+		}
+
+		return insightFolder;
 		
 	}
 	

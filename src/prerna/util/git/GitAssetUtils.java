@@ -2,7 +2,6 @@ package prerna.util.git;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,6 +87,9 @@ public class GitAssetUtils {
 		List<Map<String, Object>> retList = new Vector<>();
 		File folder = new File(gitFolder);
 		File[] listOfFiles = folder.listFiles();
+		if(listOfFiles == null) {
+			return retList;
+		}
 		String repString = ""; // can be $IF
 
 		for (File f : listOfFiles) {
