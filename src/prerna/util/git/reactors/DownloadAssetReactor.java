@@ -33,7 +33,7 @@ public class DownloadAssetReactor extends AbstractReactor {
 		String randomKey = UUID.randomUUID().toString();
 		String OUTPUT_PATH = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "export"
 				+ DIR_SEPARATOR + "ZIPs";
-		String zipPath = OUTPUT_PATH + DIR_SEPARATOR + this.insight.getInsightId() + "__" + randomKey + ".zip";
+		String zipPath = OUTPUT_PATH + DIR_SEPARATOR + this.insight.getInsightName() + ".zip";
 		// if a specific file is specified for download
 		String relativeAssetPath = keyValue.get(keysToGet[0]);
 		if (relativeAssetPath != null && relativeAssetPath.length() > 0) {

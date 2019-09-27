@@ -855,8 +855,6 @@ public class GitRepoUtils {
 	{
 		String output = null;
 		try {
-			Git thisGit = Git.open(new File(gitFolder));
-			//ObjectId masterTreeId= thisGit.getRepository().resolve("refs/heads/master^" + commitID);
 			
 			RevCommit comm = null;
 			if(commId == null)
@@ -881,6 +879,8 @@ public class GitRepoUtils {
 			}
 			else
 			{
+				Git thisGit = Git.open(new File(gitFolder));
+
 				comm = findCommit(gitFolder, commId);
 			
 				TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
@@ -1229,18 +1229,14 @@ public class GitRepoUtils {
 	public static void checkout(String gitFolder, String comm) throws Exception
 	{
 		Git git = Git.open(new File(gitFolder));
-
 		git.checkout().setName(comm).call();
-		//System.out.pr
 		
 	}
 	
 	public static void resetCheckout(String gitFolder) throws Exception
 	{
 		Git git = Git.open(new File(gitFolder));
-
 		git.checkout().setName("master").call();
-		//System.out.pr
 		
 	}
 	
@@ -1260,11 +1256,11 @@ public class GitRepoUtils {
 			e.printStackTrace();
 		}
 		
-		// add everything and commit
-		GitRepoUtils.addAllFiles(folder, true);
-		
-		// commit it
-		GitRepoUtils.commitAddedFiles(folder);
+//		// add everything and commit
+//		GitRepoUtils.addAllFiles(folder, true);
+//		
+//		// commit it
+//		GitRepoUtils.commitAddedFiles(folder);
 	}
 	
 }
