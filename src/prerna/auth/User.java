@@ -264,7 +264,7 @@ public class User extends AbstractValueObject {
 		}
 		List<AuthProvider> logins = semossUser.getLogins();
 		if(logins.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled() && semossUser.isAnonymous()) {
-			retMap.put("ANNONYMOUS", "Not Logged In");
+			retMap.put("ANNONYMOUS", "Sign In");
 		} else {
 			for(AuthProvider p : logins) {
 				String name = semossUser.getAccessToken(p).getName();
