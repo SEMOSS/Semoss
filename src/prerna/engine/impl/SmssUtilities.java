@@ -53,7 +53,11 @@ public class SmssUtilities {
 		rdbmsInsights = rdbmsInsights.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId));
 		File rdbms = null;
 		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
-			rdbms = new File(rdbmsInsights + ".sqlite");
+			if(rdbmsInsights.endsWith(".sqlite")) {
+				rdbms = new File(rdbmsInsights);
+			} else {
+				rdbms = new File(rdbmsInsights + ".sqlite");
+			}
 		} else {
 			// must be H2
 			rdbms = new File(rdbmsInsights + ".mv.db");
