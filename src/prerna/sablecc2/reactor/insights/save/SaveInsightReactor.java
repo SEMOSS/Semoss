@@ -18,6 +18,8 @@ import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.auth.AccessToken;
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
@@ -53,6 +55,9 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		// get the recipe for the insight
 		// need the engine name and id that has the recipe
 		String appId = getApp();
+		User user = this.insight.getUser();
+		String author = null;
+		String email = null;
 		
 		// security
 		if(AbstractSecurityUtils.securityEnabled()) {
@@ -63,6 +68,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), appId)) {
 				throw new IllegalArgumentException("User does not have permission to add insights in the app");
 			}
+			// Get the user's email
+			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+			email = accessToken.getEmail();
+			author = accessToken.getUsername();
 		}
 		
 		String insightName = getInsightName();
@@ -176,7 +185,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			files.remove(""); // removing empty path
 			logger.info(stepCounter + ") Adding insight to git...");
 			GitRepoUtils.addSpecificFiles(folder, files);
-			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"), author, email);
 			logger.info(stepCounter + ") Done...");
 		} catch (IOException e) {
 			logger.info(stepCounter + ") Unable to add insight to git...");
