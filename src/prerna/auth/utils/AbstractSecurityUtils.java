@@ -861,8 +861,8 @@ public abstract class AbstractSecurityUtils {
 		List<String> filters = new Vector<String>();
 		if(user != null) {
 			List<AuthProvider> logins = user.getLogins();
-			for(AuthProvider l : logins) {
-				filters.add(user.getAccessToken(l).getId());
+			for(AuthProvider thisLogin : logins) {
+				filters.add(user.getAccessToken(thisLogin).getId());
 			}
 		}
 		
