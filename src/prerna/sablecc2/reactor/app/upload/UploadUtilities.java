@@ -1208,7 +1208,7 @@ public class UploadUtilities {
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ EXPLORE_INSIGHT_INSIGHT_NAME +" insight on : "));
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ EXPLORE_INSIGHT_INSIGHT_NAME +" insight on"));
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1234,7 +1234,7 @@ public class UploadUtilities {
 		List<String> files = new Vector<>();
 		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 		GitRepoUtils.addSpecificFiles(gitFolder, files);				
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ GRID_DELTA_INSIGHT_NAME +" insight on : "));
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ GRID_DELTA_INSIGHT_NAME +" insight on"));
 		return insightId;
 	}
 	
@@ -1265,7 +1265,7 @@ public class UploadUtilities {
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_MODIFICATION_VIEW_INSIGHT_NAME +" insight on : "));
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_MODIFICATION_VIEW_INSIGHT_NAME +" insight on"));
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1300,7 +1300,7 @@ public class UploadUtilities {
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_TIMELINE_INSIGHT_NAME +" insight on : "));
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_TIMELINE_INSIGHT_NAME +" insight on"));
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1337,7 +1337,7 @@ public class UploadUtilities {
 		List<String> files = new Vector<>();
 		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 		GitRepoUtils.addSpecificFiles(gitFolder, files);				
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 	}
 	
 	/**
@@ -1369,7 +1369,7 @@ public class UploadUtilities {
 		List<String> files = new Vector<>();
 		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 		GitRepoUtils.addSpecificFiles(gitFolder, files);				
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 	}
 
 	/**
@@ -1397,7 +1397,7 @@ public class UploadUtilities {
 		List<String> files = new Vector<>();
 		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 		GitRepoUtils.addSpecificFiles(gitFolder, files);				
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 	}
 
 	/**

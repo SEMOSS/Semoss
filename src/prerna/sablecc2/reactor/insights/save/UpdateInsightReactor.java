@@ -174,7 +174,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		List<String> files = new Vector<>();
 		files.add(rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
 		GitRepoUtils.addSpecificFiles(gitFolder, files);
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + "recipe on : "));
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " recipe on"));
 	}
 	
 }
