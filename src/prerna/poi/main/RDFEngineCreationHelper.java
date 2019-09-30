@@ -54,7 +54,7 @@ public class RDFEngineCreationHelper {
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 				// insight security
 				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout);
 				
@@ -116,7 +116,7 @@ public class RDFEngineCreationHelper {
 				List<String> files = new Vector<>();
 				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));			
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));			
 				// insight security
 				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout); 
 				
