@@ -170,11 +170,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
 		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
 		// git
-		String folder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 		List<String> files = new Vector<>();
 		files.add(rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
-		GitRepoUtils.addSpecificFiles(folder, files);
-		GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Recipe Changed on : "));
+		GitRepoUtils.addSpecificFiles(gitFolder, files);
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + "recipe on : "));
 	}
 	
 }
