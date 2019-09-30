@@ -11,6 +11,8 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 
+import prerna.auth.AccessToken;
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityInsightUtils;
@@ -43,7 +45,10 @@ public class DeleteInsightReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+		User user = this.insight.getUser();
+		String author = null;
+		String email = null;
+		if(AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
 		
@@ -54,10 +59,14 @@ public class DeleteInsightReactor extends AbstractReactor {
 		}
 		String appId = appGrs.get(0).toString();
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), appId)) {
+			appId = SecurityQueryUtils.testUserEngineIdForAlias(user, appId);
+			if(!SecurityAppUtils.userCanViewEngine(user, appId)) {
 				throw new IllegalArgumentException("App " + appId + " does not exist or user does not have access to database");
 			}
+			// Get the user's email
+			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+			email = accessToken.getEmail();
+			author = accessToken.getUsername();
 		} else {
 			appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
 			if(!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
@@ -73,7 +82,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 		for (int i = 0; i < size; i++) {
 			String insightId = grs.get(i).toString();
 			if(AbstractSecurityUtils.securityEnabled()) {
-				if(!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), appId, insightId)) {
+				if(!SecurityInsightUtils.userCanEditInsight(user, appId, insightId)) {
 					throw new IllegalArgumentException("User does not have permission to edit this insight");
 				}
 			}
@@ -104,8 +113,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 						.collect(Collectors.toList());
 				files.remove(""); // removing empty path
 				GitDestroyer.removeSpecificFiles(gitFolder, true, files);
-				GitRepoUtils.commitAddedFiles(gitFolder,
-						GitUtils.getDateMessage("Deleted " + insightName + " insight on"));
+				GitRepoUtils.commitAddedFiles(gitFolder,GitUtils.getDateMessage("Deleted " + insightName + " insight on"), author, email);
 				FileUtils.deleteDirectory(insightFolder);
 			} catch (IOException e) {
 				e.printStackTrace();
