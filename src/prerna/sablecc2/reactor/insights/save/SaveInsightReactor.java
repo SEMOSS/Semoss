@@ -111,62 +111,78 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				throw new IllegalArgumentException("Cannot find app = " + appId);
 			}
 		}
+		
+		int stepCounter = 1;
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
-
-		logger.info("1) Add insight " + insightName + " to rdbms store...");
+		logger.info(stepCounter + ") Add insight " + insightName + " to rdbms store...");
 		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, recipeToSave, hidden);
-		logger.info("1) Done...");
+		logger.info(stepCounter +") Done...");
+		stepCounter++;
 
 		if(!hidden) {
-			logger.info("2) Regsiter insight...");
+			logger.info(stepCounter + ") Regsiter insight...");
 			registerInsightAndMetadata(engine.getEngineId(), newRdbmsId, insightName, layout, getDescription(), getTags());
-			logger.info("2) Done...");
+			logger.info(stepCounter + ") Done...");
 		} else {
-			logger.info("2) Insight is hidden ... do not add to solr");
+			logger.info(stepCounter + ") Insight is hidden ... do not add to solr");
 		}
+		stepCounter++;
 		
 		//write recipe to file
-		logger.info("3) Add recipe to file...");
+		logger.info(stepCounter + ") Add recipe to file...");
 		MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
-		logger.info("3) Done...");
+		logger.info(stepCounter + ") Done...");
+		stepCounter++;
 		
 		// Move assets to new insight folder
 		File tempInsightFolder = new File(this.insight.getInsightFolder());
 		File newInsightFolder = new File(AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), engine.getEngineId()) + DIR_SEPARATOR + newRdbmsId);
 	    try {
+			logger.info(stepCounter + ") Moving assets...");
 			FileUtils.copyDirectory(tempInsightFolder, newInsightFolder);
+			logger.info(stepCounter + ") Done...");
 		} catch (IOException e) {
-			logger.info("Unable to save assets");
+			logger.info(stepCounter + ") Unable to move assets...");
 		}
-
-		// adding all the git here
-	    try {
-			String folder = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId);
-	    	Stream<Path> walk = Files.walk(Paths.get(newInsightFolder.toURI()));
-	    	List<String> files = walk.map(x -> newInsightId + DIR_SEPARATOR + newInsightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString()).collect(Collectors.toList());
-	    	files.remove(0);
-	    	GitRepoUtils.init(folder);
-			GitRepoUtils.addSpecificFiles(folder, files);
-			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved insight on : "));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	
-
+	    stepCounter++;
 		
 		// write pipeline
 		if(pipeline != null && !pipeline.isEmpty()) {
-			logger.info("4) Add pipeline to file...");
+			logger.info(stepCounter + ") Add pipeline to file...");
 			writePipelineToFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, pipeline);
-			logger.info("4) Done...");
+			logger.info(stepCounter + ") Done...");
+			stepCounter++;
 		}
 	
 		// get base 64 image string and write to file
 		String base64Image = getImage();
 		if(base64Image != null && !base64Image.trim().isEmpty()) {
+			logger.info(stepCounter + ") Storing insight image...");
 			storeImageFromPng(base64Image, newRdbmsId, engine.getEngineId(), engine.getEngineName());
+			logger.info(stepCounter + ") Done...");
+			stepCounter++;
 		}
+
+		// adding insight files to git
+		try {
+			String folder = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId);
+			// grab relative file paths
+			Stream<Path> walk = Files.walk(Paths.get(newInsightFolder.toURI()));
+			List<String> files = walk
+					.map(x -> newInsightId + DIR_SEPARATOR
+							+ newInsightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
+					.collect(Collectors.toList());
+			files.remove(""); // removing empty path
+			logger.info(stepCounter + ") Adding insight to git...");
+			GitRepoUtils.addSpecificFiles(folder, files);
+			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
+			logger.info(stepCounter + ") Done...");
+		} catch (IOException e) {
+			logger.info(stepCounter + ") Unable to add insight to git...");
+			e.printStackTrace();
+		}
+		stepCounter++;
 		
 		// update the workspace cache for the saved insight
 		this.insight.setEngineId(engine.getEngineId());
