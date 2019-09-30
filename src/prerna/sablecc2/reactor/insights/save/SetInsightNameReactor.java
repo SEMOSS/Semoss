@@ -112,12 +112,12 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		File mosfet = new File(recipeLocation);
 		if(mosfet.exists()) {
 			MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
-			// git
-			String folder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			// add to git
+			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
 			files.add(rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
-			GitRepoUtils.addSpecificFiles(folder, files);
-			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Recipe Changed on : "));
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + "recipe on : "));
 		} else {
 			logger.info("... Could not find existing mosfet file. Ignoring update.");
 		}
