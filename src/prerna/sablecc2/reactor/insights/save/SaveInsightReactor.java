@@ -176,7 +176,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			files.remove(""); // removing empty path
 			logger.info(stepCounter + ") Adding insight to git...");
 			GitRepoUtils.addSpecificFiles(folder, files);
-			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
+			GitRepoUtils.commitAddedFiles(folder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 			logger.info(stepCounter + ") Done...");
 		} catch (IOException e) {
 			logger.info(stepCounter + ") Unable to add insight to git...");
