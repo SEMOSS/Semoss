@@ -49,11 +49,13 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions;
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 import prerna.util.gson.GsonUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RDBMSUtility;
@@ -1200,11 +1202,13 @@ public class UploadUtilities {
 				String[] pkqlRecipeToSave = {newPixel};
 				String insightId = admin.addInsight(EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave);
 				//write recipe to file
-				File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave, false);
+				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave, false);
 				// add the git here
-				String recipePath = retFile.getParent();
-				// make a version folder if one doesn't exist
-				//GitRepoUtils.init(recipePath);
+				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				List<String> files = new Vector<>();
+				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+				GitRepoUtils.addSpecificFiles(gitFolder, files);				
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ EXPLORE_INSIGHT_INSIGHT_NAME +" insight on : "));
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1223,12 +1227,14 @@ public class UploadUtilities {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
 		String[] pkqlRecipeToSave = {"AddPanel(0); Panel(0)|SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");"};
 		String insightId = admin.addInsight(GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave);
-		//write recipe to file
-		File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave, false);
-		// add the git here
-		String recipePath = retFile.getParent();
-		// make a version folder if one doesn't exist
-		//GitRepoUtils.init(recipePath);
+		// write recipe to file
+		MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave, false);
+		// add the insight to git
+		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+		List<String> files = new Vector<>();
+		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+		GitRepoUtils.addSpecificFiles(gitFolder, files);				
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ GRID_DELTA_INSIGHT_NAME +" insight on : "));
 		return insightId;
 	}
 	
@@ -1253,11 +1259,13 @@ public class UploadUtilities {
 				String[] pkqlRecipeToSave = { newPixel };
 				String insightId = admin.addInsight(AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pkqlRecipeToSave);
 				//write recipe to file
-				File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pkqlRecipeToSave, false);
-				// add the git here
-				String recipePath = retFile.getParent();
-				// make a version folder if one doesn't exist
-				//GitRepoUtils.init(recipePath);
+				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pkqlRecipeToSave, false);
+				// add the insight to git
+				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				List<String> files = new Vector<>();
+				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+				GitRepoUtils.addSpecificFiles(gitFolder, files);				
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_MODIFICATION_VIEW_INSIGHT_NAME +" insight on : "));
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1285,12 +1293,14 @@ public class UploadUtilities {
 				newPixel += "} </encode>\" ) ;";
 				String[] pkqlRecipeToSave = { newPixel };
 				String insightId = admin.addInsight(AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pkqlRecipeToSave);
-				//write recipe to file
-				File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pkqlRecipeToSave, false);
-				// add the git here
-				String recipePath = retFile.getParent();
-				// make a version folder if one doesn't exist
-				//GitRepoUtils.init(recipePath);
+				// write recipe to file
+				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pkqlRecipeToSave, false);
+				// add the insight to git
+				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				List<String> files = new Vector<>();
+				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+				GitRepoUtils.addSpecificFiles(gitFolder, files);				
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_TIMELINE_INSIGHT_NAME +" insight on : "));
 				return insightId;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -1320,12 +1330,14 @@ public class UploadUtilities {
 		String[] pkqlRecipeToSave = { newPixel };
 		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
-		//write recipe to file
-		File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
-		// add the git here
-		String recipePath = retFile.getParent();
-		// make a version folder if one doesn't exist
-		//GitRepoUtils.init(recipePath);
+		// write recipe to file
+		MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
+		// add the insight to git
+		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+		List<String> files = new Vector<>();
+		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+		GitRepoUtils.addSpecificFiles(gitFolder, files);				
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
 	}
 	
 	/**
@@ -1350,12 +1362,14 @@ public class UploadUtilities {
 		String[] pkqlRecipeToSave = { newPixel };
 		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightDatabase.commit();
-		//write recipe to file
-		File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
-		// add the git here
-		String recipePath = retFile.getParent();
-		// make a version folder if one doesn't exist
-		//GitRepoUtils.init(recipePath);
+		// write recipe to file
+		MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
+		// add the insight to git
+		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+		List<String> files = new Vector<>();
+		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+		GitRepoUtils.addSpecificFiles(gitFolder, files);				
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
 	}
 
 	/**
@@ -1376,12 +1390,14 @@ public class UploadUtilities {
 		String[] pkqlRecipeToSave = { newPixel };
 		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
 		insightEngine.commit();
-		//write recipe to file
-		File retFile = MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
-		// add the git here
-		String recipePath = retFile.getParent();
-		// make a version folder if one doesn't exist
-		//GitRepoUtils.init(recipePath);
+		// write recipe to file
+		MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
+		// add the insight to git
+		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+		List<String> files = new Vector<>();
+		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+		GitRepoUtils.addSpecificFiles(gitFolder, files);				
+		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
 	}
 
 	/**
