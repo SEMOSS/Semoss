@@ -11,7 +11,10 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.AssetUtility;
 import prerna.util.MosfetSyncHelper;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 
 public class RDFEngineCreationHelper {
 
@@ -44,12 +47,15 @@ public class RDFEngineCreationHelper {
 				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"; 
 				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
 				String insightId = admin.addInsight(insightName, layout, recipeArray);
-				//write recipe to file
-				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
-				// add the git here
-//				String recipePath = retFile.getParent();
-				// make a version folder if one doesn't exist
-				//GitRepoUtils.init(recipePath);
+				// write recipe to file
+				MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
+				// add the insight to git
+				String gitFolder = AssetUtility.getAppAssetVersionFolder(rdfEngine.getEngineName(), appId);
+				List<String> files = new Vector<>();
+				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+				GitRepoUtils.addSpecificFiles(gitFolder, files);				
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));
+				// insight security
 				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout);
 				
 				List<String> tags = new Vector<String>();
@@ -104,11 +110,14 @@ public class RDFEngineCreationHelper {
 				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
 				String insightId = admin.addInsight(insightName, layout, recipeArray);
 				//write recipe to file
-				File retFile = MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
-				// add the git here
-//				String recipePath = retFile.getParent();
-				// make a version folder if one doesn't exist
-				//GitRepoUtils.init(recipePath);
+				MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
+				// add the insight to git
+				String gitFolder = AssetUtility.getAppAssetVersionFolder(rdfEngine.getEngineName(), appId);
+				List<String> files = new Vector<>();
+				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+				GitRepoUtils.addSpecificFiles(gitFolder, files);				
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on : "));			
+				// insight security
 				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout); 
 				
 				List<String> tags = new Vector<String>();

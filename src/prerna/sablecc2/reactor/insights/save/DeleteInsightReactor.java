@@ -2,6 +2,12 @@ package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 
@@ -20,9 +26,14 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitDestroyer;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 
 public class DeleteInsightReactor extends AbstractReactor {
 
@@ -82,6 +93,19 @@ public class DeleteInsightReactor extends AbstractReactor {
 					+ DIR_SEPARATOR + insightId;
 			File insightFolder = new File(insightFolderPath);
 			try {
+				// delete insight files from git
+				String insightName = MosfetSyncHelper.getInsightName(new File(insightFolderPath + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE));
+				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				// grab relative file paths
+				Stream<Path> walk = Files.walk(Paths.get(insightFolder.toURI()));
+				List<String> files = walk
+						.map(x -> insightId + DIR_SEPARATOR
+								+ insightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
+						.collect(Collectors.toList());
+				files.remove(""); // removing empty path
+				GitDestroyer.removeSpecificFiles(gitFolder, true, files);
+				GitRepoUtils.commitAddedFiles(gitFolder,
+						GitUtils.getDateMessage("Deleted " + insightName + " insight on : "));
 				FileUtils.deleteDirectory(insightFolder);
 			} catch (IOException e) {
 				e.printStackTrace();
