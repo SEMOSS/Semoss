@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.io.File;
 import java.util.List;
 
 import prerna.sablecc2.om.GenRowStruct;
@@ -31,7 +32,14 @@ public class ToTxtReactor extends AbstractExportTxtReactor {
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (this.fileLocation == null) {
-			this.fileLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
+			String insightFolder = this.insight.getInsightFolder();
+			{
+				File f = new File(insightFolder);
+				if(!f.exists()) {
+					f.mkdirs();
+				}
+			}
+			this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 			// store it in the insight so the FE can download it
 			// only from the given insight
 			this.insight.addExportFile(exportName, this.fileLocation);
