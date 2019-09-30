@@ -1019,19 +1019,21 @@ public class MasterDatabaseUtility {
 			}
 
 			if(includeDataTypes && !ignoreData) {
-				String origType = row[5].toString();
-				String cleanType = row[6].toString();
-				String additionalType = null;
+				if(row[5] != null) {
+					String origType = row[5].toString();
+					if(origType.contains("TYPE:")) {
+						origType = origType.replace("TYPE:", "");
+					}
+					physicalDataTypes.put(uniqueName, origType);	
+				}
+				if(row[6] != null) {
+					String cleanType = row[6].toString();
+					dataTypes.put(uniqueName, cleanType);
+				}
 				if(row[7] != null) {
-					additionalType = row[7].toString();
+					String additionalType = row[7].toString();
+					additionalDataTypes.put(uniqueName, additionalType);
 				}
-
-				if(origType.contains("TYPE:")) {
-					origType = origType.replace("TYPE:", "");
-				}
-				physicalDataTypes.put(uniqueName, origType);
-				dataTypes.put(uniqueName, cleanType);
-				additionalDataTypes.put(uniqueName, additionalType);
 			}
 		}
 
