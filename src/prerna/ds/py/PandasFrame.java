@@ -16,8 +16,8 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.PandasInterpreter;
+import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
@@ -120,11 +120,23 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 * @param dataTypeMap
 	 */
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> dataTypeMap) {
+		
+		boolean loaded = false;
 		if(it instanceof CsvFileIterator) {
-			addRowsViaCsvIterator((CsvFileIterator) it, tableName);
-		} else if(it instanceof ExcelSheetFileIterator) {
-			throw new IllegalArgumentException("Have yet to implement pandas frame with excel iterator");
-		} else {
+			CsvQueryStruct csvQs = ((CsvFileIterator) it).getQs();
+			if(csvQs.getLimit() == -1 || csvQs.getLimit() > 10_000) {
+				addRowsViaCsvIterator((CsvFileIterator) it, tableName);
+				loaded = true;
+			}
+		} 
+		
+		// just flush the excel to a grid through the iterator
+		// using the below logic
+//		else if(it instanceof ExcelSheetFileIterator) {
+//			throw new IllegalArgumentException("Have yet to implement pandas frame with excel iterator");
+//		} 
+		
+		if(!loaded) {
 			// default behavior is to just write this to a csv file
 			// and read it back in
 			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".csv";

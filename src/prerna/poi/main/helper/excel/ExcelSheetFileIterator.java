@@ -12,8 +12,6 @@ import org.apache.poi.ss.usermodel.Sheet;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.ds.util.flatfile.AbstractFileIterator;
-import prerna.engine.api.IHeadersDataRow;
-import prerna.om.HeadersDataRow;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -72,6 +70,10 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		this.numHeaders = this.headerIndices.length;
 		// grab the first row in preparation for iterating
 		getNextRow();
+		
+		// set limit and offset
+		this.limit = qs.getLimit();
+		this.offset = qs.getOffset();
 	}
 	
 	/**
@@ -104,6 +106,10 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		
 //		// we don't need to iterate
 		this.curRow = this.endRow;
+		
+		// set limit and offset
+		this.limit = qs.getLimit();
+		this.offset = qs.getOffset();
 	}
 	
 	
@@ -133,18 +139,6 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		}
 		// set up for the next row
 		this.curRow++;
-	}
-	
-	
-	@Override
-	public IHeadersDataRow next() {
-		Object[] row = nextRow;
-		getNextRow();
-
-		// couple of things to take care of here
-		Object[] cleanRow = cleanRow(row, types, additionalTypes);
-		IHeadersDataRow nextData = new HeadersDataRow(this.headers, cleanRow, row);
-		return nextData;
 	}
 	
 	/**
