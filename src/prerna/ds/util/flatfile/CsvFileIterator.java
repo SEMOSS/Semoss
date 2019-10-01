@@ -58,6 +58,10 @@ public class CsvFileIterator extends AbstractFileIterator {
 		}
 
 		this.getNextRow(); // this will get the first row of the file
+		
+		// set limit and offset
+		this.limit = qs.getLimit();
+		this.offset = qs.getOffset();
 	}
 
 	/**
