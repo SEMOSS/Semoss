@@ -110,11 +110,17 @@ public class RFrameBuilder {
 		 * 2) an iterator for a csv file
 		 * 3) an iterator for a single sheet of an excel file (later we will figure out multi sheet excels...)
 		 */
+		
+		boolean loaded = false;
 		if(it instanceof CsvFileIterator) {
-			createTableViaCsvFile(tableName, (CsvFileIterator) it);
-			additionalType = ((CsvFileIterator) it).getQs().getAdditionalTypes();
-			fileType = "csv";
-		}  else if(it instanceof ExcelSheetFileIterator ) {
+			CsvQueryStruct csvQs = ((CsvFileIterator) it).getQs();
+			if(csvQs.getLimit() == -1 || csvQs.getLimit() > 10_000) {
+				createTableViaCsvFile(tableName, (CsvFileIterator) it);
+				additionalType = ((CsvFileIterator) it).getQs().getAdditionalTypes();
+				fileType = "csv";
+				loaded = true;
+			}
+		} else if(it instanceof ExcelSheetFileIterator ) {
 			ExcelQueryStruct qs = ((ExcelSheetFileIterator)it).getQs();
 			String sheetName = qs.getSheetName();
 			String filePath = qs.getFilePath();
@@ -132,7 +138,10 @@ public class RFrameBuilder {
 				script.append(RSyntaxHelper.alterColumnName(tableName, oldHeader, newHeader));
 			}
 			this.rJavaTranslator.runR(script.toString());
-		} else {
+			loaded = true;
+		}
+		
+		if(!loaded) {
 			// default behavior is to just write this to a csv file
 			// get the fread() notation for that csv file
 			// and read it back in

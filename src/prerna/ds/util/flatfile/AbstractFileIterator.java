@@ -39,8 +39,29 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	
 	public abstract void getNextRow();
 	
+	protected long limit = -1;
+	protected long offset = -1;
+
+	protected long curOffset = 0;
+	protected long curLimit = 0;
+	
 	@Override
 	public boolean hasNext() {
+		if(offset > 0) {
+			while(curOffset++ < offset) {
+				getNextRow();
+				if(nextRow == null) {
+					// drops the file connection
+					cleanUp();
+					return false;
+				}
+			}
+		}
+		if(limit > 0) {
+			if(curLimit > limit) {
+				return false;
+			}
+		}
 		if(nextRow == null) {
 			// drops the file connection
 			cleanUp();
@@ -51,6 +72,8 @@ public abstract class AbstractFileIterator implements IFileIterator {
 	
 	@Override
 	public IHeadersDataRow next() {
+		curLimit++;
+		
 		Object[] row = nextRow;
 		getNextRow();
 
