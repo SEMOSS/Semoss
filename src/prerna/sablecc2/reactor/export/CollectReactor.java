@@ -57,7 +57,11 @@ public class CollectReactor extends TaskBuilderReactor {
 	
 	@Override
 	protected void buildTask() {
-		this.task.optimizeQuery(this.limit);
+		// if the task was already passed in
+		// we do not need to optimize/recreate the iterator
+		if(this.constructedTaskFromQs) {
+			this.task.optimizeQuery(this.limit);
+		}
 	}
 	
 	private TaskOptions genOrnamentTaskOptions() {
