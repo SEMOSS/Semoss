@@ -21,6 +21,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = TaskBuilderReactor.class.getName();
 	protected ITask task;
+	protected boolean constructedTaskFromQs = false;
 	protected List<NounMetadata> subAdditionalReturn;
 	
 	//This method is implemented by child classes, each class is responsible for building different pieces of the task
@@ -68,6 +69,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 		
 		if(task == null) {
 			task = constructTaskFromQs();
+			this.constructedTaskFromQs = true;
 		}
 		
 		Logger logger = this.getLogger(CLASS_NAME);
