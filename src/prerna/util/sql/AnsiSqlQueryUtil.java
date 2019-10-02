@@ -329,14 +329,16 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		}
 		
 		StringBuilder sql = new StringBuilder("INSERT INTO ");
-		sql.append(tableName).append(" (").append(columns[0]);
-		for (int colIndex = 1; colIndex < columns.length; colIndex++) {
-			sql.append(", ");
+		sql.append(tableName).append(" (");
+		for (int colIndex = 0; colIndex < columns.length; colIndex++) {
 			String columnName = columns[colIndex];
 			if(isSelectorKeyword(columnName)) {
 				columnName = getEscapeKeyword(columnName);
 			}
 			sql.append(columnName);
+			if( (colIndex+1) != columns.length) {
+				sql.append(", ");
+			}
 		}
 		sql.append(") VALUES (?"); 
 		// remember, we already assumed one col

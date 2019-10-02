@@ -367,6 +367,14 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 			}
 		}
 		
+		if(this.queryUtil.isSelectorKeyword(tableAlias)) {
+			tableAlias = this.queryUtil.getEscapeKeyword(tableAlias);
+		}
+		
+		if(this.queryUtil.isSelectorKeyword(physicalColName)) {
+			physicalColName = this.queryUtil.getEscapeKeyword(physicalColName);
+		}
+		
 		//keep track of columns by their selector reference syntax
 		String tableCol = tableAlias + "." + physicalColName;
 		String colAlias = selector.getAlias().toUpperCase();
