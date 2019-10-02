@@ -13,6 +13,7 @@ best_match_nonzero<-function(col1,col2,method="jw",p=0.1){
 }
 
 best_match<-function(col1,col2,ignoreCase=TRUE,method="jw",p=0.1){
+	library(data.table)
 	library(stringdist)
 	c1<-unique(col1)
 	c2<-unique(col2)
@@ -26,8 +27,8 @@ best_match<-function(col1,col2,ignoreCase=TRUE,method="jw",p=0.1){
 	x<-round(x,4)
 	y<-rep(c1,each=n[2])
 	z<-rep(c2,n[1])
-	r<-as.data.frame(cbind(y,z,x))
-	r[,3] <- as.numeric(as.character(r[,3]))
+	r<-as.data.table(cbind(y,z,x))
+	r$x <- as.numeric(r$x)
 	names(r)<-c("col1","col2","dist")
 	gc()
 	return(r)
