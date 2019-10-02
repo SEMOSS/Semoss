@@ -232,7 +232,7 @@ install.packages("antiword", dependencies=TRUE)
 #install.packages("tm", dependencies=TRUE)
 #install.packages("udpipe", dependencies=TRUE)
 
-#Natural Language Search
+# Natural Language Search
 install.packages("udpipe", dependencies=TRUE)
 install.packages("tokenizers", dependencies=TRUE)
 install.packages("openNLP", dependencies=TRUE)
@@ -242,3 +242,6 @@ install.packages("openNLPmodels.en", dependencies=TRUE)
 #install.packages("data.table", dependencies=TRUE)
 #install.packages("stringr", dependencies=TRUE)
 #install.packages("stringdist", dependencies=TRUE)
+
+# Sentiment Analysis
+install.packages("sentimentr", dependencies=TRUE)
