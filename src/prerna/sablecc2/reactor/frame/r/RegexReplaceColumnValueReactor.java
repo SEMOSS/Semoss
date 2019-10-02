@@ -71,8 +71,10 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 			
 		// doing gsub on a numeric column changes the data type to a string
 		// so change it back to numeric in r
-		if (dataType.contains("numeric")) {
+		if(dataType.contains("numeric")) {
 			script += table + "$" + column + " <- as.numeric(" + table + "$" + column + ");";
+		} else if(dataType.contains("integer")) {
+			script += table + "$" + column + " <- as.integer(" + table + "$" + column + ");";
 		}
 
 		this.rJavaTranslator.runR(script);
