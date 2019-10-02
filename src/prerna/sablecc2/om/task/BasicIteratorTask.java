@@ -247,6 +247,7 @@ public class BasicIteratorTask extends AbstractTask {
 			generateIterator(this.qs, false);
 			// we got the iterator
 			// if we added an order, remove it
+			this.isOptimized = true;
 			if(addedOrder) {
 				this.qs.getOrderBy().clear();
 				// also clear it on the task
