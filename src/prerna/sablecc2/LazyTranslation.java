@@ -143,14 +143,14 @@ public class LazyTranslation extends DepthFirstAdapter {
 		// need to account for META variables
 		// that were defined
 		if(this.isMeta) {
-			for(String var : this.metaVariables) {
-				this.planner.removeVariable(var);
-			}
-			
-			// now add back the other variables we had to keep
-			for(String var : this.prevVariables.keySet()) {
-				this.planner.addVariable(var, this.prevVariables.get(var));
-			}
+//			for(String var : this.metaVariables) {
+//				this.planner.removeVariable(var);
+//			}
+//			
+//			// now add back the other variables we had to keep
+//			for(String var : this.prevVariables.keySet()) {
+//				this.planner.addVariable(var, this.prevVariables.get(var));
+//			}
 		}
 	}
 	
