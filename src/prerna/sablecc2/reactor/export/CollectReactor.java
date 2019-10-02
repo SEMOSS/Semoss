@@ -59,7 +59,7 @@ public class CollectReactor extends TaskBuilderReactor {
 	protected void buildTask() {
 		// if the task was already passed in
 		// we do not need to optimize/recreate the iterator
-		if(this.constructedTaskFromQs) {
+		if(this.constructedTaskFromQs || this.task.isOptimized()) {
 			this.task.optimizeQuery(this.limit);
 		}
 	}

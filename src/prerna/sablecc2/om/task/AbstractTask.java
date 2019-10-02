@@ -37,6 +37,10 @@ public abstract class AbstractTask implements ITask {
 	protected int numCollect = 500;
 	// size of the task
 	protected long numRows = 0;
+	// optimized query
+	// so we know the limit is a fake one
+	protected boolean isOptimized = false;
+	
 	private boolean meta = true;
 	
 	public AbstractTask() {
@@ -246,6 +250,11 @@ public abstract class AbstractTask implements ITask {
 		// this does nothing by default
 		// only makes sense for BasicIterator
 		// since we modify the QS to only return this many values
+	}
+	
+	@Override
+	public boolean isOptimized() {
+		return this.isOptimized;
 	}
 	
 	// JUST TO MAKE IT EASIER TO DEBUG
