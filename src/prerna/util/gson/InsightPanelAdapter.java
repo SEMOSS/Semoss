@@ -7,11 +7,13 @@ import java.util.Map;
 import java.util.Vector;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
+import prerna.date.SemossDate;
 import prerna.om.ColorByValueRule;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -20,8 +22,13 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	
 	private static final Gson GSON = GsonUtility.getDefaultGson();
-	private static final Gson SIMPLE_GSON = new Gson();
-
+//	private static final Gson SIMPLE_GSON = new Gson();
+	private static final Gson SIMPLE_GSON =  new GsonBuilder()
+			.disableHtmlEscaping()
+			.registerTypeAdapter(Double.class, new NumberAdapter())
+			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.create();
+	
 	private boolean simple = false;
 	
 	public InsightPanelAdapter() {
