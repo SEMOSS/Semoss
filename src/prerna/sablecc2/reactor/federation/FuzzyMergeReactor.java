@@ -87,7 +87,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		String linkFrame = matchesFrame + "_LINK";
 		// grab the subset of the data required
 		
-		script.append(linkFrame + "<- " +  matchesFrame + "[" + matchesFrame + "$distance >= " + propagationValue + ",];");
+		script.append(linkFrame + "<- " +  matchesFrame + "[" + matchesFrame + "$distance <= (100-" + propagationValue + "),];");
 
 		// grab the lists to append
 		// using the combined lookup column, we will be able to just rbind those results with the current linkframe
@@ -207,12 +207,12 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		if(grs != null && !grs.isEmpty()) {
 			try {
 				Double dVal = ((Number) grs.get(0)).doubleValue();
-				return String.format("%.08f", dVal);
+				return String.format("%.04f", dVal);
 			} catch(ClassCastException e) {
 				throw new IllegalArgumentException("Propagation value is not a valid number");
 			}
 		}
-		return "0";
+		return "100";
 	}
 
 	private List<String> getInputList(String key) {
