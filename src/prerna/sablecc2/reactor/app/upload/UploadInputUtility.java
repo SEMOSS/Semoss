@@ -76,10 +76,7 @@ public class UploadInputUtility {
 		}
 		
 		String fileLocation = grs.get(0).toString();
-		String relPath = Insight.getInsightRelativeFolderKey(in);
-		if(fileLocation.startsWith(relPath)) {
-			fileLocation = fileLocation.replaceFirst(relPath, Matcher.quoteReplacement(in.getInsightFolder()));
-		}
+		fileLocation = in.getAbsoluteInsightFolderPath(fileLocation);
 		return fileLocation;
 	}
 
