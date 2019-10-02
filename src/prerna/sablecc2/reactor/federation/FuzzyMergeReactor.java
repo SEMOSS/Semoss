@@ -82,28 +82,35 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		}
 		// add a combined column
 		// we will use this a lookup with the allMatches/nonMatches
-		script.append(matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame + "$col2, sep=\"==\");");
+		List<String> allMatches = getInputList(MATCHES);
+		List<String> nonMatches = getInputList(NONMATCHES);
+
+		boolean requireMatches = allMatches != null && !allMatches.isEmpty();
+		boolean requireNonmatches = nonMatches != null && !nonMatches.isEmpty();
+		boolean requireCombinedColumn = requireMatches || requireNonmatches;
+		if(requireCombinedColumn) {
+			script.append(matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame + "$col2, sep=\"==\");");
+		}
 		
 		String linkFrame = matchesFrame + "_LINK";
 		// grab the subset of the data required
-		
 		script.append(linkFrame + "<- " +  matchesFrame + "[" + matchesFrame + "$distance <= (1.00-" + propagationValue + "),];");
 
 		// grab the lists to append
 		// using the combined lookup column, we will be able to just rbind those results with the current linkframe
-		List<String> allMatches = getInputList(MATCHES);
-		if(allMatches != null && !allMatches.isEmpty()) {
+		if(requireMatches) {
 			script.append(linkFrame + "<- rbind(" + linkFrame + ", " +  matchesFrame + "[" + matchesFrame + "$combined %in% " + RSyntaxHelper.createStringRColVec(allMatches)+ ",]);");
 		}
 		// grab the lists to remove
 		// we will use this list to just remove from the existing linkFrame
-		List<String> nonMatches = getInputList(NONMATCHES);
-		if(nonMatches != null && !nonMatches.isEmpty()) {
+		if(requireNonmatches) {
 			script.append(linkFrame + "<- " + linkFrame + "[!(" + linkFrame + "$combined %in% " + RSyntaxHelper.createStringRColVec(nonMatches)+ "),];");
 		}
 		
 		// drop the combined column + distance column
-		script.append(linkFrame + " <- " + linkFrame + "[, combined :=NULL];");
+		if(requireCombinedColumn) {
+			script.append(linkFrame + " <- " + linkFrame + "[, combined :=NULL];");
+		}
 		script.append(linkFrame + " <- " + linkFrame + "[, distance :=NULL];");
 
 		// merge the fuzzy column onto the frame
