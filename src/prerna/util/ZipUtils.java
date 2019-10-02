@@ -7,6 +7,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +26,10 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.io.FileUtils;
+
+import com.google.gson.Gson;
+
+import prerna.util.gson.GsonUtility;
 
 public final class ZipUtils {
 
@@ -227,29 +239,29 @@ public final class ZipUtils {
 	 * @throws IOException
 	 */
 	public static Map<String, List<String>> unzip(String zipFilePath, String destination) throws IOException {
+		// grab list of files that are being unzipped
+		Map<String, List<String>> files = listFilesInZip(Paths.get(zipFilePath));
+		// unzip files
 		ZipFile zipIn = new ZipFile(zipFilePath);
 		Enumeration<? extends ZipEntry> entries = zipIn.entries();
-		Vector<String> dirList = new Vector<String>();
-		Vector<String> fileList = new Vector<String>();
 		while (entries.hasMoreElements()) {
 			ZipEntry entry = entries.nextElement();
-			String filePath = destination + entry.getName();
+			String filePath = destination + FILE_SEPARATOR + entry.getName();
 			if (entry.isDirectory()) {
 				File file = new File(filePath);
 				file.mkdirs();
-				dirList.add(entry.getName());
 			} else {
+				File parent = new File(filePath).getParentFile();
+				if (!parent.exists()) {
+					parent.mkdirs();
+				}
 				InputStream is = zipIn.getInputStream(entry);
 				extractFile(is, filePath);
 				is.close();
-				fileList.add(entry.getName());
 			}
 		}
 		zipIn.close();
-		Map<String, List<String>> addedFiles = new HashMap<>();
-		addedFiles.put("DIR", dirList);
-		addedFiles.put("FILE", fileList);
-		return addedFiles;
+		return files;
 
 	}
 
@@ -269,12 +281,54 @@ public final class ZipUtils {
 		}
 		bos.close();
 	}
+	
+	/**
+	 * https://stackoverflow.com/questions/15667125/read-content-from-files-which-are-inside-zip-file
+	 * 
+	 * @param fromZip
+	 * @throws IOException
+	 */
+	public static Map<String, List<String>> listFilesInZip(Path fromZip) throws IOException {
+		FileSystem zipFs = FileSystems.newFileSystem(fromZip, null);
+		Map<String, List<String>> paths = new HashMap<>();
+		Vector<String> dirs = new Vector<>();
+		Vector<String> files = new Vector<>();
+		for (Path root : zipFs.getRootDirectories()) {
+			Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+					files.add(file.toString());
+					return FileVisitResult.CONTINUE;
+				}
+
+				@Override
+				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+					// In a full implementation, you'd need to create each
+					// sub-directory of the destination directory before
+					// copying files into it
+					dirs.add(dir.toString());
+					return super.preVisitDirectory(dir, attrs);
+				}
+			});
+		}
+		zipFs.close();
+		paths.put("DIR", dirs);
+		paths.put("FILE", files);
+		return paths;
+	}
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
-		String path = "C:\\Users\\rramirezjimenez\\Documents\\workspace\\Semoss\\db\\test__bbefe20a-8267-4bec-95dc-45aefec409b7";
-		String destination = "C:\\Users\\rramirezjimenez\\Desktop\\test.zip";
-		ZipOutputStream zos = ZipUtils.zipFolder(path, destination);
-		zos.close();
+		String dest = "C:\\Users\\SEMOSS\\workspace\\Semoss\\db\\Movie__6e41aba8-29da-4616-b2f9-647a8ef01313\\version";
+		dest = "C:\\Users\\SEMOSS\\workspace";
+		dest = dest.replace("\\", "/");
+		String zip = "C:\\Users\\SEMOSS\\Downloads\\Movie.zip";
+		zip = zip.replace("\\", "/");
+		Path zipUri = Paths.get(zip);		
+		Path path = Paths.get(dest);
+		Map<String, List<String>> map = listFilesInZip(zipUri);
+		Gson gson = GsonUtility.getDefaultGson();
+		System.out.println(gson.toJson(map));
+
 	}
 
 }
