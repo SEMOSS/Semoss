@@ -8,7 +8,7 @@ import prerna.engine.api.IRawSelectWrapper;
 public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
 	private RIterator output = null;
-
+	
 	@Override
 	public void execute() {
 		this.output = (RIterator) this.engine.execQuery(this.query);
@@ -32,7 +32,7 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 
 	@Override
 	public String[] getHeaders() {
-		return rawHeaders;
+		return headers;
 	}
 
 	@Override
