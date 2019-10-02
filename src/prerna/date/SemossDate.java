@@ -325,9 +325,9 @@ public class SemossDate {
 		// not exactly contains alpha, but most likely...
 		boolean containsAlpha = !input.matches("[0-9/\\-]+");
 		
-		if(!containsAlpha && input.contains("/")) {
+		if(!containsAlpha && (input.contains("/") && !input.startsWith("/")) ) {
 			return testCombinations(input, datesWithSlash);
-		} else if(!containsAlpha && input.contains("-")) {
+		} else if(!containsAlpha && (input.contains("-") && !input.startsWith("-")) ) {
 			return testCombinations(input, datesWithDash);
 		} else {
 			// this is checking that it doesn't only contain numbers and / and -
@@ -351,9 +351,9 @@ public class SemossDate {
 		// not exactly contains alpha, but most likely...
 		boolean containsAlpha = !input.matches("[0-9/\\-:.\\s]+");
 		
-		if(!containsAlpha && input.contains("/")) {
+		if(!containsAlpha && (input.contains("/") && !input.startsWith("/")) ) {
 			return testCombinations(input, timeStampsWithSlash);
-		} else if(!containsAlpha && input.contains("-")) {
+		} else if(!containsAlpha && (input.contains("-") && !input.startsWith("-")) ) {
 			return testCombinations(input, timeStampsWithDash);
 		}
 		
