@@ -16,9 +16,12 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 
 	private static final Logger LOGGER = LogManager.getLogger(RIterator.class.getName());
 	
+	private boolean init = false;
+	
 	private RFrameBuilder builder;
 	private SelectQueryStruct qs;
-
+	private String rQuery;
+	
 	private String tempVarName;
 	private int totalNumRows;
 	private int numRows;
@@ -34,64 +37,77 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	public RIterator(RFrameBuilder builder, String rQuery, SelectQueryStruct qs) {
 		this.builder = builder;
 		this.qs = qs;
-		//Validate user input won't break R and crash JVM
-		RregexValidator reg = new RregexValidator();
-		reg.Validate(rQuery);
-
-		long start = System.currentTimeMillis();
-
-		this.tempVarName = "temp" + Utility.getRandomString(6);
-		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
-		this.builder.evalR(tempVarQuery);
-		this.totalNumRows = builder.getNumRows(this.tempVarName);
-		this.numRows = this.totalNumRows;
-		
-		// need to account for limit and offset
-		long limit = qs.getLimit();
-		long offset = qs.getOffset();
-		if(offset > numRows) {
-			// well, no point in doing anything else
-			this.numRows = 0;
-		} else if(limit > 0 || offset > 0) {
-			// java is 0 based so the FE sends 0 when they want the first record
-			// but R is 1 based, so we need to add 1 to the offset value
-			String updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, limit, offset);
-			this.builder.evalR(updatedTempVarQuery);
-			// and then update the number of rows
-			this.numRows = builder.getNumRows(this.tempVarName);
-		}
-		
-		
-		long end = System.currentTimeMillis();
-		LOGGER.info("TIME TO EXECUTE MAIN R SCRIPT = " + (end-start) + "ms");
-		
-		//obtain headers from the qs
-		List<Map<String, Object>> headerInfo = qs.getHeaderInfo();
-		int numCols = headerInfo.size();
-		this.headers = new String[numCols];
-		for (int i = 0; i <numCols; i++) {
-			headers[i] = headerInfo.get(i).get("alias").toString();
-		}
-		this.colTypes = builder.getColumnTypes(tempVarName);
+		this.rQuery = rQuery;
+		init();
 	}
 
 	public RIterator(RFrameBuilder builder, String rQuery) {
 		this.builder = builder;
-
-		long start = System.currentTimeMillis();
-
-		this.tempVarName = "temp" + Utility.getRandomString(6);
-		String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
-		this.builder.evalR(tempVarQuery);
-		this.numRows = builder.getNumRows(this.tempVarName);
-		
-		// need to account for limit and offset		
-		
-		long end = System.currentTimeMillis();
-		LOGGER.info("TIME TO EXECUTE MAIN R SCRIPT = " + (end-start) + "ms");
-		
-		this.headers = builder.getColumnNames(tempVarName);
-		this.colTypes = builder.getColumnTypes(tempVarName);
+		this.rQuery = rQuery;
+		init();
+	}
+	
+	private void init() {
+		if(!init) {
+			synchronized (this) {
+				if(!init) {
+					long start = System.currentTimeMillis();
+	
+					this.tempVarName = "temp" + Utility.getRandomString(6);
+					String tempVarQuery = this.tempVarName + " <- {" + rQuery + "}";
+					this.builder.evalR(tempVarQuery);
+					this.totalNumRows = builder.getNumRows(this.tempVarName);
+					this.numRows = this.totalNumRows;
+					
+					// need to account for limit and offset
+					if(this.qs != null) {
+						long limit = qs.getLimit();
+						long offset = qs.getOffset();
+						if(offset > numRows) {
+							// well, no point in doing anything else
+							this.numRows = 0;
+						} else if(limit > 0 || offset > 0) {
+							// java is 0 based so the FE sends 0 when they want the first record
+							// but R is 1 based, so we need to add 1 to the offset value
+							String updatedTempVarQuery = null;
+							try {
+								updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, limit, offset);
+								this.builder.evalR(updatedTempVarQuery);
+								// and then update the number of rows
+								this.numRows = builder.getNumRows(this.tempVarName);
+							} catch(IllegalArgumentException e) {
+								// we have no data
+								// will still run with a limit of 1 so that 
+								// we can grab the metadata
+								updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, 1, 0);
+								this.builder.evalR(updatedTempVarQuery);
+								// and then update the number of rows
+								this.numRows = 0;
+							}
+						}
+					}
+					
+					long end = System.currentTimeMillis();
+					LOGGER.info("TIME TO EXECUTE MAIN R SCRIPT = " + (end-start) + "ms");
+					
+					//obtain headers from the qs
+					if(this.qs != null) {
+						List<Map<String, Object>> headerInfo = qs.getHeaderInfo();
+						int numCols = headerInfo.size();
+						this.headers = new String[numCols];
+						for (int i = 0; i <numCols; i++) {
+							headers[i] = headerInfo.get(i).get("alias").toString();
+						}
+					} else {
+						this.headers = builder.getColumnNames(tempVarName);
+					}
+					this.colTypes = builder.getColumnTypes(tempVarName);
+					
+					// init is true
+					init = true;
+				}
+			}
+		}
 	}
 
 	private String addLimitOffset(String tempVarQuery, int numRows, long limit, long offset) {
@@ -105,7 +121,11 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 				// since FE sends back limit/offset 0 based
 				offset++;
 				if(numRows < lastRIndex) {
-					query.append("[").append(offset).append(":").append(numRows).append("]");
+					if(numRows > offset) {
+						query.append("[").append(offset).append(":").append(numRows).append("]");
+					} else {
+						throw new IllegalArgumentException("Limit + Offset result in no data");
+					}
 				} else {
 					query.append("[").append(offset).append(":").append((lastRIndex)).append("]");
 				}
