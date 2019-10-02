@@ -436,13 +436,18 @@ public class RFrameBuilder {
 			try {
 				rIndex = "CREATE INDEX ON " + tableName + "(" + colName + ")";
 				this.rJavaTranslator.executeEmptyR("setindex(" + tableName + "," + colName + ");");
-				List<String> confirmedIndices = Arrays.asList(this.rJavaTranslator.getStringArray("indices(" + tableName + ");"));
-				if (confirmedIndices.contains(colName)) {
-					columnIndexSet.add(tableName + "+++" + colName);		
+				String[] confirmedIndicesArr = this.rJavaTranslator.getStringArray("indices(" + tableName + ");");
+				if(confirmedIndicesArr != null) {
+					List<String> confirmedIndices = Arrays.asList(confirmedIndicesArr);
+					if (confirmedIndices.contains(colName)) {
+						columnIndexSet.add(tableName + "+++" + colName);		
+					}
+					long end = System.currentTimeMillis();
+					logger.debug("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
+					logger.info("Finished generating indices on R Data Table on column = " + colName);
+				} else {
+					logger.info("Encountered issue with generating indices on R Data Table on column = " + colName);
 				}
-				long end = System.currentTimeMillis();
-				logger.debug("TIME FOR R INDEX CREATION = " + (end - start) + " ms");
-				logger.info("Finished generating indices on R Data Table on column = " + colName);
 			} catch (Exception e) {
 				logger.debug("ERROR WITH R INDEX !!! " + rIndex);
 				e.printStackTrace();

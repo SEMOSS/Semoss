@@ -142,7 +142,6 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		script.append(matchesFrame + "$distance <- as.numeric(" + matchesFrame + "$dist);");
 		script.append(matchesFrame + "<-" + matchesFrame + "[,c(\"col1\",\"col2\",\"distance\")];");
 		script.append(matchesFrame + "<-" + matchesFrame + "[order(unique(" + matchesFrame + ")$distance),];");
-		script.append(matchesFrame + " <- as.data.table(" + matchesFrame + ");");
 		// convert col1/col2 from factor to list
 		script.append(matchesFrame+"$col1<-as.character("+matchesFrame+"$col1);");
 		script.append(matchesFrame+"$col2<-as.character("+matchesFrame+"$col2);");
@@ -157,7 +156,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 
 		// get count of exact matches
 		String exactMatchCount = this.rJavaTranslator.getString("as.character(nrow(" + matchesFrame + "[" + matchesFrame + "$distance == 0,]))");
-		if (exactMatchCount != null){
+		if (exactMatchCount != null) {
 			int val = Integer.parseInt(exactMatchCount);
 			retNoun.addAdditionalReturn(new NounMetadata(val, PixelDataType.CONST_INT));
 		} else{
