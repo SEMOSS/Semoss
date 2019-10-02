@@ -89,7 +89,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		boolean requireNonmatches = nonMatches != null && !nonMatches.isEmpty();
 		boolean requireCombinedColumn = requireMatches || requireNonmatches;
 		if(requireCombinedColumn) {
-			script.append(matchesFrame + "$combined <- paste(" + matchesFrame + "$col1, " + matchesFrame + "$col2, sep=\"==\");");
+			script.append(matchesFrame + "[,combined:=paste(col1,col2,sep=\"==\")];");
 		}
 		
 		String linkFrame = matchesFrame + "_LINK";
