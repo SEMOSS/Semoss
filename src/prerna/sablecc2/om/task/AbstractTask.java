@@ -39,7 +39,7 @@ public abstract class AbstractTask implements ITask {
 	protected long numRows = 0;
 	// optimized query
 	// so we know the limit is a fake one
-	protected boolean isOptimized = false;
+	protected boolean isOptimize = false;
 	
 	private boolean meta = true;
 	
@@ -254,7 +254,12 @@ public abstract class AbstractTask implements ITask {
 	
 	@Override
 	public boolean isOptimized() {
-		return this.isOptimized;
+		return this.isOptimize;
+	}
+	
+	@Override
+	public void toOptimize(boolean toOptimize) {
+		this.isOptimize = toOptimize;
 	}
 	
 	// JUST TO MAKE IT EASIER TO DEBUG
