@@ -34,7 +34,7 @@ public class AppRemoveColumnReactor extends AbstractReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("App " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {
@@ -60,6 +60,9 @@ public class AppRemoveColumnReactor extends AbstractReactor {
 		owlUpdater.execute();
 
 		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(engine);
+		if(modifier == null) {
+			throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");
+		}
 		try {
 			modifier.removeProperty(table, column);
 		} catch (Exception e) {
@@ -77,6 +80,8 @@ public class AppRemoveColumnReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Error occured to alter the table. Error returned from driver: " + e.getMessage(), e);
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully removed property"));
+		return noun;
 	}
 }
