@@ -37,7 +37,7 @@ public class AppAddPropertyReactor extends AbstractReactor {
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-			if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			if(!SecurityAppUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 				throw new IllegalArgumentException("App " + engineId + " does not exist or user does not have access to database");
 			}
 		} else {
@@ -62,6 +62,9 @@ public class AppAddPropertyReactor extends AbstractReactor {
 
 		IEngine engine = Utility.getEngine(engineId);
 		IEngineModifier modifier = EngineModificationFactory.getEngineModifier(engine);
+		if(modifier == null) {
+			throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");
+		}
 		try {
 			modifier.addProperty(table, newColumn, newColType);
 		} catch (Exception e) {
@@ -78,6 +81,8 @@ public class AppAddPropertyReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Error occured to alter the table. Error returned from driver: " + e.getMessage(), e);
 		}
 		
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully added new property"));
+		return noun;
 	}
 }
