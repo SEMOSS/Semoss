@@ -174,21 +174,21 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 		// drop the aggregate if it exists since the opening of the script will
 		// fail otherwise
-		Statement stmt = null;
-		try {
-			stmt = this.conn.createStatement();
-			stmt.executeUpdate("DROP AGGREGATE IF EXISTS MEDIAN");
-		} catch (SQLException e1) {
-			e1.printStackTrace();
-		} finally {
-			if(stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}
+//		Statement stmt = null;
+//		try {
+//			stmt = this.conn.createStatement();
+//			stmt.executeUpdate("DROP AGGREGATE IF EXISTS MEDIAN");
+//		} catch (SQLException e1) {
+//			e1.printStackTrace();
+//		} finally {
+//			if(stmt != null) {
+//				try {
+//					stmt.close();
+//				} catch (SQLException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
 		
 		Reader r = null;
 		GZIPInputStream gis = null;
