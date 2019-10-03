@@ -7,6 +7,7 @@ public enum ReactorKeysEnum {
 	ALL_NUMERIC_KEY("allNumeric", 							"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 											"An alias to assign for an operation or output"),
 	APP("app", 												"Name of the app on the local SEMOSS instance"),
+	APP_TYPE("appType", 									"The type of app"),
 	ARRAY("array", 											"An array of input values"),
 	ATTRIBUTES("attributes", 								"List of columns used as properties/characteristics to describe an instance/object"),
 	BREAKS("breaks", 										"Number of divisions"),

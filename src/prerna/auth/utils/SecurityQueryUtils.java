@@ -383,6 +383,38 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Get the list of the engine information that the user has access to filter appType
+	 * @param user
+	 * @param appTypeFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> appTypeFilter) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_app_name");
+		qs.addSelector(fun);
+		if(appTypeFilter != null && !appTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", appTypeFilter));
+		}
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			qs.addExplicitFilter(orFilter);
+		}
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
 	 * Get the list of the engine information that the user has access to
 	 * @param userId
 	 * @return
@@ -412,6 +444,30 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(fun);
 		if(engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
+		}
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return flushRsToMap(wrapper);
+	}
+	
+	/**
+	 * Get the list of the engine information that the user has access to
+	 * @param engineTypeFilter
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAllDatabaseList(List<String> engineTypeFilter) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE", "app_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction(QueryFunctionHelper.LOWER);
+		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		fun.setAlias("low_app_name");
+		qs.addSelector(fun);
+		if(engineTypeFilter != null && !engineTypeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__TYPE", "==", engineTypeFilter));
 		}
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -799,4 +855,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		return false;
 	}
+
+
 }
