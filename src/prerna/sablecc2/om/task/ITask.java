@@ -69,6 +69,7 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	
 	boolean isOptimized();
 	
+	void toOptimize(boolean toOptimize);
+	
 	void reset();
-
 }
