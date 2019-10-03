@@ -215,44 +215,45 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 	
 	public void optimizeQuery(int collectNum) {
-		// already have a limit defined
-		// just continue;
-		if(this.startLimit > 0) {
-			return;
-		}
-		if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct) ) {
-			if(collectNum < 0) {
-				// from this point on
-				// we will just collect everything
-				this.qs.setLimit(-1);
-			} else {
-				this.qs.setLimit(collectNum);
+		if(this.isOptimize) {
+			// already have a limit defined
+			// just continue;
+			if(this.startLimit > 0) {
+				return;
 			}
-			long offset = 0;
-			if(this.startOffset > 0) {
-				offset = this.startOffset;
-			}
-			this.qs.setOffSet(offset + this.internalOffset);
-			boolean addedOrder = false;
-			if(this.qs.getOrderBy().isEmpty()) {
-				// need to add an implicit order
-				IQuerySelector firstSelector = this.qs.getSelectors().get(0);
-				if(firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
-					this.qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
+			if(this.qs != null && !(this.qs instanceof HardSelectQueryStruct) ) {
+				if(collectNum < 0) {
+					// from this point on
+					// we will just collect everything
+					this.qs.setLimit(-1);
 				} else {
-					this.qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
+					this.qs.setLimit(collectNum);
 				}
-				addedOrder = true;
-			}
-			generateIterator(this.qs, false);
-			// we got the iterator
-			// if we added an order, remove it
-			this.isOptimized = true;
-			if(addedOrder) {
-				this.qs.getOrderBy().clear();
-				// also clear it on the task
-				// we dont want to send it to the FE
-				setSortInfo(qs.getSortInfo());
+				long offset = 0;
+				if(this.startOffset > 0) {
+					offset = this.startOffset;
+				}
+				this.qs.setOffSet(offset + this.internalOffset);
+				boolean addedOrder = false;
+				if(this.qs.getOrderBy().isEmpty()) {
+					// need to add an implicit order
+					IQuerySelector firstSelector = this.qs.getSelectors().get(0);
+					if(firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
+						this.qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");
+					} else {
+						this.qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
+					}
+					addedOrder = true;
+				}
+				generateIterator(this.qs, false);
+				// we got the iterator
+				// if we added an order, remove it
+				if(addedOrder) {
+					this.qs.getOrderBy().clear();
+					// also clear it on the task
+					// we dont want to send it to the FE
+					setSortInfo(qs.getSortInfo());
+				}
 			}
 		}
 	}

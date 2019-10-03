@@ -67,11 +67,16 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			stmt.execute("DROP AGGREGATE IF EXISTS MEDIAN");
 			stmt.close();
 			stmt = con.createStatement();
-			stmt.execute("CREATE AGGREGATE MEDIAN FOR \"prerna.ds.rdbms.h2.H2MedianAggregation\";");
+			stmt.execute("CREATE AGGREGATE IF NOT EXISTS SMSS_MEDIAN FOR \"prerna.ds.rdbms.h2.H2MedianAggregation\";");
 			stmt.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	@Override
+	public String getMedianFunctionSyntax() {
+		return "SMSS_MEDIAN";
 	}
 
 	@Override
