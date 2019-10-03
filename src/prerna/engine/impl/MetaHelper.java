@@ -534,7 +534,7 @@ public class MetaHelper implements IExplorable {
 		String query = "SELECT DISTINCT ?property WHERE { "
 					+ "BIND(<" + physicalUri + "> AS ?concept) "
 					+ "{?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> } "
-					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
+//					+ "{?property <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://semoss.org/ontologies/Relation/Contains>} "
 					+ "{?concept <http://www.w3.org/2002/07/owl#DatatypeProperty> ?property} "
 					+ "}";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);

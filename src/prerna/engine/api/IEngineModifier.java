@@ -32,5 +32,15 @@ public interface IEngineModifier {
 	 * @throws Exception
 	 */
 	void editProperty(String existingConcept, String existingColumn, String newDataType) throws Exception;
+
+	/**
+	 * Add an index to a specific concept/column
+	 * @param existingConcept
+	 * @param existingColumn
+	 * @param indexName
+	 * @param addIfExists
+	 * @throws Exception
+	 */
+	void addIndex(String existingConcept, String existingColumn, String indexName, boolean addIfExists) throws Exception;
 	
 }
