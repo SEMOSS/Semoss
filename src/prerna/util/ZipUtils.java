@@ -284,6 +284,7 @@ public final class ZipUtils {
 	
 	/**
 	 * https://stackoverflow.com/questions/15667125/read-content-from-files-which-are-inside-zip-file
+	 * NOTE ::: Cleaning up paths to remove initial / to push files to git
 	 * 
 	 * @param fromZip
 	 * @throws IOException
@@ -297,16 +298,22 @@ public final class ZipUtils {
 			Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
 				@Override
 				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-					files.add(file.toString());
+					// clean file path for git
+					String filePath = file.toString();
+					if(file.startsWith("/")) {
+						filePath = filePath.toString().replaceFirst("/", "");
+						if(!filePath.equals(""))
+							files.add(filePath.toString());
+					}
 					return FileVisitResult.CONTINUE;
 				}
 
 				@Override
 				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-					// In a full implementation, you'd need to create each
-					// sub-directory of the destination directory before
-					// copying files into it
-					dirs.add(dir.toString());
+					// clean file path for git
+					String pathDir = dir.toString().replaceFirst("/", "");
+					if(!pathDir.equals(""))
+					dirs.add(pathDir.toString());
 					return super.preVisitDirectory(dir, attrs);
 				}
 			});
@@ -324,7 +331,6 @@ public final class ZipUtils {
 		String zip = "C:\\Users\\SEMOSS\\Downloads\\Movie.zip";
 		zip = zip.replace("\\", "/");
 		Path zipUri = Paths.get(zip);		
-		Path path = Paths.get(dest);
 		Map<String, List<String>> map = listFilesInZip(zipUri);
 		Gson gson = GsonUtility.getDefaultGson();
 		System.out.println(gson.toJson(map));
