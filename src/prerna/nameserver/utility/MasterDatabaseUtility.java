@@ -1952,45 +1952,40 @@ public class MasterDatabaseUtility {
 
 	public static List<String[]> getConceptualToLogicalToPhysicalModel(List<String> conceptualNames, Collection<String> engineFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
-		Connection conn = engine.makeConnection();
-
-		//		select c.conceptualname, c.logicalname, concat(ec2.physicalname, '__', ec.physicalname), e.enginename
-		//		from concept c 
-		//		inner join engineconcept ec on c.localconceptid=ec.localconceptid 
-		//		inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid 
-		//		inner join engine e on ec.engine=e.id 
-		//		where ec2.pk=true and c.conceptualname='Title';
 
 		List<String[]> results = new Vector<String[]>();
 
-		String query = "select c.conceptualname, c.logicalname, concat(ec2.physicalname, '__', ec.physicalname), e.enginename "
-				+ "from concept c "
-				+ "inner join engineconcept ec on c.localconceptid=ec.localconceptid "
-				+ "inner join engineconcept ec2 on ec.parentphysicalid=ec2.physicalnameid "
-				+ "inner join engine e on ec.engine=e.id "
-				+ "where ec2.pk=true and c.conceptualname in " + makeListToString(conceptualNames)
-				+ (engineFilters == null ? "" : " and ec.engine in " + makeListToString(engineFilters))
-				;
-
-		ResultSet rs = null;
-		Statement stmt = null;
-		try {
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
-			while (rs.next()) {
-				String[] row = new String[4];
-				row[0] = rs.getString(1);
-				row[1] = rs.getString(2);
-				row[2] = rs.getString(3);
-				row[3] = rs.getString(4);
-				results.add(row);
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		} finally {
-			closeStreams(stmt, rs);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
+		qs.addSelector(new QueryColumnSelector("CONCEPT__LOGICALNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		if(engineFilters != null && !engineFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilters));
 		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualNames));
+		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
+		qs.addRelation("ENGINECONCEPT__ENGINE", "ENGINE__ID", "inner.join");
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		
+		while(wrapper.hasNext()) {
+			Object[] data = wrapper.next().getValues();
+			
+			String[] row = new String[4];
+			row[0] = data[0].toString();
+			row[1] = data[1].toString();
+			if((Boolean) data[4]) {
+				row[2] = data[2].toString();
+			} else {
+				row[2] = data[3] + "__" + data[2];
+			}
+			row[3] = data[5].toString();
 
+			results.add(row);
+		}
+		
 		return results;
 	}
 
