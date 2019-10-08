@@ -51,7 +51,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @throws Exception 
 	 */
 	public static String createUserWorkspaceApp(AccessToken token) throws Exception {
-		String appId = createEmptyApp(token, WORKSPACE_APP_NAME);
+		String appId = createEmptyApp(token, WORKSPACE_APP_NAME, false);
 		registerUserWorkspaceApp(token, appId);
 		return appId;
 	}
@@ -74,7 +74,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @throws Exception 
 	 */
 	public static String createUserAssetApp(AccessToken token) throws Exception {
-		String appId = createEmptyApp(token, ASSET_APP_NAME);
+		String appId = createEmptyApp(token, ASSET_APP_NAME, true);
 		registerUserAssetApp(token, appId);
 		return appId;
 	}
@@ -91,7 +91,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	}
 	
 	// TODO >>>timb: WORKSPACE - DONE - look at GenerateEmptyAppReactor, use AppEngine
-	private static String createEmptyApp(AccessToken token, String appName) throws Exception {
+	private static String createEmptyApp(AccessToken token, String appName, boolean ignoreAsset) throws Exception {
 		
 		// Create a new app id
 		String appId = UUID.randomUUID().toString();
@@ -110,8 +110,10 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 		
 		// Add the app to security db
-		SecurityUpdateUtils.addApp(appId, !AbstractSecurityUtils.securityEnabled());
-
+		if(!ignoreAsset) {
+			SecurityUpdateUtils.addApp(appId, false);
+		}
+		
 		// Create the app engine
 		AppEngine appEng = new AppEngine();
 		appEng.setEngineId(appId);
@@ -127,8 +129,9 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		// adding all the git here
 		String versionFolder = appFolder.getAbsolutePath() + FS + "version";
 		File file = new File(versionFolder);
-		if (!file.exists())
+		if (!file.exists()) {
 			file.mkdir();
+		}
 		// I will assume the directory is there now
 		GitRepoUtils.init(versionFolder);
 		
@@ -143,7 +146,9 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		DIHelper.getInstance().setLocalProperty(appId, appEng);
 		
 		// Even if no security, just add user as engine owner
-		SecurityUpdateUtils.addEngineOwner(appId, token.getId());
+		if(!ignoreAsset) {
+			SecurityUpdateUtils.addEngineOwner(appId, token.getId());
+		}
 		
 		if (ClusterUtil.IS_CLUSTER) {
 			CloudClient.getClient().pushApp(appId);
@@ -310,9 +315,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean isAssetOrWorkspaceApp(String appId) {
-//		String query = "SELECT ENGINEID FROM WORKSPACEENGINE WHERE ENGINEID='" + appId + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-		
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__ENGINEID", "==", appId));
@@ -321,17 +323,26 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 			if (wrapper.hasNext()) {
 				return true;
 			} else {
-				wrapper.cleanUp();
-//				query = "SELECT ENGINEID FROM ASSETENGINE WHERE ENGINEID='" + appId + "'";
-//				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-				
-				qs = new SelectQueryStruct();
-				qs.addSelector(new QueryColumnSelector("ASSETENGINE__ENGINEID"));
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__ENGINEID", "==", appId));
-				wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-				if (wrapper.hasNext()) {
-					return true;
-				}
+				return isAssetApp(appId);
+			}
+		} finally {
+			wrapper.cleanUp();
+		}
+	}
+	
+	/**
+	 * Is the app an asset
+	 * @param appId
+	 * @return
+	 */
+	public static boolean isAssetApp(String appId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ASSETENGINE__ENGINEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__ENGINEID", "==", appId));
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try {
+			if (wrapper.hasNext()) {
+				return true;
 			}
 		} finally {
 			wrapper.cleanUp();
