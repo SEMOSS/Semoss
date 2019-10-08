@@ -596,6 +596,11 @@ public abstract class AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return true;
 		}
+		// engine is an asset
+		if(WorkspaceAssetUtils.isAssetApp(appId)) {
+			return true;
+		}
+		
 		return false;
 	}
 	
