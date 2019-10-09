@@ -48,8 +48,6 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	// to make sure the order by's are accurate
 	private List<String> validHeaders = new Vector<String>();
 	
-	private List<String> headersToRemove = new Vector<String>();
-	
 	@Override
 	public String composeQuery() {
 		if(this.dataTableName == null) {
@@ -730,11 +728,6 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		return this.havingFilterCriteria;
 	}
 	
-	public void addHeaderToRemove(String header)
-	{
-		headersToRemove.add(header);
-	}
-
 	public static void main(String[] args) {
 //		SelectQueryStruct qsTest = new SelectQueryStruct();
 //		qsTest.addSelector("Title", null);
