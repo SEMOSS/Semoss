@@ -57,4 +57,10 @@ public interface IEngineWrapper {
 	 */
 	void setEngine(IEngine engine);
 
+	/**
+	 * Get the engine
+	 * @return
+	 */
+	public IEngine getEngine();
+	
 }

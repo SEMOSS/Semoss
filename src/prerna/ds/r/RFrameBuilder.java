@@ -20,6 +20,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.r.RNativeEngine;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.RInterpreter;
@@ -29,6 +30,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter.FILTER_TYPE;
+import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -86,16 +88,6 @@ public class RFrameBuilder {
 		this.rJavaTranslator.executeEmptyR(r);
 	}
 	
-//	/**
-//	 * Wrap the R script in a try-eval in order to get the same error message that a user would see if using
-//	 * the R console
-//	 * @param rscript			The R script to execute
-//	 * @return					The R script wrapped in a try-eval statement
-//	 */
-//	public String addTryEvalToScript(String rscript) {
-//		return "try(eval(" + rscript + "), silent=FALSE)";
-//	}
-
 	/**
 	 * Creates a new data table from an iterator
 	 * @param it					The iterator to flush into a r data table
@@ -112,7 +104,25 @@ public class RFrameBuilder {
 		 */
 		
 		boolean loaded = false;
-		if(it instanceof CsvFileIterator) {
+		if(it instanceof RawRSelectWrapper) {
+			RawRSelectWrapper rIterator = (RawRSelectWrapper) it;
+			SelectQueryStruct qs = rIterator.getOutput().getQs();
+			// if we have a small limit
+			// write to new file
+			// in case the variable size is really large and the IO is 
+			// still produces better performance
+			// TODO: determine optimal number for this...
+			if(qs == null || qs.getLimit() == -1 || qs.getLimit() > 10_000) {
+				String query = rIterator.getQuery();
+				RNativeEngine engine = (RNativeEngine) rIterator.getEngine();
+				engine.directLoad(this.rJavaTranslator, tableName, query);
+				loaded = true;
+				if(qs != null && (qs.getLimit() > 0 || qs.getOffset() > 0)) {
+					int numRows = getNumRows(tableName);
+					evalR(RSyntaxHelper.determineLimitOffsetSyntax(tableName, numRows, qs.getLimit(), qs.getOffset()));
+				}
+			}
+		} else if(it instanceof CsvFileIterator) {
 			CsvQueryStruct csvQs = ((CsvFileIterator) it).getQs();
 			if(csvQs.getLimit() == -1 || csvQs.getLimit() > 10_000) {
 				createTableViaCsvFile(tableName, (CsvFileIterator) it);
@@ -356,12 +366,7 @@ public class RFrameBuilder {
 		}
 		
 		// now that we have everything
-		// execute everything
-//		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) ) );
-//		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToInteger(tableName, intColumns) ) );
-//		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToNumeric(tableName, doubleColumns) ) );
-//		evalR( addTryEvalToScript ( RSyntaxHelper.alterColumnTypeToBoolean(tableName, booleanColumns) ) );
-
+		// execute type modifications
 		if(!charColumns.isEmpty()) {
 			evalR( RSyntaxHelper.alterColumnTypeToCharacter(tableName, charColumns) );
 		}

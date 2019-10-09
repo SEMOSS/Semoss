@@ -30,16 +30,6 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 		return output.hasNext();
 	}
 
-	@Override
-	public String[] getHeaders() {
-		return headers;
-	}
-
-	@Override
-	public SemossDataType[] getTypes() {
-		return this.types;
-	}
-
 	private void setDefaults() {
 		this.rawHeaders = output.getHeaders();
 		this.headers = this.rawHeaders;
@@ -49,6 +39,16 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 		for(int i = 0; i < this.rawHeaders.length; i++) {
 			this.types[i] = SemossDataType.convertStringToDataType(strTypes[i]);
 		}
+	}
+	
+	@Override
+	public String[] getHeaders() {
+		return headers;
+	}
+
+	@Override
+	public SemossDataType[] getTypes() {
+		return this.types;
 	}
 	
 	@Override
@@ -74,4 +74,9 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	public long getNumRecords() {
 		return getNumRows() * this.headers.length;
 	}
+	
+	public RIterator getOutput() {
+		return this.output;
+	}
+	
 }
