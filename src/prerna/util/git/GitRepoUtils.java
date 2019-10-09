@@ -1255,12 +1255,6 @@ public class GitRepoUtils {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-//		// add everything and commit
-//		GitRepoUtils.addAllFiles(folder, true);
-//		
-//		// commit it
-//		GitRepoUtils.commitAddedFiles(folder);
 	}
 	
 }
