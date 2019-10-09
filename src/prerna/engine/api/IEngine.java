@@ -117,6 +117,7 @@ public interface IEngine extends IExplorable {
 	 * @param type the type that which all returned instances must be
 	 * @return the Vector of Strings representing all of the instance names of that type
 	*/
+	@Deprecated
 	public Vector<Object> getEntityOfType(String type);
 	
 	/**
