@@ -282,6 +282,11 @@ public abstract class AbstractRESTWrapper implements IRemoteQueryable, IEngineWr
 	}
 	
 	@Override
+	public IEngine getEngine() {
+		return this.engine;
+	}
+	
+	@Override
 	public void cleanUp() {
 		if (isLocal()) {
 			localCleanUp();

@@ -75,6 +75,12 @@ public class MapHeaderDataRowIterator implements IRawSelectWrapper {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	@Override
+	public IEngine getEngine() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
 	public String[] getHeaders() {
@@ -93,5 +99,4 @@ public class MapHeaderDataRowIterator implements IRawSelectWrapper {
 		// TODO Auto-generated method stub
 		
 	}
-	
 }

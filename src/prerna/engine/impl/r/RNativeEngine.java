@@ -161,8 +161,7 @@ public class RNativeEngine extends AbstractEngine {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-		// Clean up SMSS and DB files/folder
+		// clean up SMSS and DB files/folder
 		super.deleteDB();
 	}
 
@@ -174,5 +173,15 @@ public class RNativeEngine extends AbstractEngine {
 		retInterp.setAdditionalTypes(this.additionalDataType);
 		return retInterp;
 	}
-
+	
+	/**
+	 * Load data from this R env to another R env
+	 * This is used for performance enhancements when moving from engine to frame
+	 * @param otherTranslator
+	 * @param assignVar
+	 * @param rScript
+	 */
+	public void directLoad(AbstractRJavaTranslator otherTranslator, String assignVar, String rScript) {
+		AbstractRJavaTranslator.loadDataBetweenEnv(otherTranslator, assignVar, this.rJavaTranslator, rScript);
+	}
 }

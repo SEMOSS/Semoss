@@ -71,7 +71,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 							// but R is 1 based, so we need to add 1 to the offset value
 							String updatedTempVarQuery = null;
 							try {
-								updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, limit, offset);
+								updatedTempVarQuery = RSyntaxHelper.determineLimitOffsetSyntax(this.tempVarName, this.numRows, limit, offset);
 								this.builder.evalR(updatedTempVarQuery);
 								// and then update the number of rows
 								this.numRows = builder.getNumRows(this.tempVarName);
@@ -79,7 +79,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 								// we have no data
 								// will still run with a limit of 1 so that 
 								// we can grab the metadata
-								updatedTempVarQuery = addLimitOffset(this.tempVarName, this.numRows, 1, 0);
+								updatedTempVarQuery = RSyntaxHelper.determineLimitOffsetSyntax(this.tempVarName, this.numRows, 1, 0);
 								this.builder.evalR(updatedTempVarQuery);
 								// and then update the number of rows
 								this.numRows = 0;
@@ -108,42 +108,6 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 				}
 			}
 		}
-	}
-
-	private String addLimitOffset(String tempVarQuery, int numRows, long limit, long offset) {
-		StringBuilder query = new StringBuilder(tempVarQuery);
-		query.append(" <- ").append(tempVarQuery);
-		if(limit > 0) {
-			if(offset > 0) {
-				// we have limit + offset
-				long lastRIndex = offset + limit;
-				// r is 1 based so we will increase the offset by 1
-				// since FE sends back limit/offset 0 based
-				offset++;
-				if(numRows < lastRIndex) {
-					if(numRows > offset) {
-						query.append("[").append(offset).append(":").append(numRows).append("]");
-					} else {
-						throw new IllegalArgumentException("Limit + Offset result in no data");
-					}
-				} else {
-					query.append("[").append(offset).append(":").append((lastRIndex)).append("]");
-				}
-			} else {
-				// we just have a limit
-				if(numRows < limit) {
-					query.append("[1:").append(numRows).append("]");
-				} else {
-					query.append("[1:").append(limit).append("]");
-				}
-			}
-		} else if(offset > 0) {
-			// r is 1 based so we will increase the offset by 1
-			// since FE sends back limit/offset 0 based
-			offset++;
-			query.append("[").append(offset).append(":").append(numRows).append("]");
-		}
-		return query.toString();
 	}
 
 	@Override
@@ -218,4 +182,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 		return this.totalNumRows;
 	}
 
+	public SelectQueryStruct getQs() {
+		return this.qs;
+	}
 }

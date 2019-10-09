@@ -84,4 +84,10 @@ public class RawPandasWrapper implements IRawSelectWrapper {
 		this.iterator = pi;
 	}
 
+	@Override
+	public IEngine getEngine() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }
