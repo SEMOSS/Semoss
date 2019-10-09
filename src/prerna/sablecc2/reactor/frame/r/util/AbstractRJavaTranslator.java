@@ -140,6 +140,24 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	}
 	
 	/**
+	 * Function to run a script from one environment and assign the output into another environment
+	 * @param trans1
+	 * @param assignVar
+	 * @param trans2
+	 * @param rScript
+	 */
+	public static void loadDataBetweenEnv(AbstractRJavaTranslator trans1, String assignVar, AbstractRJavaTranslator trans2, String rScript) {
+		String combinedScript = trans1.encapsulateForEnv( assignVar + "<- " + trans2.encapsulateForEnv(rScript) );
+		trans1.runR(combinedScript);
+	}
+	
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////
+	
+	/**
 	 * This method is used to get the column names of a frame
 	 * 
 	 * @param frameName

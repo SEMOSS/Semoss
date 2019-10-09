@@ -225,4 +225,9 @@ public abstract class AbstractFileIterator implements IFileIterator {
 		
 	}
 	
+	@Override
+	public IEngine getEngine() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
