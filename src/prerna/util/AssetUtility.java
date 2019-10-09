@@ -12,7 +12,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.util.git.GitRepoUtils;
-import prerna.util.git.GitUtils;
 
 public class AssetUtility {
 
@@ -86,7 +85,13 @@ public class AssetUtility {
 	 * @return
 	 */
 	public static String getAssetVersionBasePath(Insight in, String space) {
-		String assetFolder = getAppAssetVersionFolder(in.getEngineName(), in.getEngineId());
+		String assetFolder = null;
+		if(in.isSavedInsight()) {
+			assetFolder = getAppAssetVersionFolder(in.getEngineName(), in.getEngineId());
+		} else {
+			assetFolder = in.getInsightFolder();
+		}
+		
 		// find out what space the user wants to use to get the base asset path
 		if (space != null) {
 			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
@@ -118,7 +123,7 @@ public class AssetUtility {
 		assetFolder = assetFolder.replace('\\', '/');
 		
 		
-		if(in.isSavedInsight() && !GitUtils.isGit(assetFolder)) {
+		if(in.isSavedInsight() && !isGit(assetFolder)) {
 			GitRepoUtils.init(assetFolder);
 		}
 		return assetFolder;
@@ -147,7 +152,8 @@ public class AssetUtility {
 		if (!file.exists()) {
 			file.mkdir();
 		}
-		if(!GitUtils.isGit(gitFolder)) {
+		
+		if(!isGit(gitFolder)) {
 			GitRepoUtils.init(gitFolder);
 		}
 		return gitFolder;
@@ -177,6 +183,11 @@ public class AssetUtility {
 			relativePath = "assets";
 		}	
 		return relativePath;
+	}
+	
+	public static boolean isGit(String assetFolder) {
+		File file = new File(assetFolder + DIR_SEPARATOR + ".git");
+		return file.exists();
 	}
 	
 }
