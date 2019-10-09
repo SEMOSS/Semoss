@@ -944,6 +944,50 @@ public class RSyntaxHelper {
 		return value;
 	}
 	
+	/**
+	 * Determine the limit/offset given the size of the frame
+	 * @param tableName
+	 * @param numRows
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static String determineLimitOffsetSyntax(String tableName, long numRows, long limit, long offset) {
+		StringBuilder query = new StringBuilder();
+		query.append(tableName).append(" <- ").append(tableName);
+		if(limit > 0) {
+			if(offset > 0) {
+				// we have limit + offset
+				long lastRIndex = offset + limit;
+				// r is 1 based so we will increase the offset by 1
+				// since FE sends back limit/offset 0 based
+				offset++;
+				if(numRows < lastRIndex) {
+					if(numRows > offset) {
+						query.append("[").append(offset).append(":").append(numRows).append("]");
+					} else {
+						throw new IllegalArgumentException("Limit + Offset result in no data");
+					}
+				} else {
+					query.append("[").append(offset).append(":").append((lastRIndex)).append("]");
+				}
+			} else {
+				// we just have a limit
+				if(numRows < limit) {
+					query.append("[1:").append(numRows).append("]");
+				} else {
+					query.append("[1:").append(limit).append("]");
+				}
+			}
+		} else if(offset > 0) {
+			// r is 1 based so we will increase the offset by 1
+			// since FE sends back limit/offset 0 based
+			offset++;
+			query.append("[").append(offset).append(":").append(numRows).append("]");
+		}
+		return query.toString();
+	}
+	
 	/////////////////////////////////////////////////////////
 	// R Environment
 	/////////////////////////////////////////////////////////
