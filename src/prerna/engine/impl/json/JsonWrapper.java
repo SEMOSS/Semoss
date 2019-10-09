@@ -73,6 +73,11 @@ public class JsonWrapper implements IRawSelectWrapper {
 	}
 
 	@Override
+	public IEngine getEngine() {
+		return this.engine;
+	}
+	
+	@Override
 	public IHeadersDataRow next() {
 		Object [] values = new Object[headers.length];
 		for(int colIndex = 0;colIndex < headers.length;colIndex++) {
@@ -131,5 +136,4 @@ public class JsonWrapper implements IRawSelectWrapper {
 		// TODO Auto-generated method stub
 		
 	}
-	
 }
