@@ -77,17 +77,6 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 		}
 	}
 
-	private void removeRFunctions() {
-		//adding all the calls i want removed from R. GG hackers. 
-		String rScript="getenv <- function() {};Sys.chmod<-getenv;Sys.date<-getenv;Sys.getenv<-getenv;Sys.getlocate<-getenv;"
-				+ "Sys.getpid<-getenv;Sys.glob<-getenv;Sys.info<-getenv;Sys.localeconv<-getenv;"
-				+ "sys.on.exit<-getenv;sys.parent<-getenv;Sys.readlink<-getenv;Sys.setenv<-getenv;"
-				+ "Sys.setlocale<-getenv;Sys.sleep<-getenv;sys.source<-getenv;sys.status<-getenv;"
-				+ "Sys.time<-getenv;Sys.timezone<-getenv;Sys.umask<-getenv;Sys.unsetenv<-getenv;"
-				+ "Sys.which<-getenv;Sys<-getenv;sys<-getenv;";
-		this.runR(rScript);
-	}
-
 	private boolean userRconIsDefined() {
 		return userIsDefined() && this.insight.getUser().getRcon() != null;
 	}
