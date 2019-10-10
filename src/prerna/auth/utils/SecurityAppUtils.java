@@ -446,6 +446,24 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		return true;
 	}
 	
+	/**
+	 * update the app name
+	 * @param user
+	 * @param engineId
+	 * @param isPublic
+	 * @return
+	 */
+	public static boolean setAppName(User user, String appId, String newAppName) {
+		if(!SecurityAppUtils.userIsOwner(user, appId)) {
+			throw new IllegalArgumentException("The user doesn't have the permission to change the database name. Only the owner or an admin can perform this action.");
+		}
+		
+		String query = "UPDATE ENGINE SET ENGINENAME = '" + newAppName + "' WHERE ENGINEID ='" + appId + "';";
+		securityDb.execUpdateAndRetrieveStatement(query, true);
+		securityDb.commit();
+		return true;
+	}
+	
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
