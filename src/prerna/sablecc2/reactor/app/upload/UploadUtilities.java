@@ -33,11 +33,13 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.datastax.DataStaxGraphEngine;
+import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
@@ -969,6 +971,50 @@ public class UploadUtilities {
 				e.printStackTrace();
 			}
 		}
+		return appTempSmss;
+	}
+	
+	public static File createTemporaryRSmss(String appId, String appName, File owlFile, String fileName) throws IOException {
+		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
+		
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around 
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempSmssLoc);
+		if(appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+		
+		final String newLine = "\n";
+		final String tab = "\t";
+		
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		try {
+			writer = new FileWriter(appTempSmss);
+			bufferedWriter = new BufferedWriter(writer);
+			
+			String engineClassName = RNativeEngine.class.getName();
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
+			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
+			bufferedWriter.write(AbstractEngine.DATA_FILE + "\t" + dataFile.replace('\\', '/') + "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new IOException("Could not generate temporary smss file for app");
+		} finally {
+			try {
+				if(bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if(writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
 		return appTempSmss;
 	}
 	
