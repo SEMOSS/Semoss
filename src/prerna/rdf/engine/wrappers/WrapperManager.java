@@ -88,7 +88,20 @@ public class WrapperManager {
 			break;
 		}
 		case R : {
+			long start = System.currentTimeMillis();
+			genQueryString = false;
 			returnWrapper = new RawRSelectWrapper();
+			IQueryInterpreter interpreter = engine.getQueryInterpreter();
+			interpreter.setQueryStruct(qs);
+			String query = interpreter.composeQuery();
+			LOGGER.debug("Executing query on engine " + engine.getEngineId());
+			returnWrapper.setEngine(engine);
+			returnWrapper.setQuery(query);
+			// we need to pass the qs to properly set the limit/offset
+			// since R will still run even if the limit+offset is > numRows and return null entries
+			((RawRSelectWrapper) returnWrapper).execute(qs);
+			long end = System.currentTimeMillis();
+			LOGGER.debug("Engine execution time = " + (end-start) + "ms");
 			break;
 		}
 		case JSON : {
@@ -108,6 +121,7 @@ public class WrapperManager {
 			break;
 		}
 		case TINKER : {
+			long start = System.currentTimeMillis();
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
@@ -117,9 +131,12 @@ public class WrapperManager {
 			gdi.execute();
 			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 			returnWrapper.execute();
+			long end = System.currentTimeMillis();
+			LOGGER.debug("Engine execution time = " + (end-start) + "ms");
 			break;
 		}
 		case JANUS_GRAPH : {
+			long start = System.currentTimeMillis();
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
@@ -129,9 +146,12 @@ public class WrapperManager {
 			gdi.execute();
 			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 			returnWrapper.execute();
+			long end = System.currentTimeMillis();
+			LOGGER.debug("Engine execution time = " + (end-start) + "ms");
 			break;
 		}
 		case DATASTAX_GRAPH : {
+			long start = System.currentTimeMillis();
 			genQueryString = false;
 			// since we dont do math on gremlin
 			// right now, we will just construct and return a QSExpressionIterator
@@ -141,6 +161,8 @@ public class WrapperManager {
 			gdi.execute();
 			returnWrapper = new QueryStructExpressionIterator(gdi, qs);
 			returnWrapper.execute();
+			long end = System.currentTimeMillis();
+			LOGGER.debug("Engine execution time = " + (end-start) + "ms");
 			break;
 		}
 		case REMOTE_SEMOSS : {

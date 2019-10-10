@@ -46,6 +46,7 @@ import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.RImporter;
@@ -131,6 +132,11 @@ public class RNativeEngine extends AbstractEngine {
 	@Override
 	public Object execQuery(String query) {
 		RIterator exec = new RIterator(this.dt.getBuilder(), query);
+		return exec;
+	}
+	
+	public Object execQuery(String query, SelectQueryStruct qs) {
+		RIterator exec = new RIterator(this.dt.getBuilder(), query, qs);
 		return exec;
 	}
 
