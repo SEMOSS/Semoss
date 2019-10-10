@@ -257,7 +257,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 	 */
 	protected Insight getCachedInsight(Insight existingInsight) throws IOException, JsonSyntaxException {
 		String engineId = existingInsight.getEngineId();
-		String engineName = existingInsight.getEngineName();
+		String engineName = Utility.getEngine(engineId).getEngineName();
 		String insightId = existingInsight.getRdbmsId();
 		
 		Insight insight = null;
