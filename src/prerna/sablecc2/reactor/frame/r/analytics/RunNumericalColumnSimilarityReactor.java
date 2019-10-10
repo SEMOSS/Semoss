@@ -156,7 +156,7 @@ public class RunNumericalColumnSimilarityReactor extends AbstractRFrameReactor {
 		// to determine "Similar" score
 		rsb.append(resultFrame + "$Similarity <- (" + resultFrame + "$Identical_CDF + " + resultFrame + "$Close_CDF );");
 		
-		rsb.append("setwd(\"" + wd + "\");\n");
+		rsb.append("setwd(" + wd + ");\n");
 		
 		this.rJavaTranslator.runR(rsb.toString());
 		
