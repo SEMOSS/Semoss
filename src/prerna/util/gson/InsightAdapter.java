@@ -46,6 +46,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.translations.OptimizeRecipeTranslation;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 public class InsightAdapter extends TypeAdapter<Insight> {
@@ -306,7 +307,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		insight.setEngineId(engineId);
 		in.nextName();
 		String engineName = in.nextString();
-		insight.setEngineName(engineName);
+		insight.setEngineName(Utility.getEngine(engineId).getEngineName());
 		in.nextName();
 		String rdbmsId = in.nextString();
 		insight.setRdbmsId(rdbmsId);
