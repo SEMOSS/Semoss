@@ -4,6 +4,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.r.RNativeEngine;
+import prerna.query.querystruct.SelectQueryStruct;
 
 public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrapper {
 
@@ -12,6 +14,11 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	@Override
 	public void execute() {
 		this.output = (RIterator) this.engine.execQuery(this.query);
+		setDefaults();
+	}
+	
+	public void execute(SelectQueryStruct qs) {
+		this.output = (RIterator) ((RNativeEngine) this.engine).execQuery(this.query, qs);
 		setDefaults();
 	}
 	
@@ -78,5 +85,4 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	public RIterator getOutput() {
 		return this.output;
 	}
-	
 }
