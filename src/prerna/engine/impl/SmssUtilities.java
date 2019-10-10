@@ -1,6 +1,11 @@
 package prerna.engine.impl;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Properties;
 
 import prerna.util.Constants;
@@ -249,8 +254,41 @@ public class SmssUtilities {
 		return tinker;
 	}
 	
-	
+	/**
+	 * Custom file reader/writer to modify the app name and keep the same order
+	 * of the smss properties. Need to change the owl and engine alias
+	 * 
+	 * @param smssFile
+	 * @param newSmssFile
+	 * @param newAppName
+	 * @throws IOException
+	 */
+	public static void changeAppName(String smssFile, String newSmssFile, String newAppName) throws IOException {
+		final String newLine = "\n";
+		final String tab = "\t";
+		File f1 = new File(smssFile);
+		FileReader fr = new FileReader(f1);
+		BufferedReader br = new BufferedReader(fr);
+		String line = null;
+		FileWriter fw = new FileWriter(newSmssFile);
+		BufferedWriter out = new BufferedWriter(fw);
+		while ((line = br.readLine()) != null) {
+			if (line.contains(Constants.ENGINE_ALIAS)) {
+				line = Constants.ENGINE_ALIAS + tab + newAppName;
+			}
+			if (line.startsWith(Constants.OWL)) {
+				String owlLocation = "db" + DIR_SEPARATOR + ENGINE_REPLACEMENT + DIR_SEPARATOR + newAppName
+						+ "_OWL.OWL";
+				owlLocation = owlLocation.replace('\\', '/');
+				line = Constants.OWL + tab + owlLocation;
+			}
+			out.write(line + newLine);
 
-	
+		}
+		fr.close();
+		br.close();
+		out.flush();
+		out.close();
+	}
 	
 }

@@ -732,6 +732,25 @@ public class AddToMasterDB {
 		return valid;
 	}
 	
+	public boolean setAppName(String appId, String newAppName) {
+		boolean update = false;
+		IEngine localMaster = Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		getConnection(localMaster);
+		String updateQuery = "UPDATE ENGINE SET ENGINENAME = \'" + newAppName + "\' WHERE ID = \'" + appId + "\';";
+		int validInsert;
+		try {
+			validInsert = conn.createStatement().executeUpdate(updateQuery);
+			if (validInsert > 0) {
+				update = true;
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return update ;
+	}
+	
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
