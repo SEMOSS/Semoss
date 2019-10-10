@@ -393,6 +393,13 @@ public class PixelStreamUtility {
 					// format type is graph
 					ps.print("\"output\":{");
 					printMapData(ps, (Map<String, Object>) ((AbstractTask) task).getData(), gson);
+				
+				} else {
+					// just let the formatter handle the output of this data
+					ps.print("\"output\":{");
+					ps.print("\"data\":" );
+					ps.print(gson.toJson( ((AbstractTask) task).getData()));
+					ps.flush();
 				}
 				
 				// grab the meta and output as well
