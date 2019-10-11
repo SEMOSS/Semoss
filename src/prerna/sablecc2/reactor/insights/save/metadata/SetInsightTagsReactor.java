@@ -4,10 +4,13 @@ import java.util.List;
 
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.InsightAdministrator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
+import prerna.util.Utility;
 
 public class SetInsightTagsReactor extends AbstractInsightReactor {
 
@@ -33,6 +36,9 @@ public class SetInsightTagsReactor extends AbstractInsightReactor {
 		}
 
 		List<String> tags = getTags();
+		IEngine engine = Utility.getEngine(appId);
+		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
+		admin.updateInsightTags(existingId, tags);
 		SecurityInsightUtils.updateInsightTags(appId, existingId, tags);
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
