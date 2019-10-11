@@ -1,6 +1,7 @@
 package prerna.engine.impl;
 
 import java.io.File;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -91,6 +92,19 @@ public class EngineInsightsHelper {
 			// need to run the queries to make this
 			UploadUtilities.runInsightCreateTableQueries(insightsRdbms);
 		} else {
+			
+			// adding new insight metadata
+			if(!queryUtil.tableExists(insightsRdbms.getConnection(), "INSIGHTMETA", insightsRdbms.getSchema())) {
+				String[] columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
+				String[] types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT"};
+				try {
+					insightsRdbms.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			
 //			// okay, might need to do some updates
 //			String q = "SELECT TYPE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='QUESTION_ID' and COLUMN_NAME='ID'";
 //			IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightsRdbms, q);
@@ -124,6 +138,7 @@ public class EngineInsightsHelper {
 //			// TODO: EVENTUALLY WE WILL DELETE THIS
 //			// TODO: EVENTUALLY WE WILL DELETE THIS
 //			InsightsDatabaseUpdater3CacheableColumn.update(engineId, insightsRdbms);
+			
 		}
 		
 		insightsRdbms.setBasic(true);

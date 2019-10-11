@@ -1,6 +1,5 @@
 package prerna.poi.main;
 
-import java.io.File;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -61,8 +60,11 @@ public class RDFEngineCreationHelper {
 				List<String> tags = new Vector<String>();
 				tags.add("default");
 				tags.add("preview");
+				admin.updateInsightTags(insightId, tags);
 				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(appId, insightId, "Preview of the concept " + pixelName + " and all of its properties");
+				String description = "Preview of the concept " + pixelName + " and all of its properties";
+				admin.updateInsightDescription(insightId, description);
+				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");
@@ -123,8 +125,11 @@ public class RDFEngineCreationHelper {
 				List<String> tags = new Vector<String>();
 				tags.add("default");
 				tags.add("preview");
+				admin.updateInsightTags(insightId, tags);
 				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(appId, insightId, "Preview of the concept " + pixelName + " and all of its properties");
+				String description = "Preview of the concept " + pixelName + " and all of its properties";
+				admin.updateInsightDescription(insightId, description);
+				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("caught exception while adding question.................");

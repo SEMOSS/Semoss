@@ -19,6 +19,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.ds.util.RdbmsQueryBuilder;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.EngineInsightsHelper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -183,6 +184,61 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				
 				if(reloadInsights && existingInsightPermissions) {
 					insightPermissionIds.remove(insightId);
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		// well, we are done looping through now
+		LOGGER.info("Executing final batch .... row num = " + count);
+		try {
+			ps.executeBatch();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} // insert any remaining records
+		try {
+			ps.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		count = 0;
+		// same for insight meta
+		// i need to delete any current insights for the app
+		// before i start to insert new insights
+		deleteQuery = "DELETE FROM INSIGHTMETA WHERE ENGINEID='" + appId + "'";
+		try {
+			securityDb.removeData(deleteQuery);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		ps = securityDb.bulkInsertPreparedStatement(
+				new String[]{"INSIGHTMETA","ENGINEID","INSIGHTID","METAKEY","METAVALUE","METAORDER"});
+		
+		qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__INSIGHTID"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE"));
+		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
+		wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs);
+		while(wrapper.hasNext()) {
+			IHeadersDataRow data = wrapper.next();
+			Object[] row = data.getValues();
+			Object[] raw = data.getRawValues();
+			try {
+				ps.setString(1, appId);
+				ps.setString(2, row[0].toString());
+				ps.setString(3, row[1].toString());
+				ps.setClob(4, (java.sql.Clob) raw[2]);
+				ps.setInt(5, ((Number) row[3]).intValue()) ;
+				ps.addBatch();
+				
+				// batch commit based on size
+				if (++count % batchSize == 0) {
+					LOGGER.info("Executing batch .... row num = " + count);
+					ps.executeBatch();
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
