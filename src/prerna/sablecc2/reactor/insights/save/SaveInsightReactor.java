@@ -2,8 +2,6 @@ package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,7 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -131,7 +128,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		if(!hidden) {
 			logger.info(stepCounter + ") Regsiter insight...");
-			registerInsightAndMetadata(engine.getEngineId(), newRdbmsId, insightName, layout, getDescription(), getTags());
+			registerInsightAndMetadata(engine, newRdbmsId, insightName, layout, getDescription(), getTags());
 			logger.info(stepCounter + ") Done...");
 		} else {
 			logger.info(stepCounter + ") Insight is hidden ... do not add to solr");
@@ -223,16 +220,20 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 	 * @param description
 	 * @param tags
 	 */
-	private void registerInsightAndMetadata(String appId, String insightIdToSave, String insightName, String layout, String description, List<String> tags) {
+	private void registerInsightAndMetadata(IEngine engine, String insightIdToSave, String insightName, String layout, String description, List<String> tags) {
+		String appId = engine.getEngineId();
 		// TODO: INSIGHTS ARE ALWAYS GLOBAL!!!
 		SecurityInsightUtils.addInsight(appId, insightIdToSave, insightName, true, layout);
 		if(this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), appId, insightIdToSave);
 		}
+		InsightAdministrator admin = new InsightAdministrator(engine.getInsightDatabase());
 		if(description != null) {
+			admin.updateInsightDescription(insightIdToSave, description);
 			SecurityInsightUtils.updateInsightDescription(appId, insightIdToSave, description);
 		}
 		if(tags != null) {
+			admin.updateInsightTags(insightIdToSave, tags);
 			SecurityInsightUtils.updateInsightTags(appId, insightIdToSave, tags);
 		}
 	}

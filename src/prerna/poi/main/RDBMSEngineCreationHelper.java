@@ -1,6 +1,5 @@
 package prerna.poi.main;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -75,7 +74,7 @@ public class RDBMSEngineCreationHelper {
 				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
 
 				String insightId = admin.addInsight(insightName, layout, recipeArray);
-				//write recipe to file
+				// write recipe to file
 				MosfetSyncHelper.makeMosfitFile(appId, rdbmsEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
 				// add the insight to git
 				String gitFolder = AssetUtility.getAppAssetVersionFolder(rdbmsEngine.getEngineName(), appId);
@@ -89,8 +88,11 @@ public class RDBMSEngineCreationHelper {
 				List<String> tags = new Vector<String>();
 				tags.add("default");
 				tags.add("preview");
+				admin.updateInsightTags(insightId, tags);
 				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
-				SecurityInsightUtils.updateInsightDescription(appId, insightId, "Preview of the table " + newTable + " and all of its columns");
+				String description = "Preview of the table " + newTable + " and all of its columns";
+				admin.updateInsightDescription(insightId, description);
+				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
 		} catch(RuntimeException e) {
 			System.out.println("Caught exception while adding question.................");
