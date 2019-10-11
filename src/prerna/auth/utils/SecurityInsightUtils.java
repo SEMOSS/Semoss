@@ -468,6 +468,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Will perform an insert if the description doesn't currently exist
 	 * @param engineId
 	 * @param insideId
+	 * @param description
 	 */
 	public static void updateInsightDescription(String engineId, String insightId, String description) {
 		// try to do an update

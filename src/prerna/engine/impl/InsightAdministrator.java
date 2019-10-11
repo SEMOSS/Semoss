@@ -1,8 +1,12 @@
 package prerna.engine.impl;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -133,6 +137,87 @@ public class InsightAdministrator {
 		
 		// return the new rdbms id
 		return insightId;
+	}
+	
+	/**
+	 * Update the insight tags for the insight
+	 * Will delete existing values and then perform a bulk insert
+	 * @param insightId
+	 * @param tags
+	 */
+	public void updateInsightTags(String insightId, List<String> tags) {
+		// first do a delete
+		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY='tag' AND INSIGHTID='" + insightId + "'";
+		try {
+			this.insightEngine.insertData(query);
+			this.insightEngine.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		// now we do the new insert with the order of the tags
+		query = this.queryUtil.createInsertPreparedStatementString("INSIGHTMETA", 
+				new String[]{"INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+		PreparedStatement ps = this.insightEngine.bulkInsertPreparedStatement(query);
+		try {
+			for(int i = 0; i < tags.size(); i++) {
+				String tag = tags.get(i);
+				ps.setString(1, insightId);
+				ps.setString(2, "tag");
+				ps.setString(3, tag);
+				ps.setInt(4, i);
+				ps.addBatch();;
+			}
+			
+			ps.executeBatch();
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Update the insight description
+	 * Will perform an insert if the description doesn't currently exist
+	 * @param insideId
+	 * @param description
+	 */
+	public void updateInsightDescription(String insightId, String description) {
+		// try to do an update
+		// if nothing is updated
+		// do an insert
+		String query = "UPDATE INSIGHTMETA SET METAVALUE='" 
+				+ AbstractSqlQueryUtil.escapeForSQLStatement(description) + "' "
+				+ "WHERE METAKEY='description' AND INSIGHTID='" + insightId + "'";
+		Statement stmt = null;
+		try {
+			stmt = this.insightEngine.execUpdateAndRetrieveStatement(query, false);
+			if(stmt.getUpdateCount() == 0) {
+				// need to perform an insert
+				query = this.queryUtil.insertIntoTable("INSIGHTMETA", 
+						new String[]{"INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"}, 
+						new String[]{"varchar(255)", "varchar(255)", "clob", "int"}, 
+						new Object[]{insightId, "description", description, 0});
+				this.insightEngine.insertData(query);
+			}
+		} catch(SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if(stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 	
 	/**

@@ -1171,7 +1171,6 @@ public class UploadUtilities {
 		
 		try {
 			if(!queryUtil.tableExists(insightEngine.getConnection(), "QUESTION_ID", insightEngine.getSchema())) {
-				
 				columns = new String[]{"ID", "QUESTION_NAME", "QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", 
 						"QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN", "HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL"};
 				types = new String[]{"VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT", "VARCHAR(255)", "CLOB",
@@ -1184,6 +1183,14 @@ public class UploadUtilities {
 				
 				insightEngine.insertData(queryUtil.createTable("QUESTION_ID", columns, types));
 			}
+			
+			// adding new insight metadata
+			if(!queryUtil.tableExists(insightEngine.getConnection(), "INSIGHTMETA", insightEngine.getSchema())) {
+				columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"};
+				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "CLOB", "INT"};
+				insightEngine.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
+			}
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
