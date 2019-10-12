@@ -65,7 +65,23 @@ public class AppTokens extends AbstractValueObject{
 	}
 	
 	public AccessToken getAccessToken(AuthProvider name) {
-		return accessTokens.get(name);
+		AccessToken token = accessTokens.get(name);
+		if(token == null) {
+			if(name == AuthProvider.TWITTER) {
+				loginTwitterApp();
+				if(twitToken != null) {
+					app.setAccessToken(twitToken);
+				}
+			} else if(name == AuthProvider.GOOGLE_MAP) {
+				loginGoogleApp();
+				if(googAppToken != null) {
+					app.setAccessToken(googAppToken);
+				}
+			}
+			// try again...
+			token = accessTokens.get(name);
+		}
+		return token;
 	}
 	
 	public void dropAccessToken(AuthProvider name) {
