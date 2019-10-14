@@ -256,7 +256,7 @@ public class SmssUtilities {
 	
 	/**
 	 * Custom file reader/writer to modify the app name and keep the same order
-	 * of the smss properties. Need to change the owl and engine alias
+	 * of the smss properties. Need to change the engine alias
 	 * 
 	 * @param smssFile
 	 * @param newSmssFile
@@ -276,12 +276,12 @@ public class SmssUtilities {
 			if (line.contains(Constants.ENGINE_ALIAS)) {
 				line = Constants.ENGINE_ALIAS + tab + newAppName;
 			}
-			if (line.startsWith(Constants.OWL)) {
-				String owlLocation = "db" + DIR_SEPARATOR + ENGINE_REPLACEMENT + DIR_SEPARATOR + newAppName
-						+ "_OWL.OWL";
-				owlLocation = owlLocation.replace('\\', '/');
-				line = Constants.OWL + tab + owlLocation;
-			}
+//			if (line.startsWith(Constants.OWL)) {
+//				String owlLocation = "db" + DIR_SEPARATOR + ENGINE_REPLACEMENT + DIR_SEPARATOR + newAppName
+//						+ "_OWL.OWL";
+//				owlLocation = owlLocation.replace('\\', '/');
+//				line = Constants.OWL + tab + owlLocation;
+//			}
 			out.write(line + newLine);
 
 		}

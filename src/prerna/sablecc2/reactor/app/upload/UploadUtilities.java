@@ -480,9 +480,9 @@ public class UploadUtilities {
 			// tinker-specific properties
 			// neo4j does not have an extension
 			// basefolder/db/engine/engine
-			String tinkerFilePath = " @BaseFolder@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR + "@ENGINE@";
+			String tinkerFilePath = " @BaseFolder@" + DIR_SEPARATOR + "db" + DIR_SEPARATOR + "@ENGINE@" + DIR_SEPARATOR + appName;
 			if(tinkerFilePath.contains("\\")) {
-				tinkerFilePath = tinkerFilePath.replace("\\", "\\\\");
+				tinkerFilePath = tinkerFilePath.replace("\\", "/");
 			}
 			
 			// if neo4j, point to the folder
