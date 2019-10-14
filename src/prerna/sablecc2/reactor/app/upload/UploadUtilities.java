@@ -551,7 +551,7 @@ public class UploadUtilities {
 			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
 			// get additional RDF default properties
 			String defaultDBPropName = "db" + DIR_SEPARATOR + "Default" + DIR_SEPARATOR + "Default.properties";
-			String jnlName = "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + appName + ".jnl";
+			String jnlName = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + appName + ".jnl";
 			jnlName = jnlName.replace('\\', '/'); // Needed as prop file cannot contain single back slash
 			String rdfDefaultProps = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + defaultDBPropName;
 			
