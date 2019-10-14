@@ -72,11 +72,7 @@ public class ChangeAppNameReactor extends AbstractInsightReactor {
 		String newAppFolderPath = smssDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(newAppName, appId);
 		File oldAppFolder = new File(oldAppFolderPath);
 		File newAppFolder = new File(newAppFolderPath);
-
-		// owl paths
-		String newOwl = smssDbFolder + DIR_SEPARATOR + SmssUtilities.getUniqueName(newAppName, appId) + DIR_SEPARATOR + newAppName + "_OWL.OWL";
 		File oldOwlFile = new File(engine.getOWL());
-		File newOwlFile = new File(newOwl);
 
 		RDBMSNativeEngine newInsightsRdbms = null;
 		try {
@@ -86,6 +82,7 @@ public class ChangeAppNameReactor extends AbstractInsightReactor {
 			engine.closeDB();
 			FileUtils.copyDirectory(oldAppFolder, newAppFolder);
 			// create new owl
+			File newOwlFile = SmssUtilities.getOwlFile(Utility.loadProperties(newSmssFile));
 			FileUtils.copyFile(oldOwlFile, newOwlFile);
 
 			// update engine with new paths
@@ -94,7 +91,7 @@ public class ChangeAppNameReactor extends AbstractInsightReactor {
 			newInsightsRdbms = (RDBMSNativeEngine) UploadUtilities.generateInsightsDatabase(appId, newAppName);
 			engine.setInsightDatabase(newInsightsRdbms);
 			engine.setEngineName(newAppName);
-			engine.setOWL(newOwl);
+			engine.setOWL(newOwlFile.getAbsolutePath());
 			engine.setPropFile(newSmssFile);
 			engine.openDB(newSmssFile);
 
