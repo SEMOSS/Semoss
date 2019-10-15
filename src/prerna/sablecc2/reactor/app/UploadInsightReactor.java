@@ -18,6 +18,7 @@ import prerna.auth.utils.SecurityInsightUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.om.MosfetFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -26,7 +27,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.insights.AbstractInsightReactor;
 import prerna.util.AssetUtility;
-import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 import prerna.util.git.GitRepoUtils;
@@ -73,7 +73,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 			filesAdded = ZipUtils.unzip(zipFilePath, versionFolder);
 			fileList = filesAdded.get("FILE");
 			for (String filePath : fileList) {
-				if (filePath.endsWith(MosfetSyncHelper.RECIPE_FILE)) {
+				if (filePath.endsWith(MosfetFile.RECIPE_FILE)) {
 					mosfetFileLoc = versionFolder + DIR_SEPARATOR + filePath;
 					mosfetFile = new File(mosfetFileLoc);
 					// check if the file exists
@@ -95,7 +95,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 					FileUtils.deleteRecursive(versionFolder + DIR_SEPARATOR + filePath, true);
 				}
 				SemossPixelException exception = new SemossPixelException(
-						NounMetadata.getErrorNounMessage("Unable to find " + MosfetSyncHelper.RECIPE_FILE + " file."));
+						NounMetadata.getErrorNounMessage("Unable to find " + MosfetFile.RECIPE_FILE + " file."));
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
@@ -111,18 +111,26 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		// get insight mosfet to register new insight
 		// TODO we are assuming the insight is uploaded to the same app
 		// TODO we can resync to use new app
-		Map<String, Object> mosfet = MosfetSyncHelper.getMosfitMap(mosfetFile);
+		MosfetFile mosfet;
+		try {
+			mosfet = MosfetFile.generateFromFile(mosfetFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to load the mosfet file."));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// add the recipe to the insights database
 		InsightAdministrator admin = new InsightAdministrator(app.getInsightDatabase());
 
-		String insightName = mosfet.get(MosfetSyncHelper.INSIGHT_NAME_KEY).toString();
+		String insightName = mosfet.getInsightName();
 		int step = 1;
 		logger.info(step + ") Add insight " + insightName + " to rdbms store...");
-		String newInsightId = mosfet.get(MosfetSyncHelper.RDBMS_ID_KEY).toString();
-		String layout = mosfet.get(MosfetSyncHelper.LAYOUT_KEY).toString();
-		String recipeToSave = mosfet.get(MosfetSyncHelper.RECIPE_KEY).toString();
-		String[] pixelRecipeToSave = new String[] { recipeToSave };
+		String newInsightId = mosfet.getRdbmsId();
+		String layout = mosfet.getLayout();
+		String[] pixelRecipeToSave = mosfet.getRecipe();
 		boolean hidden = false;
 		String newRdbmsId = admin.addInsight(newInsightId, insightName, layout, pixelRecipeToSave, hidden);
 		logger.info(step + ") Done...");
@@ -153,12 +161,10 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		returnMap.put("app_insight_id", newRdbmsId);
 		returnMap.put("app_name", app.getEngineName());
 		returnMap.put("app_id", app.getEngineId());
-		returnMap.put("recipe", recipeToSave);
-		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.SAVE_INSIGHT);
+		returnMap.put("recipe", pixelRecipeToSave);
+		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.SAVE_INSIGHT);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully added new insight."));
 		return noun;
-
 	}
 
 }

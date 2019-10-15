@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.MosfetFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -98,17 +100,21 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		admin.updateInsight(existingId, insightName, layout, recipeToSave, hidden);
 		logger.info("1) Done");
 		
+		String description = getDescription();
+		List<String> tags = getTags();
+		
 		if(!hidden) {
 			logger.info("2) Updated registered insight...");
-			editRegisteredInsightAndMetadata(engine, existingId, insightName, layout, getDescription(), getTags());
+			editRegisteredInsightAndMetadata(engine, existingId, insightName, layout, description, tags);
 			logger.info("2) Done...");
 		}
 		
 		// delete the cache
 		InsightCacheUtility.deleteCache(engine.getEngineId(), engine.getEngineName(), existingId);
 		// update recipe text file
-		logger.info("3) Update "+ MosfetSyncHelper.RECIPE_FILE);
-		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden);
+		logger.info("3) Update Mosfet file for collaboration");
+		updateRecipeFile(engine.getEngineId(), engine.getEngineName(), 
+				existingId, insightName, layout, IMAGE_NAME, recipeToSave, hidden, description, tags);
 		logger.info("3) Done");
 		
 		// write pipeline
@@ -168,15 +174,23 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 	 * @param rdbmsID
 	 * @param recipeToSave
 	 */
-	protected void updateRecipeFile(String appId, String appName, String rdbmsID, String insightName, String layout, String imageName, String[] recipeToSave, boolean hidden) {
+	protected void updateRecipeFile(String appId, String appName, String rdbmsID, String insightName, 
+			String layout, String imageName, String[] recipeToSave, boolean hidden, String description, List<String> tags) {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
-				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
-		MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName, layout, imageName, recipeToSave, hidden);
+				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
+		// update the mosfet
+		try {
+			MosfetSyncHelper.updateMosfitFile(new File(recipeLocation), appId, appName, rdbmsID, insightName,
+					layout, imageName, recipeToSave, hidden, description, tags);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		// git
 		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 		List<String> files = new Vector<>();
-		files.add(rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
+		files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 		GitRepoUtils.addSpecificFiles(gitFolder, files);
 		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " recipe on"));
 	}

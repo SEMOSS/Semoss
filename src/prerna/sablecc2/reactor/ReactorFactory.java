@@ -427,7 +427,6 @@ import prerna.util.git.reactors.ListAppRemotes;
 import prerna.util.git.reactors.ListUserApps;
 import prerna.util.git.reactors.LoginReactor;
 import prerna.util.git.reactors.RemoveAppCollaborator;
-import prerna.util.git.reactors.RenameMosfitFileReactor;
 import prerna.util.git.reactors.SearchAppCollaborator;
 import prerna.util.git.reactors.SyncApp;
 import prerna.util.git.reactors.SyncAppFiles;
@@ -1047,7 +1046,6 @@ public class ReactorFactory {
 		reactorHash.put("IsGit", IsGit.class);
 		reactorHash.put("Login", LoginReactor.class);
 		reactorHash.put("GitStatus", GitStatusReactor.class);
-		reactorHash.put("RenameMosfitFile", RenameMosfitFileReactor.class);
 		reactorHash.put("GitVersion", prerna.util.git.reactors.GitVersion.class);
 		reactorHash.put("CreateAsset", prerna.util.git.reactors.CreateAssetReactor.class);
 		reactorHash.put("UpdateAsset", prerna.util.git.reactors.UpdateAssetReactor.class);
