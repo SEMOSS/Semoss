@@ -548,6 +548,52 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 	
 	/**
+	 * Update the insight tags for the insight
+	 * Will delete existing values and then perform a bulk insert
+	 * @param engineId
+	 * @param insightId
+	 * @param tags
+	 */
+	public static void updateInsightTags(String engineId, String insightId, String[] tags) {
+		// first do a delete
+		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY='tag' AND INSIGHTID='" + insightId + "' AND ENGINEID='" + engineId + "'";
+		try {
+			securityDb.insertData(query);
+			securityDb.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		// now we do the new insert with the order of the tags
+		query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA", 
+				new String[]{"ENGINEID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+		PreparedStatement ps = securityDb.bulkInsertPreparedStatement(query);
+		try {
+			for(int i = 0; i < tags.length; i++) {
+				String tag = tags[i];
+				ps.setString(1, engineId);
+				ps.setString(2, insightId);
+				ps.setString(3, "tag");
+				ps.setString(4, tag);
+				ps.setInt(5, i);
+				ps.addBatch();;
+			}
+			
+			ps.executeBatch();
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
 	 * 
 	 * @param engineId
 	 * @param insightId
