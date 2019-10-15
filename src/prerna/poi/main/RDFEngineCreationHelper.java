@@ -1,5 +1,6 @@
 package prerna.poi.main;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -9,6 +10,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.om.MosfetFile;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.AssetUtility;
 import prerna.util.MosfetSyncHelper;
@@ -45,25 +47,33 @@ public class RDFEngineCreationHelper {
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
 				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"; 
 				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
-				String insightId = admin.addInsight(insightName, layout, recipeArray);
-				// write recipe to file
-				MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
-				// add the insight to git
-				String gitFolder = AssetUtility.getAppAssetVersionFolder(rdfEngine.getEngineName(), appId);
-				List<String> files = new Vector<>();
-				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
-				// insight security
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout);
 				
 				List<String> tags = new Vector<String>();
 				tags.add("default");
 				tags.add("preview");
-				admin.updateInsightTags(insightId, tags);
-				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				String description = "Preview of the concept " + pixelName + " and all of its properties";
+
+				String insightId = admin.addInsight(insightName, layout, recipeArray);
+				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
+
+				// write recipe to file
+				try {
+					MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), 
+							insightId, insightName, layout, recipeArray, false, description, tags);
+					// add the insight to git
+					String gitFolder = AssetUtility.getAppAssetVersionFolder(rdfEngine.getEngineName(), appId);
+					List<String> files = new Vector<>();
+					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+					GitRepoUtils.addSpecificFiles(gitFolder, files);				
+					GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+				// insight security
+				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout);
+				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
 		} catch(RuntimeException e) {
@@ -110,25 +120,33 @@ public class RDFEngineCreationHelper {
 				recipeArray[2] = "CreateFrame(grid).as([FRAME]);";
 				recipeArray[3] = "Database(\"" + appId + "\") | SelectTable(" + pixelName + ") | Limit(500) | Import();"; 
 				recipeArray[4] = "Frame() | QueryAll() | AutoTaskOptions(panel=[\"0\"], layout=[\"GRID\"]) | Collect(500);";
-				String insightId = admin.addInsight(insightName, layout, recipeArray);
-				//write recipe to file
-				MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), insightId, insightName, layout, recipeArray, false);
-				// add the insight to git
-				String gitFolder = AssetUtility.getAppAssetVersionFolder(rdfEngine.getEngineName(), appId);
-				List<String> files = new Vector<>();
-				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
-				GitRepoUtils.addSpecificFiles(gitFolder, files);				
-				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));			
-				// insight security
-				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout); 
 				
 				List<String> tags = new Vector<String>();
 				tags.add("default");
 				tags.add("preview");
-				admin.updateInsightTags(insightId, tags);
-				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				String description = "Preview of the concept " + pixelName + " and all of its properties";
+
+				String insightId = admin.addInsight(insightName, layout, recipeArray);
+				admin.updateInsightTags(insightId, tags);
 				admin.updateInsightDescription(insightId, description);
+
+				//write recipe to file
+				try {
+					MosfetSyncHelper.makeMosfitFile(appId, rdfEngine.getEngineName(), 
+							insightId, insightName, layout, recipeArray, false, description, tags);
+					// add the insight to git
+					String gitFolder = AssetUtility.getAppAssetVersionFolder(rdfEngine.getEngineName(), appId);
+					List<String> files = new Vector<>();
+					files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+					GitRepoUtils.addSpecificFiles(gitFolder, files);				
+					GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));		
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+					
+				// insight security
+				SecurityInsightUtils.addInsight(appId, insightId, insightName, false, layout); 
+				SecurityInsightUtils.updateInsightTags(appId, insightId, tags);
 				SecurityInsightUtils.updateInsightDescription(appId, insightId, description);
 			}
 		} catch(RuntimeException e) {

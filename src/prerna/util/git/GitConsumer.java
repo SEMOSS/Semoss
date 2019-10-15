@@ -25,6 +25,7 @@ import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.om.MosfetFile;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -368,9 +369,9 @@ public class GitConsumer {
 		List<String> modFilesPath = new Vector<String>();
 
 		// mosfet filter
-		List<String> mosfet = new Vector<String>();
-		mosfet.add("*.mosfet");
-		FileFilter mosfetFilter = new WildcardFileFilter(mosfet);
+		List<String> mosfetFilterList = new Vector<String>();
+		mosfetFilterList.add("*.mosfet");
+		FileFilter mosfetFilter = new WildcardFileFilter(mosfetFilterList);
 		
 		// grab all the directories
 		File vFolder = new File(versionFolder);
@@ -380,8 +381,8 @@ public class GitConsumer {
 				File[] mosfetFiles = in.listFiles(mosfetFilter);
 				for(File mosfetF : mosfetFiles) {
 					try {
-						Map<String, Object> dataMap = MosfetSyncHelper.getMosfitMap(mosfetF);
-						String id = dataMap.get(MosfetSyncHelper.RDBMS_ID_KEY) + "";
+						MosfetFile mosfet = MosfetFile.generateFromFile(mosfetF);
+						String id = mosfet.getRdbmsId();
 						// see if it exists or not
 						IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsDb, "select id from question_id where id='" + id + "'");
 						if(wrapper.hasNext()) {
