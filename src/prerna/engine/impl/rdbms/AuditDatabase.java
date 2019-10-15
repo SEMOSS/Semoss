@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.h2.tools.Server;
-
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -26,7 +24,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class AuditDatabase {
 
@@ -37,8 +35,6 @@ public class AuditDatabase {
 	private static final String QUERY_TABLE = "QUERY_TABLE";
 	
 	private Connection conn;
-	private Server server;
-	private String serverUrl;
 	
 	private IEngine engine;
 	private String engineId;
@@ -64,32 +60,46 @@ public class AuditDatabase {
 		String dbFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		dbFolder += DIR_SEPARATOR + "db" + DIR_SEPARATOR + SmssUtilities.getUniqueName(engineName, engineId);
 		
+		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+		if(rdbmsTypeStr == null) {
+			// default will be h2
+			rdbmsTypeStr = "H2_DB";
+		}
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+		
 		String fileLocation = dbFolder + DIR_SEPARATOR + "audit_log_database";
-		File f = new File(fileLocation + ".mv.db");
-		if(!f.exists()) {
-			try {
-				f.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
+		if(rdbmsType == RdbmsTypeEnum.H2_DB) {
+			File f = new File(fileLocation + ".mv.db");
+			if(!f.exists()) {
+				try {
+					f.createNewFile();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		} else {
+			fileLocation += ".sqlite";
+			File f = new File(fileLocation);
+			if(!f.exists()) {
+				try {
+					f.createNewFile();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		
 		RdbmsConnectionBuilder builder = new RdbmsConnectionBuilder(RdbmsConnectionBuilder.CONN_TYPE.DIRECT_CONN_URL);
-		try {
-			String port = Utility.findOpenPort();
-			// create a random user and password
-			// get the connection object and start up the frame
-			server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
-			serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + fileLocation;
-			server.start();
-			
-			// update the builder
-			builder.setConnectionUrl(serverUrl);
-		} catch (SQLException e) {
-			e.printStackTrace();
+		String connectionUrl = null;
+		if(rdbmsType == RdbmsTypeEnum.SQLITE) {
+			connectionUrl = "jdbc:sqlite:" + fileLocation;
+		} else {
+			connectionUrl = "jdbc:h2:nio:" + fileLocation;
 		}
-		
-		builder.setDriver("H2_DB");
+		// regardless of OS, connection url is always /
+		connectionUrl = connectionUrl.replace('\\', '/');
+
+		builder.setDriver(rdbmsType.getDriver());
 		builder.setUserName("sa");
 		builder.setPassword("");
 		
@@ -429,8 +439,8 @@ public class AuditDatabase {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		this.server.shutdown();
 	}
+	
 	public Connection getConnection() {
 		return this.conn;
 	}
