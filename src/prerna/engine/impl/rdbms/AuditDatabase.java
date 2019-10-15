@@ -24,7 +24,9 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactor;
 
 public class AuditDatabase {
 
@@ -35,6 +37,7 @@ public class AuditDatabase {
 	private static final String QUERY_TABLE = "QUERY_TABLE";
 	
 	private Connection conn;
+	private AbstractSqlQueryUtil queryUtil;
 	
 	private IEngine engine;
 	private String engineId;
@@ -66,7 +69,7 @@ public class AuditDatabase {
 			rdbmsTypeStr = "H2_DB";
 		}
 		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
-		
+
 		String fileLocation = dbFolder + DIR_SEPARATOR + "audit_log_database";
 		if(rdbmsType == RdbmsTypeEnum.H2_DB) {
 			File f = new File(fileLocation + ".mv.db");
@@ -109,6 +112,7 @@ public class AuditDatabase {
 
 		try {
 			this.conn = builder.build();
+			this.queryUtil = SqlQueryUtilFactor.initialize(rdbmsType, connectionUrl, "sa", "");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -116,11 +120,11 @@ public class AuditDatabase {
 		// create the tables if necessary
 		String[] headers = new String[]{"AUTO_INCREMENT", "ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
 		String[] types = new String[]{"IDENTITY", "VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
-		execQ(RdbmsQueryBuilder.makeOptionalCreate(AUDIT_TABLE, headers, types));
+		execQ(this.queryUtil.createTableIfNotExists(AUDIT_TABLE, headers, types));
 		
 		headers = new String[]{"ID", "TYPE", "QUERY"};
 		types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "CLOB"};
-		execQ(RdbmsQueryBuilder.makeOptionalCreate(QUERY_TABLE, headers, types));
+		execQ(this.queryUtil.createTableIfNotExists(QUERY_TABLE, headers, types));
 	}
 	
 	/**
@@ -340,13 +344,13 @@ public class AuditDatabase {
 	private String getAuditInsert(Object[] data) {
 		String[] headers = new String[]{"ID", "TYPE", "TABLE", "KEY_COLUMN", "KEY_COLUMN_VALUE", "ALTERED_COLUMN", "OLD_VALUE", "NEW_VALUE", "TIMESTAMP", "USER"};
 		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "VARCHAR(200)", "TIMESTAMP", "VARCHAR(200)"};
-		return RdbmsQueryBuilder.makeInsert(AUDIT_TABLE, headers, types, data);
+		return this.queryUtil.insertIntoTable(AUDIT_TABLE, headers, types, data);
 	}
 	
 	private String getAuditQueryLog(Object[] data) {
 		String[] headers = new String[]{"ID", "TYPE", "QUERY"};
 		String[] types = new String[]{"VARCHAR(50)", "VARCHAR(50)", "CLOB"};
-		return RdbmsQueryBuilder.makeInsert(QUERY_TABLE, headers, types, data);
+		return this.queryUtil.insertIntoTable(QUERY_TABLE, headers, types, data);
 	}
 	
 	/**
