@@ -184,6 +184,50 @@ public class InsightAdministrator {
 	}
 	
 	/**
+	 * Update the insight tags for the insight
+	 * Will delete existing values and then perform a bulk insert
+	 * @param insightId
+	 * @param tags
+	 */
+	public void updateInsightTags(String insightId, String[] tags) {
+		// first do a delete
+		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY='tag' AND INSIGHTID='" + insightId + "'";
+		try {
+			this.insightEngine.insertData(query);
+			this.insightEngine.commit();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		// now we do the new insert with the order of the tags
+		query = this.queryUtil.createInsertPreparedStatementString("INSIGHTMETA", 
+				new String[]{"INSIGHTID", "METAKEY", "METAVALUE", "METAORDER"});
+		PreparedStatement ps = this.insightEngine.bulkInsertPreparedStatement(query);
+		try {
+			for(int i = 0; i < tags.length; i++) {
+				String tag = tags[i];
+				ps.setString(1, insightId);
+				ps.setString(2, "tag");
+				ps.setString(3, tag);
+				ps.setInt(4, i);
+				ps.addBatch();;
+			}
+			
+			ps.executeBatch();
+		} catch(Exception e) {
+			e.printStackTrace();
+		} finally {
+			if(ps != null) {
+				try {
+					ps.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
 	 * Update the insight description
 	 * Will perform an insert if the description doesn't currently exist
 	 * @param insideId
@@ -328,6 +372,14 @@ public class InsightAdministrator {
 	public void dropInsight(String... insightIDs) {		
 		String idsString = createString(insightIDs);
 		String deleteQuery = "DELETE FROM QUESTION_ID WHERE ID IN " + idsString;
+		LOGGER.info("Running drop query :::: " + deleteQuery);
+		try {
+			insightEngine.removeData(deleteQuery);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		deleteQuery = "DELETE FROM INSIGHTMETA WHERE INSIGHTID IN " + idsString;
 		LOGGER.info("Running drop query :::: " + deleteQuery);
 		try {
 			insightEngine.removeData(deleteQuery);
