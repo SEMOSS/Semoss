@@ -98,7 +98,7 @@ public class AuditDatabase {
 		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
-
+		builder.setConnectionUrl(connectionUrl);
 		builder.setDriver(rdbmsType.getDriver());
 		builder.setUserName("sa");
 		builder.setPassword("");
