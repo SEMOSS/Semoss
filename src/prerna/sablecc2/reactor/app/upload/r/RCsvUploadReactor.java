@@ -37,6 +37,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		File uploadFile = new File(filePath);
 		String fileName = uploadFile.getName();
+		// TODO do we still need this????
 		if (fileName.contains("_____UNIQUE")) {
 			// ... yeah, this is not intuitive at all,
 			// but I add a timestamp at the end to make sure every file is unique
@@ -100,8 +101,9 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 
 	@Override
 	public void closeFileHelpers() {
-		// TODO Auto-generated method stub
-
+		if (this.helper != null) {
+			this.helper.clear();
+		}
 	}
 
 }
