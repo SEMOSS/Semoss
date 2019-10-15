@@ -126,9 +126,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		logger.info(stepCounter +") Done...");
 		stepCounter++;
 
+		String description = getDescription();
+		List<String> tags = getTags();
+		
 		if(!hidden) {
 			logger.info(stepCounter + ") Regsiter insight...");
-			registerInsightAndMetadata(engine, newRdbmsId, insightName, layout, getDescription(), getTags());
+			registerInsightAndMetadata(engine, newRdbmsId, insightName, layout, description, tags);
 			logger.info(stepCounter + ") Done...");
 		} else {
 			logger.info(stepCounter + ") Insight is hidden ... do not add to solr");
@@ -137,7 +140,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		
 		//write recipe to file
 		logger.info(stepCounter + ") Add recipe to file...");
-		MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), newRdbmsId, insightName, layout, recipeToSave, hidden);
+		try {
+			MosfetSyncHelper.makeMosfitFile(engine.getEngineId(), engine.getEngineName(), 
+					newRdbmsId, insightName, layout, recipeToSave, hidden, description, tags);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		logger.info(stepCounter + ") Done...");
 		stepCounter++;
 		
@@ -171,10 +179,11 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 
 		// adding insight files to git
+		Stream<Path> walk = null;
 		try {
 			String folder = AssetUtility.getAppAssetVersionFolder(engine.getEngineName(), appId);
 			// grab relative file paths
-			Stream<Path> walk = Files.walk(Paths.get(newInsightFolder.toURI()));
+			walk = Files.walk(Paths.get(newInsightFolder.toURI()));
 			List<String> files = walk
 					.map(x -> newInsightId + DIR_SEPARATOR
 							+ newInsightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
@@ -187,6 +196,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		} catch (IOException e) {
 			logger.info(stepCounter + ") Unable to add insight to git...");
 			e.printStackTrace();
+		} finally {
+			if(walk != null) {
+				walk.close();
+			}
 		}
 		stepCounter++;
 		

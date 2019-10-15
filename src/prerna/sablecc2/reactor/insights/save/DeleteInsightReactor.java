@@ -22,6 +22,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.MosfetFile;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -101,12 +102,13 @@ public class DeleteInsightReactor extends AbstractReactor {
 					+ DIR_SEPARATOR + "version" 
 					+ DIR_SEPARATOR + insightId;
 			File insightFolder = new File(insightFolderPath);
+			Stream<Path> walk = null;
 			try {
 				// delete insight files from git
-				String insightName = MosfetSyncHelper.getInsightName(new File(insightFolderPath + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE));
+				String insightName = MosfetSyncHelper.getInsightName(new File(insightFolderPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE));
 				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 				// grab relative file paths
-				Stream<Path> walk = Files.walk(Paths.get(insightFolder.toURI()));
+				walk = Files.walk(Paths.get(insightFolder.toURI()));
 				List<String> files = walk
 						.map(x -> insightId + DIR_SEPARATOR
 								+ insightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
@@ -117,6 +119,10 @@ public class DeleteInsightReactor extends AbstractReactor {
 				FileUtils.deleteDirectory(insightFolder);
 			} catch (IOException e) {
 				e.printStackTrace();
+			} finally {
+				if(walk != null) {
+					walk.close();
+				}
 			}
 
 			SecurityInsightUtils.deleteInsight(appId, insightId);
