@@ -48,7 +48,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create smss file for database...");
 		File owlFile = UploadUtilities.generateOwlFile(this.appId, newAppName);
-		this.tempSmss = UploadUtilities.createTemporaryRSmss(this.appId, newAppName, owlFile, fileName);
+		this.tempSmss = UploadUtilities.createTemporaryRSmss(this.appId, newAppName, owlFile, fileName, newHeaders, dataTypesMap, additionalDataTypeMap);
 		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
