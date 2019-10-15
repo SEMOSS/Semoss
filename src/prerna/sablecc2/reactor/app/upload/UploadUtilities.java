@@ -975,7 +975,7 @@ public class UploadUtilities {
 		return appTempSmss;
 	}
 	
-	public static File createTemporaryRSmss(String appId, String appName, File owlFile, String fileName) throws IOException {
+	public static File createTemporaryRSmss(String appId, String appName, File owlFile, String fileName, Map<String, String> newHeaders, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 		
 		// i am okay with deleting the .temp if it exists
@@ -999,7 +999,18 @@ public class UploadUtilities {
 			String engineClassName = RNativeEngine.class.getName();
 			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, engineClassName, newLine, tab);
 			String dataFile = "db" + DIR_SEPARATOR + SmssUtilities.ENGINE_REPLACEMENT + DIR_SEPARATOR + fileName;
-			bufferedWriter.write(AbstractEngine.DATA_FILE + "\t" + dataFile.replace('\\', '/') + "\n");
+			bufferedWriter.write(AbstractEngine.DATA_FILE + tab + dataFile.replace('\\', '/') + newLine);
+			// stringify maps
+			Gson gson = new GsonBuilder().create();
+			if (newHeaders != null && !newHeaders.isEmpty()) {
+				bufferedWriter.write(Constants.NEW_HEADERS + tab + gson.toJson(newHeaders) + newLine);
+			}
+			if (dataTypesMap != null && !dataTypesMap.isEmpty()) {
+				bufferedWriter.write(Constants.SMSS_DATA_TYPES + tab + gson.toJson(dataTypesMap) + newLine);
+			}
+			if (additionalDataTypeMap != null && !additionalDataTypeMap.isEmpty()) {
+				bufferedWriter.write(Constants.ADDITIONAL_DATA_TYPES + tab + gson.toJson(additionalDataTypeMap) + newLine);
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IOException("Could not generate temporary smss file for app");

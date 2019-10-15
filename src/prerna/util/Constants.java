@@ -541,6 +541,12 @@ public class Constants {
 	public static final String TINKER_DRIVER = "TINKER_DRIVER";
 	// Janus Engine
 	public static final String JANUS_CONF = "JANUS_CONF";
+	
+	// R Engine
+	public static final String SMSS_DATA_TYPES = "DATA_TYPES";
+	public static final String NEW_HEADERS = "NEW_HEADERS";
+	public static final String ADDITIONAL_DATA_TYPES = "ADDITIONAL_DATA_TYPES";
+	
 
 	
 	// Working directories used for R
