@@ -28,12 +28,14 @@
 package prerna.engine.impl.r;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
@@ -50,6 +52,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.RImporter;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RNativeEngine extends AbstractEngine {
@@ -87,8 +90,37 @@ public class RNativeEngine extends AbstractEngine {
 
 		List<String> propertyUris = this.getPropertyUris4PhysicalUri(tableUri);
 		String[] propertyUriArr = propertyUris.toArray(new String[] {});
-		this.columnToType = this.getDataTypes(propertyUriArr);
-		this.additionalDataType = this.getAdtlDataTypes(propertyUriArr);
+		String typeMapStr = this.prop.getProperty(Constants.SMSS_DATA_TYPES);
+		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
+			try {
+				this.columnToType = new ObjectMapper().readValue(typeMapStr, Map.class);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			this.columnToType = this.getDataTypes(propertyUriArr);
+		}
+		
+		String addTypeStr = this.prop.getProperty(Constants.ADDITIONAL_DATA_TYPES);
+		if (addTypeStr != null && !addTypeStr.trim().isEmpty()) {
+			try {
+				this.additionalDataType = new ObjectMapper().readValue(addTypeStr, Map.class);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			this.additionalDataType = this.getAdtlDataTypes(propertyUriArr);
+		}
+		// TODO
+		Map<String, String> newHeaders = null;
+		String newHeadersStr = this.prop.getProperty(Constants.NEW_HEADERS);
+		if (newHeadersStr != null && !newHeadersStr.trim().isEmpty()) {
+			try {
+				newHeaders = new ObjectMapper().readValue(newHeadersStr, Map.class);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		this.in = new Insight();
 		this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this.in, LOGGER);
@@ -97,6 +129,7 @@ public class RNativeEngine extends AbstractEngine {
 		cqs.setFilePath(this.fileLocation);
 		cqs.setColumnTypes(this.columnToType);
 		cqs.setAdditionalTypes(additionalDataType);
+		cqs.setNewHeaderNames(newHeaders);
 		CsvFileIterator iterator = new CsvFileIterator(cqs);
 		
 		this.dt = new RDataTable(rJavaTranslator, this.dtName);
