@@ -12,7 +12,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
-import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.AuditDatabase;
@@ -156,7 +155,7 @@ public class InsertReactor extends AbstractReactor {
 				audit.auditInsertQuery(selectors, Arrays.asList(values), userId, query);
 			} else {
 				try {
-					((H2Frame) frame).getBuilder().runQuery(query);
+					((AbstractRdbmsFrame) frame).getBuilder().runQuery(query);
 				} catch (Exception e) {
 					e.printStackTrace();
 					throw new SemossPixelException(
