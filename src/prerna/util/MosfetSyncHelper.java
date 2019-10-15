@@ -113,7 +113,7 @@ public class MosfetSyncHelper {
 
 	private static void processModifiedFiles(MosfetFile mosfet, Logger logger) {
 		logger.info("Start editing existing mosfet file");
-		modifyInsightInEngineRdbms(mosfet);
+		updateInsightInEngineRdbms(mosfet);
 		logger.info("Done processing mosfet file");
 	}
 
@@ -146,9 +146,21 @@ public class MosfetSyncHelper {
 		// just put the recipe into an array
 		admin.addInsight(id, insightName, layout, recipe, hidden);
 		SecurityInsightUtils.addInsight(appId, id, insightName, false, layout);
+		
+		// also sync the metadata
+		String description = mosfet.getDescription();
+		if(description != null) {
+			admin.updateInsightDescription(id, description);
+			SecurityInsightUtils.updateInsightDescription(appId, id, description);
+		}
+		String[] tags = mosfet.getTags();
+		if(tags != null && tags.length > 0) {
+			admin.updateInsightTags(id, tags);
+			SecurityInsightUtils.updateInsightTags(id, id, tags);
+		}
 	}
 
-	private static void modifyInsightInEngineRdbms(MosfetFile mosfet) {
+	private static void updateInsightInEngineRdbms(MosfetFile mosfet) {
 		String appId = mosfet.getEngineId();
 		String id = mosfet.getRdbmsId();
 		String insightName = mosfet.getInsightName();
@@ -162,6 +174,18 @@ public class MosfetSyncHelper {
 		// just put the recipe into an array
 		admin.updateInsight(id, insightName, layout, recipe, hidden);
 		SecurityInsightUtils.updateInsight(appId, id, insightName, false, layout);
+		
+		// also sync the metadata
+		String description = mosfet.getDescription();
+		if(description != null) {
+			admin.updateInsightDescription(id, description);
+			SecurityInsightUtils.updateInsightDescription(appId, id, description);
+		}
+		String[] tags = mosfet.getTags();
+		if(tags != null && tags.length > 0) {
+			admin.updateInsightTags(id, tags);
+			SecurityInsightUtils.updateInsightTags(id, id, tags);
+		}
 	}
 
 	private static void deleteInsightFromEngineRdbms(MosfetFile mosfet) {
