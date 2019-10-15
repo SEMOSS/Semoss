@@ -47,6 +47,7 @@ import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.engine.impl.tinker.JanusEngine;
 import prerna.engine.impl.tinker.TinkerEngine;
+import prerna.om.MosfetFile;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.poi.main.helper.ImportOptions;
@@ -1252,14 +1253,14 @@ public class UploadUtilities {
 						.replaceAll("\\s\\s+", "")
 						.replace("<<ENGINE>>", appId);
 				newPixel += "} </encode>\" ) ;";
-				String[] pkqlRecipeToSave = {newPixel};
-				String insightId = admin.addInsight(EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave);
+				String[] pixelRecipeToSave = {newPixel};
+				String insightId = admin.addInsight(EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave);
 				//write recipe to file
-				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pkqlRecipeToSave, false);
+				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, EXPLORE_INSIGHT_INSIGHT_NAME, EXPLORE_INSIGHT_LAYOUT, pixelRecipeToSave, false);
 				// add the git here
 				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 				List<String> files = new Vector<>();
-				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ EXPLORE_INSIGHT_INSIGHT_NAME +" insight on"));
 				return insightId;
@@ -1278,14 +1279,19 @@ public class UploadUtilities {
 	 */
 	public static String addGridDeltaInsight(String appId, String appName, RDBMSNativeEngine insightEngine) {
 		InsightAdministrator admin = new InsightAdministrator(insightEngine);
-		String[] pkqlRecipeToSave = {"AddPanel(0); Panel(0)|SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");"};
-		String insightId = admin.addInsight(GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave);
+		String[] pixelRecipeToSave = {"AddPanel(0); Panel(0)|SetPanelView(\"grid-delta\",\"<encode>{\"database\":\"" + appId + "\"}</encode>\");"};
+		String insightId = admin.addInsight(GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pixelRecipeToSave);
 		// write recipe to file
-		MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pkqlRecipeToSave, false);
+		try {
+			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, GRID_DELTA_INSIGHT_NAME, GRID_DELTA_LAYOUT, pixelRecipeToSave, false);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		// add the insight to git
 		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 		List<String> files = new Vector<>();
-		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+		files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 		GitRepoUtils.addSpecificFiles(gitFolder, files);				
 		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ GRID_DELTA_INSIGHT_NAME +" insight on"));
 		return insightId;
@@ -1309,14 +1315,14 @@ public class UploadUtilities {
 						.replace("<<ENGINE>>", appId).
 						replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
-				String[] pkqlRecipeToSave = { newPixel };
-				String insightId = admin.addInsight(AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pkqlRecipeToSave);
+				String[] pixelRecipeToSave = { newPixel };
+				String insightId = admin.addInsight(AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave);
 				//write recipe to file
-				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pkqlRecipeToSave, false);
+				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, false);
 				// add the insight to git
 				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 				List<String> files = new Vector<>();
-				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_MODIFICATION_VIEW_INSIGHT_NAME +" insight on"));
 				return insightId;
@@ -1344,14 +1350,14 @@ public class UploadUtilities {
 						.replace("<<ENGINE>>", appId)
 						.replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
 				newPixel += "} </encode>\" ) ;";
-				String[] pkqlRecipeToSave = { newPixel };
-				String insightId = admin.addInsight(AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pkqlRecipeToSave);
+				String[] pixelRecipeToSave = { newPixel };
+				String insightId = admin.addInsight(AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave);
 				// write recipe to file
-				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pkqlRecipeToSave, false);
+				MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, AUDIT_TIMELINE_INSIGHT_NAME, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, false);
 				// add the insight to git
 				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 				List<String> files = new Vector<>();
-				files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 				GitRepoUtils.addSpecificFiles(gitFolder, files);				
 				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ AUDIT_TIMELINE_INSIGHT_NAME +" insight on"));
 				return insightId;
@@ -1380,15 +1386,20 @@ public class UploadUtilities {
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
 				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
-		String[] pkqlRecipeToSave = { newPixel };
-		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		String[] pixelRecipeToSave = { newPixel };
+		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave);
 		insightEngine.commit();
 		// write recipe to file
-		MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
+		try {
+			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, false);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		// add the insight to git
 		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 		List<String> files = new Vector<>();
-		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
+		files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
 		GitRepoUtils.addSpecificFiles(gitFolder, files);				
 		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
 	}
@@ -1412,17 +1423,21 @@ public class UploadUtilities {
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
 				+ gson.toJson(createInsertForm(appId, metamodel, headers)) + "}</encode>\");";
-		String[] pkqlRecipeToSave = { newPixel };
-		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		String[] pixelRecipeToSave = { newPixel };
+		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave);
 		insightDatabase.commit();
 		// write recipe to file
-		MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
-		// add the insight to git
-		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-		List<String> files = new Vector<>();
-		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
-		GitRepoUtils.addSpecificFiles(gitFolder, files);				
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+		try {
+			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, false);
+			// add the insight to git
+			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			List<String> files = new Vector<>();
+			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+			GitRepoUtils.addSpecificFiles(gitFolder, files);				
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -1440,17 +1455,21 @@ public class UploadUtilities {
 		Gson gson = GsonUtility.getDefaultGson();
 		String newPixel = "AddPanel(0);Panel(0)|" + "SetPanelView(\"" + layout + "\", \"<encode>{\"json\":"
 				+ gson.toJson(widgetJson) + "}</encode>\");";
-		String[] pkqlRecipeToSave = { newPixel };
-		String insightId = admin.addInsight(insightName, layout, pkqlRecipeToSave);
+		String[] pixelRecipeToSave = { newPixel };
+		String insightId = admin.addInsight(insightName, layout, pixelRecipeToSave);
 		insightEngine.commit();
 		// write recipe to file
-		MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pkqlRecipeToSave, false);
-		// add the insight to git
-		String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-		List<String> files = new Vector<>();
-		files.add(insightId + "/" + MosfetSyncHelper.RECIPE_FILE);
-		GitRepoUtils.addSpecificFiles(gitFolder, files);				
-		GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+		try {
+			MosfetSyncHelper.makeMosfitFile(appId, appName, insightId, insightName, layout, pixelRecipeToSave, false);
+			// add the insight to git
+			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+			List<String> files = new Vector<>();
+			files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+			GitRepoUtils.addSpecificFiles(gitFolder, files);				
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Saved "+ insightName +" insight on"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**

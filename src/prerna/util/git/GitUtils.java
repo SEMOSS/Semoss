@@ -366,7 +366,11 @@ public class GitUtils {
 			String fileName = f.getParentFile().getName();
 			// f does not exist when the file type is missing or deleted
 			if(f.exists()) {
-				fileName = MosfetSyncHelper.getInsightName(new File(daFile));
+				try {
+					fileName = MosfetSyncHelper.getInsightName(new File(daFile));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 			Map<String, String> fileData = new Hashtable<String, String>();
 			fileData.put("fileName", fileName);
