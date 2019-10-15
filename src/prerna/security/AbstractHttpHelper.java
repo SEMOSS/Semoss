@@ -245,7 +245,7 @@ public abstract class AbstractHttpHelper {
 		    con.setRequestProperty("Accept","application/json"); // I added this line.
 		    con.connect();
 
-		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream() ));
+		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream() , "UTF-8"));
 		    StringBuilder str = new StringBuilder();
 		    String line;
 		    while((line = br.readLine()) != null){
@@ -309,7 +309,7 @@ public abstract class AbstractHttpHelper {
 		    con.setRequestProperty("Accept","application/json"); // I added this line.
 		    con.connect();
 
-		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream() ));
+		    BufferedReader br = new BufferedReader(new InputStreamReader( con.getInputStream(), "UTF-8" ));
 		    
 		    return br;
 		} catch (MalformedURLException e) {
@@ -364,10 +364,7 @@ public abstract class AbstractHttpHelper {
 			System.out.println("Response Code " + response.getStatusLine().getStatusCode());
 			
 			int status = response.getStatusLine().getStatusCode();
-			
-			BufferedReader rd = new BufferedReader(
-			        new InputStreamReader(response.getEntity().getContent()));
-
+			BufferedReader rd = new BufferedReader(new InputStreamReader( response.getEntity().getContent(), "UTF-8"));
 			StringBuffer result = new StringBuffer();
 			String line = "";
 			while ((line = rd.readLine()) != null) {
@@ -399,8 +396,7 @@ public abstract class AbstractHttpHelper {
 				
 				int status = response.getStatusLine().getStatusCode();
 				
-				BufferedReader rd = new BufferedReader(
-				        new InputStreamReader(response.getEntity().getContent()));
+				BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
 
 				StringBuffer result = new StringBuffer();
 				String line = "";
@@ -435,9 +431,7 @@ public abstract class AbstractHttpHelper {
 			
 			int status = response.getStatusLine().getStatusCode();
 			
-			BufferedReader rd = new BufferedReader(
-			        new InputStreamReader(response.getEntity().getContent()));
-
+			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
 			StringBuffer result = new StringBuffer();
 			String line = "";
 			while ((line = rd.readLine()) != null) {
@@ -469,8 +463,7 @@ public abstract class AbstractHttpHelper {
 			
 			int status = response.getStatusLine().getStatusCode();
 			
-			BufferedReader rd = new BufferedReader(
-			        new InputStreamReader(response.getEntity().getContent()));
+			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
 
 			StringBuffer result = new StringBuffer();
 			String line = "";
