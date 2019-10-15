@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.insights.save;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.om.MosfetFile;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -108,14 +110,18 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 	protected void updateRecipeFile(Logger logger, String appId, String appName, String rdbmsID, String insightName) {
 		String recipeLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) 
 				+ DIR_SEPARATOR + Constants.DB + DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" 
-				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE;
+				+ DIR_SEPARATOR + rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE;
 		File mosfet = new File(recipeLocation);
 		if(mosfet.exists()) {
-			MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
+			try {
+				MosfetSyncHelper.updateMosfitFileInsightName(new File(recipeLocation), insightName);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			// add to git
 			String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
 			List<String> files = new Vector<>();
-			files.add(rdbmsID + DIR_SEPARATOR + MosfetSyncHelper.RECIPE_FILE);		
+			files.add(rdbmsID + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
 			GitRepoUtils.addSpecificFiles(gitFolder, files);
 			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Changed " + insightName + " recipe on"));
 		} else {
