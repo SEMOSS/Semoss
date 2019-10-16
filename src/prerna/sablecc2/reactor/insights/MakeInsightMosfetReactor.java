@@ -24,9 +24,12 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
+import prerna.util.git.GitUtils;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MakeInsightMosfetReactor extends AbstractInsightReactor {
@@ -65,6 +68,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 			}
 			
 			IEngine app = Utility.getEngine(appId);
+			String appName = app.getEngineName();
 			List<String> insightIds = app.getInsights();
 			
 			for(String id : insightIds) {
@@ -97,6 +101,13 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 					e.printStackTrace();
 					numError++;
 				}
+				
+				// add to git
+				String gitFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+				List<String> files = new Vector<>();
+				files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
+				GitRepoUtils.addSpecificFiles(gitFolder, files);
+				GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Writing new " + mosfet.getInsightName() + " mosfet file"));
 			}
 		} else {
 			// need edit access to the insight
@@ -132,6 +143,13 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				e.printStackTrace();
 				numError++;
 			}
+			
+			// add to git
+			String gitFolder = AssetUtility.getAppAssetVersionFolder(app.getEngineName(), appId);
+			List<String> files = new Vector<>();
+			files.add(rdbmsId + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);		
+			GitRepoUtils.addSpecificFiles(gitFolder, files);
+			GitRepoUtils.commitAddedFiles(gitFolder, GitUtils.getDateMessage("Writing new " + mosfet.getInsightName() + " mosfet file"));
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
