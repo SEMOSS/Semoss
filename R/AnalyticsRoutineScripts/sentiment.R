@@ -7,7 +7,7 @@ score_sentiment<-function(df,review_col="review",aggr_col="name",emtn=FALSE){
 	library(sentimentr)
 	out<-numeric()
 	# restore original dataframe
-	df<-restore_source(df)
+	df<-restore_source(df,review_col,aggr_col)
 
 	n<-nrow(df)
 	if(n>0){
@@ -66,9 +66,11 @@ restore_source<-function(df,review_col="review",aggr_col="name"){
 	ind<-which(colnames(df) == paste0(review_col,"_of_",review_col))
 	if(length(ind)==1){
 		colnames(df)[ind]<-review_col
-		ind<-which(colnames(df) == paste0(aggr_col,"_of_",review_col))
-		if(length(ind)==1){
-			colnames(df)[ind]<-aggr_col
+		if(!is.null(aggr_col)){
+			ind<-which(colnames(df) == paste0(aggr_col,"_of_",review_col))
+			if(length(ind)==1){
+				colnames(df)[ind]<-aggr_col
+			}
 		}
 	}
 	if(review_col %in% colnames(df)){
