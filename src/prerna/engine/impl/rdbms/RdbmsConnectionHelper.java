@@ -133,6 +133,9 @@ public class RdbmsConnectionHelper {
 		else if (rdbmsType == RdbmsTypeEnum.SAP_HANA) {
 			connectionUrl += "://HOST:PORT/?currentSchema=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
+		else if (rdbmsType == RdbmsTypeEnum.SPARK) {
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
 		else if (rdbmsType == RdbmsTypeEnum.SNOWFLAKE) {
 			connectionUrl += "://HOST:PORT/?db=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
