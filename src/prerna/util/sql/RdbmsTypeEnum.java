@@ -15,6 +15,7 @@ public enum RdbmsTypeEnum {
 	PHOENIX("PHOENIX", "org.apache.phoenix.jdbc.PhoenixDriver", "jdbc:phoenix"),
 	POSTGRES("POSTGRES", "org.postgresql.Driver", "jdbc:postgresql"),
 	SAP_HANA("SAP_HANA", "com.sap.db.jdbc.Driver", "jdbc:sap"),
+	SPARK("SPARK", "com.simba.spark.jdbc41.Driver", "jdbc:spark"),
 	SQLITE("SQLITE", "org.sqlite.JDBC", "jdbc:sqlite"),
 	SNOWFLAKE("SNOWFLAKE","net.snowflake.client.jdbc.SnowflakeDriver", "jdbc:snowflake"),
 	SQLSERVER("SQL_SERVER", "com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver"),
