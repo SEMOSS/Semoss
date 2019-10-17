@@ -73,10 +73,10 @@ import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 import prerna.util.usertracking.IUserTracker;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -133,6 +133,7 @@ public class Insight {
 	*/
 	private transient String insightFolder;
 	private transient String appFolder;
+	private transient String userFolder;
 	private transient List<FileMeta> filesUsedInInsight = new Vector<FileMeta>();
 	private transient Map<String, String> exportFiles = new Hashtable<String, String>();
 
@@ -425,6 +426,17 @@ public class Insight {
 	
 	public void setAppFolder(String appFolder) {
 		this.appFolder = appFolder;
+	}
+	
+	// gets the user folder as well
+	public String getUserFolder()
+	{
+		AuthProvider provider = user.getPrimaryLogin();
+		String appId = user.getAssetEngineId(provider);
+		String appName = "Asset";
+		userFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
+
+		return userFolder;
 	}
 	
 	/**

@@ -28,10 +28,12 @@ public class CtrlVAssetReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		
-		if(filePath != null)
-			filePath =  DIR_SEPARATOR + filePath;
-		else
+		if(filePath == null)
 			filePath = "";
+		if(relativePath == null)
+			relativePath = "";
+		else
+			relativePath = relativePath + DIR_SEPARATOR;
 		// file / folder to be moved
 		String destSource = assetFolder + DIR_SEPARATOR + relativePath + filePath;
 				
@@ -53,7 +55,8 @@ public class CtrlVAssetReactor extends AbstractReactor {
 
 		String dirName = sfile.getName();
 		
-		destSource = destSource + DIR_SEPARATOR + dirName;
+		if(isSourceDir)
+			destSource = destSource + DIR_SEPARATOR + dirName;
 		file = new File(destSource);
 		try {
 			if(isSourceDir)
