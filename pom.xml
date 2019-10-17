@@ -2820,6 +2820,11 @@
     		<version>3.7.0</version>
 		</dependency>
 		<dependency>
+		    <groupId>ru.yandex.clickhouse</groupId>
+		    <artifactId>clickhouse-jdbc</artifactId>
+		    <version>0.2</version>
+		</dependency>	
+		<dependency>
 		    <groupId>me.xdrop</groupId>
 		    <artifactId>fuzzywuzzy</artifactId>
 		    <version>1.2.0</version>
