@@ -82,6 +82,9 @@ public class RdbmsConnectionHelper {
 		else if (rdbmsType == RdbmsTypeEnum.CASSANDRA) {
 			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
+		else if (rdbmsType == RdbmsTypeEnum.CLICKHOUSE) {
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
 		else if (rdbmsType == RdbmsTypeEnum.DB2) {
 			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
@@ -384,7 +387,7 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String[] getTableKeys(RdbmsTypeEnum driver) {
 		String[] arr = new String[3];
-		if(driver == RdbmsTypeEnum.SNOWFLAKE) {
+		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE) {
 			arr[0] = "TABLE_NAME";
 			arr[1] = "TABLE_TYPE";
 			arr[2] = "TABLE_SCHEM";
@@ -428,7 +431,7 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String[] getColumnKeys(RdbmsTypeEnum driver) {
 		String[] arr = new String[2];
-		if(driver == RdbmsTypeEnum.SNOWFLAKE) {
+		if(driver == RdbmsTypeEnum.SNOWFLAKE || driver == RdbmsTypeEnum.CLICKHOUSE) {
 			arr[0] = "COLUMN_NAME";
 			arr[1] = "TYPE_NAME";
 		} else {
