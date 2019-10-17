@@ -17,6 +17,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
@@ -650,6 +651,76 @@ public class ImportUtility {
 	 * @return
 	 */
 	public static Map<String, Set<String>> getEdgeHash(SelectQueryStruct qs) {
+		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
+		ENGINE_TYPE engineType = qs.getEngine().getEngineType();
+		if (engineType == ENGINE_TYPE.TINKER || engineType == ENGINE_TYPE.SESAME) {
+			return ImportUtility.getGraphEdgeHash(qs);
+		}
+		
+		// go through all the selectors
+		// these are what will be returned
+		// and what we need to figure out how to connect
+		List<IQuerySelector> selectors = qs.getSelectors();
+		int numSelectors = selectors.size();
+		
+		Map<String, String> aliasMapping = flushOutAliases(selectors);
+		Map<String, String> parent = new HashMap<>();
+		for(int i = 0; i < numSelectors; i++) {
+			IQuerySelector selector = selectors.get(i);
+			// TODO: doing base case first cause Davy said so
+			// TODO: doing base case first cause Davy said so
+			// TODO: doing base case first cause Davy said so
+			// TODO: doing base case first cause Davy said so
+			if (selector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
+				continue;
+			}
+			Set<String> downConnections = new HashSet<String>();
+			QueryColumnSelector cSelector = (QueryColumnSelector) selector;
+			String table = cSelector.getTable();
+			String column = cSelector.getColumn();
+			if(!parent.containsKey(table)) {
+				parent.put(table, aliasMapping.get(table + "__" + column));
+				// put alias yuck!!!
+				aliasMapping.put(table, aliasMapping.get(table + "__" + column));
+			}
+			if (edgeHash.containsKey(parent.get(table))) {
+				downConnections = edgeHash.get(parent.get(table));
+			}
+
+			downConnections.add(aliasMapping.get(table + "__" + column));
+			edgeHash.put(parent.get(table), downConnections);
+			
+		}
+		
+		// add all relationships
+		Set<String[]> relations = qs.getRelations();
+		for(String[] rel : relations) {
+			String upVertex = rel[0];
+			String downVertex = rel[2];
+			
+			// will this always work?
+			String upVertexAlias = aliasMapping.get(upVertex);
+			String downVertexAlias = aliasMapping.get(downVertex);
+			
+			Set<String> downConnections = null;
+			if(edgeHash.containsKey(upVertexAlias)) {
+				downConnections = edgeHash.get(upVertexAlias);
+			} else {
+				downConnections = new HashSet<String>();
+				edgeHash.put(upVertexAlias, downConnections);
+			}
+			downConnections.add(downVertexAlias);
+		}
+		
+		return edgeHash;
+	}
+	
+	/**
+	 * Get the edge hash corresponding to the relationships defined within the qs
+	 * @param qs
+	 * @return
+	 */
+	public static Map<String, Set<String>> getGraphEdgeHash(SelectQueryStruct qs) {
 		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
 		
 		// go through all the selectors
