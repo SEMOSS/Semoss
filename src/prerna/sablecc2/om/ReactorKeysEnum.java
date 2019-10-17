@@ -105,6 +105,7 @@ public enum ReactorKeysEnum {
 	REPOSITORY("repository", 								"Name of the repository. Usually namespaced to be username\\appname"),
 	ROUTINE("routine",                                      "The name of the routine"),
 	ROW_COUNT("rowCount",                                   "Boolean get the number of rows"),
+	ROW_GROUPS("rowGroups",                                  "Row Grouping that needs to be done for pivot"),
 	RULES_MAP("rulesMap",                                   "The map of rules for validation, including information such as the name of the rule, the rule definition, the columns, and the description"),
 	SCHEMA("schema",                                        "The database schema."),
 	SEARCH("search",                                        "The search term."),
