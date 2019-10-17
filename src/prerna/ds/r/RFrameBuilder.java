@@ -24,6 +24,7 @@ import prerna.engine.impl.r.RNativeEngine;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.RInterpreter;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -107,19 +108,21 @@ public class RFrameBuilder {
 		if(it instanceof RawRSelectWrapper) {
 			RawRSelectWrapper rIterator = (RawRSelectWrapper) it;
 			SelectQueryStruct qs = rIterator.getOutput().getQs();
-			// if we have a small limit
-			// write to new file
-			// in case the variable size is really large and the IO is 
-			// still produces better performance
-			// TODO: determine optimal number for this...
-			if(qs == null || qs.getLimit() == -1 || qs.getLimit() > 10_000) {
-				String query = rIterator.getQuery();
-				RNativeEngine engine = (RNativeEngine) rIterator.getEngine();
-				engine.directLoad(this.rJavaTranslator, tableName, query);
-				loaded = true;
-				if(qs != null && (qs.getLimit() > 0 || qs.getOffset() > 0)) {
-					int numRows = getNumRows(tableName);
-					evalR(RSyntaxHelper.determineLimitOffsetSyntax(tableName, numRows, qs.getLimit(), qs.getOffset()));
+			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) { 
+				// if we have a small limit
+				// write to new file
+				// in case the variable size is really large and the IO is 
+				// still produces better performance
+				// TODO: determine optimal number for this...
+				if(qs == null || qs.getLimit() == -1 || qs.getLimit() > 10_000) {
+					String query = rIterator.getQuery();
+					RNativeEngine engine = (RNativeEngine) rIterator.getEngine();
+					engine.directLoad(this.rJavaTranslator, tableName, query);
+					loaded = true;
+					if(qs != null && (qs.getLimit() > 0 || qs.getOffset() > 0)) {
+						int numRows = getNumRows(tableName);
+						evalR(RSyntaxHelper.determineLimitOffsetSyntax(tableName, numRows, qs.getLimit(), qs.getOffset()));
+					}
 				}
 			}
 		} else if(it instanceof CsvFileIterator) {
