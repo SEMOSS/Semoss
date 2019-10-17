@@ -28,7 +28,13 @@ public class CtrlXAssetReactor extends AbstractReactor {
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		
 		// file / folder to be moved
-		String copySource = assetFolder + DIR_SEPARATOR + relativePath + DIR_SEPARATOR + filePath;
+		if(relativePath == null)
+			relativePath = "";
+		else
+			relativePath=relativePath + DIR_SEPARATOR;
+
+		// file / folder to be moved
+		String copySource = assetFolder + DIR_SEPARATOR + relativePath  + filePath;
 		String showSource = space + DIR_SEPARATOR + filePath;
 		user.ctrlC(copySource, showSource);
 		
