@@ -40,7 +40,7 @@ public class CtrlVAssetReactor extends AbstractReactor {
 		// need to make sure the destination is valid
 		File file = new File(destSource);
 		if(!(file.exists() && file.isDirectory()))
-			throw new IllegalArgumentException("Destination should be a directory : " + filePath);
+			throw new IllegalArgumentException("Destination  should be a directory : " + filePath);
 		
 		CopyObject copyObj = user.getCtrlC();
 		String copySource = copyObj.source;
@@ -76,7 +76,7 @@ public class CtrlVAssetReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		
-		return NounMetadata.getSuccessNounMessage("Pasted " + filePath);
+		return NounMetadata.getSuccessNounMessage("Pasted " + copyObj.showSource);
 
 	}
 }
