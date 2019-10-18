@@ -148,16 +148,16 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		script.append("rm(" + rCol1 + "," + rCol2 + ");");
 
 		logger.info("Running script to generate all fuzzy matches");
-
 		this.rJavaTranslator.runR(script.toString());
-
-		RDataTable returnTable = createNewFrameFromVariable(matchesFrame);
-		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
-
-		// get count of exact matches
+						
+		RDataTable returnTable = null;
+		NounMetadata retNoun = null;
+		// get count of exact matches and check if matches are found
 		String exactMatchCount = this.rJavaTranslator.getString("as.character(nrow(" + matchesFrame + "[" + matchesFrame + "$distance == 0,]))");
 		if (exactMatchCount != null) {
 			int val = Integer.parseInt(exactMatchCount);
+			returnTable = createNewFrameFromVariable(matchesFrame);
+			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 			retNoun.addAdditionalReturn(new NounMetadata(val, PixelDataType.CONST_INT));
 		} else{
 			throw new IllegalArgumentException("No matches found.");
