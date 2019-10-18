@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.List;
+import java.util.Vector;
+
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -34,17 +37,10 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 		
 		//get table name
 		String table = frame.getName();
-
-		// get column to update
-		String column = this.keyValue.get(this.keysToGet[0]);
-		if (column == null) {
-			column = getUpdateColumn();
-		}
 		
-		//clean column name
-		if (column.contains("__")) {
-			column = column.split("__")[1];
-		}
+		// get inputs
+		// first input is the column that we are updating
+		List<String> columnNames = getColumns();
 
 		//get regular expression
 		String regex = this.keyValue.get(this.keysToGet[1]);
@@ -57,27 +53,33 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 		if (newValue == null) {
 			newValue = getNewValue();
 		}
-
-		// define r script
-		String colScript = table + "$" + column;
-		String script = colScript + " = ";
-		String dataType = getColumnType(table, column);
-		String quote = "";
-		if (dataType.contains("character") || dataType.contains("factor")) {
-			quote = "\"";
-		}
-		// script is of the form FRAME$Genre = gsub("-","M", FRAME$Genre)
-		script += "gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ");";
+		
+		// iterate through all passed columns
+		StringBuilder script = new StringBuilder();
+		for (String column : columnNames) {
 			
-		// doing gsub on a numeric column changes the data type to a string
-		// so change it back to numeric in r
-		if(dataType.contains("numeric")) {
-			script += table + "$" + column + " <- as.numeric(" + table + "$" + column + ");";
-		} else if(dataType.contains("integer")) {
-			script += table + "$" + column + " <- as.integer(" + table + "$" + column + ");";
+			// define r script
+			String colScript = table + "$" + column;
+			script.append(colScript + " = ");
+			String dataType = getColumnType(table, column);
+			String quote = "";
+			if (dataType.contains("character") || dataType.contains("factor")) {
+				quote = "\"";
+			}
+			// script is of the form FRAME$Genre = gsub("-","M", FRAME$Genre)
+			script.append("gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ");");
+				
+			// doing gsub on a numeric column changes the data type to a string
+			// so change it back to numeric in r
+			if(dataType.contains("numeric")) {
+				script.append(table + "$" + column + " <- as.numeric(" + table + "$" + column + ");");
+			} else if(dataType.contains("integer")) {
+				script.append(table + "$" + column + " <- as.integer(" + table + "$" + column + ");");
+			}
+			
 		}
 
-		this.rJavaTranslator.runR(script);
+		this.rJavaTranslator.runR(script.toString());
 
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
@@ -87,6 +89,24 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+	}
+	
+	private List<String> getColumns() {
+		List<String> cols = new Vector<String>();
+
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
+		if(grs != null && !grs.isEmpty()) {
+			for(int i = 0; i < grs.size(); i++) {
+				String column =grs.get(i).toString();
+				if (column.contains("__")) {
+					column = column.split("__")[1];
+				}
+				cols.add(column);
+			}
+			return cols;
+		}
+		
+		return cols;
 	}
 	
 	//////////////////////////////////////////////////////////////////////
