@@ -22,6 +22,10 @@ public class CtrlXAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
+		
+		if(user == null)
+			return NounMetadata.getErrorNounMessage("You have to be logged in to perform this action ");
+
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
@@ -39,7 +43,7 @@ public class CtrlXAssetReactor extends AbstractReactor {
 		user.ctrlC(copySource, showSource);
 		
 
-		return NounMetadata.getSuccessNounMessage("Copied " + showSource);
+		return NounMetadata.getSuccessNounMessage("Cut " + showSource);
 
 	}
 }

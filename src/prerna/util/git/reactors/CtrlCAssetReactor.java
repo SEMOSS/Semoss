@@ -22,6 +22,11 @@ public class CtrlCAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
+		
+		if(user == null)
+			return NounMetadata.getErrorNounMessage("You have to be logged in to perform this action ");
+			
+		
 		String filePath = this.keyValue.get(this.keysToGet[0]);
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
@@ -37,6 +42,8 @@ public class CtrlCAssetReactor extends AbstractReactor {
 			relativePath=relativePath + DIR_SEPARATOR;
 		String copySource = assetFolder + DIR_SEPARATOR + relativePath + filePath;
 		String showSource = space + DIR_SEPARATOR + filePath;
+		
+		
 		user.ctrlC(copySource, showSource);
 		
 

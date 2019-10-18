@@ -76,7 +76,7 @@ public class CtrlVAssetReactor extends AbstractReactor {
 			e.printStackTrace();
 		}
 		
-		return NounMetadata.getSuccessNounMessage("Copied " + filePath);
+		return NounMetadata.getSuccessNounMessage("Pasted " + filePath);
 
 	}
 }
