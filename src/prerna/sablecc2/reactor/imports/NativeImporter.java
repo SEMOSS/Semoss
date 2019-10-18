@@ -1,9 +1,9 @@
 package prerna.sablecc2.reactor.imports;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
@@ -217,7 +217,7 @@ public class NativeImporter extends AbstractImporter {
 			// query all pulls from every table
 			// including the joisn
 			List<String> tables = new Vector<String>();
-			tables.add(origTable);
+			tables.add(origTable.toLowerCase());
 			
 			for(String[] r : rels) {
 				String from = r[0];
@@ -225,7 +225,7 @@ public class NativeImporter extends AbstractImporter {
 					from = from.split("__")[0];
 				}
 				if(!tables.contains(from)) {
-					tables.add(from);
+					tables.add(from.toLowerCase());
 				}
 				
 				String to = r[2];
@@ -233,48 +233,22 @@ public class NativeImporter extends AbstractImporter {
 					to = to.split("__")[0];
 				}
 				if(!tables.contains(to)) {
-					tables.add(to);
+					tables.add(to.toLowerCase());
 				}
 			}
 
 			boolean multiTable = tables.size() > 1;
-			
-			Set<String> addedTables = new HashSet<String>();
-			Map<String, List<String>> tableToProps = MasterDatabaseUtility.getConceptProperties(tables, engineId);
-			for(String table : tableToProps.keySet()) {
-				addedTables.add(table);
-				List<String> properties = tableToProps.get(table);
-				for (String column : properties) {
-					QueryColumnSelector qsSelector = new QueryColumnSelector();
-					qsSelector.setTable(table + "");
-					qsSelector.setColumn(column);
-					if(multiTable) {
-						qsSelector.setAlias(table + "_" + column);
-					} else {
-						qsSelector.setAlias(column);
+			Collection<String> possibleSelectors = MasterDatabaseUtility.getSelectorsWithinEngineRDBMS(engineId);
+			for(String pSelector : possibleSelectors) {
+				if(pSelector.contains("__")) {
+					String possibleT = pSelector.split("__")[0];
+					if(tables.contains(possibleT.toLowerCase())) {
+						if(multiTable) {
+							qs.addSelector(new QueryColumnSelector(pSelector, pSelector));
+						} else {
+							qs.addSelector(new QueryColumnSelector(pSelector));
+						}
 					}
-					qs.addSelector(qsSelector);
-				}
-				
-				// add key column
-				QueryColumnSelector qsSelector = new QueryColumnSelector();
-				qsSelector.setTable(table + "");
-				qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-				qsSelector.setAlias(table + "");
-				qs.addSelector(qsSelector);
-			}
-			
-			// if something has no props
-			// it wont show up
-			// but should add it 
-			for(String table : tables) {
-				if(!addedTables.contains(table)) {
-					// add key column
-					QueryColumnSelector qsSelector = new QueryColumnSelector();
-					qsSelector.setTable(table + "");
-					qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-					qsSelector.setAlias(table + "");
-					qs.addSelector(qsSelector);
 				}
 			}
 			
