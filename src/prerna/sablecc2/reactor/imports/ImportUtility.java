@@ -17,6 +17,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.HeadersException;
@@ -652,11 +653,18 @@ public class ImportUtility {
 	 */
 	public static Map<String, Set<String>> getEdgeHash(SelectQueryStruct qs) {
 		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
-		ENGINE_TYPE engineType = qs.getEngine().getEngineType();
-		if (engineType == ENGINE_TYPE.TINKER || engineType == ENGINE_TYPE.SESAME) {
+		IEngine engine = qs.getEngine();
+		ENGINE_TYPE engineType = engine == null ? null : engine.getEngineType();
+		// frame case
+		if (engineType == null) {
+			return ImportUtility.getGraphEdgeHash(qs);
+		}
+		// graph db
+		if(engineType == ENGINE_TYPE.TINKER || engineType == ENGINE_TYPE.SESAME) {
 			return ImportUtility.getGraphEdgeHash(qs);
 		}
 		
+		// non graph db
 		// go through all the selectors
 		// these are what will be returned
 		// and what we need to figure out how to connect
