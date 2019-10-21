@@ -65,8 +65,8 @@ public class PyExecutorThread extends Thread {
 						    		response.put(thisCommand, "");
 						    	}
 						    	
-						    	jep.eval("from java.lang import System");
-						    	jep.eval("System.out.println('.')");
+						    	//jep.eval("from java.lang import System");
+						    	//jep.eval("System.out.println('.')");
 
 						    	daLock.notify();
 								// seems like when there is an exception..I need to restart the thread
@@ -117,7 +117,7 @@ public class PyExecutorThread extends Thread {
 				// add the sys.path to python libraries for semoss
 				String pyBase = null;
 				pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
-				pyBase = "c:/users/pkapaleeswaran/workspacej3/semossweb/py";
+				//pyBase = "c:/users/pkapaleeswaran/workspacej3/semossweb/py";
 				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
 				aJepConfig.setRedirectOutputStreams(true);
@@ -145,7 +145,7 @@ public class PyExecutorThread extends Thread {
 				jep.eval("import sys");
 				
 				// this is so we do not get a GIL
-				jep.eval("from java.lang import System");
+				//jep.eval("from java.lang import System");
 				
 				
 				LOGGER.debug("Adding Syspath " + pyBase);				
