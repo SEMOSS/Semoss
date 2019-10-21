@@ -54,6 +54,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
 import prerna.ds.py.PyExecutorThread;
+import prerna.ds.py.PyTranslator;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
@@ -120,6 +121,7 @@ public class Insight {
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
 	private transient AbstractRJavaTranslator rJavaTranslator;
+	private transient PyTranslator pyt;
 	private transient PyExecutorThread jepThread = null;
 	
 	private transient SaveInsightIntoWorkspace workspaceCacheThread = null;
@@ -589,7 +591,19 @@ public class Insight {
 	
 	public void setPy(PyExecutorThread jepThread) {
 		this.jepThread = jepThread;
+		if(this.pyt == null)
+		{
+			pyt = new PyTranslator();
+			pyt.setInsight(this);
+			pyt.setPy(jepThread);
+		}
 	}
+	
+	public PyTranslator getPyTranslator()
+	{
+		return this.pyt;
+	}
+	
 	
 	public PyExecutorThread getPy() {
 		return this.jepThread;
