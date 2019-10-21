@@ -117,10 +117,13 @@ public class PyExecutorThread extends Thread {
 				// add the sys.path to python libraries for semoss
 				String pyBase = null;
 				pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+				pyBase = "c:/users/pkapaleeswaran/workspacej3/semossweb/py";
 				pyBase = pyBase.replace('\\', '/');
 				aJepConfig.addIncludePaths(pyBase);
+				aJepConfig.setRedirectOutputStreams(true);
 				
 				// add the libraries
+				
 				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
 				if(sitepackages != null && !sitepackages.isEmpty()) {
 					aJepConfig.addIncludePaths(sitepackages);
@@ -140,14 +143,18 @@ public class PyExecutorThread extends Thread {
 				jep.eval("from annoy import AnnoyIndex");
 				jep.eval("import numpy");
 				jep.eval("import sys");
+				
 				// this is so we do not get a GIL
 				jep.eval("from java.lang import System");
+				
 				
 				LOGGER.debug("Adding Syspath " + pyBase);				
 				jep.eval("sys.path.append('" + pyBase + "')" );
 				LOGGER.debug(jep.getValue("sys.path"));
 				
+				// these needs to be a better way to do this where we can add other things 
 				jep.eval("from clean import PyFrame");
+				jep.eval("import smssutil");
 			}
 		} catch (JepException e) {
 			e.printStackTrace();
