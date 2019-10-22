@@ -12,7 +12,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class DuplicateColumnReactor extends AbstractFramePyReactor {
+public class DuplicateColumnReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor duplicates and existing column and adds it to the frame. The
