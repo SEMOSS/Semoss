@@ -94,9 +94,21 @@ public class DateDifferenceReactor extends AbstractPyFrameReactor {
 				.append(newColName)
 				;
 		} else if(inputUse.equals("start")) {
-
+			script.append(wrapperName).append(".date_difference_constant(")
+				.append(endCol).append(",")
+				.append(inputDate).append(",")
+				.append("True,")
+				.append(unit).append(",")
+				.append(newColName)
+				;
 		} else if(inputUse.equals("end")) {
-
+			script.append(wrapperName).append(".date_difference_constant(")
+				.append(startCol).append(",")
+				.append(inputDate).append(",")
+				.append("False,")
+				.append(unit).append(",")
+				.append(newColName)
+				;
 		}
 		
 		frame.runScript(script.toString());
