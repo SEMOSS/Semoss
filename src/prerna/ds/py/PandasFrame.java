@@ -296,7 +296,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		PandasInterpreter interp = new PandasInterpreter();
-		interp.setDataTableName(this.wrapperFrameName + ".cache['data']");
+		interp.setDataTableName(this.frameName, this.wrapperFrameName + ".cache['data']");
 		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
 		interp.setQueryStruct(qs);
 		return processInterpreter(interp);

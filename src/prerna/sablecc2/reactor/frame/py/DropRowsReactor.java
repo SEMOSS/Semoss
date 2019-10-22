@@ -28,6 +28,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 	public NounMetadata execute() {
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
+		String frameName = frame.getName();
 		String wrapperFrameName = frame.getWrapperName();
 
 		// the first noun will be a query struct - the filter
@@ -39,7 +40,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 		// use RInterpreter to create filter syntax
 		StringBuilder pyFilterBuilder = new StringBuilder();
 		PandasInterpreter pi = new PandasInterpreter();
-		pi.setDataTableName(wrapperFrameName + ".cache['data']");
+		pi.setDataTableName(frameName, wrapperFrameName + ".cache['data']");
 		pi.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
 		pi.addFilters(grf.getFilters(), wrapperFrameName, pyFilterBuilder, true);
 
