@@ -13,7 +13,6 @@ from pandas.api.types import is_numeric_dtype
 
 class PyFrame:
 
-	x = 7
 	def __init__(self, cache):
 	    self.cache = cache
 
@@ -380,5 +379,16 @@ class PyFrame:
 		frame[new_col] = frame[input_col].apply(lambda x: delim.join(x), axis=1)
 		return frame
 	
-
+	def add_to_date(this, date_column, output_column, unit_of_measure, value):
+		frame = this.cache['data']
 		
+		if unit_of_measure == "day":
+			frame[output_column] = frame[date_column] + pd.Timedelta(day=value)
+		elif unit_of_measure == "week":
+			frame[output_column] = frame[date_column] + pd.Timedelta(W=value)
+		elif unit_of_measure == "month":
+			frame[output_column] = frame[date_column] + pd.Timedelta(M=value)
+		elif unit_of_measure == "year":
+			frame[output_column] = frame[date_column] + pd.Timedelta(Y=value)
+		
+		return frame
