@@ -27,7 +27,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class PandasInterpreter extends AbstractQueryInterpreter {
 
-	private String dataTableName = null;
+	private String frameName = null;
+	private String wrapperFrameName = null;
+	
 	private Map<String, SemossDataType> colDataTypes;
 	
 	private StringBuilder selectorCriteria;
@@ -129,7 +131,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		System.out.println("C...");
 		
 		
-		query.append(this.dataTableName)
+		query.append(this.wrapperFrameName)
 			//.append(".cache['data']")
 			//.append(".iloc[")
 			//.append(qs.getOffset() + ":" + (qs.getOffset() + qs.getLimit()) + "]")
@@ -245,7 +247,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	public void addFilters()
 	{
-		addFilters(qs.getCombinedFilters().getFilters(), this.dataTableName, this.filterCriteria, false);
+		addFilters(qs.getCombinedFilters().getFilters(), this.wrapperFrameName, this.filterCriteria, false);
 	}
 
 	// add all the selectors
@@ -256,7 +258,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		for(int i = 0; i < size; i++) {
 			IQuerySelector selector = selectors.get(i);
 			String newHeader = null;
-			newHeader = processSelector(selector, dataTableName, true, true);
+			newHeader = processSelector(selector, wrapperFrameName, true, true);
 			
 			// if this is an aggregator, it needs to accomodated in a different place which is why the processAgg will return an empty string
 			// if it is not, go ahead and add it
@@ -273,7 +275,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				headers.add(selector.getAlias());
 				orderHash.put(selector.getAlias(), builder);
 				actHeaders.add(newHeader);
-				types.add(colDataTypes.get(newHeader));
+				types.add(colDataTypes.get(this.frameName + "__" + newHeader));
 			}
 		}
 	}
@@ -321,9 +323,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return "'" + alias + "'";
 	}
 	
-	public void setDataTableName(String dataTableName) {
-		//this.dataTableName = dataTableName;
-		this.dataTableName = dataTableName;
+	public void setDataTableName(String frameName, String wrapperFrameName) {
+		this.frameName = frameName;
+		this.wrapperFrameName = wrapperFrameName;
 	}
 	
 	
@@ -650,10 +652,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(addNullCheck) {
 			// can only work if comparator is == or !=
 			if(thisComparator.equals("==")) {
-				filterBuilder.append("(").append(dataTableName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" 'null'").append(")");
+				filterBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" 'null'").append(")");
 				//filterBuilder.append("is.na(").append(leftSelectorExpression).append(") ");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-				filterBuilder.append("(").append(dataTableName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" 'null'").append(")");
+				filterBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" 'null'").append(")");
 				//filterBuilder.append("!is.na(").append(leftSelectorExpression).append(") ");
 			}
 		}
@@ -724,9 +726,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				// now all the other types
 				else {
 					if(thisComparator.equals("==")) {
-						filterBuilder.append(dataTableName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
 					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-						filterBuilder.append("~").append(dataTableName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
+						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
 					} else {
 						// this will probably break...
 						filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
@@ -739,12 +741,12 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				if(thisComparator.equals("?like")) {
 					if(SemossDataType.STRING == leftDataType) {
 						// t[t['Title'].str.upper().str.contains('ALA')]
-						filterBuilder.append(dataTableName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
 					} else {
-						filterBuilder.append(dataTableName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
 					}
 				} else {
-					filterBuilder.append(dataTableName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+					filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 				}
 			}
 		}
