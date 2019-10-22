@@ -8,7 +8,7 @@ import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class MatchColumnValuesReactor extends AbstractFramePyReactor {
+public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 
 	public MatchColumnValuesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey() };

@@ -8,7 +8,7 @@ import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 
-public abstract class AbstractFramePyReactor extends AbstractFrameReactor {
+public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 
 	protected ITableDataFrame recreateMetadata(PandasFrame frame, boolean override) {
 		String frameName = frame.getName();

@@ -14,7 +14,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class CollapseReactor extends AbstractFramePyReactor {
+public class CollapseReactor extends AbstractPyFrameReactor {
 
 	public CollapseReactor() {
 		this.keysToGet = new String[] { "groupByColumn", ReactorKeysEnum.VALUE.getKey(),
