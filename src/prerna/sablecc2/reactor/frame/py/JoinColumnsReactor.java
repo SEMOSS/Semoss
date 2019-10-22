@@ -12,7 +12,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class JoinColumnsReactor extends AbstractFramePyReactor {
+public class JoinColumnsReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor joins columns, and puts the joined string into a new column

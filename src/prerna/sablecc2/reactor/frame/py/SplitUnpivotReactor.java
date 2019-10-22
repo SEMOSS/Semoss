@@ -12,7 +12,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class SplitUnpivotReactor extends AbstractFramePyReactor {
+public class SplitUnpivotReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor splits columns based on a separator The split values will be
