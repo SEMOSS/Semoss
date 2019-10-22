@@ -38,6 +38,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 
 		// get frame name
+		String frameName = frame.getName();
 		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
@@ -74,7 +75,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		// use RInterpreter to create filter syntax
 		StringBuilder pyFilterBuilder = new StringBuilder();
 		PandasInterpreter pi = new PandasInterpreter();
-		pi.setDataTableName(wrapperFrameName + ".cache['data']");
+		pi.setDataTableName(frameName, wrapperFrameName + ".cache['data']");
 		pi.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
 		pi.addFilters(grf.getFilters(), wrapperFrameName + ".cache['data']", pyFilterBuilder, true);
 
