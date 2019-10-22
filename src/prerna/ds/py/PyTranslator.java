@@ -195,6 +195,7 @@ public class PyTranslator {
 			try {
 				executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\")");
 			} catch (RuntimeException e) {
+				e.printStackTrace();
 				error = e; // Save the error so we can report it
 			}
 			
