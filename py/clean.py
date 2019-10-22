@@ -394,13 +394,36 @@ class PyFrame:
 		return frame
 	
 	def date_difference_columns(this, date_column1, date_column2, unit_of_measure, output_column):
-		from dateutil.relativedelta import relativedelta
 		frame = this.cache['data']
 
 		# perform the difference operation
 		frame[output_column] = frame[date_column1] -  frame[date_column2]
 		# get the correct unit from the object
-		# cast the return to an integer or a double based on the type (and add rounding)
+		# add rounding based on unit of measure
+		if unit_of_measure == "day":
+			frame[output_column] = frame[output_column] / np.timedelta64(1, 'D')
+		elif unit_of_measure == "week":
+			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'W'), 2)
+		elif unit_of_measure == "month":
+			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'M'))
+		elif unit_of_measure == "year":
+			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'Y'))
+
+		return frame
+	
+	def date_difference_constant(this, date_column, date_constant, direction_bool, unit_of_measure, output_column):
+		# direction_bool = true -> then date_column - date_constant
+		# direction_bool = false -> then date_constant - date_column
+		frame = this.cache['data']
+
+		# perform the difference operation
+		if direction_bool:
+			frame[output_column] = frame[date_column] -  pd.to_datetime(date_constant)
+		else:
+			frame[output_column] = pd.to_datetime(date_constant) - frame[date_column]
+		  
+		# get the correct unit from the object
+		# add rounding based on unit of measure
 		if unit_of_measure == "day":
 			frame[output_column] = frame[output_column] / np.timedelta64(1, 'D')
 		elif unit_of_measure == "week":
