@@ -1,7 +1,5 @@
 package prerna.util.git.reactors;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -26,13 +24,6 @@ public class GetAssetReactor extends AbstractReactor {
 		organizeKeys();
 
 		// check if user is logged in
-		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
-
 		String space = this.keyValue.get(this.keysToGet[2]);
 		String assetFolder = AssetUtility.getAssetVersionBasePath(this.insight, space);
 

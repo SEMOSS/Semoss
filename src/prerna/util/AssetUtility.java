@@ -39,7 +39,7 @@ public class AssetUtility {
 				if (AbstractSecurityUtils.securityEnabled()) {
 					User user = in.getUser();
 					if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-						throw new IllegalArgumentException("Must be logged in to perform this operation");
+						throw new IllegalArgumentException("Must be logged in to access user specific assets");
 					}
 					AuthProvider provider = user.getPrimaryLogin();
 					String appId = user.getAssetEngineId(provider);
