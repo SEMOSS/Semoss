@@ -3,8 +3,6 @@ package prerna.util.git.reactors;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -27,13 +25,6 @@ public class BrowseAssetReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		
-		// check if user is logged in
-		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.securityEnabled()) {
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, false);
 		String replacer = "";
@@ -44,15 +35,8 @@ public class BrowseAssetReactor extends AbstractReactor {
 			locFolder = assetFolder + "/" + keyValue.get(keysToGet[0]);
 			locFolder = locFolder.replaceAll("\\\\", "/");
 		}
-		// neutraize app_assets
-		//locFolder = locFolder.replaceAll("/app_assets", "");
-		
-		// forcing so we dont add the app
-		boolean app = true;
 
-		List <Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, !app);
-		
-		
+		List <Map<String, Object>> output = GitAssetUtils.getAssetMetadata(locFolder, assetFolder, replacer, false);
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
