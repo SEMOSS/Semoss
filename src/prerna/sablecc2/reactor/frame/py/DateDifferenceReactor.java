@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.py;
 
 import java.util.Arrays;
 import java.util.List;
@@ -6,13 +6,13 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.r.RDataTable;
+import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class DateDifferenceReactor extends AbstractRFrameReactor {
+public class DateDifferenceReactor extends AbstractPyFrameReactor {
 
 	/*
 	 * Here are the keys that can be passed into the reactor options
@@ -45,24 +45,24 @@ public class DateDifferenceReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		init();
 		organizeKeys();
 		
 		// get frame
-		RDataTable frame = (RDataTable) getFrame();
+		PandasFrame frame = (PandasFrame) getFrame();
 		String table = frame.getName();
-				
+		String wrapperName = frame.getWrapperName();
+
 		String startCol = this.keyValue.get(this.keysToGet[0]);
 		String endCol = this.keyValue.get(this.keysToGet[1]);
 		String inputUse = this.keyValue.get(this.keysToGet[2]);
 		String inputDate = this.keyValue.get(this.keysToGet[3]);
-		String unit = this.keyValue.get(this.keysToGet[4]);
+		String unit = this.keyValue.get(this.keysToGet[4]).toLowerCase();
 		String newColName = this.keyValue.get(this.keysToGet[5]);
 				
 		newColName = getCleanNewColName(frame, newColName);
 		
 		// make sure columns are in list and the proper inputs are given
-		String[] startingColumns = getColumns(table);
+		String[] startingColumns = getColumns(frame);
 		List<String> startingColumnsList = new Vector<String>(startingColumns.length);
 		startingColumnsList.addAll(Arrays.asList(startingColumns));
 		
@@ -87,28 +87,19 @@ public class DateDifferenceReactor extends AbstractRFrameReactor {
 		StringBuilder script = new StringBuilder();
 		String addedColumnDataType =unit.equals(DAY) ? SemossDataType.INT.toString() : SemossDataType.DOUBLE.toString();
 		if(inputUse.equals("none") || inputUse.equals("")) {
-			script.append(table).append("$").append(newColName).append(" <- round(as.numeric(difftime(").append(table).append("$").append(endCol).append(", ");
-			script.append(table).append("$").append(startCol);
+			script.append(wrapperName).append(".date_difference_columns(")
+				.append(endCol).append(",")
+				.append(startCol).append(",")
+				.append(unit).append(",")
+				.append(newColName)
+				;
 		} else if(inputUse.equals("start")) {
-			script.append(table).append("$").append(newColName).append(" <- round(as.numeric(difftime(").append(table).append("$");
-			script.append(endCol).append(", as.Date(\"").append(inputDate).append("\"),");
+
 		} else if(inputUse.equals("end")) {
-			script.append(table).append("$").append(newColName).append(" <- round(as.numeric(difftime(").append("as.Date(\"").append(inputDate).append("\"), ");
-			script.append(table).append("$").append(startCol);
+
 		}
 		
-		// append different things for different units
-		if(unit.equals(WEEK) || unit.equals(DAY)) {
-			script.append(", units = \"").append(unit).append("\")), digits = 2);");
-		}
-		else if(unit.equals(YEAR)) {
-			script.append(", units = \"days\"))/365, digits = 2);");
-		}
-		else if(unit.equals(MONTH)) {
-			//using 365/12 as month time
-			script.append(", units = \"days\"))/30.42, digits = 2);");
-		}
-		this.rJavaTranslator.runR(script.toString());
+		frame.runScript(script.toString());
 		
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
