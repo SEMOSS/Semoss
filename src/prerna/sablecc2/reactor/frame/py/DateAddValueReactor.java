@@ -64,7 +64,7 @@ public class DateAddValueReactor extends AbstractPyFrameReactor {
 		// def add_to_date(this, date_column, output_column, unit_of_measure, value):
 		
 		StringBuilder script = new StringBuilder();
-		script.append(wrapperName).append(".add_to_date(")
+		script.append(wrapperName).append(".date_add_value(")
 			.append(srcCol).append(",")
 			.append(newCol).append(",")
 			.append(unit).append(",")

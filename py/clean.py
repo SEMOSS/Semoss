@@ -379,7 +379,7 @@ class PyFrame:
 		frame[new_col] = frame[input_col].apply(lambda x: delim.join(x), axis=1)
 		return frame
 	
-	def add_to_date(this, date_column, output_column, unit_of_measure, value):
+	def date_add_value(this, date_column, output_column, unit_of_measure, value):
 		frame = this.cache['data']
 		
 		if unit_of_measure == "day":
@@ -392,3 +392,23 @@ class PyFrame:
 			frame[output_column] = frame[date_column] + pd.Timedelta(Y=value)
 		
 		return frame
+	
+	def date_difference_columns(this, date_column1, date_column2, unit_of_measure, output_column):
+		from dateutil.relativedelta import relativedelta
+		frame = this.cache['data']
+
+		# perform the difference operation
+		frame[output_column] = frame[date_column1] -  frame[date_column2]
+		# get the correct unit from the object
+		# cast the return to an integer or a double based on the type (and add rounding)
+		if unit_of_measure == "day":
+			frame[output_column] = frame[output_column] / np.timedelta64(1, 'D')
+		elif unit_of_measure == "week":
+			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'W'), 2)
+		elif unit_of_measure == "month":
+			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'M'))
+		elif unit_of_measure == "year":
+			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'Y'))
+
+		return frame
+
