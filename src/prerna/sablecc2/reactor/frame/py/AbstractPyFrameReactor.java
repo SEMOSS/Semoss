@@ -16,11 +16,10 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		// I am just going to try to recreate the frame here
 		if(override) {
 			newFrame = new PandasFrame(frameName);
+			newFrame.setJep(frame.getJep());
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(newFrame.getWrapperName(), frameName);
 			newFrame.runScript(makeWrapper);
 		}
-		newFrame.setJep(frame.getJep());
-
 		String[] colNames = getColumns(newFrame);
 		// I bet this is being done for pixel.. I will keep the same
 		newFrame.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
