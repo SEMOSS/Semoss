@@ -33,6 +33,7 @@ public class ChangeGraphLayoutReactor extends AbstractRFrameReactor {
 		organizeKeys();
 		String[] packages = new String[]{"igraph"};
 		this.rJavaTranslator.checkPackages(packages);
+		this.rJavaTranslator.executeEmptyR("library(igraph)");
 		Logger logger = getLogger(CLASS_NAME);
 		TinkerFrame frame = (TinkerFrame) getFrame();
 		String graphName = (String) retrieveVariable("GRAPH_NAME");
