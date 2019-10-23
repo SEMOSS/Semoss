@@ -56,7 +56,18 @@ def canLoad(file):
 	
 	return finalList
 
-def runwrapper(file, output, error):
+def runwrapper(file, output, error,g):
+	import contextlib, io
+   #ofile = io.StringIO()
+	print(output)
+	ofile = open(output, "w")
+	efile = open(error, "w")
+	with contextlib.redirect_stdout(ofile), contextlib.redirect_stderr(efile):
+		exec(open(file).read(), g)
+		ofile.close()
+		efile.close()
+
+def runwrapper2(file, output, error):
 	import contextlib, io
    #ofile = io.StringIO()
 	print(output)
@@ -67,6 +78,7 @@ def runwrapper(file, output, error):
 		ofile.close()
 		efile.close()
 
+		
 def run_empty_wrapper(file):
     #ofile = io.StringIO()
 	#print(output)
