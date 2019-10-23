@@ -132,6 +132,10 @@ public class PyTranslator {
 		String script = convertArrayToString(inscript);
 		script = script.trim();
 		
+		// find if the script is simple
+		boolean multi = (inscript.length > 1 || script.contains("\n")) || script.contains("=") || (script.contains(".") && script.endsWith("()")) && !script.equals("dir()"); 
+		
+		
 		// Get temp folder and file locations
 		// also define a ROOT variable
 		String removePathVariables = "";
@@ -182,67 +186,75 @@ public class PyTranslator {
 		// attempt to put it into environment
 		script = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment + "\n" + script;
 
-		// Try writing the script to a file
-		try {
-			FileUtils.writeStringToFile(scriptFile, script);
-
-			// check packages
-			//checkPackages(script);
-
-			// Try running the script, which saves the output to a file
-			 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
-			RuntimeException error = null;
+		if(multi)
+		{
+			// Try writing the script to a file
 			try {
-				executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())");
-			} catch (RuntimeException e) {
-				e.printStackTrace();
-				error = e; // Save the error so we can report it
-			}
-			
-			// Finally, read the output and return, or throw the appropriate error
-			try {
-				String output = FileUtils.readFileToString(outputFile).trim();
-				// Error cases
-				
-				// clean up the output
-				if(userRootPath != null && output.contains(userRootPath)) {
-					output = output.replace(userRootPath, "$USER_IF");
-				}
-				if(appRootPath != null && output.contains(appRootPath)) {
-					output = output.replace(appRootPath, "$APP_IF");
-				}
-				if(insightRootPath != null && output.contains(insightRootPath)) {
-					output = output.replace(insightRootPath, "$IF");
-				}
-				
-				// Successful case
-				return output;
-			} catch (IOException e) {
-				// If we have the detailed error, then throw it
-				if (error != null) {
-					throw error;
-				}
-				
-				// Otherwise throw a generic one
-				throw new IllegalArgumentException("Failed to run Py script.");
-			} finally {
-				// Cleanup
-				outputFile.delete();
+				FileUtils.writeStringToFile(scriptFile, script);
+	
+				// check packages
+				//checkPackages(script);
+	
+				// Try running the script, which saves the output to a file
+				 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
+				RuntimeException error = null;
 				try {
-					//this.executeEmptyR("rm(" + randomVariable + removePathVariables + ");");
-					//this.executeEmptyR("gc();"); // Garbage collection
-				} catch (Exception e) {
-					logger.warn("Unable to cleanup Py.", e);
+					executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())");
+				} catch (RuntimeException e) {
+					e.printStackTrace();
+					error = e; // Save the error so we can report it
 				}
+				
+				// Finally, read the output and return, or throw the appropriate error
+				try {
+					String output = FileUtils.readFileToString(outputFile).trim();
+					// Error cases
+					
+					// clean up the output
+					if(userRootPath != null && output.contains(userRootPath)) {
+						output = output.replace(userRootPath, "$USER_IF");
+					}
+					if(appRootPath != null && output.contains(appRootPath)) {
+						output = output.replace(appRootPath, "$APP_IF");
+					}
+					if(insightRootPath != null && output.contains(insightRootPath)) {
+						output = output.replace(insightRootPath, "$IF");
+					}
+					
+					// Successful case
+					return output;
+				} catch (IOException e) {
+					// If we have the detailed error, then throw it
+					if (error != null) {
+						throw error;
+					}
+					
+					// Otherwise throw a generic one
+					throw new IllegalArgumentException("Failed to run Py script.");
+				} finally {
+					// Cleanup
+					outputFile.delete();
+					try {
+						//this.executeEmptyR("rm(" + randomVariable + removePathVariables + ");");
+						//this.executeEmptyR("gc();"); // Garbage collection
+					} catch (Exception e) {
+						logger.warn("Unable to cleanup Py.", e);
+					}
+				}
+			} catch (IOException e) {
+				throw new IllegalArgumentException("Error in writing Py script for execution.", e);
+			} finally {
+				
+				// Cleanup
+				scriptFile.delete();
 			}
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Error in writing Py script for execution.", e);
-		} finally {
-			
-			// Cleanup
-			scriptFile.delete();
 		}
-
+		else
+		{
+			String finalScript = convertArrayToString(inscript);
+			Hashtable response = executePyDirect(finalScript);
+			return response.get(finalScript) + "";
+		}
 		
 	}
 	
