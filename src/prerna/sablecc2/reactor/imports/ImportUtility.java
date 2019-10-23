@@ -728,7 +728,6 @@ public class ImportUtility {
 			if (selector.getSelectorType() != IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				continue;
 			}
-			Set<String> downConnections = new HashSet<String>();
 			QueryColumnSelector cSelector = (QueryColumnSelector) selector;
 			String table = cSelector.getTable();
 			String column = cSelector.getColumn();
@@ -742,12 +741,44 @@ public class ImportUtility {
 				// put alias yuck!!!
 				aliasMapping.put(table, aliasMapping.get(querySelector));
 			}
-			if (edgeHash.containsKey(parent.get(table))) {
-				downConnections = edgeHash.get(parent.get(table));
+			
+			if(parent.get(table).equals(aliasMapping.get(querySelector))) {
+				// this is so we prevent a self loop
+				continue;
 			}
-
-			downConnections.add(aliasMapping.get(querySelector));
-			edgeHash.put(parent.get(table), downConnections);
+			
+			String downstreamNode = aliasMapping.get(querySelector);
+			String parentUpColumn = parent.get(table);
+			
+			// in case the defined joined requires columns
+			// that are not part of the selectors
+			if(aliasMapping.keySet().contains(parentUpColumn)) {
+				Set<String> downConnections = new HashSet<String>();
+				if (edgeHash.containsKey(parent.get(table))) {
+					downConnections = edgeHash.get(parent.get(table));
+				}
+				downConnections.add(downstreamNode);
+				edgeHash.put(parent.get(table), downConnections);
+			} else {
+				// if the parent column is not an actual return
+				// we need to find what join it has
+				// that is a return
+				Iterator<String[]> relIt = relations.iterator();
+				while(relIt.hasNext()) {
+					String[] relation = relIt.next();
+					if(relation[2].equals(table)) {
+						parentUpColumn = relation[0];
+						break;
+					}
+				}
+				
+				Set<String> downConnections = new HashSet<String>();
+				if (edgeHash.containsKey(parentUpColumn)) {
+					downConnections = edgeHash.get(parentUpColumn);
+				}
+				downConnections.add(downstreamNode);
+				edgeHash.put(parentUpColumn, downConnections);
+			}
 		}
 		
 		return edgeHash;
