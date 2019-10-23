@@ -118,7 +118,7 @@ public class PyTranslator {
 			
 			// the wrapper needs to be run now
 			//executePyDirect("runwrapper(" + scriptPath + "," + outPath + "," + outPath + ")");
-			executePyDirect("smssutil.run_empty_wrapper(\"" + scriptPath + "\")");
+			executePyDirect("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
 			
 		} catch (IOException e1) {
 			System.out.println("Error in writing Py script for execution!");
@@ -193,7 +193,7 @@ public class PyTranslator {
 			 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
 			RuntimeException error = null;
 			try {
-				executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\")");
+				executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())");
 			} catch (RuntimeException e) {
 				e.printStackTrace();
 				error = e; // Save the error so we can report it
@@ -283,13 +283,16 @@ public class PyTranslator {
 						  "\n" + 
 						  "a = 2" +
 						  "\n" +
+						  "a" +
+						  "\n" +
 						  "if (a ==2):" +
 						  "\n" + 
 						  "   print('a is 2')";
 		
 		
 		//py.runPyAndReturnOutput("print('Hello World')\nprint('world hello')");
-		py.runPyAndReturnOutput(command);
+		String output = py.runPyAndReturnOutput(command);
+		System.out.println("Output >> " + output);
 	}
 	
 
