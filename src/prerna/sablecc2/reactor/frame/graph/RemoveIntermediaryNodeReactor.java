@@ -97,12 +97,12 @@ public class RemoveIntermediaryNodeReactor extends AbstractFrameReactor {
 			for(int i = 0; i < numSource; i++) {
 				Vertex source = sourceVertices.get(i);
 				String sourceName = sourceUniqueName.get(i);
-				String sourceValue = source.value(TinkerFrame.TINKER_NAME);
+				Object sourceValue = source.value(TinkerFrame.TINKER_NAME);
 
 				for(int j = 0; j < numTarget; j++) {
 					Vertex target = targetVertices.get(j);
 					String targetName = targetUniqueName.get(j);
-					String targetValue = target.value(TinkerFrame.TINKER_NAME);
+					Object targetValue = target.value(TinkerFrame.TINKER_NAME);
 					
 					String type = sourceName + TinkerFrame.EDGE_LABEL_DELIMETER + targetName;
 					String edgeID = type + "/" + sourceValue + ":" + targetValue;
