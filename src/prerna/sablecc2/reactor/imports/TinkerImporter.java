@@ -15,6 +15,8 @@ import org.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.TinkerFrame;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.query.querystruct.AbstractFileQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -63,10 +65,14 @@ public class TinkerImporter extends AbstractImporter {
 			// add the data
 			processFileImport(edgeHash, ((AbstractFileQueryStruct) qs).getNewHeaderNames(), edgeHash.keySet().iterator().next() );
 		} else {
-			// get the edge hash so we know how to add data connections
-			Map<String, Set<String>> edgeHash = ImportUtility.getEdgeHash(this.qs);
-			// create the metadata
-			ImportUtility.parseQueryStructAsGraph(this.dataframe, this.qs, edgeHash);
+			boolean processFlat = processAsFlat(this.qs);
+			Map<String, Set<String>> edgeHash = getEdgeMap(this.qs, processFlat);
+			if(processFlat) {
+				ImportUtility.parseFlatEdgeHashAsGraph(this.dataframe, this.qs, edgeHash);
+			} else {
+				ImportUtility.parseQueryStructAsGraph(this.dataframe, this.qs, edgeHash);
+			}
+			
 			// add the data
 			processImport(edgeHash, null);
 		}
@@ -76,7 +82,7 @@ public class TinkerImporter extends AbstractImporter {
 	public void insertData(OwlTemporalEngineMeta metaData) {
 		this.dataframe.setMetaData(metaData);
 		// get the edge hash so we know how to add data connections
-		Map<String, Set<String>> edgeHash = ImportUtility.getEdgeHash(this.qs);
+		Map<String, Set<String>> edgeHash = getEdgeMap(this.qs);
 		// add the data
 		processImport(edgeHash, null);
 	}
@@ -157,8 +163,8 @@ public class TinkerImporter extends AbstractImporter {
 			modifyQsSelectorAlias(joinMods);
 		}
 		
-		// get the edge hash from the qs
-		Map<String, Set<String>> edgeHash = ImportUtility.getEdgeHash(this.qs);
+		// get the edge hash so we know how to add data connections
+		Map<String, Set<String>> edgeHash = getEdgeMap(this.qs);
 		processEdgeHash(edgeHash, joins);
 		// determine if there are loops
 		List<String[]> loopRels = getLoopRels(edgeHash, existingRels);
@@ -218,7 +224,7 @@ public class TinkerImporter extends AbstractImporter {
 	}
 	
 	private ITableDataFrame processLoop(List<String[]> loopRels, Map<String, String> joinMods, List<Join> joins) {
-		Map<String, Set<String>> originalEdgeHash = ImportUtility.getEdgeHash(this.qs);
+		Map<String, Set<String>> originalEdgeHash = getEdgeMap(this.qs);
 		// so we have a -> b -> a
 		// but i need the last a to be a_1
 		// so my loop node is going the be the second index the the loopRels
@@ -249,7 +255,7 @@ public class TinkerImporter extends AbstractImporter {
 			}
 		}
 		
-		Map<String, Set<String>> updatedEdgeHash = ImportUtility.getEdgeHash(this.qs);
+		Map<String, Set<String>> updatedEdgeHash = getEdgeMap(this.qs);
 		// we need to define something to say
 		// that we are actually adding these with a different type
 		// remember: on tinker, we want to reuse the same node
@@ -377,4 +383,34 @@ public class TinkerImporter extends AbstractImporter {
 		edgeMap.put(autoRowIdx, cols);
 		return edgeMap;
 	}
+	
+	private Map<String, Set<String>> getEdgeMap(SelectQueryStruct qs) {
+		return getEdgeMap(qs, processAsFlat(qs));
+	}
+	
+	private Map<String, Set<String>> getEdgeMap(SelectQueryStruct qs, boolean processAsFlat) {
+		Map<String, Set<String>> edgeHash = null;
+		if(processAsFlat) {
+			// if relational engine / other table structure
+			edgeHash = ImportUtility.getFlatEngineEdgeHash(this.qs);
+		} else {
+			edgeHash = ImportUtility.getGraphEdgeHash(qs);
+		}
+		return edgeHash;
+	}
+	
+	/**
+	 * Need to use different logic if merging data from flat engine source
+	 * @return
+	 */
+	private boolean processAsFlat(SelectQueryStruct qs) {
+		IEngine engine = qs.getEngine();
+		ENGINE_TYPE engineType = engine == null ? null : engine.getEngineType();
+		if(engineType == null || engineType == ENGINE_TYPE.TINKER || engineType == ENGINE_TYPE.SESAME) {
+			return false;
+		}
+		
+		return true;
+	}
+	
 }

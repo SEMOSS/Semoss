@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.imports;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,16 +10,18 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.io.FilenameUtils;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.TinkerFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.util.flatfile.CsvFileIterator;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.HeadersException;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
@@ -475,8 +478,6 @@ public class ImportUtility {
 	 * Generating the correct metadata for graph frames
 	 * This is used for TinkerPop frame
 	 */
-
-	
 	
 	/**
 	 * Set the metadata information in the frame based on the QS information as a full graph
@@ -486,6 +487,14 @@ public class ImportUtility {
 	 * @param frameTableName
 	 */
 	public static void parseQueryStructAsGraph(ITableDataFrame dataframe, SelectQueryStruct qs, Map<String, Set<String>> edgeHash) {
+		parseQueryStructAsGraph(dataframe, qs, edgeHash, true);
+	}
+	
+	public static void parseFlatEdgeHashAsGraph(TinkerFrame dataframe, SelectQueryStruct qs, Map<String, Set<String>> edgeHash) {
+		parseQueryStructAsGraph(dataframe, qs, edgeHash, false);
+	}
+	
+	private static void parseQueryStructAsGraph(ITableDataFrame dataframe, SelectQueryStruct qs, Map<String, Set<String>> edgeHash, boolean addRels) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineName = qs.getEngineId();
 		
@@ -531,20 +540,22 @@ public class ImportUtility {
 		}
 		
 		List<String> addedRels = new Vector<String>();
-		// now add the relationships
-		Set<String[]> relations = qs.getRelations();
-		for(String[] rel : relations) {
-			String up = rel[0];
-			if(aliasMap.containsKey(up)) {
-				up = aliasMap.get(up);
+		if(addRels) {
+			// now add the relationships
+			Set<String[]> relations = qs.getRelations();
+			for(String[] rel : relations) {
+				String up = rel[0];
+				if(aliasMap.containsKey(up)) {
+					up = aliasMap.get(up);
+				}
+				String joinType = rel[1];
+				String down = rel[2];
+				if(aliasMap.containsKey(down)) {
+					down = aliasMap.get(down);
+				}
+				metaData.addRelationship(up, down, joinType);
+				addedRels.add(up + down);
 			}
-			String joinType = rel[1];
-			String down = rel[2];
-			if(aliasMap.containsKey(down)) {
-				down = aliasMap.get(down);
-			}
-			metaData.addRelationship(up, down, joinType);
-			addedRels.add(up + down);
 		}
 		
 		// also need to account for concept -> properties
@@ -569,6 +580,7 @@ public class ImportUtility {
 			}
 		}
 	}
+	
 	
 	/**
 	 * Set the metadata information in the frame based on the QS information as a full graph
@@ -651,28 +663,62 @@ public class ImportUtility {
 	 * @param qs
 	 * @return
 	 */
-	public static Map<String, Set<String>> getEdgeHash(SelectQueryStruct qs) {
+	public static Map<String, Set<String>> getFlatEngineEdgeHash(SelectQueryStruct qs) {
 		Map<String, Set<String>> edgeHash = new HashMap<String, Set<String>>();
 		IEngine engine = qs.getEngine();
-		ENGINE_TYPE engineType = engine == null ? null : engine.getEngineType();
-		// frame case
-		if (engineType == null) {
-			return ImportUtility.getGraphEdgeHash(qs);
-		}
-		// graph db
-		if(engineType == ENGINE_TYPE.TINKER || engineType == ENGINE_TYPE.SESAME) {
-			return ImportUtility.getGraphEdgeHash(qs);
+
+		// non graph db
+		List<IQuerySelector> selectors = qs.getSelectors();
+		Map<String, String> aliasMapping = flushOutAliases(selectors);
+		Map<String, String> parent = new HashMap<String, String>();
+		List<String> ignoreSelector = new ArrayList<String>();
+		// add all relationships
+		Set<String[]> relations = qs.getRelations();
+		for(String[] rel : relations) {
+			String upVertex = rel[0];
+			String downVertex = rel[2];
+			
+			String[] results = getJoinInformation(engine, upVertex, downVertex);
+			if(results != null) {
+				parent.put(results[0], results[1]);
+				parent.put(results[2], results[3]);
+
+				String upQs = results[0] + "__" + results[1];
+				String downQs = results[2] + "__" + results[3];
+				
+				String upVertexAlias = aliasMapping.get(upQs);
+				String downVertexAlias = aliasMapping.get(downQs);
+				
+				if(upVertexAlias == null || downVertexAlias == null) {
+					// this is a pass through
+					continue;
+				}
+				
+				Set<String> downConnections = null;
+				if(edgeHash.containsKey(upVertexAlias)) {
+					downConnections = edgeHash.get(upVertexAlias);
+				} else {
+					downConnections = new HashSet<String>();
+					edgeHash.put(upVertexAlias, downConnections);
+				}
+				
+				if(!edgeHash.containsKey(downVertexAlias)) {
+					edgeHash.put(downVertexAlias, new HashSet<String>());
+				}
+				
+				downConnections.add(downVertexAlias);
+				
+				// add to ignore
+				ignoreSelector.add(upQs);
+				ignoreSelector.add(downQs);
+			}
 		}
 		
-		// non graph db
 		// go through all the selectors
 		// these are what will be returned
 		// and what we need to figure out how to connect
-		List<IQuerySelector> selectors = qs.getSelectors();
-		int numSelectors = selectors.size();
 		
-		Map<String, String> aliasMapping = flushOutAliases(selectors);
-		Map<String, String> parent = new HashMap<>();
+		int numSelectors = selectors.size();
 		for(int i = 0; i < numSelectors; i++) {
 			IQuerySelector selector = selectors.get(i);
 			// TODO: doing base case first cause Davy said so
@@ -686,38 +732,22 @@ public class ImportUtility {
 			QueryColumnSelector cSelector = (QueryColumnSelector) selector;
 			String table = cSelector.getTable();
 			String column = cSelector.getColumn();
+			String querySelector = table + "__" + column;
+			if(ignoreSelector.contains(querySelector)) {
+				continue;
+			}
+			
 			if(!parent.containsKey(table)) {
-				parent.put(table, aliasMapping.get(table + "__" + column));
+				parent.put(table, aliasMapping.get(querySelector));
 				// put alias yuck!!!
-				aliasMapping.put(table, aliasMapping.get(table + "__" + column));
+				aliasMapping.put(table, aliasMapping.get(querySelector));
 			}
 			if (edgeHash.containsKey(parent.get(table))) {
 				downConnections = edgeHash.get(parent.get(table));
 			}
 
-			downConnections.add(aliasMapping.get(table + "__" + column));
+			downConnections.add(aliasMapping.get(querySelector));
 			edgeHash.put(parent.get(table), downConnections);
-			
-		}
-		
-		// add all relationships
-		Set<String[]> relations = qs.getRelations();
-		for(String[] rel : relations) {
-			String upVertex = rel[0];
-			String downVertex = rel[2];
-			
-			// will this always work?
-			String upVertexAlias = aliasMapping.get(upVertex);
-			String downVertexAlias = aliasMapping.get(downVertex);
-			
-			Set<String> downConnections = null;
-			if(edgeHash.containsKey(upVertexAlias)) {
-				downConnections = edgeHash.get(upVertexAlias);
-			} else {
-				downConnections = new HashSet<String>();
-				edgeHash.put(upVertexAlias, downConnections);
-			}
-			downConnections.add(downVertexAlias);
 		}
 		
 		return edgeHash;
@@ -795,29 +825,6 @@ public class ImportUtility {
 			}
 			downConnections.add(downVertexAlias);
 		}
-//		Map<String, Map<String, List>> relationships = qs.getRelations();
-//		for(String upVertex : relationships.keySet()) {
-//			String upVertexAlias = aliasMapping.get(upVertex);
-//			// store the list of downstream nodes for this "upVertex"
-//			Set<String> downConnections = null;
-//			if(edgeHash.containsKey(upVertexAlias)) {
-//				downConnections = edgeHash.get(upVertexAlias);
-//			} else {
-//				downConnections = new HashSet<String>();
-//				// add into the edgeHash
-//				edgeHash.put(upVertexAlias, downConnections);
-//			}
-//			Map<String, List> joinTypeMap = relationships.get(upVertex);
-//			for(String joinType : joinTypeMap.keySet()) {
-//				List<String> downstreamVertices = joinTypeMap.get(joinType);
-//				for(String downVertex : downstreamVertices) {
-//					String downVertexAlias = aliasMapping.get(downVertex);
-//					downConnections.add(downVertexAlias);
-//				}
-//			}
-//		}
-		
-		// all properties are related to their parent
 		
 		return edgeHash;
 	}
@@ -832,6 +839,75 @@ public class ImportUtility {
 		return aliasMapping;
 	}
 	
+	private static String[] getJoinInformation(IEngine engine, String fromString, String toString) {
+		String fromTable = null;
+		String fromCol = null;
+		String toTable = null;
+		String toCol = null;
+		
+		if(fromString.contains("__")) {
+			String[] split = fromString.split("__");
+			fromTable = split[0];
+			fromCol = split[1];
+		}
+		
+		if(toString.contains("__")) {
+			String[] split = toString.split("__");
+			toTable = split[0];
+			toCol = split[1];
+		}
+		
+		if(fromTable != null && fromCol != null && toTable != null && toCol != null) {
+			return new String[]{fromTable, fromCol, toTable, toCol};
+		}
+		
+		String fromURI = engine.getPhysicalUriFromPixelSelector(fromString);
+		String toURI = engine.getPhysicalUriFromPixelSelector(toString);
+		
+		// need to figure out what the predicate is from the owl
+		// also need to determine the direction of the relationship -- if it is forward or backward
+		String query = "SELECT ?relationship WHERE {<" + fromURI + "> ?relationship <" + toURI + "> } ORDER BY DESC(?relationship)";
+		TupleQueryResult res = (TupleQueryResult) engine.execOntoSelectQuery(query);
+		String predURI = null;
+		try {
+			if(res.hasNext()){
+				predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
+			}
+			else {
+				query = "SELECT ?relationship WHERE {<" + toURI + "> ?relationship <" + fromURI + "> } ORDER BY DESC(?relationship)";
+				res = (TupleQueryResult) engine.execOntoSelectQuery(query);
+				if(res.hasNext()){
+					predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
+				}
+			}
+		} catch (QueryEvaluationException e) {
+			// ignore for now
+			return null;
+		}
+		if(predURI == null) {
+			return null;
+		}
+		
+		String[] predPieces = Utility.getInstanceName(predURI).split("[.]");
+		if(predPieces.length == 4)
+		{
+			fromTable = predPieces[0];
+			fromCol = predPieces[1];
+			toTable = predPieces[2];
+			toCol = predPieces[3];
+		}
+		else if(predPieces.length == 6) // this is coming in with the schema
+		{
+			// EHUB_CLM_SDS . EHUB_CLM_EVNT . CLM_EVNT_KEY . EHUB_CLM_SDS . EHUB_CLM_PROV_DMGRPHC . CLM_EVNT_KEY
+			// [0]               [1]            [2]             [3]             [4]                    [5]
+			fromTable = predPieces[0] + "." + predPieces[1];
+			fromCol = predPieces[2];
+			toTable = predPieces[3] + "." + predPieces[4];
+			toCol = predPieces[5];
+		}
+		
+		return new String[]{fromTable, fromCol, toTable, toCol};
+	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
