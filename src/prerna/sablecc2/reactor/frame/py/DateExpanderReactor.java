@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.py;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,14 +8,14 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.r.RDataTable;
+import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class DateExpanderReactor extends AbstractRFrameReactor {
+public class DateExpanderReactor extends AbstractPyFrameReactor {
 
 	/*
 	 * Here are the keys that can be passed into the reactor options
@@ -33,17 +33,16 @@ public class DateExpanderReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		init();
 		organizeKeys();
 		
 		// get frame
-		RDataTable frame = (RDataTable) getFrame();
+		PandasFrame frame = (PandasFrame) getFrame();
 		String table = frame.getName();
 		
 		String srcCol = this.keyValue.get(this.keysToGet[0]);
 		List<String> options = getOptions(this.keysToGet[1]);
 		// make sure source column exists
-		String[] startingColumns = getColumns(table);
+		String[] startingColumns = getColumns(frame);
 		List<String> startingColumnsList = new Vector<String>(startingColumns.length);
 		startingColumnsList.addAll(Arrays.asList(startingColumns));
 		if (srcCol == null || !startingColumnsList.contains(srcCol)) {
@@ -58,38 +57,38 @@ public class DateExpanderReactor extends AbstractRFrameReactor {
 		List<String> addedColumnOptions = new Vector<String>(numColumnsToAdd);
 		addedColumnOptions.addAll(options);
 		StringBuilder script = new StringBuilder();
-		for(int i = 0; i < numColumnsToAdd; i++){
+		for(int i = 0; i < numColumnsToAdd; i++) {
 			String newColName = srcCol + "_" + options.get(i);
 			newColName = getCleanNewColName(frame, newColName);
 			addedColumnNames.add(newColName);
 			if(options.get(i).equals(YEAR)){
-				script.append(table).append("$").append(newColName).append(" <- format( ").append(table).append("$").append(srcCol).append(", \"%Y\");");
+				script.append(table).append("['").append(newColName).append("'] = ").append(table).append("['").append(srcCol).append("'].dt.year\n");
 				addedColumnDataType.put(newColName, SemossDataType.INT.toString());
 			}
 			else if(options.get(i).equals(MONTH)){
-				script.append(table).append("$").append(newColName).append(" <- format( ").append(table).append("$").append(srcCol).append(", \"%m\");");
+				script.append(table).append("['").append(newColName).append("'] = ").append(table).append("['").append(srcCol).append("'].dt.month\n");
 				addedColumnDataType.put(newColName, SemossDataType.INT.toString());
 			}
 			else if(options.get(i).equals(MONTH_NAME)){
-				script.append(table).append("$").append(newColName).append(" <- format( ").append(table).append("$").append(srcCol).append(", \"%B\");");
+				script.append(table).append("['").append(newColName).append("'] = ").append(table).append("['").append(srcCol).append("'].dt.month_name()\n");
 				addedColumnDataType.put(newColName, SemossDataType.STRING.toString());
 			}
 			else if(options.get(i).equals(DAY)){
-				script.append(table).append("$").append(newColName).append(" <- format( ").append(table).append("$").append(srcCol).append(", \"%d\");");
+				script.append(table).append("['").append(newColName).append("'] = ").append(table).append("['").append(srcCol).append("'].dt.day\n");
 				addedColumnDataType.put(newColName, SemossDataType.INT.toString());
 			}
 			else if(options.get(i).equals(WEEKDAY)){
-				script.append(table).append("$").append(newColName).append(" <- format( ").append(table).append("$").append(srcCol).append(", \"%A\");");
+				script.append(table).append("['").append(newColName).append("'] = ").append(table).append("['").append(srcCol).append("'].dt.day_name()\n");
 				addedColumnDataType.put(newColName, SemossDataType.STRING.toString());
 			}
 		}
-		this.rJavaTranslator.runR(script.toString());
+		frame.runScript(script.toString());
 		
 		// check to make sure columns are actually in the frame	
 		// if nothing added
 		// throw illegal argument exception
 		List<String> endColumnsList = new Vector<String>(startingColumns.length + numColumnsToAdd);
-		endColumnsList.addAll(Arrays.asList(this.rJavaTranslator.getColumns(table)));
+		endColumnsList.addAll(Arrays.asList(getColumns(frame)));
 		// remove all the column names from the table from the ones we added
 		// if it is empty, all are added
 		// if the size is the same as at the start, none were added
