@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.OWL;
@@ -69,7 +70,6 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
-import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SparqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -169,29 +169,26 @@ public abstract class AbstractEngine implements IEngine {
 				loadInsightsRdbms();
 				
 				// load the rdf owl db
-				String owlFile = prop.getProperty(Constants.OWL);
+				String owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
 				if(owlFile != null) {
+					File owlF = new File(owlFile);
 					// need a check here to say if I am asking this to be remade or keep what it is
-					if(owlFile.equalsIgnoreCase("REMAKE")) {
+					if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
 						// the process of remake will start here
 						// see if the usefile is there
-						if(this.prop.containsKey(USE_FILE)) {
-							String csvFile = SmssUtilities.getDataFile(this.prop).getAbsolutePath();
-							owlFile = csvFile.replace("data/", "") + ".OWL";
-							//Map <String, String> paramHash = new Hashtable<String, String>();
-							
-							String fileName = Utility.getOriginalFileName(csvFile);
-							// make the table name based on the fileName
-							String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
-							owlFile = baseFolder + "/db/" + getEngineId() + "/" + cleanTableName + ".OWL";
-							
-							CSVToOwlMaker maker = new CSVToOwlMaker();
-							maker.makeOwl(csvFile, owlFile, getEngineType());
-							owlFile = "/db/" + SmssUtilities.getUniqueName(this.prop) + "/" + cleanTableName + ".OWL";
-							
-							if(this.prop.containsKey("REPLACE_OWL")) {
-								Utility.updateSMSSFile(propFile, Constants.OWL, owlFile);
+						if(this.prop.containsKey(DATA_FILE)) {
+							String owlFileName = null;
+							String dataFile = SmssUtilities.getDataFile(this.prop).getAbsolutePath();
+							if(owlFile.equals("REMAKE")) {
+								// we will make the name
+								File dF = new File(dataFile);
+								owlFileName = this.engineName + "_OWL.OWL";
+								owlFile = dF.getParentFile() + DIR_SEPARATOR + owlFileName;
+							} else {
+								owlFileName = FilenameUtils.getName(owlFile);
 							}
+							
+							owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
 						} else {
 							owlFile = null;
 						}
@@ -214,6 +211,22 @@ public abstract class AbstractEngine implements IEngine {
 		} 
 	}
 	
+	/**
+	 * Generate the OWL based on a flat file
+	 * @param dataFile
+	 * @param owlFile
+	 * @param owlFileName
+	 * @return
+	 */
+	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) {
+		CSVToOwlMaker maker = new CSVToOwlMaker();
+		maker.makeFlatOwl(dataFile, owlFile, getEngineType(), true);
+		if(owlFile.equals("REMAKE")) {
+			Utility.changePropMapFileValue(this.propFile, Constants.OWL, owlFileName);
+		}
+		return owlFile;
+	}
+
 	@Override
 	public void closeDB() {
 		if(this.baseDataEngine != null) {
@@ -362,7 +375,6 @@ public abstract class AbstractEngine implements IEngine {
 		}
 	}
 	
-
 	/**
 	 * Gets the base data engine.
 	 * 

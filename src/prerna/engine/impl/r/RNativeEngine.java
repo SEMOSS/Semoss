@@ -52,6 +52,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.RImporter;
+import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -138,6 +139,22 @@ public class RNativeEngine extends AbstractEngine {
 		
 		// store the data types
 		this.columnTypes = this.dt.getMetaData().getHeaderToTypeMap();
+	}
+	
+	/**
+	 * Generate the OWL based on a flat file
+	 * @param dataFile
+	 * @param owlFile
+	 * @param owlFileName
+	 * @return
+	 */
+	protected String generateOwlFromFlatFile(String dataFile, String owlFile, String owlFileName) {
+		CSVToOwlMaker maker = new CSVToOwlMaker();
+		maker.makeFlatOwl(dataFile, owlFile, getEngineType(), false);
+		if(owlFile.equals("REMAKE")) {
+			Utility.changePropMapFileValue(this.propFile, Constants.OWL, owlFileName);
+		}
+		return owlFile;
 	}
 
 	@Override
