@@ -15,58 +15,48 @@ public class CSVToOwlMaker {
 	 * @param owlFileLocation
 	 * @param engineType
 	 */
-	public void makeOwl(String csvFile, String owlFileLocation, IEngine.ENGINE_TYPE engineType) {
-		// really simple
-		// load the csv
-		// find what the types are
-		// generate a owl file based on headers
-		// later move into semantic blending
-		
-		
+	public void makeFlatOwl(String csvFile, String owlFileLocation, IEngine.ENGINE_TYPE engineType, boolean addUniqueId) {
+		// get the headers + types + additional types
+		// based on the csv parsing
+		// and then generate a new OWL file
+
 		CSVFileHelper helper = new CSVFileHelper();
 		// parse and collect headers
 		helper.parse(csvFile);
 		helper.collectHeaders();
-		
+
 		String [] headers = helper.getHeaders();
 		Object [][] typePredictions = helper.predictTypes();
-		
+
 		String fileName = Utility.getOriginalFileName(csvFile);
-		// make the table name based on the fileName
 		String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
-		
-		String identityColumn = cleanTableName + "_UNIQUE_ROW_ID";
 
 		Owler owler = new Owler(owlFileLocation, engineType);
-				
-		// need to add metadata
-		// the unique row id becomes the primary key for every other 
-		// column in the csv file
-		// TODO: should we add it as LONG, or as VARCHAR... 
-		//		as a VARCHAR, it would make it default to always (and only) be used with counts via the UI
-		//		don't see why a person would every want to do sum/avg/etc. on it....
 		owler.addConcept(cleanTableName, null, null);
-		owler.addProp(cleanTableName, identityColumn, "LONG");
+		if(addUniqueId) {
+			String identityColumn = cleanTableName + "_UNIQUE_ROW_ID";
+			owler.addProp(cleanTableName, identityColumn, "LONG", null);
+		}
+		
 		for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
 			String cleanHeader = RDBMSEngineCreationHelper.cleanTableName(headers[headerIndex]);
-			owler.addProp(cleanTableName, identityColumn, cleanHeader, typePredictions[headerIndex][1].toString());
+			owler.addProp(cleanTableName, cleanHeader, typePredictions[headerIndex][0].toString(), (String) typePredictions[headerIndex][1]);
 		}
+		
 		owler.commit();
 		try {
 			owler.export();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 	}
-	
+
 	public static void main(String [] args) {
 		DIHelper.getInstance().loadCoreProp("C:/Users/pkapaleeswaran/workspacej3/MonolithDev3/RDF_Map_web.prop");
 
 		String fileName = "C:/Users/pkapaleeswaran/workspacej3/datasets/Movie.csv";
 		String owlFile = "C:/Users/pkapaleeswaran/workspacej3/datasets/MovieOWL.OWL";
 		CSVToOwlMaker maker = new CSVToOwlMaker();
-		maker.makeOwl(fileName,owlFile, IEngine.ENGINE_TYPE.RDBMS);
+		maker.makeFlatOwl(fileName, owlFile, IEngine.ENGINE_TYPE.RDBMS, true);
 	}
 }
