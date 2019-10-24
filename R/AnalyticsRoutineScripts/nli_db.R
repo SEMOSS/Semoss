@@ -1,4 +1,13 @@
-nliapp_mgr_global<-function(txt,db,joins=data.frame(),filename="unique-values-table.rds",refine=TRUE){
+nl_search<-function(txt,db,joins=data.frame(),filename="unique-values-table.rds",basic=TRUE){
+	if(basic){
+		p<-nliapp_mgr_basic(txt,db,joins,filename)
+	}else{
+		p<-nliapp_mgr_comprehensive(txt,db,joins,filename)
+	}
+	return(p)
+}
+
+nliapp_mgr_comprehensive<-function(txt,db,joins=data.frame(),filename="unique-values-table.rds"){
 	library(data.table)
 	library(plyr)
 	library(udpipe)
@@ -19,15 +28,14 @@ nliapp_mgr_global<-function(txt,db,joins=data.frame(),filename="unique-values-ta
 	# identify multip words column names
 	txt<-db_match_extension(txt,db$Column)
 	df_in<-parse_question_mgr(txt)
-	# get all appids used in the request
-	# refinement is needed if it is desired and there are more than 1 app
-	refine<-refine & (length(unique(db$AppID))>1)
-	if(refine){
+
+	if(length(unique(db$AppID))>1){
 		refined_df<-filter_apps(df_in,db)
 		apps<-refined_df[[1]]
+		
 		# establish repository across the apps
 		global_apps<-refined_df[[3]]
-		global_db<-db[db$AppID %in% global_apps,]
+		global_db<-refined_df[[2]]
 		# add links across the apps
 		if(length(global_apps)>1){
 			global_joins<-joins[joins$AppID %in% global_apps,]
@@ -36,15 +44,20 @@ nliapp_mgr_global<-function(txt,db,joins=data.frame(),filename="unique-values-ta
 			if(nrow(ext_links)>0){
 				global_joins<-rbind(global_joins,ext_links)
 			}
+			out<-sift_apps_ext(global_db,global_joins)
+			global_db<-out[[1]]
+			global_joins<-out[[2]]
 		}else{
 			global_db<-data.frame()
 			global_joins<-data.frame()
 		}
-		# setup individual recpsitories
-		db<-refined_df[[2]]
+		# setup individual repositories
+		db<-global_db[global_db$AppID %in% apps,]
 		max_freq<-refined_df[[4]]
 	}else{
 		# no global
+		refined_df<-filter_apps(df_in,db)
+		db<-refined_df[[2]]
 		apps<-unique(db$AppID)
 		global_db<-data.frame()
 		global_joins<-data.frame()
@@ -74,6 +87,9 @@ nliapp_mgr_global<-function(txt,db,joins=data.frame(),filename="unique-values-ta
 				}else{
 					cur_joins<-joins
 				}
+				out<-sift_apps_ext(cur_db,cur_joins)
+				cur_db<-out[[1]]
+				cur_joins<-out[[2]]
 			}else{
 				# prepare combined apps
 				cur_app<-"combined"
@@ -82,7 +98,7 @@ nliapp_mgr_global<-function(txt,db,joins=data.frame(),filename="unique-values-ta
 				cur_joins<-global_joins
 			}
 			# process a single app
-			app_out<-process_app(cur_app,df_in,cur_db,cur_joins,cur_values,refine)
+			app_out<-process_app(cur_app,df_in,cur_db,cur_joins,cur_values)
 			r<-rbindlist(list(r,app_out[[1]]))
 			phased_pixel<-app_out[[2]]
 			if(nrow(phased_pixel)>0){
@@ -107,6 +123,158 @@ nliapp_mgr_global<-function(txt,db,joins=data.frame(),filename="unique-values-ta
 	write.csv(p,file="query_object.csv")
 	return(p)
 }
+nliapp_mgr_basic<-function(txt,db,joins=data.frame(),filename="unique-values-table.rds"){
+	library(data.table)
+	library(plyr)
+	library(udpipe)
+	library(stringdist)
+	library(igraph)
+	library(SteinerNet)
+		
+	r<-data.table(Response=character(),AppID=character(),Statement=character())
+	p<-data.table(label=character(),appid=character(),appid2=character(),part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character(),phase=integer(),pick=character())
+	
+	db$Table<-paste(db$AppID,db$Table,sep="._.")
+	joins$tbl1<-paste(joins$AppID,joins$tbl1,sep="._.")
+	joins$tbl2<-paste(joins$AppID,joins$tbl2,sep="._.")
+	joins$AppID2<-joins$AppID
+	# save the original db
+	db_in<-db
+	
+	# identify multip words column names
+	txt<-db_match_extension(txt,db$Column)
+	df_in<-parse_question_mgr(txt)
+	# get all appids used in the request
+	refined_df<-filter_apps(df_in,db)
+	global_apps<-refined_df[[3]]
+	global_db<-refined_df[[2]]
+	N<-length(global_apps)
+	if(N>1){
+		# multiple db relevant
+		# add links across the apps
+		global_joins<-joins[joins$AppID %in% global_apps,]
+		# get inter apps links and add to the joins if exist
+		ext_links<-get_ext_links(global_db)
+		if(nrow(ext_links)>0){
+			global_joins<-rbind(global_joins,ext_links)
+		}
+		out<-sift_apps_ext(global_db,global_joins)
+		global_db<-out[[1]]
+		global_joins<-out[[2]]
+	}else if(N==1){
+		# no global
+		apps<-global_apps
+		db<-global_db[global_db$AppID==apps,]
+		global_db<-data.frame()
+		global_joins<-data.frame()
+	}else{
+		apps<-vector()
+	}
+	if(file.exists(filename)){
+		db_values<-readRDS(filename)
+	}else{
+		db_values<-data.frame(AppID=character(),Table=character(),Column=character(),Values=character(),stringsAsFactors=FALSE)
+	}
+	if(N>0){
+		if(N==1){	
+			# Run a single app
+			cur_app<-apps
+			cur_db<-db
+			cur_values<-db_values[db_values$AppID==apps,]
+			if(nrow(joins)!=0){
+				cur_joins<-joins[joins$AppID==apps,]
+			}else{
+				cur_joins<-joins
+			}
+			out<-sift_apps_ext(cur_db,cur_joins)
+			cur_db<-out[[1]]
+			cur_joins<-out[[2]]
+		}else{
+			# prepare combined apps
+			cur_app<-"combined"
+			cur_values<-db_values[db_values$AppID %in% global_apps,]
+			cur_db<-global_db
+			cur_joins<-global_joins
+		}
+		# process app either a single ir combined
+		app_out<-process_app(cur_app,df_in,cur_db,cur_joins,cur_values)
+		r<-rbindlist(list(r,app_out[[1]]))
+		phased_pixel<-app_out[[2]]
+		if(nrow(phased_pixel)>0){
+			p<-rbind(p,phased_pixel)
+		}
+	}else{
+		r<-rbindlist(list(r,list("Error","","Rephrase the request: no applicable databases found")))
+	}
+	# keep only query object if at least one of the results is proper
+	if(nrow(r[r$Response == "SQL",])==0){
+		p<-data.table(appid=character(),part=character(),item1=character(),item2=character(),item3=character(),item4=character(),item5=character(),item6=character(),item7=character())
+		n<-nrow(r)
+		if(n>0){
+			for(i in 1:n){
+				p<-rbindlist(list(p,list(r$AppID[i],r$Response[i],r$Statement[i],"","","","","","")))
+			}
+		}
+	}
+	gc()
+	# for debugging purposes only!!!
+	write.csv(p,file="query_object.csv")
+	return(p)
+}
+
+grp_cnt<-function(grp,mydb){
+	words<-unique(mydb[mydb$Table %in% grp,"Word"])
+	words<-words[nchar(words)>0]
+	return(length(words))
+}
+
+sift_apps_ext<-function(db,joins){
+	library(igraph)
+	db<-db[order(db$Word,-db$Score),]
+	# construct graph from edges
+	g<-graph_from_edgelist(as.matrix(joins[,1:2]),directed=FALSE)
+	# identify connected components
+	clu<-components(g,mode="weak")
+	grps<-groups(clu)
+	
+	# count number of columns from the request in each group of connected tables and select groups with max
+	cnt<-unlist(lapply(grps,grp_cnt,db))
+	if(length(cnt)>0){
+		max_cnt<-max(cnt)
+	}else{
+		max_cnt<-0
+	}
+	ind<-which(cnt==max_cnt)
+	if(length(ind)>0){
+		mytbls<-unlist(grps[ind])
+	}else{
+		mytbls<-vector()
+	}
+	# count number of columns from the request in single tables
+	joins_tbls<-unique(c(joins$tbl1,joins$tbl2))
+	singles<-unique(db[!(db$Table %in% joins_tbls) & db$Score>0,"Table"])
+	singles_cnt<-unlist(lapply(singles,grp_cnt,db))
+	if(length(singles_cnt)>0){
+		max_singles_cnt<-max(singles_cnt)
+	}else{
+		max_singles_cnt<-0
+	}
+	ind<-which(singles_cnt>=max_cnt & singles_cnt==max_singles_cnt)
+	if(length(ind)>0){
+		mytbls<-append(mytbls,singles[ind])
+	}
+
+	# filter db and joins based on the retained tables
+	mydb<-db[db$Table %in% mytbls,]
+	myjoins<-joins[joins$tbl1 %in% mytbls | joins$tbl2 %in% mytbls,]
+	
+	myList<-list()
+	myList[[1]]<-mydb
+	myList[[2]]<-myjoins
+	gc()
+	return(myList)
+}
+
 
 get_ext_links<-function(db,threshold=0.925){
 	apps<-unique(db$AppID)
@@ -388,12 +556,12 @@ get_all_trees_cnt<-function(all_trees){
 }
 
 # process single app
-process_app<-function(appid,df_in,cur_db,cur_joins,cur_values,refine){
+process_app<-function(appid,df_in,cur_db,cur_joins,cur_values){
 	r<-data.table(Response=character(),AppID=character(),Statement=character())
 	# current appid only used to fill in the final results
 	
 	# Prepare request for current db
-	df<-parse_request(df_in,cur_db,refine)
+	df<-parse_request(df_in,cur_db)
 	
 	# get columns used in the request
 	cols<-as.character(df[df$itemtype == "column","item"])
@@ -417,11 +585,9 @@ process_app<-function(appid,df_in,cur_db,cur_joins,cur_values,refine){
 			# Start constructing the query object
 			df$processed<-"no"
 			out<-get_start(df)
-			if(!is.null(out[[1]]) & !is.null(out[[2]])){
-				select_part<-get_select(out[[1]])
-				mypart<-get_where(out[[2]],request_tbls,cur_joins,cur_values)
-				if(length(mypart[[5]])>0){
-					cols<-append(cols,mypart[[5]])
+			if(length(out)==1){
+				if(!is.null(out[[1]])){
+					select_part<-get_select(out[[1]])
 					out<-join_clause_mgr(cols,cur_db,cur_joins)
 					if(out[[1]]==""){
 						from_clause<-out[[2]]
@@ -435,51 +601,80 @@ process_app<-function(appid,df_in,cur_db,cur_joins,cur_values,refine){
 						response<-"Error"
 						next
 					}
+					pixel_single_select<-build_pixel_single_select(select_part,request_tbls,cur_db)
+					pixel_aggr_select<-data.frame()
+					pixel_where<-data.frame()
+					pixel_group<-data.frame()
+					pixel_having<-data.frame()
 				}else{
-					pixel_from<-build_pixel_from(from_joins)
-					request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
-					request_tbls<-request_tbls[request_tbls!=""]
-					response<-"SQL"
+					response<-"Error"
+					sql<-"Rephrase the request"
 				}
-				
-				
-				where_part<-mypart[[1]]
-				having_part<-mypart[[3]]
-				mypart1<-validate_select(select_part,mypart[[2]])
-				# append misfits from having clause
-				select_aggr<-append(mypart1[[1]],mypart[[4]])
-				select_part<-mypart1[[2]]
-				group_part<-mypart1[[3]]
-				# if groupping present then all non aggregate select should be in groups
-				# aggregates from having clause place in the select to make the results easier to understand
-				if(length(having_part)>0){
-					group_part<-unique(append(group_part,select_part))
-					select_aggr<-select_having(having_part)
-				}
-				# add to select section all group columns if they are not there
-				if(length(group_part)>0){
-					select_part<-unique(append(group_part,select_part))
-				}			
-				
-				# add where columns into select section
-				if(length(where_part)>0){
-					# if we do not have aggregate columns we can add columns from where to the select section
-					if(length(select_aggr)==0){
-						select_part<-unique(append(select_part,select_where(where_part,request_tbls,cur_db)))
+			}else{
+				if(!is.null(out[[1]]) & !is.null(out[[2]])){
+					select_part<-get_select(out[[1]])
+					mypart<-get_where(out[[2]],request_tbls,cur_joins,cur_values)
+					if(length(mypart[[5]])>0){
+						cols<-append(cols,mypart[[5]])
+						out<-join_clause_mgr(cols,cur_db,cur_joins)
+						if(out[[1]]==""){
+							from_clause<-out[[2]]
+							from_joins<-unique(out[[3]])
+							pixel_from<-build_pixel_from(from_joins)
+							request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
+							request_tbls<-request_tbls[request_tbls!=""]
+							response<-"SQL"
+						}else{
+							sql<-out[[1]]
+							response<-"Error"
+							next
+						}
+					}else{
+						pixel_from<-build_pixel_from(from_joins)
+						request_tbls<-unique(c(from_joins$tbl1,from_joins$tbl2))
+						request_tbls<-request_tbls[request_tbls!=""]
+						response<-"SQL"
 					}
+					
+					
+					where_part<-mypart[[1]]
+					having_part<-mypart[[3]]
+					mypart1<-validate_select(select_part,mypart[[2]])
+					# append misfits from having clause
+					select_aggr<-append(mypart1[[1]],mypart[[4]])
+					select_part<-mypart1[[2]]
+					group_part<-mypart1[[3]]
+					# if groupping present then all non aggregate select should be in groups
+					# aggregates from having clause place in the select to make the results easier to understand
+					if(length(having_part)>0){
+						group_part<-unique(append(group_part,select_part))
+						select_aggr<-select_having(having_part)
+					}
+					# add to select section all group columns if they are not there
+					if(length(group_part)>0){
+						select_part<-unique(append(group_part,select_part))
+					}			
+					
+					# add where columns into select section
+					if(length(where_part)>0){
+						# if we do not have aggregate columns we can add columns from where to the select section
+						if(length(select_aggr)==0){
+							select_part<-unique(append(select_part,select_where(where_part,request_tbls,cur_db)))
+						}
+					}
+					pixel_where<-build_pixel_where(where_part,request_tbls,cur_db)
+					pixel_group<-build_pixel_group(group_part,request_tbls,cur_db)
+					
+					select_aggr<-get_alias(select_aggr)
+					pixel_aggr_select<-build_pixel_aggr_select(select_aggr,request_tbls,cur_db)
+					
+					pixel_single_select<-build_pixel_single_select(select_part,request_tbls,cur_db)
+					# Initially it is an empty clause
+					pixel_having<-build_pixel_having(having_part,request_tbls,cur_db)
 				}
-				pixel_where<-build_pixel_where(where_part,request_tbls,cur_db)
-				pixel_group<-build_pixel_group(group_part,request_tbls,cur_db)
-				
-				select_aggr<-get_alias(select_aggr)
-				pixel_aggr_select<-build_pixel_aggr_select(select_aggr,request_tbls,cur_db)
-				
-				pixel_single_select<-build_pixel_single_select(select_part,request_tbls,cur_db)
-				# Initially it is an empty clause
-				pixel_having<-build_pixel_having(having_part,request_tbls,cur_db)
 			}
 		}
-		# complete building sql nad pixel objects
+		# complete building sql and pixel objects
 		if(response == "SQL"){
 			sql<-"Correct sql"
 			r<-rbindlist(list(r,list("SQL",appid,"Correct SQL")))
@@ -695,12 +890,12 @@ get_start<-function(parsed_df){
 		if(nrow(nsubj)>0){
 			# Identify possible select nodes
 			out[[1]]<-get_subtree(parsed_df,as.integer(nsubj$token_id))
-		}
-		if(nrow(obj)>0){
-			# Identify possible select nodes
-			#out[[2]]<-get_subtree(parsed_df,as.integer(obj$token_id))
-			# include root
-			out[[2]]<-rbind(root,get_subtree(parsed_df,as.integer(obj$token_id)))
+			if(nrow(obj)>0){
+				# Identify possible select nodes
+				#out[[2]]<-get_subtree(parsed_df,as.integer(obj$token_id))
+				# include root
+				out[[2]]<-rbind(root,get_subtree(parsed_df,as.integer(obj$token_id)))
+			}
 		}
 	}
 	return(out)
@@ -909,13 +1104,17 @@ expose_column<-function(tbls,joins,value,cur_values,threshold=0.9){
 		new_tbls<-unique(col_rows$Table)
 		if(length(new_tbls)>1){
 			g<-graph_from_edgelist(as.matrix(joins[,1:2]),directed=FALSE)
-			distances<-distances(g,v=new_tbls,to=tbls)
-			d<-apply(distances, 1, function(x) min(x[x!=0]) )
-			my_row<-which(d==min(d) & is.finite(d))
-			if(length(my_row)>0){
-				new_tbl<-new_tbls[my_row[1]]
-				new_col[1]<-col_rows[col_rows$Table==new_tbl,]$Column[1]
-				new_col[2]<-col_rows[col_rows$Table==new_tbl,]$Value[1]
+			vertices<-unique(names(V(g)))
+			new_tbls<-intersect(vertices,new_tbls)
+			if(length(new_tbls)>0){
+				distances<-distances(g,v=new_tbls,to=tbls)
+				d<-apply(distances, 1, function(x) min(x[x!=0]) )
+				my_row<-which(d==min(d) & is.finite(d))
+				if(length(my_row)>0){
+					new_tbl<-new_tbls[my_row[1]]
+					new_col[1]<-col_rows[col_rows$Table==new_tbl,]$Column[1]
+					new_col[2]<-col_rows[col_rows$Table==new_tbl,]$Value[1]
+				}
 			}
 		}else{
 			new_col[1]<-col_rows$Column[1]
@@ -962,7 +1161,6 @@ get_where<-function(where_df,tbls,joins,cur_values){
 				if(nrow(child)>0){
 					right_part<-validate_like(node$token)
 					where_part<-append(where_part,paste0(child$item[1],right_part))
-					#where_part<-append(where_part,paste0(child$item[1]," = ",node$token))
 					where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
 				}else{
 					compare<-where_df[where_df$dep_rel=="conj" & where_df$xpos=="JJR" & where_df$processed=="no",]
@@ -1215,11 +1413,11 @@ get_subtree<-function(df,leaves,excl=vector()){
 	return(out)	
 }
 
-parse_request<-function(df_in,db,refine){
+parse_request<-function(df_in,db){
 	# to handle column names that are not nouns or adjectives 
-	df1<-map_dbitems(df_in,db)
+	df1<-tag_dbitems(df_in,db)
+	df1$source<-df1$token
 	df<-refine_parsing(df1)
-	df$source<-df1$token
 	gc()
 	return(df)
 }
@@ -1229,7 +1427,7 @@ tag_dbitems<-function(df_in,db){
 	ind<-which(db$Word != "")
 	mydf<-db[ind,]
 	# make sure we keep the best score
-	mydf<-mydf[order(mydf$AppID,mydf$Word,-mydf$Score),]
+	mydf<-mydf[order(mydf$Word,-mydf$Score,mydf$AppID),]
 	mydf<-mydf[!duplicated(mydf$Word),]
 	x<-as.data.frame(df_in$token)
 	y<-mydf$Column[match(unlist(x), mydf$Word)]
@@ -1309,44 +1507,6 @@ replace_words<-function(words){
 	return(words)
 }
 
-db_match<-function(db,token,xpos,type="Column"){
-	THRESHOLD<-0.9
-	db_item<-vector()
-	
-	db$Column<-as.character(db$Column)
-	db$Table<-as.character(db$Table)
-		
-	# get neighbors from glove if not reserved
-	if(is_nlp_reserved(token)){
-		neighbors<-token
-	}else{
-		if(substr(xpos,1,2) %in% c("NN","JJ")){
-			neighbors<-glove_nlp_neighbors(token)
-			# eclude reserved words from neighbors
-			neighbors<-remove_nlp_reserved(neighbors)
-		}else{
-			neighbors<-token
-		}
-	}
-	if(length(neighbors)>0){
-		for(i in 1:length(neighbors)){
-			matches<-stringsim(tolower(neighbors[i]),tolower(db[,type]),method='jw', p=0.1)
-			if(max(matches) >= THRESHOLD){
-				ind<-min(which(matches==max(matches)))
-				db_item[1]<-db[ind,type]
-				if(type=="Column"){
-					db_item[2]<-db[ind,"Datatype"]
-				}
-				break
-			}
-		}
-	}
-	if(length(db_item) != 2){
-		db_item[1]<-""
-	}
-	return(db_item)
-}
-
 is_nlp_reserved<-function(words){
 	STOPWORDS<-c("not","no","best","highest","worst","lowest","greater","higher","larger","less","lower","smaller","equals","equal","total","average","highest","lowest","best","worst","many","number","count")
 	return(any(tolower(words) %in% STOPWORDS))
@@ -1360,46 +1520,25 @@ remove_nlp_reserved<-function(words){
 }
 
 filter_apps<-function(df_in,db,threshold=0.9){
+	STOPWORDS<-c("not","no","best","highest","worst","lowest","greater","higher","larger","less","lower","smaller","equals","equal","total","average","highest","lowest","best","worst","many","number","count")
 	library(plyr)
 	n<-nrow(df_in)
 	if(n>0){
 		db$Word<-""
 		db$Score<-0
-		for(i in 1:n){
-			token<-df_in[i,"token"]
-			# skip token in single quotes
-			if(substr(token,1,1)!="'" & substr(token,nchar(token),nchar(token))!="'"){	
-				# exclude reserved words
-				# if not reserved get all neighbors
-				if(is_nlp_reserved(token)){
-					neighbors<-token
-				}else{
-					# if not ADP or ADJ than continue
-					if(substr(df_in$xpos[i],1,2) %in% c("NN","JJ")){
-						neighbors<-glove_nlp_neighbors(token)
-						# eclude reserved words from neighbors
-						neighbors<-remove_nlp_reserved(neighbors)
-					}else{
-						neighbors<-token
-					}
-				}
-				if(length(neighbors)>0){
-					for(j in 1:length(neighbors))
-					{
-						matches<-stringsim(tolower(neighbors[j]),tolower(db$Column),method='jw', p=0.1)
-						ind<-which(matches>=threshold)
-						if(length(ind)>0){
-							db$Word[ind]<-token
-							db$Score[ind]<-matches[ind]
-							break
-						}
-					}
-				}
-				
-			}
-			
-		}
-	}
+		ind<-which(substr(df_in$token,1,1)!="'" & substr(df_in$token,nchar(df_in$token),nchar(df_in$token))!="'" & substr(df_in$xpos,1,2) %in% c("NN","JJ"))
+		ind2<-which(!(df_in$token %in% STOPWORDS))
+		idx<-intersect(ind,ind2)
+		matches<-1-stringdistmatrix(tolower(df_in$token[idx]),tolower(db$Column),method='jw', p=0.1)
+		x<-which(matches>threshold,arr.ind=T)
+		# if multiple db columns matching a word the highest scoring is match is selected
+		z<-as.data.frame(x)
+		z$score<-matches[x]
+		z<-z[order(z$col,-z$score),]
+		a<-as.matrix(z[!duplicated(z[,2]),1:2])
+		db[a[,2],"Word"]=df_in$token[idx[a[,1]]]
+		db[a[,2],"Score"]=matches[a]	
+	}	
 	df_apps<-unique(db[db$Word != "",c("AppID","Word")])
 	df_apps<-count(df_apps,"AppID")
 	
@@ -1414,34 +1553,11 @@ filter_apps<-function(df_in,db,threshold=0.9){
 	}
 	myList<-list()
 	myList[[1]]<-apps
-	myList[[2]]<-db[db$AppID %in% apps,]
+	myList[[2]]<-db[db$AppID %in% global_apps,]
 	myList[[3]]<-global_apps
 	myList[[4]]<-max_freq
 	gc()
 	return(myList)
-}
-
-map_dbitems<-function(df,db){
-	df$item<-""
-	df$itemtype<-""
-	df$itemdatatype<-""
-	
-	ind<-df[substr(df$xpos,1,2) %in% c("NN","JJ"),"token_id"]
-	n<-length(ind)
-	for(i in 1:n){
-		token<-df[ind[i],"token"]
-		xpos<-df[ind[i],"xpos"]
-		if(substr(token,1,1)!="'" & substr(token,nchar(token),nchar(token))!="'"){
-			item<-db_match(db,token,xpos,"Column")
-			if(item[1]!=""){
-				df[ind[i],"item"]<-item[1]
-				df[ind[i],"itemtype"]<-"column"
-				df[ind[i],"itemdatatype"]<-item[2]
-			}
-		}
-	}
-	gc()
-	return(df)
 }
 
 refine_parsing<-function(df){
@@ -1463,6 +1579,11 @@ optimize_joins<-function(cols,joins,cur_db){
 	# get the existing tables with required columns
 	if(nrow(joins)>0){
 		tbls<-as.character(unique(cur_db[tolower(cur_db$Column) %in% tolower(cols),"Table"]))
+		# if all columns exist in a single table just take this table
+		ind<-which(unlist(lapply(tbls, function(x) all(tolower(cols) %in% tolower(cur_db[cur_db$Table==x,"Column"])))))
+		if(length(ind)>0){
+			tbls<-tbls[ind[1]]
+		}
 		if(length(tbls)==1){
 			# if all columns in a single table
 			items<-unlist(strsplit(tbls,"._.",fixed=TRUE))
@@ -1493,8 +1614,6 @@ drop_extra_links<-function(cols,joins,cur_db){
 	nodes_df$label<-unlist(strsplit(nodes_df$node,"._.",fixed=TRUE))[c(FALSE,TRUE)]
 	
 	edges_df<-joins[,1:2]
-	#edges_df<-as.data.frame(as_edgelist(g,names=TRUE),stringsAsFactors=FALSE)
-	#colnames(edges_df)<-c("tbl1","tbl2")
 	# add terminal column nodes
 	join_cols<-vector()
 	for(i in 1:length(cols)){
@@ -1565,6 +1684,38 @@ assign_weights<-function(joins){
 	added_edges_cnt<-nrow(joins[joins$AppID != joins$AppID2,])
 	weights<-c(rep(INTRA,all_edges_cnt-added_edges_cnt),rep(INTER,added_edges_cnt))
 	return(weights)
+}
+
+connect_tables_alt<-function(tbls,joins){
+	if(length(tbls)>1){
+		g<-graph_from_edgelist(as.matrix(joins[,1:2]),directed=FALSE)
+		vertices<-unique(names(V(g)))
+		if(length(intersect(vertices,tbls))>0){
+			myweights<-assign_weights(joins)
+			# which tbls in our db
+			tbls<-intersect(vertices,tbls)
+			if(length(tbls)>1){	
+				distances<-distances(g,v=tbls,to=tbls)
+				n<-nrow(distances)
+				for(i in 1:(n-1)){
+					for(j in (i+1):n){
+						if(is.finite(distances[i,j])){
+							if(distances[i,j]>1){
+								paths<-all_shortest_paths(g,from=tbls[i],to=tbls[j],weights=myweights)[[1]]
+								tbls<-unique(append(tbls,names(unlist(paths))))
+							}
+						}
+					}
+				}
+			}else if(length(tbls)==0){
+				tbls<-vector()
+			}
+		}else{
+			tbls<-vector()
+		}
+	}
+	gc()
+	return(tbls)
 }
 
 connect_tables<-function(tbls,joins){
@@ -1705,30 +1856,4 @@ join_clause_mgr<-function(cols,cur_db,joins){
 	gc()
 	return(myList)
 }
-
-glove_nlp_neighbors<-function(word,nbr=10,threshold=0.85){
-	
-	library(text2vec)
-	if(!exists("glove_6B_50d_txt")){
-		glove_6B_50d_txt <<- readRDS("glove.rds")
-	}
-	cur_vector <- tryCatch({
-		glove_6B_50d_txt[word, , drop = FALSE]
-	}, error = function(e) {
-		return(NULL)
-	})
-	if(is.null(cur_vector)){
-		out<-word
-	}else{
-		cos_sim = sim2(x = glove_6B_50d_txt, y = cur_vector, method = "cosine", norm = "l2")
-		cos_sim<-cos_sim[cos_sim >= threshold,]
-		if(!is.null(attributes(cos_sim))){
-			out<-names(head(sort(cos_sim, decreasing = TRUE), nbr))
-		}else{
-			out<-word
-		}
-	}
-	return(out)
-}
-
 
