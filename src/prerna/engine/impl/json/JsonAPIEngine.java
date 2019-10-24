@@ -1,6 +1,7 @@
 package prerna.engine.impl.json;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
@@ -34,10 +36,9 @@ import com.jayway.jsonpath.PathNotFoundException;
 
 import net.minidev.json.JSONArray;
 import prerna.engine.impl.AbstractEngine;
-import prerna.poi.main.RDBMSEngineCreationHelper;
+import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.JsonInterpreter;
-import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -81,43 +82,34 @@ public class JsonAPIEngine extends AbstractEngine {
 				// load the rdf owl db
 				String owlFile = prop.getProperty(Constants.OWL);
 				
-				if (owlFile != null) {
+				if(owlFile != null) {
+					File owlF = new File(owlFile);
 					// need a check here to say if I am asking this to be remade or keep what it is
-					if(owlFile.equalsIgnoreCase("REMAKE"))
-					{
+					if(!owlF.exists() || owlFile.equalsIgnoreCase("REMAKE")) {
 						// the process of remake will start here
 						// see if the usefile is there
-						if(prop.containsKey(USE_FILE))
-						{
-							String csvFile = prop.getProperty(DATA_FILE);	
-							owlFile = csvFile.replace("data/", "") + ".OWL";
-							//Map <String, String> paramHash = new Hashtable<String, String>();
+						if(this.prop.containsKey(USE_FILE)) {
+							String owlFileName = null;
+							String dataFile = SmssUtilities.getDataFile(this.prop).getAbsolutePath();
+							if(owlFile.equals("REMAKE")) {
+								// we will make the name
+								File dF = new File(dataFile);
+								owlFileName = this.engineName + "_OWL.OWL";
+								owlFile = dF.getParentFile() + DIR_SEPARATOR + owlFileName;
+							} else {
+								owlFileName = FilenameUtils.getName(owlFile);
+							}
 							
-							paramHash.put("BaseFolder", DIHelper.getInstance().getProperty("BaseFolder"));
-							paramHash.put("ENGINE", getEngineId());
-							csvFile = Utility.fillParam2(csvFile, paramHash);
-
-							
-							String fileName = Utility.getOriginalFileName(csvFile);
-							// make the table name based on the fileName
-							String cleanTableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
-							owlFile = baseFolder + "/db/" + getEngineId() + "/" + cleanTableName + ".OWL";
-							
-							CSVToOwlMaker maker = new CSVToOwlMaker();
-							maker.makeOwl(csvFile, owlFile, getEngineType());
-							owlFile = "/db/" + getEngineId() + "/" + cleanTableName + ".OWL";
-							
-							if(prop.containsKey("REPLACE_OWL"))
-								Utility.updateSMSSFile(propFile, Constants.OWL, owlFile);
-						}
-						else
+							owlFile = generateOwlFromFlatFile(dataFile, owlFile, owlFileName);
+						} else {
 							owlFile = null;
+						}
 					}
-					if(owlFile != null)
-					{					
-						owlFile = Utility.fillParam2(owlFile, paramHash);
+					// set the owl file
+					if(owlFile != null) {
+						owlFile = SmssUtilities.getOwlFile(this.prop).getAbsolutePath();
 						logger.info("Loading OWL: " + owlFile);
-						setOWL(baseFolder + "/" + owlFile);
+						setOWL(owlFile);
 					}
 				}
 				// load properties object for db
