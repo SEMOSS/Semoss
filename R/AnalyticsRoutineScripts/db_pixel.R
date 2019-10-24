@@ -11,6 +11,7 @@ build_pixel_single_select<-function(select_part2,req_tbls,cur_db){
 			tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 			if(length(tbls)>0){
 				tbl<-tbls[1]
+				clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 				pixel_single_select<-rbindlist(list(pixel_single_select,list("select",tbl,clmn,"","","","","")))
 			}
 		}
@@ -28,6 +29,7 @@ build_pixel_group<-function(group_part,req_tbls,cur_db){
 			tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 			if(length(tbls)>0){
 				tbl<-tbls[1]
+				clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 				pixel_single_select<-rbindlist(list(pixel_single_select,list("group",tbl,clmn,"","","","","")))
 			}
 		}
@@ -51,6 +53,7 @@ build_pixel_aggr_select<-function(select_part1,req_tbls,cur_db){
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
+					clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 					pixel_aggr_select<-rbindlist(list(pixel_aggr_select,list("select",tbl,clmn,aggr,alias,"","","")))
 				}
 			}
@@ -82,6 +85,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 				tbls<-cur_db[cur_db$Column == clmn & cur_db$Table %in% req_tbls,"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
+					clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 					if(length(unlist(strsplit(x[2],"and")))==2){
 						y<-unlist(strsplit(x[2],"and"))
 						value<-trim(y[1])
@@ -111,6 +115,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
+						clmn2<-cur_db[cur_db$Table==tbl2 & tolower(clmn2) == tolower(cur_db$Column),"Column"]
 					}else{
 						tbl2<-""
 					}
@@ -122,6 +127,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
+					clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
 				}				
 			}else if(length(unlist(strsplit(having_part[i],"<=")))==2){
@@ -145,6 +151,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
+						clmn2<-cur_db[cur_db$Table==tbl2 & tolower(clmn2) == tolower(cur_db$Column),"Column"]
 					}else{
 						tbl2<-""
 					}
@@ -156,6 +163,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
+					clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
 				}	
 			}else if(length(unlist(strsplit(having_part[i],">")))==2){
@@ -179,6 +187,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
+						clmn2<-cur_db[cur_db$Table==tbl2 & tolower(clmn2) == tolower(cur_db$Column),"Column"]
 					}else{
 						tbl2<-""
 					}
@@ -190,6 +199,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
+					clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
 				}	
 			}else if(length(unlist(strsplit(having_part[i],"<")))==2){
@@ -213,6 +223,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn2) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
+						clmn2<-cur_db[cur_db$Table==tbl2 & tolower(clmn2) == tolower(cur_db$Column),"Column"]
 					}else{
 						tbl2<-""
 					}
@@ -224,6 +235,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
+					clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
 				}	
 			}else if(length(unlist(strsplit(having_part[i],"=")))==2){
@@ -250,6 +262,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 					tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn_val) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 					if(length(tbls)>0){
 						tbl2<-tbls[1]
+						clmn2<-cur_db[cur_db$Table==tbl2 & tolower(clmn2) == tolower(cur_db$Column),"Column"]
 					}else{
 						tbl2<-""
 					}
@@ -261,6 +274,7 @@ build_pixel_having<-function(having_part,req_tbls,cur_db){
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
+					clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 					pixel_having<-rbindlist(list(pixel_having,list("having",tbl,clmn,aggr,oper,tbl2,clmn2,aggr2)))
 				}	
 			}
@@ -283,6 +297,7 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 				tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 				if(length(tbls)>0){
 					tbl<-tbls[1]
+					clmn<-cur_db[cur_db$Table==tbl & tolower(clmn) == tolower(cur_db$Column),"Column"]
 					if(length(unlist(strsplit(x[2],"and")))==2){
 						y<-unlist(strsplit(x[2],"and"))
 						value<-trim(y[1])
@@ -340,6 +355,7 @@ build_pixel_where<-function(where_part,req_tbls,cur_db){
 
 where_helper<-function(item1,item2,oper,pixel_where,req_tbls,cur_db){
 	p1<-parse_aggr(cur_db,req_tbls,item1)
+	# if there are 3 element it is an aggregate otherwise it can be either value or column
 	if(length(p1) == 3){
 		item1=p1[2]
 	}
@@ -354,26 +370,42 @@ where_helper<-function(item1,item2,oper,pixel_where,req_tbls,cur_db){
 	#construct where
 	if(length(tbls1)>0 & length(tbls2)>0){
 		if(length(p1)==3 & length(p2)==3){
+			# both aggregate columns
 			pixel_where<-rbindlist(list(pixel_where,list("where",p1[1],p1[2],p1[3],oper,p2[1],p2[2],p2[3])))
 		}else if(length(p1)==3 & length(p2)!=3){
+			# first is aggregate column, second regular column
+			item2<-cur_db[cur_db$Table==tbls2[1] & tolower(item2) == tolower(cur_db$Column),"Column"]
 			pixel_where<-rbindlist(list(pixel_where,list("where",p1[1],p1[2],p1[3],oper,tbls2[1],item2,"")))
 		}else if(length(p1)!=3 & length(p2)==3){
+			# # first is regular column, second aggregate column
+			item1<-cur_db[cur_db$Table==tbls1[1] & tolower(item2) == tolower(cur_db$Column),"Column"]
 			pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,p2[1],p2[2],p2[3],"")))
 		}else{
+			# both regular columns
+			item1<-cur_db[cur_db$Table==tbls1[1] & tolower(item1) == tolower(cur_db$Column),"Column"]
+			item2<-cur_db[cur_db$Table==tbls2[1] & tolower(item2) == tolower(cur_db$Column),"Column"]
 			pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,tbls2[1],item2,"","")))
 		}	
 	}else if(length(tbls1)>0 & length(tbls2)==0){
+		# first is a column, second is a value
 		p1<-parse_aggr(cur_db,req_tbls,item1)	
 		if(length(p1)==3){
-			pixel_where<-rbindlist(list(pixel_where,list("where",p1[1],p1[2],p1[3],oper,tbls2[1],item2,"")))
+			# first is an aggregate column
+			pixel_where<-rbindlist(list(pixel_where,list("where",p1[1],p1[2],p1[3],oper,item2,"","")))
 		}else{
+			# first is a regular column
+			item1<-cur_db[cur_db$Table==tbls1[1] & tolower(item1) == tolower(cur_db$Column),"Column"]
 			pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,item2,"","","")))
 		}
 	}else if(length(tbls1)==0 & length(tbls2)>0){
+		# first is a value, second is a column
 		p2<-parse_aggr(cur_db,req_tbls,item2)
 		if(length(p2)==3){
-			pixel_where<-rbindlist(list(pixel_where,list("where",tbls1[1],item1,oper,p2[1],p2[2],p2[3],"")))
+			# second is an aggregate value
+			pixel_where<-rbindlist(list(pixel_where,list("where",item1,oper,p2[1],p2[2],p2[3],"","")))
 		}else{
+			# second is a regular column
+			item2<-cur_db[cur_db$Table==tbls2[1] & tolower(item2) == tolower(cur_db$Column),"Column"]
 			pixel_where<-rbindlist(list(pixel_where,list("where",item1,oper,tbls2[1],item2,"","","")))
 		}
 	}else if(length(tbls1)==0 & length(tbls2)==0){
@@ -393,6 +425,7 @@ parse_aggr<-function(cur_db,req_tbls,item){
 		tbls<-cur_db[tolower(cur_db$Column) == tolower(clmn) & tolower(cur_db$Table) %in% tolower(req_tbls),"Table"]
 		if(length(tbls)>0){
 			tbl<-tbls[1]
+			clmn<-cur_db[cur_db$Table==tbls & tolower(clmn) == tolower(cur_db$Column),"Column"]
 			parsed_value<-c(tbl,clmn,aggr)
 		}
 	}else{
