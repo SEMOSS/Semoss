@@ -189,9 +189,7 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-		noun.addAdditionalReturn(
-				new NounMetadata("Associated Learning ran successfully!", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Associated Learning ran successfully!"));
 		return noun;
 	}
 
