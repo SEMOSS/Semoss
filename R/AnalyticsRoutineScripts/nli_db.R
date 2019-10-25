@@ -47,12 +47,13 @@ nliapp_mgr_comprehensive<-function(txt,db,joins=data.frame(),filename="unique-va
 			out<-sift_apps_ext(global_db,global_joins)
 			global_db<-out[[1]]
 			global_joins<-out[[2]]
+			db<-global_db[global_db$AppID %in% apps,]
 		}else{
+			db<-global_db[global_db$AppID %in% apps,]
 			global_db<-data.frame()
 			global_joins<-data.frame()
 		}
 		# setup individual repositories
-		db<-global_db[global_db$AppID %in% apps,]
 		max_freq<-refined_df[[4]]
 	}else{
 		# no global
@@ -1637,7 +1638,7 @@ drop_extra_links<-function(cols,joins,cur_db){
 	}else{
 		g1<-graph_from_edgelist(as.matrix(edges_df),directed=FALSE)
 		cols_id<-which(V(g1)$name %in% join_cols)	
-		stree<-steinertree(type = "RSP", optimize = FALSE,terminals = cols_id,graph = g1,color = FALSE, merge = FALSE) 
+		stree<-steinertree(type = "RSP", optimize = TRUE,terminals = cols_id,graph = g1,color = FALSE, merge = FALSE) 
 		if(length(stree)==1){
 			new_joins<-as.data.frame(as_edgelist(stree[[1]],names=TRUE),stringsAsFactors=FALSE)
 			names(new_joins)<-c("tbl1","tbl2")
