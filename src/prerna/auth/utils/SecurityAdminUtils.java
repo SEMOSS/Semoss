@@ -160,7 +160,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 //		for(String groupId : groups){
 //			removeGroup(userToDelete, groupId);
 //		}
-		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; DELETE FROM GROUPMEMBERS WHERE USERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
+		String query = "DELETE FROM ENGINEPERMISSION WHERE USERID = '?1'; DELETE FROM USERINSIGHTPERMISSION WHERE USERID = '?1'; DELETE FROM USER WHERE ID = '?1';";
 		query = query.replace("?1", RdbmsQueryBuilder.escapeForSQLStatement(userToDelete));
 		securityDb.execUpdateAndRetrieveStatement(query, true);
 		securityDb.commit();
