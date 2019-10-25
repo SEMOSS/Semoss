@@ -100,9 +100,7 @@ public class RunOutlierReactor extends AbstractRFrameReactor {
 		
 		// now return this object
 		NounMetadata noun = new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-		noun.addAdditionalReturn(
-				new NounMetadata("Outlier ran succesfully! See new \"" + newColName + "\" column in the grid.", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Outlier ran succesfully! See new \"" + newColName + "\" column in the grid."));
 		return noun;
 	}
 	
