@@ -434,9 +434,16 @@ class PyFrame:
 			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'Y'))
 
 		return frame
-        
+
     # average across columns   
 	def avg_cols(this, cols_to_avg, new_col):
 		frame = this.cache['data']
 		frame[new_col] = frame[cols_to_avg].mean(axis=1)
+		this.cache['data'] = frame
+
+	def to_pct(this, src_col, new_col, sig_figs, by_100):
+		frame = this.cache['data']
+		rounded = round(frame[src_col], sig_figs)
+		multiplier = 100 if by_100 else 1
+		frame[new_col] = (multiplier * rounded).astype(str) + '%'
 		this.cache['data'] = frame
