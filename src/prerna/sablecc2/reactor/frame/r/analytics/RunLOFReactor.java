@@ -204,9 +204,7 @@ public class RunLOFReactor extends AbstractRFrameReactor {
 
 		// now return this object
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-		noun.addAdditionalReturn(
-				new NounMetadata("LOF ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid.", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("LOF ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid."));
 		return noun;
 	}
 
