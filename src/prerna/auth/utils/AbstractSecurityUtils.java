@@ -947,13 +947,16 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 
 	static String validEmail(String email){
-		if(!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
+		if(email == null || !email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$")){
 			return  email + " is not a valid email address. ";
 		}
 		return "";
 	}
 	
 	static String validPassword(String password){
+		if(password == null || password.isEmpty()) {
+			return "Password cannot be empty.";
+		}
 		Pattern pattern = Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})");
         Matcher matcher = pattern.matcher(password);
 		
