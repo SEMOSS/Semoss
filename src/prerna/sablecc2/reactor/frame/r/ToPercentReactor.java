@@ -49,23 +49,35 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		}
 
 		// build and run r script
-		StringBuilder rScript = new StringBuilder();
-		rScript.append(rFrameName).append("$");
+//		StringBuilder rScript = new StringBuilder();
+//		rScript.append(rFrameName).append("$");
+//		if (newColName == null || newColName.equals("")) {
+//			rScript.append(srcCol);
+//		} else {
+//			rScript.append(newColName);
+//		}
+//		rScript.append(" <- paste0(");
+//		if (by100) {
+//			rScript.append("100 * ");
+//		}
+//		rScript.append("round(").append(rFrameName).append("$").append(srcCol);
+//		rScript.append(", digits = ").append(sigDigits).append("), ").append("\"%\");");
+		
+		StringBuilder script = new StringBuilder();
+		script.append(rFrameName).append("$");
 		if (newColName == null || newColName.equals("")) {
-			rScript.append(srcCol);
+			script.append(srcCol);
 		} else {
-			rScript.append(newColName);
+			script.append(newColName);
 		}
-		rScript.append(" <- paste0(");
+		script.append(" <- paste0(format(round(" + rFrameName + "$" + srcCol);
 		if (by100) {
-			rScript.append("100 * ");
+			script.append(" * 100 ");
 		}
-		rScript.append("round(").append(rFrameName).append("$").append(srcCol);
-		rScript.append(", digits = ").append(sigDigits).append("), ").append("\"%\");");
-		this.rJavaTranslator.runR(rScript.toString());
+		script.append(", " + sigDigits + "), nsmall = " + sigDigits + "), '%')");
+		this.rJavaTranslator.runR(script.toString());
 
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-
 		if (newColName != null && !newColName.equals("")) {
 			retNoun.addAdditionalOpTypes(PixelOperationType.FRAME_HEADERS_CHANGE);
 			String addedColumnDataType = SemossDataType.STRING.toString();
