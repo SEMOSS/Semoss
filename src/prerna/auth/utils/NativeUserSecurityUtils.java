@@ -128,7 +128,7 @@ public class NativeUserSecurityUtils extends AbstractSecurityUtils {
 	 */
 	static void validInformation(AccessToken newUser, String password) throws IllegalArgumentException {
 		String error = "";
-		if(newUser.getUsername().isEmpty()){
+		if(newUser.getUsername() == null || newUser.getUsername().isEmpty()){
 			error += "User name can not be empty. ";
 		}
 		error += validEmail(newUser.getEmail());
