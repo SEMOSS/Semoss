@@ -18,7 +18,6 @@ public class SemanticDescription extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// TODO Auto-generated method stub
 		organizeKeys();
 		init();
 		String[] packages = { "WikidataR", "WikipediR", "curl", "httr", "jsonlite" };
