@@ -45,17 +45,15 @@ public class ColumnCountReactor extends AbstractFrameReactor {
 
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
-		//get frame name
-		String table = frame.getName();
+		//get wrapper name
+		String wrapperName = frame.getWrapperName();
 
-		List output = (List) frame.runScript(table+".get_hist('" + column + "')");
-
+		List output = (List) frame.runScript(wrapperName+".get_hist('" + column + "')");
 		// create the object with the right size
 		// the length will be the same as the number of unique values in the column
 		List keys = (List) output.get(0);
 		List vals = (List) output.get(1);
 		Object[][] retOutput = new Object[keys.size()][2];
-
 		for (int outputIndex = 0; outputIndex < keys.size(); outputIndex++) {
 			//we are storing each uniqe col val and its frequency
 			retOutput[outputIndex][0] = keys.get(outputIndex);
@@ -125,6 +123,5 @@ public class ColumnCountReactor extends AbstractFrameReactor {
 			return super.getDescriptionForKey(key);
 		}
 	}
-
 
 }
