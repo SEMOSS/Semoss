@@ -128,7 +128,24 @@ class PyFrame:
 			this.makeCopy()
 		nf = frame.replace({col_name: cur_value}, {new_col: new_value}, regex=regx, inplace=inplace)
 		print('replacing inplace')
-		
+	def regex_replace_val(this, col_name, old_value, new_value, inplace=True):
+		if not inplace:
+			this.makeCopy()
+		frame = this.cache['data']
+		# if new_value and type of column col_name are both numeric, then convert
+		# the column to str, do replace, and convert back to numeric
+		# (so we have the same functionality of doing regex on nums like there is on R with gsub)
+		is_new_value_a_num = is_numeric_dtype(type(new_value))
+		is_col_a_num = is_numeric_dtype(frame[col_name])
+		both_numeric = True if is_new_value_a_num and is_col_a_num else False
+		if both_numeric:
+			frame[col_name] = frame[col_name].astype(str)
+
+		frame.replace({col_name: old_value}, {col_name: new_value}, regex=True, inplace=inplace)
+		if both_numeric:
+			frame[col_name] = pd.to_numeric(frame[col_name])
+		this.cache['data'] = frame
+
 	def upper(this, col_name, inplace=True):
 		if not inplace:
 			this.makeCopy()
@@ -454,4 +471,14 @@ class PyFrame:
 		rounded = round(frame[src_col], sig_figs)
 		multiplier = 100 if by_100 else 1
 		frame[new_col] = (multiplier * rounded).astype(str) + '%'
+		this.cache['data'] = frame
+
+	def col_division(this, numerator, denominator, new_col):
+		frame = this.cache['data']
+
+		# Only attempt to divide if both columns are numeric
+		is_numerator_numeric = is_numeric_dtype(frame[numerator].dtype)
+		is_denominator_numeric = is_numeric_dtype(frame[denominator].dtype)
+		if is_numerator_numeric and is_denominator_numeric:
+			frame[new_col] = frame[numerator] / frame[denominator]
 		this.cache['data'] = frame
