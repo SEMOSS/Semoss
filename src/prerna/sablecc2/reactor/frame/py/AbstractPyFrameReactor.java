@@ -5,6 +5,8 @@ import java.util.List;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.imports.ImportUtility;
 
@@ -33,9 +35,12 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		// create the pandas frame
 		// and set up everything else
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName);
-		if(override) {
+		if (override) {
 			this.insight.setDataMaker(newFrame);
 		}
+		// update varStroe
+		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
+		this.insight.getVarStore().put(frame.getName(), noun);
 		
 		return newFrame;
 	}
