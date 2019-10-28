@@ -360,17 +360,23 @@ class PyFrame:
 
 	def collapse(this, group_col, agg_col, delim:object='', other_cols='assign'):
 		frame = this.cache['data']
+		# delim.join(x) line below only works on non-numeric columns
+		# if agg_col is numeric, convert to string
+		if is_numeric_dtype(frame[agg_col].dtype):
+			frame[agg_col] = frame[agg_col].astype(str)
+
 		res_frame = frame.groupby(group_col)[agg_col].apply(lambda x: delim.join(x)).reset_index()
-		res_frame = res_frame.rename(columns={agg_col:'Collapsed_' + agg_col})
-		#res_frame = pd.DataFrame(res_frame.index, res_frame.values).reset_index()
-		#res_frame.columns = ['COLLAPSE_' + agg_col, group_col]
-		#df.columns = ['COLLAPSE' + agg_col, group_col]
+		res_frame = res_frame.rename(columns={agg_col: 'Collapsed_' + agg_col})
+		# res_frame = pd.DataFrame(res_frame.index, res_frame.values).reset_index()
+		# res_frame.columns = ['COLLAPSE_' + agg_col, group_col]
+		# df.columns = ['COLLAPSE' + agg_col, group_col]
 		if other_cols != 'assign':
 			merger = frame[other_cols]
 			print(merger.columns)
 			print(res_frame.columns)
 			print(group_col)
-			res_frame = pd.DataFrame(res_frame).merge(merger, on=group_col)
+		res_frame = pd.DataFrame(res_frame).merge(merger, on=group_col)
+		this.cache['data'] = res_frame
 		return res_frame
 		
 	def join(this, input_col, new_col, delim=''):
