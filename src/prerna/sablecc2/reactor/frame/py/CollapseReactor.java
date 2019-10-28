@@ -63,7 +63,7 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 			maintainCols.append("]");			
 		}
 
-		String script = wrapperFrameName + ".cache['data'] = " + wrapperFrameName + ".collapse(" + groupByColsR + valueCol + delim + maintainCols + ")";
+		String script = frame.getName() + " = " + wrapperFrameName + ".collapse(" + groupByColsR + valueCol + delim + maintainCols + ")";
 		frame.runScript(script);
 						
 		frame = (PandasFrame) recreateMetadata(frame);
