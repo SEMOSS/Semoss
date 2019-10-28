@@ -238,8 +238,10 @@ class PyFrame:
 	# assimilate all the columns if the idcols = 'all'
 		if idcols == ['all']:
 			idcols = list(set(list(frame.columns.values)) - set(valcols))
-		output = pd.melt(mv, id_vars=idcols, value_vars=valcols)
-		this.cache['data'] = output
+		frame = pd.melt(frame, id_vars=idcols, value_vars=valcols)
+		print(frame.columns.values)
+		this.cache['data'] = frame
+		return frame
 		
 	def split_unpivot(this, col_name, delim, var = 'variable', inplace=True):
 		frame = this.cache['data']
