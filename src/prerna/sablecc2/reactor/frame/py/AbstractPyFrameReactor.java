@@ -38,7 +38,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		if (override) {
 			this.insight.setDataMaker(newFrame);
 		}
-		// update varStroe
+		// update varStore
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
 		this.insight.getVarStore().put(frame.getName(), noun);
 		
