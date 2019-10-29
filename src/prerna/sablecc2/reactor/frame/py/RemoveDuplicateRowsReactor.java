@@ -24,7 +24,7 @@ public class RemoveDuplicateRowsReactor extends AbstractFrameReactor {
 		String wrapperFrameName = frame.getWrapperName();
 		
 		//define the r script to be executed
-		String script = wrapperFrameName + "w.drop_dup()";
+		String script = wrapperFrameName + ".drop_dup()";
 		
 		//execute the r script
 		frame.runScript(script);
