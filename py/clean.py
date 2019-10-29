@@ -365,7 +365,8 @@ class PyFrame:
 			this.makeCopy()
 		if (~this.is_numeric(col_name)):
 			frame[col_name] = frame[col_name].str.strip()
-	
+		this.cache['data'] = frame
+
 	def stat(this, col_name):
 		frame = this.cache['data']	
 		return pd.DataFrame(frame[col_name].describe(include=np.number)).to_dict(orient='index')
@@ -383,7 +384,6 @@ class PyFrame:
 		# if agg_col is numeric, convert to string
 		if is_numeric_dtype(frame[agg_col].dtype):
 			frame[agg_col] = frame[agg_col].astype(str)
-
 		res_frame = frame.groupby(group_col)[agg_col].apply(lambda x: delim.join(x)).reset_index()
 		res_frame = res_frame.rename(columns={agg_col: 'Collapsed_' + agg_col})
 		# res_frame = pd.DataFrame(res_frame.index, res_frame.values).reset_index()
@@ -397,16 +397,14 @@ class PyFrame:
 		res_frame = pd.DataFrame(res_frame).merge(merger, on=group_col)
 		this.cache['data'] = res_frame
 		return res_frame
-		
+
 	def join(this, input_col, new_col, delim=''):
 		frame = this.cache['data']
-		
 		frame[new_col] = frame[input_col].apply(lambda x: delim.join(x), axis=1)
 		return frame
-	
+
 	def date_add_value(this, date_column, output_column, unit_of_measure, value):
 		frame = this.cache['data']
-		
 		if unit_of_measure == "day":
 			frame[output_column] = frame[date_column] + pd.Timedelta(day=value)
 		elif unit_of_measure == "week":
@@ -415,12 +413,10 @@ class PyFrame:
 			frame[output_column] = frame[date_column] + pd.Timedelta(M=value)
 		elif unit_of_measure == "year":
 			frame[output_column] = frame[date_column] + pd.Timedelta(Y=value)
-		
 		return frame
-	
+
 	def date_difference_columns(this, date_column1, date_column2, unit_of_measure, output_column):
 		frame = this.cache['data']
-
 		# perform the difference operation
 		frame[output_column] = frame[date_column1] -  frame[date_column2]
 		# get the correct unit from the object
@@ -433,20 +429,17 @@ class PyFrame:
 			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'M'))
 		elif unit_of_measure == "year":
 			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'Y'))
-
 		return frame
-	
+
 	def date_difference_constant(this, date_column, date_constant, direction_bool, unit_of_measure, output_column):
 		# direction_bool = true -> then date_column - date_constant
 		# direction_bool = false -> then date_constant - date_column
 		frame = this.cache['data']
-
 		# perform the difference operation
 		if direction_bool:
 			frame[output_column] = frame[date_column] -  pd.to_datetime(date_constant)
 		else:
 			frame[output_column] = pd.to_datetime(date_constant) - frame[date_column]
-		  
 		# get the correct unit from the object
 		# add rounding based on unit of measure
 		if unit_of_measure == "day":
@@ -457,10 +450,9 @@ class PyFrame:
 			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'M'))
 		elif unit_of_measure == "year":
 			frame[output_column] = round(frame[output_column] / np.timedelta64(1, 'Y'))
-
 		return frame
 
-    # average across columns   
+	# average across columns   
 	def avg_cols(this, cols_to_avg, new_col):
 		frame = this.cache['data']
 		frame[new_col] = frame[cols_to_avg].mean(axis=1)
@@ -475,7 +467,6 @@ class PyFrame:
 
 	def col_division(this, numerator, denominator, new_col):
 		frame = this.cache['data']
-
 		# Only attempt to divide if both columns are numeric
 		is_numerator_numeric = is_numeric_dtype(frame[numerator].dtype)
 		is_denominator_numeric = is_numeric_dtype(frame[denominator].dtype)
