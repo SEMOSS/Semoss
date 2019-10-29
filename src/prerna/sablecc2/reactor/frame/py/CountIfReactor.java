@@ -7,11 +7,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class CountIfReactor extends AbstractFrameReactor {
+public class CountIfReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor creates a new column based on the count of regex matches of
@@ -37,7 +36,10 @@ public class CountIfReactor extends AbstractFrameReactor {
 		if (column == null) {
 			column = getExistingColumn();
 		}
-
+		// clean column name
+		if (column.contains("__")) {
+			column = column.split("__")[1];
+		}
 		String regexToCount = this.keyValue.get(this.keysToGet[1]);
 		if (regexToCount == null) {
 			regexToCount = getRegex();

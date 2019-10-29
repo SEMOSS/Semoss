@@ -9,10 +9,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 
-public class ColumnCountReactor extends AbstractFrameReactor {
+public class ColumnCountReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor counts the number of columns and unique columns
@@ -33,8 +32,11 @@ public class ColumnCountReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		//get inputs
-		String column = this.keyValue.get(this.keysToGet[0]);
-
+		String column = getColumn();
+		//clean column name
+		if (column.contains("__")) {
+			column = column.split("__")[1];
+		}
 		//get boolean top variable
 		boolean top = getTop();
 		//get panel id in order to display
@@ -68,6 +70,19 @@ public class ColumnCountReactor extends AbstractFrameReactor {
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
+
+	private String getColumn() {
+		GenRowStruct columnGRS = this.store.getNoun(keysToGet[0]);
+		if (columnGRS != null && !columnGRS.isEmpty()) {
+			NounMetadata noun1 = columnGRS.getNoun(0);
+			String column = noun1.getValue() + "";
+			if (column.length() == 0) {
+				throw new IllegalArgumentException("Need to define column for column count");
+			}
+			return column;
+		}
+		throw new IllegalArgumentException("Need to define column for column count");
+	}
 
 	private boolean getTop() {
 		GenRowStruct topGRS = this.store.getNoun(TOP);

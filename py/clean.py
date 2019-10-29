@@ -473,3 +473,16 @@ class PyFrame:
 		if is_numerator_numeric and is_denominator_numeric:
 			frame[new_col] = frame[numerator] / frame[denominator]
 		this.cache['data'] = frame
+	def string_trim_col(this, col, new_col, keep_or_remove, where, num_chars):
+		frame = this.cache['data']
+		if keep_or_remove == 'keep':
+			if where == 'left':
+				frame[new_col] = frame[col].str.slice(stop=num_chars)
+			elif where == 'right':
+				frame[new_col] = frame[col].str.slice(start=-num_chars)
+		elif keep_or_remove == 'remove':
+			if where == 'left':
+				frame[new_col] = frame[col].str.slice(start=num_chars)
+			elif where == 'right':
+				frame[new_col] = frame[col].str.slice(stop=-num_chars)
+		this.cache['data'] = frame
