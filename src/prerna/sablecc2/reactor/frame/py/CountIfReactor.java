@@ -37,10 +37,7 @@ public class CountIfReactor extends AbstractFrameReactor {
 		if (column == null) {
 			column = getExistingColumn();
 		}
-		// clean column name
-		if (column.contains("__")) {
-			column = column.split("__")[1];
-		}
+
 		String regexToCount = this.keyValue.get(this.keysToGet[1]);
 		if (regexToCount == null) {
 			regexToCount = getRegex();
