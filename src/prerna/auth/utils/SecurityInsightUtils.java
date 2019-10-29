@@ -812,6 +812,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param userId
 	 * @param searchTerm
+	 * @param tags
 	 * @param limit
 	 * @param offset
 	 * @return
@@ -1006,6 +1007,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Search through all insights with an optional filter on engines and an optional search term
 	 * @param engineFilter
 	 * @param searchTerm
+	 * @param tags
 	 * @param limit
 	 * @param offset
 	 * @return
