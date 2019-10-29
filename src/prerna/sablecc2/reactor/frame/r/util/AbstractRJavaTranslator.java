@@ -566,12 +566,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			// Finally, read the output and return, or throw the appropriate error
 			try {
 				String output = FileUtils.readFileToString(outputFile).trim();
-				// Error cases
-				if (output.startsWith("Error in")) {
-					throw new IllegalArgumentException(cleanErrorOutput(output));
-				} else if (error != null) {	
-					throw error;
-				}
 				
 				// clean up the output
 				if(userRootPath != null && output.contains(userRootPath)) {
@@ -582,6 +576,13 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				}
 				if(insightRootPath != null && output.contains(insightRootPath)) {
 					output = output.replace(insightRootPath, "$IF");
+				}
+				
+				// Error cases
+				if (output.startsWith("Error in")) {
+					throw new IllegalArgumentException(cleanErrorOutput(output));
+				} else if (error != null) {
+					throw error;
 				}
 				
 				// Successful case
