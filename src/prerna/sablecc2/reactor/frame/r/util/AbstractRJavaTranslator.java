@@ -475,7 +475,6 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		try {
 			this.executeEmptyRDirect("source(\"" + scriptPath + "\", local=TRUE)");
 		} finally {
-			rTempF.delete();
 			try {
 				if(!removeRootVar.isEmpty()) {
 					this.executeEmptyR("rm(" + removeRootVar + ");");
@@ -484,6 +483,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			} catch (Exception e) {
 				logger.warn("Unable to cleanup R.", e);
 			}
+			rTempF.delete();
 		}
 	}
 
@@ -597,20 +597,31 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				throw new IllegalArgumentException("Failed to run R script.");
 			} finally {
 				// Cleanup
-				outputFile.delete();
 				try {
+					this.executeEmptyR("sink();");
 					this.executeEmptyR("rm(" + randomVariable + removePathVariables + ");");
 					this.executeEmptyR("gc();"); // Garbage collection
 				} catch (Exception e) {
 					logger.warn("Unable to cleanup R.", e);
 				}
+				// delete the files
+				if(outputFile != null && outputFile.exists()) {
+					outputFile.delete();
+				}
+				if(scriptFile != null && scriptFile.exists()) {
+					scriptFile.delete();
+				}
 			}
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Error in writing R script for execution.", e);
 		} finally {
-			
 			// Cleanup
-			scriptFile.delete();
+			if(outputFile != null && outputFile.exists()) {
+				outputFile.delete();
+			}
+			if(scriptFile != null && scriptFile.exists()) {
+				scriptFile.delete();
+			}
 		}
 	}
 	
