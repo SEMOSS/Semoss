@@ -84,7 +84,6 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 	
 	private List<String> getColumns() {
 		List<String> cols = new Vector<String>();
-
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
 		if(grs != null && !grs.isEmpty()) {
 			for(int i = 0; i < grs.size(); i++) {
