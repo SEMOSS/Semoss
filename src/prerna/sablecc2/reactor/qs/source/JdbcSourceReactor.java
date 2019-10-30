@@ -43,19 +43,19 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 			throw new IllegalArgumentException(e1.getMessage());
 		}
 		
-		RDBMSNativeEngine fakeEngine = null;
+		RDBMSNativeEngine temporalEngine = null;
 		if(driver.toLowerCase().contains("impala")) {
-			fakeEngine = new ImpalaEngine();
+			temporalEngine = new ImpalaEngine();
 		} else {
-			fakeEngine = new RDBMSNativeEngine();
+			temporalEngine = new RDBMSNativeEngine();
 		}
-		fakeEngine.setEngineId("FAKE_ENGINE");
-		fakeEngine.setConnection(con);
-		fakeEngine.setBasic(true);
+		temporalEngine.setEngineId("FAKE_ENGINE");
+		temporalEngine.setConnection(con);
+		temporalEngine.setBasic(true);
 		
 		JdbcHardSelectQueryStruct qs = new JdbcHardSelectQueryStruct();
 		qs.setConfig(config);
-		qs.setEngine(fakeEngine);
+		qs.setEngine(temporalEngine);
 		return qs;
 	}
 	
