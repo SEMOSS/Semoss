@@ -10,20 +10,20 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.JdbcHardSelectQueryStruct;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 
-public class JdbcHardSelectQueryStructAdapter  extends TypeAdapter<JdbcHardSelectQueryStruct> {
+public class TemporalEngineHardSelectQueryStructAdapter  extends TypeAdapter<TemporalEngineHardQueryStruct> {
 
 	private static final Gson gson = new Gson();
 
 	@Override
-	public JdbcHardSelectQueryStruct read(JsonReader in) throws IOException {
+	public TemporalEngineHardQueryStruct read(JsonReader in) throws IOException {
 		if (in.peek() == JsonToken.NULL) {
 			in.nextNull();
 			return null;
 		}
 
-		JdbcHardSelectQueryStruct qs = new JdbcHardSelectQueryStruct();
+		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
 
 		in.beginObject();
 		while(in.hasNext()) {
@@ -48,7 +48,7 @@ public class JdbcHardSelectQueryStructAdapter  extends TypeAdapter<JdbcHardSelec
 	}
 	
 	@Override
-	public void write(JsonWriter out, JdbcHardSelectQueryStruct value) throws IOException {
+	public void write(JsonWriter out, TemporalEngineHardQueryStruct value) throws IOException {
 		if (value == null) {
 			out.nullValue();
 			return;
