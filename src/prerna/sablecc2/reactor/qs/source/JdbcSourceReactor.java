@@ -9,7 +9,8 @@ import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.JdbcHardSelectQueryStruct;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
@@ -53,7 +54,8 @@ public class JdbcSourceReactor extends AbstractQueryStructReactor {
 		temporalEngine.setConnection(con);
 		temporalEngine.setBasic(true);
 		
-		JdbcHardSelectQueryStruct qs = new JdbcHardSelectQueryStruct();
+		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
+		qs.setQsType(QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
 		qs.setConfig(config);
 		qs.setEngine(temporalEngine);
 		return qs;
