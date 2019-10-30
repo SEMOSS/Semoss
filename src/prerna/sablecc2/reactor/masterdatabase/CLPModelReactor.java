@@ -78,13 +78,19 @@ public class CLPModelReactor extends AbstractReactor {
 		}
 		logger.info("Done loading data");
 
+		NounMetadata noun = null;
 		if(this.insight.getDataMaker() == null) {
 			// if no frame
 			// set as default
+			noun = new NounMetadata(frame, PixelDataType.FRAME, 
+					PixelOperationType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 			this.insight.setDataMaker(frame);
+			this.insight.getVarStore().put(frame.getName(), noun);
+		} else {
+			noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		}
 		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME);
+		return noun;
 	}
 	
 	private List<String> getConceptulNamesList() {
