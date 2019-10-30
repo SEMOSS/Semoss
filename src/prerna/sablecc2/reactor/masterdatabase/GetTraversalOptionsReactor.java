@@ -39,7 +39,7 @@ public class GetTraversalOptionsReactor extends AbstractReactor {
 		
 		List<String> engineFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			engineFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+			engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 		}
 		
 		if(logicals != null && !logicals.isEmpty()) {

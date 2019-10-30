@@ -96,7 +96,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		if (hasFilters) {
 			// need to validate that the user has access to these ids
 			if (AbstractSecurityUtils.securityEnabled()) {
-				List<String> userIds = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+				List<String> userIds = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 				// make sure our ids are a complete subset of the user ids
 				// user defined list must always be a subset of all the engine
 				// ids
@@ -111,7 +111,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			}
 		} else {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				engineFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+				engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 			}
 		}
 
