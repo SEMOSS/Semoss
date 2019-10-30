@@ -2,6 +2,8 @@ package prerna.sablecc2.reactor.qs.source;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.openrdf.repository.Repository;
 import org.openrdf.repository.RepositoryConnection;
@@ -14,17 +16,18 @@ import org.openrdf.sail.memory.MemoryStore;
 
 import prerna.engine.impl.rdf.InMemorySesameEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.util.Utility;
 
 public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 
-	private static final String RDF_TYPE = "rdfType";
-	private static final String BASE_URI = "baseUri";
+	public static final String RDF_TYPE = "rdfType";
+	public static final String BASE_URI = "baseUri";
 
 	public RDFFileSourceReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), RDF_TYPE, BASE_URI};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), RDF_TYPE, BASE_URI, ReactorKeysEnum.QUERY_KEY.getKey()};
 	}
 
 	@Override
@@ -42,7 +45,8 @@ public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 			rdfFileType = "RDF/XML";
 		}
 		String baseURI = this.keyValue.get(this.keysToGet[2]);
-
+		String query = this.keyValue.get(this.keysToGet[3]);
+		
 		// generate the in memory rc 
 		RepositoryConnection rc = null;
 		try {
@@ -68,15 +72,26 @@ public class RDFFileSourceReactor extends AbstractQueryStructReactor {
 			e.printStackTrace();
 		}
 
+		// need to maintain what the FE passed to create this 
+		Map<String, Object> config = new HashMap<String, Object>();
+		config.put(this.keysToGet[0], filePath);
+		config.put(this.keysToGet[1], rdfFileType);
+		config.put(this.keysToGet[2], baseURI);
+		
 		// set the rc in the in-memory engine
 		InMemorySesameEngine temportalEngine = new InMemorySesameEngine();
 		temportalEngine.setRepositoryConnection(rc);
 		temportalEngine.setEngineId("FAKE_ENGINE");
 		temportalEngine.setBasic(true);
 
-		HardSelectQueryStruct qs = new HardSelectQueryStruct();
-		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY);
+		qs.setConfig(config);
 		qs.setEngine(temportalEngine);
+		if(query != null && !query.isEmpty()) {
+			query = Utility.decodeURIComponent(query);
+			qs.setQuery(query);
+		}
 		return qs;
 	}
 
