@@ -2,11 +2,11 @@ package prerna.query.querystruct;
 
 import java.util.Map;
 
-public class JdbcHardSelectQueryStruct extends HardSelectQueryStruct {
+public class TemporalEngineHardQueryStruct extends HardSelectQueryStruct {
 
 	private Map<String, Object> config = null;
 	
-	public JdbcHardSelectQueryStruct() {
+	public TemporalEngineHardQueryStruct() {
 		
 	}
 	
@@ -19,13 +19,8 @@ public class JdbcHardSelectQueryStruct extends HardSelectQueryStruct {
 	}
 	
 	@Override
-	public QUERY_STRUCT_TYPE getQsType() {
-		return QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY;
-	}
-	
-	@Override
 	public SelectQueryStruct getNewBaseQueryStruct() {
-		JdbcHardSelectQueryStruct newQs = new JdbcHardSelectQueryStruct();
+		TemporalEngineHardQueryStruct newQs = new TemporalEngineHardQueryStruct();
 		newQs.setQsType(getQsType());
 		newQs.setEngineId(getEngineId());
 		// set the physical engine object if appropriate

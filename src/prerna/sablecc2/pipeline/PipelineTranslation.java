@@ -30,8 +30,8 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.query.querystruct.JdbcHardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.sablecc2.LazyTranslation;
 import prerna.sablecc2.PixelPreProcessor;
@@ -58,6 +58,7 @@ import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.sablecc2.reactor.qs.source.RDFFileSourceReactor;
 import prerna.test.TestUtilityMethods;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -82,7 +83,8 @@ public class PipelineTranslation extends LazyTranslation {
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY, "pipeline-query");
 //		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY, "pipeline-query");
 		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY, "pipeline-external");
-		
+		qsToWidget.put(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY, "pipeline-rdf-file");
+
 		// frame importing
 		qsReactors.add("Import");
 		qsReactors.add("Merge");
@@ -433,13 +435,16 @@ public class PipelineTranslation extends LazyTranslation {
     			// make sure we have the correct type of raw query
     			// if it is run on an engine or a frame
     			HardSelectQueryStruct newQs = new HardSelectQueryStruct();
-    			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
-    				newQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-        			newQs.setEngineId(qs.getEngineId());
+    			if(qs instanceof HardSelectQueryStruct) {
+    				newQs = (HardSelectQueryStruct) qs;
     			} else {
-    				newQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
-    			}
-    			
+	    			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+	    				newQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+	        			newQs.setEngineId(qs.getEngineId());
+	    			} else {
+	    				newQs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY);
+	    			}
+    			}    			
     			// set the query directly
     			String query = getStringOpRowInput(0, routine.getRowInputs());
        			query = Utility.decodeURIComponent(query);
@@ -483,22 +488,56 @@ public class PipelineTranslation extends LazyTranslation {
     			
     			qs = newQs;
     		
-    		} else if(opName.equals("DirectJDBCConnection")) {
+    		} else if(opName.equals("RDFFileSource")) {
     			
     			/*
     			 * This is the same as the Query 
     			 * But will need to add some additional parts after
     			 */
     			
-    			JdbcHardSelectQueryStruct newQs = new JdbcHardSelectQueryStruct();
+    			TemporalEngineHardQueryStruct newQs = new TemporalEngineHardQueryStruct();
 
     			// get all the inputs
     			Map<String, List<Map>> nounInputs = routine.getNounInputs();
 
     			String query = getStringOpNounInput(ReactorKeysEnum.QUERY_KEY.getKey(), nounInputs);
-    			query = Utility.decodeURIComponent(query);
-       			newQs.setQuery(query);
-       			
+    			if(query != null) {
+	    			query = Utility.decodeURIComponent(query);
+	       			newQs.setQuery(query);
+    			}
+    			
+    			String filePath = getStringOpNounInput(ReactorKeysEnum.FILE_PATH.getKey(), nounInputs);
+    			String rdfType = getStringOpNounInput(RDFFileSourceReactor.RDF_TYPE, nounInputs);
+				String baseUri = getStringOpNounInput(RDFFileSourceReactor.BASE_URI, nounInputs);
+    			
+    			Map<String, Object> config = new HashMap<String, Object>();
+    			config.put(ReactorKeysEnum.FILE_PATH.getKey(), filePath);
+    			config.put(RDFFileSourceReactor.RDF_TYPE, rdfType);
+    			config.put(RDFFileSourceReactor.BASE_URI, baseUri);
+
+    			newQs.setConfig(config);
+    			
+    			// reset reference of qs to the new hard qs after merging the inputs
+    			qs = newQs;
+    			
+    		} else if(opName.equals("DirectJDBCConnection") || opName.equals("JdbcSource")) {
+    			
+    			/*
+    			 * This is the same as the Query 
+    			 * But will need to add some additional parts after
+    			 */
+    			
+    			TemporalEngineHardQueryStruct newQs = new TemporalEngineHardQueryStruct();
+
+    			// get all the inputs
+    			Map<String, List<Map>> nounInputs = routine.getNounInputs();
+
+    			String query = getStringOpNounInput(ReactorKeysEnum.QUERY_KEY.getKey(), nounInputs);
+    			if(query != null) {
+	    			query = Utility.decodeURIComponent(query);
+	       			newQs.setQuery(query);
+    			}
+    			
     			String driver = getStringOpNounInput(ReactorKeysEnum.DB_DRIVER_KEY.getKey(), nounInputs);
     			String username = getStringOpNounInput(ReactorKeysEnum.PASSWORD.getKey(), nounInputs);
 				String password = getStringOpNounInput(ReactorKeysEnum.USERNAME.getKey(), nounInputs);
