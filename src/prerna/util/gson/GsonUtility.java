@@ -11,7 +11,7 @@ import prerna.om.HeadersDataRow;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.query.querystruct.JdbcHardSelectQueryStruct;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
@@ -44,7 +44,7 @@ public class GsonUtility {
 				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 				
 				// qs
-				.registerTypeAdapter(JdbcHardSelectQueryStruct.class, new JdbcHardSelectQueryStructAdapter())
+				.registerTypeAdapter(TemporalEngineHardQueryStruct.class, new TemporalEngineHardSelectQueryStructAdapter())
 				.registerTypeAdapter(HardSelectQueryStruct.class, new HardSelectQueryStructAdapter())
 				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
 
