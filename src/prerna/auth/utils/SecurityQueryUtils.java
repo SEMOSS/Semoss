@@ -491,7 +491,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 * @return
 	 */
-	public static List<String> getUserEngineIds(User user) {
+	public static List<String> getFullUserEngineIds(User user) {
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID IN " + userFilters;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -503,6 +503,38 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		List<String> engineList = flushToListString(wrapper);
 		engineList.addAll(getGlobalEngineIds());
 		return engineList.stream().distinct().sorted().collect(Collectors.toList());
+	}
+	
+	/**
+	 * Get the visual user engines
+	 * @param userId
+	 * @return
+	 */
+	public static List<String> getVisibleUserEngineIds(User user) {
+		Collection<String> userIds = getUserFiltersQs(user);
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		{
+			OrQueryFilter orFilter = new OrQueryFilter();
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+			qs.addExplicitFilter(orFilter);
+		}
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			// store first and fill in sub query after
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+			
+			// fill in the sub query with the necessary column output + filters
+			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		}
+		// joins
+		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		return flushToListString(wrapper);
 	}
 	
 	/**

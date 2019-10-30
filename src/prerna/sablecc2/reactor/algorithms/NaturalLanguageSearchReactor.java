@@ -105,7 +105,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		if (hasFilters) {
 			// need to validate that the user has access to these ids
 			if (AbstractSecurityUtils.securityEnabled()) {
-				List<String> userIds = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+				List<String> userIds = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 				// make sure our ids are a complete subset of the user ids
 				// user defined list must always be a subset of all the engine ids
 				if (!userIds.containsAll(engineFilters)) {
@@ -120,7 +120,7 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 			}
 		} else {
 			if (AbstractSecurityUtils.securityEnabled()) {
-				engineFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+				engineFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 			}
 		}
 		logger.info(stepCounter + ". Done");
@@ -176,9 +176,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		if (!tablesExist) {
 			// first get the total number of cols and relationships
 			List<Object[]> allTableCols = MasterDatabaseUtility
-					.getAllTablesAndColumns(SecurityQueryUtils.getUserEngineIds(this.insight.getUser()));
+					.getAllTablesAndColumns(SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser()));
 			List<String[]> allRelations = MasterDatabaseUtility
-					.getRelationships(SecurityQueryUtils.getUserEngineIds(this.insight.getUser()));
+					.getRelationships(SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser()));
 			int totalNumRels = allRelations.size();
 			int totalColCount = allTableCols.size();
 
