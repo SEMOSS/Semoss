@@ -418,6 +418,62 @@ public class OwlTemporalEngineMeta {
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 
+	/**
+	 * Get the database information for all columns in a frame
+	 * @return
+	 */
+	public Map<String, List<String[]>> getDatabaseInformation() {
+		Map<String, List<String[]>> ret = new HashMap<String, List<String[]>>();
+
+		String query = "select distinct "
+				+ "?header "
+				+ "?alias "
+				+ "(coalesce(?qs, 'unknown') as ?qsName) "
+				+ "where {"
+				+ "{" 
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "union"
+				+ "{"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "{?parent <" + SEMOSS_PROPERTY_PREFIX + "> ?header}"
+				+ "MINUS{?header <" + IS_PRIM_KEY_PRED + "> false}"
+				+ "optional{?header <" + QUERY_STRUCT_PRED + "> ?qs}"
+				+ "}"
+				+ "}";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		while(it.hasNext()) {
+			Object[] values = it.next().getValues();
+			String header = values[0].toString();
+			String alias = values[1].toString();
+			String qsString = values[2].toString();
+			
+			String[] split = null;
+			if(qsString.equals("unknown")) {
+				split = new String[] {alias};
+			} else {
+				split = qsString.split(":::");
+			}
+			
+			List<String[]> retList = null;
+			if(ret.containsKey(header)) {
+				retList = ret.get(header);
+			} else {
+				retList = new Vector<String[]>();
+				ret.put(header, retList);
+			}
+			
+			retList.add(split);
+		}
+		
+		return ret;
+	}
+	
 	public List<String[]> getDatabaseInformation(String uniqueName) {
 		String query = "select distinct "
 				+ "?header "

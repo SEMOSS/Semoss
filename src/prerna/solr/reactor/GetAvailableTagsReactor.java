@@ -29,7 +29,7 @@ public class GetAvailableTagsReactor extends AbstractReactor {
 		List<String> appFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appliedAppFilters = new Vector<String>();
-			appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+			appFilters = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 			if(!inputFilters.isEmpty()) {
 				// loop through and compare what the user has access to
 				for(String inputAppFilter : inputFilters) {
