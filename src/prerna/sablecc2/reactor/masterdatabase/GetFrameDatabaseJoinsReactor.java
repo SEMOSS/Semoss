@@ -10,6 +10,7 @@ import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.nameserver.utility.MasterDatabaseUtility;
@@ -23,7 +24,7 @@ import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 	
 	public GetFrameDatabaseJoinsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.APP.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.DATABASE.getKey()};
 	}
 
 	@Override
@@ -32,7 +33,16 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 		
 		List<String> appFilters = null;
 		if(AbstractSecurityUtils.securityEnabled()) {
-			appFilters = SecurityQueryUtils.getVisibleUserEngineIds(this.insight.getUser());
+			String specificAppFilter = getApp();
+			if(specificAppFilter != null) {
+				if(!SecurityAppUtils.userCanViewEngine(this.insight.getUser(), specificAppFilter)) {
+					throw new IllegalArgumentException("Database " + specificAppFilter + " does not exist or user does not have access to database");
+				}
+				appFilters = new Vector<String>();
+				appFilters.add(specificAppFilter);
+			} else {
+				appFilters = SecurityQueryUtils.getVisibleUserEngineIds(this.insight.getUser());
+			}
 		}
 		
 		ITableDataFrame frame = getFrame();
@@ -91,86 +101,6 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 		System.out.println(gson.toJson(connections));
 		
 		return new NounMetadata(connections, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
-		
-//		String engineId = getApp();
-//		if(engineId != null) {
-//			engineId = MasterDatabaseUtility.testEngineIdIfAlias(engineId);
-//		}
-//		
-//		List<String> appliedAppFilters = new Vector<String>();
-//		
-//		// account for security
-//		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
-//		List<String> appFilters = null;
-//		if(AbstractSecurityUtils.securityEnabled()) {
-//			appFilters = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
-//			if(!appFilters.isEmpty()) {
-//				if(engineId != null) {
-//					// need to make sure it is a valid engine id
-//					if(!appFilters.contains(engineId)) {
-//						throw new IllegalArgumentException("Database does not exist or user does not have access to database");
-//					}
-//					// we are good
-//					appliedAppFilters.add(engineId);
-//				} else {
-//					// set default as filters
-//					appliedAppFilters = appFilters;
-//				}
-//			} else {
-//				if(engineId != null) {
-//					appliedAppFilters.add(engineId);
-//				}
-//			}
-//		} else if(engineId != null) {
-//			appliedAppFilters.add(engineId);
-//		}
-//		
-//		List<String> inputColumnValues = getColumns();
-//		List<String> localConceptIds = MasterDatabaseUtility.getLocalConceptIdsFromPixelName(inputColumnValues);
-//		
-//		//TODO: this is giving weirder options than expected ... come back to this
-//		//TODO: this is giving weirder options than expected ... come back to this
-//		//TODO: this is giving weirder options than expected ... come back to this
-//		//TODO: this is giving weirder options than expected ... come back to this
-////		localConceptIds.addAll(MasterDatabaseUtility.getLocalConceptIdsFromSimilarLogicalNames(inputColumnValues));
-//		
-//		List<Map<String, Object>> data = MasterDatabaseUtility.getDatabaseConnections(localConceptIds, appliedAppFilters);
-//		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
-	}
-	
-	/**
-	 * Getter for the list
-	 * @return
-	 */
-	private List<String> getColumns() {
-		// is it defined within store
-		{
-			GenRowStruct cGrs = this.store.getNoun(this.keysToGet[0]);
-			if(cGrs != null && !cGrs.isEmpty()) {
-				List<String> columns = new Vector<String>();
-				for(int i = 0; i < cGrs.size(); i++) {
-					String value = cGrs.get(0).toString();
-					if(value.contains("__")) {
-						columns.add(value.split("__")[1].replaceAll("\\s+", "_"));
-					} else {
-						columns.add(value.replaceAll("\\s+", "_"));
-					}
-				}
-				return columns;
-			}
-		}
-		
-		// is it inline w/ currow
-		List<String> columns = new Vector<String>();
-		for(int i = 0; i < this.curRow.size(); i++) {
-			String value = this.curRow.get(i).toString();
-			if(value.contains("__")) {
-				columns.add(value.split("__")[1].replaceAll("\\s+", "_"));
-			} else {
-				columns.add(value.replaceAll("\\s+", "_"));
-			}
-		}
-		return columns;
 	}
 	
 	private String getApp() {
