@@ -13,10 +13,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class FrameHeadersReactor extends AbstractFrameReactor {
 
-	public static final String HEADER_TYPES = "headerTypes";
-
+	private static final String HEADER_TYPES = "headerTypes";
+	private static final String RESET = "reset";
+	
 	public FrameHeadersReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), HEADER_TYPES };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), HEADER_TYPES, RESET};
 	}
 
 	@Override
@@ -29,7 +30,13 @@ public class FrameHeadersReactor extends AbstractFrameReactor {
 		}
 		// get the types of the headers requested
 		String[] headerTypes = getHeaderTypes();
-		NounMetadata noun = new NounMetadata(dm.getFrameHeadersObject(headerTypes), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS);
+		PixelOperationType[] opTypes = null;
+		if(reset()) {
+			opTypes = new PixelOperationType[] {PixelOperationType.FRAME_HEADERS, PixelOperationType.FRAME_HEADERS_CHANGE};
+		} else {
+			opTypes = new PixelOperationType[] {PixelOperationType.FRAME_HEADERS};
+		}
+		NounMetadata noun = new NounMetadata(dm.getFrameHeadersObject(headerTypes), PixelDataType.CUSTOM_DATA_STRUCTURE, opTypes);
 		return noun;
 	}
 
@@ -50,11 +57,28 @@ public class FrameHeadersReactor extends AbstractFrameReactor {
 		
 		return retTypes.toArray(new String[]{});
 	}
+	
+	private boolean reset() {
+		GenRowStruct resetGrs = this.store.getNoun(this.keysToGet[2]);
+		if(resetGrs != null && !resetGrs.isEmpty()) {
+			NounMetadata n = resetGrs.getNoun(0);
+			if(n.getNounType() == PixelDataType.BOOLEAN) {
+				return (boolean) n.getValue();
+			} else {
+				return Boolean.parseBoolean(n.getValue()+"");
+			}
+		}
+		
+		return false;
+	}
+	
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(HEADER_TYPES)) {
 			return "Indicates header data types to be returned";
+		} else if (key.equals(RESET)) {
+			return "Boolean to tell the UI to reset the frame headers currently exposed";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
