@@ -78,7 +78,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 			
 			// run communities script
 			String communityOutput = Utility.getRandomString(8);
-			List<String> myEngines = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+			List<String> myEngines = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 			String items = "";
 			for (int row = 0; row < myEngines.size(); row++) {
 				String dbid = myEngines.get(row);
@@ -107,7 +107,7 @@ public class DatabaseRecommendationsReactor extends AbstractRFrameReactor {
 			
 			String funcR = rsb.toString();
 			this.rJavaTranslator.runR(varR + funcR);
-			List<String> enginesWithAccess = SecurityQueryUtils.getUserEngineIds(this.insight.getUser());
+			List<String> enginesWithAccess = SecurityQueryUtils.getFullUserEngineIds(this.insight.getUser());
 			ArrayList<Object> communitiesList = new ArrayList<Object>();
 			String communityJson = this.rJavaTranslator.getString(communityOutput);
 			// the script failed or they dont have the historical data

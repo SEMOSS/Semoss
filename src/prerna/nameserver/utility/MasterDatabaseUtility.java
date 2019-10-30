@@ -1791,7 +1791,31 @@ public class MasterDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualName));
-		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONEPTID", "inner.join");
+		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
+
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		return flushToString(wrapper);
+	}
+	
+	/**
+	 * Get the physical concept id for a concept given the engine id + pixel name
+	 * @param engineId
+	 * @param conceptualName
+	 * @return
+	 */
+	public static String getPhysicalConceptIdFromPixelName(String engineId, String pixelName) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineId));
+		if(pixelName.contains("__")) {
+			String[] split = pixelName.split("__");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PARENTSEMOSSNAME", "==", split[0]));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", split[1]));
+		} else {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__SEMOSSNAME", "==", pixelName));
+		}
 
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
 		return flushToString(wrapper);
@@ -1950,6 +1974,74 @@ public class MasterDatabaseUtility {
 		return flushToListString(wrapper);
 	}
 
+	/**
+	 * Get the conceptual names for a collection of physical name ids
+	 * @param physicalNameIds
+	 * @return
+	 */
+	public static List<String> getConceptualNamesFromPhysicalIds(List<String> physicalNameIds) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+		
+		List<String> results = new Vector<String>();
+		
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__PHYSICALNAMEID", "==", physicalNameIds));
+		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		while(wrapper.hasNext()) {
+			results.add((String) wrapper.next().getValues()[0]); 
+		}
+		
+		return results;
+	}
+	
+	/**
+	 * Get connections to other datasources based on similar conceptual names
+	 * @param conceptualNames
+	 * @param engineFilters
+	 * @return
+	 */
+	public static List<String[]> getConceptualConnections(List<String> conceptualNames, Collection<String> engineFilters) {
+		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
+
+		List<String[]> results = new Vector<String[]>();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
+		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PK"));
+		if(engineFilters != null && !engineFilters.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", engineFilters));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CONCEPT__CONCEPTUALNAME", "==", conceptualNames));
+		qs.addRelation("CONCEPT__LOCALCONCEPTID", "ENGINECONCEPT__LOCALCONCEPTID", "inner.join");
+		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
+		
+		while(wrapper.hasNext()) {
+			Object[] data = wrapper.next().getValues();
+			
+			String[] row = new String[2];
+			row[0] = data[0].toString();
+			if((Boolean) data[3]) {
+				row[1] = data[1].toString();
+			} else {
+				row[1] = data[2] + "__" + data[1];
+			}
+
+			results.add(row);
+		}
+		
+		return results;
+	}
+	
+	/**
+	 * Get the CLP model
+	 * @param conceptualNames
+	 * @param engineFilters
+	 * @return
+	 */
 	public static List<String[]> getConceptualToLogicalToPhysicalModel(List<String> conceptualNames, Collection<String> engineFilters) {
 		RDBMSNativeEngine engine = (RDBMSNativeEngine) Utility.getEngine(Constants.LOCAL_MASTER_DB_NAME);
 
