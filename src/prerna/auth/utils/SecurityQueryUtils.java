@@ -294,7 +294,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 		// joins
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		qs.addRelation("USER", "ENGINEPERMISSION", "left.outer.join");
 		// sorts
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
 		
@@ -389,6 +388,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserDatabaseList(User user, List<String> appTypeFilter) {
+		Collection<String> userIds = getUserFiltersQs(user);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
@@ -405,9 +406,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			qs.addExplicitFilter(orFilter);
 		}
+		{
+			SelectQueryStruct subQs = new SelectQueryStruct();
+			// store first and fill in sub query after
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
+			
+			// fill in the sub query with the necessary column output + filters
+			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false, PixelDataType.BOOLEAN));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
+		}
+		// joins
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_app_name"));
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
