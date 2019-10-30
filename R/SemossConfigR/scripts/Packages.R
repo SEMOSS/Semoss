@@ -26,6 +26,8 @@ install.packages("tm", dependencies=TRUE)
 install.packages("cluster", dependencies=TRUE)
 #install.packages("stringdist", dependencies=TRUE)
 
+# Decode/Encode URI/URL
+install.packages("urltools", dependencies=TRUE)
 
 ###############################################################################
 # Recommendations
