@@ -58,7 +58,8 @@ public class ImportUtility {
 		} 
 		// engine with hard coded query
 		else if(qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY 
-				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
 			return WrapperManager.getInstance().getRawWrapper(qs.retrieveQueryStructEngine(), ((HardSelectQueryStruct) qs).getQuery());
 		}
 		// frame with qs
@@ -128,7 +129,8 @@ public class ImportUtility {
 		}
 		// engine with raw query
 		else if(qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY 
-				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY
+				|| qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_RDF_FILE_ENGINE_QUERY) {
 			parseRawQsToFlatTable(dataframe, qs, frameTableName, (IRawSelectWrapper) it, qs.getEngineId());
 		}
 		// frame

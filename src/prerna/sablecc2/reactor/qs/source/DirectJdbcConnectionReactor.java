@@ -7,10 +7,12 @@ import java.util.Map;
 
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdbms.RdbmsConnectionHelper;
-import prerna.query.querystruct.JdbcHardSelectQueryStruct;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.util.Utility;
 
 public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 	
@@ -43,15 +45,19 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 			throw new IllegalArgumentException(e1.getMessage());
 		}
 		
-		RDBMSNativeEngine fakeEngine = new RDBMSNativeEngine();
-		fakeEngine.setEngineId("DIRECT_ENGINE_CONNECTION");
-		fakeEngine.setConnection(con);
-		fakeEngine.setBasic(true);
+		RDBMSNativeEngine temporalEngine = new RDBMSNativeEngine();
+		temporalEngine.setEngineId("DIRECT_ENGINE_CONNECTION");
+		temporalEngine.setConnection(con);
+		temporalEngine.setBasic(true);
 		
-		JdbcHardSelectQueryStruct qs = new JdbcHardSelectQueryStruct();
+		TemporalEngineHardQueryStruct qs = new TemporalEngineHardQueryStruct();
+		qs.setQsType(QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY);
 		qs.setConfig(config);
-		qs.setQuery(query);
-		qs.setEngine(fakeEngine);
+		qs.setEngine(temporalEngine);
+		if(query != null && !query.isEmpty()) {
+			query = Utility.decodeURIComponent(query);
+			qs.setQuery(query);
+		}
 		return qs;
 	}
 
