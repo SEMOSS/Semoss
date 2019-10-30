@@ -89,7 +89,6 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 					// get the unique columns and tables into arrays
 					String uniqueColsTables = rdsFrameTrim + " <- unique(" + rdsFrame + "[c(\"Table\", \"Column\", \"AppID\")])"; 
 					this.rJavaTranslator.runR(uniqueColsTables);
-					gc = rdsFrameTrim;
 					String existingColsScript = rdsFrameTrim + "[" + rdsFrameTrim + "$AppID == \"" + appId + "\",]$Column;";
 					String existingTablesScript = rdsFrameTrim + "[" + rdsFrameTrim + "$AppID == \"" + appId + "\",]$Table;";
 					String[] existingCols = this.rJavaTranslator.getStringArray(existingColsScript);
@@ -161,7 +160,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 			List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(appId);
 			for(Object[] tableCol : allTableCols) {
 				// only care about string values
-				if(!tableCol[2].equals(SemossDataType.STRING.toString())) {
+				if(tableCol[2] == null || !tableCol[2].equals(SemossDataType.STRING.toString())) {
 					continue;
 				}
 				
@@ -223,7 +222,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		}
 
 		// create gc string
-		gc += " , " + retFrame + "," + tempFrame;
+		gc += retFrame + "," + tempFrame;
 		
 		// now save it to an RDS Files
 		StringBuilder saveBuilder = new StringBuilder();
@@ -296,6 +295,16 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 			if (value.length() > 50) {
 				value = value.substring(0, 49);
 			}
+			
+			// clean up some strings to work with R syntax
+			if(value.contains("\\")) {
+				value = value.replace("\\", "/");
+			}
+			
+			if(value.contains("\"")) {
+				value = value.replace("\"", "\\\"");
+			} 
+			
 			valueVector.add(value);
 		}
 	}
@@ -316,31 +325,9 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		String vectorScript = RSyntaxHelper.createStringRColVec(valueVector);
 		String gc = valueVectorName;
 
-		// if the values vector is too large, break it into doable pieces
-		if (vectorScript.length() > 200000) {
-			// set up two vectors to run
-			String valueVectorName1 = "valueVector1_" + Utility.getRandomString(5);
-			String valueVectorName2 = "valueVector2_" + Utility.getRandomString(5);
-
-			// find that midpoint comma
-			int index = vectorScript.indexOf("\",\"", vectorScript.length() / 2);
-
-			// create the first half of the vector
-			this.rJavaTranslator.runR(valueVectorName1 + " <- " + vectorScript.substring(0, index) + "\");");
-
-			// create the second half of the vector
-			this.rJavaTranslator.runR(valueVectorName2 + " <- c(" + vectorScript.substring(index + 2, vectorScript.length()) + ";");
-
-			// merge them together
-			this.rJavaTranslator.runR(valueVectorName + " <- c(" + valueVectorName1 + "," + valueVectorName2 + ");");
-
-			// add those two to the gc
-			gc += "," + valueVectorName1 + "," + valueVectorName2;
-		} else {
-			// just add the new vector name and run it
-			vectorScript = valueVectorName + " <- " + vectorScript + ";";
-			this.rJavaTranslator.runR(vectorScript);
-		}
+		// just add the new vector name and run it
+		vectorScript = valueVectorName + " <- " + vectorScript + ";";
+		this.rJavaTranslator.runR(vectorScript);
 
 		// rbind to current frame
 		String addTableScript = tempFrame + " <- data.frame(AppID = " + RSyntaxHelper.createStringRColVec(appIdVector)
