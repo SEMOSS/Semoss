@@ -1655,7 +1655,7 @@ public class MasterDatabaseUtility {
 
 			String uniqueName = name;
 			if(!pk) {
-				name = parentName + "__" + name;
+				uniqueName = parentName + "__" + name;
 			}
 			
 			List<String> logicalNames = null;
@@ -1696,7 +1696,7 @@ public class MasterDatabaseUtility {
 
 			String uniqueName = name;
 			if(!pk) {
-				name = parentName + "__" + name;
+				uniqueName = parentName + "__" + name;
 			}
 			engineDescriptions.put(uniqueName, description);
 		}
