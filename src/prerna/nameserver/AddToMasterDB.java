@@ -284,7 +284,12 @@ public class AddToMasterDB {
 		this.conceptIdHash.put(engineName + "_" + conceptPhysicalInstance + "_PHYSICAL", engineConceptGuid);
 		
 		{
-			// add the logical to the physical name id
+			// add the conceptual as a logical name to the physical name id
+			colNames = new String[]{"PhysicalNameID", "Key", "Value"};
+			types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
+			insertValues = new String[]{engineConceptGuid, "logical", conceptualName.toLowerCase()};
+			insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+			
 			if(!logicals.isEmpty()) {
 				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
 				types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
@@ -439,6 +444,12 @@ public class AddToMasterDB {
 		insertQuery("EngineConcept", colNames, types, conceptInstanceData);
 		
 		{
+			// add the conceptual as a logical name to the physical name id
+			colNames = new String[]{"PhysicalNameID", "Key", "Value"};
+			types = new String[] { "varchar(800)", "varchar(800)", "varchar(20000)" };
+			insertValues = new String[]{enginePropertyGuid, "logical", propertyConceptualName.toLowerCase()};
+			insertQuery("CONCEPTMETADATA", colNames, types, insertValues);
+			
 			// add the logical to the physical name id
 			if(!logicals.isEmpty()) {
 				colNames = new String[]{"PhysicalNameID", "Key", "Value"};
