@@ -1623,6 +1623,8 @@ drop_extra_links<-function(cols,joins,cur_db){
 		if(length(col_tbls)>0){
 			# get tables and labels from node_df
 			col_df<-nodes_df[nodes_df$node %in% col_tbls,]
+			# New addition to avoid extra tables!!!
+			col_df$label<-cols[i]
 			names(col_df)<-c("tbl1","tbl2")
 			edges_df<-rbind(edges_df,col_df)
 			join_cols<-unique(append(join_cols,col_df$tbl2))
