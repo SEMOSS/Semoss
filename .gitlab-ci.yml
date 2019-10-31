@@ -90,6 +90,7 @@ build_dev:
     - pwd
     - apt-get update
     - apt-get install -y openjfx
+    - mvn sonar:sonar -Dsonar.projectKey=$PROJECT_KEY -Dsonar.host.url=$HOST_URL -Dsonar.login=$LOGIN_KEY
     - mvn $MAVEN_CLI_OPTS clean install -Dci.version=${VERSION}-SNAPSHOT -X
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
