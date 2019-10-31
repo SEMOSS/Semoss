@@ -2,7 +2,6 @@ package prerna.poi.main;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -23,7 +22,8 @@ public class BaseDatabaseCreator {
 	public static final String TIME_URL = "http://semoss.org/ontologies/Concept/TimeStamp";
 	
 	private RDFFileSesameEngine baseEng;
-
+	private static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
+	
 	//open without connection
 	public BaseDatabaseCreator(String owlFile) {
 		baseEng = new RDFFileSesameEngine();
@@ -112,9 +112,8 @@ public class BaseDatabaseCreator {
 			//adding a time-stamp to the OWL file
 			if(addTimeStamp) {
 				deleteExisitngTimestamp();
-				DateFormat dateFormat = getFormatter();
 				Calendar cal = Calendar.getInstance();
-				String cleanObj = dateFormat.format(cal.getTime());
+				String cleanObj = DATE_FORMATTER.format(cal.getTime());
 				baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseEng.exportDB();
@@ -130,9 +129,8 @@ public class BaseDatabaseCreator {
 			StringWriter writer = new StringWriter();
 			if(addTimeStamp) {
 				deleteExisitngTimestamp();
-				DateFormat dateFormat = getFormatter();
 				Calendar cal = Calendar.getInstance();
-				String cleanObj = dateFormat.format(cal.getTime());
+				String cleanObj = DATE_FORMATTER.format(cal.getTime());
 				baseEng.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{TIME_URL, TIME_KEY, cleanObj, false});
 			}
 			this.baseEng.exportDB(writer);
@@ -169,17 +167,8 @@ public class BaseDatabaseCreator {
 			
 			this.baseEng.doAction(ACTION_TYPE.REMOVE_STATEMENT, delTriples);
 		}
-		
 	}
 
-	/**
-	 * Standardize the time formatter
-	 * @return
-	 */
-	public static DateFormat getFormatter() {
-		return new SimpleDateFormat("yyyy:MM:dd HH:mm:ss");
-	}
-	
 	/**
 	 * Commits the triples added to the base engine
 	 */
