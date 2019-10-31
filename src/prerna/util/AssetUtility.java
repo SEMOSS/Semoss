@@ -160,20 +160,6 @@ public class AssetUtility {
 		
 	}
 	
-	public static String getInsightFolder(String appName, String appId, String rdbmsID) {
-		String insightFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "db"
-				+ DIR_SEPARATOR + SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + "version" + DIR_SEPARATOR + rdbmsID;
-
-		// if this folder does not exist create it
-		File file = new File(insightFolder);
-		if (!file.exists()) {
-			file.mkdir();
-		}
-
-		return insightFolder;
-		
-	}
-	
 	public static String getAssetRelativePath(Insight in, String space) {
 		String relativePath = "";
 		if(space == null || space.equals(INSIGHT_SPACE_KEY)) {

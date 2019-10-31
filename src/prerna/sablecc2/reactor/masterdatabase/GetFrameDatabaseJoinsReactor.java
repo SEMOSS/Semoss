@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
@@ -96,9 +93,6 @@ public class GetFrameDatabaseJoinsReactor extends AbstractFrameReactor {
 				frameHeaderList.add(uniqueFrameHeader);
 			}
 		}
-		
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		System.out.println(gson.toJson(connections));
 		
 		return new NounMetadata(connections, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TRAVERSE_OPTIONS);
 	}
