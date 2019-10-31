@@ -29,11 +29,16 @@ public class GetAssetReactor extends AbstractReactor {
 
 		// relative path is used for git if the insight is saved
 		String assetDir = "";
-		if (this.insight.isSavedInsight()) {
-			assetDir = AssetUtility.getAssetRelativePath(this.insight, space);
+		if(space == null || AssetUtility.INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
+			if (this.insight.isSavedInsight()) {
+				assetDir = AssetUtility.getAssetRelativePath(this.insight, space);
+			} else {
+				// get temp insight folder
+				assetFolder = this.insight.getInsightFolder();
+			}
 		} else {
-			// get temp insight folder
-			assetFolder = this.insight.getInsightFolder();
+			// user space + app holds assets in assets folder
+			assetDir = "assets";
 		}
 
 		// specify a file
