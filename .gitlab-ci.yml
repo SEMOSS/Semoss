@@ -20,6 +20,7 @@ version_info_deploy:
     refs:
       - triggers
       - web
+      - schedules
   except:
     variables:
       - $RELEASE == "TRUE"
