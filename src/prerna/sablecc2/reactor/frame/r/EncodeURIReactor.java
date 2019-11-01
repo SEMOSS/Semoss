@@ -16,9 +16,7 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class EncodeURIReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor changes columns to all upper case 
-	 * The inputs to the reactor are: 
-	 * 1) the columns to update
+	 * This reactor encodes special characters in columns to conform to URI standards
 	 */
 	
 	public EncodeURIReactor() {
@@ -63,7 +61,7 @@ public class EncodeURIReactor extends AbstractRFrameReactor {
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
 				frame, 
-				"ToUpper", 
+				"EncodeURI", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

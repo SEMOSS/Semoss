@@ -1,45 +1,47 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.py;
 
 import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.r.RDataTable;
+import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class DecodeURIReactor extends AbstractRFrameReactor {
-
+public class EncodeURIReactor extends AbstractFrameReactor{
+	
 	/**
-	 * This reactor decodes special characters in columns that have been changed to conform to URI standards
+	 * This reactor encodes special characters in columns to conform to URI standards
 	 */
 	
-	public DecodeURIReactor() {
+	public EncodeURIReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
 	
 	@Override
 	public NounMetadata execute() {
-		// initialize rJavaTranslator
-		init();
+		organizeKeys();
 		// get frame
-		RDataTable frame = (RDataTable) getFrame();
+		PandasFrame frame = (PandasFrame) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
-
-		// get table name
+		
+		// get frame name
 		String table = frame.getName();
+		
+		// get wrapper name
+		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
-		List<String> columns = getColumns();
-		StringBuilder builder = new StringBuilder();
-		builder.append("library(\"urltools\");");
-		for (int i = 0; i < columns.size(); i++) {
-			String col = columns.get(i);
+		List<String> columnNames = getColumns();
+		
+		// iterate through all passed columns
+		for (String col : columnNames) {
 			if (col.contains("__")) {
 				String[] split = col.split("__");
 				col = split[1];
@@ -47,21 +49,18 @@ public class DecodeURIReactor extends AbstractRFrameReactor {
 			}
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
 			if (dataType.equalsIgnoreCase("STRING")) {
-				// define the script to be executed
-				builder.append(table + "$" + col + " <- url_decode(" + table + "$" + col + ");");
+				// build script
+				String script = wrapperFrameName + ".encode_uri('" + col + "')";
+				// run script
+				frame.runScript(script);
 			}
 		}
-		
-		// execute the r script
-		// script will be of the form:
-		// FRAME$column <- toupper(FRAME$column)
-		this.rJavaTranslator.runR(builder.toString());
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
 				frame, 
-				"DecodeURI", 
+				"EncodeURI", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
