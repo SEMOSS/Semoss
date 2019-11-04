@@ -313,6 +313,18 @@ public class PandasSyntaxHelper {
 	}
 	
 	/**
+	 * Remove duplicate columns in a frame based on column names
+	 * 
+	 * @param tableName the frame with the duplicate column names
+	 * @param newTable the new frame to set
+	 * @return Python syntax to remove duplicate columns
+	 */
+	public static String removeDuplicateColumns(String tableName, String newTable) {
+		String script = newTable + " = " + tableName + ".loc[:,~" + tableName + ".columns.duplicated()]";
+		return script;
+	}
+	
+	/**
 	 * Create a pandas vector from a java vector
 	 * @param row				The object[] to convert
 	 * @param dataType			The data type for each entry in the object[]
@@ -378,7 +390,6 @@ public class PandasSyntaxHelper {
 		HeadersException headerChecker = HeadersException.getInstance();
 		String [] pyColNames = headerChecker.getCleanHeaders(colNames);
 		// update frame header names in R
-		String rColNames = "";
 		StringBuilder colRen = new StringBuilder("{");
 		for (int i = 0; i < colNames.length; i++) {
 			colRen.append("'").append(colNames[i]).append("':'").append(pyColNames[i]).append("'");
