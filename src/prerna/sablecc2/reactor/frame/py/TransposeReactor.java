@@ -24,7 +24,7 @@ public class TransposeReactor extends AbstractPyFrameReactor {
 		// TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Transpose", AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		// the column data has changed
-		recreateMetadata(frame);
+		frame = (PandasFrame) recreateMetadata(frame);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
