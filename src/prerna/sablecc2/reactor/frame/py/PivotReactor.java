@@ -35,11 +35,8 @@ public class PivotReactor extends AbstractPyFrameReactor {
 	}
 
 	/*
-	 * What is being sent Pivot(pivotCol = ["Nominated"], valueCol =
-	 * ["MovieBudget"], function = [""], maintainCols =
-	 * []); Frame()|QueryAll()|AutoTaskOptions(panel=["0"],
-	 * layout=["Grid"])|Collect(500); the maintain cols is the keep cols
-	 * 
+	 * What is being sent Pivot(pivotCol = ["Nominated"], valueCol = ["MovieBudget"], function = [""], maintainCols = []); 
+	 * Frame()|QueryAll()|AutoTaskOptions(panel=["0"], layout=["Grid"])|Collect(500); the maintain cols is the keep cols
 	 */
 	@Override
 	public NounMetadata execute() {
@@ -105,10 +102,18 @@ public class PivotReactor extends AbstractPyFrameReactor {
 			String aggregateFunction = getAggregateFunction();
 
 			// aggregation function
-			// need a way to map it .. will get to ti post implementtion of
-			// others
+			// need a way to map it
 			String aggregateString = "";
 			if (aggregateFunction != null && aggregateFunction.length() > 0) {
+				if(aggregateFunction.equalsIgnoreCase("sum")) {
+					aggregateFunction = "np.sum";
+				}
+				if(aggregateFunction.equalsIgnoreCase("mean")) {
+					aggregateFunction = "np.mean";
+				}
+				if(aggregateFunction.equalsIgnoreCase("median")) {
+					aggregateFunction = "np.median";
+				}
 				aggregateString = ", aggfunc = " + aggregateFunction;
 			}
 
@@ -160,7 +165,7 @@ public class PivotReactor extends AbstractPyFrameReactor {
 		String colScript = table + " = " + newFrame;
 		frame.runScript(colScript);
 
-		recreateMetadata(frame);
+		frame = (PandasFrame) recreateMetadata(frame);
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Pivot",
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
