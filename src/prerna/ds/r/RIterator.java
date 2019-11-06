@@ -60,7 +60,7 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 					this.numRows = this.totalNumRows;
 					
 					// need to account for limit and offset
-					if(this.qs != null) {
+					if(this.qs != null && this.numRows > 0) {
 						long limit = qs.getLimit();
 						long offset = qs.getOffset();
 						if(offset > numRows) {
