@@ -99,7 +99,7 @@ public class BasicIteratorTask extends AbstractTask {
 						.map(p -> p == null ? "STRING" : p)
 						.map(p -> p.toString())
 						.map(p -> (p.equals("DOUBLE") || p.equals("INT") ? "NUMBER" : p))
-						.collect(Collectors.toList()).toArray(new String[]{});
+						.collect(Collectors.toList()).toArray(new String[sTypes.length]);
 				for(int i = 0; i < headerInfo.size(); i++) {
 					headerInfo.get(i).put("type", Utility.getCleanDataType(types[i]));
 				}
@@ -115,7 +115,7 @@ public class BasicIteratorTask extends AbstractTask {
 						.map(p -> p == null ? "STRING" : p)
 						.map(p -> p.toString())
 						.map(p -> (p.equals("DOUBLE") || p.equals("INT") ? "NUMBER" : p))
-						.collect(Collectors.toList()).toArray(new String[]{});
+						.collect(Collectors.toList()).toArray(new String[sTypes.length]);
 				this.headerInfo = new Vector<Map<String, Object>>();
 				for(int i = 0 ; i < headers.length; i++) {
 					Map<String, Object> headerMap = new HashMap<String, Object>();
