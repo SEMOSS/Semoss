@@ -1,9 +1,9 @@
-from Rules import isUnique
-from Rules import isNull
+from .Rules import isUnique
+from .Rules import isNull
 
 def missionControl(frameWrapper, rule, resultsTable):
 	currRule = rule['rule']
-	print(currRule)
+	# Check for incorrect email format
 	if (currRule == "Blanks/Nulls/NAs"): 
 		tempResultsTable = isNull.isNull(frameWrapper, rule)
 		resultsTable = resultsTable.append(tempResultsTable)
