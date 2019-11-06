@@ -18,8 +18,6 @@ import prerna.util.Utility;
  */
 public class RunDataQualityReactor extends AbstractRFrameReactor {
 
-	private static final String DIR_SEP = System.getProperty("file.separator");
-
 	// Define rules because ReactorKeyEnum doesn't have default values for our purposes
 	private static final String RULE_KEY = "rule";
 	private static final String COLUMNS_KEY = "column";
@@ -96,7 +94,8 @@ public class RunDataQualityReactor extends AbstractRFrameReactor {
 		StringBuilder rScript = new StringBuilder();
 		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		base = base.replace("\\", "/");
-		String dqDirLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP;
+		String dqDirLoc = base + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "DQ" + DIR_SEPARATOR;
+		dqDirLoc = dqDirLoc.replace("\\", "/");
 		rScript.append("source(\"" + dqDirLoc + "sourceFile.R" + "\");");
 		rScript.append("sourceFiles(\"" + dqDirLoc + "\");");
 		
