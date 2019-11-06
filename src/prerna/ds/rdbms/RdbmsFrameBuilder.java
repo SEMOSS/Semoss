@@ -342,7 +342,7 @@ public class RdbmsFrameBuilder {
 						removeColumnIndex(tableCol[0], tableCol[1]);
 					}
 					if(this.queryUtil.allowMultiAddColumn()) {
-						String alterQuery = this.queryUtil.alterTableAddColumns(tableName, newHeaders.toArray(new String[]{}), newTypes.toArray(new String[]{}));
+						String alterQuery = this.queryUtil.alterTableAddColumns(tableName, newHeaders.toArray(new String[newHeaders.size()]), newTypes.toArray(new String[newTypes.size()]));
 						logger.debug("ALTERING TABLE: " + alterQuery);
 						runQuery(alterQuery);
 						logger.debug("DONE ALTER TABLE");
@@ -507,7 +507,8 @@ public class RdbmsFrameBuilder {
 	 * @return
 	 */
 	public String[] getHeaders(String tableName) {
-		return this.queryUtil.getTableColumns(this.conn, tableName, this.schema).toArray(new String[]{});
+		List<String> columns = this.queryUtil.getTableColumns(this.conn, tableName, this.schema);
+		return columns.toArray(new String[columns.size()]);
 	}
 	
 	/**

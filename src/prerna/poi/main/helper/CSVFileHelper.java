@@ -165,7 +165,7 @@ public class CSVFileHelper {
 	public String[] getHeaders() {
 		if(this.currHeaders == null) {
 			collectHeaders();
-			return this.newUniqueCSVHeaders.toArray(new String[]{});
+			return this.newUniqueCSVHeaders.toArray(new String[this.newUniqueCSVHeaders.size()]);
 		}
 		return this.currHeaders;
 	}
@@ -180,7 +180,7 @@ public class CSVFileHelper {
 	 * @return
 	 */
 	public String[] getAllCSVHeaders() {
-		return this.newUniqueCSVHeaders.toArray(new String[]{});
+		return this.newUniqueCSVHeaders.toArray(new String[this.newUniqueCSVHeaders.size()]);
 	}
 
 
