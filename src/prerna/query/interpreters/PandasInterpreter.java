@@ -459,7 +459,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		aggBuilder.append("'" + pandasFunction +"'");
 		
 		
-		orderHash.put(selector.getAlias(), new StringBuilder("('").append(columnName).append("','").append(pandasFunction).append("')"));
+		orderHash.put(selector.getAlias(), new StringBuilder("('").append(columnName).append("')"));
 		
 		headers.add(selector.getAlias());
 		aggHash.put(columnName, aggBuilder);
