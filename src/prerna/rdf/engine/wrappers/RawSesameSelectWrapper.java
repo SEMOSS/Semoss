@@ -139,7 +139,7 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 					else if(lValDataType.getLocalName().equalsIgnoreCase("dateTime")) {
 						try {
 							Date d = formatter.parse(lVal.calendarValue().toString());
-							SemossDate date = new SemossDate(d, "yyyy-MM-dd hh:mm:ss");
+							SemossDate date = new SemossDate(d, "yyyy-MM-dd HH:mm:ss");
 							return date;
 						} catch (ParseException e) {
 							e.printStackTrace();
