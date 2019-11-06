@@ -7,7 +7,7 @@ from annoy import AnnoyIndex
 import numpy as np
 from pandas.api.types import is_numeric_dtype
 import urllib.parse
-
+from pyjarowinkler import distance
 
 ### UTILITY Methods
 # from importutil import reload
@@ -80,19 +80,59 @@ class PyFrame:
 		return result
 
 	def match(this, actual_col, predicted_col):
-		cache = this.cache
-		key_name = actual_col + "_" + predicted_col
-		if (not (key_name in cache)):
-			print('building cache', key_name)
-			daFrame = cache['data']
-			var_name = this.calcRatio(daFrame[actual_col].unique(), daFrame[predicted_col].unique())
-			var_name.columns = ['col1', 'col2', 'distance']
-			cache[key_name] = var_name
-		var_name = cache[key_name]
+		#cache = this.cache
+		#key_name = actual_col + "_" + predicted_col
+		#if (not (key_name in cache)):
+		#	print('building cache', key_name)
+		#	daFrame = cache['data']
+		#	var_name = this.calcRatio(daFrame[actual_col].unique(), daFrame[predicted_col].unique())
+		#	var_name.columns = ['col1', 'col2', 'distance']
+		#	cache[key_name] = var_name
+		#var_name = cache[key_name]
 		# print(var_name.head())
 		# seems like we dont need that right now
 		# output = var_name[(var_name[2] > threshold) & (var_name[2] != 100)]
-		return var_name
+
+		result = []
+		frame = this.cache['data']
+		actual_col_values = frame[actual_col].unique()
+		predicted_col_values = frame[predicted_col].unique()
+		for x in actual_col_values:
+			if x is np.nan:
+				continue
+			for y in predicted_col_values:
+				if y is np.nan:
+					continue
+				#ratio = fuzz.WRatio(x, y)
+				ratio = distance.get_jaro_distance(x, y, winkler=True, scaling=0.1)
+				# ratio is 1 when values are the same
+				# so we want to do the inverse
+				ratio = 1 - ratio
+				if ratio != 0:
+					data = [x, y, ratio]
+					result.append(data)
+		result = pd.DataFrame(result, columns=['col1', 'col2', 'distance'])
+		return result
+
+	def self_match(this, actual_col):
+		result = []
+		frame = this.cache['data']
+		actual_col_values = frame[actual_col].unique()
+		for index_loop_one, x in enumerate(actual_col_values):
+			if x is np.nan:
+				continue
+			for y in actual_col_values[(index_loop_one+1):]:
+				if y is np.nan:
+					continue
+				ratio = distance.get_jaro_distance(x, y, winkler=True, scaling=0.1)
+				# ratio is 1 when values are the same
+				# so we want to do the inverse
+				ratio = 1 - ratio
+				if ratio != 0:
+					data = [x, y, ratio]
+					result.append(data)
+		result = pd.DataFrame(result, columns=['col1', 'col2', 'distance'])
+		return result
 
 	def drop_col(this, col_name, inplace=True):
 		frame = this.cache['data']
