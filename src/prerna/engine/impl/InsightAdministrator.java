@@ -460,6 +460,6 @@ public class InsightAdministrator {
 	}
 	
 	public static String getClobRecipeSyntax(Collection<String> pixelRecipeToSave) {
-		return getClobRecipeSyntax(pixelRecipeToSave.toArray(new String[]{}));
+		return getClobRecipeSyntax(pixelRecipeToSave.toArray(new String[pixelRecipeToSave.size()]));
 	}
 }

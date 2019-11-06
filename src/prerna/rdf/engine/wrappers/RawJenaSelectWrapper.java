@@ -66,7 +66,7 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 		// we technically need the concept and prop name
 		// this is already what we have via the names binding
 		// when it is created through query builder
-		rawHeaders = names.toArray(new String[]{});
+		rawHeaders = names.toArray(new String[names.size()]);
 
 		headers = new String[numColumns];
 		for(int colIndex = 0; colIndex < numColumns; colIndex++){

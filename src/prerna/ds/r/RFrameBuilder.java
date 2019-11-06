@@ -177,7 +177,7 @@ public class RFrameBuilder {
 		alterColumnTypes(tableName, typesMap, additionalType, fileType);
 		
 		//add indices
-		addColumnIndex(tableName, typesMap.keySet().toArray(new String[]{}));
+		addColumnIndex(tableName, typesMap.keySet().toArray(new String[typesMap.size()]));
 	}
 	
 	private void createTableViaCsvFile(String tableName, CsvFileIterator it) {

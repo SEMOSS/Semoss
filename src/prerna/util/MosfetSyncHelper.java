@@ -284,7 +284,7 @@ public class MosfetSyncHelper {
 			mosfet.setDescription(description);
 		}
 		if(tags != null && !tags.isEmpty()) {
-			mosfet.setTags(tags.toArray(new String[]{}));
+			mosfet.setTags(tags.toArray(new String[tags.size()]));
 		}
 		
 		String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER)
@@ -354,7 +354,7 @@ public class MosfetSyncHelper {
 			mosfet.setDescription(description);
 		}
 		if(tags != null && !tags.isEmpty()) {
-			mosfet.setTags(tags.toArray(new String[]{}));
+			mosfet.setTags(tags.toArray(new String[tags.size()]));
 		}
 		
 		mosfet.write(mosfetFile.getParentFile().getAbsolutePath(), true);

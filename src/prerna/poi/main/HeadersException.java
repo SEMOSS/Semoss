@@ -483,7 +483,7 @@ public class HeadersException {
                  // add it to the unique headers list so it can be used to validate others
                  newUniqueHeaders.add(newHeader);
           }            
-          return newUniqueHeaders.toArray(new String[] {} );
+          return newUniqueHeaders.toArray(new String[newUniqueHeaders.size()]);
     }
 
 

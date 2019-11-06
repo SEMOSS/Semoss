@@ -83,7 +83,8 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 
 		// saving an empty recipe?
 		if (recipeToSave == null || recipeToSave.length == 0) {
-			recipeToSave = this.insight.getPixelRecipe().toArray(new String[] {});
+			List<String> recipeList = this.insight.getPixelRecipe();
+			recipeToSave = recipeList.toArray(new String[recipeList.size()]);
 		} else {
 			// this is always encoded before it gets here
 			recipeToSave = decodeRecipe(recipeToSave);

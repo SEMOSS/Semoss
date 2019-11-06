@@ -218,7 +218,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String typeScript = PandasSyntaxHelper.getTypes(wrapperTableName + ".cache['data']");
 		
 		List<String> headerList = (List) runScript(colScript);
-		String[] headers = headerList.toArray(new String[] {});
+		String[] headers = headerList.toArray(new String[headerList.size()]);
 		
 //		SemossDataType [] stypes = new SemossDataType[headers.length];
 		List<String> types = (List<String>) runScript(typeScript);
