@@ -90,7 +90,7 @@ public class RNativeEngine extends AbstractEngine {
 		this.dtName = Utility.getInstanceName(tableUri);
 
 		List<String> propertyUris = this.getPropertyUris4PhysicalUri(tableUri);
-		String[] propertyUriArr = propertyUris.toArray(new String[] {});
+		String[] propertyUriArr = propertyUris.toArray(new String[propertyUris.size()]);
 		String typeMapStr = this.prop.getProperty(Constants.SMSS_DATA_TYPES);
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {

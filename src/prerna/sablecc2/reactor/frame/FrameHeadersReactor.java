@@ -55,7 +55,7 @@ public class FrameHeadersReactor extends AbstractFrameReactor {
 			retTypes = this.curRow.getAllStrValues();
 		}
 		
-		return retTypes.toArray(new String[]{});
+		return retTypes.toArray(new String[retTypes.size()]);
 	}
 	
 	private boolean reset() {
