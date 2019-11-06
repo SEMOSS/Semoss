@@ -128,7 +128,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		while(it.hasNext()) {
 			values.add(it.next().getValues()[0]);
 		}
-		return values.toArray(new Double[]{});
+		return values.toArray(new Double[values.size()]);
 	}
 
 	@Override

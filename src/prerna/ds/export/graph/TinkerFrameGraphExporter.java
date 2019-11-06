@@ -165,7 +165,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		}
 
 		if(hasFilter) {
-			this.vertsIt.union(unionT.toArray(new GraphTraversal[]{}));
+			this.vertsIt.union(unionT.toArray(new GraphTraversal[unionT.size()]));
 		}
 	}
 	
@@ -301,7 +301,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 		}
 
 		if(hasFilter) {
-			this.edgesIt.union(unionT.toArray(new GraphTraversal[]{}));
+			this.edgesIt.union(unionT.toArray(new GraphTraversal[unionT.size()]));
 		}
 	}
 	

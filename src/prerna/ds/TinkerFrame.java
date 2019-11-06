@@ -574,7 +574,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				columnList.add(it.next().getValues()[0]);
 			}
 			
-			return columnList.toArray(new Double[]{});
+			return columnList.toArray(new Double[columnList.size()]);
 		}
 		return null;
 	}
