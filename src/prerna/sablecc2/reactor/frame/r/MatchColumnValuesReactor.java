@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.frame.r;
 
 import prerna.ds.r.RDataTable;
-import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
