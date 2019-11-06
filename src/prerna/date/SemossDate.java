@@ -187,6 +187,18 @@ public class SemossDate {
 		}
 		return false;
 	}
+	
+	public boolean hasTimeNotZero() {
+		Date date = getDate();
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		if( c.get(Calendar.HOUR_OF_DAY) != 0 &&
+				c.get(Calendar.MINUTE) != 0 &&
+				c.get(Calendar.SECOND) != 0) {
+			return true;
+		}
+		return false;
+	}
 
 	@Override
 	public String toString() {
