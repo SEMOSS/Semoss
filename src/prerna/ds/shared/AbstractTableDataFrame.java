@@ -108,7 +108,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	
 	@Override
 	public void syncHeaders() {
-		this.qsNames = this.metaData.getFrameSelectors().toArray(new String[]{});
+		List<String> frameSelectors = this.metaData.getFrameSelectors();
+		this.qsNames = frameSelectors.toArray(new String[frameSelectors.size()]);
 	}
 	
 	@Override
@@ -254,12 +255,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	public String[] getColumnHeaders() {
-		return this.metaData.getFrameColumnNames().toArray(new String[]{});
+		List<String> fHeaders = this.metaData.getFrameColumnNames();
+		return fHeaders.toArray(new String[fHeaders.size()]);
 	}
 	
 	@Override
 	public String[] getQsHeaders() {
-		return getSelectors().toArray(new String[]{});
+		List<String> selectors = getSelectors();
+		return selectors.toArray(new String[selectors.size()]);
 	}
 
 	@Override
@@ -292,7 +295,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			values.add( ((Number) it.next().getValues()[0]).doubleValue());
 		}
 		
-		return values.toArray(new Double[]{});
+		return values.toArray(new Double[values.size()]);
 	}
 
 	public Double[] getMax() {
@@ -390,7 +393,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public List<String> getSelectors() {
 		List<String> selectors = new ArrayList<String>();
 		if(this.qsNames == null || this.qsNames.length == 0) {
-			this.qsNames = this.metaData.getFrameSelectors().toArray(new String[]{});
+			List<String> frameSelectors = this.metaData.getFrameSelectors();
+			this.qsNames = frameSelectors.toArray(new String[frameSelectors.size()]);
 		}
 		if(this.qsNames != null) {
 			for(int i = 0; i < this.qsNames.length; i++) {
