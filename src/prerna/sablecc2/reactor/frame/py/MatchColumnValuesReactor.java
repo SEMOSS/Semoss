@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.frame.py;
 
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -21,40 +22,32 @@ public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 
 		// get single column input
 		PandasFrame frame = (PandasFrame) getFrame();
-		String frameName = frame.getName();
+		String wrapperName = frame.getWrapperName();
+		
 		String matchesTable = Utility.getRandomString(8);
+		frame.runScript(matchesTable + " = " + wrapperName + ".self_match('" + column + "')");
 
-		frame.runScript(matchesTable + " = " + frameName + ".match('" + column
-				+ "', '" + column + "')");
-
-		PandasFrame returnTable = new PandasFrame(matchesTable+"w");
+		PandasFrame returnTable = new PandasFrame(matchesTable);
 		returnTable.setJep(frame.getJep());
-		String makeWrapper = matchesTable+"w = PyFrame.makefm(" + matchesTable+")";
-		returnTable.runScript(makeWrapper);
+		returnTable.runScript(PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
 		returnTable = (PandasFrame) recreateMetadata(returnTable, false);
 
-		NounMetadata retNoun = new NounMetadata(returnTable,
-				PixelDataType.FRAME);
+		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 
 		// get count of exact matches
-		String exactMatchCount = returnTable.runScript("len(" + matchesTable
-				+ "[" + matchesTable + "['distance'] == 100])")
-				+ "";
+		Long exactMatchCount = (Long) returnTable.runScript("len(" + matchesTable + "[" + matchesTable + "['distance'] == 100])");
 		if (exactMatchCount != null) {
-			int val = Integer.parseInt(exactMatchCount);
-			retNoun.addAdditionalReturn(new NounMetadata(val,
-					PixelDataType.CONST_INT));
+			retNoun.addAdditionalReturn(new NounMetadata(exactMatchCount, PixelDataType.CONST_INT));
 		} else {
 			throw new IllegalArgumentException("No matches found.");
 		}
-
+		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight,
 				frame,
 				"PredictSimilarColumnValues",
-				AnalyticsTrackerHelper
-						.getHashInputs(this.store, this.keysToGet));
+				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		this.insight.getVarStore().put(matchesTable, retNoun);
 		return retNoun;
