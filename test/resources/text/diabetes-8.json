@@ -1,0 +1,11 @@
+{
+   "pixelExpression":"FRAMEUNITTEST | UpdateMatchColumnValues ( column = [ \"frame\" ] , matches = [ \"med == medium\" , \"S == small\" , \"L == large\" ] , matchesTable = [ \"x\" ] ) ;",
+   "isMeta":false,
+   "output":{
+      "name":"FRAMEUNITTEST",
+      "type":"R"
+   },
+   "operationType":[
+      "FRAME_DATA_CHANGE"
+   ]
+}
