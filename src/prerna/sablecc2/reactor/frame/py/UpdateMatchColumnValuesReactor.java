@@ -1,23 +1,22 @@
-package prerna.sablecc2.reactor.frame.r;
+package prerna.sablecc2.reactor.frame.py;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.r.RDataTable;
-import prerna.ds.r.RSyntaxHelper;
+import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
+public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 
 	public static final String MATCHES = "matches";
 	public static final String MATCHES_TABLE = "matchesTable";
@@ -28,27 +27,19 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		init();
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
 		String matchesTable = this.keyValue.get(this.keysToGet[1]);
 
-		// check if packages are installed
-		String[] packages = { "stringdist", "data.table" };
-		this.rJavaTranslator.checkPackages(packages);
-		
-		StringBuilder rsb = new StringBuilder();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		String bestMatchScript = "source(\"" + baseFolder + "\\R\\Recommendations\\advanced_federation_blend.r\");";
-		bestMatchScript = bestMatchScript.replace("\\", "/");
-		rsb.append(bestMatchScript);
+		List<String> scripts = new Vector<String>();
 
 		// get single column input
 		String linkFrame = "link" + Utility.getRandomString(5);
-		RDataTable frame = (RDataTable) getFrame();
+		PandasFrame frame = (PandasFrame) getFrame();
 		String frameName = frame.getName();
+		String wrapperName = frame.getWrapperName();
 		String col1 = matchesTable + "col1";
-		rsb.append(col1 + "<- as.character(" + frameName + "$" + column + ");");
+		scripts.add(col1 + "= " + frameName + "['" + column + "']");
 
 		// iterate matches and create the link frame
 		List<String> allMatches = getInputList(MATCHES);
@@ -70,50 +61,35 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 				}
 				String column1 = matchList[0];
 				String column2 = matchList[1];
-				col1Builder.append("\"" + column1 + "\"");
-				col2Builder.append("\"" + column2 + "\"");
+				col1Builder.append("'" + column1 + "'");
+				col2Builder.append("'" + column2 + "'");
 				col3Builder.append("1");
 			}
 			// add all matches provided
-			String script = linkFrame + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder	+ ")); ";
-			rsb.append(script);
+			scripts.add(linkFrame + " = pd.DataFrame({'col1':[" + col1Builder + "], 'col2':[" + col2Builder + "]})");
 		}
+		
 		// make link frame unique
-		rsb.append(linkFrame + " <- unique(" + linkFrame + ");");
-
-		// call the curate script
-		String resultFrame = Utility.getRandomString(8);
-		rsb.append(resultFrame + "<- curate(" + col1 + "," + linkFrame + ");");
-
-		String tempColHeader = Utility.getRandomString(8);
-
-		// make resultFrame a DT and update the header to a temp name
-		rsb.append(resultFrame + " <- as.data.table(" + resultFrame + ");" + "names(" + resultFrame + ")<-\"" + tempColHeader + "\";");
-		
-		// add new temp name column to frame
-		rsb.append(frameName + " <- cbind(" + frameName + "," + resultFrame + ");");
-		
-		// delete existing column from frame
-		rsb.append(frameName + " <- " + frameName + "[,-c(\"" + column + "\")];");
-		
-		// update temp column name to the original column name
-		rsb.append("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column + "\";");
+		scripts.add(linkFrame + " = " + linkFrame + ".drop_duplicates()");
 
 		// get current frame data type
+		boolean convertJoinColFromNum = false;
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		Map<String, SemossDataType> typeMap = metaData.getHeaderToTypeMap();
 		SemossDataType dataType = typeMap.get(column);
-		// return data type to original state
-		if (dataType == SemossDataType.DOUBLE ) {
-			rsb.append(RSyntaxHelper.alterColumnType(frameName, column, SemossDataType.DOUBLE));
-		} else if(dataType == SemossDataType.INT) {
-			rsb.append(RSyntaxHelper.alterColumnType(frameName, column, SemossDataType.INT));
+		if (dataType == SemossDataType.DOUBLE || dataType == SemossDataType.INT) {
+			convertJoinColFromNum = true;
 		}
 
-		rsb.append("rm(" + resultFrame + "," + linkFrame + "," + col1 +  "," + matchesTable + ", best_match, best_match_nonzero, best_match_zero, blend, curate, self_match );");
+		scripts.add(wrapperName + ".merge_match_results('" + column + "'," + linkFrame + ")");
 		
-		this.rJavaTranslator.runR(rsb.toString());
+		// return data type to original state
+		if (convertJoinColFromNum) {
+			scripts.add(frameName + "['" + column + "'] = pd.to_numeric(" + frameName + "['" + column + "'])");
+		}
 		
+		frame.runScript(scripts.toArray(new String[scripts.size()]));
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
