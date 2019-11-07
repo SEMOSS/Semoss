@@ -394,14 +394,19 @@ class PyFrame:
 			return [hist[0].tolist(), hist[1].tolist()]
 		else:
 			keys = frame[col_name].value_counts().keys().tolist()
+			keys = keys[0:25]
 			values = frame[col_name].value_counts().tolist()
+			values = values[0:25]
 			num_null = frame[col_name].isnull().sum()
+			# hard coding at the moment to only return
+			# top 25 results
 			if num_null > 0:
-				for index, val in enumerate(values):
-					if num_null > val :
-						keys.insert(index, 'null')
-						values.insert(index, num_null)
-						break
+				if len(values) < 25 or min(values) < num_null:
+					for index, val in enumerate(values):
+						if num_null > val :
+							keys.insert(index, 'null')
+							values.insert(index, num_null)
+							break
 			return [keys, values]
 
 	def drop_dup(this, col_name='assign', inplace=True):
