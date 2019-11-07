@@ -395,6 +395,13 @@ class PyFrame:
 		else:
 			keys = frame[col_name].value_counts().keys().tolist()
 			values = frame[col_name].value_counts().tolist()
+			num_null = frame[col_name].isnull().sum()
+			if num_null > 0:
+				for index, val in enumerate(values):
+					if num_null > val :
+						keys.insert(index, 'null')
+						values.insert(index, num_null)
+						break
 			return [keys, values]
 
 	def drop_dup(this, col_name='assign', inplace=True):
