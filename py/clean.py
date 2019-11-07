@@ -134,6 +134,17 @@ class PyFrame:
 		result = pd.DataFrame(result, columns=['col1', 'col2', 'distance'])
 		return result
 
+	def merge_match_results(this, col_name, link_frame):
+		#link_frame contains col1, col2 where col1 contains instances
+		#that need to be changed and col2 contains the new values for
+		# those instances
+		frame = this.cache['data']
+		old_values = link_frame['col1']
+		for index, old_value in enumerate(old_values):
+			new_value = link_frame.iloc[index]['col2']
+			frame.replace({col_name: old_value}, {col_name: new_value}, regex=False, inplace=True)
+		return frame
+
 	def drop_col(this, col_name, inplace=True):
 		frame = this.cache['data']
 		if not inplace:
