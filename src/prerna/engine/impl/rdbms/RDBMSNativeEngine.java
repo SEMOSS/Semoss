@@ -219,6 +219,18 @@ public class RDBMSNativeEngine extends AbstractEngine {
 	 */
 	protected void init(RdbmsConnectionBuilder connBuilder) {
 		// default does nothing
+		init(connBuilder, false);
+	}
+	
+	/**
+	 * This is for when there are other engines that extend
+	 * the base RDBMSNativeEngine that need to do additional processing
+	 * before a connection can be made
+	 * @param connBuilder
+	 * @param force force the init again
+	 */
+	protected void init(RdbmsConnectionBuilder connBuilder, boolean force) {
+		// default does nothing
 	}
 
 	public AbstractSqlQueryUtil getQueryUtil() {
@@ -271,6 +283,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 			try {
 				// re-establish bad connections
 				if(this.engineConn.isClosed() || !this.engineConn.isValid(1)) {
+					init(connBuilder);
 					this.engineConn = connBuilder.build();
 				}
 			} catch (SQLException e) {
@@ -280,6 +293,7 @@ public class RDBMSNativeEngine extends AbstractEngine {
 		} else {
 			// re-establish bad connections
 			try {
+				init(connBuilder);
 				this.engineConn = connBuilder.build();
 				this.engineConnected = true;
 				this.autoCommit = this.engineConn.getAutoCommit();
