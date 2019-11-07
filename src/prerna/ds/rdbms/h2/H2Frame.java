@@ -137,6 +137,10 @@ public class H2Frame extends AbstractRdbmsFrame {
 		String saveScript = "SCRIPT TO '" + frameFileName + "' COMPRESSION GZIP TABLE " + frameName;
 		Statement stmt = null;
 		try {
+			// removing our custom aggregates so the file could be used/loaded elsewhere
+			stmt = this.conn.createStatement();
+			stmt.execute("DROP AGGREGATE IF EXISTS SMSS_MEDIAN");
+			stmt.close();
 			stmt = this.conn.createStatement();
 			stmt.execute(saveScript);
 		} catch (Exception e) {
