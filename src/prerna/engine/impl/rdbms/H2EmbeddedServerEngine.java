@@ -16,10 +16,21 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 	private String serverUrl;
 	
 	@Override
-	protected void init(RdbmsConnectionBuilder builder) {
+	protected void init(RdbmsConnectionBuilder builder, boolean force) {
 		String connectionUrl = builder.getConnectionUrl();
 		if(connectionUrl.startsWith("jdbc:h2:nio:")) {
 			connectionUrl = connectionUrl.substring("jdbc:h2:nio:".length());
+		}
+		if(force) {
+			if(server != null) {
+				try {
+					Server.shutdownTcpServer(this.server.getURL(), "", true, false);
+					server.shutdown();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				server = null;
+			}
 		}
 		if (server == null) {
 			try {
@@ -41,6 +52,8 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine {
 		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + serverUrl);
 		LOGGER.info(getEngineId() + " DATABASE RUNNING ON " + serverUrl);
 	}
+	
+	
 	
 	@Override
 	public void closeDB() {
