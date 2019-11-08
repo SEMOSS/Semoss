@@ -6,6 +6,7 @@ public enum PixelOperationType {
 	TASK,
 	RESET_PANEL_TASKS,
 	REMOVE_TASK,
+	REMOVE_LAYER,
 	TASK_DATA,
 	TASK_METADATA,
 	

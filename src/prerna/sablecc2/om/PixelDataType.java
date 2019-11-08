@@ -20,6 +20,7 @@ public enum PixelDataType {
 
 	REMOVE_VARIABLE ("REMOVE_VARIABLE"),			// variable to be removed
 	REMOVE_TASK ("REMOVE_TASK"),					// task to be removed
+	REMOVE_LAYER ("REMOVE_LAYER"),					// task of a layer to remove
 	DROP_INSIGHT ("DROP_INSIGHT"),					// insight to be removed
 
 	// insight panel
