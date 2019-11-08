@@ -67,6 +67,7 @@ public enum ReactorKeysEnum {
 	JOB_ID("jobId", 										"Id of the job"),
 	JOB_NAME("jobName",                                     "The name of the job"),
 	JOINS("joins", 											"Joins on the frame"),
+	LAYER("layer", 											"The id for the layer of this visualization"),				
 	LAMBDA("lambda", 										"Name of the lambda transformtion to perform"),				
 	LAYOUT_KEY("layout", 									"The layout of the insight, used as a tag"),
 	LIMIT("limit", 											"Limit to add for the query results"),
