@@ -1,9 +1,7 @@
 package prerna.sablecc2.reactor.app.metaeditor.relationships;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import prerna.engine.api.IEngine;
@@ -19,9 +17,6 @@ import prerna.util.Utility;
 public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 
 	private static final String CLASS_NAME = AddOwlRelationshipReactor.class.getName();
-	
-	private boolean organized;
-	private Map<String, String> tableToPrim = new HashMap<String, String>();
 	
 	/*
 	 * This class assumes that the start table, start column, end table, and end column have already been defined
@@ -54,7 +49,6 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		// set all the existing values into the OWLER
 		// so that its state is updated
 		IEngine engine = Utility.getEngine(appId);
-//		boolean isRdbms = (engine.getEngineType() == IEngine.ENGINE_TYPE.RDBMS || engine.getEngineType() == IEngine.ENGINE_TYPE.IMPALA);
 		setOwlerValues(engine, owler);
 		
 		for(int i = 0; i < size; i++) {
@@ -64,15 +58,6 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 			String endC = endCList.get(i);
 			// define the rel
 			String rel = startT + "." + startC + "." + endT + "." + endC;
-			
-			// we do this after the above so the relationship is defined properly!
-//			if(isRdbms) {
-//				// the relation has the startC and endC
-//				// what I really need is the primary key for the tables
-//				startC = getPrim(engine, startT);
-//				endC = getPrim(engine, endT);
-//			}
-			
 			// add the relationship
 			owler.addRelation(startT, endT, rel);
 		}
@@ -96,19 +81,6 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
-	
-//	/**
-//	 * So we do not query for prim keys all the time
-//	 * @param engine
-//	 * @param tableName
-//	 * @return
-//	 */
-//	private String getPrim(IEngine engine, String tableName) {
-//		if(!tableToPrim.containsKey(tableName)) {
-//			tableToPrim.put(tableName, Utility.getClassName(engine.getConceptPhysicalUriFromConceptualUri(tableName)));
-//		}
-//		return tableToPrim.get(tableName);
-//	}
 	
 	///////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////
@@ -144,13 +116,4 @@ public class AddOwlRelationshipReactor extends AbstractMetaEditorReactor {
 		values.add(this.keyValue.get(keyToGet));
 		return values;
 	}
-	
-	@Override
-	public void organizeKeys() {
-		if(!this.organized) {
-			super.organizeKeys();
-			this.organized = true;
-		}
-	}
-
 }
