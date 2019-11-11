@@ -84,26 +84,6 @@ public class FindSemanticInstanceOwlRelationshipsReactor extends AbstractMetaEdi
 				}
 			}
 			
-			String tablePrimCol = Utility.getClassName(cUri);
-			
-			// we will only store string values!!!
-			SemossDataType cDataType = SemossDataType.convertStringToDataType(app.getDataTypes(cUri).replace("TYPE:", ""));
-			if(cDataType == SemossDataType.STRING) {
-				tableNamesList.add(tableName);
-				columnNamesList.add(tablePrimCol);
-				
-				List<String> colValues = new Vector<String>();
-				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(app, getMostOccuringSingleColumnNonEmptyQs(tableName, 5));
-				try {
-					while(wrapper.hasNext()) {
-						colValues.add(wrapper.next().getValues()[0].toString());
-					} 
-				} finally {
-					wrapper.cleanUp();
-				}
-				sampleInstances.add(colValues);
-			}
-				
 			// grab all the properties
 			List<String> properties = app.getPropertyUris4PhysicalUri(cUri);
 			for(String pUri : properties) {

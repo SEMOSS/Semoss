@@ -483,7 +483,9 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			} catch (Exception e) {
 				logger.warn("Unable to cleanup R.", e);
 			}
-			rTempF.delete();
+			if(scriptFile != null && scriptFile.exists()) {
+				scriptFile.delete();
+			}
 		}
 	}
 
