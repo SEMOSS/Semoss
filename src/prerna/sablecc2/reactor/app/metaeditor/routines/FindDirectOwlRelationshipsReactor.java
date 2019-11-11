@@ -10,7 +10,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
@@ -19,6 +19,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.metaeditor.AbstractMetaEditorReactor;
+import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.util.Utility;
 
 public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor {
@@ -67,9 +68,6 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 				columnNames.add(Utility.getClassName(pUri));
 			}
 
-			// add the prim column as well
-			columnNames.add(Utility.getClassName(cUri));
-
 			tableToCol.put(tableName, columnNames);
 		}
 		
@@ -80,7 +78,12 @@ public class FindDirectOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		typesMap.put("sourceCol", SemossDataType.STRING);
 		typesMap.put("distance", SemossDataType.DOUBLE);
 
-		H2Frame frame = new H2Frame();
+		AbstractRdbmsFrame frame = null;
+		try {
+			frame = (AbstractRdbmsFrame) FrameFactory.getFrame(this.insight, "GRID", null);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error occured trying to create frame of type GRID", e);
+		}
 		String tableName = frame.getName();
 		
 		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta();
