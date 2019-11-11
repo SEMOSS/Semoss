@@ -183,7 +183,6 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		List<String> concepts = app.getPhysicalConcepts();
 		for(String cUri : concepts) {
 			String tableName = Utility.getInstanceName(cUri);
-			String tablePrimCol = Utility.getClassName(cUri);
 
 			// if this is empty
 			// no filters have been defined
@@ -194,10 +193,6 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 					continue;
 				}
 			}
-
-			tableNamesList.add(tableName);
-			columnNamesList.add(tablePrimCol);
-
 			// grab all the properties
 			List<String> properties = app.getPropertyUris4PhysicalUri(cUri);
 			for(String pUri : properties) {
