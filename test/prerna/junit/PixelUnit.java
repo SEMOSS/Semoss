@@ -115,9 +115,9 @@ public class PixelUnit {
 	private static boolean testDatabasesAreClean = true; // This must be static, as one instance of PixelUnit can dirty databases for all others
 	private List<String> cleanTestDatabases = new ArrayList<>();
 	
-	private Insight insight = null;
+	protected Insight insight = null;
 	
-	private PyExecutorThread jep = null;
+	protected PyExecutorThread jep = null;
 
 	
 	
@@ -520,12 +520,12 @@ public class PixelUnit {
 	// Insight
 	//////////////////////////////
 	
-	private void initializeInsight() {
+	protected void initializeInsight() {
 		insight = new Insight();
 		InsightStore.getInstance().put(insight);
 	}
 	
-	private void destroyInsight() {
+	protected void destroyInsight() {
 		if (insight != null) {
 			InsightStore.getInstance().remove(insight.getInsightId());
 		}
@@ -537,7 +537,7 @@ public class PixelUnit {
 	// Python
 	//////////////////////////////
 	
-	private void initializeJep() {
+	protected void initializeJep() {
 		
 		// Initialize jep
 		jep = PyUtils.getInstance().getJep();
@@ -547,7 +547,7 @@ public class PixelUnit {
 		long start = System.currentTimeMillis();
 		boolean timeout = false;
 		while (!jep.isReady() && !timeout) {
-			timeout = (System.currentTimeMillis() - start) > 30000;
+			timeout = (System.currentTimeMillis() - start) > 3000000;
 		}
 		
 		// Assume that Python did not timeout for tests to run
@@ -556,7 +556,7 @@ public class PixelUnit {
 
 	}
 	
-	private void destroyJep() {
+	protected void destroyJep() {
 		PyUtils.getInstance().killPyThread(jep);
 		jep = null;
 	}	
@@ -567,7 +567,7 @@ public class PixelUnit {
 	//////////////////////////////
 	
 	// https://www.marcphilipp.de/blog/2012/03/13/database-tests-with-dbunit-part-1/
-	private void cleanTestDatabases() {
+	protected void cleanTestDatabases() {
 		for (String alias : cleanTestDatabases) {
 			String appId = aliasToAppId.get(alias);
 			if (appId != null) {
@@ -671,14 +671,16 @@ public class PixelUnit {
 				throw new AssertionError(message, e);
 			}
 		} catch (RuntimeException e) {
-			LOGGER.error("Error: ", e);			
+			LOGGER.error("Error: ", e);
+			
+			System.out.println("####ERRORED IN TEST PIXEL: ");
 
 			// Try to report the actual output of the pixel recipe
 			try {
 				
 				// Reset the test state and rerun the pixel
-				destroyTest();
-				initializeTest(false);
+				// destroyTest();
+				// initializeTest(false);
 				
 				JsonElement actual;
 				PixelRunner returnData = runPixel(pixel);
@@ -721,14 +723,7 @@ public class PixelUnit {
 		addTitle(testReport, "Index: ");
 		testReport.append(index).append(LS);
 		
-		addTitle(testReport, "Expected output: ");
-		testReport.append(comparison.getExpectedPixelOutput()).append(LS);
-		
-		addTitle(testReport, "Actual output: ");
-		testReport.append(comparison.getActualPixelOutput()).append(LS);
-		
 		addTitle(testReport, "Differences: ");
-		
 		// Need to rearrange the way the differences are reported
 		Map<String, Object> typeLocationValueMap = comparison.getDifferences(); // Original
 		Map<String, Map<String, String>> locationTypeValueMap = new HashMap<>(); // Rearranged
@@ -791,6 +786,12 @@ public class PixelUnit {
 			}
 			testReport.append(LS);
 		}
+
+		addTitle(testReport, "Expected output: ");
+		testReport.append(comparison.getExpectedPixelOutput()).append(LS);
+		
+		addTitle(testReport, "Actual output: ");
+		testReport.append(comparison.getActualPixelOutput()).append(LS);
 		
 		return testReport.toString();
 	}
@@ -960,6 +961,7 @@ public class PixelUnit {
 	protected PixelRunner runPixel(String pixel) throws IOException {
 		pixel = formatString(pixel);
 		long start = System.currentTimeMillis();
+		System.out.println("####INSIGHT JAVA VAR (inside runPixel(): " + insight.toString());
 		PixelRunner returnData = insight.runPixel(pixel);
 		long end = System.currentTimeMillis();
 		LOGGER.info("Execution time : " + (end - start) + " ms");
