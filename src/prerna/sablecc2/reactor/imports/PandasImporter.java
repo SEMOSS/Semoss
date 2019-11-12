@@ -151,8 +151,10 @@ public class PandasImporter extends AbstractImporter {
 				joinCols.add(joinColMapping);
 			}
 			
-			//execute r command
+			//execute python command
 			this.dataframe.merge(returnTable, leftTableName, rightTableName, joinType, joinCols);
+			// update the table in the wrapper
+			this.dataframe.runScript(this.dataframe.getWrapperName() +  ".cache['data'] = " + returnTable);
 		}
 		
 		updateMetaWithAlias(this.dataframe, this.qs, this.it, joins, rightTableAlias);
