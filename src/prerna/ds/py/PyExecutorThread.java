@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import jep.Jep;
 import jep.JepConfig;
 import jep.JepException;
+import jep.SharedInterpreter;
 import prerna.sablecc.ReactorSecurityManager;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -18,6 +19,7 @@ public class PyExecutorThread extends Thread {
 	private static final Logger LOGGER = LogManager.getLogger(CLASS_NAME);
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
 
+	private static boolean first = true;
 	private Jep jep = null;
 	private Object daLock = new Object();
 	
@@ -105,14 +107,16 @@ public class PyExecutorThread extends Thread {
 			if(this.jep == null) {
 				//https://github.com/ninia/jep/issues/140
 				JepConfig aJepConfig = new JepConfig();
-				aJepConfig.addSharedModules("pandas", 
-						"numpy",
-						"sys", 
-						"fuzzywuzzy", 
-						"string", 
-						"random", 
-						"datetime", 
-						"annoy");
+//				aJepConfig.addSharedModules("pandas", 
+//						"numpy",
+//						"sys", 
+//						"fuzzywuzzy", 
+//						"string", 
+//						"random", 
+//						"datetime", 
+//						"annoy",
+//						"sklearn",
+//						"pulp");
 				
 				// add the sys.path to python libraries for semoss
 				String pyBase = null;
@@ -129,7 +133,8 @@ public class PyExecutorThread extends Thread {
 					aJepConfig.addIncludePaths(sitepackages);
 				}
 				
-				jep = new Jep(aJepConfig);
+				initSharedInterpreter(aJepConfig);
+				jep = new SharedInterpreter();
 
 				jep.eval("import numpy as np");
 				jep.eval("import pandas as pd");
@@ -166,4 +171,20 @@ public class PyExecutorThread extends Thread {
 		this.keepAlive = false;
 	}
 
+	/**
+	 * Making init thread safe
+	 * @param aJepConfig
+	 * @throws JepException
+	 */
+	private void initSharedInterpreter(JepConfig aJepConfig) throws JepException {
+		if(first) {
+			synchronized (this) {
+				if(first) {
+					SharedInterpreter.setConfig(aJepConfig);
+					first = false;
+				}
+			}
+		}
+	}
+	
 }
