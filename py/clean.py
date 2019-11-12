@@ -3,6 +3,7 @@ import string
 import pandas as pd
 import random
 import datetime
+import math
 from annoy import AnnoyIndex
 import numpy as np
 from pandas.api.types import is_numeric_dtype
@@ -555,11 +556,51 @@ class PyFrame:
 			lambda row: urllib.parse.unquote_plus(row) if isinstance(row, str) else row
 		)
 		this.cache['data'] = frame
-		
+
 	def encode_uri(this, col_name):
 		frame = this.cache['data']
         # Only handle str's, can't encode non-str's
 		frame[col_name] = frame[col_name].apply(
 			lambda row: urllib.parse.quote(row) if isinstance(row, str) else row
 		)
+		this.cache['data'] = frame
+
+	def sig_fig_round(this, num, sf=2):
+		# Called from discretize_column() to do significant figure rounding
+		return round(num, sf - int(math.floor(math.log10(abs(num)))) - 1) if num != 0 else 0
+
+
+	def discretize_column(this, col, new_col, breaks=None, labels=False, num_digits=None):
+		frame = this.cache['data']
+
+		# Nothing is passed, auto discretize
+		if breaks is None and labels is False and num_digits is None:
+			bins = np.histogram_bin_edges(frame[col])
+			frame[new_col] = pd.cut(frame[col], bins, include_lowest=True).astype(str)
+
+		# Just num_digits passed, round to num_digits sig figs
+		elif breaks is None and labels is False and num_digits is not None:
+			bins = np.histogram_bin_edges(frame[col])
+			# TODO Rounding problem: something like 1,230 (3 sig figs) can round to 1,229.999...
+			# TODO if a number like 1,230 is our max and we're working with 2 sig figs,
+			# our max will be 1,200 and the number 1,230 will be binned as np.nan
+			sig_fig_rounded_bins = list(map(this.sig_fig_round, bins))
+			frame[new_col] = pd.cut(frame[col], sig_fig_rounded_bins, include_lowest=True).astype(str)
+
+		# Breaks are passed, labels automatically handled if not passed
+		elif breaks is not None:
+			if isinstance(breaks, list):
+				# Make sure breaks are increasing
+				breaks = sorted(breaks)
+			elif isinstance(breaks, str):
+				# Parse from R form of "0:5*.5" to python equivalent (e.g. c(0:5*.5) in R to python)
+				breaks_split = breaks.split('*')
+				breaks_start_and_num_iterations = breaks_split[0].split(':')
+				breaks_start = int(breaks_start_and_num_iterations[0])
+				breaks_num_iterations = int(breaks_start_and_num_iterations[1])
+				breaks_step = float(breaks_split[1])
+				breaks_stop = (breaks_num_iterations * breaks_step) + breaks_step
+				breaks = np.arange(breaks_start, breaks_stop, breaks_step)
+			frame[new_col] = pd.cut(frame[col], breaks, labels=labels, include_lowest=True)
+
 		this.cache['data'] = frame
