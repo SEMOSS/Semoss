@@ -105,8 +105,9 @@ public class PyExecutorThread extends Thread {
 	public Jep getJep() {
 		try {
 			if(this.jep == null) {
-				//https://github.com/ninia/jep/issues/140
 				JepConfig aJepConfig = new JepConfig();
+				// this is not longer needed in 3.9.0
+				//https://github.com/ninia/jep/issues/140
 //				aJepConfig.addSharedModules("pandas", 
 //						"numpy",
 //						"sys", 
@@ -127,7 +128,6 @@ public class PyExecutorThread extends Thread {
 				aJepConfig.setRedirectOutputStreams(true);
 				
 				// add the libraries
-				
 				String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
 				if(sitepackages != null && !sitepackages.isEmpty()) {
 					aJepConfig.addIncludePaths(sitepackages);
@@ -148,10 +148,8 @@ public class PyExecutorThread extends Thread {
 				jep.eval("from annoy import AnnoyIndex");
 				jep.eval("import numpy");
 				jep.eval("import sys");
-				
 				// this is so we do not get a GIL
 				//jep.eval("from java.lang import System");
-				
 				
 				LOGGER.debug("Adding Syspath " + pyBase);				
 				jep.eval("sys.path.append('" + pyBase + "')" );
