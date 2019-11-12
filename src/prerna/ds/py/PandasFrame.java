@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
+import prerna.ds.EmptyIteratorException;
 import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
@@ -120,7 +121,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 * @param dataTypeMap
 	 */
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> dataTypeMap) {
-		
 		boolean loaded = false;
 		if(it instanceof CsvFileIterator) {
 			CsvQueryStruct csvQs = ((CsvFileIterator) it).getQs();
@@ -154,8 +154,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// delete the generated file
 			newFile.delete();
 		}
-		syncHeaders();
 		
+		if(isEmpty(tableName)) {
+			throw new EmptyIteratorException("Unable to load data into pandas frame");
+		}
+		
+		syncHeaders();
 		// need to get a pandas frame types and then see if this is the same as 
 		if(!isEmpty(tableName)) {
 			adjustDataTypes(tableName, dataTypeMap);
@@ -500,9 +504,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public boolean isEmpty(String tableName) {
-		String command = "\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) <= 0";
-		Boolean isEmpty = (Boolean) runScript(command);
-		return isEmpty;
+		String command = "\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0";
+		Boolean notEmpty = (Boolean) runScript(command);
+		return !notEmpty;
 	}
 	
 	@Override
