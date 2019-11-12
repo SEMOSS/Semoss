@@ -83,7 +83,7 @@ public class HistogramReactor extends AbstractFrameReactor {
 		if(format) {
 			frame.runScript(formatHist.toString(), formatBins.toString());
 		}
-		ArrayList<Long> counts = (ArrayList<Long>) frame.runScript("hist");
+		ArrayList<Object> counts = (ArrayList<Object>) frame.runScript("hist");
 		ArrayList<Object> breaks = (ArrayList<Object>) frame.runScript("bins");
 
 //		Double[] breaks = null;
