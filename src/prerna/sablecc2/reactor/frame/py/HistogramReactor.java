@@ -1,6 +1,6 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import com.google.gson.Gson;
+import java.util.ArrayList;
 
 import prerna.ds.py.PandasFrame;
 import prerna.sablecc2.om.GenRowStruct;
@@ -14,7 +14,6 @@ import prerna.sablecc2.reactor.task.constant.ConstantTaskCreationHelper;
 
 public class HistogramReactor extends AbstractFrameReactor {
 
-	private static Gson gson = new Gson();
 	
 	/**
 	 * This reactor gets a histogram
@@ -48,7 +47,7 @@ public class HistogramReactor extends AbstractFrameReactor {
 		//need to retrieve panel id to use in the task options
 		String panelId = getPanelId();
 		
-		//build the r script to execute
+		//build the py script to execute
 		return getHistogram(frame, table, column, panelId, numBreaks);
 	}
 	
@@ -62,10 +61,17 @@ public class HistogramReactor extends AbstractFrameReactor {
 	protected NounMetadata getHistogram(PandasFrame frame, String table, String column, String panelId, int numBreaks) {
 		StringBuilder script = new StringBuilder();
 		script.append("hist,bins = ");
+		StringBuilder formatHist = new StringBuilder();
+		StringBuilder formatBins = new StringBuilder();
+		boolean format = false;
+
 		if(numBreaks > 1) {
 			script.append("np.histogram(").append(table).append("['").append(column).append("'], bins=").append(numBreaks).append(")");
 		} else {
 			script.append("np.histogram(").append(table).append("['").append(column).append("'], bins='auto')");
+			formatHist.append("hist = list(map(int, hist))");
+			formatBins.append("bins = list(bins)");
+			format = true;
 		}
 		
 		// we only need the breaks and counts
@@ -74,25 +80,28 @@ public class HistogramReactor extends AbstractFrameReactor {
 		//get r vector - this will be specific to reserve or JRI
 		//then use the r vector to get the breaks (double array) and the counts (int array)
 		frame.runScript("import numpy as np", script.toString());
-		Object countsStr = frame.runScript("hist");
-		Object breaksStr = frame.runScript("bins");
-
-		double[] breaks = null;
-		int[] counts = null;
-		try {
-			// string parsing is dumb...
-			// need to properly expose a way to cast objects from python execution
-			breaks = gson.fromJson(cleanStr(breaksStr.toString()), double[].class);
-			counts = gson.fromJson(cleanStr(countsStr.toString()), int[].class);
-		} catch(Exception e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException("Unable to generate histogram for column " + column);
+		if(format) {
+			frame.runScript(formatHist.toString(), formatBins.toString());
 		}
+		ArrayList<Long> counts = (ArrayList<Long>) frame.runScript("hist");
+		ArrayList<Object> breaks = (ArrayList<Object>) frame.runScript("bins");
+
+//		Double[] breaks = null;
+//		Integer[] counts = null;
+//		try {
+//			// string parsing is dumb...
+//			// need to properly expose a way to cast objects from python execution
+//			breaks = gson.fromJson(cleanStr(breaksStr.toString()), Double[].class);
+//			counts = gson.fromJson(cleanStr(countsStr.toString()), Integer[].class);
+//		} catch(Exception e) {
+//			e.printStackTrace();
+//			throw new IllegalArgumentException("Unable to generate histogram for column " + column);
+//		}
 		
 		//get the number of bins from the length of the counts
 		int numBins;
 		if (counts != null){
-			numBins = counts.length;
+			numBins = counts.size();
 		} else {
 			numBins = 0;
 		}
@@ -100,8 +109,8 @@ public class HistogramReactor extends AbstractFrameReactor {
 
 		//add the data to the data object
 		for(int i = 0; i < numBins; i++) {
-			data[i][0] = breaks[i] + " - " + breaks[i+1];
-			data[i][1] = counts[i];
+			data[i][0] = breaks.get(i) + " - " + breaks.get(i + 1);
+			data[i][1] = counts.get(i);
 		}
 		
 		//task data includes task options
