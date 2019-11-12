@@ -387,12 +387,18 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 			rJavaTranslator.startR();
 
 			String script = subsetVar + "<-" + storeFrameName + "[" + storeFrameName + "$action %in% " + filter + "];"
-					+ indexVar + "<-("
-					+ "match(" + resultsFrame + "$sourceTable," + subsetVar + "$sourceTable) "
-					+ "& match(" + resultsFrame + "$sourceCol," + subsetVar + "$sourceCol) "
-					+ "& match(" + resultsFrame + "$targetTable," + subsetVar + "$targetTable) "
-					+ "& match(" + resultsFrame + "$targetCol," + subsetVar + "$targetCol));"
-					+ resultsFrame + "<-" + resultsFrame + "[" + indexVar + "];gc(" + subsetVar + "," + indexVar + ");";
+//					+ indexVar + "<- !("
+//					+ "match(" + resultsFrame + "$sourceTable," + subsetVar + "$sourceTable) "
+//					+ "& match(" + resultsFrame + "$sourceCol," + subsetVar + "$sourceCol) "
+//					+ "& match(" + resultsFrame + "$targetTable," + subsetVar + "$targetTable) "
+//					+ "& match(" + resultsFrame + "$targetCol," + subsetVar + "$targetCol));"
+					+ resultsFrame + "<-" + resultsFrame + 
+					"[ !( " + resultsFrame + "$sourceTable != " + subsetVar + "$sourceTable " 
+					+	"& " + resultsFrame + "$sourceCol != " + subsetVar + "$sourceCol " 
+					+	"& " + resultsFrame + "$targetTable != " + subsetVar + "$targetTable " 
+					+	"& " + resultsFrame + "$targetCol != " + subsetVar + "$targetCol " 
+					+ ") ];"
+					+ "gc(" + subsetVar + "," + indexVar + ");";
 			rJavaTranslator.runR(script);
 			
 			logger.info("Finsihed removing previously mastered data from the results");
