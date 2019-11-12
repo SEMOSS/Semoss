@@ -10,7 +10,7 @@ public enum RdbmsTypeEnum {
 	H2_DB("H2_DB", "org.h2.Driver", "jdbc:h2"),
 	IMPALA("IMPALA", "com.cloudera.impala.jdbc4.Driver", "jdbc:impala"),
 	REDSHIFT("REDSHIFT", "com.amazon.redshift.jdbc.Driver", "jdbc:redshift"),
-	MARIADB("MARIA_DB", "org.mariadb.jdbc.Driver", "jdbc:marisadb"),
+	MARIADB("MARIA_DB", "org.mariadb.jdbc.Driver", "jdbc:mariadb"),
 	MYSQL("MYSQL", "com.mysql.jdbc.Driver", "jdbc:mysql"),
 	ORACLE("ORACLE", "oracle.jdbc.driver.OracleDriver", "jdbc:oracle:thin"),
 	PHOENIX("PHOENIX", "org.apache.phoenix.jdbc.PhoenixDriver", "jdbc:phoenix"),
