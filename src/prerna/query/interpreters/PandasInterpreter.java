@@ -128,7 +128,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		genAggString();
 		processOrderBy();
 		closeAll();
-		System.out.println("C...");
+		System.out.println("");
 		
 		
 		query.append(this.wrapperFrameName)
@@ -139,6 +139,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			//.append(this)
 			.append(this.filterCriteria)
 			.append(this.selectorCriteria)
+			.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()))
 			.append(this.groupCriteria)
 			.append(this.aggCriteria)
 			.append(orderBy)
@@ -148,6 +149,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return query.toString();
 	}
 	
+	private String addDistinct(boolean distinct) {
+		if(distinct) {
+			return ".drop_duplicates()";
+		}
+		return "";
+	}
+
 	public void closeAll()
 	{
 		
@@ -171,7 +179,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(this.selectorCriteria.toString().length() > 0 && ((SelectQueryStruct) this.qs).getGroupBy().size() == 0)
 		{
 			StringBuilder newSelectorCriteria = new StringBuilder(addLimitOffset(start, end) + "[[");
-			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]].drop_duplicates()");
+			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]]");
 		}
 		else
 			this.selectorCriteria = new StringBuilder("");
