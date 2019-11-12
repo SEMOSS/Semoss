@@ -511,6 +511,8 @@ public class Constants {
 	public static final String DEFAULT_FRAME_TYPE = "DEFAULT_FRAME_TYPE";
 	// default grid frame type
 	public static final String DEFAULT_GRID_TYPE = "DEFAULT_GRID_TYPE";
+	// default scripting language
+	public static final String DEFAULT_SCRIPTING_LANGUAGE = "DEFAULT_SCRIPTING_LANGUAGE";
 	
 	// h2 frame limit size before going on disk
 	public static final String H2_IN_MEM_SIZE = "H2_IN_MEM_SIZE";
