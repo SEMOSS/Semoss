@@ -961,7 +961,6 @@ public class PixelUnit {
 	protected PixelRunner runPixel(String pixel) throws IOException {
 		pixel = formatString(pixel);
 		long start = System.currentTimeMillis();
-		System.out.println("####INSIGHT JAVA VAR (inside runPixel(): " + insight.toString());
 		PixelRunner returnData = insight.runPixel(pixel);
 		long end = System.currentTimeMillis();
 		LOGGER.info("Execution time : " + (end - start) + " ms");
