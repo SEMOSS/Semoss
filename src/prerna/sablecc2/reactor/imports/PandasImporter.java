@@ -9,6 +9,7 @@ import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
@@ -104,7 +105,11 @@ public class PandasImporter extends AbstractImporter {
 		
 		String tempTableName = Utility.getRandomString(6);
 		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs, it);
-		this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
+		try {
+			this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
+		} catch(EmptyIteratorException e) {
+			throw new IllegalArgumentException("Iterator returned no results. Joining this data would result in no data.");
+		}
 		
 		// we may need to alias the headers in this new temp table
 		if(!rightTableAlias.isEmpty()) {
