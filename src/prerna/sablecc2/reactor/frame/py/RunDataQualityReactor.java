@@ -28,7 +28,8 @@ public class RunDataQualityReactor extends AbstractPyFrameReactor {
 		PandasFrame frame = (PandasFrame) getFrame();
 		String frameWrapper = frame.getWrapperName();
 		String rule = getData(RULE_KEY);
-		String column = getData(COLUMNS_KEY);
+		String column = 
+				getData(COLUMNS_KEY);
 		List<Object> optionsList = getOptions(OPTIONS_KEY);
 		PandasFrame inputTable = getInputTable();
 
