@@ -92,7 +92,7 @@ build_dev:
     - pwd
     - apt-get update
     - apt-get install -y openjfx
-    - mvn $MAVEN_CLI_OPTS clean install -Dci.version=${VERSION}-SNAPSHOT -X
+    - mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT -X
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
   artifacts:
@@ -116,7 +116,7 @@ build_sonar:
     - pwd
     - apt-get update
     - apt-get install -y openjfx
-    - mvn $MAVEN_CLI_OPTS clean install -Dci.version=${VERSION}-SNAPSHOT -X
+    - mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT -X
     - mvn sonar:sonar -Dsonar.projectKey=$PROJECT_KEY -Dsonar.projectVersion=${VERSION}-SNAPSHOT -Dsonar.host.url=$HOST_URL -Dsonar.login=$LOGIN_KEY
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
@@ -146,7 +146,7 @@ build_deploy:
     - apt-get install -y openjfx
     - apt-get install -y gnupg2
     - gpg2 --batch --import <(echo "$GPG_PRIVATE_KEY")
-    - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dci.version=${VERSION}-SNAPSHOT -X
+    - mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=$SKIP_TESTS -Dci.version=${VERSION}-SNAPSHOT -X
     # So that the cache takes up less space
     - rm -rf .m2/repository/org/semoss
   artifacts:
