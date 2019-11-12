@@ -51,6 +51,8 @@ public class GetOwlDictionaryReactor extends AbstractMetaEditorReactor {
 					+ "OPTIONAL{?URI <" + OWL.sameAs.toString() + "> ?LOGICAL_NAME} "
 					+ "OPTIONAL{?URI <" + RDFS.CLASS.toString() + "> ?TYPE} "
 					+ "Filter(?URI != <http://semoss.org/ontologies/Concept>)"
+					// currently not returning the table names in RDBMS/R/etc. data source structures
+					+ "MINUS{?URI <" + RDFS.DOMAIN.toString() + "> \"noData\" }"
 				+ "}"
 				+ "UNION "
 				+ "{"
