@@ -116,15 +116,19 @@ public class DeleteInsightReactor extends AbstractReactor {
 				files.remove(""); // removing empty path
 				GitDestroyer.removeSpecificFiles(gitFolder, true, files);
 				GitRepoUtils.commitAddedFiles(gitFolder,GitUtils.getDateMessage("Deleted " + insightName + " insight on"), author, email);
-				FileUtils.deleteDirectory(insightFolder);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
 				if(walk != null) {
 					walk.close();
 				}
+				// delete folder
+				try {
+					FileUtils.deleteDirectory(insightFolder);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
-
 			SecurityInsightUtils.deleteInsight(appId, insightId);
 		}
 		ClusterUtil.reactorPushApp(appId);
