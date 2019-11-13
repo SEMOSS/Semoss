@@ -403,11 +403,16 @@ class PyFrame:
 			# top 25 results
 			if num_null > 0:
 				if len(values) < 25 or min(values) < num_null:
+					added = False
 					for index, val in enumerate(values):
-						if num_null > val :
+						if num_null > val:
 							keys.insert(index, 'null')
 							values.insert(index, num_null)
+							added = True
 							break
+					if not added:
+						keys.append('null')
+						values.append(num_null)
 			return [keys, values]
 
 	def drop_dup(this, col_name='assign', inplace=True):
