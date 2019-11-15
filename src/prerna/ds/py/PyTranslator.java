@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
@@ -30,16 +32,26 @@ public class PyTranslator {
 
 	PyExecutorThread pt = null;
 	
-	//sets the insight
-	public void setInsight(Insight insight)
-	{
+	// sets the insight
+	public void setInsight(Insight insight) {
 		this.insight = insight;
 	}
-	
-	public void setPy(PyExecutorThread pt)
-	{
+
+	public void setPy(PyExecutorThread pt) {
 		this.pt = pt;
 	}
+	
+	public List<Object> getList(String script) {
+		return (List<Object>) runScript(script);
+	}
+	
+	public String[] getStringArray(String script) {
+		ArrayList<String> val = (ArrayList<String>) runScript(script);
+		String [] retString = new String[val.size()];
+		
+		val.toArray(retString);
+		
+		return retString;	}
 	
 	protected Hashtable executePyDirect(String...script)
 	{
@@ -258,14 +270,40 @@ public class PyTranslator {
 		
 	}
 	
-	private String convertArrayToString(String...script)
-	{
+	/**
+	 * Run the script
+	 * By default return the first script passed in
+	 * use the Executor to grab the specific code portion if running multiple
+	 * @param script
+	 * @return
+	 */
+	public Object runScript(String... script) {
+		this.pt.command = script;
+		Object monitor = this.pt.getMonitor();
+		Object response = null;
+		synchronized(monitor) {
+			try {
+				monitor.notify();
+				monitor.wait(4000);
+			} catch (Exception ignored) {
+				
+			}
+			if(script.length == 1) {
+				response = this.pt.response.get(script[0]);
+			} else {
+				response = this.pt.response;
+			}
+		}
+		return response;
+	}
+	
+	private String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
-		for(int lineIndex = 0;lineIndex < script.length;lineIndex++)
+		for (int lineIndex = 0; lineIndex < script.length; lineIndex++)
 			retString.append(script[lineIndex]).append("\n");
 		return retString.toString();
 	}
-	
+
 	public void setLogger(Logger logger) {
 		this.logger = logger;
 	}
