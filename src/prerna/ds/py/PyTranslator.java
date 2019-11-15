@@ -41,17 +41,93 @@ public class PyTranslator {
 		this.pt = pt;
 	}
 	
+	/**
+	 * Get list of Objects from py script
+	 * 
+	 * @param script
+	 * @return
+	 */
 	public List<Object> getList(String script) {
 		return (List<Object>) runScript(script);
 	}
-	
-	public String[] getStringArray(String script) {
+
+	/**
+	 * Get String[] from py script
+	 * 
+	 * @param script
+	 * @return
+	 */
+	public List<String> getStringList(String script) {
 		ArrayList<String> val = (ArrayList<String>) runScript(script);
-		String [] retString = new String[val.size()];
-		
+		return val;
+	}
+
+	/**
+	 * Get String[] from py script
+	 * 
+	 * @param script
+	 * @return
+	 */
+	public String[] getStringArray(String script) {
+		List<String> val = getStringList(script);
+		String[] retString = new String[val.size()];
 		val.toArray(retString);
-		
-		return retString;	}
+		return retString;
+	}
+
+	/**
+	 * Get boolean from py script
+	 * 
+	 * @param script
+	 * @return
+	 */
+	public boolean getBoolean(String script) {
+		Boolean x = (Boolean) runScript(script);
+		return x.booleanValue();
+	}
+
+	/**
+	 * Get integer from py script
+	 * 
+	 * @param script
+	 * @return
+	 */
+	public int getInt(String script) {
+		Long x = getLong(script);
+		return x.intValue();
+	}
+
+	/**
+	 * Get Long from py script
+	 * 
+	 * @param script
+	 * @return
+	 */
+	public Long getLong(String script) {
+		Long x = (Long) runScript(script);
+		return x;
+	}
+
+	/**
+	 * Get double from py script
+	 * 
+	 * @param script
+	 * @return
+	 */
+	public double getDouble(String script) {
+		Double x = (Double) runScript(script);
+		return x.doubleValue();
+	}
+
+	/**
+	 * Get String from py script
+	 * 
+	 * @param script
+	 * @return
+	 */
+	public String getString(String script) {
+		return (String) runScript(script);
+	}
 	
 	protected Hashtable executePyDirect(String...script)
 	{
