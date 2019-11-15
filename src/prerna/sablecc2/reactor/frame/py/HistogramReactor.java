@@ -1,8 +1,9 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -59,6 +60,7 @@ public class HistogramReactor extends AbstractFrameReactor {
 	
 	//method to make the histogram - now we can easily use the histogram code from other reactors
 	protected NounMetadata getHistogram(PandasFrame frame, String table, String column, String panelId, int numBreaks) {
+		PyTranslator pyT = this.insight.getPyTranslator();
 		StringBuilder script = new StringBuilder();
 		script.append("hist,bins = ");
 		StringBuilder formatHist = new StringBuilder();
@@ -74,30 +76,15 @@ public class HistogramReactor extends AbstractFrameReactor {
 			format = true;
 		}
 		
-		// we only need the breaks and counts
-		// format each range to the count value
-
-		//get r vector - this will be specific to reserve or JRI
-		//then use the r vector to get the breaks (double array) and the counts (int array)
 		frame.runScript("import numpy as np", script.toString());
-		if(format) {
+
+		if (format) {
 			frame.runScript(formatHist.toString(), formatBins.toString());
 		}
-		ArrayList<Object> counts = (ArrayList<Object>) frame.runScript("hist");
-		ArrayList<Object> breaks = (ArrayList<Object>) frame.runScript("bins");
 
-//		Double[] breaks = null;
-//		Integer[] counts = null;
-//		try {
-//			// string parsing is dumb...
-//			// need to properly expose a way to cast objects from python execution
-//			breaks = gson.fromJson(cleanStr(breaksStr.toString()), Double[].class);
-//			counts = gson.fromJson(cleanStr(countsStr.toString()), Integer[].class);
-//		} catch(Exception e) {
-//			e.printStackTrace();
-//			throw new IllegalArgumentException("Unable to generate histogram for column " + column);
-//		}
-		
+		List<Object> counts = pyT.getList("hist");
+		List<Object> breaks = pyT.getList("bins");
+
 		//get the number of bins from the length of the counts
 		int numBins;
 		if (counts != null){
@@ -118,19 +105,6 @@ public class HistogramReactor extends AbstractFrameReactor {
 		
 		//return metadata
 		return new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-	}
-	
-	/**
-	 * Only have this method due to the fact that currently we have to string parse....
-	 * @param arrayInput
-	 * @return
-	 */
-	private String cleanStr(String arrayInput) {
-		arrayInput = arrayInput.replaceAll("\\s+", ",");
-		arrayInput = arrayInput.replace(".,", ",");
-		arrayInput = arrayInput.replace(",]", "]");
-		arrayInput = arrayInput.replace("[,", "[");
-		return arrayInput;
 	}
 	
 	//////////////////////////////////////////////////////////////////////
