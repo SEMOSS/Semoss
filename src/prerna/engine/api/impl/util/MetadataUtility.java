@@ -25,6 +25,9 @@ public class MetadataUtility {
 		if(eType.startsWith("TYPE:")) {
 			eType = eType.replace("TYPE:", "");
 		}
+		if(eType.equals("RDF")) {
+			eType = "SESAME";
+		}
 		return ignoreConceptData(IEngine.ENGINE_TYPE.valueOf(eType));
 	}
 	
