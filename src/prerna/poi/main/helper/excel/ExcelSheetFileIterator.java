@@ -40,7 +40,25 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	private int startCol;
 	private int endRow;
 	
+	/**
+	 * Simple iterator used when all the information can be parsed from the QS
+	 * @param qs
+	 */
+	public ExcelSheetFileIterator(ExcelQueryStruct qs) {
+		this(null, qs);
+	}
+	
+	/**
+	 * Constructor for file iterator
+	 * @param sheet
+	 * @param qs
+	 */
 	public ExcelSheetFileIterator(Sheet sheet, ExcelQueryStruct qs) {
+		if(sheet == null) {
+			ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+			helper.parse(qs.getFilePath());
+			sheet = helper.getSheet(qs.getSheetName());
+		}
 		// get the excel elements
 		this.sheet = sheet;
 		this.sProcessor = new ExcelSheetPreProcessor(this.sheet);
@@ -75,43 +93,6 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		this.limit = qs.getLimit();
 		this.offset = qs.getOffset();
 	}
-	
-	/**
-	 * Simple iterator used to import excel sheet into R
-	 * 
-	 * @param qs
-	 */
-	public ExcelSheetFileIterator(ExcelQueryStruct qs) {
-		// get the qs elements
-		this.qs = qs;
-		this.sheetRange = qs.getSheetRange();
-
-		// range index is start col, start row, end col, end row
-		this.range = new ExcelRange(this.sheetRange);
-		this.rangeIndex = range.getIndices();
-
-		// this will be the first row of data
-		// since excel is 1 based and java is 0
-		this.curRow = this.rangeIndex[1];
-		this.startCol = this.rangeIndex[0];
-		this.endRow = this.rangeIndex[3];
-
-		// now that I have set the headers from the setSelectors
-		this.dataTypeMap = qs.getColumnTypes();
-		this.additionalTypesMap = qs.getAdditionalTypes();
-		this.newHeaders = qs.getNewHeaderNames();
-		
-		// need to figure out the selectors
-		setSelectors(qs.getSelectors());
-		
-//		// we don't need to iterate
-		this.curRow = this.endRow;
-		
-		// set limit and offset
-		this.limit = qs.getLimit();
-		this.offset = qs.getOffset();
-	}
-	
 	
 	@Override
 	public void getNextRow() {
