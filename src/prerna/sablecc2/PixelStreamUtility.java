@@ -373,9 +373,11 @@ public class PixelStreamUtility {
 						ps.print("\"values\":[");
 						// try to at least provide the headers
 						List<Map<String, Object>> headerInfo = task.getHeaderInfo();
-						headers = new String[headerInfo.size()];
-						for(int i = 0; i < headers.length; i++) {
-							headers[i] = headerInfo.get(i).get("alias") + "";
+						if(headerInfo != null) {
+							headers = new String[headerInfo.size()];
+							for(int i = 0; i < headers.length; i++) {
+								headers[i] = headerInfo.get(i).get("alias") + "";
+							}
 						}
 					}
 					// end the values and add the headers
