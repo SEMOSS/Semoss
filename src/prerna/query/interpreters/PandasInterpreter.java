@@ -36,13 +36,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	private StringBuilder filterCriteria;
 	private StringBuilder groupCriteria = new StringBuilder("");
 	private StringBuilder aggCriteria = new StringBuilder("");
+	private StringBuilder aggCriteria2 = new StringBuilder("");
 	private StringBuilder renCriteria = new StringBuilder(".rename(columns={'mean':'Average', 'nunique':'UniqueCount', 'sum':'Sum', 'median':'Median', 'max':'Max', 'min':'Min', 'count':'Count'})");
 	private StringBuilder orderBy = new StringBuilder("");
+	private StringBuilder orderBy2 = new StringBuilder("");
 	private StringBuilder ascending = new StringBuilder("");
+	private StringBuilder ascending2 = new StringBuilder("");
+	private StringBuilder index2Drop = new StringBuilder("[");
 	
 	private StringBuilder normalizer = new StringBuilder(".to_dict('split')['data']");
 	
 	private Map <String, StringBuilder>aggHash = null;
+	private Map <String, StringBuilder>aggHash2 = null;
 	private Map <String, StringBuilder>orderHash = null;
 	
 	private Map <String, String> functionMap = null;
@@ -102,6 +107,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		functionMap = new HashMap<String, String>();
 		aggHash = new HashMap<String, StringBuilder>();
 		aggKeys = new ArrayList<String>();
+		aggHash2 = new HashMap<String, StringBuilder>();
 		orderHash = new HashMap<String, StringBuilder>();
 		orderBy = new StringBuilder("");
 		normalizer = new StringBuilder(".to_dict('split')");//['data']");
@@ -141,8 +147,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			.append(this.selectorCriteria)
 			.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()))
 			.append(this.groupCriteria)
-			.append(this.aggCriteria)
+			//.append(this.aggCriteria2)
+			.append(this.aggCriteria2)
 			.append(orderBy)
+			//.append(orderBy2)
 			.append(normalizer);
 			//.append(this.renCriteria);
 		
@@ -158,6 +166,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 
 	public void closeAll()
 	{
+		boolean aggregate = false;
 		
 		//t.agg({'Title': 'count'}).rename({'Title': 'count(Title)'}).reset_index().to_dict('split')['data']
 		if(this.aggCriteria.toString().length() > 0)
@@ -165,14 +174,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			if(((SelectQueryStruct) this.qs).getGroupBy().size() != 0)
 			{
 				this.aggCriteria = aggCriteria.append("})").append(addLimitOffset(start, end)).append(".reset_index()");
+				this.aggCriteria2 = aggCriteria2.append(")").append(addLimitOffset(start, end)).append(".reset_index()");
 				this.renCriteria = renCriteria.append("}).reset_index()");
 			}
 			if(headers.size() == 1) // it is just getting one single data
 			{
 				this.aggCriteria = aggCriteria.append("}).reset_index()");
+				this.aggCriteria2 = aggCriteria2.append(").reset_index()");
 				normalizer = new StringBuilder(".to_dict('split')['data'][0][1]");
+				aggCriteria2 = aggCriteria;
 				scalar = true;
 			}
+			aggregate = true;
 		}
 		
 		// if there is agroup by.. this whole thing should be ignored pretty much
@@ -199,16 +212,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(orderBy.length() != 0)
 			// combine it
 			orderBy.append("],").append(ascending).append("])");
+		if(orderBy2.length() != 0)
+			// combine it
+			orderBy2.append("],").append(ascending2).append("])");
+		
+		//if(aggregate) // swap the order
+		//	orderBy = orderBy;
+			
 	}
 	
 	private void processOrderBy()
 	{
 		List <QueryColumnOrderBySelector> qcos = ((SelectQueryStruct) this.qs).getOrderBy();
-		boolean processed = false;
-		StringBuilder thisOrderBy = new StringBuilder("");
 		for(int orderIndex = 0;orderIndex < qcos.size();orderIndex++)
 		{
-			thisOrderBy = new StringBuilder(".sort_values(");
 			String sort = null;
 			String alias = qcos.get(orderIndex).getAlias();
 			if(alias.length() == 0)
@@ -225,7 +242,15 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				orderByClause = orderHash.get(alias);
 			
 			if(orderByClause != null)
-				addOrder(orderByClause, sort);
+			{
+				// check if it is aggregate
+				// at this point the alias does it
+				//addOrder(orderByClause, sort);
+				addOrder(new StringBuilder(alias), sort);
+				
+				// also add the other piece to test
+				addOrder2(orderByClause, sort);
+			}
 		}
 		
 		//if(!processed)
@@ -234,6 +259,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private void addOrder(StringBuilder curOrder, String asc)
 	{
+		// I need to find out which are the pieces I need to drop
 		if(orderBy.length() == 0)
 		{
 			orderBy = new StringBuilder(".sort_values([");
@@ -249,9 +275,34 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		ascending.append(asc);
 		
 		// add the order by
-		orderBy.append(curOrder);
+		orderBy.append("'").append(curOrder).append("'");
 		
 	}
+
+	private void addOrder2(StringBuilder curOrder, String asc)
+	{
+		// I need to find out which are the pieces I need to drop
+		// get the ordinal value
+		//int colIndex = headers.indexOf(curOrder);
+		if(orderBy2.length() == 0)
+		{
+			orderBy2 = new StringBuilder(".sort_index(level=[");
+			ascending2 = new StringBuilder("ascending=[");
+		}
+		else
+		{
+			orderBy2.append(",");
+			ascending2.append(",");
+		}
+		
+		// add the ascending
+		ascending2.append(asc);
+		
+		// add the order by
+		orderBy2.append(curOrder);
+		
+	}
+
 	
 	private String addLimitOffset(long start, long end) {
 		StringBuilder sb = new StringBuilder();
@@ -294,8 +345,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				orderHash.put(selector.getAlias(), builder);
 				actHeaders.add(newHeader);
 				types.add(colDataTypes.get(this.frameName + "__" + newHeader));
+				
+				/*
+				if(index2Drop.length() == 0)
+					index2Drop.append("[").append(i);
+				else
+					index2Drop.append(",").append(i);
+				*/
 			}
+			
 		}
+		
+		//index2Drop.append("]");
 	}
 	
 	
@@ -424,7 +485,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	private void genAggString()
 	{
 		aggCriteria = new StringBuilder("");
-		renCriteria = new StringBuilder("");
 
 		for(int cIndex = 0;cIndex < aggKeys.size();cIndex++)
 		{
@@ -432,11 +492,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			if(cIndex != 0)
 			{
 				aggCriteria.append(",");
+				aggCriteria2.append(",");
 			}
+			// I need to replace this with aggHash2
 			aggCriteria.append(aggHash.get(colKey)).append("]");
+			//aggCriteria.append(aggHash.get(colKey));
+			aggCriteria2.append(aggHash2.get(colKey));
 		}
 		if(aggCriteria.length() > 0)
+		{
 			aggCriteria = new StringBuilder(".agg({").append(aggCriteria);
+			aggCriteria2 = new StringBuilder(".agg(").append(aggCriteria2);
+		}
 	}
 	
 	private String processAggSelector(QueryFunctionSelector selector)
@@ -450,9 +517,16 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// you need to get to the column selector and then get the alias
 		String pandasFunction = QueryFunctionHelper.convertFunctionToPandasSyntax(function);
 		StringBuilder aggBuilder = new StringBuilder("");
+		StringBuilder aggBuilder2 = new StringBuilder("");
 		
 		// I also need to keep track of the alias here so I can use that in the sort later
-
+		// I need to get the alias here
+		String aggAlias = selector.getAlias();
+		// format is
+		// mv.drop_duplicates().groupby(['Genre']).agg(Mango = ('Studio','count')).iloc[0:2000]
+		// mango is the name of the alias.. no quotes
+		aggBuilder2.append(aggAlias).append("=('").append(columnName).append("' , '").append(pandasFunction).append("')");
+		
 		
 		
 		if(aggHash.containsKey(columnName))
@@ -471,6 +545,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		headers.add(selector.getAlias());
 		aggHash.put(columnName, aggBuilder);
+		aggHash2.put(columnName, aggBuilder2);
 		
 		aggKeys.add(columnName);
 		
