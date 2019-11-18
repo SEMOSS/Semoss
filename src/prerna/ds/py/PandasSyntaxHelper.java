@@ -7,6 +7,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.HeadersException;
+import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.sablecc2.om.Join;
 
 public class PandasSyntaxHelper {
@@ -114,6 +115,23 @@ public class PandasSyntaxHelper {
 		}
 		String readCsv = tableName + ".to_csv('" + fileLocation.replaceAll("\\\\+", "/") + "', sep='" + sep + "', encoding='" + encoding + "', index=False)";
 		return readCsv;
+	}
+	
+	public static String loadExcelSheet(String pandasImportVar, String fileLocation, String tableName, String sheetName, String sheetRange) {
+		int[] rangeIndicies = ExcelRange.getSheetRangeIndex(sheetRange);
+		int startCol = rangeIndicies[0];
+		int startRow = rangeIndicies[1];
+		int endCol = rangeIndicies[2];
+		int endRow = rangeIndicies[3];
+		fileLocation = fileLocation.replace("\\", "/");
+		StringBuilder sb = new StringBuilder();
+		sb.append(tableName + " = " + pandasImportVar + ".read_excel('" + fileLocation + "',");
+		// add column range
+		sb.append("sheet_name='" + sheetName + "', usecols=range(" + (startCol - 1) + ", " + endCol + "), ");
+		// add row range
+		int rowNum = endRow - startRow;
+		sb.append("skiprows = " + (startRow - 1) + ", nrows=" + rowNum + ")");
+		return sb.toString();
 	}
 	
 	public static String getWritePandasToPickle(String pickleVarName, String tableName, String fileLocation) {
@@ -386,7 +404,6 @@ public class PandasSyntaxHelper {
 	}
 
 	public static String cleanFrameHeaders(String frameName, String[] colNames) {
-		
 		HeadersException headerChecker = HeadersException.getInstance();
 		String [] pyColNames = headerChecker.getCleanHeaders(colNames);
 		// update frame header names in R
@@ -401,6 +418,25 @@ public class PandasSyntaxHelper {
 		String script = frameName + ".rename(columns=" + colRen + ", inplace=True)" ;
 		return script;
 	}
-	
 
+	/**
+	 * Set the column names for a frame
+	 * @param tableName
+	 * @param headers the new column names to use
+	 * @return
+	 */
+	public static String setColumnNames(String tableName, String[] headers) {
+		StringBuilder sb = new StringBuilder();
+		for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+			if (sb.length() == 0) {
+				sb.append("[");
+			} else {
+				sb.append(",");
+			}
+			sb.append("'").append(headers[headerIndex]).append("'");
+		}
+		sb.append("]");
+		String headerS = tableName + ".columns=" + sb.toString();
+		return headerS;
+	}
 }
