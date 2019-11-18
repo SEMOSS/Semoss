@@ -17,8 +17,10 @@ import prerna.ds.shared.AbstractTableDataFrame;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
+import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
@@ -132,9 +134,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		// just flush the excel to a grid through the iterator
 		// using the below logic
-//		else if(it instanceof ExcelSheetFileIterator) {
-//			throw new IllegalArgumentException("Have yet to implement pandas frame with excel iterator");
-//		} 
+		else if(it instanceof ExcelSheetFileIterator) {
+			addRowsViaExcelIterator((ExcelSheetFileIterator) it, tableName);
+			loaded = true;
+		} 
 		
 		if(!loaded) {
 			// default behavior is to just write this to a csv file
@@ -178,18 +181,31 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
 
 		// need to compose a string for names
-		StringBuilder header = new StringBuilder("");
-		String [] headers = it.getHeaders();
-		for(int headerIndex = 0;headerIndex < headers.length;headerIndex++) {
-			if(header.length() == 0) {
-				header.append("[");
-			} else {
-				header.append(",");
-			}
-			header.append("'").append(headers[headerIndex]).append("'");
-		}
-		header.append("]");
-		String headerS = tableName+".columns=" + header.toString();
+		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
+		// execute all 3 scripts
+		runScript(importS, loadS, headerS);
+		
+		// need to set up the name here as well as make the frame
+		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
+		runScript(makeWrapper);
+	}
+	
+	/**
+	 * Generate a table from a CSV file iterator
+	 * @param it
+	 * @param tableName
+	 */
+	private void addRowsViaExcelIterator(ExcelSheetFileIterator it, String tableName) {
+		ExcelQueryStruct qs = it.getQs();
+		String sheetName = qs.getSheetName();
+		String filePath = qs.getFilePath();
+		String sheetRange = qs.getSheetRange();
+		it.getSheet();
+		// generate the script
+		String importS = new StringBuilder(PANDAS_IMPORT_STRING).toString();
+		String loadS = PandasSyntaxHelper.loadExcelSheet(PANDAS_IMPORT_VAR, filePath, tableName, sheetName, sheetRange);
+		// need to compose a string for names
+		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
 		runScript(importS, loadS, headerS);
 		
