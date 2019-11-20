@@ -541,7 +541,7 @@ public class Constants {
 	//Tinker engine
 	public static final String TINKER_FILE = "TINKER_FILE";
 	public static final String TINKER_DRIVER = "TINKER_DRIVER";
-	public static final String USE_LABEL = "USE_LABEL";
+	public static final String TINKER_USE_LABEL = "TINKER_USE_LABEL";
 	// Janus Engine
 	public static final String JANUS_CONF = "JANUS_CONF";
 	
