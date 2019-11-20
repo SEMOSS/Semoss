@@ -48,6 +48,8 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 	protected Map<String, String> typeMap;
 	// identify the name for the vertex label
 	protected Map<String, String> nameMap;
+	
+	protected boolean useLabel = false;
 		
 	public GremlinInterpreter(GraphTraversalSource g, Map<String, String> typeMap, Map<String, String> nameMap) {
 		this.g = g;
@@ -184,7 +186,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 				gt = gt.match(twoStepT);
 			} else {
 				// it is just the vertex
-				this.gt.has(getNodeType(selector), getPhysicalNodeType(selector)).as(selector);
+				queryNode(this.gt, selector).as(selector);
 				// logic to filter
 				List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(selector);
 				addFiltersToPath(this.gt, startNodeFilters, getNodeName(selector));
@@ -272,7 +274,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		
 		// TODO: come back to this to optimize the traversal
 		// can do this by picking a "better" startNode
-		this.gt = this.gt.has(getNodeType(startNode), getPhysicalNodeType(startNode)).as(startNode);
+		this.gt = queryNode(this.gt, startNode).as(startNode);
 		List<SimpleQueryFilter> startNodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(startNode);
 		addFiltersToPath(this.gt, startNodeFilters, getNodeName(startNode));
 
@@ -424,7 +426,8 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 						}
 					}
 
-					twoStepT = twoStepT.out(edgeKey).has(getNodeType(downstreamNodeType), getPhysicalNodeType(downstreamNodeType)).as(downstreamNodeType);
+					twoStepT = twoStepT.out(edgeKey);
+					twoStepT = queryNode(twoStepT, downstreamNodeType).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters, getNodeName(downstreamNodeType));
@@ -479,7 +482,8 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 						}
 					}
-					twoStepT = twoStepT.in(edgeKey).has(getNodeType(upstreamNodeType), getPhysicalNodeType(upstreamNodeType)).as(upstreamNodeType);
+					twoStepT = twoStepT.in(edgeKey);
+					twoStepT = queryNode(twoStepT, upstreamNodeType).as(upstreamNodeType);
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
@@ -590,6 +594,31 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 		}
 	}
 	
+	/**
+	 * Set this boolean to true if you want the interpreter to grab nodes using the label
+	 * @param useLabel
+	 */
+	public void setUseLabel(boolean useLabel) {
+		this.useLabel = useLabel;
+	}
+	
+	/**
+	 * This is the method that will query the node based on how the engine has been defined to query the node
+	 * @param gt
+	 * @param nodeType
+	 * @return
+	 */
+	public GraphTraversal queryNode(GraphTraversal gt, String nodeType) {
+		// grab the node by the label
+		if (useLabel) {
+			gt.hasLabel(nodeType);
+		} else {
+			// grab the node by a specific property
+			gt.has(getNodeType(nodeType), getPhysicalNodeType(nodeType));
+		}
+		return gt;
+	}
+	
 	//////////////////////////////////////////////////////////
 	
 	/*
@@ -658,6 +687,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 			interp = new GremlinInterpreter(this.g, this.typeMap, this.nameMap);
 		}
 		interp.setQueryStruct(this.qs);
+		interp.setUseLabel(this.useLabel);
 		return interp;
 	}
 	

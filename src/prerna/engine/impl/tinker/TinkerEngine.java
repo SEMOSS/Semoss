@@ -40,6 +40,7 @@ public class TinkerEngine extends AbstractEngine {
 	protected Graph g = null;
 	protected Map<String, String> typeMap = new HashMap<String, String>();
 	protected Map<String, String> nameMap = new HashMap<String, String>();
+	protected boolean useLabel = false;
 	
 	public void openDB(String propFile) {
 		super.openDB(propFile);
@@ -61,6 +62,11 @@ public class TinkerEngine extends AbstractEngine {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		
+		if (prop.containsKey(Constants.USE_LABEL)) {
+			String booleanStr = prop.get(Constants.USE_LABEL).toString();
+			useLabel = Boolean.parseBoolean(booleanStr);
 		}
 
 		// open normal tinker engine
@@ -152,7 +158,9 @@ public class TinkerEngine extends AbstractEngine {
 
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
-		return new GremlinNoEdgeBindInterpreter(this.g.traversal(), this.typeMap, this.nameMap);
+		GremlinNoEdgeBindInterpreter interp = new GremlinNoEdgeBindInterpreter(this.g.traversal(), this.typeMap, this.nameMap);
+		interp.setUseLabel(useLabel);
+		return interp;
 	}
 
 	@Override
@@ -260,5 +268,13 @@ public class TinkerEngine extends AbstractEngine {
 	
 	public Map<String, String> getNameMap() {
 		return this.nameMap;
+	}
+	
+	/**
+	 * Set this to query the graph using the label() method
+	 * @param useLabel
+	 */
+	public void setUseLabel(boolean useLabel) {
+		this.useLabel = useLabel;
 	}
 }
