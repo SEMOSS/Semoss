@@ -73,7 +73,7 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 		return UploadUtilities.generateTemporaryExternalTinkerSmss(this.newAppId, this.newAppName, 
 				owlFile, this.filePath, 
 				this.typeMap, this.nameMap, 
-				this.tinkerDriver);
+				this.tinkerDriver, useLabel());
 	}
 
 	@Override
