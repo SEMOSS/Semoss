@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -161,18 +162,24 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		 */
 		
 		validateUserInput();
+
+		// check how to query the data using label or property name to get the type
 		String nodeType = this.keyValue.get(ReactorKeysEnum.GRAPH_TYPE_ID.getKey());
-		if (nodeType == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph type id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
 		String nodeName = this.keyValue.get(ReactorKeysEnum.GRAPH_NAME_ID.getKey());
+		boolean useLabel = useLabel();
+		if (!useLabel) {
+			if (nodeType == null) {
+				SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph type id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		}
 		if (nodeName == null) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph name id to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
+		
 		// get metamodel
 		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.GRAPH_METAMODEL.getKey());
 		Map<String, Object> metaMap = null;
@@ -194,14 +201,22 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		this.nameMap = new HashMap<String, String>();
 		// create typeMap for smms
 		for (String concept : concepts) {
-			Map<String, Object> propMap = (Map) nodes.get(concept);
-			for (String prop : propMap.keySet()) {
-				// get concept type
-				if (prop.equals(nodeType)) {
-					conceptTypes.put(concept, propMap.get(nodeType).toString());
-					this.typeMap.put(concept, nodeType);
-					this.nameMap.put(concept,  nodeName);
-					break;
+			// if we use the label, we assue the concept is a string and only
+			// need a name map
+			if (useLabel) {
+				conceptTypes.put(concept, SemossDataType.STRING.toString());
+				this.nameMap.put(concept, nodeName);
+			} else {
+				// else we need to get type map
+				Map<String, Object> propMap = (Map) nodes.get(concept);
+				for (String prop : propMap.keySet()) {
+					if (prop.equals(nodeType)) {
+						conceptTypes.put(concept, propMap.get(nodeType).toString());
+						this.typeMap.put(concept, nodeType);
+						this.nameMap.put(concept, nodeName);
+						break;
+
+					}
 				}
 			}
 		}
@@ -319,6 +334,19 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Query the external db with a label to get the node
+	 * @return
+	 */
+	protected boolean useLabel() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
+		if(grs != null && !grs.isEmpty()) {
+			return (boolean) grs.get(0);
+		}
+		
+		return false;
 	}
 	
 	///////////////////////////////////////////////////////

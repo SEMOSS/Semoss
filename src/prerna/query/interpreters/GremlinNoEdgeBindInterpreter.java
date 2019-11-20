@@ -78,7 +78,8 @@ public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
 						}
 					}
 
-					twoStepT = twoStepT.out().has(getNodeType(downstreamNodeType), getPhysicalNodeType(downstreamNodeType)).as(downstreamNodeType);
+					twoStepT = twoStepT.out();
+					twoStepT = queryNode(twoStepT, downstreamNodeType).as(downstreamNodeType);
 					// add filters
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(downstreamNodeType);
 					addFiltersToPath(twoStepT, nodeFilters, getNodeName(downstreamNodeType));
@@ -133,7 +134,8 @@ public class GremlinNoEdgeBindInterpreter extends GremlinInterpreter {
 							twoStepT = twoStepT.match(propTraversals.toArray(propArray)).select(startName);
 						}
 					}
-					twoStepT = twoStepT.in().has(getNodeType(upstreamNodeType), getPhysicalNodeType(upstreamNodeType)).as(upstreamNodeType);
+					twoStepT = twoStepT.in();
+					twoStepT = queryNode(twoStepT, upstreamNodeType).as(upstreamNodeType);
 
 					// add filtering
 					List<SimpleQueryFilter> nodeFilters = this.allFilters.getAllSimpleQueryFiltersContainingColumn(upstreamNodeType);
