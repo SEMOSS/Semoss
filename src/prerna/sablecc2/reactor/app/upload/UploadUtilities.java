@@ -681,7 +681,7 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryExternalTinkerSmss(String appId, String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType) throws IOException {
+	public static File generateTemporaryExternalTinkerSmss(String appId, String appName, File owlFile, String tinkerFilePath, Map<String, String> typeMap, Map<String, String> nameMap, TINKER_DRIVER tinkerDriverType, boolean useLabel) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		// i am okay with deleting the .temp if it exists
@@ -721,12 +721,16 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.TINKER_DRIVER + tab + tinkerDriverType + newLine);
 			// type map
 			Gson gson = new GsonBuilder().create();
-			String json = gson.toJson(typeMap);
-			bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+			// if we use the label we do not need the type map
+			if(useLabel) {
+				bufferedWriter.write(Constants.USE_LABEL + tab + useLabel + newLine);
+			} else {
+				String json = gson.toJson(typeMap);
+				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+			}
 			// name map
-			json = gson.toJson(nameMap);
+			String json = gson.toJson(nameMap);
 			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
-
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate app smss file");
