@@ -130,6 +130,7 @@ public enum ReactorKeysEnum {
 	QUERY_KEY("query", 										"Query string to be executed on the database"),
 	QUERY_STRUCT("qs", 										"QueryStruct object that contains selectors, filters, and joins"),
 	URL("url",                                              "The url"),
+	USE_LABEL("useLabel",                                   "Boolean to use the label to query a graph database"),
 	VALUE("value", 											"The instance value in a column, or the numeric or string value used in a operation"),
 	VALUES("values", 										"Numeric or string values used as input text or inputs to an operation"),
 	VARIABLE("variable", 									"Pixel variable consisting of only alphanumeric characters and underscores"),
