@@ -723,7 +723,7 @@ public class UploadUtilities {
 			Gson gson = new GsonBuilder().create();
 			// if we use the label we do not need the type map
 			if(useLabel) {
-				bufferedWriter.write(Constants.USE_LABEL + tab + useLabel + newLine);
+				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
 			} else {
 				String json = gson.toJson(typeMap);
 				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
