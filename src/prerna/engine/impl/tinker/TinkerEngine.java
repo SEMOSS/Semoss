@@ -64,8 +64,8 @@ public class TinkerEngine extends AbstractEngine {
 			}
 		}
 		
-		if (prop.containsKey(Constants.USE_LABEL)) {
-			String booleanStr = prop.get(Constants.USE_LABEL).toString();
+		if (prop.containsKey(Constants.TINKER_USE_LABEL)) {
+			String booleanStr = prop.get(Constants.TINKER_USE_LABEL).toString();
 			useLabel = Boolean.parseBoolean(booleanStr);
 		}
 
