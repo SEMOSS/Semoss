@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -77,7 +78,14 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 
 		// get the data
 		String[] matchCols = this.rJavaTranslator.getColumns(matchFrame);
-		List<Object[]> matchData = this.rJavaTranslator.getBulkDataRow(matchFrame, matchCols);
+		List<Object[]> matchData = new ArrayList<Object[]>();
+		
+		Boolean matchFrameExists = this.rJavaTranslator.getBoolean("exists(\"" + matchFrame + "\")");
+		if(matchFrameExists) {
+			matchData =	this.rJavaTranslator.getBulkDataRow(matchFrame, matchCols);
+		}
+
+		
 
 		// clean up r temp variables
 		this.rJavaTranslator.runR("rm(" + matchFrame + ");gc();");
@@ -136,7 +144,12 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 
 		if (grs != null && !grs.isEmpty()) {
 			try {
-				return grs.getAllStrValues();
+				List<String> values = new Vector<String>();
+				for(NounMetadata n : grs.vector) {
+					values.add(n.getValue().toString());
+				}
+				
+				return values;
 			} catch (ClassCastException e) {
 				throw new IllegalArgumentException("Instances need to be defined");
 			}
