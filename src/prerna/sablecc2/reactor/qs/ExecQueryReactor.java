@@ -1,5 +1,8 @@
 package prerna.sablecc2.reactor.qs;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -11,8 +14,8 @@ import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.BigDataEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
-import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.delete.DeleteSqlInterpreter;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
@@ -27,6 +30,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 
 public class ExecQueryReactor extends AbstractReactor {
+
+	private static final Logger LOGGER = LogManager.getLogger(ExecQueryReactor.class.getName());
 
 	private NounMetadata qStruct = null;
 	
@@ -94,7 +99,7 @@ public class ExecQueryReactor extends AbstractReactor {
 			update = false;
 		}
 		
-		System.out.println("QUERY...." + query);
+		LOGGER.info("EXEC QUERY.... " + query);
 		if(qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 			try {
 				engine.insertData(query);
@@ -131,7 +136,7 @@ public class ExecQueryReactor extends AbstractReactor {
 		GenRowStruct allNouns = getNounStore().getNoun(PixelDataType.QUERY_STRUCT.toString());
 		NounMetadata f = new NounMetadata(false, PixelDataType.BOOLEAN);
 		if(allNouns != null) {
-			object = (NounMetadata)allNouns.getNoun(0);
+			object = allNouns.getNoun(0);
 			return object;
 		}
 		return f;
