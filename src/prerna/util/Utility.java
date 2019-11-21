@@ -124,6 +124,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.task.ITask;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
@@ -2763,16 +2764,65 @@ public class Utility {
 		return portStr;
 	}
 	
+	/**
+	 * Write an iterator to a file location using "," as a separator
+	 * @param fileLocation
+	 * @param it
+	 * @return
+	 */
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it) {
 		return Utility.writeResultToFile(fileLocation, it, null, ",");
 	}
 	
+	/**
+	 * Write an iterator to a file location using the specified separator
+	 * @param fileLocation
+	 * @param it
+	 * @param separator
+	 * @return
+	 */
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, String separator) {
 		return Utility.writeResultToFile(fileLocation, it, null, separator);
 	}
 	
+	/**
+	 * Write an iterator to a file location using the types map defined and using a "," as a separator
+	 * @param fileLocation
+	 * @param it
+	 * @param typesMap
+	 * @return
+	 */
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap) {
 		return Utility.writeResultToFile(fileLocation, it, typesMap, ",");
+	}
+	
+	/**
+	 * Write a task to a file using a "," as a separator
+	 * @param fileLocation
+	 * @param task
+	 * @return
+	 */
+	public static File writeResultToFile(String fileLocation, ITask task) {
+		return writeResultToFile(fileLocation, task, ",");
+	}
+	
+	/**
+	 * Write a task toa  file using the specified separator
+	 * @param fileLocation
+	 * @param task
+	 * @param seperator
+	 * @return
+	 */
+	public static File writeResultToFile(String fileLocation, ITask task, String seperator) {
+		List<Map<String, Object>> headersInfo = task.getHeaderInfo();
+		Map<String, SemossDataType> typesMap = new HashMap<String, SemossDataType>();
+		for(Map<String, Object> headerMap : headersInfo) {
+			String name = (String) headerMap.get("alias");
+			SemossDataType type = SemossDataType.convertStringToDataType(headerMap.get("type").toString());
+			headerMap.put(name, type);
+		}
+		
+		return Utility.writeResultToFile(fileLocation, task, typesMap, seperator);
 	}
 	
 	public static File writeResultToFile(String fileLocation, Iterator<IHeadersDataRow> it, Map<String, SemossDataType> typesMap, String seperator) {
