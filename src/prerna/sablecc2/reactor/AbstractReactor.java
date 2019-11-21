@@ -36,6 +36,7 @@ public abstract class AbstractReactor implements IReactor {
 	private static final Logger LOGGER = LogManager.getLogger(AbstractReactor.class.getName());
 	// get the directory separator
 	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	protected static final String ALL_NOUN_STORE = "all";
 	
 	protected Insight insight = null;
 	protected PixelPlanner planner = null;
@@ -219,7 +220,7 @@ public abstract class AbstractReactor implements IReactor {
 	
 	@Override
 	public void In() {
-        curNoun("all");
+        curNoun(ALL_NOUN_STORE);
 	}
 	
 	@Override
@@ -241,7 +242,7 @@ public abstract class AbstractReactor implements IReactor {
 
 	@Override
 	public void closeNoun(String noun) {
-		curRow = store.getNoun("all");
+		curRow = store.getNoun(ALL_NOUN_STORE);
 	}
 	
 	// get noun

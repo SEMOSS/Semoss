@@ -65,6 +65,7 @@ import prerna.sablecc2.node.AWordMapKey;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.Node;
 import prerna.sablecc2.node.PRoutine;
+import prerna.sablecc2.node.PSubRoutineOptions;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -202,6 +203,26 @@ public class LazyTranslation extends DepthFirstAdapter {
         		postProcess(e.toString().trim());
         	}
         }
+	}
+	
+	@Override
+	public void caseASubRoutine(ASubRoutine node) {
+		inASubRoutine(node);
+		{
+			List<PSubRoutineOptions> copy = new ArrayList<PSubRoutineOptions>(node.getSubRoutineOptions());
+			int counter = 0;
+			for(PSubRoutineOptions e : copy)
+			{
+				e.apply(this);
+				// we will move the output from this one assignment from the curRow
+				// and move it into the nounstore which will be returned
+				// in the reactor execute
+				NounMetadata thisNoun = this.curReactor.getCurRow().remove(0);
+				this.curReactor.getNounStore().makeNoun(counter + "").add(thisNoun);
+				counter++;
+			}
+		}
+		outASubRoutine(node);
 	}
 
 	/**
@@ -1189,7 +1210,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		// need to push all the sub parts
     		int numInputs = parentReactor.getCurRow().size();
     		for(int i = 0; i < numInputs; i++) {
-    			NounMetadata noun = parentReactor.getCurRow().getNoun(i);
+    			NounMetadata noun = parentReactor.getCurRow().remove(i);
         		PixelDataType nounType = noun.getNounType();
         		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounType.toString());
         		genRow.add(noun);
