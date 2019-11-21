@@ -1,14 +1,18 @@
 package prerna.util.sql;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.sqlite.Function;
+import org.sqlite.SQLiteConfig;
+import org.sqlite.SQLiteConfig.Pragma;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.Join;
@@ -29,6 +33,10 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	
 	@Override
 	public void enhanceConnection(Connection con) {
+		SQLiteConfig sqLiteConfig = new SQLiteConfig();
+		Properties properties = sqLiteConfig.toProperties();
+		properties.setProperty(Pragma.DATE_STRING_FORMAT.pragmaName, "yyyy-MM-dd HH:mm:ss");
+		
 		try {
 			try {
 				Function.create(con, "REGEXP", new Function() {
