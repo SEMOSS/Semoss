@@ -381,12 +381,6 @@ public class AnalysisAdapter implements Analysis
     }
 
     @Override
-    public void caseANullRegTerm(ANullRegTerm node)
-    {
-        defaultCase(node);
-    }
-
-    @Override
     public void caseAFormula(AFormula node)
     {
         defaultCase(node);
@@ -850,6 +844,12 @@ public class AnalysisAdapter implements Analysis
 
     @Override
     public void caseABooleanScalar(ABooleanScalar node)
+    {
+        defaultCase(node);
+    }
+
+    @Override
+    public void caseANullScalar(ANullScalar node)
     {
         defaultCase(node);
     }

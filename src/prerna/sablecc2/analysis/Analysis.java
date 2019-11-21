@@ -63,7 +63,6 @@ public interface Analysis extends Switch
     void caseAJavaOpRegTerm(AJavaOpRegTerm node);
     void caseAListRegTerm(AListRegTerm node);
     void caseACsvRegTerm(ACsvRegTerm node);
-    void caseANullRegTerm(ANullRegTerm node);
     void caseAFormula(AFormula node);
     void caseAEmptyList(AEmptyList node);
     void caseAFilledList(AFilledList node);
@@ -142,6 +141,7 @@ public interface Analysis extends Switch
     void caseANumScalar(ANumScalar node);
     void caseAWordOrIdScalar(AWordOrIdScalar node);
     void caseABooleanScalar(ABooleanScalar node);
+    void caseANullScalar(ANullScalar node);
     void caseAWordWordOrId(AWordWordOrId node);
     void caseAIdWordOrId(AIdWordOrId node);
     void caseAWholeDecimalDecimal(AWholeDecimalDecimal node);
