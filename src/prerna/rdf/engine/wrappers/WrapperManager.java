@@ -168,6 +168,10 @@ public class WrapperManager {
 		case REMOTE_SEMOSS : {
 			// TODO >>>timb: REST - either replace with rest remote or remove this
 		}
+		
+		case NEO4J : {
+			returnWrapper = new Neo4jWrapper();
+		}
 		default: {
 			//TODO: build iterator
 			break;
@@ -234,6 +238,9 @@ public class WrapperManager {
 			// TODO >>>timb: REST - either replace with rest remote or remove this
 			//TODO: build iterator
 			break;
+		}
+		case NEO4J : {
+			returnWrapper = new Neo4jWrapper();
 		}
 		default: {
 

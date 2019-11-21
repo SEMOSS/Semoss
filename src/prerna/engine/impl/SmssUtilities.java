@@ -235,6 +235,30 @@ public class SmssUtilities {
 	 * @param prop
 	 * @return
 	 */
+	public static File getNeo4jFile(Properties prop) {
+		if(prop.getProperty(Constants.NEO4J_FILE) == null) {
+			return null;
+		}
+		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String neo4jFile = null;
+		String neoConfPath = prop.getProperty(Constants.NEO4J_FILE);
+		if(neoConfPath.contains("@BaseFolder@")) {
+			neo4jFile = neoConfPath.replace("@BaseFolder@", baseFolder);
+		} else {
+			// could be external file outside of semoss base folder
+			neo4jFile = neoConfPath;
+		}
+		String engineId = prop.getProperty(Constants.ENGINE);
+		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+		File file = new File(neo4jFile.replace(ENGINE_REPLACEMENT, getUniqueName(engineName, engineId)));
+		return file;
+	}
+	
+	/**
+	 * Get the data file 
+	 * @param prop
+	 * @return
+	 */
 	public static File getJanusFile(Properties prop) {
 		if(prop.getProperty(Constants.JANUS_CONF) == null) {
 			return null;
