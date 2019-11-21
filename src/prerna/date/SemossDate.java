@@ -158,7 +158,7 @@ public class SemossDate {
 			try {
 				this.date = formatter.parse(this.strDate);
 			} catch (ParseException e) {
-				LOGGER.error("Could not parse the date " + this.strDate + " with the format " + formatter.toPattern());
+				LOGGER.warn("Could not parse the date " + this.strDate + " with the format " + formatter.toPattern());
 			}
 		}
 		return this.date;
