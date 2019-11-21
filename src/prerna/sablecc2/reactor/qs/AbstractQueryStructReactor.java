@@ -7,6 +7,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.update.UpdateQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -92,7 +93,14 @@ public abstract class AbstractQueryStructReactor extends AbstractReactor {
 		if(this.qs == null) {
 			this.qs = queryStruct;
 		} else {
-			this.qs.merge(queryStruct);
+			// if we have an update QS
+			// use that so we keep the correct qs type
+			if(queryStruct instanceof UpdateQueryStruct) {
+				queryStruct.merge(this.qs);
+				this.qs = queryStruct;
+			} else {
+				this.qs.merge(queryStruct);
+			}
 		}
 	}
 	
