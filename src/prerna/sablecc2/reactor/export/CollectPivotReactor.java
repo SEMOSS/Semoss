@@ -6,16 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.algorithm.api.SemossDataType;
-import prerna.engine.api.IRawSelectWrapper;
-import prerna.sablecc2.om.GenRowStruct;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
-import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
@@ -26,199 +22,151 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	 * This class is responsible for collecting data from a task and returning it
 	 */
 
-	private int limit = 0;
-	
+	private static Map<String, String> mathMap = new HashMap<String, String>();
+	static {
+		mathMap.put("Sum", "sum");
+		mathMap.put("Average", "mean");
+		mathMap.put("Min", "min");
+		mathMap.put("Max", "max");
+		mathMap.put("Median", "median");
+		mathMap.put("StandardDeviation", "sd");
+	};
+
 	public CollectPivotReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
 	}
-	
+
 	public NounMetadata execute() {
+		this.task = getTask();
 
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
 		rJavaTranslator.startR(); 
-		
+
 		// I need to change this check later
 		String[] packages = { "pivottabler" };
-		//rJavaTranslator.checkPackages(packages);
+		rJavaTranslator.checkPackages(packages);
 
-		this.task = getTask();
-		
-		// I neeed to get the basic iterator and then get types from there
-		// 
-		task.getMetaMap();
-		SemossDataType[] sTypes = ((IRawSelectWrapper) ((BasicIteratorTask)(task)).getIterator()).getTypes();
-		String[] headers = ((IRawSelectWrapper) ((BasicIteratorTask)(task)).getIterator()).getHeaders();
-		System.out.println(".");
-		
-		Map<String, SemossDataType> typeMap = new HashMap<String, SemossDataType>();
-		for(int i = 0; i < headers.length; i++) {
-			typeMap.put(headers[i],sTypes[i]);
-		}
-		
-		// I need to see how to get this to temp
 		String fileName = Utility.getRandomString(6);
-		String dir = insight.getUserFolder() + "/Temp";
-		dir = dir.replaceAll("\\\\", "/");
+		String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
 		File tempDir = new File(dir);
-		if(!tempDir.exists())
+		if(!tempDir.exists()) {
 			tempDir.mkdir();
+		}
 		String outputFile = dir + "/" + fileName + ".csv";
-		Utility.writeResultToFile(outputFile, this.task, typeMap, ",");
-		
-		// so this is going to come in as vectors
-		List rowGroups = this.store.getNoun(keysToGet[0]).getAllValues();
-		List colGroups = this.store.getNoun(keysToGet[1]).getAllValues();
-		List values = this.store.getNoun(keysToGet[2]).getAllValues();
-		
+		Utility.writeResultToFile(outputFile, this.task, ",");
 
-		
-		StringBuilder pivoter = new StringBuilder("{library(\"pivottabler\");");
-		pivoter.append(fileName + " <- fread(\"" + outputFile + "\");");
-		// get the frame
-		// get frame name
-		String table = fileName;
+		// so this is going to come in as vectors
+		List<String> rowGroups = this.store.getNoun(keysToGet[0]).getAllStrValues();
+		List<String> colGroups = this.store.getNoun(keysToGet[1]).getAllStrValues();
+		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
 
 		// convert the inputs into a cgroup
-		StringBuilder rows = new StringBuilder("c(");
-		for(int rowIndex = 0;rowIndex < rowGroups.size();rowIndex++)
-		{
-			if(rowIndex > 0)
-				rows.append(",");
-			rows.append("\"").append(rowGroups.get(rowIndex)).append("\"");
-		}
-		rows.append(")");
-		
-		// convert columns next
-		StringBuilder cols = new StringBuilder("c(");
-		for(int colIndex = 0;colIndex < colGroups.size();colIndex++)
-		{
-			if(colIndex > 0)
-				cols.append(",");
-			cols.append("\"").append(colGroups.get(colIndex)).append("\"");
-		}
-		cols.append(")");
-		
+		String rows = RSyntaxHelper.createStringRColVec(rowGroups);
+		String cols = RSyntaxHelper.createStringRColVec(colGroups);
+
 		// last piece is the calculations
 		// not putting headers right now
 		StringBuilder calcs = new StringBuilder("c(");
-		for(int calcIndex = 0;calcIndex < values.size();calcIndex++)
-		{
-			if(calcIndex > 0)
+		for(int calcIndex = 0; calcIndex < values.size(); calcIndex++) {
+			if(calcIndex > 0) {
 				calcs.append(",");
-			calcs.append("\"").append(values.get(calcIndex)).append("\"");
+			}
+			String newValue = values.get(calcIndex).toString();
+			// replace the generic math with the pivottabler math
+			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
+				String key = (String) mathElement.getKey();
+				String value = (String) mathElement.getValue();
+
+				newValue = newValue.replace(key, value);
+			}
+			calcs.append("\"").append(newValue).append("\"");
 		}
 		calcs.append(")");
-		
+
 		String pivotName = "pivot" + Utility.getRandomString(5);
 		String htmlName = pivotName + ".html";
-		
-		pivoter.append(pivotName + " <- qpvt(" + table + "," + rows + "," + cols + "," + calcs + ");");
-		
+
+		// load html
+		StringBuilder pivoter = new StringBuilder("library(\"pivottabler\");");
+		pivoter.append(RSyntaxHelper.getFReadSyntax(fileName, outputFile, ","));
+		pivoter.append(pivotName + " <- qpvt(" + fileName + "," + rows + "," + cols + "," + calcs + ");");
 		// create the html
 		pivoter.append(pivotName + "$saveHtml(paste(ROOT" + ",\"/" + htmlName +"\", sep=\"\"));");
-				
-				
-		pivoter.append("}");
-		
+
 		// make the pivot
-		rJavaTranslator.runRAndReturnOutput(pivoter.toString());
+		rJavaTranslator.runR(pivoter.toString());
 		// get the output
 		String htmlOutput = rJavaTranslator.runRAndReturnOutput("print(" + pivotName + "$getHtml());");
 
-		pivoter = new StringBuilder("{");
 		// delete the variable and pivot
-		pivoter.append("rm(" + pivotName + "," + table + ");");
-		pivoter.append("}");
-		rJavaTranslator.runRAndReturnOutput(pivoter.toString());
-		
+		rJavaTranslator.runR("rm(" + pivotName + "," + fileName + ");");
 		File outputF = new File(outputFile);
 		outputF.delete();
+
+		// need to create a pivot map for the FE
+		Map<String, Object> pivotMap = new HashMap<String, Object>();
+		pivotMap.put(keysToGet[0], rowGroups);
+		pivotMap.put(keysToGet[1], colGroups);
+		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
+		for(int i = 0; i < values.size(); i++) {
+			String value = (String) values.get(i);
+			
+			Map<String, String> valueMap = new HashMap<String, String>();
+			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
+				String key = (String) mathElement.getKey();
+				if (value.contains(key)) {
+					// string manipulate to get the alias inside of the math
+					String alias = ((String)values.get(i)).replace(key, "").trim();
+					alias = alias.substring(1, alias.length() - 1);
+
+					valueMap.put("alias", alias);
+					valueMap.put("math", key);
+					valuesList.add(valueMap);
+					continue;
+				}
+			}
+
+			// if we get to this point
+			// no math was fun
+			// just put it as is
+			valueMap.put("alias", value);
+			valueMap.put("math", "");
+			valuesList.add(valueMap);
+		}
+		pivotMap.put(keysToGet[2], valuesList);
 		
 		ConstantDataTask cdt = new ConstantDataTask();
 		// need to do all the sets
 		cdt.setFormat("TABLE");
-		
-		// I need to create the options here
-		Map optionMap = new HashMap<String, Object>();
-		optionMap.put(keysToGet[0], rowGroups);
-		optionMap.put(keysToGet[1], colGroups);
-		optionMap.put(keysToGet[2], values);
-		
-		TaskOptions options = new TaskOptions(optionMap);
-		cdt.setTaskOptions(options);
+		cdt.setTaskOptions(task.getTaskOptions());
 		cdt.setHeaderInfo(task.getHeaderInfo());
 		cdt.setSortInfo(task.getSortInfo());
-		
+		cdt.setId(task.getId());
+
 		// set the output so it can give it
-		cdt.setOutputData(htmlOutput);
-		// I dont think the filter information is required
-		//cdt.setFilterInfo(task.getFilterInfo());
-		// delete the pivot later
+		Map<String, Object> outputMap = new HashMap<String, Object>();
+		outputMap.put("headers", new String[] {});
+		outputMap.put("rawHeaders", new String[] {});
+		outputMap.put("values", new String[] {htmlOutput});
+		outputMap.put("pivotData", pivotMap);
+		cdt.setOutputData(outputMap);
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 	}
-	
 
-	// keeping these methods for now.. I am not sure I require them
-	
-	@Override
-	protected void buildTask() {
-		// if the task was already passed in
-		// we do not need to optimize/recreate the iterator
-		if(this.task.isOptimized()) {
-			this.task.optimizeQuery(this.limit);
-		}
-	}
-	
-	private TaskOptions genOrnamentTaskOptions() {
-		if(this.subAdditionalReturn != null && this.subAdditionalReturn.size() == 1) {
-			NounMetadata noun = this.subAdditionalReturn.get(0);
-			if(noun.getNounType() == PixelDataType.ORNAMENT_MAP) {
-				// we will use this map as task options
-				TaskOptions options = new TaskOptions((Map<String, Object>) noun.getValue());
-				options.setOrnament(true);
-				return options;
-			}
-		}
-		return null;
-	}
-	
-	//returns how much do we need to collect
-	private int getTotalToCollect() {
-		// try the key
-		GenRowStruct numGrs = store.getNoun(keysToGet[1]);
-		if(numGrs != null && !numGrs.isEmpty()) {
-			return ((Number) numGrs.get(0)).intValue();
-		}
-		
-		// try the cur row
-		List<Object> allNumericInputs = this.curRow.getAllNumericColumns();
-		if(allNumericInputs != null && !allNumericInputs.isEmpty()) {
-			return ((Number) allNumericInputs.get(0)).intValue();
-		}
-		
-		// default to 500
-		return 500;
-	}
-	
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = super.getOutputs();
 		if(outputs != null && !outputs.isEmpty()) return outputs;
-		
+
 		outputs = new Vector<NounMetadata>();
 		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
 		outputs.add(output);
 		return outputs;
 	}
-	
-	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The number to collect";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	protected void buildTask() {
+		// do nothing
+		
 	}
 }
