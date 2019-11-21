@@ -1,15 +1,15 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -23,9 +23,8 @@ import prerna.util.Utility;
 public class LookupMatchReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = LookupMatchReactor.class.getName();
 	private Logger logger = null;
-	
-	public static final String COUNT = "count";
 
+	public static final String COUNT = "count";
 
 	public LookupMatchReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.SPACE.getKey(),
@@ -48,9 +47,8 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		this.logger = getLogger(CLASS_NAME);
 
 		// get inputs
-		String instance = this.keyValue.get(this.keysToGet[2]);
+		List<String> instances = getInstances();
 		String count = getCount();
-
 
 		// get the location to save
 		String space = this.keyValue.get(this.keysToGet[1]);
@@ -68,11 +66,11 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		script.append("source(\"" + base + "/R/Lookup/fuzzy_lookup.r" + "\");");
 		script.append(matchFrame + " <- fuzzy_lookup(");
 		script.append("catalog_fn=" + "\"" + filePath + "\"" + ", ");
-		script.append("request=" + "\"" + instance + "\"" + ", ");
+		script.append("request=" + RSyntaxHelper.createStringRColVec(instances) + ", ");
 		script.append("topMatches=" + count);
 		script.append(")");
 
-		logger.info("Finding matches for " + instance + " in the lookup table.");
+		logger.info("Finding matches for " + instances.toString() + "in the lookup table.");
 
 		// run it
 		this.rJavaTranslator.runR(script.toString());
@@ -84,33 +82,66 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		// clean up r temp variables
 		this.rJavaTranslator.runR("rm(" + matchFrame + ");gc();");
 
-		// convert to [{}] (easier processing)
-		List<Map<String, Object>> returnData = new Vector<Map<String, Object>>();
-		for (int rowIdx = 0; rowIdx < matchData.size(); rowIdx++) {
-			Object[] row = matchData.get(rowIdx);
+		// convert to {instance:[{}]} (easier processing)
 
-			Map<String, Object> holder = new HashMap<String, Object>();
-			for (int colIdx = 0; colIdx < row.length; colIdx++) {
-				holder.put(matchCols[colIdx], row[colIdx]);
+		Map<String, List<Map<String, Object>>> returnData = new HashMap<String, List<Map<String, Object>>>();
+
+		int instanceIdx = 0;
+		int instanceLen = instances.size();	
+		for (; instanceIdx < instanceLen; instanceIdx++) {
+			String instance = instances.get(instanceIdx);
+			// create the instance if it isn't there
+			if (!returnData.containsKey(instance)) {
+				returnData.put(instance, new ArrayList<Map<String, Object>>());
 			}
 
-			returnData.add(holder);
+			for (int matchDataIdx = matchData.size() - 1; matchDataIdx >= 0; matchDataIdx--){
+				Object[] row = matchData.get(matchDataIdx);
+
+				// check if the request column is the same as the instance column
+				if (row[0].equals(instance)) {
+					Map<String, Object> holder = new HashMap<String, Object>();
+					for (int colIdx = 0; colIdx < row.length; colIdx++) {
+						holder.put(matchCols[colIdx], row[colIdx]);
+					}
+
+					returnData.get(instance).add(holder);
+					
+					// remove the instance
+					matchData.remove(matchDataIdx);
+				}
+			}
+			// it comes back sorted
 		}
 
 		return new NounMetadata(returnData, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
-	
+
 	private String getCount() {
 		GenRowStruct grs = this.store.getNoun(COUNT);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			try {
 				int value = ((Number) grs.get(0)).intValue();
-				
+
 				return String.valueOf(value);
-			} catch(ClassCastException e) {
+			} catch (ClassCastException e) {
 				throw new IllegalArgumentException("Count is not a valid number");
 			}
 		}
 		return "5";
+	}
+
+	private List<String> getInstances() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.INSTANCE_KEY.getKey());
+
+		if (grs != null && !grs.isEmpty()) {
+			try {
+				return grs.getAllStrValues();
+			} catch (ClassCastException e) {
+				throw new IllegalArgumentException("Instances need to be defined");
+			}
+		}
+
+		throw new IllegalArgumentException("Instances need to be defined");
 	}
 }
