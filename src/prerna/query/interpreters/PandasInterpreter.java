@@ -149,7 +149,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			.append(this.groupCriteria)
 			//.append(this.aggCriteria2)
 			.append(this.aggCriteria2)
-			.append(orderBy)
+			// TODO: need to be more elegant than this
+			.append(scalar ? "" : orderBy)
 			//.append(orderBy2)
 			.append(normalizer);
 			//.append(this.renCriteria);
