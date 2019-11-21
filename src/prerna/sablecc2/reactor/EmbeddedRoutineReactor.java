@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -17,13 +18,12 @@ public class EmbeddedRoutineReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		List<NounMetadata> nList = new Vector<NounMetadata>();
-		int size = this.curRow.size();
-		for(int i = 0; i < size; i++) {
-			NounMetadata n = this.curRow.getNoun(i);
-			if(n.getNounType() == PixelDataType.LAMBDA) {
-				n = ((IReactor) n.getValue()).execute();
+		for(String key : this.store.getNounKeys()) {
+			if(key.equals(ALL_NOUN_STORE)) {
+				continue;
 			}
-			nList.add(n);
+			GenRowStruct grs = this.store.getNoun(key);
+			nList.add(grs.getNoun(0));
 		}
 		return new NounMetadata(nList, PixelDataType.VECTOR, PixelOperationType.SUB_SCRIPT);
 	}
