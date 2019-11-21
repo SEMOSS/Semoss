@@ -1275,27 +1275,6 @@ public class DepthFirstAdapter extends AnalysisAdapter
         outACsvRegTerm(node);
     }
 
-    public void inANullRegTerm(ANullRegTerm node)
-    {
-        defaultIn(node);
-    }
-
-    public void outANullRegTerm(ANullRegTerm node)
-    {
-        defaultOut(node);
-    }
-
-    @Override
-    public void caseANullRegTerm(ANullRegTerm node)
-    {
-        inANullRegTerm(node);
-        if(node.getNull() != null)
-        {
-            node.getNull().apply(this);
-        }
-        outANullRegTerm(node);
-    }
-
     public void inAFormula(AFormula node)
     {
         defaultIn(node);
@@ -3343,6 +3322,27 @@ public class DepthFirstAdapter extends AnalysisAdapter
             node.getBoolean().apply(this);
         }
         outABooleanScalar(node);
+    }
+
+    public void inANullScalar(ANullScalar node)
+    {
+        defaultIn(node);
+    }
+
+    public void outANullScalar(ANullScalar node)
+    {
+        defaultOut(node);
+    }
+
+    @Override
+    public void caseANullScalar(ANullScalar node)
+    {
+        inANullScalar(node);
+        if(node.getNull() != null)
+        {
+            node.getNull().apply(this);
+        }
+        outANullScalar(node);
     }
 
     public void inAWordWordOrId(AWordWordOrId node)
