@@ -50,7 +50,7 @@ import prerna.sablecc2.node.AMinusBaseExpr;
 import prerna.sablecc2.node.AModBaseExpr;
 import prerna.sablecc2.node.AMultBaseExpr;
 import prerna.sablecc2.node.ANegTerm;
-import prerna.sablecc2.node.ANullRegTerm;
+import prerna.sablecc2.node.ANullScalar;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.AOutputRoutine;
 import prerna.sablecc2.node.APlusBaseExpr;
@@ -519,25 +519,24 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
 
     @Override
-    public void outASelectNoun(ASelectNoun node)
-    {
+    public void outASelectNoun(ASelectNoun node) {
         defaultOut(node);
         // not sure if I need anything else right now
         curReactor.closeNoun("s");
     }
-    
-    public void inANullRegTerm(ANullRegTerm node) {
-    	NounMetadata noun = new NounMetadata(null, PixelDataType.NULL_VALUE);
-    	if(curReactor != null) {
-			curReactor.getCurRow().add(noun);
-		} else {
-			this.planner.addVariable("$RESULT", noun);
-		}
-    }
 
     @Override
-    public void inAIdWordOrId(AIdWordOrId node)
-    {
+    public void inANullScalar(ANullScalar node) {
+    	NounMetadata noun = new NounMetadata(null, PixelDataType.NULL_VALUE);
+    	if(curReactor != null) {
+    		curReactor.getCurRow().add(noun);
+    	} else {
+    		this.planner.addVariable("$RESULT", noun);
+    	}
+    }
+    
+    @Override
+    public void inAIdWordOrId(AIdWordOrId node) {
     	defaultIn(node);
     	String idInput = node.getId().getText().trim();
     	
@@ -613,8 +612,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inAWordWordOrId(AWordWordOrId node)
-    {
+    public void inAWordWordOrId(AWordWordOrId node) {
         defaultIn(node);
         String trimmedWord = node.getWord().toString().trim();
         String word = PixelUtility.removeSurroundingQuotes(trimmedWord);
@@ -649,8 +647,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 
     // atomic level stuff goes in here
     @Override
-    public void inAWholeDecimal(AWholeDecimal node)
-    {
+    public void inAWholeDecimal(AWholeDecimal node) {
     	defaultIn(node);
     	boolean isDouble = false;
     	String whole = "";
@@ -689,8 +686,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
 
     @Override
-    public void inAFractionDecimal(AFractionDecimal node)
-    {
+    public void inAFractionDecimal(AFractionDecimal node) {
     	defaultIn(node);
     	String fraction = (node.getFraction()+"").trim();
 		Number retNum = new BigDecimal("0." + fraction);
@@ -710,15 +706,13 @@ public class LazyTranslation extends DepthFirstAdapter {
     }
     
     @Override
-    public void inADotcol(ADotcol node)
-    {
+    public void inADotcol(ADotcol node) {
     	defaultIn(node);
     	processAliasReference(node.getColumnName().toString().trim());
     }
 
     @Override
-    public void inARcol(ARcol node)
-    {
+    public void inARcol(ARcol node) {
     	defaultIn(node);
     	processAliasReference(node.getColumnName().toString().trim());
     }

@@ -5,16 +5,16 @@ package prerna.sablecc2.node;
 import prerna.sablecc2.analysis.*;
 
 @SuppressWarnings("nls")
-public final class ANullRegTerm extends PRegTerm
+public final class ANullScalar extends PScalar
 {
     private TNull _null_;
 
-    public ANullRegTerm()
+    public ANullScalar()
     {
         // Constructor
     }
 
-    public ANullRegTerm(
+    public ANullScalar(
         @SuppressWarnings("hiding") TNull _null_)
     {
         // Constructor
@@ -25,14 +25,14 @@ public final class ANullRegTerm extends PRegTerm
     @Override
     public Object clone()
     {
-        return new ANullRegTerm(
+        return new ANullScalar(
             cloneNode(this._null_));
     }
 
     @Override
     public void apply(Switch sw)
     {
-        ((Analysis) sw).caseANullRegTerm(this);
+        ((Analysis) sw).caseANullScalar(this);
     }
 
     public TNull getNull()

@@ -173,7 +173,6 @@ Productions
 	| {java_op} java_op 
 	| {list} list
 	| {csv} gen_row
-    | {null} null
   	; 
  
  // need to able to group expressions 
@@ -321,7 +320,7 @@ Productions
  ///////////////////////////////////////////////////////////////////////
  
  // word or id or number
- scalar = {num} decimal | {word_or_id} word_or_id | {boolean} boolean;
+ scalar = {num} decimal | {word_or_id} word_or_id | {boolean} boolean | {null} null;
  
  // word or an id
  word_or_id = {word} word | {id} id;
