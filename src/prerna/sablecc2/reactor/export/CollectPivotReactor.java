@@ -126,12 +126,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				}
 			}
 
-			// if we get to this point
-			// no math was fun
+			// if we get to this point and no alias/math found
 			// just put it as is
-			valueMap.put("alias", value);
-			valueMap.put("math", "");
-			valuesList.add(valueMap);
+			if (valueMap.isEmpty()) {
+				valueMap.put("alias", value);
+				valueMap.put("math", "");
+				valuesList.add(valueMap);
+			}
 		}
 		pivotMap.put(keysToGet[2], valuesList);
 		
