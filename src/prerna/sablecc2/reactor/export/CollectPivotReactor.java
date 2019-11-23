@@ -108,9 +108,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		pivotMap.put(keysToGet[0], rowGroups);
 		pivotMap.put(keysToGet[1], colGroups);
 		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
-		for(int i = 0; i < values.size(); i++) {
+		VALUES_LOOP : for(int i = 0; i < values.size(); i++) {
 			String value = (String) values.get(i);
-			
+
 			Map<String, String> valueMap = new HashMap<String, String>();
 			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
 				String key = (String) mathElement.getKey();
@@ -122,20 +122,18 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 					valueMap.put("alias", alias);
 					valueMap.put("math", key);
 					valuesList.add(valueMap);
-					continue;
+					continue VALUES_LOOP;
 				}
 			}
 
 			// if we get to this point and no alias/math found
 			// just put it as is
-			if (valueMap.isEmpty()) {
-				valueMap.put("alias", value);
-				valueMap.put("math", "");
-				valuesList.add(valueMap);
-			}
+			valueMap.put("alias", value);
+			valueMap.put("math", "");
+			valuesList.add(valueMap);
 		}
 		pivotMap.put(keysToGet[2], valuesList);
-		
+
 		ConstantDataTask cdt = new ConstantDataTask();
 		// need to do all the sets
 		cdt.setFormat("TABLE");
