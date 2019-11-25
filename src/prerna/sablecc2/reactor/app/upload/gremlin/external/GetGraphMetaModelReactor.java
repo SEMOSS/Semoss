@@ -19,6 +19,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.util.GraphUtility;
 import prerna.util.MyGraphIoMappingBuilder;
 
@@ -34,7 +35,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 		 * Get Inputs
 		 */
 		organizeKeys();
-		String fileName = this.keyValue.get(this.keysToGet[0]);
+		String fileName = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (fileName == null) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires fileName to get graph metamodel.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
