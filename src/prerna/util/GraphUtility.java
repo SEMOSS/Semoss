@@ -12,11 +12,22 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
 
 import prerna.algorithm.api.SemossDataType;
 
 public class GraphUtility {
 
+	/**
+	 * Get metamodel from a type property
+	 * @param gts
+	 * @param graphTypeId
+	 * @return
+	 */
 	public static HashMap<String, Object> getMetamodel(GraphTraversalSource gts, String graphTypeId) {
 		HashMap<String, Object> retMap = new HashMap<String, Object>();
 		Map<String, ArrayList<String>> edges = new HashMap<>();
@@ -134,6 +145,13 @@ public class GraphUtility {
 		return retMap;
 
 	}
+	
+	/**
+	 * Get all the node properties for a graph
+	 * 
+	 * @param gts
+	 * @return
+	 */
 	public static List<String> getAllNodeProperties(GraphTraversalSource gts) {
 		ArrayList<String> properties = new ArrayList<>();
 		GraphTraversal<Vertex, String> x = gts.V().properties().key().dedup().order();
@@ -142,6 +160,96 @@ public class GraphUtility {
 			properties.add(prop);
 		}
 		return properties;
+	}
+
+	////////////////////////////////////////////////////////////////////
+	//////////////// Graph Utility Methods for Neo4j ///////////////////
+	////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Get the metamodel from a neo4j graph using the labels
+	 * 
+	 * @param dbService
+	 * @return
+	 */
+	public static Map<String, Object> getMetamodel(GraphDatabaseService dbService) {
+		Map<String, Object> metamodel = new HashMap<>();
+		Map<String, Object> nodeMap = new HashMap<>();
+		// get edges
+		Map<String, Object> edges = GraphUtility.getEdges(dbService);
+		// get nodes and properties
+		List<String> nodes = GraphUtility.getNodes(dbService);
+		for (String s : nodes) {
+			List<String> properties = GraphUtility.getProperties(dbService, s);
+			nodeMap.put(s, properties);
+		}
+		metamodel.put("nodes", nodeMap);
+		metamodel.put("edges", edges);
+		return metamodel;
+	}
+
+	/**
+	 * Get all the labels for a graph
+	 * 
+	 * @param dbService
+	 * @return
+	 */
+	public static List<String> getNodes(GraphDatabaseService dbService) {
+		Transaction tx = dbService.beginTx();
+		ResourceIterator<Label> labelsIt = dbService.getAllLabels().iterator();
+		List<String> labels = new ArrayList<String>();
+		while (labelsIt.hasNext()) {
+			Label l = labelsIt.next();
+			String name = l.name();
+			labels.add(name);
+		}
+		tx.close();
+		return labels;
+	}
+
+	/**
+	 * Get all the graph properties for a label
+	 * 
+	 * @param dbService
+	 * @param label
+	 * @return
+	 */
+	public static List<String> getProperties(GraphDatabaseService dbService, String label) {
+		List<String> properties = new ArrayList<String>();
+		Transaction tx = dbService.beginTx();
+		String query = "MATCH (a:" + label + ") UNWIND keys(a) AS key RETURN distinct key as property";
+		Result result = dbService.execute(query);
+		while (result.hasNext()) {
+			String prop = (String) result.next().get("property");
+			properties.add(prop);
+		}
+		tx.close();
+		return properties;
+	}
+
+	/**
+	 * Get map of edges: {edgeLabel:[startNode, endNode]}
+	 * 
+	 * @param dbService
+	 * @return
+	 */
+	public static Map<String, Object> getEdges(GraphDatabaseService dbService) {
+		Transaction tx = dbService.beginTx();
+		String query = "MATCH (n)-[r]->(p) RETURN DISTINCT labels(n) AS StartNode, TYPE(r) AS RelationshipName , labels(p) as EndNode";
+		Result result = dbService.execute(query);
+		Map<String, Object> edgeMap = new HashMap<>();
+		while (result.hasNext()) {
+			Map<String, Object> map = result.next();
+			String startNode = (String) map.get("StartNode");
+			String rel = (String) map.get("RelationshipName");
+			String endNode = (String) map.get("EndNode");
+			ArrayList<String> nodes = new ArrayList<>();
+			nodes.add(startNode);
+			nodes.add(endNode);
+			edgeMap.put(rel, nodes);
+		}
+		tx.close();
+		return edgeMap;
 	}
 
 }
