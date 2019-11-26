@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.ds.py.PyTranslator;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -17,7 +16,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
-public class CollectPivotReactor extends TaskBuilderReactor {
+public class CollectPivotRReactor2 extends TaskBuilderReactor {
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
@@ -33,25 +32,19 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		mathMap.put("StandardDeviation", "sd");
 	};
 
-	public CollectPivotReactor() {
+	public CollectPivotRReactor2() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
 	}
 
 	public NounMetadata execute() {
 		this.task = getTask();
 
-		PyTranslator pyt = insight.getPyTranslator();
-		pyt.setLogger(this.getLogger(this.getClass().getName()));
+		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
+		rJavaTranslator.startR(); 
 
+		// going to do this with r datatable directly
+		//  cubed <- data.table::cube(mv, .(budget=sum(MovieBudget), revenue=mean(RevenueDomestic)), by=c('Genre', 'Studio'))
 		
-		// this is the payload that is coming
-		// Frame ( frame = [ FRAME890385 ] ) | Select ( Genre , Studio, MovieBudget ) .as ( [ Genre , Studio, MovieBudget ] ) | CollectPivot( rowGroups=["Genre"], columns=["Studio"], values=["sum(MovieBudget)"] ) ;
-		
-		// pandas format is - pd.pivot_table(mv, index=['Genre', 'Nominated'], values=['MovieBudget', 'RevenueDomestic'], aggfunc={'MovieBudget':np.sum, 'RevenueDomestic':np.mean}, columns='Studio')
-		
-		// I need to convert the values into aggregate functions
-		
-		// I need to change this check later
 
 		String fileName = Utility.getRandomString(6);
 		String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
@@ -68,55 +61,35 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
 
 		// convert the inputs into a cgroup
+		String rows = "by = " + RSyntaxHelper.createStringRColVec(rowGroups);
 		
-		StringBuilder rows = new StringBuilder("index=[");
-		for(int rowIndex = 0;rowIndex < rowGroups.size();rowIndex++)
-		{
-			String curValue = rowGroups.get(rowIndex);
-			if(rowIndex != 0)
-				rows.append(",");
-			rows.append("'").append(curValue).append("'");
-		}
-		rows.append("]");
-
-		StringBuilder cols = new StringBuilder("columns=[");
+		rows = rows.substring(0, rows.length()-1);
+		
+		// we need to add this to the rows
+		// that is how r data table works
 		for(int colIndex = 0;colIndex < colGroups.size();colIndex++)
-		{
-			String curValue = colGroups.get(colIndex);
-			if(colIndex != 0)
-				cols.append(",");
-			cols.append("'").append(curValue).append("'");
-		}
-		if(cols.toString().equalsIgnoreCase("columns["))
-			cols = new StringBuilder("");
-		else
-			cols.append("]").insert(0, " , ");
+			rows = rows + ", \"" + colGroups.get(colIndex) + "\"";
+		
+		rows = rows + ")";
 		
 
-		// lastly the values
-		// need to create a pivot map for the FE
-		Map<String, Object> pivotMap = new HashMap<String, Object>();
-		pivotMap.put(keysToGet[0], rowGroups);
-		pivotMap.put(keysToGet[1], colGroups);
+		// last piece is the calculations
+		// not putting headers right now
 		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
-		StringBuilder aggFunctions = new StringBuilder(", aggfunc={");
-		StringBuilder valueSelects = new StringBuilder(", values=[");
-		for(int valIndex = 0;valIndex < values.size();valIndex++)
-		{
-			Map<String, String> valueMap = new HashMap<String, String>();
-			String curValue = values.get(valIndex);
 
+		StringBuilder calcs = new StringBuilder(".(");
+		for(int calcIndex = 0; calcIndex < values.size(); calcIndex++) {
+			Map<String, String> valueMap = new HashMap<String, String>();
+			String curValue = values.get(calcIndex);
+			
 			// get the operator and selector
 			//String [] composite = curValue.split("(");
 			String operator = curValue.substring(0, curValue.indexOf("(")).trim();
 			String operand = curValue.substring(curValue.indexOf("(") + 1, curValue.length()-1).trim();
 			
 			
-			if(valIndex != 0)
-			{
-				aggFunctions.append(",");
-				valueSelects.append(",");
-			}
+			if(calcIndex != 0)
+				calcs.append(",");
 			
 			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
 				String key = (String) mathElement.getKey();
@@ -125,38 +98,40 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				operator = operator.replace(key, value);
 			}
 
-			
-			valueSelects.append("'").append(operand).append("'");
-			
-			
-			aggFunctions.append("'").append(operand).append("'");
-			aggFunctions.append(":");
-			
-			// do the replacement logic
-			// step 1 do it simple
-			aggFunctions.append("np.").append(operator);
-			
+			//budget=sum(MovieBudget)
+			calcs.append(operand).append("_").append(operator).append("=");
+			calcs.append(operator).append("(as.double(").append(operand).append("))");
+						
 			valueMap.put("alias", operand);
 			valueMap.put("math", operator);
+			valuesList.add(valueMap);
 		}
-		aggFunctions.append("}");
-		valueSelects.append("]");
-		pivotMap.put(keysToGet[2], valuesList);
+		calcs.append(")");
 
-		// random variable
-		String frameName = Utility.getRandomString(6);
-		String makeFrame =frameName + " = pd.read_csv('" + outputFile + "')";
-		String pivot = "print(pd.pivot_table(" + frameName + ", " + rows + cols + valueSelects + aggFunctions + ").to_html())";
-		String deleteFrame = "del(" + frameName + ")";
-		
-		String [] inscript = new String[]{makeFrame, pivot, deleteFrame}; 
-		// now compose the whole thing
-		String htmlOutput = pyt.runPyAndReturnOutput(inscript);
-		
-		
-		
+		String pivotName = "pivot" + Utility.getRandomString(5);
+		String htmlName = pivotName + ".html";
+
+		// load html
+		StringBuilder pivoter = new StringBuilder("library(xtable);");
+		pivoter.append(RSyntaxHelper.getFReadSyntax(fileName, outputFile, ","));
+		pivoter.append(pivotName + " <- data.table::cube(" + fileName + "," + calcs + "," + rows + ");");
+
+		// make the pivot
+		rJavaTranslator.runR(pivoter.toString());
+		// get the output
+		String htmler = "print(xtable(" + pivotName + "), type=\"html\");";
+		String htmlOutput = rJavaTranslator.runRAndReturnOutput(htmler);
+
+		// delete the variable and pivot
+		rJavaTranslator.runR("rm(" + pivotName + "," + fileName + ");");
 		File outputF = new File(outputFile);
 		outputF.delete();
+
+		// need to create a pivot map for the FE
+		Map<String, Object> pivotMap = new HashMap<String, Object>();
+		pivotMap.put(keysToGet[0], rowGroups);
+		pivotMap.put(keysToGet[1], colGroups);
+		pivotMap.put(keysToGet[2], valuesList);
 		
 		ConstantDataTask cdt = new ConstantDataTask();
 		// need to do all the sets
