@@ -50,6 +50,7 @@ public enum ReactorKeysEnum {
 	FILTER_WORD("filterWord", 								"Regex to apply for searches"),
 	FRAME("frame", 											"The frame"),
 	FRAME_TYPE("frameType", 								"Type of frame to generate - grid (sql based frame), graph (frame based on tinkerpop), r (data sits within r, must have r installed to use), native (leverages the database to execute queries)"),
+	GGPLOT("ggplot",                             			"The GGPlot expression used to create the graph"),
 	GRAPH_LAYOUT("graphLayout",                             "The layout of the igraph"),
 	GRAPH_NAME("graphName",                                 "The name of the graph"),
 	GRAPH_NAME_ID("graphNameId",                            "The name identifier of the graph nodes"),
