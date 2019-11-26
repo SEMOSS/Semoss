@@ -48,6 +48,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		this.task = getTask();
 		
 		// I neeed to get the basic iterator and then get types from there
+		
 		task.getMetaMap();
 		SemossDataType[] sTypes = ((IRawSelectWrapper) ((BasicIteratorTask)(task)).getIterator()).getTypes();
 		String[] headers = ((IRawSelectWrapper) ((BasicIteratorTask)(task)).getIterator()).getHeaders();
@@ -68,9 +69,33 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		String outputFile = dir + "/" + fileName + ".csv";
 		Utility.writeResultToFile(outputFile, this.task, typeMap, ",");
 		
+
+		// need something here to adjust the types
+		// need to move this to utilities
+		String loadDT = fileName + " <- fread(\"" + outputFile + "\");";
+		StringBuilder adjustTypes = new StringBuilder();
+		for(int headIndex = 0;headIndex < headers.length;headIndex++)
+		{
+			SemossDataType type = typeMap.get(headers[headIndex]);
+			String asType = null;
+			if(type == SemossDataType.INT)
+				asType = "as.integer(";
+			else if(type == SemossDataType.DOUBLE)
+				asType = "as.double(";
+			if(asType != null)
+				adjustTypes.append(fileName).append("$").append(headers[headIndex])
+						   .append(" <- ")
+						   .append(asType)
+						   .append(fileName).append("$").append(headers[headIndex])
+						   .append(");");
+		}
+		// run the job
+		rJavaTranslator.runRAndReturnOutput(loadDT+adjustTypes);
+		
+		
+		
 		
 		StringBuilder ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
-		ggplotter.append(fileName + " <- fread(\"" + outputFile + "\");");
 		// get the frame
 		// get frame name
 		String table = fileName;
