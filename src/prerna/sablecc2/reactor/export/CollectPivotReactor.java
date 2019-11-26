@@ -30,7 +30,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		mathMap.put("Min", "min");
 		mathMap.put("Max", "max");
 		mathMap.put("Median", "median");
-		mathMap.put("StandardDeviation", "sd");
+		mathMap.put("StandardDeviation", "std");
 	};
 
 	public CollectPivotReactor() {
@@ -118,10 +118,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 				valueSelects.append(",");
 			}
 			
+			// pass back the original operator before converting
+			valueMap.put("math", operator);
+
 			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
 				String key = (String) mathElement.getKey();
 				String value = (String) mathElement.getValue();
-
+				// convert syntax for operator
 				operator = operator.replace(key, value);
 			}
 
@@ -137,7 +140,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 			aggFunctions.append("np.").append(operator);
 			
 			valueMap.put("alias", operand);
-			valueMap.put("math", operator);
+			valuesList.add(valueMap);
 		}
 		aggFunctions.append("}");
 		valueSelects.append("]");
