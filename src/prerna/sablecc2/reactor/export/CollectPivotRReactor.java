@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import prerna.ds.py.PyTranslator;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -17,7 +16,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
-public class CollectPivotReactor extends TaskBuilderReactor {
+public class CollectPivotRReactor extends TaskBuilderReactor {
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
@@ -33,25 +32,19 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		mathMap.put("StandardDeviation", "sd");
 	};
 
-	public CollectPivotReactor() {
+	public CollectPivotRReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
 	}
 
 	public NounMetadata execute() {
 		this.task = getTask();
 
-		PyTranslator pyt = insight.getPyTranslator();
-		pyt.setLogger(this.getLogger(this.getClass().getName()));
+		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
+		rJavaTranslator.startR(); 
 
-		
-		// this is the payload that is coming
-		// Frame ( frame = [ FRAME890385 ] ) | Select ( Genre , Studio, MovieBudget ) .as ( [ Genre , Studio, MovieBudget ] ) | CollectPivot( rowGroups=["Genre"], columns=["Studio"], values=["sum(MovieBudget)"] ) ;
-		
-		// pandas format is - pd.pivot_table(mv, index=['Genre', 'Nominated'], values=['MovieBudget', 'RevenueDomestic'], aggfunc={'MovieBudget':np.sum, 'RevenueDomestic':np.mean}, columns='Studio')
-		
-		// I need to convert the values into aggregate functions
-		
 		// I need to change this check later
+		String[] packages = { "pivottabler" };
+		rJavaTranslator.checkPackages(packages);
 
 		String fileName = Utility.getRandomString(6);
 		String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
@@ -68,95 +61,79 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
 
 		// convert the inputs into a cgroup
-		
-		StringBuilder rows = new StringBuilder("index=[");
-		for(int rowIndex = 0;rowIndex < rowGroups.size();rowIndex++)
-		{
-			String curValue = rowGroups.get(rowIndex);
-			if(rowIndex != 0)
-				rows.append(",");
-			rows.append("'").append(curValue).append("'");
-		}
-		rows.append("]");
+		String rows = RSyntaxHelper.createStringRColVec(rowGroups);
+		String cols = RSyntaxHelper.createStringRColVec(colGroups);
 
-		StringBuilder cols = new StringBuilder("columns=[");
-		for(int colIndex = 0;colIndex < colGroups.size();colIndex++)
-		{
-			String curValue = colGroups.get(colIndex);
-			if(colIndex != 0)
-				cols.append(",");
-			cols.append("'").append(curValue).append("'");
-		}
-		if(cols.toString().equalsIgnoreCase("columns["))
-			cols = new StringBuilder("");
-		else
-			cols.append("]").insert(0, " , ");
-		
+		// last piece is the calculations
+		// not putting headers right now
+		StringBuilder calcs = new StringBuilder("c(");
+		for(int calcIndex = 0; calcIndex < values.size(); calcIndex++) {
+			if(calcIndex > 0) {
+				calcs.append(",");
+			}
+			String newValue = values.get(calcIndex).toString();
+			// replace the generic math with the pivottabler math
+			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
+				String key = (String) mathElement.getKey();
+				String value = (String) mathElement.getValue();
 
-		// lastly the values
+				newValue = newValue.replace(key, value);
+			}
+			calcs.append("\"").append(newValue).append("\"");
+		}
+		calcs.append(")");
+
+		String pivotName = "pivot" + Utility.getRandomString(5);
+		String htmlName = pivotName + ".html";
+
+		// load html
+		StringBuilder pivoter = new StringBuilder("library(\"pivottabler\");");
+		pivoter.append(RSyntaxHelper.getFReadSyntax(fileName, outputFile, ","));
+		pivoter.append(pivotName + " <- qpvt(" + fileName + "," + rows + "," + cols + "," + calcs + ");");
+		// create the html
+		pivoter.append(pivotName + "$saveHtml(paste(ROOT" + ",\"/" + htmlName +"\", sep=\"\"));");
+
+		// make the pivot
+		rJavaTranslator.runR(pivoter.toString());
+		// get the output
+		String htmlOutput = rJavaTranslator.runRAndReturnOutput("print(" + pivotName + "$getHtml());");
+
+		// delete the variable and pivot
+		rJavaTranslator.runR("rm(" + pivotName + "," + fileName + ");");
+		File outputF = new File(outputFile);
+		outputF.delete();
+
 		// need to create a pivot map for the FE
 		Map<String, Object> pivotMap = new HashMap<String, Object>();
 		pivotMap.put(keysToGet[0], rowGroups);
 		pivotMap.put(keysToGet[1], colGroups);
 		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
-		StringBuilder aggFunctions = new StringBuilder(", aggfunc={");
-		StringBuilder valueSelects = new StringBuilder(", values=[");
-		for(int valIndex = 0;valIndex < values.size();valIndex++)
-		{
+		for(int i = 0; i < values.size(); i++) {
+			String value = (String) values.get(i);
+			
 			Map<String, String> valueMap = new HashMap<String, String>();
-			String curValue = values.get(valIndex);
-
-			// get the operator and selector
-			//String [] composite = curValue.split("(");
-			String operator = curValue.substring(0, curValue.indexOf("(")).trim();
-			String operand = curValue.substring(curValue.indexOf("(") + 1, curValue.length()-1).trim();
-			
-			
-			if(valIndex != 0)
-			{
-				aggFunctions.append(",");
-				valueSelects.append(",");
-			}
-			
 			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
 				String key = (String) mathElement.getKey();
-				String value = (String) mathElement.getValue();
+				if (value.contains(key)) {
+					// string manipulate to get the alias inside of the math
+					String alias = ((String)values.get(i)).replace(key, "").trim();
+					alias = alias.substring(1, alias.length() - 1);
 
-				operator = operator.replace(key, value);
+					valueMap.put("alias", alias);
+					valueMap.put("math", key);
+					valuesList.add(valueMap);
+					continue;
+				}
 			}
 
-			
-			valueSelects.append("'").append(operand).append("'");
-			
-			
-			aggFunctions.append("'").append(operand).append("'");
-			aggFunctions.append(":");
-			
-			// do the replacement logic
-			// step 1 do it simple
-			aggFunctions.append("np.").append(operator);
-			
-			valueMap.put("alias", operand);
-			valueMap.put("math", operator);
+			// if we get to this point
+			// no math was fun
+			// just put it as is
+			valueMap.put("alias", value);
+			valueMap.put("math", "");
+			valuesList.add(valueMap);
 		}
-		aggFunctions.append("}");
-		valueSelects.append("]");
 		pivotMap.put(keysToGet[2], valuesList);
-
-		// random variable
-		String frameName = Utility.getRandomString(6);
-		String makeFrame =frameName + " = pd.read_csv('" + outputFile + "')";
-		String pivot = "print(pd.pivot_table(" + frameName + ", " + rows + cols + valueSelects + aggFunctions + ").to_html())";
-		String deleteFrame = "del(" + frameName + ")";
-		
-		String [] inscript = new String[]{makeFrame, pivot, deleteFrame}; 
-		// now compose the whole thing
-		String htmlOutput = pyt.runPyAndReturnOutput(inscript);
-		
-		
-		
-		File outputF = new File(outputFile);
-		outputF.delete();
 		
 		ConstantDataTask cdt = new ConstantDataTask();
 		// need to do all the sets
