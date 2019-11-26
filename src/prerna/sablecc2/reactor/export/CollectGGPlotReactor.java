@@ -71,7 +71,8 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		
 
 		// need something here to adjust the types
-		// need to move this to utilities
+		// need to move this to utilities 
+		// will move it once we have figured it out
 		String loadDT = fileName + " <- fread(\"" + outputFile + "\");";
 		StringBuilder adjustTypes = new StringBuilder();
 		for(int headIndex = 0;headIndex < headers.length;headIndex++)
