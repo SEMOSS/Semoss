@@ -119,6 +119,7 @@ public enum PixelOperationType {
 	
 	// FILE DOWNLOAD
 	FILE_DOWNLOAD,
+	FILE,
 	
 	// OLD INSIGHT
 	OLD_INSIGHT,
