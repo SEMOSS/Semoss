@@ -11,6 +11,7 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -24,7 +25,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
-public class CollectGGPlotReactor extends TaskBuilderReactor {
+public class CollectSeabornReactor extends TaskBuilderReactor {
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
@@ -32,22 +33,30 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 
 	private int limit = 0;
 	
-	public CollectGGPlotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.GGPLOT.getKey()};
+	public CollectSeabornReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.SPLOT.getKey()};
 	}
 	
 	public NounMetadata execute() {
 		
 		organizeKeys();
 
-		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
-		rJavaTranslator.startR(); 
+		PyTranslator pyt = this.insight.getPyTranslator();
+		pyt.setLogger(this.getLogger(this.getClass().getName()));
 		
-		String ggplotCommand = keyValue.get(keysToGet[0]) +"";
+		String splot = keyValue.get(keysToGet[0]) +"";
 		
 		this.task = getTask();
 		
 		// I neeed to get the basic iterator and then get types from there
+		// this is typically what we do on seaborn
+		
+		// import seaborn as sns
+		// daplot = <Whatever the user enters>
+		// daplot.savefig(location)
+		// del daplot
+		// del plotterframe
+		// return output
 		
 		task.getMetaMap();
 		SemossDataType[] sTypes = ((IRawSelectWrapper) ((BasicIteratorTask)(task)).getIterator()).getTypes();
@@ -67,62 +76,37 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		if(!tempDir.exists())
 			tempDir.mkdir();
 		String outputFile = dir + "/" + fileName + ".csv";
-		Utility.writeResultToFile(outputFile, this.task, typeMap, ",");
+		Utility.writeResultToFile(outputFile, this.task, ",");
 		
 
 		// need something here to adjust the types
 		// need to move this to utilities 
 		// will move it once we have figured it out
-		String loadDT = fileName + " <- fread(\"" + outputFile + "\");";
+		// at some point the encoding etc. needs to be fixed
+		String loadDT = fileName + " = pd.read_csv(\"" + outputFile + "\");";
 		// adjust the types
-		String adjustTypes = Utility.adjustTypeR(fileName, headers, typeMap);
+		String adjustTypes = Utility.adjustTypePy(fileName, headers, typeMap);
 		// run the job
-		rJavaTranslator.runRAndReturnOutput(loadDT+adjustTypes);
+		//pyt.runEmptyPy(loadDT, adjustTypes);
 		
 		
+		// now comes the building part
+		// I need to ask kunal if he mauls the path so I cannot load seaborn anymore
 		
+		String importSeaborn = "import seaborn as sns";
+		String assignPlotter = "plotterFrame = " + fileName;
+		String runPlot = "daplot = sns.relplot(" + splot + ")";
+		String seabornFile = Utility.getRandomString(6);
+		String printFile = "print(saveFile)";
+		String saveFileName = "saveFile = ROOT + '/" + seabornFile + ".jpeg'";
+		String savePlot = "daplot.savefig(saveFile)";
+		String removeFrame = "del(" + fileName + ")";
+		String removeSeaborn = "del(sns)";
+		String removeSaveFile = "del(saveFile)";
 		
-		StringBuilder ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
-		// get the frame
-		// get frame name
-		String table = fileName;
-		
-		// run the ggplot with this frame as the data
-		// we will refer to it as the plotterframe
-		ggplotter.append("plotterframe <- " + fileName + ";");
-		
-		// now it is just running the ggplotter
-		String plotString = Utility.getRandomString(6);
-		ggplotter.append(plotString + " <- " + ggplotCommand + ";");
-		
-		// now save it
-		// file name
-		String ggsaveFile = Utility.getRandomString(6);
-		
-		
-		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "\",\".jpeg\", sep=\"\");");
-		
-		ggplotter.append("ggsave(" + ggsaveFile + ");");
+		seabornFile = pyt.runPyAndReturnOutput(loadDT, adjustTypes, importSeaborn, assignPlotter, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, printFile, removeSaveFile);
 
-		ggplotter.append("}");
 		
-		// run the ggplotter command
-		rJavaTranslator.runRAndReturnOutput(ggplotter.toString());
-
-		// get file name
-		String retFile = rJavaTranslator.runRAndReturnOutput(ggsaveFile);
-
-		// also try to encode it
-		/*String encode = "base64Encode(readBin(" + ggsaveFile + " , \"raw\", file.info(" + ggsaveFile + ")[1, \"size\"]), \"txt\")";
-		
-		String dataURI = rJavaTranslator.runRAndReturnOutput(encode);
-		System.out.println(dataURI);
-		*/
-		String ggremove = "rm(" + ggsaveFile + ", txt);detach(\"package:ggplot2\", unload=FALSE);"; //detach(\"package:RCurl\", unload=FALSE)";
-		
-		// remove the variable
-		rJavaTranslator.runRAndReturnOutput(ggsaveFile);
-
 		// remove the csv
 		new File(outputFile).delete();
 		
@@ -134,7 +118,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		
 		// I need to create the options here
 		Map optionMap = new HashMap<String, Object>();
-		optionMap.put(keysToGet[0], ggplotCommand);
+		optionMap.put(keysToGet[0], splot);
 		
 		TaskOptions options = new TaskOptions(optionMap);
 		cdt.setTaskOptions(options);
@@ -142,7 +126,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		cdt.setSortInfo(task.getSortInfo());
 		
 		// set the output so it can give it
-		cdt.setOutputData(retFile);
+		cdt.setOutputData(seabornFile);
 		// I dont think the filter information is required
 		//cdt.setFilterInfo(task.getFilterInfo());
 		// delete the pivot later

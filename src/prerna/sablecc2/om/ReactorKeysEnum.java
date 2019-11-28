@@ -120,6 +120,7 @@ public enum ReactorKeysEnum {
 	SUM_RANGE("sumRange", 									"Range that values to sum over"),
 	SYNC_PULL("dual", 										"True/False value to determine if the sync should also pull the latest updates from the repository"),
 	SYNC_DATABASE("syncDatabase", 							"True/False value to detetermine if the database should be published with the app"),
+	SPLOT("splot", 							                "Seaborn plot expression"),
 	TABLE("table", 											"The name of the table"),
 	TABLES("tables", 										"List of table names"),
 	TAGS("tags",											"Metadata tags for an app or insight"),		
