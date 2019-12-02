@@ -1,6 +1,7 @@
 package prerna.sablecc2.om.execptions;
 
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SemossPixelException extends RuntimeException implements ISemossException {
@@ -8,6 +9,11 @@ public class SemossPixelException extends RuntimeException implements ISemossExc
 	private boolean continueThreadOfExecution = true;
 	private NounMetadata noun = null;
 	private String message = null;
+	
+	public SemossPixelException(String message) {
+		super(message);
+		this.noun = new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+	}
 	
 	public SemossPixelException(NounMetadata noun) {
 		this.noun = noun;

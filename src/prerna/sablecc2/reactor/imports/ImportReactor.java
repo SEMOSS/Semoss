@@ -49,6 +49,8 @@ public class ImportReactor extends AbstractReactor {
 		if(!(frame instanceof NativeFrame)) {
 			try {
 				it = ImportUtility.generateIterator(qs, frame);
+			} catch(SemossPixelException e) {
+				throw e;
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SemossPixelException(
