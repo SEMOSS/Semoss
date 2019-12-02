@@ -123,7 +123,9 @@ import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.nameserver.AddToMasterDB;
 import prerna.nameserver.DeleteFromMasterDB;
+import prerna.om.AppAvailabilityStore;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.task.ITask;
 import prerna.ui.components.api.IPlaySheet;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
@@ -2543,6 +2545,12 @@ public class Utility {
 	 * Use this method to get the engine when the engine hasn't been loaded
 	 */
 	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
+		AppAvailabilityStore availableAppStore = AppAvailabilityStore.getInstance();
+		if(availableAppStore != null) {
+			if(availableAppStore.isAppDisabledByOwner(engineId)) {
+				throw new SemossPixelException("App is currently disabled by owner");
+			}
+		}
 		IEngine engine = null;
 
 		// If the engine has already been loaded, then return it
