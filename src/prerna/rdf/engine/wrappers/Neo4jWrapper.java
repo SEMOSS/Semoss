@@ -47,15 +47,17 @@ public class Neo4jWrapper extends AbstractWrapper implements IRawSelectWrapper{
 
 	@Override
 	public void cleanUp() {
-		// TODO Auto-generated method stub
 		result.close();
 		transaction.close();
 	}
 
 	@Override
 	public boolean hasNext() {
-		// TODO Auto-generated method stub
-		return result.hasNext();
+		boolean next = result.hasNext();
+		if(!next) {
+			cleanUp();
+		}
+		return next;
 	}
 
 	@Override
