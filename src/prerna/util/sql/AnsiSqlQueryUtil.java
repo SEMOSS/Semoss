@@ -1074,6 +1074,11 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		return inserter.toString();
 	}
 
+	@Override
+	public String deleteAllRowsFromTable(String tableName) {
+		return "DELETE FROM " + tableName; 
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*
