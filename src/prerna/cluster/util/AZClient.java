@@ -1,32 +1,18 @@
 package prerna.cluster.util;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.ProcessBuilder.Redirect;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.zookeeper.Watcher.Event.EventType;
-
-import prerna.auth.utils.SecurityQueryUtils;
-import prerna.engine.api.IEngine;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
-import prerna.util.SMSSWebWatcher;
-import prerna.util.Utility;
 
 import com.google.common.io.Files;
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -37,6 +23,13 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
+
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IEngine;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.SMSSWebWatcher;
+import prerna.util.Utility;
 
 public class AZClient extends CloudClient {
 
@@ -302,7 +295,7 @@ public class AZClient extends CloudClient {
 		//		}
 	}
 	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
-		IEngine engine = Utility.getEngine(appId, false);
+		IEngine engine = Utility.getEngine(appId, false, true);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -359,7 +352,7 @@ public class AZClient extends CloudClient {
 	//////////////////////////////////////// Push ////////////////////////////////////////////
 
 	public void pushApp(String appId) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IEngine engine = Utility.getEngine(appId, false, true);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -413,7 +406,7 @@ public class AZClient extends CloudClient {
 
 				// Re-open the database
 				DIHelper.getInstance().removeLocalProperty(appId);
-				Utility.getEngine(appId, false);
+				Utility.getEngine(appId, false, true);
 			}
 		} finally {
 			if (appRcloneConfig != null) {
@@ -437,7 +430,7 @@ public class AZClient extends CloudClient {
 	protected void pullApp(String appId, boolean newApp) throws IOException, InterruptedException {
 		IEngine engine = null;
 		if (!newApp) {
-			engine = Utility.getEngine(appId, false);
+			engine = Utility.getEngine(appId, false, true);
 			if (engine == null) {
 				throw new IllegalArgumentException("App not found...");
 			}
@@ -499,7 +492,7 @@ public class AZClient extends CloudClient {
 				// Re-open the database (if an existing app)
 				if (!newApp) {
 					DIHelper.getInstance().removeLocalProperty(appId);
-					Utility.getEngine(appId, false);
+					Utility.getEngine(appId, false, true);
 				}
 			}
 		} finally {
@@ -556,7 +549,7 @@ public class AZClient extends CloudClient {
 		// TODO >>>timb: pixel to update app so that neel can add refresh button or something
 		// TODO >>>timb: still need to test this method
 		public void updateApp(String appId) throws IOException, InterruptedException {
-			if (Utility.getEngine(appId, true) == null) {
+			if (Utility.getEngine(appId, true, true) == null) {
 				throw new IllegalArgumentException("App needs to be defined in order to update...");
 			}
 			pullApp(appId, false);
