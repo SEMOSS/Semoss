@@ -96,7 +96,7 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		
 
 		// clean up r temp variables
-		this.rJavaTranslator.runR("rm(" + matchFrame + ");gc();");
+		this.rJavaTranslator.runR("rm(" + matchFrame + ", " + catalog + ");gc();");
 
 		// convert to {instance:[{}]} (easier processing)
 
