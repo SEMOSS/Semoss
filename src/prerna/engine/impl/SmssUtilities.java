@@ -231,7 +231,7 @@ public class SmssUtilities {
 	}
 	
 	/**
-	 * Get the data file 
+	 * Get the data file for an embedded neo4j graph
 	 * @param prop
 	 * @return
 	 */

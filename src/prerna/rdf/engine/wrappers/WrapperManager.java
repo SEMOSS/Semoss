@@ -169,8 +169,9 @@ public class WrapperManager {
 			// TODO >>>timb: REST - either replace with rest remote or remove this
 		}
 		
-		case NEO4J : {
+		case NEO4J_EMBEDDED : {
 			returnWrapper = new Neo4jWrapper();
+			break;
 		}
 		default: {
 			//TODO: build iterator
@@ -239,8 +240,9 @@ public class WrapperManager {
 			//TODO: build iterator
 			break;
 		}
-		case NEO4J : {
+		case NEO4J_EMBEDDED : {
 			returnWrapper = new Neo4jWrapper();
+			break;
 		}
 		default: {
 
