@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
+import org.apache.log4j.Logger;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
 import org.openrdf.sail.SailException;
@@ -19,6 +20,8 @@ import prerna.util.Utility;
 
 public class RdfUploadReactorUtility {
 	
+	private static final Logger LOGGER = Logger.getLogger(RdfUploadReactorUtility.class.getName());
+
 	private RdfUploadReactorUtility() {
 		
 	}
@@ -218,6 +221,8 @@ public class RdfUploadReactorUtility {
 	 * @param engine
 	 */
 	public static void deleteAllTriples(IEngine engine) {
+		long start = System.currentTimeMillis();
+		LOGGER.info("Starting to delete all triples from database " + engine.getEngineName() + "_" + engine.getEngineId());
 		// null is equiv. to a wildcard for removeStatements method
 		// so it matches any subject, predicate, object
 		if(engine instanceof BigDataEngine) {
@@ -232,6 +237,11 @@ public class RdfUploadReactorUtility {
 			} catch (SailException e) {
 				e.printStackTrace();
 			}
+		} else {
+			throw new IllegalArgumentException("Engine is not a valid type to remove triples from");
 		}
+		long end = System.currentTimeMillis();
+		LOGGER.info("Done deleting all triples from database " + engine.getEngineName() + "_" + engine.getEngineId());
+		LOGGER.debug("Deleting triples in " + (end-start) + "ms");
 	}
 }
