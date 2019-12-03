@@ -19,6 +19,7 @@ import java.util.Vector;
 
 import javax.net.ssl.SSLHandshakeException;
 
+import org.apache.commons.io.FileUtils;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.RepositoryService;
 import org.eclipse.jgit.api.AddCommand;
@@ -915,6 +916,69 @@ public class GitRepoUtils {
 		return output;
 		
 	}
+
+	// gets a particular file
+	// showing file content for a particular ID
+	// this will be utilized where the user goes
+	// ok what did the user abcd check in for this file without the needing to revert / reset
+	// frankly we should have a way for the user to go back and forth
+	public static byte[] getBinary(String commId, String fileName, String gitFolder)
+	{
+		byte[] bytes = null;
+		try {
+			
+			RevCommit comm = null;
+			if(commId == null)
+			{
+				// there is a good possibility the user has not saved this !?
+				File file = new File(gitFolder + "/" + fileName);
+				if(file.exists())
+				{
+					bytes = FileUtils.readFileToByteArray(file);
+					// not going to process the head for now
+					//ObjectId commId2 = thisGit.getRepository().resolve(Constants.HEAD);
+					//RevWalk walk = new RevWalk(thisGit.getRepository());
+					//comm = walk.lookupCommit(commId2);
+				}
+			}
+			else
+			{
+				Git thisGit = Git.open(new File(gitFolder));
+
+				comm = findCommit(gitFolder, commId);
+			
+				TreeWalk treeWalk = TreeWalk.forPath( thisGit.getRepository(), fileName, comm.getTree());
+				ObjectId blobId = treeWalk.getObjectId( 0 );
+				
+				ObjectReader objectReader = thisGit.getRepository().newObjectReader();
+				ObjectLoader objectLoader = objectReader.open( blobId );
+				bytes = objectLoader.getBytes();
+				objectReader.close();
+			}			
+		} catch (MissingObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IncorrectObjectTypeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (CorruptObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (LargeObjectException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return bytes;
+		
+	}
+
 	
 	public static void addAllFiles(String gitFolder, boolean ignoreTheIgnoreFiles) {
 		Git thisGit = null;
