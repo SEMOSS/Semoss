@@ -83,7 +83,7 @@ public class AWSClient extends CloudClient{
 	}
 
 	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
-		IEngine engine = Utility.getEngine(appId, false);
+		IEngine engine = Utility.getEngine(appId, false, true);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -109,7 +109,7 @@ public class AWSClient extends CloudClient{
 
 	@Override
 	public void pushApp(String appId) throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(appId, false);
+		IEngine engine = Utility.getEngine(appId, false, true);
 		if (engine == null) {
 			throw new IllegalArgumentException("App not found...");
 		}
@@ -161,7 +161,7 @@ public class AWSClient extends CloudClient{
 
 				// Re-open the database
 				DIHelper.getInstance().removeLocalProperty(appId);
-				Utility.getEngine(appId, false);
+				Utility.getEngine(appId, false, true);
 			}
 		} finally {
 			if (awsRCloneConfig != null) {
@@ -180,7 +180,7 @@ public class AWSClient extends CloudClient{
 	protected void pullApp(String appId, boolean newApp) throws IOException, InterruptedException {
 		IEngine engine = null;
 		if (!newApp) {
-			engine = Utility.getEngine(appId, false);
+			engine = Utility.getEngine(appId, false, true);
 			if (engine == null) {
 				throw new IllegalArgumentException("App not found...");
 			}
@@ -234,7 +234,7 @@ public class AWSClient extends CloudClient{
 				// Re-open the database (if an existing app)
 				if (!newApp) {
 					DIHelper.getInstance().removeLocalProperty(appId);
-					Utility.getEngine(appId, false);
+					Utility.getEngine(appId, false, true);
 				}
 			}
 		} finally {
@@ -246,7 +246,7 @@ public class AWSClient extends CloudClient{
 
 	@Override
 	public void updateApp(String appId) throws IOException, InterruptedException {
-		if (Utility.getEngine(appId, true) == null) {
+		if (Utility.getEngine(appId, true, true) == null) {
 			throw new IllegalArgumentException("App needs to be defined in order to update...");
 		}
 		pullApp(appId, false);
