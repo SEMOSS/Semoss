@@ -71,9 +71,9 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		script.append(RSyntaxHelper.setWorkingDirectory(assetFolder));
 		// load catalog
 		//TODO check if the file is rds
-		script.append(RSyntaxHelper.readRDS(catalog, filePath));
+		script.append(RSyntaxHelper.readRDS(catalog, filePath + ".rds"));
 		script.append(matchFrame + " <- fuzzy_lookup(catalog="+ catalog + ",");
-		script.append("catalog_fn=" + "\"" + filePath + "\"" + ", ");
+		script.append("catalog_fn=" + "\"" + fileName + "\"" + ", ");
 		script.append("request=" + RSyntaxHelper.createStringRColVec(instances) + ", ");
 		script.append("topMatches=" + count);
 		script.append(")");
