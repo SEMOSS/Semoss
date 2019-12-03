@@ -67,8 +67,15 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5){
 				out<-rbind(out,cur_out)
 			}
 		}
+		
+		#rename
+		names(out)[names(out) == 'Similarity'] <- 'similarity'
+		names(out)[names(out) == 'Request'] <- 'request'
+		names(out)[names(out) == catalog_col] <- 'match'
+
 		gc()
 		#write.csv(df,"fuzzymapping.csv")
+
 		return(out)
 		
 	}else {
@@ -117,6 +124,11 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5){
 				}
 			}
 		}
+		#rename
+		names(out)[names(out) == 'Similarity'] <- 'similarity'
+		names(out)[names(out) == 'Request'] <- 'request'
+		names(out)[names(out) == catalog_col] <- 'match'
+		
 		#write.csv(out,"fuzzymapping.csv")
 		gc()
 		return(out)
