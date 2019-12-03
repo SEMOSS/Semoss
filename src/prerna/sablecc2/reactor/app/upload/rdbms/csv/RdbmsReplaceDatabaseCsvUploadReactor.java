@@ -106,7 +106,7 @@ public class RdbmsReplaceDatabaseCsvUploadReactor extends RdbmsCsvUploadReactor 
 				throw new IllegalArgumentException("App must be using a relational database");
 			}
 			this.logger.info("Done");
-			RdbmsUploadReactorUtility.removeAppDatabase((RDBMSNativeEngine) this.engine);
+			RdbmsUploadReactorUtility.deleteRowsFromAllTables((RDBMSNativeEngine) this.engine);
 			addToExistingApp(filePath);
 			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE REPLACE!
 			//			this.logger.info("Process app metadata to allow for traversing across apps");
