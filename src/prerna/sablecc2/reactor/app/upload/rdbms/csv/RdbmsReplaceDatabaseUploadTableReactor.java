@@ -19,9 +19,9 @@ import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Utility;
 
-public class RdbmsCsvReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReactor {
+public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReactor {
 
-	public RdbmsCsvReplaceDatabaseUploadTableReactor() {
+	public RdbmsReplaceDatabaseUploadTableReactor() {
 		this.keysToGet = new String[] { 
 				UploadInputUtility.APP, 
 				UploadInputUtility.FILE_PATH, 
@@ -31,8 +31,7 @@ public class RdbmsCsvReplaceDatabaseUploadTableReactor extends RdbmsUploadTableR
 				UploadInputUtility.NEW_HEADERS, 
 				UploadInputUtility.ADDITIONAL_DATA_TYPES,
 				UploadInputUtility.CLEAN_STRING_VALUES, 
-				UploadInputUtility.REMOVE_DUPLICATE_ROWS,
-				UploadInputUtility.REPLACE_EXISTING
+				UploadInputUtility.REMOVE_DUPLICATE_ROWS
 		};
 	}
 
