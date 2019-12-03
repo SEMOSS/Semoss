@@ -8,7 +8,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -25,7 +24,6 @@ public class RdfReplaceDatabaseCsvUploadReactor extends RdfCsvUploadReactor {
 		this.keysToGet = new String[] {
 				UploadInputUtility.APP, 
 				UploadInputUtility.FILE_PATH,
-				UploadInputUtility.ADD_TO_EXISTING,
 				UploadInputUtility.DELIMITER, 
 				UploadInputUtility.DATA_TYPE_MAP,
 				UploadInputUtility.NEW_HEADERS,
@@ -101,9 +99,6 @@ public class RdfReplaceDatabaseCsvUploadReactor extends RdfCsvUploadReactor {
 			this.engine = Utility.getEngine(appId, true, true);
 			if (this.engine == null) {
 				throw new IllegalArgumentException("Couldn't find the app " + appId + " to append data into");
-			}
-			if (!(this.engine instanceof RDBMSNativeEngine)) {
-				throw new IllegalArgumentException("App must be using a relational database");
 			}
 			this.logger.info("Done");
 			RdfUploadReactorUtility.deleteAllTriples(this.engine);
