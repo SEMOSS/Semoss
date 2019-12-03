@@ -837,6 +837,16 @@ public class RSyntaxHelper {
 		return expr;
 	}
 	
+	/**
+	 *  Get the syntax to read rds file and load to a variable
+	 * @param var rds variable to set
+	 * @param file rds file to read
+	 * @return
+	 */
+	public static String readRDS(String var, String filePath) {
+		return new StringBuilder(var + " <-readRDS(" + filePath.replace("\\", "/") + ".rds" + ");").toString();
+	}
+
 	/////////////////////////////////////////////////////////
 	// Date formatting
 	/////////////////////////////////////////////////////////
@@ -991,6 +1001,16 @@ public class RSyntaxHelper {
 	/////////////////////////////////////////////////////////
 	// R Environment
 	/////////////////////////////////////////////////////////
+	
+	/**
+	 * Generate R syntax to set the working directory
+	 * @param directory
+	 * @return
+	 */
+	public static String setWorkingDirectory(String directory) {
+		return new StringBuilder("setwd(\"" + directory.replace("\\", "/") + "\");").toString();
+	}
+	
 	/**
 	 * Generate R syntax to load r packages
 	 * 
