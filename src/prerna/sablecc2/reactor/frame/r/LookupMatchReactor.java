@@ -58,19 +58,27 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		String filePath = assetFolder + "/" + fileName;
 
 		// get the output frame
-		String matchFrame = "LookupMatch" + Utility.getRandomString(6);
+		String rand =  Utility.getRandomString(6);
+		String matchFrame = "LookupMatch" + rand;
+		String catalog = "LookupCatalog" + rand;
 
 		// load the script
 		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
 
 		StringBuilder script = new StringBuilder();
 		script.append("source(\"" + base + "/R/Lookup/fuzzy_lookup.r" + "\");");
-		script.append(matchFrame + " <- fuzzy_lookup(");
+		// change working directory as new files will be generated
+		script.append(RSyntaxHelper.setWorkingDirectory(assetFolder));
+		// load catalog
+		//TODO check if the file is rds
+		script.append(RSyntaxHelper.readRDS(catalog, filePath));
+		script.append(matchFrame + " <- fuzzy_lookup(catalog="+ catalog + ",");
 		script.append("catalog_fn=" + "\"" + filePath + "\"" + ", ");
 		script.append("request=" + RSyntaxHelper.createStringRColVec(instances) + ", ");
 		script.append("topMatches=" + count);
 		script.append(")");
 
+		System.out.println(script);
 		logger.info("Finding matches for " + instances.toString() + "in the lookup table.");
 
 		// run it

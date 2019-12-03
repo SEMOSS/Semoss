@@ -844,7 +844,7 @@ public class RSyntaxHelper {
 	 * @return
 	 */
 	public static String readRDS(String var, String filePath) {
-		return new StringBuilder(var + " <-readRDS(" + filePath.replace("\\", "/") + ".rds" + ");").toString();
+		return new StringBuilder(var + " <-readRDS(\"" + filePath.replace("\\", "/") + "\");").toString();
 	}
 
 	/////////////////////////////////////////////////////////
