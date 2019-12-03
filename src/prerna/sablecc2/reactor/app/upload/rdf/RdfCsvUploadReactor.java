@@ -16,6 +16,7 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.rdf.BigDataEngine;
+import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.poi.main.RDFEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
@@ -28,7 +29,7 @@ import prerna.util.Utility;
 public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 
 	private CSVFileHelper helper;
-	
+
 	public RdfCsvUploadReactor() {
 		this.keysToGet = new String[] {
 				UploadInputUtility.APP, 
@@ -43,7 +44,7 @@ public class RdfCsvUploadReactor extends AbstractUploadFileReactor {
 				UploadInputUtility.START_ROW, 
 				UploadInputUtility.END_ROW, 
 				UploadInputUtility.CUSTOM_BASE_URI
-			};
+		};
 	}
 
 	public void generateNewApp(User user, String newAppName, String filePath) throws Exception {
