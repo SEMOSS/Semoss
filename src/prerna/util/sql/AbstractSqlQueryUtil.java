@@ -639,6 +639,13 @@ public abstract class AbstractSqlQueryUtil {
 	 */
 	public abstract String insertIntoTable(String tableName, String[] columnNames, String[] types, Object[] values);
 	
+	/**
+	 * Drop all rows from a table
+	 * @param tableName
+	 * @return
+	 */
+	public abstract String deleteAllRowsFromTable(String tableName);
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/*
