@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app.upload.rdbms.csv;
+package prerna.sablecc2.reactor.app.upload.rdf;
 
 import java.io.File;
 import java.util.Map;
@@ -9,6 +9,7 @@ import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -16,22 +17,16 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
-import prerna.sablecc2.reactor.app.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Utility;
 
-public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReactor {
+public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUploadReactor {
 
-	public RdbmsReplaceDatabaseUploadTableReactor() {
+	public RdfReplaceDatabaseLoaderSheetUploadReactor() {
 		this.keysToGet = new String[] { 
 				UploadInputUtility.APP, 
-				UploadInputUtility.FILE_PATH, 
-				UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.DELIMITER, 
-				UploadInputUtility.DATA_TYPE_MAP, 
-				UploadInputUtility.NEW_HEADERS, 
-				UploadInputUtility.ADDITIONAL_DATA_TYPES,
-				UploadInputUtility.CLEAN_STRING_VALUES, 
-				UploadInputUtility.REMOVE_DUPLICATE_ROWS
+				UploadInputUtility.FILE_PATH,
+				UploadInputUtility.ADD_TO_EXISTING, 
+				UploadInputUtility.CUSTOM_BASE_URI
 		};
 	}
 
@@ -44,7 +39,7 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReac
 		 * TO REMOVE THE APP DATABASE BEFORE RUNNING THE UPDATE
 		 * 
 		 */
-		
+
 		this.logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
@@ -74,7 +69,7 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReac
 		if (security) {
 			// check if input is alias since we are adding ot existing
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(user, appId);
-			
+
 			// throw error is user is not owner
 			if (!SecurityAppUtils.userIsOwner(user, appId)) {
 				NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the app", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -103,11 +98,11 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableReac
 				throw new IllegalArgumentException("App must be using a relational database");
 			}
 			this.logger.info("Done");
-			RdbmsUploadReactorUtility.deleteRowsFromAllTables((RDBMSNativeEngine) this.engine);
+			RdfUploadReactorUtility.deleteAllTriples(this.engine);
 			addToExistingApp(filePath);
 			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE REPLACE!
-//			this.logger.info("Process app metadata to allow for traversing across apps");
-//			UploadUtilities.updateMetadata(this.engine.getEngineId());
+			//			this.logger.info("Process app metadata to allow for traversing across apps");
+			//			UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -136,7 +136,7 @@ public class RdbmsUploadReactorUtility {
 	 * Only runs the operation on the tables that are identified in the OWL file
 	 * @param engine
 	 */
-	public static void removeAppDatabase(RDBMSNativeEngine engine) {
+	public static void deleteRowsFromAllTables(RDBMSNativeEngine engine) {
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		List<String> tableUris = engine.getPhysicalConcepts();
 		for(String tableUri : tableUris) {
