@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.app.upload.rdf;
+package prerna.engine.impl.rdf;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -9,6 +9,7 @@ import java.util.Hashtable;
 
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.model.vocabulary.RDFS;
+import org.openrdf.sail.SailException;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
@@ -210,5 +211,27 @@ public class RdfUploadReactorUtility {
 		String cleanValue = System.getProperty("user.name");
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{propURI, RDF.TYPE, basePropURI, true});
 		engine.doAction(IEngine.ACTION_TYPE.ADD_STATEMENT, new Object[]{subjectNodeURI, propURI, cleanValue, false});
+	}
+	
+	/**
+	 * Delete all the triples from the database
+	 * @param engine
+	 */
+	public static void deleteAllTriples(IEngine engine) {
+		// null is equiv. to a wildcard for removeStatements method
+		// so it matches any subject, predicate, object
+		if(engine instanceof BigDataEngine) {
+			try {
+				((BigDataEngine) engine).getSc().removeStatements(null, null, null);
+			} catch (SailException e) {
+				e.printStackTrace();
+			}
+		} else if(engine instanceof RDFFileSesameEngine) {
+			try {
+				((RDFFileSesameEngine) engine).getSc().removeStatements(null, null, null);
+			} catch (SailException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

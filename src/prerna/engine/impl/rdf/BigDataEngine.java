@@ -448,4 +448,11 @@ public class BigDataEngine extends AbstractEngine implements IEngine {
 		}		
 	}
 
+	/**
+	 * Method to get the SC
+	 * @return
+	 */
+	SailConnection getSc() {
+		return this.sc;
+	}
 }
