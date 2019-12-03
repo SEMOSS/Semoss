@@ -76,7 +76,8 @@ public class RdbmsCsvUploadReactor extends AbstractUploadFileReactor {
 				UploadInputUtility.START_ROW, 
 				UploadInputUtility.END_ROW, 
 				UploadInputUtility.ADDITIONAL_DATA_TYPES,
-				UploadInputUtility.CREATE_INDEX };
+				UploadInputUtility.CREATE_INDEX
+		};
 	}
 
 	@Override
