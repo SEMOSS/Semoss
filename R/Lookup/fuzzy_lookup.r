@@ -29,8 +29,9 @@ fuzzy_lookup_light<-function(catalog,catalog_col,request,topMatches=5){
 }
 
 
-fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5,share=0.8){
+fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5){
 	library(stringdist)
+	library(stringi)
 	library(lsa)
 	library(data.table)
 	library(text2vec)
@@ -67,7 +68,7 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5,share=0.8){
 			}
 		}
 		gc()
-		write.csv(df,"fuzzymapping.csv")
+		#write.csv(df,"fuzzymapping.csv")
 		return(out)
 		
 	}else {
@@ -94,10 +95,12 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5,share=0.8){
 					rows<-paste(sapply(blocks,function(blocks) paste0((blocks-1)*blocksize+1,":",min(+blocks*blocksize,N))),collapse=",")
 					cmd<-paste0("catalog_block<-catalog[c(",rows,"),]")
 					eval(parse(text=cmd))
+					
 					# perform fuzzy matching and get the top matches
-					cmd<-paste0("z<-stringsim(df$",request_col,"[i],catalog_block[[catalog_col]],method=\"jw\",p=0.1)")
+					cmd<-paste0("z<-stringsim(stringi::stri_unescape_unicode(df$",request_col,"[i]),stringi::stri_unescape_unicode(catalog_block[[catalog_col]]),method=\"jw\",p=0.1)")
 					eval(parse(text=cmd))
 					ind<-order(z, decreasing=TRUE)[1:topMatches]
+					
 					# add the matching records to the output dataframe
 					if(length(ind)>0){
 						cmd<-paste0("cur_out<-data.frame(",request_col,"=rep(df$",request_col,"[i],length(ind)),",catalog_col,"=catalog_block[[catalog_col]][ind],Similarity=round(z[ind],4),stringsAsFactors=FALSE)")
