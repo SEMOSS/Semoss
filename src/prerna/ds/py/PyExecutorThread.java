@@ -18,6 +18,9 @@ public class PyExecutorThread extends Thread {
 	private static final String CLASS_NAME = PyExecutorThread.class.getName();
 	private static final Logger LOGGER = LogManager.getLogger(CLASS_NAME);
 	private static transient SecurityManager defaultManager = System.getSecurityManager();
+	
+	
+	ThreadState curState = null;
 
 	private static boolean first = true;
 	private Jep jep = null;
@@ -35,14 +38,18 @@ public class PyExecutorThread extends Thread {
 		// if process is true - process, put the result and go back to sleep
 		LOGGER.debug("Running Python thread");
 		getJep();
+		curState = ThreadState.init;
 
 		while(this.keepAlive) {
 			try {
 				synchronized(daLock) {
 					LOGGER.debug("Waiting for next command");
 					ready = true;
+					curState = ThreadState.wait;
 					daLock.wait();
 					
+					curState = ThreadState.run;
+					daLock.notify();
 					// if someone wakes up
 					// process the command
 					// set the response go back to sleep
@@ -90,6 +97,8 @@ public class PyExecutorThread extends Thread {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			curState = ThreadState.wait;
+
 		}
 		LOGGER.debug("Thread ENDED");
 	}
@@ -150,6 +159,13 @@ public class PyExecutorThread extends Thread {
 				jep.eval("import sys");
 				// this is so we do not get a GIL
 				//jep.eval("from java.lang import System");
+				
+				// adding imports for tpot
+				/*
+				jep.eval("from tpot import TPOTClassifier");
+				jep.eval("from sklearn.datasets import load_iris");
+				jep.eval("from sklearn.model_selection import train_test_split");
+				*/
 				
 				LOGGER.debug("Adding Syspath " + pyBase);				
 				jep.eval("sys.path.append('" + pyBase + "')" );
