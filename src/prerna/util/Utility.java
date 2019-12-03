@@ -2534,7 +2534,7 @@ public class Utility {
 	 * Use this method to get the engine when the engine hasn't been loaded
 	 */
 	public static IEngine getEngine(String engineId) {
-		return getEngine(engineId, true);
+		return getEngine(engineId, true, false);
 	}
 	
 	/**
@@ -2544,11 +2544,13 @@ public class Utility {
 	 * 
 	 * Use this method to get the engine when the engine hasn't been loaded
 	 */
-	public static IEngine getEngine(String engineId, boolean pullIfNeeded) {
-		AppAvailabilityStore availableAppStore = AppAvailabilityStore.getInstance();
-		if(availableAppStore != null) {
-			if(availableAppStore.isAppDisabledByOwner(engineId)) {
-				throw new SemossPixelException("App is currently disabled by owner");
+	public static IEngine getEngine(String engineId, boolean pullIfNeeded, boolean bypass) {
+		if(!bypass) {
+			AppAvailabilityStore availableAppStore = AppAvailabilityStore.getInstance();
+			if(availableAppStore != null) {
+				if(availableAppStore.isAppDisabledByOwner(engineId)) {
+					throw new SemossPixelException("App is currently disabled by owner");
+				}
 			}
 		}
 		IEngine engine = null;
