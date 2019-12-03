@@ -1,12 +1,16 @@
 package prerna.sablecc2.reactor.app.upload.rdbms;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.util.RdbmsQueryBuilder;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.impl.util.Owler;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsUploadReactorUtility {
 
@@ -125,6 +129,25 @@ public class RdbmsUploadReactorUtility {
 		String indexName = columnName.toUpperCase() + "_INDEX";
 		String indexSql = "CREATE INDEX " + indexName + " ON " + tableName + "(" + columnName.toUpperCase() + ")";
 		engine.insertData(indexSql);
+	}
+	
+	/**
+	 * Delete all the row records from the database 
+	 * Only runs the operation on the tables that are identified in the OWL file
+	 * @param engine
+	 */
+	public static void removeAppDatabase(RDBMSNativeEngine engine) {
+		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+		List<String> tableUris = engine.getPhysicalConcepts();
+		for(String tableUri : tableUris) {
+			String tableName = Utility.getInstanceName(tableUri);
+			String deleteQuery = queryUtil.deleteAllRowsFromTable(tableName);
+			try {
+				engine.removeData(deleteQuery);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 }
