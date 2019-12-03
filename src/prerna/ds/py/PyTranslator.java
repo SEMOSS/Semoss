@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -157,6 +158,9 @@ public class PyTranslator {
 			this.pt = insight.getPy();
 	
 		Object monitor = pt.getMonitor();
+		// I need to go into a while true loop here
+		// I need to keep checking to see if the thread is still running
+		// if so loop
 		synchronized(monitor)
 		{
 			pt.command = new String[]{script};
@@ -169,6 +173,72 @@ public class PyTranslator {
 			}
 			logger.info("Completed processing");
 			
+		}
+		
+	}
+	protected void executeEmptyPyDirect2(String script, String file)
+	{
+		if(this.pt == null)
+			this.pt = insight.getPy();
+	
+		Object monitor = pt.getMonitor();
+		// I need to go into a while true loop here
+		// I need to keep checking to see if the thread is still running
+		// if so loop
+		File daFile = new File(file);
+		int marker = 0;
+		try {
+			synchronized(monitor)
+			{
+					pt.command = new String[]{script};
+					// keep notifying until the thread has started
+					//while(pt.curState == ThreadState.wait)
+						monitor.notify();
+						//monitor.wait();
+			}
+
+			// wait for the file
+			while(!daFile.exists())
+			{
+				try{
+					Thread.sleep(1000);
+					//monitor.notifyAll();
+				}catch(Exception ex)
+				{
+					ex.printStackTrace();
+				}
+				daFile = new File(file);
+			}
+			
+			// open the file in read mode
+			RandomAccessFile raf = new RandomAccessFile(file, "r");
+			long offset = raf.getFilePointer();
+			do{
+				// release the lock
+				
+				//monitor.wait();
+				long dataAvailable = daFile.length();
+				if(offset < dataAvailable)
+				{
+					raf.seek(offset);
+					String line = raf.readLine();
+		            do
+		            {
+		              line = raf.readLine();
+		              if(line != null)
+		            	  logger.info(line);
+		            }while( line != null );
+			        offset = raf.getFilePointer();
+				}
+				
+			}while(pt.curState != ThreadState.wait);
+			logger.info("Completed processing");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 	}
@@ -284,10 +354,9 @@ public class PyTranslator {
 				//checkPackages(script);
 	
 				// Try running the script, which saves the output to a file
-				 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
 				RuntimeException error = null;
 				try {
-					executeEmptyPyDirect("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())");
+					executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
 				} catch (RuntimeException e) {
 					e.printStackTrace();
 					error = e; // Save the error so we can report it
