@@ -29,12 +29,11 @@ fuzzy_lookup_light<-function(catalog,catalog_col,request,topMatches=5){
 }
 
 
-fuzzy_lookup<-function(catalog_fn,request,topMatches=5,share=0.8){
+fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5,share=0.8){
 	library(stringdist)
 	library(lsa)
 	library(data.table)
 	library(text2vec)
-	STAGELIMIT<-200000
 	
 	# get fileroot
 	fileroot=paste0(catalog_fn,"_blocks")
@@ -43,7 +42,8 @@ fuzzy_lookup<-function(catalog_fn,request,topMatches=5,share=0.8){
 	catalog_col<-params[5]
 	params<-as.integer(params[1:4])
 	blocksize<-params[2]
-	topBlocks<-min(ceiling(STAGELIMIT/blocksize),10)
+	stagelimit<-params[3]
+	topBlocks<-min(ceiling(stagelimit/blocksize),10)
 	
 	if(sum(params)==0){
 		return("Number of records in the catalog exceeded the upper limit")
@@ -66,16 +66,10 @@ fuzzy_lookup<-function(catalog_fn,request,topMatches=5,share=0.8){
 				out<-rbind(out,cur_out)
 			}
 		}
-
-		#rename
-		names(out)[names(out) == 'Similarity'] <- 'similarity'
-		names(out)[names(out) == 'Request'] <- 'request'
-		names(out)[names(out) == catalog_col] <- 'match'
-		#write.csv(out,"fuzzymapping.csv")
-
 		gc()
-
-		return(out)		
+		write.csv(df,"fuzzymapping.csv")
+		return(out)
+		
 	}else {
 		df<-data.frame(Request=request,stringsAsFactors=FALSE)
 		request_col="Request"
@@ -87,7 +81,6 @@ fuzzy_lookup<-function(catalog_fn,request,topMatches=5,share=0.8){
 		df$Similarity<-0
 		n<-nrow(df)
 		if(n>0){
-			catalog<-readRDS(paste0(catalog_fn,".rds"))
 			N<-nrow(catalog)
 
 			cmd<-paste0("out<-data.frame(",request_col,"=character(),",catalog_col,"=character(),Similarity=numeric(),stringsAsFactors=FALSE)")
@@ -121,13 +114,7 @@ fuzzy_lookup<-function(catalog_fn,request,topMatches=5,share=0.8){
 				}
 			}
 		}
-
-		#rename
-		names(out)[names(out) == 'Similarity'] <- 'similarity'
-		names(out)[names(out) == 'Request'] <- 'request'
-		names(out)[names(out) == catalog_col] <- 'match'
 		#write.csv(out,"fuzzymapping.csv")
-
 		gc()
 		return(out)
 	}
