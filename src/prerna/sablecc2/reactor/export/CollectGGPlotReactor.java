@@ -133,20 +133,30 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		cdt.setFormat("TABLE");
 		
 		// I need to create the options here
-		Map optionMap = new HashMap<String, Object>();
-		optionMap.put(keysToGet[0], ggplotCommand);
+		// Map optionMap = new HashMap<String, Object>();
+		// optionMap.put(keysToGet[0], ggplotCommand);
 		
-		TaskOptions options = new TaskOptions(optionMap);
-		cdt.setTaskOptions(options);
+		// TaskOptions options = new TaskOptions(optionMap);
+		// need to do all the sets
+		cdt.setFormat("TABLE");
+		cdt.setTaskOptions(task.getTaskOptions());
 		cdt.setHeaderInfo(task.getHeaderInfo());
 		cdt.setSortInfo(task.getSortInfo());
+		cdt.setId(task.getId());
 		
+		Map<String, Object> outputMap = new HashMap<String, Object>();
+
+		outputMap.put("headers", new String[] {});
+		outputMap.put("rawHeaders", new String[] {});
+		outputMap.put("values", new String[] {retFile});
+		outputMap.put("ggplot", ggplotCommand);
+
 		// set the output so it can give it
-		cdt.setOutputData(retFile);
+		cdt.setOutputData(outputMap);
 		// I dont think the filter information is required
 		//cdt.setFilterInfo(task.getFilterInfo());
 		// delete the pivot later
-		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.FILE);
+		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 	}
 	
 
