@@ -847,6 +847,16 @@ public class RSyntaxHelper {
 		return new StringBuilder(var + " <-readRDS(\"" + filePath.replace("\\", "/") + "\");").toString();
 	}
 
+	/**
+	 * Get the syntax to qread
+	 * @param var
+	 * @param filePath
+	 * @return
+	 */
+	public static String qread(String var, String filePath) {
+		return new StringBuilder(var + " <-qread(\"" + filePath.replace("\\", "/") + "\");").toString();
+	}
+	
 	/////////////////////////////////////////////////////////
 	// Date formatting
 	/////////////////////////////////////////////////////////
