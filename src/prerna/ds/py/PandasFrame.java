@@ -572,6 +572,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	public void setTranslator(PyTranslator pyt) {
 		// TODO Auto-generated method stub
 		this.pyt = pyt;
+		pyt.setLogger(logger);
 		
 	}
 	
