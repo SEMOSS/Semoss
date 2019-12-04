@@ -5,6 +5,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -198,10 +204,12 @@ public class PyTranslator {
 			}
 
 			// wait for the file
+			//waitFileCreate(file);
+			
 			while(!daFile.exists())
 			{
 				try{
-					Thread.sleep(1000);
+					Thread.sleep(100);
 					//monitor.notifyAll();
 				}catch(Exception ex)
 				{
@@ -213,6 +221,10 @@ public class PyTranslator {
 			// open the file in read mode
 			RandomAccessFile raf = new RandomAccessFile(file, "r");
 			long offset = raf.getFilePointer();
+			int count = 0;
+			int sleepTime = 200;
+			int sleepMax = 3000;
+			int numLines = 0;
 			do{
 				// release the lock
 				
@@ -225,12 +237,22 @@ public class PyTranslator {
 		            do
 		            {
 		              line = raf.readLine();
+		              //numLines = numLines + 1;
 		              if(line != null)
 		            	  logger.info(line);
 		            }while( line != null );
+		            // if there were more than 3 lines that assimilated in 200 milliseconds increase sleep time ?
+		            if(count %3 == 0)
+		            	sleepTime = sleepTime + 100;
+		            if(sleepTime > sleepMax)
+		            	sleepTime = sleepMax;
 			        offset = raf.getFilePointer();
 				}
-				
+				// sleep for sleepTime or until he pythread informs us
+				synchronized(monitor)
+				{
+					monitor.wait(sleepTime);
+				}
 			}while(pt.curState != ThreadState.wait);
 			logger.info("Completed processing");
 		} catch (FileNotFoundException e) {
@@ -239,10 +261,50 @@ public class PyTranslator {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 	}
 	
+	public boolean waitFileCreate(String fileName)
+	{
+		try {
+			File thisFile = new File(fileName);
+			String dir = thisFile.getParent();
+			String relFileName = thisFile.getName();
+			final Path path = FileSystems.getDefault().getPath(dir);
+			System.out.println(path);
+			try (final WatchService watchService = FileSystems.getDefault().newWatchService()) {
+			    final WatchKey watchKey = path.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+			    {
+			        final WatchKey wk = watchService.take();
+			        for (WatchEvent<?> event : wk.pollEvents()) {
+			            //we only register "ENTRY_MODIFY" so the context is always a Path.
+			            final Path changed = (Path) event.context();
+			            System.out.println(changed);
+			            if (changed.endsWith(fileName)) {
+			                System.out.println("My file has changed");
+			            }
+			        }
+			        // reset the key
+			        boolean valid = wk.reset();
+			        if (!valid) {
+			            System.out.println("Key has been unregisterede");
+			        }
+			    }
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return true;
+	}
+		
 	public void runEmptyPy(String...script)
 	{
 		// get the insight folder 
@@ -291,7 +353,7 @@ public class PyTranslator {
 		script = script.trim();
 		
 		// find if the script is simple
-		boolean multi = (inscript.length > 1 || script.contains("\n")) || script.contains("=") || (script.contains(".") && script.endsWith("()")) && !script.equals("dir()"); 
+		boolean multi = (inscript.length > 1 || script.contains("\n")) || script.contains("=") || (script.contains(".") && script.endsWith("()")) && !script.equals("dir()") || script.contains("print"); 
 		
 		
 		// Get temp folder and file locations
