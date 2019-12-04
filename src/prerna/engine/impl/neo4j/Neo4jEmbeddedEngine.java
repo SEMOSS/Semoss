@@ -15,12 +15,11 @@ import org.slf4j.LoggerFactory;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.tinker.Neo4jEngine;
 import prerna.query.interpreters.CypherInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
 
 public class Neo4jEmbeddedEngine extends AbstractEngine {
-	private static final Logger LOGGER = LoggerFactory.getLogger(Neo4jEngine.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(Neo4jEmbeddedEngine.class);
 	private GraphDatabaseService db;
 
 	@Override
@@ -30,7 +29,6 @@ public class Neo4jEmbeddedEngine extends AbstractEngine {
 		try {
 			LOGGER.info("Opening neo4j graph: " + neo4jFile);
 			db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(neo4jFile));
-
 			LOGGER.info("Done neo4j opening graph: " + neo4jFile);
 		} catch (Exception e) {
 			e.printStackTrace();
