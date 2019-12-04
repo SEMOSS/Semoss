@@ -64,6 +64,7 @@ public class RNativeEngine extends AbstractEngine {
 	private String fileLocation = null;
 	private Map<String, String> columnToType = null;
 	private Map<String, String> additionalDataType = null;
+	private Map<String, String> newHeaders = null;
 	// to store based on columnToType
 	private Map<String, SemossDataType> columnTypes = null;
 	
@@ -113,11 +114,10 @@ public class RNativeEngine extends AbstractEngine {
 			this.additionalDataType = this.getAdtlDataTypes(propertyUriArr);
 		}
 		// TODO
-		Map<String, String> newHeaders = null;
 		String newHeadersStr = this.prop.getProperty(Constants.NEW_HEADERS);
 		if (newHeadersStr != null && !newHeadersStr.trim().isEmpty()) {
 			try {
-				newHeaders = new ObjectMapper().readValue(newHeadersStr, Map.class);
+				this.newHeaders = new ObjectMapper().readValue(newHeadersStr, Map.class);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -129,8 +129,8 @@ public class RNativeEngine extends AbstractEngine {
 		CsvQueryStruct cqs = new CsvQueryStruct();
 		cqs.setFilePath(this.fileLocation);
 		cqs.setColumnTypes(this.columnToType);
-		cqs.setAdditionalTypes(additionalDataType);
-		cqs.setNewHeaderNames(newHeaders);
+		cqs.setAdditionalTypes(this.additionalDataType);
+		cqs.setNewHeaderNames(this.newHeaders);
 		CsvFileIterator iterator = new CsvFileIterator(cqs);
 		
 		this.dt = new RDataTable(rJavaTranslator, this.dtName);
@@ -140,6 +140,8 @@ public class RNativeEngine extends AbstractEngine {
 		// store the data types
 		this.columnTypes = this.dt.getMetaData().getHeaderToTypeMap();
 	}
+	
+	
 	
 	/**
 	 * Generate the OWL based on a flat file
@@ -228,6 +230,22 @@ public class RNativeEngine extends AbstractEngine {
 		retInterp.setColDataTypes(this.columnTypes);
 		retInterp.setAdditionalTypes(this.additionalDataType);
 		return retInterp;
+	}
+	
+	/**
+	 * Reload the file to generate the frame
+	 */
+	public void reloadFile() {
+		CsvQueryStruct cqs = new CsvQueryStruct();
+		cqs.setFilePath(this.fileLocation);
+		cqs.setColumnTypes(this.columnToType);
+		cqs.setAdditionalTypes(this.additionalDataType);
+		cqs.setNewHeaderNames(this.newHeaders);
+		CsvFileIterator iterator = new CsvFileIterator(cqs);
+		
+		// the insertData will generate a new variable
+		RImporter importer = new RImporter(this.dt, cqs, iterator);
+		importer.insertData();
 	}
 	
 	/**
