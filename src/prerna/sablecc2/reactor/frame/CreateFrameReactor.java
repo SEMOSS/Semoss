@@ -6,8 +6,6 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PyTranslator;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -39,10 +37,6 @@ public class CreateFrameReactor extends AbstractReactor {
 		ITableDataFrame newFrame = null;
 		try {
 			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
-			if(newFrame instanceof PandasFrame)
-			{
-				insight.getPyTranslator().setLogger(logger);
-			}
 			
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
