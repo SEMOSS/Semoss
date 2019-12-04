@@ -42,14 +42,19 @@ public class PyExecutorThread extends Thread {
 
 		while(this.keepAlive) {
 			try {
-				synchronized(daLock) {
+				// end synchornize so we can do other things
+				synchronized(daLock) 
+				{
 					LOGGER.debug("Waiting for next command");
 					ready = true;
 					curState = ThreadState.wait;
 					daLock.wait();
-					
+				}	
+				
+				// start running 
+				{
 					curState = ThreadState.run;
-					daLock.notify();
+					//daLock.notify();
 					// if someone wakes up
 					// process the command
 					// set the response go back to sleep
@@ -76,21 +81,29 @@ public class PyExecutorThread extends Thread {
 						    	
 						    	//jep.eval("from java.lang import System");
 						    	//jep.eval("System.out.println('.')");
-
-						    	daLock.notify();
+								curState = ThreadState.wait;
+						    	synchronized(daLock)
+						    	{
+						    		daLock.notify();
+						    	}
 								// seems like when there is an exception..I need to restart the thread
 							} catch (Exception e) {
 								try {
-									daLock.notify();
+									curState = ThreadState.wait;
+							    	synchronized(daLock)
+							    	{
+							    		daLock.notify();
+							    	}
 								} catch (Exception e1) {
 									e1.printStackTrace();
 								}
 								e.printStackTrace();
 							}
-						}
-						
+						}						
 						// set back the original security manager
 						tempManager.removeClass(CLASS_NAME);
+						curState = ThreadState.wait;
+						command = null;
 						System.setSecurityManager(defaultManager);	
 					}
 				}
