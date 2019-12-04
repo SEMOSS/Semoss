@@ -114,6 +114,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	// just aggregate all the remove layer indices for now
 	private List<Integer> removeLayerIndices = new Vector<Integer>();
 	
+	private String insightGoldenLayout = null;
+	
 	/**
 	 * This method overrides caseAConfiguration, adds each expression to the expressionMap, adds expression indexes to the expression map, and updates the index
 	 * 
@@ -322,6 +324,20 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				addPanelOrnamentTaskForCurrentIndex(curPanelId);
 			} else {
 				containsOrnamentTaskOptions = true;
+			}
+		}
+		// is this the config layout
+		else if(reactorId.equals("SetInsightGoldenLayout")) {
+			// input is the golden layout config map
+			POpInput input = node.getOpInput();
+			String goldenLayoutString = input.toString();
+			
+			// just make sure it is valid map
+			try {
+				gson.fromJson(goldenLayoutString, Map.class);
+				this.insightGoldenLayout = goldenLayoutString;
+			} catch (Exception e2) {
+				e2.printStackTrace();
 			}
 		}
 	}
@@ -701,6 +717,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				cacheRecipe.add(keepExpression);
 			}
 		}
+		// add the golden layout config at the end
+		if(this.insightGoldenLayout != null) {
+			cacheRecipe.add("SetInsightGoldenLayout(" + this.insightGoldenLayout + ");");
+		}
 
 		return cacheRecipe;
 	}
@@ -771,6 +791,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				"Panel ( 0 ) | Clone ( 3 ) ;",
 				"RemoveLayer( panel=[\"0\"] , layer=[\"1\"] );",
 				"Panel ( 0 ) | Clone ( 4 ) ;",
+				"SetInsightGoldenLayout({\"0\":{\"zeroSum\":{\"settings\":{\"hasHeaders\":true,\"constrainDragToContainer\":true,\"reorderEnabled\":true,\"selectionEnabled\":false,\"popoutWholeStack\":false,\"blockedPopoutsThrowError\":true,\"closePopoutsOnUnload\":true,\"showPopoutIcon\":false,\"showMaximiseIcon\":true,\"showCloseIcon\":true,\"responsiveMode\":\"onload\",\"tabOverlapAllowance\":0,\"reorderOnTabMenuClick\":true,\"tabControlOffset\":10},\"dimensions\":{\"borderWidth\":5,\"borderGrabWidth\":15,\"minItemHeight\":10,\"minItemWidth\":10,\"headerHeight\":20,\"dragProxyWidth\":300,\"dragProxyHeight\":200},\"labels\":{\"close\":\"close\",\"maximise\":\"maximise\",\"minimise\":\"minimise\",\"popout\":\"open in new window\",\"popin\":\"pop in\",\"tabDropdown\":\"additional tabs\"},\"content\":[{\"type\":\"row\",\"isClosable\":false,\"reorderEnabled\":true,\"title\":\"\",\"content\":[{\"type\":\"stack\",\"width\":50,\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"activeItemIndex\":0,\"content\":[{\"labelOverride\":false,\"label\":\"Pipeline\",\"type\":\"component\",\"panelstatus\":\"normalized\",\"sheetId\":\"0\",\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___0\",\"panelId\":\"0\",\"componentName\":\"panel\",\"opacity\":100,\"componentState\":{\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___0\",\"sheetId\":\"0\"},\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"Pipeline\"}]},{\"type\":\"stack\",\"width\":50,\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"activeItemIndex\":0,\"content\":[{\"labelOverride\":false,\"label\":\"Pipeline\",\"type\":\"component\",\"panelstatus\":\"normalized\",\"sheetId\":\"0\",\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___2\",\"panelId\":\"2\",\"componentName\":\"panel\",\"sheet\":\"0\",\"componentState\":{\"widgetId\":\"SMSSWidget98f8bbe5-7b56-4d8a-a4d7-37c3435f6334___2\",\"sheetId\":\"0\"},\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"Pipeline\"}]}]}],\"isClosable\":true,\"reorderEnabled\":true,\"title\":\"\",\"openPopouts\":[],\"maximisedItemId\":null}}});"
 		};
 
 		OptimizeRecipeTranslation translation = new OptimizeRecipeTranslation();
