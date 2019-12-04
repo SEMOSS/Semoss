@@ -1,5 +1,9 @@
 package prerna.util;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -19,6 +23,7 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 
 import prerna.algorithm.api.SemossDataType;
+
 
 public class GraphUtility {
 
@@ -163,7 +168,7 @@ public class GraphUtility {
 	}
 
 	////////////////////////////////////////////////////////////////////
-	//////////////// Graph Utility Methods for Neo4j ///////////////////
+	//////////// Graph Utility Methods for Embedded Neo4j //////////////
 	////////////////////////////////////////////////////////////////////
 
 	/**
@@ -251,5 +256,92 @@ public class GraphUtility {
 		tx.close();
 		return edgeMap;
 	}
+	
+	////////////////////////////////////////////////////////////////////
+	//////////// Graph Utility Methods for Remote Neo4j ////////////////
+	////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Get all the labels for a graph
+	 * 
+	 * @param dbService
+	 * @return
+	 */
+	public static List<String> getNodes(Connection conn) {
+		String query = "MATCH (n) RETURN DISTINCT LABELS(n)";
+		List<String> labels = new ArrayList<String>();
+		
+		try(Statement statement = conn.createStatement()) {
+			ResultSet resultSet = statement.executeQuery(query);
+			while(resultSet.next()) {
+		    	List<String> resultSetList = (ArrayList<String>) resultSet.getObject(1);
+		    	String label = (String) resultSetList.get(0);
+				labels.add(label);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
+		return labels;
+	}
+	
+	public static List<String> getProperties(Connection conn, String label) {
+		String query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
+		List<String> properties = new ArrayList<String>();
+		
+		try(Statement statement = conn.createStatement()) {
+			ResultSet resultSet = statement.executeQuery(query);
+			while(resultSet.next()) {
+		    	String property = resultSet.getString(1);
+				properties.add(property);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return properties;
+	}
+	
+	public static Map<String, Object> getEdges(Connection conn) {
+		String query = "MATCH (n)-[r]->(p) RETURN DISTINCT labels(n) AS StartNode, TYPE(r) AS RelationshipName , labels(p) as EndNode";
+		Map<String, Object> edgeMap = new HashMap<>();
+		
+		try(Statement statement = conn.createStatement()) {
+			ResultSet resultSet = statement.executeQuery(query);
+			while(resultSet.next()) {
+		    	ArrayList<String> startNodeList = (ArrayList<String>) resultSet.getObject(1);
+		    	String startNode = startNodeList.get(0);
+		    	String relationship = resultSet.getString(2);
+		    	ArrayList<String> endNodeList = (ArrayList<String>) resultSet.getObject(3);
+		    	String endNode = endNodeList.get(0);
+				ArrayList<String> nodes = new ArrayList<>();
+				nodes.add(startNode);
+				nodes.add(endNode);
+				edgeMap.put(relationship, nodes);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return edgeMap;
+	}
+	
+	public static Map<String, Object> getMetamodel(Connection conn) {
+		Map<String, Object> metamodel = new HashMap<>();
+		Map<String, Object> nodeMap = new HashMap<>();
+		// get edges
+		Map<String, Object> edges = GraphUtility.getEdges(conn);
+		// get nodes and properties
+		List<String> nodes = GraphUtility.getNodes(conn);
+		for (String s : nodes) {
+			List<String> properties = GraphUtility.getProperties(conn, s);
+			nodeMap.put(s, properties);
+		}
+		metamodel.put("nodes", nodeMap);
+		metamodel.put("edges", edges);
+		return metamodel;
+	}
 }
