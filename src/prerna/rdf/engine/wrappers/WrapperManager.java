@@ -168,9 +168,12 @@ public class WrapperManager {
 		case REMOTE_SEMOSS : {
 			// TODO >>>timb: REST - either replace with rest remote or remove this
 		}
-		
 		case NEO4J_EMBEDDED : {
 			returnWrapper = new Neo4jWrapper();
+			break;
+		}
+		case NEO4J : {
+			returnWrapper = new RawRDBMSSelectWrapper();
 			break;
 		}
 		default: {
@@ -242,6 +245,10 @@ public class WrapperManager {
 		}
 		case NEO4J_EMBEDDED : {
 			returnWrapper = new Neo4jWrapper();
+			break;
+		}
+		case NEO4J: {
+			returnWrapper = new RawRDBMSSelectWrapper();
 			break;
 		}
 		default: {
