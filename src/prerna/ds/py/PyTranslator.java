@@ -152,6 +152,7 @@ public class PyTranslator {
 			{
 				ex.printStackTrace();
 			}
+			//if(logger != null)
 			logger.info("Completed processing");
 		}
 		return pt.response;
@@ -272,6 +273,9 @@ public class PyTranslator {
 	{
 		try {
 			File thisFile = new File(fileName);
+			// see if we were late to the party
+			if(thisFile.exists())
+				return true;
 			String dir = thisFile.getParent();
 			String relFileName = thisFile.getName();
 			final Path path = FileSystems.getDefault().getPath(dir);
@@ -489,9 +493,9 @@ public class PyTranslator {
 		Object monitor = this.pt.getMonitor();
 		Object response = null;
 		synchronized(monitor) {
+			monitor.notify();
 			try {
-				monitor.notify();
-				monitor.wait(4000);
+				monitor.wait();
 			} catch (Exception ignored) {
 				
 			}
