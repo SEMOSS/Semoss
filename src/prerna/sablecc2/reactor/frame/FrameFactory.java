@@ -7,6 +7,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PyTranslator;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.h2.H2Frame;
@@ -71,21 +72,34 @@ public class FrameFactory {
 			case "PYTHON": {
 				PandasFrame frame = new PandasFrame(alias);
 				frame.setJep(insight.getPy());
+				PyTranslator pyt = insight.getPyTranslator();
+				pyt.setLogger(logger);
+				frame.setTranslator(pyt);
 				return frame;
 			}
 			case "PY": {
 				PandasFrame frame = new PandasFrame(alias);
 				frame.setJep(insight.getPy());
+				PyTranslator pyt = insight.getPyTranslator();
+				pyt.setLogger(logger);
+				frame.setTranslator(pyt);
 				return frame;
 			}
 			case "PYFRAME": {
 				PandasFrame frame = new PandasFrame(alias);
 				frame.setJep(insight.getPy());
+				PyTranslator pyt = insight.getPyTranslator();
+				pyt.setLogger(logger);
+				frame.setTranslator(pyt);
+
 				return frame;
 			}
 			case "PANDAS": {
 				PandasFrame frame = new PandasFrame(alias);
 				frame.setJep(insight.getPy());
+				PyTranslator pyt = insight.getPyTranslator();
+				pyt.setLogger(logger);
+				frame.setTranslator(pyt);
 				return frame;
 			}
 			

@@ -49,10 +49,10 @@ public class PyExecutorThread extends Thread {
 					ready = true;
 					curState = ThreadState.wait;
 					daLock.wait();
-				}	
+				//}	
 				
 				// start running 
-				{
+				//{
 					curState = ThreadState.run;
 					//daLock.notify();
 					// if someone wakes up
