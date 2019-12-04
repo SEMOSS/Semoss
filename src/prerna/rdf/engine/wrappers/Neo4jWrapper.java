@@ -10,7 +10,7 @@ import org.neo4j.graphdb.Transaction;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.tinker.Neo4jEngine;
+import prerna.engine.impl.neo4j.Neo4jEmbeddedEngine;
 import prerna.om.HeadersDataRow;
 
 public class Neo4jWrapper extends AbstractWrapper implements IRawSelectWrapper{
@@ -21,7 +21,7 @@ public class Neo4jWrapper extends AbstractWrapper implements IRawSelectWrapper{
 	
 	@Override
 	public void execute() {
-		GraphDatabaseService dbService = ((Neo4jEngine) this.engine).getGraphDatabaseService();
+		GraphDatabaseService dbService = ((Neo4jEmbeddedEngine) this.engine).getGraphDatabaseService();
 		try {
 			transaction = dbService.beginTx();
 			result = dbService.execute(this.query);
