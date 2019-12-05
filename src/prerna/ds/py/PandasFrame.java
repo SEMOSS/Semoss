@@ -152,7 +152,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
 			// execute the script
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-			pyt.runPyAndReturnOutput(importS, loadS, makeWrapper);
+			//pyt.runPyAndReturnOutput(importS, loadS, makeWrapper);
+			
+			pyt.runEmptyPy(importS, loadS, makeWrapper);
 			//runScript(importS, loadS);
 			//runScript(makeWrapper);
 
@@ -186,7 +188,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
 		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-		pyt.runPyAndReturnOutput(importS, loadS, headerS);
+		pyt.runEmptyPy(importS, loadS, headerS);
 		
 	}
 	
@@ -207,11 +209,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// need to compose a string for names
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
-		pyt.runPyAndReturnOutput(importS, loadS, headerS);
+		pyt.runEmptyPy(importS, loadS, headerS);
 		
 		// need to set up the name here as well as make the frame
 		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-		pyt.runPyAndReturnOutput(makeWrapper);
+		pyt.runEmptyPy(makeWrapper);
 	}
 	
 	/**
@@ -224,7 +226,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 */
 	public void merge(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
 		String mergeString = PandasSyntaxHelper.getMergeSyntax(PANDAS_IMPORT_VAR, returnTable, leftTableName, rightTableName, joinType, joinCols);
-		pyt.runPyAndReturnOutput(mergeString);
+		pyt.runEmptyPy(mergeString);
 	}
 	
 	/**
@@ -269,10 +271,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 				// create and execute the type
 				if(proposedType != SemossDataType.DATE && proposedType != SemossDataType.TIMESTAMP) {
 					String	typeChanger = wrapperTableName + "['" + colName + "'] = " + wrapperTableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
-					pyt.runPyAndReturnOutput(typeChanger);
+					pyt.runEmptyPy(typeChanger);
 				} else {
 					String	typeChanger = wrapperTableName + "['" + colName + "'] = pd.to_datetime(" + wrapperTableName + "['" + colName + "'], errors='ignore')";
-					pyt.runPyAndReturnOutput(typeChanger);
+					pyt.runEmptyPy(typeChanger);
 				}
 			}
 //			stypes[colIndex] = pysColType;
@@ -493,7 +495,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// this should take the variable name and kill it
 		// if the user has created others, nothing can be done
 		logger.info("Removing variable " + this.frameName);
-		pyt.runPyAndReturnOutput("del " + this.frameName, "del " + this.wrapperFrameName, "gc.collect()");
+		pyt.runEmptyPy("del " + this.frameName, "del " + this.wrapperFrameName, "gc.collect()");
 	}
 	
 	@Override
@@ -505,9 +507,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		// trying to write the pickle instead
 		frameFilePath = frameFilePath.replaceAll("\\\\", "/");
-		pyt.runPyAndReturnOutput("import pickle");
+		//pyt.runPyAndReturnOutput("import pickle");
 		String command = PandasSyntaxHelper.getWritePandasToPickle("pickle", this.frameName, frameFilePath);
-		pyt.runPyAndReturnOutput(command);
+		pyt.runEmptyPy("import pickle", command);
 		
 		// also save the meta details
 		this.saveMeta(cf, folderDir, this.frameName);
@@ -522,7 +524,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		this.wrapperFrameName = getWrapperName();
 				
 		// load the pandas library
-		pyt.runPyAndReturnOutput(PANDAS_IMPORT_STRING, 
+		pyt.runEmptyPy(PANDAS_IMPORT_STRING, 
 									"import pickle",
 									PandasSyntaxHelper.getReadPickleToPandas(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName),
 									PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
