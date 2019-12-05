@@ -35,6 +35,7 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5){
 	library(lsa)
 	library(data.table)
 	library(text2vec)
+	library(qs)
 	
 	# get fileroot
 	fileroot=paste0(catalog_fn,"_blocks")
@@ -54,7 +55,7 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5){
 		cmd<-paste0("out<-data.frame(",request_col,"=character(),",catalog_col,"=character(),Similarity=numeric(),stringsAsFactors=FALSE)")
 		eval(parse(text=cmd))
 		for(i in 1:n){
-			cmd<-paste0("z<-stringsim(df$",request_col,"[i],catalog[[catalog_col]],method=\"jw\",p=0.1)")
+			cmd<-paste0("z<-stringsim(stringi::stri_unescape_unicode(df$",request_col,"[i]),stringi::stri_unescape_unicode(catalog_block[[catalog_col]]),method=\"jw\",p=0.1)")
 			eval(parse(text=cmd))
 			ind<-order(z, decreasing=TRUE)[1:topMatches]
 			if(length(ind)>0){
@@ -75,7 +76,6 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5){
 
 		gc()
 		#write.csv(df,"fuzzymapping.csv")
-
 		return(out)
 		
 	}else {
@@ -136,28 +136,26 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5){
 }
 
 map_blocks<-function(request_df,request_col,topN,fileroot){
-	
-	myLSAspace<-readRDS(paste0(fileroot,"-lsa.rds"))
+	# read required components
+	myLSAspace<-qread(paste0(fileroot,"-lsa.qs"))
 	myVocabulary<-readRDS(paste0(fileroot,"-vocab.rds"))
-	
 	dk<-myLSAspace$dk
 	tk<-myLSAspace$tk
 	m<-nrow(dk)
-	
 	request_df$Block<-0
 	request_df$BlockSimilarity=""
 	n<-nrow(request_df)
+	
+	# map request array to LSA space
+	request<-request_df[[request_col]]
+	q_doc<-build_query_tdm(request,tk,dk,myVocabulary)
+	
+	# find matching blocks
 	for(i in 1:n){
-		cmd<-paste0("request<-request_df$",request_col,"[i]")
-		eval(parse(text=cmd))
-
-		# build quesry document
-		q_doc<-build_query_tdm(request,tk,dk,myVocabulary)
-		
-		if(any(q_doc!=0)){
+		if(any(q_doc[i,]!=0)){
 			v<-vector()
 			for(j in 1:m){
-				v[j]<-cosine(as.double(q_doc),as.double(dk[j,]))
+				v[j]<-cosine(as.double(q_doc[i,]),as.double(dk[j,]))
 			}
 			if(length(v)>0){
 				v[is.nan(v)]=0
@@ -170,6 +168,7 @@ map_blocks<-function(request_df,request_col,topN,fileroot){
 	gc()
 	return(request_df)
 }
+
 
 build_query_tdm<-function(request,tk,dk,myVocabulary){
 	# Construct from query concept descriptions a matrix in the LSA space (newer and faster method)
@@ -198,6 +197,7 @@ prepare_catalog<-function(catalog,catalog_fn="ocm",catalog_col="Legal.Name",shar
 # catalog_col - the name of the catalog column that serves as a lookup
 # blocksize - the size of the block
 # share - the share of overall dimensions to keep
+	library(qs)
 	LOWLIMIT<-2e+05
 	N<-nrow(catalog)
 	if(N>0){
@@ -209,6 +209,8 @@ prepare_catalog<-function(catalog,catalog_fn="ocm",catalog_col="Legal.Name",shar
 				fileroot<-paste0(catalog_fn,"_blocks")
 				build_catalog_blocks(catalog,catalog_fn,catalog_col,params)
 				fuzzy_lsi_mgr(fileroot,catalog_col,params,share)
+			}else{
+				qsave(catalog,preset="balanced", paste0(catalog_fn,".qs"))
 			}
 			gc()
 			return("Catalog preparation completed")
@@ -243,7 +245,7 @@ compute_params<-function(catalog_fn,N,catalog_col){
 	return(out)
 }
 
-build_catalog_blocks<-function(catalog,catalog_fn="ocm",catalog_col="Legal.Name",params){
+build_catalog_blocks<-function(catalog,catalog_fn,catalog_col,params){
 # Builds blocks of original data input frame
 # Arguments
 # catalog - nput dataframe
@@ -253,13 +255,13 @@ build_catalog_blocks<-function(catalog,catalog_fn="ocm",catalog_col="Legal.Name"
 # blocksize - the size of the block
 	
 	fileroot<-paste0(catalog_fn,"_blocks")
-	saveRDS(catalog,paste0(catalog_fn,".rds"))
+	qsave(catalog,preset="balanced", paste0(catalog_fn,".qs"))
 	# get clock size info
 	if(params[1]!=0){
 		# build blocks
 		N<-nrow(catalog)
-		blocksize<-params[2]
-		n<-params[1]
+		blocksize<-as.integer(params[2])
+		n<-as.integer(params[1])
 		txt<-vector()
 		for(i in 1:n){
 			start<-(i-1)*blocksize+1
@@ -269,13 +271,13 @@ build_catalog_blocks<-function(catalog,catalog_fn="ocm",catalog_col="Legal.Name"
 		}
 		cmd<-paste0("df<-data.frame(",catalog_col,"=txt,stringsAsFactors=FALSE)")
 		eval(parse(text=cmd))
-		saveRDS(df,paste0(fileroot,".rds"))
+		qsave(df,preset="balanced", paste0(fileroot,".qs"))
 	}
 	gc()
 }
 
 
-fuzzy_lsi_mgr<-function(fileroot="ocm_blocks",catalog_col="Legal.Name",params,share=0.8){
+fuzzy_lsi_mgr<-function(fileroot,catalog_col,params,share){
 	# build LSA space
 	# Arguments
 	# filename - filename for a lookup_tbl
@@ -298,7 +300,7 @@ fuzzy_lsi_mgr<-function(fileroot="ocm_blocks",catalog_col="Legal.Name",params,sh
 		}else{
 			myLSAspace = lsa(myMatrix, dims=dimcalc_share(share))
 		}
-		saveRDS(myLSAspace, paste0(fileroot,"-lsa.rds"))
+		qsave(myLSAspace,preset="balanced", paste0(fileroot,"-lsa.qs"))
 		saveRDS(myVocabulary, paste0(fileroot,"-vocab.rds"))
 		rm(myLSAspace,myVocabulary,myList)
 	}
@@ -321,8 +323,7 @@ build_tdm<-function(fileroot,catalog_col,vocabulary=NULL){
 	library(stringr)
 	library(lsa)
 	myList<-list()
-	desc_tbl<-readRDS(paste0(fileroot,".rds"))
-	#desc_col="Legal.Name"
+	desc_tbl<-qread(paste0(fileroot,".qs"))
 	# Construct terms/documents matrix based on a given set of documents or read it from the file
 	s<-breakdown(str_replace_all(desc_tbl[[catalog_col]],"[^[:graph:]]", " "))
 	it <- itoken(s, preprocess_function = tolower,tokenizer = word_tokenizer, chunks_number = 10, progressbar = F)
