@@ -43,8 +43,11 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 			}
 		}
 
-		// initialize the reactor
+		// initialize the r connection
 		init();
+		// check packages
+		String[] packages = new String[]{"qs"};
+		this.rJavaTranslator.checkPackages(packages);
 		this.logger = getLogger(CLASS_NAME);
 
 		// get inputs
@@ -61,6 +64,9 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		String rand =  Utility.getRandomString(6);
 		String matchFrame = "LookupMatch" + rand;
 		String catalog = "LookupCatalog" + rand;
+		
+		// get the current working directory
+		String currentWd = this.rJavaTranslator.getString(RSyntaxHelper.getWorkingDirectory());
 
 		// load the script
 		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
@@ -70,8 +76,8 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		// change working directory as new files will be generated
 		script.append(RSyntaxHelper.setWorkingDirectory(assetFolder));
 		// load catalog
-		//TODO check if the file is rds
-		script.append(RSyntaxHelper.readRDS(catalog, filePath + ".rds"));
+		//TODO check if the file is qs
+		script.append(RSyntaxHelper.qread(catalog, filePath + ".qs"));
 		script.append(matchFrame + " <- fuzzy_lookup(catalog="+ catalog + ",");
 		script.append("catalog_fn=" + "\"" + fileName + "\"" + ", ");
 		script.append("request=" + RSyntaxHelper.createStringRColVec(instances) + ", ");
@@ -93,10 +99,10 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 			matchData =	this.rJavaTranslator.getBulkDataRow(matchFrame, matchCols);
 		}
 
-		
-
 		// clean up r temp variables
-		this.rJavaTranslator.runR("rm(" + matchFrame + ", " + catalog + ");gc();");
+		// change the working directory to the original
+		this.rJavaTranslator.runR("rm(" + matchFrame + ", " + catalog + ");gc();" + RSyntaxHelper.setWorkingDirectory(currentWd));
+		
 
 		// convert to {instance:[{}]} (easier processing)
 
