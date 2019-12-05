@@ -79,8 +79,8 @@ def runwrapper2(file, output, error):
 		efile.close()
 
 		
-def run_empty_wrapper(file):
+def run_empty_wrapper(file,g):
     #ofile = io.StringIO()
 	#print(output)
-	exec(open(file).read())
+	exec(open(file).read(), g)
 
