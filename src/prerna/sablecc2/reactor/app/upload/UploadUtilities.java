@@ -39,6 +39,7 @@ import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.app.AppEngine;
 import prerna.engine.impl.datastax.DataStaxGraphEngine;
+import prerna.engine.impl.neo4j.Neo4jEngine;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
@@ -827,6 +828,60 @@ public class UploadUtilities {
 			}
 		}
 		
+		return appTempSmss;
+	}
+	
+	/**
+	 * Generate a neo4j smss
+	 * 
+	 * @param appId
+	 * @param appName
+	 * @param owlFile
+	 * @param connectionStringKey
+	 * @param username
+	 * @param password
+	 * @return
+	 * @throws IOException
+	 */
+	public static File generateTemporaryExternalNeo4jSmss(String appId, String appName, File owlFile,
+			String connectionStringKey, String username, String password) throws IOException {
+		String appTempNeo4jLoc = getAppTempSmssLoc(appId, appName);
+
+		File appTempSmss = new File(appTempNeo4jLoc);
+		if (appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		// also write the base properties
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		try {
+			File newFile = new File(appTempNeo4jLoc);
+			writer = new FileWriter(newFile);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
+			// neo4j external properties
+			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
+			bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
+			bufferedWriter.write(Constants.PASSWORD + tab + password + newLine);
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			throw new IOException("Could not generate app smss file");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		return appTempSmss;
 	}
 	
