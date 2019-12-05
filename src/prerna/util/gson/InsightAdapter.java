@@ -377,6 +377,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				// need to set the exector for pandas
 				if(frame instanceof PandasFrame) {
 					((PandasFrame)frame).setJep(insight.getPy());
+					((PandasFrame)frame).setTranslator(insight.getPyTranslator());
 				}
 				else if(frame instanceof RDataTable) {
 					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
