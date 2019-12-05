@@ -2,6 +2,9 @@ package prerna.sablecc2.reactor.export;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.file.Files;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -100,7 +103,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		String ggsaveFile = Utility.getRandomString(6);
 		
 		
-		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "\",\".jpeg\", sep=\"\");");
+		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "\",\".jpeg\", sep=\"\"); ");
 		
 		ggplotter.append("ggsave(" + ggsaveFile + ");");
 
@@ -144,15 +147,39 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		cdt.setSortInfo(task.getSortInfo());
 		cdt.setId(task.getId());
 		
+		String outFile = retFile;
+		
 		Map<String, Object> outputMap = new HashMap<String, Object>();
+		
+		// get the insight folder
+		String IF = insight.getInsightFolder();
+		retFile = retFile.split(" ")[1].replace("\"","").replace("$IF", IF);
+		
+		StringWriter sw = new StringWriter();
+		try
+		{
+			// read the file and populate it
+			byte [] bytes = FileUtils.readFileToByteArray(new File(retFile));
+			String encodedString = Base64.getEncoder().encodeToString(bytes);
+			String mimeType = "image/png";
+			mimeType = Files.probeContentType(new File(retFile).toPath());
+			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();		
+		//sw.write("<html><body>");
+		}
+
 
 		outputMap.put("headers", new String[] {});
 		outputMap.put("rawHeaders", new String[] {});
-		outputMap.put("values", new String[] {retFile});
+		outputMap.put("values", new String[]{sw.toString()});
+		//outputMap.put("values", new String[]{retFile});
 		outputMap.put("ggplot", ggplotCommand);
 
 		// set the output so it can give it
 		cdt.setOutputData(outputMap);
+		new File(retFile).delete();
 		// I dont think the filter information is required
 		//cdt.setFilterInfo(task.getFilterInfo());
 		// delete the pivot later
