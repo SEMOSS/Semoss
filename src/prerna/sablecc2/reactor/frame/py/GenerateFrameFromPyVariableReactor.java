@@ -44,6 +44,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractPyFrameReactor {
 			throw new IllegalArgumentException("Please make sure the variable " + varName + " exists and can be a valid data.table object");
 		}
 		PandasFrame frame = new PandasFrame(varName);
+		frame.setTranslator(pyT);
 		pyT.runScript(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
 		frame.setJep(this.insight.getPy());
 
