@@ -58,7 +58,7 @@ public class PyExecutorThread extends Thread {
 					// if someone wakes up
 					// process the command
 					// set the response go back to sleep
-					if(this.keepAlive) {
+					if(this.keepAlive && command != null) {
 						
 						ReactorSecurityManager tempManager = new ReactorSecurityManager();
 						tempManager.addClass(CLASS_NAME);
