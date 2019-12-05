@@ -492,6 +492,35 @@ public class PyTranslator {
 		this.pt.command = script;
 		Object monitor = this.pt.getMonitor();
 		Object response = null;
+		do{
+			synchronized(monitor) {
+				monitor.notify();
+			}
+		}while(pt.curState != ThreadState.run);
+		
+		do{
+			try {
+				synchronized(monitor)
+				{
+					monitor.wait(2000);
+				}
+			} catch (Exception ignored) {
+				
+			}
+		}while(pt.curState != ThreadState.wait);
+		if(script.length == 1) {
+			response = this.pt.response.get(script[0]);
+		} else {
+			response = this.pt.response;
+		}
+		return response;
+	}
+
+	// just to replace it to be safe
+	public Object runScript2(String... script) {
+		this.pt.command = script;
+		Object monitor = this.pt.getMonitor();
+		Object response = null;
 		synchronized(monitor) {
 			monitor.notify();
 			try {
@@ -507,6 +536,7 @@ public class PyTranslator {
 		}
 		return response;
 	}
+
 	
 	private String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
