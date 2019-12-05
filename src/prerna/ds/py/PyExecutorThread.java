@@ -49,10 +49,10 @@ public class PyExecutorThread extends Thread {
 					ready = true;
 					curState = ThreadState.wait;
 					daLock.wait();
-				//}	
+				}	
 				
 				// start running 
-				//{
+				{
 					curState = ThreadState.run;
 					//daLock.notify();
 					// if someone wakes up
@@ -81,18 +81,18 @@ public class PyExecutorThread extends Thread {
 						    	
 						    	//jep.eval("from java.lang import System");
 						    	//jep.eval("System.out.println('.')");
-								curState = ThreadState.wait;
 						    	synchronized(daLock)
 						    	{
 						    		daLock.notify();
+									curState = ThreadState.wait;
 						    	}
 								// seems like when there is an exception..I need to restart the thread
 							} catch (Exception e) {
 								try {
-									curState = ThreadState.wait;
 							    	synchronized(daLock)
 							    	{
 							    		daLock.notify();
+										curState = ThreadState.wait;
 							    	}
 								} catch (Exception e1) {
 									e1.printStackTrace();
