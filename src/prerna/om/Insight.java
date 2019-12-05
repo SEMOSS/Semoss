@@ -389,7 +389,6 @@ public class Insight {
 						+ DIR_SEPARATOR + SmssUtilities.getUniqueName(this.engineName, this.engineId) 
 						+ DIR_SEPARATOR + "version"
 						+ DIR_SEPARATOR + this.rdbmsId;
-
 			}
 		}
 		
@@ -599,11 +598,9 @@ public class Insight {
 		}
 	}
 	
-	public PyTranslator getPyTranslator()
-	{
+	public PyTranslator getPyTranslator() {
 		return this.pyt;
 	}
-	
 	
 	public PyExecutorThread getPy() {
 		return this.jepThread;
