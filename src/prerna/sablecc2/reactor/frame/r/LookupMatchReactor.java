@@ -72,6 +72,7 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
 
 		StringBuilder script = new StringBuilder();
+		script.append(RSyntaxHelper.loadPackages(packages));
 		script.append("source(\"" + base + "/R/Lookup/fuzzy_lookup.r" + "\");");
 		// change working directory as new files will be generated
 		script.append(RSyntaxHelper.setWorkingDirectory(assetFolder));
