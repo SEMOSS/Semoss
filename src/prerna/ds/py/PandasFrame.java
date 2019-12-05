@@ -39,7 +39,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	// gets all the commands in one fell swoop
 	List <String> commands = new ArrayList<String>();
-	PyTranslator pyt = null;
 	
 	private PyExecutorThread py = null;
 	private String wrapperFrameName = null;
@@ -151,12 +150,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 			String fileLocation = newFile.getAbsolutePath();
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
 			// execute the script
+			runScript(importS, loadS);
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-			//pyt.runPyAndReturnOutput(importS, loadS, makeWrapper);
-			
-			pyt.runEmptyPy(importS, loadS, makeWrapper);
-			//runScript(importS, loadS);
-			//runScript(makeWrapper);
+			runScript(makeWrapper);
 
 			// delete the generated file
 			newFile.delete();
@@ -187,9 +183,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// need to compose a string for names
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
-		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-		pyt.runEmptyPy(importS, loadS, headerS);
+		runScript(importS, loadS, headerS);
 		
+		// need to set up the name here as well as make the frame
+		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
+		runScript(makeWrapper);
 	}
 	
 	/**
@@ -209,11 +207,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// need to compose a string for names
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
-		pyt.runEmptyPy(importS, loadS, headerS);
+		runScript(importS, loadS, headerS);
 		
 		// need to set up the name here as well as make the frame
 		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-		pyt.runEmptyPy(makeWrapper);
+		runScript(makeWrapper);
 	}
 	
 	/**
@@ -226,7 +224,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 */
 	public void merge(String returnTable, String leftTableName, String rightTableName, String joinType, List<Map<String, String>> joinCols) {
 		String mergeString = PandasSyntaxHelper.getMergeSyntax(PANDAS_IMPORT_VAR, returnTable, leftTableName, rightTableName, joinType, joinCols);
-		pyt.runEmptyPy(mergeString);
+		runScript(mergeString);
 	}
 	
 	/**
@@ -238,13 +236,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String wrapperTableName = createFrameWrapperName(tableName);
 		String colScript = PandasSyntaxHelper.getColumns(wrapperTableName + ".cache['data']");
 		String typeScript = PandasSyntaxHelper.getTypes(wrapperTableName + ".cache['data']");
-		//Object obj = pyt.executePyDirect(colScript);
 		
-		List<String> headerList = (List) pyt.runScript(colScript);
+		List<String> headerList = (List) runScript(colScript);
 		String[] headers = headerList.toArray(new String[headerList.size()]);
 		
 //		SemossDataType [] stypes = new SemossDataType[headers.length];
-		List<String> types = (List<String>) pyt.runScript(typeScript);
+		List<String> types = (List<String>) runScript(typeScript);
 
 		// here we run and see if the types are good
 		// or if we messed up, we perform a switch
@@ -271,10 +268,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 				// create and execute the type
 				if(proposedType != SemossDataType.DATE && proposedType != SemossDataType.TIMESTAMP) {
 					String	typeChanger = wrapperTableName + "['" + colName + "'] = " + wrapperTableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
-					pyt.runEmptyPy(typeChanger);
+					runScript(typeChanger);
 				} else {
 					String	typeChanger = wrapperTableName + "['" + colName + "'] = pd.to_datetime(" + wrapperTableName + "['" + colName + "'], errors='ignore')";
-					pyt.runEmptyPy(typeChanger);
+					runScript(typeChanger);
 				}
 			}
 //			stypes[colIndex] = pysColType;
@@ -295,7 +292,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String colScript = PandasSyntaxHelper.getColumns(this.frameName + ".cache['data']");
 		String typeScript = PandasSyntaxHelper.getTypes(this.frameName + ".cache['data']");
 		
-		Hashtable response = (Hashtable)pyt.runScript(colScript, typeScript);
+		Hashtable response = (Hashtable)runScript(colScript, typeScript);
 
 		String [] headers = (String [])((ArrayList)response.get(colScript)).toArray();
 		SemossDataType [] stypes = new SemossDataType[headers.length];
@@ -334,7 +331,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// need to redo this when you have a pandas script you want to run
 		// need to grab the headers and types via the output object
 		
-		Object output = pyt.runScript(query);
+		Object output = runScript(query);
 		List<Object> response = null;
 		
 		PandasInterpreter interp = new PandasInterpreter();
@@ -377,7 +374,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp) {
 		String query = interp.composeQuery();
-		Object output = pyt.runScript(query);
+		Object output = runScript(query);
 		List<Object> response = null;
 		
 		String [] headers = interp.getHeaders();
@@ -446,46 +443,31 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 * @return
 	 */
 	public Object runScript(String... script) {
-/*		py.command = script;
+		py.command = script;
 		Object monitor = py.getMonitor();
 		Object response = null;
-		
-		synchronized(monitor) 
-		{
+		synchronized(monitor) {
 			try {
 				monitor.notify();
+				monitor.wait(4000);
 			} catch (Exception ignored) {
 				
 			}
-		}
-		do
-		{
-			try
-			{
-				synchronized(monitor)
-				{
-					monitor.wait();
-				}
-			}catch(Exception ignored)
-			{
-				
+			if(script.length == 1) {
+				response = py.response.get(script[0]);
+			} else {
+				response = py.response;
 			}
-		}while(py.curState != ThreadState.wait);
-			
-		if(script.length == 1) {
-			response = py.response.get(script[0]);
-		} else {
-			response = py.response;
 		}
 
 		commands.add(script[0]);
-*/		return pyt.runScript(script);
+		return response;
 	}
 	
 	@Override
 	public long size(String tableName) {
 		String command = "len(" + tableName + ")";
-		Number num = (Number) pyt.runScript(command);
+		Number num = (Number) runScript(command);
 		return num.longValue();
 	}
 	
@@ -495,7 +477,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// this should take the variable name and kill it
 		// if the user has created others, nothing can be done
 		logger.info("Removing variable " + this.frameName);
-		pyt.runEmptyPy("del " + this.frameName, "del " + this.wrapperFrameName, "gc.collect()");
+		runScript("del " + this.frameName, "del " + this.wrapperFrameName);
+		runScript("gc.collect()");
 	}
 	
 	@Override
@@ -507,9 +490,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		// trying to write the pickle instead
 		frameFilePath = frameFilePath.replaceAll("\\\\", "/");
-		//pyt.runPyAndReturnOutput("import pickle");
+		runScript("import pickle");
 		String command = PandasSyntaxHelper.getWritePandasToPickle("pickle", this.frameName, frameFilePath);
-		pyt.runEmptyPy("import pickle", command);
+		runScript(command);
 		
 		// also save the meta details
 		this.saveMeta(cf, folderDir, this.frameName);
@@ -524,11 +507,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		this.wrapperFrameName = getWrapperName();
 				
 		// load the pandas library
-		pyt.runEmptyPy(PANDAS_IMPORT_STRING, 
-			"import pickle",
-			PandasSyntaxHelper.getReadPickleToPandas(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName),
-			PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
+		runScript(PANDAS_IMPORT_STRING);
 		// load the frame
+		runScript("import pickle");
+		runScript(PandasSyntaxHelper.getReadPickleToPandas(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName));
+		runScript(PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
 	}
 
 	@Override
@@ -538,7 +521,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	public boolean isEmpty(String tableName) {
 		String command = "\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0";
-		Boolean notEmpty = (Boolean) pyt.runScript(command);
+		Boolean notEmpty = (Boolean) runScript(command);
 		return !notEmpty;
 	}
 	
@@ -568,13 +551,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		// TODO Auto-generated method stub
-		
-	}
-
-	public void setTranslator(PyTranslator pyt) {
-		// TODO Auto-generated method stub
-		this.pyt = pyt;
-		pyt.setLogger(logger);
 		
 	}
 	
