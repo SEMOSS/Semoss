@@ -1022,6 +1022,14 @@ public class RSyntaxHelper {
 	}
 	
 	/**
+	 * Generate R syntax to set the working directory
+	 * @return
+	 */
+	public static String getWorkingDirectory() {
+		return new StringBuilder("getwd();").toString();
+	}
+	
+	/**
 	 * Generate R syntax to load r packages
 	 * 
 	 * @param packages
