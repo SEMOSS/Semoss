@@ -52,10 +52,11 @@ fuzzy_lookup<-function(catalog,catalog_fn,request,topMatches=5){
 	}else if(sum(params[1:2])==0){
 		df<-data.frame(Request=request,stringsAsFactors=FALSE)
 		request_col="Request"
+		n<-nrow(df)
 		cmd<-paste0("out<-data.frame(",request_col,"=character(),",catalog_col,"=character(),Similarity=numeric(),stringsAsFactors=FALSE)")
 		eval(parse(text=cmd))
 		for(i in 1:n){
-			cmd<-paste0("z<-stringsim(stringi::stri_unescape_unicode(df$",request_col,"[i]),stringi::stri_unescape_unicode(catalog_block[[catalog_col]]),method=\"jw\",p=0.1)")
+			cmd<-paste0("z<-stringsim(stringi::stri_unescape_unicode(df$",request_col,"[i]),stringi::stri_unescape_unicode(catalog[[catalog_col]]),method=\"jw\",p=0.1)")
 			eval(parse(text=cmd))
 			ind<-order(z, decreasing=TRUE)[1:topMatches]
 			if(length(ind)>0){
