@@ -247,3 +247,6 @@ install.packages("openNLPmodels.en", dependencies=TRUE)
 
 # Sentiment Analysis
 install.packages("sentimentr", dependencies=TRUE)
+
+# Fuzzy Lookup
+install.packages("qs", dependencies=TRUE)
