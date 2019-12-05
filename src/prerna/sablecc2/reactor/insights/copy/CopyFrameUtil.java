@@ -50,6 +50,7 @@ public class CopyFrameUtil {
 				PandasFrame dt = (PandasFrame) newFrame;
 				
 				dt.setJep( insightContext.getPy() );
+				dt.setTranslator( insightContext.getPyTranslator() );
 				String newName = oldName + "_COPY";
 				if(limit > 0) {
 					dt.runScript(newName + " = " + oldName + "[:" + limit + "].copy(deep=True)");
