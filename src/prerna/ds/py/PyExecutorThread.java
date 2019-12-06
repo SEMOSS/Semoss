@@ -22,12 +22,14 @@ public class PyExecutorThread extends Thread {
 	private static boolean first = true;
 	private Jep jep = null;
 	private Object daLock = new Object();
+	ThreadState curState = ThreadState.init;
 	
 	public String [] command = null;
 	public Hashtable <String, Object> response = new Hashtable<String, Object>();
 	
 	private volatile boolean keepAlive = true;
 	private volatile boolean ready = false;
+	private Object driverMonitor = null;
 
 	@Override
 	public void run() {
@@ -41,8 +43,10 @@ public class PyExecutorThread extends Thread {
 				synchronized(daLock) {
 					LOGGER.debug("Waiting for next command");
 					ready = true;
+					curState = ThreadState.wait;
 					daLock.wait();
 					
+					curState = ThreadState.run;
 					// if someone wakes up
 					// process the command
 					// set the response go back to sleep
@@ -71,10 +75,26 @@ public class PyExecutorThread extends Thread {
 						    	//jep.eval("System.out.println('.')");
 
 						    	daLock.notify();
+						    	if(driverMonitor != null)
+						    	{
+						    		synchronized(driverMonitor)
+						    		{
+						    			driverMonitor.notify();
+						    			driverMonitor = null;
+						    		}
+						    	}
 								// seems like when there is an exception..I need to restart the thread
 							} catch (Exception e) {
 								try {
 									daLock.notify();
+							    	if(driverMonitor != null)
+							    	{
+							    		synchronized(driverMonitor)
+							    		{
+							    			driverMonitor.notify();
+							    			driverMonitor = null;
+							    		}
+							    	}
 								} catch (Exception e1) {
 									e1.printStackTrace();
 								}
@@ -92,6 +112,11 @@ public class PyExecutorThread extends Thread {
 			}
 		}
 		LOGGER.debug("Thread ENDED");
+	}
+	
+	public void setDriverMonitor(Object driverMonitor)
+	{
+		this.driverMonitor = driverMonitor;
 	}
 	
 	public boolean isReady() {
