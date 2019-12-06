@@ -42,6 +42,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	private PyExecutorThread py = null;
 	private String wrapperFrameName = null;
+	private PyTranslator pyt = null;
 	
 	static {
 		pyS.put("object", SemossDataType.STRING);
@@ -149,11 +150,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// generate the script
 			String fileLocation = newFile.getAbsolutePath();
 			String loadS = PandasSyntaxHelper.getCsvFileRead(PANDAS_IMPORT_VAR, fileLocation, tableName);
-			// execute the script
-			runScript(importS, loadS);
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-			runScript(makeWrapper);
+			// execute the script
+			//runScript(importS, loadS);
+			//runScript(makeWrapper);
 
+			pyt.runPyAndReturnOutput(importS, loadS, makeWrapper);
 			// delete the generated file
 			newFile.delete();
 		}
@@ -183,11 +185,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// need to compose a string for names
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
-		runScript(importS, loadS, headerS);
-		
-		// need to set up the name here as well as make the frame
+		//runScript(importS, loadS, headerS);
 		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-		runScript(makeWrapper);
+		pyt.runPyAndReturnOutput(importS, loadS, headerS, makeWrapper);
+		// need to set up the name here as well as make the frame
+		//runScript(makeWrapper);
 	}
 	
 	/**
@@ -207,11 +209,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// need to compose a string for names
 		String headerS = PandasSyntaxHelper.setColumnNames(tableName, it.getHeaders());
 		// execute all 3 scripts
-		runScript(importS, loadS, headerS);
-		
 		// need to set up the name here as well as make the frame
 		String makeWrapper = PandasSyntaxHelper.makeWrapper(createFrameWrapperName(tableName), tableName);
-		runScript(makeWrapper);
+		//runScript(importS, loadS, headerS);
+		
+		//runScript(makeWrapper);
+		pyt.runPyAndReturnOutput(importS, loadS, headerS, makeWrapper);
 	}
 	
 	/**
@@ -443,13 +446,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 	 * @return
 	 */
 	public Object runScript(String... script) {
+		/*
 		py.command = script;
 		Object monitor = py.getMonitor();
 		Object response = null;
 		synchronized(monitor) {
 			try {
 				monitor.notify();
-				monitor.wait(4000);
+				monitor.wait();
 			} catch (Exception ignored) {
 				
 			}
@@ -462,6 +466,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 		commands.add(script[0]);
 		return response;
+		*/
+		return pyt.runScript(script);
 	}
 	
 	@Override
@@ -512,6 +518,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		runScript("import pickle");
 		runScript(PandasSyntaxHelper.getReadPickleToPandas(PANDAS_IMPORT_VAR, cf.getFrameCacheLocation(), this.frameName));
 		runScript(PandasSyntaxHelper.makeWrapper(this.wrapperFrameName, this.frameName));
+		
+		
 	}
 
 	@Override
@@ -551,6 +559,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 	@Override
 	public void processDataMakerComponent(DataMakerComponent component) {
 		// TODO Auto-generated method stub
+		
+	}
+
+	public void setTranslator(PyTranslator pyt) {
+		// TODO Auto-generated method stub
+		this.pyt = pyt;
+		pyt.setLogger(logger);
 		
 	}
 	

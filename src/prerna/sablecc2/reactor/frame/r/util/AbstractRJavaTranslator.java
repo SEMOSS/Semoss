@@ -412,6 +412,40 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 	}
+	
+	// check packages 2
+	public void checkPackages(String fileName)
+	{
+        String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+        String rFolder = baseFolder + "/R/util/smssutil.r";
+        rFolder = rFolder.replaceAll("\\\\", "/");
+		
+        executeEmptyRDirect("source('" + rFolder + "');" );
+
+		try {
+				Object outObject = executeRDirect("canLoad('" + fileName + "')");
+				
+				String output = "";
+				if(outObject instanceof org.rosuda.REngine.REXPString)
+					output = ((org.rosuda.REngine.REXPString)outObject).asString();
+				
+				else if(outObject instanceof org.rosuda.JRI.REXP)
+					output = ((org.rosuda.JRI.REXP)outObject).asString();
+
+				output = output.replaceAll("\\\"", "");
+				
+				if(output.length() != 0)
+				{
+					String errorMessage = "\nMake sure you have all the following R libraries installed:\n" + output;
+					throw new SemossPixelException(new NounMetadata(errorMessage, PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				}	
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
 
 	/**
 	 * Check if r packages are installed
@@ -471,6 +505,9 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			System.out.println("Error in writing R script for execution!");
 			e1.printStackTrace();
 		}
+		// check packages should be here
+		// if you try to do stuff this will throw an error
+		//checkPackages(script);
 
 		try {
 			this.executeEmptyRDirect("source(\"" + scriptPath + "\", local=TRUE)");
@@ -555,7 +592,10 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 		try {
 			FileUtils.writeStringToFile(scriptFile, script);
 			String finalScript = "print(source(\"" + scriptPath + "\", print.eval=TRUE, local=TRUE)); ";
-			
+
+			// check packages
+			//checkPackages(script);
+
 			// Try running the script, which saves the output to a file
 			 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
 			RuntimeException error = null;
