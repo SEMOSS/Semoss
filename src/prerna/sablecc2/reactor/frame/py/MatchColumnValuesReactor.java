@@ -28,7 +28,7 @@ public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 		frame.runScript(matchesTable + " = " + wrapperName + ".self_match('" + column + "')");
 
 		PandasFrame returnTable = new PandasFrame(matchesTable);
-		//returnTable.setTranslator(this.insight.getPyTranslator());
+		returnTable.setTranslator(this.insight.getPyTranslator());
 		returnTable.setJep(frame.getJep());
 		returnTable.runScript(PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
 		returnTable = (PandasFrame) recreateMetadata(returnTable, false);
