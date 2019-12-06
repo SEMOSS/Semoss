@@ -1,16 +1,24 @@
 package prerna.test;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
+import jep.Interpreter;
 import jep.Jep;
+import jep.JepConfig;
 import jep.JepException;
+import jep.SharedInterpreter;
 import prerna.ds.py.PyExecutorThread;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 
 public class JepTest implements Runnable {
@@ -21,10 +29,45 @@ public class JepTest implements Runnable {
 	
 	public static void main(String [] args) throws Exception
 	{
+		DIHelper helper = DIHelper.getInstance();
+		System.out.println("Hello world");
+		Properties prop = new Properties();
+		try {
+			prop.load(new FileInputStream("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop"));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		helper.setCoreProp(prop);
+	
+		JepConfig aJepConfig = new JepConfig();
+		// add the sys.path to python libraries for semoss
+		String pyBase = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + Constants.PY_BASE_FOLDER;
+		//pyBase = "c:/users/pkapaleeswaran/workspacej3/semossweb/py";
+		pyBase = pyBase.replace('\\', '/');
+		aJepConfig.addIncludePaths(pyBase);
+		//aJepConfig.setRedirectOutputStreams(true);
 		
-		JepTest j1 = new JepTest();
-		j1.threadName = "Thread 1";
-		j1.run();
+		// add the libraries
+		
+		String sitepackages = DIHelper.getInstance().getProperty("PYTHON_PACKAGES");
+		if(sitepackages != null && !sitepackages.isEmpty()) {
+			aJepConfig.addIncludePaths(sitepackages);
+		}
+		
+		SharedInterpreter.setConfig(aJepConfig);
+		SharedInterpreter interp = new SharedInterpreter();
+		
+		interp.exec("from java.lang import System");
+	    interp.exec("s = 'Hello World'");
+	    interp.exec("System.out.println(s)");
+	    
+		//JepTest j1 = new JepTest();
+		//j1.threadName = "Thread 1";
+		//j1.run();
 //		Thread t1 = new Thread(j1);
 //		JepTest j2 = new JepTest();
 //		j2.threadName = "Thread 2";
@@ -49,6 +92,10 @@ public class JepTest implements Runnable {
 //		//t4.start();
 		
 	}
+	
+	
+	
+	
 
 	public Jep getJep()
 	{
