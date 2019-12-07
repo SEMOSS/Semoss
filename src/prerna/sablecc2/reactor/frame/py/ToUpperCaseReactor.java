@@ -52,7 +52,11 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// script will be of the form:
 				// wrapper.toupper(column_name)
-				frame.runScript(wrapperFrameName + ".upper('" + col + "')");
+				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".upper('" + col + "')");
+				// this should get replaced with pandas pythonic way
+				//wrapperFrameName.cache['data']['col'] = wrapperFrameName.cache['data'].apply(lambda x: x['col'].upper(), axis = 1)
+				insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
+													 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).upper(), axis = 1)");
 			}
 		}
 		
