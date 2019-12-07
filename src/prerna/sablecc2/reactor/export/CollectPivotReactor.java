@@ -41,6 +41,11 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		this.task = getTask();
 
 		PyTranslator pyt = insight.getPyTranslator();
+		// just for testing
+		//pyt = null;
+		if(pyt == null)
+			return getError("Pivot requires Python. Python is not enabled in this instance");
+		
 		pyt.setLogger(this.getLogger(this.getClass().getName()));
 
 		

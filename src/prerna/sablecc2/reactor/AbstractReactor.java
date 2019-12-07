@@ -645,4 +645,20 @@ public abstract class AbstractReactor implements IReactor {
 		return null;
 	}
 	
+	// gets the success message
+	public NounMetadata getSuccess(String message)
+	{
+		return NounMetadata.getSuccessNounMessage(message);
+	}
+
+	public NounMetadata getError(String message)
+	{
+		return NounMetadata.getErrorNounMessage(message);
+	}
+
+	public NounMetadata getWarning(String message)
+	{
+		return NounMetadata.getWarningNounMessage(message);
+	}
+	
 }
