@@ -50,7 +50,10 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// script will be of the form:
 				// wrapper.toupper(column_name)
-				frame.runScript(wrapperFrameName + ".lower('" + col + "')");
+				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".lower('" + col + "')");
+				insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
+						 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).lower(), axis = 1)");
+
 			}
 		}
 		

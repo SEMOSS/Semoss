@@ -52,7 +52,7 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		else script += "False)";
 		
 		// run script
-		frame.runScript(script);
+		insight.getPyTranslator().runEmptyPy(script);
 		
 		// update meta data
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
