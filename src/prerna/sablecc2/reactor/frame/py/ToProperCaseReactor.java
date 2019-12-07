@@ -52,7 +52,9 @@ public class ToProperCaseReactor extends AbstractFrameReactor {
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// script will be of the form:
 				// wrapper.toupper(column_name)
-				frame.runScript(wrapperFrameName +".title('" + col + "')");
+				//insight.getPyTranslator().runEmptyPy(wrapperFrameName +".title('" + col + "')");
+				insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
+						 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).title(), axis = 1)");
 			}
 		}
 		

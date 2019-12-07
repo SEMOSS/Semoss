@@ -19,12 +19,15 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		if(override) {
 			newFrame = new PandasFrame(frameName);
 			newFrame.setJep(frame.getJep());
+			newFrame.setTranslator(insight.getPyTranslator());
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(newFrame.getWrapperName(), frameName);
-			newFrame.runScript(makeWrapper);
+			//newFrame.runScript(makeWrapper);
+			insight.getPyTranslator().runEmptyPy(makeWrapper);
 		}
 		String[] colNames = getColumns(newFrame);
 		// I bet this is being done for pixel.. I will keep the same
-		newFrame.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
+		//newFrame.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
+		insight.getPyTranslator().runEmptyPy(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
 		colNames = getColumns(newFrame);
 		
 		String[] colTypes = getColumnTypes(newFrame);
