@@ -38,6 +38,7 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 
 		// get inputs
 		List<String> columns = getColumns();
+		StringBuilder commands = new StringBuilder();
 		
 		for (int i = 0; i < columns.size(); i++)
 		{
@@ -55,10 +56,13 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".upper('" + col + "')");
 				// this should get replaced with pandas pythonic way
 				//wrapperFrameName.cache['data']['col'] = wrapperFrameName.cache['data'].apply(lambda x: x['col'].upper(), axis = 1)
-				insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
-													 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).upper(), axis = 1)");
+				commands.append((wrapperFrameName + ".cache['data']['" + col + "'] = " +
+													 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).upper(), axis = 1)\n"));
+				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
+				//									 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).upper(), axis = 1)");
 			}
 		}
+		insight.getPyTranslator().runEmptyPy(commands.toString());
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
