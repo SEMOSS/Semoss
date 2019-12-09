@@ -1,4 +1,4 @@
-package prerna.sablecc2.reactor.export;
+package prerna.sablecc2.reactor.frame.r;
 
 import java.io.File;
 import java.util.HashMap;
@@ -16,7 +16,7 @@ import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
-public class CollectPivotRReactor2 extends TaskBuilderReactor {
+public class CollectPivotRReactor extends TaskBuilderReactor {
 
 	/**
 	 * This class is responsible for collecting data from a task and returning it
@@ -32,7 +32,7 @@ public class CollectPivotRReactor2 extends TaskBuilderReactor {
 		mathMap.put("StandardDeviation", "sd");
 	};
 
-	public CollectPivotRReactor2() {
+	public CollectPivotRReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
 	}
 
@@ -42,9 +42,9 @@ public class CollectPivotRReactor2 extends TaskBuilderReactor {
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
 		rJavaTranslator.startR(); 
 
-		// going to do this with r datatable directly
-		//  cubed <- data.table::cube(mv, .(budget=sum(MovieBudget), revenue=mean(RevenueDomestic)), by=c('Genre', 'Studio'))
-		
+		// I need to change this check later
+		String[] packages = { "pivottabler" };
+		rJavaTranslator.checkPackages(packages);
 
 		String fileName = Utility.getRandomString(6);
 		String dir = (insight.getUserFolder() + "/Temp").replace('\\', '/');
@@ -61,50 +61,25 @@ public class CollectPivotRReactor2 extends TaskBuilderReactor {
 		List<String> values = this.store.getNoun(keysToGet[2]).getAllStrValues();
 
 		// convert the inputs into a cgroup
-		String rows = "by = " + RSyntaxHelper.createStringRColVec(rowGroups);
-		
-		rows = rows.substring(0, rows.length()-1);
-		
-		// we need to add this to the rows
-		// that is how r data table works
-		for(int colIndex = 0;colIndex < colGroups.size();colIndex++)
-			rows = rows + ", \"" + colGroups.get(colIndex) + "\"";
-		
-		rows = rows + ")";
-		
+		String rows = RSyntaxHelper.createStringRColVec(rowGroups);
+		String cols = RSyntaxHelper.createStringRColVec(colGroups);
 
 		// last piece is the calculations
 		// not putting headers right now
-		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
-
-		StringBuilder calcs = new StringBuilder(".(");
+		StringBuilder calcs = new StringBuilder("c(");
 		for(int calcIndex = 0; calcIndex < values.size(); calcIndex++) {
-			Map<String, String> valueMap = new HashMap<String, String>();
-			String curValue = values.get(calcIndex);
-			
-			// get the operator and selector
-			//String [] composite = curValue.split("(");
-			String operator = curValue.substring(0, curValue.indexOf("(")).trim();
-			String operand = curValue.substring(curValue.indexOf("(") + 1, curValue.length()-1).trim();
-			
-			
-			if(calcIndex != 0)
+			if(calcIndex > 0) {
 				calcs.append(",");
-			
+			}
+			String newValue = values.get(calcIndex).toString();
+			// replace the generic math with the pivottabler math
 			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
 				String key = (String) mathElement.getKey();
 				String value = (String) mathElement.getValue();
 
-				operator = operator.replace(key, value);
+				newValue = newValue.replace(key, value);
 			}
-
-			//budget=sum(MovieBudget)
-			calcs.append(operand).append("_").append(operator).append("=");
-			calcs.append(operator).append("(as.double(").append(operand).append("))");
-						
-			valueMap.put("alias", operand);
-			valueMap.put("math", operator);
-			valuesList.add(valueMap);
+			calcs.append("\"").append(newValue).append("\"");
 		}
 		calcs.append(")");
 
@@ -112,15 +87,16 @@ public class CollectPivotRReactor2 extends TaskBuilderReactor {
 		String htmlName = pivotName + ".html";
 
 		// load html
-		StringBuilder pivoter = new StringBuilder("library(xtable);");
+		StringBuilder pivoter = new StringBuilder("library(\"pivottabler\");");
 		pivoter.append(RSyntaxHelper.getFReadSyntax(fileName, outputFile, ","));
-		pivoter.append(pivotName + " <- data.table::cube(" + fileName + "," + calcs + "," + rows + ");");
+		pivoter.append(pivotName + " <- qpvt(" + fileName + "," + rows + "," + cols + "," + calcs + ");");
+		// create the html
+		pivoter.append(pivotName + "$saveHtml(paste(ROOT" + ",\"/" + htmlName +"\", sep=\"\"));");
 
 		// make the pivot
 		rJavaTranslator.runR(pivoter.toString());
 		// get the output
-		String htmler = "print(xtable(" + pivotName + "), type=\"html\");";
-		String htmlOutput = rJavaTranslator.runRAndReturnOutput(htmler);
+		String htmlOutput = rJavaTranslator.runRAndReturnOutput("print(" + pivotName + "$getHtml());");
 
 		// delete the variable and pivot
 		rJavaTranslator.runR("rm(" + pivotName + "," + fileName + ");");
@@ -131,6 +107,32 @@ public class CollectPivotRReactor2 extends TaskBuilderReactor {
 		Map<String, Object> pivotMap = new HashMap<String, Object>();
 		pivotMap.put(keysToGet[0], rowGroups);
 		pivotMap.put(keysToGet[1], colGroups);
+		List<Map<String, String>> valuesList = new Vector<Map<String, String>>();
+		for(int i = 0; i < values.size(); i++) {
+			String value = (String) values.get(i);
+			
+			Map<String, String> valueMap = new HashMap<String, String>();
+			for (Map.Entry<String, String> mathElement : mathMap.entrySet()) {
+				String key = (String) mathElement.getKey();
+				if (value.contains(key)) {
+					// string manipulate to get the alias inside of the math
+					String alias = ((String)values.get(i)).replace(key, "").trim();
+					alias = alias.substring(1, alias.length() - 1);
+
+					valueMap.put("alias", alias);
+					valueMap.put("math", key);
+					valuesList.add(valueMap);
+					continue;
+				}
+			}
+
+			// if we get to this point
+			// no math was fun
+			// just put it as is
+			valueMap.put("alias", value);
+			valueMap.put("math", "");
+			valuesList.add(valueMap);
+		}
 		pivotMap.put(keysToGet[2], valuesList);
 		
 		ConstantDataTask cdt = new ConstantDataTask();
