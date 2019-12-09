@@ -54,15 +54,15 @@ public class DivisionReactor extends AbstractPyFrameReactor {
 		String script = wrapperFrameName + ".col_division('" + numerator + "', '" + denominator + "', '" + newColName + "')";
 		
 		// run script
-		//frame.runScript(script);
-		insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + newColName + "'] = " +
+		insight.getPyTranslator().runEmptyPy(script);
+		/*insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + newColName + "'] = " +
 				 wrapperFrameName + ".cache['data'].apply(lambda x: x['" + numerator + "']/x['" + denominator + "'] "
 				 		+ "if ("
 				 		+ "(isinstance(x['" + numerator + "'], int) or isinstance(x['" + numerator + "'], float) )  and "
 				 		+ "(isinstance(x['" + denominator + "'], int) or isinstance(x['" + denominator + "'], float) )  and "
 				 		+ "x['" + denominator + "'] != 0"
 				 		+ ") else 0 , axis = 1)");
-		
+		*/
 		// check if new column exists
 		String[] endingColumns = getColumns(frame);
 		List<String> endingColumnsList = new Vector<String>(endingColumns.length);

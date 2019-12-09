@@ -37,8 +37,12 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 		// we need to check data types this will only be valid on non numeric values
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 
+		// extracts the letters
+		//mv['add'] = mv.apply(lambda x: re.sub('\d+', '', x['MovieBudget']) if not(isinstance(x['MovieBudget'], int)) else x['MovieBudget'] , axis=1)
+		
 		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
+		StringBuilder commands = new StringBuilder();
 		// update existing columns
 		if (overrideColumn) {
 			for (int i = 0; i < columns.size(); i++) {
@@ -47,7 +51,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(frame.getName() + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					try {
-						frame.runScript(wrapperFrameName + ".extract_alpha('" + column + "')");
+						commands.append(wrapperFrameName + ".extract_alpha('" + column + "')\n");
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -65,7 +69,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(frame.getName() + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
 					String newColumn = getCleanNewColName(frame, column + ALPHA_COLUMN_NAME);
-					frame.runScript(wrapperFrameName + ".extract_alpha('" + column + "',  '" + newColumn + "')");
+					commands.append(wrapperFrameName + ".extract_alpha('" + column + "',  '" + newColumn + "')\n");
 					
 					metaData.addProperty(frame.getName(), frame.getName() + "__" + newColumn);
 					metaData.setAliasToProperty(frame.getName() + "__" + newColumn, newColumn);
@@ -75,6 +79,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 				}
 			}
 		}
+		insight.getPyTranslator().runEmptyPy(commands.toString());
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
