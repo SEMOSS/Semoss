@@ -36,7 +36,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 	private int limit = 0;
 	
 	public CollectGGPlotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.GGPLOT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.GGPLOT.getKey(), ReactorKeysEnum.FORMAT.getKey(), ReactorKeysEnum.ANIMATE.getKey()};
 	}
 	
 	public NounMetadata execute() {
@@ -47,6 +47,15 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		rJavaTranslator.startR(); 
 		
 		String ggplotCommand = keyValue.get(keysToGet[0]) +"";
+		boolean animate = false;
+		animate = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("True")) ? true : false;
+		
+		String format = "jpeg";
+		if(animate)
+			format = "gif";
+		
+		if(keyValue.containsKey(keysToGet[1]))
+			format = keyValue.get(keysToGet[1]);
 		
 		this.task = getTask();
 		
@@ -86,6 +95,8 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		
 		
 		StringBuilder ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
+		if(animate)
+			ggplotter.append("library(\"gganimate\");");
 		// get the frame
 		// get frame name
 		String table = fileName;
@@ -103,9 +114,12 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		String ggsaveFile = Utility.getRandomString(6);
 		
 		
-		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "\",\".jpeg\", sep=\"\"); ");
+		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "." +format +"\", sep=\"\"); ");
 		
-		ggplotter.append("ggsave(" + ggsaveFile + ");");
+		if(!animate)
+			ggplotter.append("ggsave(" + ggsaveFile + ");");
+		else
+			ggplotter.append("anim_save(" + ggsaveFile + ", " + plotString + ");");
 
 		ggplotter.append("}");
 		
@@ -122,6 +136,8 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		System.out.println(dataURI);
 		*/
 		String ggremove = "rm(" + ggsaveFile + ", txt);detach(\"package:ggplot2\", unload=FALSE);"; //detach(\"package:RCurl\", unload=FALSE)";
+		if(animate)
+			ggremove = ggremove + "detach(\"package:gganimate\", unload=FALSE);";
 		
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggsaveFile);
@@ -170,6 +186,9 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		//sw.write("<html><body>");
 		}
 
+
+		// remove the variable
+		rJavaTranslator.runRAndReturnOutput(ggremove);
 
 		outputMap.put("headers", new String[] {});
 		outputMap.put("rawHeaders", new String[] {});
