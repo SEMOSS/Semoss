@@ -50,8 +50,18 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		String script = wrapperFrameName + ".to_pct('" + srcCol + "', '" + newColName + "', " + sigDigits + ", ";
 		if (by100) script += "True)";
 		else script += "False)";
+
+		String by100v = by100? "True" : "False";
+		
+		script = wrapperFrameName + ".cache['data']['" + newColName + "'] = " + 
+				wrapperFrameName + ".cache['data'].apply(lambda x: " +
+				"str(round(x['" + srcCol + "'], " + sigDigits + ") * 100) + '%' if " + by100v + 
+				" else " +
+				"str(round(x['" + srcCol + "'], " + sigDigits + ") * 1) + '%' )";
 		
 		// run script
+		// converting to lambda
+		//  mv['add'] = mv.apply(lambda x: clean.PyFrame.to_pct_l(x['MovieBudget'], 2, 1) , axis=1)
 		insight.getPyTranslator().runEmptyPy(script);
 		
 		// update meta data

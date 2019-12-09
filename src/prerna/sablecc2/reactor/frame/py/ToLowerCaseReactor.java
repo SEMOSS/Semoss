@@ -36,6 +36,7 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 		// which is the framename with w in the end
 		String wrapperFrameName = frame.getWrapperName();
 
+		StringBuilder commands = new StringBuilder();
 		// get inputs
 		List<String> columns = getColumns();
 		for (int i = 0; i < columns.size(); i++) {
@@ -51,11 +52,15 @@ public class ToLowerCaseReactor extends AbstractFrameReactor {
 				// script will be of the form:
 				// wrapper.toupper(column_name)
 				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".lower('" + col + "')");
-				insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
-						 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).lower(), axis = 1)");
+				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
+				//		 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).lower(), axis = 1)");
 
+				commands.append(wrapperFrameName + ".cache['data']['" + col + "'] = " +
+				 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).lower(), axis = 1)\n");
+				
 			}
 		}
+		insight.getPyTranslator().runEmptyPy(commands.toString());
 		
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(

@@ -39,6 +39,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 
 		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
+		StringBuilder commands = new StringBuilder();
 		// update existing columns
 		if (overrideColumn) {
 			for (int i = 0; i < columns.size(); i++) {
