@@ -138,6 +138,9 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 	
 	# JK, doing a round
 	df$Score <- round(df$Score, 2)
+	# Adding unique ids
+	df$Source_GUID <- paste(df$Source_Table, df$Source_Property, df$Source_Database_Id, sep="--")
+	df$Target_GUID <- paste(df$Target_Table, df$Target_Property, df$Target_Database_Id, sep="--")
 	
 	##################################################
 	# Write all the tables
