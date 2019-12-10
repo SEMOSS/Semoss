@@ -36,7 +36,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 	private int limit = 0;
 	
 	public CollectGGPlotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.GGPLOT.getKey(), ReactorKeysEnum.FORMAT.getKey(), ReactorKeysEnum.ANIMATE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.GGPLOT.getKey(), ReactorKeysEnum.FORMAT.getKey()};
 	}
 	
 	public NounMetadata execute() {
@@ -47,9 +47,31 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		rJavaTranslator.startR(); 
 		
 		String ggplotCommand = keyValue.get(keysToGet[0]) +"";
-		boolean animate = false;
-		animate = (keyValue.containsKey(keysToGet[2]) && keyValue.get(keysToGet[2]).equalsIgnoreCase("True")) ? true : false;
 		
+		String [] comTokens = ggplotCommand.split("\\+");
+		StringBuilder newCommand = new StringBuilder();
+
+		boolean animate = false;
+		
+		for(int tokenIndex = 0;tokenIndex < comTokens.length;tokenIndex++)
+		{
+			String command = comTokens[tokenIndex];
+			String nextCommand = null;
+			if(tokenIndex + 1 < comTokens.length)
+				nextCommand = comTokens[tokenIndex + 1];
+			if(!command.contains("animate"))
+			{
+				newCommand.append(command);
+				if(nextCommand != null && !nextCommand.contains("animate"))
+					newCommand.append(" + ");
+			}
+			else
+				animate = true;
+		}
+		
+		
+		
+		ggplotCommand = newCommand.toString();
 		String format = "jpeg";
 		if(animate)
 			format = "gif";
@@ -187,6 +209,10 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		}
 
 
+		if(animate)
+			ggplotCommand = ggplotCommand + " + animate";
+		
+		ggplotCommand = ggplotCommand.replaceAll("\"", "\\\\\"");
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggremove);
 
@@ -194,7 +220,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		outputMap.put("rawHeaders", new String[] {});
 		outputMap.put("values", new String[]{sw.toString()});
 		//outputMap.put("values", new String[]{retFile});
-		outputMap.put("ggplot", ggplotCommand);
+		outputMap.put("ggplot", "ggplot=[\"" + ggplotCommand + "\"]");	
 
 		// set the output so it can give it
 		cdt.setOutputData(outputMap);
