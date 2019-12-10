@@ -30,10 +30,10 @@ public class ToProperCaseReactor extends AbstractRFrameReactor {
 		// initialize rJavaTranslator
 		init();
 		
-		this.rJavaTranslator.checkPackages(new String[] {"stringi"});
+		this.rJavaTranslator.checkPackages(new String[] {"snakecase"});
 		
 		StringBuilder builder = new StringBuilder();
-		builder.append("library(stringi);");
+		builder.append("library(snakecase);");
 		
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
@@ -54,7 +54,7 @@ public class ToProperCaseReactor extends AbstractRFrameReactor {
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
-				builder.append(table + "$" + col + " <- stri_trans_totitle(" + table + "$" + col + ");");
+				builder.append(table + "$" + col + " <- to_upper_camel_case(" + table + "$" + col + ", sep_out=\"_\");");
 			}
 		}
 		
