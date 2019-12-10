@@ -2,7 +2,10 @@ package prerna.sablecc2.reactor.algorithms.xray;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
@@ -29,13 +32,17 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 
 	public static final String CLASS_NAME = GenerateXRayHashingReactor.class.getName();
 
+	public static final String FILES_KEY = "files";
+	public static final String STATUS_KEY = "status";
+	
 	private String folderPath;
 	private List<String> appIds;
 	private boolean override;
+	private Map<String, List<String>> configMap;
 	
 	public GenerateXRayHashingReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONFIG.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
+				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey()};
 	}
 	
 	@Override
@@ -59,14 +66,13 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 
 		// specify the folder from the base
 		String folderName = keyValue.get(keysToGet[0]);
-		if(folderName != null) {
-			this.folderPath = baseFolder + "/" + folderName;
-		} else {
-			this.folderPath = baseFolder + "/xray_corpus";
-			File defaultXrayFolder = new File(this.folderPath);
-			if(!defaultXrayFolder.exists() || !defaultXrayFolder.isDirectory()) {
-				defaultXrayFolder.mkdirs();
-			}
+		if(folderName == null || folderName.isEmpty()) {
+			folderName = "xray_corpus";
+		}
+		this.folderPath = (baseFolder + "/" + folderName).replace('\\', '/');
+		File xrayFolder = new File(this.folderPath);
+		if(!xrayFolder.exists() || !xrayFolder.isDirectory()) {
+			xrayFolder.mkdirs();
 		}
 		
 		// now we want to go through and save all the file details 
@@ -80,18 +86,44 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		}
 		
 		// see if we are overriding the existing hash or not
-		this.override = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[4]) + "");
+		this.override = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]) + "");
+		
+		// get the config map
+		this.configMap = getConfig();
 		
 		// source the packages and R script
 		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.loadPackages(reqPackages) + "; source(\"" 
 				+ DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace('\\', '/') 
 				+ "/R/XRay/encode_instances.R\", local=TRUE);");
 		
+		Map<String, Object> returnMap = new HashMap<String, Object>();
+		returnMap.put(this.keysToGet[0], folderName);
+		returnMap.put(this.keysToGet[1], space);
+		List<String> fileNames = new Vector<String>();
+		List<String> status = new Vector<String>();
+		returnMap.put(FILES_KEY, fileNames);
+		returnMap.put(STATUS_KEY, status);
+		
 		// go through and write the app
 		for(String appId : appIds) {
 			IEngine engine = Utility.getEngine(appId);
 			Collection<String> pixelSelectors = MasterDatabaseUtility.getSelectorsWithinEngineRDBMS(appId);
+			
+			List<String> selectorFilters = null;
+			if(this.configMap != null) {
+				if(this.configMap.containsKey(appId)) {
+					selectorFilters = this.configMap.get(appId);
+				}
+			}
+			
 			for(String selector : pixelSelectors) {
+				// see if its part of the filters
+				// but if the selectors is empty, it means we include them all
+				if(selectorFilters != null && !selectorFilters.isEmpty() && !selectorFilters.contains(selector)) {
+					// ignore the selector
+					continue;
+				}
+				
 				// see if the file already exists
 				// so if we are not overriding, we can skip this selector
 				String outputFileName = appId + ";";
@@ -102,18 +134,25 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 					outputFileName += selector + ";default_node_value";
 				}
 				outputFileName += ".tsv";
-				String outputFile = folderPath + "/" + outputFileName;
-				outputFile = outputFile.replace('\\', '/');
+				String outputFile = this.folderPath + "/" + outputFileName;
 				if(!this.override && new File(outputFile).exists()) {
 					logger.info("Hash already exists for " + selector);
+					
+					// add to list of files used
+					fileNames.add(outputFileName);
+					status.add("existing");
 					continue;
 				}
+				
+				// add to list of files used
+				fileNames.add(outputFileName);
+				status.add("new");
 				
 				logger.info("Querying data for " + selector);
 				SelectQueryStruct qs = new SelectQueryStruct();
 				qs.addSelector(new QueryColumnSelector(selector));
 				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs);
-				File f = new File(folderPath + "/" + selector + "_base.tsv");
+				File f = new File(this.folderPath + "/" + selector + "_base.tsv");
 				try {
 					// write file
 					Utility.writeResultToFile(f.getAbsolutePath(), wrapper, "/t");
@@ -133,7 +172,7 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 			}
 		}
 		
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
+		NounMetadata noun = new NounMetadata(returnMap, PixelDataType.MAP);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully stored hash files for databases"));
 		return noun;
 	}
@@ -150,6 +189,17 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[2]);
 		return grs.getAllStrValues();
 	}
+
+	private Map<String, List<String>> getConfig() {
+		GenRowStruct grs = this.store.getNoun(this.keysToGet[4]);
+		if(grs != null && !grs.isEmpty()) {
+			NounMetadata value = grs.getNoun(0);
+			if(value.getNounType() == PixelDataType.MAP) {
+				return (Map<String, List<String>>) value.getValue();
+			}
+		}
+		return null;
+	}
 	
 	/*
 	 * Getters for other reactors
@@ -165,5 +215,9 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 	
 	boolean isOverride() {
 		return this.override;
+	}
+	
+	Map<String, List<String>> getConfigMap() {
+		return this.configMap;
 	}
 }
