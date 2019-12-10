@@ -37,7 +37,6 @@ public class CreateFrameReactor extends AbstractReactor {
 		ITableDataFrame newFrame = null;
 		try {
 			newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
-			
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Error occured trying to create frame of type " + frameType, e);
 		}
