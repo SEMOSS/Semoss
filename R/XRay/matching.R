@@ -134,7 +134,10 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
 	##################################################
 	# Adding match count column
 	##################################################
-	df$Match_Count <- round(df$Score * df$Source_Instances)
+	#df$Match_Count <- round(df$Score * df$Source_Instances)
+	
+	# JK, doing a round
+	df$Score <- round(df$Score, 2)
 	
 	##################################################
 	# Write all the tables
