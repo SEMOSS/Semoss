@@ -13,7 +13,7 @@ run_lsh_matching <- function(path, N, b, similarityThreshold, instancesThreshold
   
 	# Throws an error if there are no files in the corpus
 	corpus <- tryCatch({
-		TextReuseCorpus(dir = path, tokenizer = tokenize_ngrams, n = 1, minhash_func = corpus_minhash)
+		TextReuseCorpus(paths = path, tokenizer = tokenize_ngrams, n = 1, minhash_func = corpus_minhash)
 	}, error = function(e) {
 		return("error")
 	})

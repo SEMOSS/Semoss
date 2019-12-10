@@ -1,10 +1,13 @@
 package prerna.sablecc2.reactor.algorithms.xray;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 
 import prerna.ds.r.RDataTable;
+import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -18,10 +21,14 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 
 	public static final String CLASS_NAME = GenerateXRayMatchingReactor.class.getName();
 	
+	private static final String SIMILARITY_KEY = "similarity";
+	private static final String CANDIDATE_KEY = "candidate";
+	private static final String MATCH_SAME_DB_KEY = "matchSameDb";
+	
 	public GenerateXRayMatchingReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONFIG.getKey(), ReactorKeysEnum.OVERRIDE.getKey(),
-				"similarity", "candidate", "matchSameDb"};
+				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), 
+				SIMILARITY_KEY, CANDIDATE_KEY, MATCH_SAME_DB_KEY, ReactorKeysEnum.CONFIG.getKey()};
 	}
 	
 	@Override
@@ -31,7 +38,16 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		hashReactor.setNounStore(this.store);
 		hashReactor.setInsight(this.insight);
 		NounMetadata successfulHash = hashReactor.execute();
-		if( ! ((boolean) successfulHash.getValue()) ) {
+		
+		Map<String, Object> filesHash = null;
+		try {
+			filesHash = (Map<String, Object>) successfulHash.getValue();
+		} catch(Exception e) {
+			throw new IllegalArgumentException("Error occured trying to generaate hash for xray");
+		}
+		// specify the specific files to use
+		List<String> fileNames = (List<String>) filesHash.get(GenerateXRayHashingReactor.FILES_KEY);
+		if(fileNames == null || fileNames.isEmpty()) {
 			throw new IllegalArgumentException("Error occured trying to generaate hash for xray");
 		}
 		
@@ -39,8 +55,13 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		// since it already had to grab from store
 		init();
 		Logger logger = this.getLogger(CLASS_NAME);
-		String folderPath = hashReactor.getFolderPath();
 		List<String> appIds = hashReactor.getAppIds();
+		// get the exact files that were generated
+		String folderPath = hashReactor.getFolderPath();
+		List<String> filePaths = new Vector<String>(fileNames.size());
+		for(int i = 0; i < fileNames.size(); i++) {
+			filePaths.add(folderPath + "/" + fileNames.get(i));
+		}
 		
 		// get other parameters for xray script
 		int nMinhash = 0;
@@ -51,8 +72,15 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		// check if user wants to compare columns from the same database
 		// this is the boolean value passed into R script
 		Boolean matchSameDB = true;
-		if(this.keyValue.get("matchSameDb") != null) {
-			matchSameDB = Boolean.parseBoolean(this.keyValue.get("matchSameDb"));
+		if(this.keyValue.get(MATCH_SAME_DB_KEY) != null) {
+			matchSameDB = Boolean.parseBoolean(this.keyValue.get(MATCH_SAME_DB_KEY));
+		}
+		boolean addSameDbWarn = false;
+		if(appIds.size() == 1) {
+			if(!matchSameDB) {
+				addSameDbWarn = true;
+			}
+			matchSameDB = true;
 		}
 		if (candidateThreshold <= 0.03) {
 			nMinhash = 3640;
@@ -90,8 +118,8 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 
 		logger.info("Running matching routine");
 		String rFrameName = "xray_" + Utility.getRandomString(4);
-		this.rJavaTranslator.executeEmptyR(rFrameName + " <- run_lsh_matching(\"" 
-				+ folderPath + "\", " 
+		this.rJavaTranslator.executeEmptyR(rFrameName + " <- run_lsh_matching(" 
+				+ RSyntaxHelper.createStringRColVec(filePaths) + ", " 
 				+ nMinhash
 				+ ", " + nBands 
 				+ ", " + similarityThreshold 
@@ -99,13 +127,14 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 				+ ", \";\", " 
 				+ matchSameDB.toString().toUpperCase() + ");");
 		logger.info("Done matching");
-
-		this.rJavaTranslator.executeEmptyR(rFrameName + "<- as.data.table(" + rFrameName + ");");
 		
+		this.rJavaTranslator.executeEmptyR(rFrameName + "<- as.data.table(" + rFrameName + ");");
 		RDataTable matchingFrame = createNewFrameFromVariable(rFrameName);
 		NounMetadata noun = new NounMetadata(matchingFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully ran LSH for matching column values"));
-		
+		if(addSameDbWarn) {
+			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Since only one app was selected, altered input value to perform same database matching"));
+		}
 		// store the frame in the insight for use
 		this.insight.getVarStore().put(rFrameName, noun);
 		// set as default frame
@@ -123,7 +152,7 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 	 */
 	private double getCandidateThreshold() {
 		double candidateThreshold = -1;
-		String cand = this.keyValue.get("candidate");
+		String cand = this.keyValue.get(CANDIDATE_KEY);
 		Double candidate = null;
 		try {
 			candidate = Double.parseDouble(cand);
@@ -146,7 +175,7 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 	 */
 	private double getSimiliarityThreshold() {
 		double similarityThreshold = -1;
-		String sim = this.keyValue.get("similarity");
+		String sim = this.keyValue.get(SIMILARITY_KEY);
 		Double similarity = null;
 		try {
 			similarity = Double.parseDouble(sim);
