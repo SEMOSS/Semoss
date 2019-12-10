@@ -3,6 +3,7 @@ package prerna.ds.r;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -154,6 +155,26 @@ public class RSyntaxHelper {
 			if( (i+1) != size) {
 				str.append(",");
 			}
+		}
+		str.append(")");
+		return str.toString();
+	}
+	
+	/**
+	 * Convert a list to a r column vector of strings
+	 * @param values
+	 * @return
+	 */
+	public static String createStringRColVec(Collection<String> values) {
+		StringBuilder str = new StringBuilder("c(");
+		// add the first element
+		Iterator<String> iterator = values.iterator();
+		if(iterator.hasNext()) {
+			str.append("\"").append(iterator.next()).append("\"");
+		}
+		// add a comma and then the first element
+		while(iterator.hasNext()) {
+			str.append(", \"").append(iterator.next()).append("\"");
 		}
 		str.append(")");
 		return str.toString();
