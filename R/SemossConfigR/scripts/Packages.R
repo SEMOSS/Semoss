@@ -29,6 +29,10 @@ install.packages("cluster", dependencies=TRUE)
 # Decode/Encode URI/URL
 install.packages("urltools", dependencies=TRUE)
 
+# ToProperCase
+install.packages("snakecase", dependencies=TRUE)
+
+
 ###############################################################################
 # Recommendations
 ###############################################################################
