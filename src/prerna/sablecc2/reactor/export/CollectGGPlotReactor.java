@@ -220,7 +220,8 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		outputMap.put("rawHeaders", new String[] {});
 		outputMap.put("values", new String[]{sw.toString()});
 		//outputMap.put("values", new String[]{retFile});
-		outputMap.put("ggplot", "ggplot=[\"" + ggplotCommand + "\"]");	
+		//outputMap.put("ggplot", "ggplot=[\"" + ggplotCommand + "\"]");	
+		outputMap.put("ggplot", ggplotCommand);	
 
 		// set the output so it can give it
 		cdt.setOutputData(outputMap);
