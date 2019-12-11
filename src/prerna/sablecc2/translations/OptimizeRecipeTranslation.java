@@ -285,6 +285,16 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			panel = trimQuotes(panel);
 			panelCreationOrder.add(panel);
 		}
+		// account for new panel creation
+		else if(reactorId.equals("AddPanelIfAbsent")) {
+			// store order of panel creation
+			POpInput input = node.getOpInput();
+			String panel = input.toString().trim();
+			panel = trimQuotes(panel);
+			if(!panelCreationOrder.contains(panel)) {
+				panelCreationOrder.add(panel);
+			}
+		}
 		// remove the layer
 		else if(reactorId.equals("RemoveLayer")) {
 			removeLayerIndices.add(this.index);
