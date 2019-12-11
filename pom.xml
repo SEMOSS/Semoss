@@ -2836,6 +2836,11 @@
 		    <version>0.2</version>
 		</dependency>	
 		<dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk</artifactId>
+		    <version>1.11.690</version>
+		</dependency>		
+		<dependency>
 		    <groupId>me.xdrop</groupId>
 		    <artifactId>fuzzywuzzy</artifactId>
 		    <version>1.2.0</version>
