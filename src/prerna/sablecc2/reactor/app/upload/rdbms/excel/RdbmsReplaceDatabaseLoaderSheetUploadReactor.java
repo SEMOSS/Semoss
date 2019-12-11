@@ -37,6 +37,16 @@ public class RdbmsReplaceDatabaseLoaderSheetUploadReactor extends RdbmsLoaderShe
 	@Override
 	public NounMetadata execute() {
 		/*
+		 * JK!!!!
+		 * THE ADD TO EXISITNG HAS NOT BEEN IMPLEMENTED YET!
+		 * JUST THROW AN ERROR UNTIL WE FINISH THAT
+		 */
+		if(true) {
+			throw new IllegalArgumentException("The replace method using the loader sheet format has not been implemented yet.");
+		}
+		
+		
+		/*
 		 * THIS LOGIC IS THE SAME AS THE LOGIC IN THE AbstractUploadFileReactor
 		 * EXCEPT IT CAN ONLY BE FOR OVERRIDING AN EXISTING APP
 		 * THE LOGIC IS THE SAME EXCEPT THERE IS AN ADDITIONAL METHOD
