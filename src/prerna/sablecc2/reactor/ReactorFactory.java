@@ -136,6 +136,8 @@ import prerna.sablecc2.reactor.export.GoogleUploaderReactor;
 import prerna.sablecc2.reactor.export.GrabScalarElementReactor;
 import prerna.sablecc2.reactor.export.IterateReactor;
 import prerna.sablecc2.reactor.export.OneDriveUploaderReactor;
+import prerna.sablecc2.reactor.export.PushAssetToS3Reactor;
+import prerna.sablecc2.reactor.export.S3UploaderReactor;
 import prerna.sablecc2.reactor.export.ToCsvReactor;
 import prerna.sablecc2.reactor.export.ToDatabaseReactor;
 import prerna.sablecc2.reactor.export.ToExcelReactor;
@@ -340,6 +342,7 @@ import prerna.sablecc2.reactor.qs.source.GoogleListFilesReactor;
 import prerna.sablecc2.reactor.qs.source.JdbcSourceReactor;
 import prerna.sablecc2.reactor.qs.source.OneDriveFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.OneDriveListFilesReactor;
+import prerna.sablecc2.reactor.qs.source.S3FileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointDriveSelectorReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointFileRetrieverReactor;
 import prerna.sablecc2.reactor.qs.source.SharePointListFilesReactor;
@@ -767,6 +770,11 @@ public class ReactorFactory {
 		reactorHash.put("GoogleUploader", GoogleUploaderReactor.class);
 		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
 		reactorHash.put("GoogleFileRetriever", GoogleFileRetrieverReactor.class);
+		//S3
+		reactorHash.put("S3FileRetriever", S3FileRetrieverReactor.class);
+		reactorHash.put("S3Uploader", S3UploaderReactor.class);
+		reactorHash.put("PushAssetToS3", PushAssetToS3Reactor.class);
+
 		// share point
 		reactorHash.put("SharePointListFiles", SharePointListFilesReactor.class);
 		reactorHash.put("SharePointFileRetriever", SharePointFileRetrieverReactor.class);
