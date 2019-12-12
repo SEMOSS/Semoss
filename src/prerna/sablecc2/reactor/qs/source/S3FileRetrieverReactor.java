@@ -3,10 +3,8 @@ package prerna.sablecc2.reactor.qs.source;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -23,26 +21,15 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
 public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 
 	private static final String CLASS_NAME = S3FileRetrieverReactor.class.getName();
-	private static Properties socialData = null;
-	private static final String AWS_ACCOUUNT = "aws_account";
-	private static final String AWS_KEY = "aws_key";
-	
-
 
 
 	public S3FileRetrieverReactor() {
@@ -67,39 +54,7 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 			throw new IllegalArgumentException("Need to specify region");
 		}
 
-		File f = new File(DIHelper.getInstance().getProperty("SOCIAL"));
-		FileInputStream fis = null;
 
-		try {
-			if(f.exists()) {
-				socialData = new Properties();
-				fis = new FileInputStream(f);
-				socialData.load(fis);
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-
-		S3Object fullObject = null;
-
-		String account = socialData.getProperty(AWS_ACCOUUNT);
-		String key = socialData.getProperty(AWS_KEY);
-
-
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(account, key);
 		String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR 
 				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		
@@ -108,9 +63,10 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 
 
 		try {
+			
 			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 					.withRegion(clientRegion)
-					.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+					.withCredentials(new AWSStaticCredentialsProvider(S3Utils.getInstance().getS3Creds()))
 					.build();
 
 			// Get an object and print its contents.
@@ -118,8 +74,6 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 			File localFile = new File(filePath);
 
 			ObjectMetadata object = s3Client.getObject(new GetObjectRequest(bucketName, path), localFile);
-
-			System.out.println("Content-Type: " + object.getContentType());
 
 
 
@@ -131,16 +85,6 @@ public class S3FileRetrieverReactor extends AbstractQueryStructReactor{
 			// Amazon S3 couldn't be contacted for a response, or the client
 			// couldn't parse the response from Amazon S3.
 			e.printStackTrace();
-		} finally {
-			// To ensure that the network connection doesn't remain open, close any open input streams.
-			if (fullObject != null) {
-				try {
-					fullObject.close();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
 		}
 		
 		CSVFileHelper helper = new CSVFileHelper();
