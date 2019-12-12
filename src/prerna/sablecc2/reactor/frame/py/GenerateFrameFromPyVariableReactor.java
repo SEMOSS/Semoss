@@ -47,6 +47,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractPyFrameReactor {
 		//frame.setTranslator(pyT);
 		pyT.runScript(PandasSyntaxHelper.makeWrapper(frame.getWrapperName(), varName));
 		frame.setJep(this.insight.getPy());
+		frame.setTranslator(this.insight.getPyTranslator());
 
 		// create the pandas frame
 		// and set up teverything else
