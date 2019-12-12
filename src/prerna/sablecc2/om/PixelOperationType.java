@@ -145,6 +145,7 @@ public enum PixelOperationType {
 	GOOGLE_SHEET_LIST,
 	GOOGLE_DRIVE_LIST,
 	CLOUD_FILE_LIST,
+	S3,
 	
 	// Cluster
 	OPEN_APP,
