@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.upload;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +26,9 @@ public class PredictDataTypesReactor extends AbstractReactor {
 		logger.info("Extracting file headers and determinig data types");
 		organizeKeys();
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		if(!new File(filePath).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
 		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);
 		boolean rowCount = UploadInputUtility.getRowCount(this.store);

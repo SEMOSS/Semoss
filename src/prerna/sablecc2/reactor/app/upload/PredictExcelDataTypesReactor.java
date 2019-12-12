@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.upload;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,9 @@ public class PredictExcelDataTypesReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		int stepCounter = 1;
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		if(!new File(filePath).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
 		// check if file is valid
 		if(!ExcelParsing.isExcelFile(filePath)) {
 			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);

@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.upload;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,6 +23,9 @@ public class ParseMetamodelReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String csvFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		if(!new File(csvFilePath).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
 		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);
 		CSVFileHelper helper = new CSVFileHelper();
