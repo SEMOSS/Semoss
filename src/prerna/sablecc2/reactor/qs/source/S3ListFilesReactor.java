@@ -120,7 +120,7 @@ public class S3ListFilesReactor extends AbstractReactor{
 
 	public static void main(String[] args){
 
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials("***REMOVED***", "***REMOVED***");
+		BasicAWSCredentials awsCreds = new BasicAWSCredentials("test", "test");
 		List <Map<String, Object>> output = new ArrayList <Map<String, Object>>();
 
 		try{
