@@ -12,12 +12,14 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.qs.source.S3Utils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
@@ -34,10 +36,6 @@ import java.util.Properties;
 
 public class PushAssetToS3Reactor  extends AbstractReactor {
 
-
-	private static Properties socialData = null;
-	private static final String AWS_ACCOUUNT = "aws_account";
-	private static final String AWS_KEY = "aws_key";
 
 
 	public PushAssetToS3Reactor() {
@@ -58,42 +56,14 @@ public class PushAssetToS3Reactor  extends AbstractReactor {
 		String clientRegion = this.keyValue.get(this.keysToGet[3]);
 
 
-		File f = new File(DIHelper.getInstance().getProperty("SOCIAL"));
-		FileInputStream fis = null;
-
-		try {
-			if(f.exists()) {
-				socialData = new Properties();
-				fis = new FileInputStream(f);
-				socialData.load(fis);
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
 
 
-		S3Object fullObject = null;
+		AWSCredentials creds = S3Utils.getInstance().getS3Creds();
 
-		String account = socialData.getProperty(AWS_ACCOUUNT);
-		String key = socialData.getProperty(AWS_KEY);
-
-		if (account != null && account.length() > 0 && key != null && key.length() > 0) {
-			BasicAWSCredentials awsCreds = new BasicAWSCredentials(account, key);
+		if (creds != null ) {
 			AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
 					.withRegion(clientRegion)
-					.withCredentials(new AWSStaticCredentialsProvider(awsCreds))
+					.withCredentials(new AWSStaticCredentialsProvider(creds))
 					.build();
 			if (relativeAssetPath != null && relativeAssetPath.length() > 0) {
 
