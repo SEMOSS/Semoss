@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.qs.source;
 
+import java.io.File;
 import java.util.Map;
 
 import prerna.query.querystruct.AbstractFileQueryStruct;
@@ -49,6 +50,9 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		Map<String, String> dataTypes = getDataTypes();
 		Map<String, String> additionalDataTypes = getAdditionalDataTypes();
 		String fileLocation = getFileLocation();
+		if(!new File(fileLocation).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
 		String fileExtension = "";
 
 		// get file extension to determine qs

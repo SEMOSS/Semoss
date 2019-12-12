@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.upload;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +30,9 @@ public class PredictMetamodelReactor extends AbstractReactor {
 		organizeKeys();
 		// get csv file path
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		if(!new File(filePath).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
 		// get delimiter
 		String delimiter = UploadInputUtility.getDelimiter(this.store);
 		char delim = delimiter.charAt(0);

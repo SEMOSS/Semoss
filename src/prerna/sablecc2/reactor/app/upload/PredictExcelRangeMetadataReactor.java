@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.app.upload;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +30,9 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		if(!new File(filePath).exists()) {
+			throw new IllegalArgumentException("Unable to locate file");
+		}
 		String sheetName = this.keyValue.get(this.keysToGet[1]);
 		String sheetRange = this.keyValue.get(this.keysToGet[2]);
 		
