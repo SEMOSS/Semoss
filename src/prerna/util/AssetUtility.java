@@ -72,6 +72,15 @@ public class AssetUtility {
 				String appName = engine.getEngineName();
 				assetFolder = getAppAssetFolder(appName, appId);
 			}
+		} else if(in.isSavedInsight() && editRequired){
+			// we are about to send back the insight folder 
+			// since that is the default
+			// FE very rarely sends the INSIGHT_SPACE_KEY
+			// and edit is required
+			// make sure user has access
+			if(!SecurityInsightUtils.userCanEditInsight(in.getUser(), in.getEngineId(), in.getRdbmsId())) {
+				throw new IllegalArgumentException("User does not have permission for this insight");
+			}
 		}
 		assetFolder = assetFolder.replace('\\', '/');
 		return assetFolder;
