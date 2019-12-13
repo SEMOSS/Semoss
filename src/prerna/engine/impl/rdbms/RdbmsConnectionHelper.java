@@ -78,6 +78,8 @@ public class RdbmsConnectionHelper {
 
 		if (rdbmsType == RdbmsTypeEnum.ASTER) {
 			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		} else if (rdbmsType == RdbmsTypeEnum.ATHENA) {
+			connectionUrl += "://";
 		}
 		else if (rdbmsType == RdbmsTypeEnum.CASSANDRA) {
 			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
@@ -373,6 +375,9 @@ public class RdbmsConnectionHelper {
 					"UNION SELECT VIEW_NAME AS \"table_name\", 'VIEW' AS \"table_type\" " + 
 					"FROM ALL_VIEWS WHERE ORIGIN_CON_ID > 1";
 			tablesRs = con.createStatement().executeQuery(query);
+		} else if (driver == RdbmsTypeEnum.ATHENA){
+			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
+
 		} else {
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
 		}
@@ -387,7 +392,7 @@ public class RdbmsConnectionHelper {
 	 */
 	public static String[] getTableKeys(RdbmsTypeEnum driver) {
 		String[] arr = new String[3];
-		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE) {
+		if(driver == RdbmsTypeEnum.SNOWFLAKE|| driver == RdbmsTypeEnum.CLICKHOUSE ||driver == RdbmsTypeEnum.ATHENA) {
 			arr[0] = "TABLE_NAME";
 			arr[1] = "TABLE_TYPE";
 			arr[2] = "TABLE_SCHEM";
