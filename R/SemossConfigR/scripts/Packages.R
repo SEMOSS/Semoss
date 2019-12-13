@@ -117,11 +117,6 @@ install.packages("lsa", dependencies=TRUE)
 #install.packages("plyr", dependencies=TRUE)
 #install.packages("stringdist", dependencies=TRUE)
 
-# Edit Rules
-install.packages("validate", dependencies=TRUE)
-install.packages("yaml", dependencies=TRUE)
-install.packages("settings", dependencies=TRUE)
-
 # Xray
 install.packages("RcppProgress", dependencies=TRUE)
 install.packages("withr", dependencies=TRUE)
