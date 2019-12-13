@@ -25,6 +25,10 @@ missionControl <- function (dt, rule, resultsTable){
     tempResultsTable <- isNull(dt, rule)
     resultsTable <- rbind(resultsTable, tempResultsTable)
   }
+  else if (currRule == "Character Length") {
+    tempResultsTable <- charLengthRule(dt, rule)
+    resultsTable <- rbind(resultsTable, tempResultsTable)
+  }
   # Check for incorrect email format
   else if (currRule == "Email Format"){
     tempResultsTable <- regexComparison(dt, rule)
