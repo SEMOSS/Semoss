@@ -467,7 +467,10 @@ public class RJavaJriTranslator extends AbstractRJavaTranslator {
 			} else if(typeInt == REXP.XT_INT) {
 				retArr[colNum] = val.asInt();
 			} else if(typeInt == REXP.XT_ARRAY_INT) {
-				retArr[colNum] = val.asIntArray()[0];
+				int intValue = val.asIntArray()[0];
+				if(intValue != Integer.MIN_VALUE) {
+					retArr[colNum] = intValue;
+				}
 			} else if(typeInt == REXP.XT_STR) {
 				retArr[colNum] = val.asString();
 			} else if(typeInt == REXP.XT_ARRAY_STR) {
