@@ -45,11 +45,10 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
 				if (Utility.isStringType(dataType.toString())) {
-					String script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
+					String script = table + "$" + column + " <- gsub('[^\\\\.0-9]', '', " + table + "$" + column + ");";
 					try {
 						frame.executeRScript(script);
-						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table,
-								SemossDataType.DOUBLE.toString());
+						frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, SemossDataType.STRING.toString());
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -68,11 +67,11 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 					String newColumn = getCleanNewColName(frame, column + NUMERIC_COLUMN_NAME);
 					String update = table + "$" + newColumn + " <- \"\";";
 					frame.executeRScript(update);
-					update = table + "$" + newColumn + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
+					update = table + "$" + newColumn + " <- gsub('[^\\\\.0-9]', '', " + table + "$" + column + ");";
 					frame.executeRScript(update);
 					metaData.addProperty(table, table + "__" + newColumn);
 					metaData.setAliasToProperty(table + "__" + newColumn, newColumn);
-					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.DOUBLE.toString());
+					metaData.setDataTypeToProperty(table + "__" + newColumn, SemossDataType.STRING.toString());
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}
