@@ -14,18 +14,6 @@ install.packages("dplyr", dependencies=TRUE)
 # Clean Routines
 ###############################################################################
 
-# Collision Resolver
-install.packages("fuzzyjoin", dependencies=TRUE)
-install.packages("RJSONIO", dependencies=TRUE)
-install.packages("tidyr", dependencies=TRUE)
-install.packages("stringdist", dependencies=TRUE)
-install.packages("parallel", dependencies=TRUE)
-
-# Auto clean
-install.packages("tm", dependencies=TRUE)
-install.packages("cluster", dependencies=TRUE)
-#install.packages("stringdist", dependencies=TRUE)
-
 # Decode/Encode URI/URL
 install.packages("urltools", dependencies=TRUE)
 
@@ -64,9 +52,9 @@ install.packages("iterators", dependencies=TRUE)
 install.packages("mlapi", dependencies=TRUE)
 install.packages("compiler", dependencies=TRUE)
 install.packages("lubridate", dependencies=TRUE)
+install.packages("parallel", dependencies=TRUE)
 #install.packages("stringr", dependencies=TRUE)
 #install.packages("text2vec", dependencies=TRUE)
-#install.packages("parallel", dependencies=TRUE)
 #install.packages("lsa", dependencies=TRUE)
 #install.packages("plyr", dependencies=TRUE)
 #install.packages("R6", dependencies=TRUE)
@@ -76,10 +64,11 @@ install.packages("lubridate", dependencies=TRUE)
 install.packages("textreuse", dependencies=TRUE)
 
 # Advanced federation
-#install.packages("stringdist", dependencies=TRUE)
+install.packages("stringdist", dependencies=TRUE)
 
 # Fuzzy matching
 # Fuzzy Join 
+install.packages("fuzzyjoin", dependencies=TRUE)
 install.packages("rlang", dependencies=TRUE)
 install.packages("tibble", dependencies=TRUE)
 install.packages("R6", dependencies=TRUE)
@@ -125,7 +114,7 @@ install.packages("memoise", dependencies=TRUE)
 install.packages("tidyselect", dependencies=TRUE)
 #install.packages("textreuse", dependencies=TRUE)
 #install.packages("purrr", dependencies=TRUE)
-#install.packages("tidyr", dependencies=TRUE)
+install.packages("tidyr", dependencies=TRUE)
 #install.packages("devtools", dependencies=TRUE)
 #install.packages("digest", dependencies=TRUE)
 #install.packages("WikidataR", dependencies=TRUE)
@@ -196,7 +185,7 @@ set_config( config( ssl_verifypeer = 0L ) )
 devtools::install_github("twitter/AnomalyDetection", dependencies=TRUE)
 
 # Business rules
-install.packages("arules", dependencies=TRUE)
+#install.packages("arules", dependencies=TRUE)
 
 # Document Similarity
 #install.packages("R6", dependencies=TRUE)
@@ -227,10 +216,10 @@ install.packages("textmineR", dependencies=TRUE)
 install.packages("textreadr", dependencies=TRUE)
 install.packages("pdftools", dependencies=TRUE)
 install.packages("antiword", dependencies=TRUE)
+install.packages("tm", dependencies=TRUE)
 #install.packages("textreuse", dependencies=TRUE)
 #install.packages("stringr", dependencies=TRUE)
 #install.packages("dplyr", dependencies=TRUE)
-#install.packages("tm", dependencies=TRUE)
 #install.packages("udpipe", dependencies=TRUE)
 
 # Natural Language Search
