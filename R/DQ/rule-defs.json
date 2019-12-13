@@ -8,6 +8,14 @@
             "optionType": false,
             "ruleOptions": false
         },  
+		{
+            "name": "Character Length",
+            "ruleID": "Character Length",
+            "ruleDescription": "Identifies incorrect character length of cells",
+            "option": true,
+            "optionType": "input",
+            "ruleOptions": false
+        },  
         {
             "name": "Date Format",
             "ruleID": "Date Format",
