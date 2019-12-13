@@ -1238,11 +1238,6 @@ public class ReactorFactory {
 		rFrameHash.put("SummaryStats", prerna.sablecc2.reactor.frame.r.SummaryStatsReactor.class);
 		rFrameHash.put("Histogram", prerna.sablecc2.reactor.frame.r.HistogramReactor.class);
 		
-		// rules
-		rFrameHash.put("AddRule", prerna.sablecc2.reactor.frame.r.rules.AddRuleReactor.class);
-		rFrameHash.put("RunRules", prerna.sablecc2.reactor.frame.r.rules.RunRulesReactor.class);
-		rFrameHash.put("GetRuleTypes", prerna.sablecc2.reactor.frame.r.rules.GetRuleTypesReactor.class);
-		
 		// algorithms
 		rFrameHash.put("RunAssociatedLearning", prerna.sablecc2.reactor.frame.r.analytics.RunAssociatedLearningReactor.class);
 		rFrameHash.put("RunClassification", prerna.sablecc2.reactor.frame.r.analytics.RunClassificationReactor.class);
