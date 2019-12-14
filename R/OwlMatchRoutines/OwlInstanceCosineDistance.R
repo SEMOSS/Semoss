@@ -100,6 +100,8 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, sampleInstancesList
   library(lsa);
   
   colToDescriptionFrame <- generateDescriptionFrame(allTables, allColumns, sampleInstancesList);
+  # remove all tables/columns with no description
+  colToDescriptionFrame <- colToDescriptionFrame[colToDescriptionFrame$description != ""];
   
   MINWORDLENGTH<-2;
   WORDSTOEXCLUDE<-c('a',"the","this","these","their","that","those","then","and","an","as","over","with","within","without","when","why","how","in",
@@ -109,8 +111,7 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, sampleInstancesList
   tok_fun<-word_tokenizer;
   tokens<-itoken(colToDescriptionFrame$description, 
                   preprocessor = prep_fun, 
-                  tokenizer = tok_fun, 
-                  ids = colToDescriptionFrame$column, 
+                  tokenizer = tok_fun,
                   progressbar = FALSE);
   vocab <- create_vocabulary(tokens, stopwords = WORDSTOEXCLUDE, ngram=c(ngram_min=1L,ngram_max=1L));
   vocab <- vocab[nchar(vocab$term) >= MINWORDLENGTH,];
@@ -124,10 +125,10 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, sampleInstancesList
   # in addition to the column / tables
   dimensions <- dim(cosineSimMatrix);
   cosine_distance <- round(as.vector(cosineSimMatrix), 4);
-  col1 <- rep(allColumns, each=dimensions[2]);
-  col2 <- rep(allColumns, dimensions[1]);
-  col3 <- rep(allTables, each=dimensions[2]);
-  col4 <- rep(allTables, dimensions[1]);
+  col1 <- rep(colToDescriptionFrame$column, each=dimensions[2]);
+  col2 <- rep(colToDescriptionFrame$column, dimensions[1]);
+  col3 <- rep(colToDescriptionFrame$table, each=dimensions[2]);
+  col4 <- rep(colToDescriptionFrame$table, dimensions[1]);
   
   similarity_frame <- as.data.table(as.data.frame(cbind(col1, col3, col2, col4, cosine_distance)));
   names(similarity_frame) <- c('sourceCol', 'sourceTable', 'targetCol', 'targetTable', 'distance');
@@ -146,14 +147,10 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, sampleInstancesList
   # add in descriptions
   similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x=c('sourceTable','sourceCol'), by.y=c('table','column'), allow.cartesian=TRUE);
   colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "sourceColumnDescription";
-  # ignore where description is empty
-  similarity_frame <- similarity_frame[similarity_frame$sourceColumnDescription != ""];
   
   # add in descriptions
   similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x=c('targetTable','targetCol'), by.y=c('table','column'), allow.cartesian=TRUE);
   colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "targetColumnDescription";
-  # ignore where description is empty
-  similarity_frame <- similarity_frame[similarity_frame$targetColumnDescription != ""];
   
   rm(allTables, allColumns, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix, myLSAspace,
      dimensions, cosine_distance, col1, col2, col3, col4);
