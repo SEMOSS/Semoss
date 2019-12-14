@@ -77,10 +77,42 @@ public class FindSemanticColumnOwlRelationshipsReactor extends AbstractMetaEdito
 		String allColumnsVar = "allColumns_" + Utility.getRandomString(6);
 		script.append(allColumnsVar).append(" <- ").append(RSyntaxHelper.createStringRColVec(columnNamesList)).append(";");
 		
+		// grab existing definitions for the inputs
+		// well, this is definitely RDBMS specific so...
+		StringBuilder existingDefinitions = null;
+		int size = tableNamesList.size();
+		for(int i = 0; i < size; i++) {
+			String tName = tableNamesList.get(i);
+			String cName = columnNamesList.get(i);
+			String description = app.getDescription("http://semoss.org/ontologies/Relation/Contains/" + cName + "/" + tName);
+			if(description != null && !description.isEmpty()) {
+				if(existingDefinitions == null) {
+					existingDefinitions = new StringBuilder("list(");
+					existingDefinitions.append("c(\"").append(tName)
+						.append("\",\"").append(cName)
+						// escape quotes
+						.append("\",\"").append(description.replace("\"", "\\\""))
+						.append("\")");
+				} else {
+					existingDefinitions.append(", c(\"").append(tName)
+					.append("\",\"").append(cName)
+					// escape quotes
+					.append("\",\"").append(description.replace("\"", "\\\""))
+					.append("\")");
+				}
+			}
+		}
+		
 		// now that we have defined the inputs, just need to run the "main" method of the script
 		String matchDataFrame = "matches_" + Utility.getRandomString(6);
-		script.append(matchDataFrame).append( "<- getDocumentCosineSimilarity(").append(allTablesVar).append(",").append(allColumnsVar).append(");");
-
+		if(existingDefinitions == null) {
+			script.append(matchDataFrame).append( "<- getDocumentCosineSimilarity(").append(allTablesVar).append(",").append(allColumnsVar).append(");");
+		} else {
+			// close the list
+			existingDefinitions.append(")");
+			script.append(matchDataFrame).append( "<- getDocumentCosineSimilarity(").append(allTablesVar).append(",").append(allColumnsVar)
+				.append(",").append(existingDefinitions.toString()).append(");");
+		}
 		// execute!
 		logger.info("Running script to auto generate descriptions...");
 		logger.info("Running script to build term document frequency for description similarity...");
