@@ -25,6 +25,7 @@ ReplaceColumnValue,clean-replace
 RegexReplaceColumnValue,clean-replace
 SplitColumns,clean-split
 SplitUnpivot,clean-split-unpivot
+TimestampData,clean-timestamp-data
 Transpose,clean-transpose
 TrimColumns,clean-trim
 Unpivot,clean-unpivot
