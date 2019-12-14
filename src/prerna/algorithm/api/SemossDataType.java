@@ -34,6 +34,9 @@ public enum SemossDataType {
 		if(dataType == null) {
 			return null;
 		}
+		if(dataType.startsWith("TYPE:")) {
+			dataType = dataType.substring("TYPE:".length());
+		}
 		
 		if(Utility.isBoolean(dataType)) {
 			return SemossDataType.BOOLEAN;

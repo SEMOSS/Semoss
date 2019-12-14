@@ -40,6 +40,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SQLiteQueryUtil();
 		} else if(dbType == RdbmsTypeEnum.SNOWFLAKE) {
 			queryUtil = new SnowFlakeQueryUtil();
+		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
+			queryUtil = new PostgresQueryUtil();
 		}
 		// base will work for most situations
 		else {
@@ -71,6 +73,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SQLiteQueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.SNOWFLAKE) {
 			queryUtil = new SnowFlakeQueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
+			queryUtil = new PostgresQueryUtil(connectionUrl, username, password);
 		}
 		// base will work for most situations
 		else {
@@ -100,6 +104,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SQLiteQueryUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == RdbmsTypeEnum.SNOWFLAKE) {
 			queryUtil = new SnowFlakeQueryUtil(dbType, hostname, port, schema, username, password);
+		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
+			queryUtil = new PostgresQueryUtil(dbType, hostname, port, schema, username, password);
 		}
 		// base will work for most situations
 		else {
