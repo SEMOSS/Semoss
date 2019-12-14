@@ -98,6 +98,9 @@ public class PredictOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		}
 		// return only the top 5 results
 		List<String> topLogicalNames = getTopNResults(logicalNames, 5);
+		if(topLogicalNames.isEmpty()) {
+			throw new SemossPixelException(new NounMetadata("Unable to generate logicla names for the input column", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
 		
 //		StringBuilder script = new StringBuilder();
 //		// first source the file where we have the main method for running
