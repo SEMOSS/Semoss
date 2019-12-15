@@ -375,8 +375,10 @@ public class PixelStreamUtility {
 						List<Map<String, Object>> headerInfo = task.getHeaderInfo();
 						if(headerInfo != null) {
 							headers = new String[headerInfo.size()];
+							rawHeaders = new String[headerInfo.size()];
 							for(int i = 0; i < headers.length; i++) {
 								headers[i] = headerInfo.get(i).get("alias") + "";
+								rawHeaders[i] = headerInfo.get(i).get("header") + "";
 							}
 						}
 					}
