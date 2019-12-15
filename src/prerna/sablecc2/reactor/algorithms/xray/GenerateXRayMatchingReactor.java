@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -129,6 +130,32 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		logger.info("Done matching");
 		
 		this.rJavaTranslator.executeEmptyR(rFrameName + "<- as.data.table(" + rFrameName + ");");
+		
+		// see if we can replace app ids with app name
+		boolean replaceIds = true;
+		List<String> appNames = new Vector<String>(appIds.size());
+		for(int i = 0; i < appIds.size(); i++) {
+			String appName = MasterDatabaseUtility.getEngineAliasForId(appIds.get(i));
+			if(appNames.contains(appName)) {
+				replaceIds = false;
+				break;
+			}
+			appNames.add(appName);
+		}
+		if(replaceIds) {
+			StringBuilder replaceSyntax = new StringBuilder();
+			String sourceDbId = rFrameName + "$Source_Database_Id";
+			String targetDbId = rFrameName + "$Target_Database_Id";
+			for(int i = 0; i < appIds.size(); i++) {
+				String appId = appIds.get(i);
+				String appName = appNames.get(i);
+				
+				replaceSyntax.append(sourceDbId + "[" + sourceDbId + " == \"" + appId + "\"] <- \"" + appName + "\";");
+				replaceSyntax.append(targetDbId + "[" + targetDbId + " == \"" + appId + "\"] <- \"" + appName + "\";");
+			}
+			this.rJavaTranslator.executeEmptyR(replaceSyntax.toString());
+		}
+		
 		RDataTable matchingFrame = createNewFrameFromVariable(rFrameName);
 		NounMetadata noun = new NounMetadata(matchingFrame, PixelDataType.FRAME, PixelOperationType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully ran LSH for matching column values"));
