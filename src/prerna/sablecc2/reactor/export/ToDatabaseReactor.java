@@ -235,10 +235,15 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 						}
 					} else if(type == SemossDataType.DOUBLE) {
 						if(nextRow[colIndex] instanceof Number) {
-							ps.setDouble(colIndex + 1, ((Number) nextRow[colIndex]).doubleValue());
+							double d = ((Number) nextRow[colIndex]).doubleValue();
+							if(Double.isFinite(d)) {
+								ps.setDouble(colIndex + 1, d);
+							} else {
+								ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
+							}
 						} else {
 							Double value = Utility.getDouble(nextRow[colIndex] + "");
-							if (value != null) {
+							if (value != null && Double.isFinite(value)) {
 								ps.setDouble(colIndex + 1, value);
 							} else {
 								ps.setNull(colIndex + 1, java.sql.Types.DOUBLE);
