@@ -15,6 +15,12 @@ import org.wikidata.wdtk.wikibaseapi.WikibaseDataFetcher;
 
 public class WikiDescriptionExtractor {
 
+	private static List<String> ignoreResultsList = new Vector<String>();
+	static {
+		ignoreResultsList.add("Wikimedia disambiguation page");
+		ignoreResultsList.add("scientific article published on");
+	}
+	
 	public static final Logger LOGGER = LogManager.getLogger(WikiDescriptionExtractor.class.getName());
 	private Logger logger;
 
@@ -53,8 +59,20 @@ public class WikiDescriptionExtractor {
 		while (numReturns > 0) {
 			try {
 				String foundDescription = completionService.take().get();
-				if(foundDescription != null && !foundDescription.trim().isEmpty()) {
-					descriptionList.add(foundDescription.trim());
+				if(foundDescription != null) {
+					foundDescription = foundDescription.trim();
+					if(!foundDescription.isEmpty()) {
+						boolean ignoreDescription = false;;
+						IGNORE_LOOP : for(String ignore : ignoreResultsList) {
+							if(foundDescription.startsWith(ignore)) {
+								ignoreDescription = true;
+								break IGNORE_LOOP;
+							}
+						}
+						if(!ignoreDescription) {
+							descriptionList.add(foundDescription.trim());
+						}
+					}
 				}
 				numReturns--;
 			} catch (Exception e) {
