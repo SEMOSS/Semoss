@@ -1,8 +1,8 @@
-getColumnFuzzyMatches<-function(allTables, allColumns) {
+getColumnFuzzyMatches<-function(allTables, allColumns, singleDir=TRUE) {
   library(stringdist);
   library(data.table);
   
-  uniqueColumnNames = unique(allColumns);
+  uniqueColumnNames = sort(unique(allColumns));
   distanceMatrix <-stringdistmatrix(uniqueColumnNames,uniqueColumnNames, method="jw", p=0.1);
   
   dimensions <- dim(distanceMatrix);
@@ -11,6 +11,9 @@ getColumnFuzzyMatches<-function(allTables, allColumns) {
   col2 <- rep(uniqueColumnNames, dimensions[1]);
   
   matching_frame <- as.data.table(as.data.frame(cbind(col1, col2, distance_vector)));
+  if(singleDir) {
+	matching_frame <- matching_frame[which(as.vector(lower.tri(distanceMatrix, diag=TRUE)))]
+  }
   names(matching_frame) <- c('sourceCol', 'targetCol', 'distance');
   # remove exact column name matches
   matching_frame <- matching_frame[toupper(sourceCol) != toupper(targetCol)];
