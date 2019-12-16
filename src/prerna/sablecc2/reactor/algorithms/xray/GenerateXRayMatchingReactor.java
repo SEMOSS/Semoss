@@ -28,8 +28,8 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 	
 	public GenerateXRayMatchingReactor() {
 		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), 
-				SIMILARITY_KEY, CANDIDATE_KEY, MATCH_SAME_DB_KEY, ReactorKeysEnum.CONFIG.getKey()};
+				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.CONFIG.getKey(),
+				SIMILARITY_KEY, CANDIDATE_KEY, MATCH_SAME_DB_KEY};
 	}
 	
 	@Override
@@ -38,6 +38,7 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		hashReactor.In();
 		hashReactor.setNounStore(this.store);
 		hashReactor.setInsight(this.insight);
+		hashReactor.keysToGet = this.keysToGet;
 		NounMetadata successfulHash = hashReactor.execute();
 		
 		Map<String, Object> filesHash = null;
@@ -56,6 +57,7 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		// since it already had to grab from store
 		init();
 		Logger logger = this.getLogger(CLASS_NAME);
+		this.keyValue = hashReactor.keyValue;
 		List<String> appIds = hashReactor.getAppIds();
 		// get the exact files that were generated
 		String folderPath = hashReactor.getFolderPath();
@@ -119,14 +121,15 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 
 		logger.info("Running matching routine");
 		String rFrameName = "xray_" + Utility.getRandomString(4);
-		this.rJavaTranslator.executeEmptyR(rFrameName + " <- run_lsh_matching(" 
+		String script = rFrameName + " <- run_lsh_matching(" 
 				+ RSyntaxHelper.createStringRColVec(filePaths) + ", " 
 				+ nMinhash
 				+ ", " + nBands 
 				+ ", " + similarityThreshold 
 				+ ", " + instancesThreshold 
 				+ ", \";\", " 
-				+ matchSameDB.toString().toUpperCase() + ");");
+				+ matchSameDB.toString().toUpperCase() + ");";
+		this.rJavaTranslator.executeEmptyR(script);
 		logger.info("Done matching");
 		
 		this.rJavaTranslator.executeEmptyR(rFrameName + "<- as.data.table(" + rFrameName + ");");
