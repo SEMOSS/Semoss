@@ -86,11 +86,11 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, providedDefs=NULL, 
   tableToCol <- data.table(allTables, allColumns);
   names(tableToCol) <- c('table', 'column');
   colToDescriptionFrame <- merge(colToDescriptionFrame, tableToCol, by.x='column', by.y='column', allow.cartesian=TRUE);
-  if(singleDir) {
+  #if(singleDir) {
 	# we need to order the array by the column names
 	# so we have a predictable directionality 
-	colToDescriptionFrame <- colToDescriptionFrame[order(rank(table))]
-  }
+	#colToDescriptionFrame <- colToDescriptionFrame[order(rank(table))]
+  #}
   
   if(!is.null(providedDefs)) {
 	# add in the defined terms
