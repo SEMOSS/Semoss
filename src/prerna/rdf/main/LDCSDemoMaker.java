@@ -17,15 +17,15 @@ public class LDCSDemoMaker {
 
 	static boolean use_h2 = false;
 	
-	static String[] claimsHeaders = new String[] {"BILLABLE_PERIOD", "DIAGNOSIS", "ENCOUNTER", "ID", "ORGANIZATION", "SOCIAL_SECURITY_NUM", "TOTAL"};
+	static String[] claimsHeaders = new String[] {"BILLABLE_PERIOD", "DIAGNOSIS", "ENC_ID", "ID", "ORGANIZATION", "SOCIAL_SECURITY_NUM", "TOTAL"};
 	static String[] claimsTypes = new String[] {"DATE", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "FLOAT"};
 	
 	// ENCOUNTERS IS SLIGHTLY DIFFERENT
 	// IT HAS THE THE PROC_DATE AS WELL
-	static String[] encountersHeaders = new String[] {"ENC_CD", "ENC_DESC", "ENC_DT", "ENC_REASON_CD", "ENC_REASON_DESC", "ID", "SSN", "FACILITY" };
+	static String[] encountersHeaders = new String[] {"ENC_CD", "ENC_DESC", "ENC_DT", "ENC_REASON_CD", "ENC_REASON_DESC", "ENC_ID", "SSN", "FACILITY" };
 	static String[] encountersTypes = new String[] {"VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "FLOAT", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)"};
 	
-	static String[] encountersFullHeaders = new String[] {"ENC_CD", "ENC_DESC", "ENC_DT", "ENC_REASON_CD", "ENC_REASON_DESC", "ID", "SSN", "FACILITY", "PROC_DATE" };
+	static String[] encountersFullHeaders = new String[] {"ENC_CD", "ENC_DESC", "ENC_DT", "ENC_REASON_CD", "ENC_REASON_DESC", "ENC_ID", "SSN", "FACILITY", "PROC_DATE" };
 	static String[] encountersFullTypes = new String[] {"VARCHAR(100)", "VARCHAR(100)", "DATE", "FLOAT", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "VARCHAR(100)", "DATE"};
 	
 	/*
