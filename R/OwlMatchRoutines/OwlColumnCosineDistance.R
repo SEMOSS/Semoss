@@ -73,7 +73,7 @@ generateDescriptionFrame<-function(uniqueValues){
   return(colToDescriptionFrame);
 }
 
-getDocumentCosineSimilarity<-function(allTables, allColumns, providedDefs=NULL) {
+getDocumentCosineSimilarity<-function(allTables, allColumns, providedDefs=NULL, singleDir=TRUE) {
   library(text2vec);
   library(data.table);
   library(lsa);
@@ -86,6 +86,11 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, providedDefs=NULL) 
   tableToCol <- data.table(allTables, allColumns);
   names(tableToCol) <- c('table', 'column');
   colToDescriptionFrame <- merge(colToDescriptionFrame, tableToCol, by.x='column', by.y='column', allow.cartesian=TRUE);
+  if(singleDir) {
+	# we need to order the array by the column names
+	# so we have a predictable directionality 
+	colToDescriptionFrame <- colToDescriptionFrame[order(rank(table))]
+  }
   
   if(!is.null(providedDefs)) {
 	# add in the defined terms
@@ -134,6 +139,9 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, providedDefs=NULL) 
   col4 <- rep(colToDescriptionFrame$table, dimensions[1]);
   
   similarity_frame <- as.data.table(as.data.frame(cbind(col1, col3, col2, col4, cosine_distance)));
+  if(singleDir) {
+	similarity_frame <- similarity_frame[which(as.vector(lower.tri(cosineSimMatrix, diag=TRUE)))]
+  }
   names(similarity_frame) <- c('sourceCol', 'sourceTable', 'targetCol', 'targetTable', 'distance');
   # remove exact column name matches
   similarity_frame <- similarity_frame[toupper(sourceCol) != toupper(targetCol) & toupper(sourceTable) != toupper(targetTable)];
@@ -146,15 +154,15 @@ getDocumentCosineSimilarity<-function(allTables, allColumns, providedDefs=NULL) 
   # the matching will be NaN
   # so we will drop those rows
   similarity_frame <- similarity_frame[!is.na(distance)];
-   
-  # add in descriptions
-  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x=c('sourceTable','sourceCol'), by.y=c('table','column'), allow.cartesian=TRUE);
-  colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "sourceColumnDescription";
-  
+    
   # add in descriptions
   similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x=c('targetTable','targetCol'), by.y=c('table','column'), allow.cartesian=TRUE);
   colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "targetColumnDescription";
  
+  # add in descriptions
+  similarity_frame <- merge(similarity_frame,colToDescriptionFrame, by.x=c('sourceTable','sourceCol'), by.y=c('table','column'), allow.cartesian=TRUE);
+  colnames(similarity_frame)[which(names(similarity_frame) == "description")] <- "sourceColumnDescription";
+
   rm(allTables, allColumns, uniqueColumnNames, prep_fun, tok_fun, tokens, vocab, vectorizer, dtm, myMatrix, cosineSimMatrix,
     dimensions, cosine_distance, col1, col2, tableToCol);
   
