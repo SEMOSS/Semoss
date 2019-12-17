@@ -4,12 +4,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import prerna.om.Insight;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.insight.InsightUtility;
 
 public class ModifyInsightDatasourceReactor extends AbstractReactor {
 
@@ -28,7 +30,12 @@ public class ModifyInsightDatasourceReactor extends AbstractReactor {
 		}
 		String fullRecipe = b.toString();
 		
-		List<String> newRecipe = PixelUtility.modifyInsightDatasource(this.insight.getUser(), fullRecipe, replacementOptions);
+		// make a copy of the insight
+		// so we do not mess up the state of execution
+		Insight cInsight = new Insight();
+		cInsight.setInsightId(this.insight.getInsightId());
+		InsightUtility.transferDefaultVars(this.insight, cInsight);
+		List<String> newRecipe = PixelUtility.modifyInsightDatasource(cInsight, fullRecipe, replacementOptions);
 		
 		//TODO: added this in for testing!!!
 		this.insight.getPixelRecipe().clear();
