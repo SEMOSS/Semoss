@@ -1,6 +1,9 @@
 package prerna.sablecc2.reactor.frame.r;
 
+import java.util.regex.Pattern;
+
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.ds.r.RDataTable;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -23,7 +26,10 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 	 * 2) the new value
 	 * 3) the filter condition
 	 */
-	
+
+	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
+	private static final String QUOTE = "\"";
+
 	public UpdateRowValuesReactor() {
 		this.keysToGet = new String[] { 
 				ReactorKeysEnum.COLUMN.getKey(), 
@@ -42,28 +48,20 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		String table = frame.getName();
 
 		// get inputs
-		String updateCol = getUpdateColumn();
+		String column = getUpdateColumn();
 		// separate the column name from the frame name
-		if (updateCol.contains("__")) {
-			updateCol = updateCol.split("__")[1];
+		if (column.contains("__")) {
+			column = column.split("__")[1];
 		}
 
 		// second noun will be the value to update (the new value)
-		String value = getNewValue();
+		String newValue = getNewValue();
 
-		// get data type of column being updated
-		SemossDataType updateDataType = frame.getMetaData().getHeaderTypeAsEnum(table + "__" + updateCol);
+		// use method to retrieve a single column type
+		String columnSelect = table + "$" + column;
+		String colDataType = getColumnType(table, column);
+		SemossDataType sType = SemossDataType.convertStringToDataType(colDataType);
 
-		// account for quotes around the new value if needed
-		if (updateDataType == SemossDataType.STRING || updateDataType == SemossDataType.FACTOR) {
-			value = "\"" + value + "\"";
-		}
-
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		///////////////////// QUERY FILTER//////////////////////////////////
-		///////////////////////////////////////////////////////////////////
-		
 		// the third noun will be a filter; we can get the qs from this
 		SelectQueryStruct qs = getQueryStruct();
 		// get all of the filters from this querystruct
@@ -78,28 +76,88 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		ri.setColDataTypes(frame.getMetaData().getHeaderToTypeMap());
 		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true);
 
-		// execute the r scripts
-		if (rFilterBuilder.length() > 0) {
-			String script = table + "$" + updateCol + "[" + rFilterBuilder.toString() + "] <- " + value + ";";
-			this.rJavaTranslator.runR(script);
+		if (rFilterBuilder.length() <= 0) {
+			throw new IllegalArgumentException("Must define a filter criteria");
 		}
 		
+		String script = null;
+		
+		if(sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {
+			// make sure the new value can be properly casted to a number
+			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+				newValue = "NaN";
+			} else if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+				throw new IllegalArgumentException("Cannot update a numeric field with string value = " + newValue);
+			}
+			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- " + newValue + ";";
+
+			
+		} else if(sType == SemossDataType.DATE) {
+			// make sure the new value can be properly casted to a date
+			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+				newValue = "NaN";
+			} else {
+				SemossDate newD = SemossDate.genDateObj(newValue);
+				if(newD == null) {
+					throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+				}
+				newValue = newD.getFormatted("yyyy-MM-dd");
+			}
+			
+			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- " + QUOTE + newValue + QUOTE + ";";
+						
+		} else if(sType == SemossDataType.TIMESTAMP) {
+			// make sure the new value can be properly casted to a timestamp
+			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+				newValue = "NaN";
+			} else {
+				SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
+				if(newD == null) {
+					throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+				}
+				newValue = newD.getFormatted("yyyy-MM-dd HH:mm:ss");
+			}
+			
+			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- " + QUOTE + newValue + QUOTE + ";";
+			
+		} else if(sType == SemossDataType.STRING) {
+			// escape and update
+			String escapedNewValue = newValue.replace("\"", "\\\"");
+			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- " + QUOTE + escapedNewValue + QUOTE + ";";
+
+		} else if(sType == SemossDataType.FACTOR) {
+			// need to convert factor to string since factor is defined as a predefined list of values
+			script = columnSelect + "<- as.character(" + columnSelect + ")";
+			// this is same as string now
+			// escape and update
+			String escapedNewValue = newValue.replace("\"", "\\\"");
+			script += columnSelect + "[" + rFilterBuilder.toString() + "] <- " + QUOTE + escapedNewValue + QUOTE + ";";
+			// turn back to factor
+			script += columnSelect + "<- as.factor(" + columnSelect + ")";
+			
+			// TODO: account for ordered factor ...
+			// TODO: account for ordered factor ...
+		}
+		
+		// execute the r scripts
+		this.rJavaTranslator.runR(script);
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
 				frame, 
 				"UpdateRowValues", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private String getUpdateColumn() {
 		GenRowStruct inputsGRS = this.store.getNoun(this.keysToGet[0]);
 		if (inputsGRS == null) {
