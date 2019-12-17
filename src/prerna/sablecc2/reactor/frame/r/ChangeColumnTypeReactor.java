@@ -21,7 +21,7 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 	
 	public ChangeColumnTypeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), "format" };
 	}
 
 	@Override
@@ -85,7 +85,10 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				// we have a different script to run if it is a str to date
 				// conversion
 				// define date format
-				String dateFormat = "%Y-%m-%d";
+				String dateFormat = this.keyValue.get(this.keysToGet[2]);
+				if(dateFormat == null) {
+					dateFormat = "%Y-%m-%d";
+				}
 				// get the column type of the existing column
 				String type = getColumnType(table, column);
 				String tempTable = Utility.getRandomString(6);
