@@ -686,7 +686,13 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				// we added a null check above
 				filterBuilder.append("OR ");
 			}
-			if(thisComparator.trim().equals("?like")) {
+			boolean isSearch = thisComparator.trim().equals(SEARCH_COMPARATOR);
+			boolean isNotSearch = thisComparator.trim().contentEquals(NOT_SEARCH_COMPARATOR);
+			if(isSearch || isNotSearch) {
+				String thisFilterSearch = " LIKE ";
+				if(isNotSearch) {
+					thisFilterSearch = " NOT" + thisFilterSearch;
+				}
 				// like requires OR statements for multiple
 				// cannot use same logic as IN :(
 				int i = 0;
@@ -702,7 +708,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				} else {
 					filterBuilder.append(leftSelectorExpression);
 				}
-				filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+				filterBuilder.append(") " + thisFilterSearch + " (").append(myFilterFormatted.toLowerCase()).append(")");
 				i++;
 				for(; i < size; i++) {
 					newObjects = new Vector<Object>();
@@ -715,7 +721,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					} else {
 						filterBuilder.append(leftSelectorExpression);
 					}
-					filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
+					filterBuilder.append(") " + thisFilterSearch + " (").append(myFilterFormatted.toLowerCase()).append(")");
 				}
 				filterBuilder.append(")");
 			} else {

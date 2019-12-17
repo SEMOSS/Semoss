@@ -495,10 +495,14 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			// account for NA
 			.append(") | ( is.na(").append(lSelector).append(") & !is.na(").append(rSelector)
 			.append(") ) | ( !is.na(").append(lSelector).append(") & is.na(").append(rSelector).append(")) )");
-		} else if(thisComparator.equals("?like")) {
+		} else if(thisComparator.equals(SEARCH_COMPARATOR)) {
 			// some operation
 			filterBuilder.append("as.character(").append(lSelector)
 			.append(") %like% as.character(").append(rSelector).append(")");
+		} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+			// some operation
+			filterBuilder.append(" !(as.character(").append(lSelector)
+			.append(") %like% as.character(").append(rSelector).append(")) ");
 		} else {
 			if(thisComparator.equals("==")) {
 				filterBuilder.append("(").append(lSelector).append(" == ").append(rSelector)
@@ -626,11 +630,17 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					}
 				}
 			} else {
-				if(thisComparator.equals("?like")) {
+				if(thisComparator.equals(SEARCH_COMPARATOR)) {
 					if(SemossDataType.STRING == leftDataType) {
 						filterBuilder.append("tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append(")");
 					} else {
 						filterBuilder.append("tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append(")");
+					}
+				} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+					if(SemossDataType.STRING == leftDataType) {
+						filterBuilder.append("!(tolower(").append(leftSelectorExpression).append(") %like% tolower(").append(myFilterFormatted).append("))");
+					} else {
+						filterBuilder.append("!(tolower(as.character(").append(leftSelectorExpression).append(")) %like% tolower(").append(myFilterFormatted).append("))");
 					}
 				} else {
 					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
