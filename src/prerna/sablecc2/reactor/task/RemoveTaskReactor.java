@@ -16,6 +16,9 @@ public class RemoveTaskReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		// get the task id
 		String taskId = this.curRow.get(0).toString();
+		if(insight.getTaskStore().getTask(taskId) == null) {
+			throw new IllegalArgumentException("Could not find task id = " + taskId);
+		}
 		return new NounMetadata(taskId, PixelDataType.REMOVE_TASK, PixelOperationType.REMOVE_TASK);
 	}
 }
