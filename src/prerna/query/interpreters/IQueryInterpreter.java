@@ -9,6 +9,7 @@ import prerna.query.querystruct.AbstractQueryStruct;
 public interface IQueryInterpreter {
 	
 	String SEARCH_COMPARATOR = "?like";
+	String NOT_SEARCH_COMPARATOR = "?nlike";
 
 	void setQueryStruct(AbstractQueryStruct qs);
 

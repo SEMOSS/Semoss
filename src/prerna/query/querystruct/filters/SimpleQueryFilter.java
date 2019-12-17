@@ -20,7 +20,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 */
 	public static enum FILTER_TYPE {COL_TO_QUERY, QUERY_TO_COL, COL_TO_COL, COL_TO_VALUES, VALUES_TO_COL, VALUE_TO_VALUE};
 		
-	private String comparator = null; //'=', '!=', '<', '<=', '>', '>=', '<>', '?like'
+	private String comparator = null; //'=', '!=', '<', '<=', '>', '>=', '<>', '?like', '?nlike'
 	private NounMetadata lComparison = null; //the column we want to filter
 	private NounMetadata rComparison = null; //the values to bind the filter on
 	
@@ -163,7 +163,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * @return
 	 */
 	private boolean isAdditive(String comparator) {
-		if(this.comparator.equals("==") || this.comparator.equals("!=") || this.comparator.equals("<>") || this.comparator.equals("?like")) {
+		if(this.comparator.equals("==") || this.comparator.equals("!=") || this.comparator.equals("<>") || this.comparator.equals("?like") || this.comparator.equals("?nlike")) {
 			return true;
 		}
 		return false;
