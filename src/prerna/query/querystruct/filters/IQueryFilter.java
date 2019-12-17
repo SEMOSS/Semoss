@@ -79,7 +79,8 @@ public interface IQueryFilter {
 		} else if(comparator.equals("<=")) {
 			return ">=";
 		} else if(comparator.equals("?like")) {
-			// ughhhh... return the same thing
+			return "?nlike";
+		} else if(comparator.equals("?nlike")) {
 			return "?like";
 		}
 		return null;

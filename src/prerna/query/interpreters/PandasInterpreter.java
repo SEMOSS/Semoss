@@ -19,6 +19,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
@@ -222,28 +223,26 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			
 	}
 	
-	private void processOrderBy()
-	{
+	private void processOrderBy() {
 		List <QueryColumnOrderBySelector> qcos = ((SelectQueryStruct) this.qs).getOrderBy();
-		for(int orderIndex = 0;orderIndex < qcos.size();orderIndex++)
-		{
+		for(int orderIndex = 0; orderIndex < qcos.size(); orderIndex++) {
 			String sort = null;
 			String alias = qcos.get(orderIndex).getAlias();
-			if(alias.length() == 0)
+			if(alias.length() == 0) {
 				alias = qcos.get(orderIndex).getTable();
-			String sortDir = qcos.get(orderIndex).getSortDirString();
-			if(sortDir.equalsIgnoreCase("ASC"))
+			}
+			ORDER_BY_DIRECTION sortDir = qcos.get(orderIndex).getSortDir();
+			if(sortDir == ORDER_BY_DIRECTION.ASC) {
 				sort = "True";
-			else
+			} else {
 				sort = "False";
-			
+			}
 			StringBuilder orderByClause = null;
-			
-			if(orderHash.containsKey(alias))
+			if(orderHash.containsKey(alias)) {
 				orderByClause = orderHash.get(alias);
+			}
 			
-			if(orderByClause != null)
-			{
+			if(orderByClause != null) {
 				// check if it is aggregate
 				// at this point the alias does it
 				//addOrder(orderByClause, sort);
@@ -695,10 +694,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			// account for NA
 			.append(") | ( is.na(").append(lSelector).append(") & !is.na(").append(rSelector)
 			.append(") ) | ( !is.na(").append(lSelector).append(") & is.na(").append(rSelector).append(")) )");
-		} else if(thisComparator.equals("?like")) {
+		} else if(thisComparator.equals(SEARCH_COMPARATOR)) {
 			// some operation
 			filterBuilder.append("as.character(").append(lSelector)
 			.append(") %like% as.character(").append(rSelector).append(")");
+		} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+			// some operation
+			filterBuilder.append("!(as.character(").append(lSelector)
+			.append(") %like% as.character(").append(rSelector).append("))");
 		} else {
 			if(thisComparator.equals("==")) {
 				filterBuilder.append("(").append(lSelector).append(" == ").append(rSelector)
@@ -832,12 +835,19 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			else {
 				// need to see this a bit more when we get here
 				// dont know how the other types of comparator are being sent here
-				if(thisComparator.equals("?like")) {
+				if(thisComparator.equals(SEARCH_COMPARATOR)) {
 					if(SemossDataType.STRING == leftDataType) {
 						// t[t['Title'].str.upper().str.contains('ALA')]
 						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
 					} else {
 						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
+					}
+				} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+					if(SemossDataType.STRING == leftDataType) {
+						// t[t['Title'].str.upper().str.contains('ALA')]
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False) == False");
+					} else {
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False) == False");
 					}
 				} else {
 					filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
