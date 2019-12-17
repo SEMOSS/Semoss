@@ -2,7 +2,9 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.List;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -21,6 +23,8 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 	 * 2) the old value
 	 * 3) the new value
 	 */
+	
+	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
 	
 	public ReplaceColumnValueReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
@@ -52,23 +56,60 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 		
 			// use method to retrieve a single column type
 			String colDataType = getColumnType(table, column);
+			SemossDataType sType = SemossDataType.convertStringToDataType(colDataType);
 			
-			// account for quotes that will be needed in the query with string values
-			String neededQuote = "";
-			if (colDataType.equalsIgnoreCase("string") || colDataType.equalsIgnoreCase("character")) {
-				neededQuote = "\"";
-			} else if (colDataType.equalsIgnoreCase("factor")) {
-				changeColumnType(frame, table, column, "string", "%Y/%m/%d");
-				neededQuote = "\"";
-			}
+			if(sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {
+				// make sure the new value can be properly casted to a number
+				if(newValue.isEmpty() || newValue.equals("null") || newValue.equals("NA") || newValue.equals("NaN")) {
+					newValue = "NaN";
+				} else if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+					throw new IllegalArgumentException("Cannot update a numeric field with string value = " + newValue);
+				}
 				
-			if (oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("NA")) {
-				script.append(table + "$" + column + "[is.na(" + table + "$" + column + ")] <- " + neededQuote + newValue + neededQuote + ";");
-			} else {
-				script.append(table + "$" + column + "[" + table + "$" + column + " == " + neededQuote + oldValue + neededQuote + "] <- " + neededQuote + newValue + neededQuote + ";");
+				// account for nulls
+				// account for NA
+				// account for NaN
+				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
+					script.append(table + "$" + column + "[is.na(" + table + "$" + column + ")] <- " + newValue + ";");
+				} else {
+					script.append(table + "$" + column + "[" + table + "$" + column + " == " + oldValue + "] <- " + newValue + ";");
+				}
+			} else if(sType == SemossDataType.DATE) {
+				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
+					script.append(table + "$" + column + "[is.na(" + table + "$" + column + ")] <- as.Date(\"" + newValue + "\");");
+				} else {
+					script.append(table + "$" + column + "[" + table + "$" + column + " == \"" + oldValue + "\"] <- as.Date(\"" + newValue + "\");");
+				}
+				
+			} else if(sType == SemossDataType.TIMESTAMP) {
+				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
+					script.append(table + "$" + column + "[is.na(" + table + "$" + column + ")] <- as.POSIXct(\"" + newValue + "\");");
+				} else {
+					script.append(table + "$" + column + "[" + table + "$" + column + " == \"" + oldValue + "\"] <- as.POSIXct(\"" + newValue + "\");");
+				}
+				
+			} else if(sType == SemossDataType.STRING) {
+				// escape and update
+				String escapedOldValue = oldValue.replace("\"", "\\\"");
+				String escapedNewValue = newValue.replace("\"", "\\\"");
+				script.append(table + "$" + column + "[" + table + "$" + column + " == \"" + escapedOldValue + "\"] <- \"" + escapedNewValue + "\";");
+
+			} else if(sType == SemossDataType.FACTOR) {
+				// need to convert factor to string since factor is defined as a predefined list of values
+				changeColumnType(frame, table, column, "string", null);
+				
+				// this is same as string now
+				// escape and update
+				String escapedOldValue = oldValue.replace("\"", "\\\"");
+				String escapedNewValue = newValue.replace("\"", "\\\"");
+				script.append(table + "$" + column + "[" + table + "$" + column + " == \"" + escapedOldValue + "\"] <- \"" + escapedNewValue + "\";");
 			}
 		}
-		
+
+		// execute the r script
+		// script is of the form FRAME$Director[FRAME$Director == "oldVal"] <- "newVal"
+		frame.executeRScript(script.toString());
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
@@ -76,9 +117,6 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 				"ReplaceColumnValue", 
 				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 			
-		// execute the r script
-		// script is of the form FRAME$Director[FRAME$Director == "oldVal"] <- "newVal"
-		frame.executeRScript(script.toString());
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 	
