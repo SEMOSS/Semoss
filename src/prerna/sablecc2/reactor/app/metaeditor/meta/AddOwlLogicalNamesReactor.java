@@ -44,16 +44,12 @@ public class AddOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 		} catch (IOException e) {
 			e.printStackTrace();
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
-//			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names : " + Arrays.toString(logicalNames), 
-			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", 
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			noun.addAdditionalReturn(new NounMetadata("An error occured attempting to add logical names", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			return noun;
 		}
 		
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-//		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names : " + Arrays.toString(logicalNames), 
-		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names", 
-				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		noun.addAdditionalReturn(new NounMetadata("Successfully added logical names", PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
 

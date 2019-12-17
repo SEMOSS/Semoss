@@ -368,7 +368,7 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 					traversalSegment = traversalSegment.or(ors);
 				}
 			}
-		} else if(comparison.equals("?like")) {
+		} else if(comparison.equals(SEARCH_COMPARATOR)) {
 			int size = filterValues.size();
 			if(size == 1) {
 				traversalSegment = traversalSegment.has(filterPropertyName, GremlinRegexMatch.regex(filterValues.get(0)));
@@ -378,6 +378,17 @@ public class GremlinInterpreter extends AbstractQueryInterpreter {
 					ors[i] = __.has(filterPropertyName, GremlinRegexMatch.regex(filterValues.get(i)));
 				}
 				traversalSegment = traversalSegment.or(ors);
+			}
+		} else if(comparison.equals(NOT_SEARCH_COMPARATOR)) {
+			int size = filterValues.size();
+			if(size == 1) {
+				traversalSegment = traversalSegment.not(__.has(filterPropertyName, GremlinRegexMatch.regex(filterValues.get(0))));
+			} else {
+				GraphTraversal[] ors = new GraphTraversal[size];
+				for(int i = 0; i < size; i++) {
+					ors[i] = __.has(filterPropertyName, GremlinRegexMatch.regex(filterValues.get(i)));
+				}
+				traversalSegment = traversalSegment.not(__.or(ors));
 			}
 		}
 	}
