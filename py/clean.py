@@ -4,7 +4,7 @@ import pandas as pd
 import random
 import datetime
 import math
-from annoy import AnnoyIndex
+#from annoy import AnnoyIndex
 import numpy as np
 from pandas.api.types import is_numeric_dtype
 import urllib.parse
@@ -260,13 +260,13 @@ class PyFrame:
 	# input is a pandas frame
 	# the first column is typically the identifier
 	# The remaining are the vector
-	def buildnn(this, trees=10, type='euclidean'):
-		frame = this.cache['data']
-		cols = len(frame.columns) - 1
-		t = AnnoyIndex()
-		for i, row in frame:
-			t.add_item(i, row[1:])
-		this.cache['nn'] = t
+#	def buildnn(this, trees=10, type='euclidean'):
+#		frame = this.cache['data']
+#		cols = len(frame.columns) - 1
+#		#t = AnnoyIndex()
+#		for i, row in frame:
+#			t.add_item(i, row[1:])
+#		this.cache['nn'] = t
 
 	# drops non numeric data columns from the frame
 	def dropalpha(this, inplace=True):

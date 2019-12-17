@@ -170,7 +170,7 @@ public class PyExecutorThread extends Thread {
 				jep.eval("import string");
 				jep.eval("import random");
 				jep.eval("import datetime");
-				jep.eval("from annoy import AnnoyIndex");
+				//jep.eval("from annoy import AnnoyIndex");
 				jep.eval("import numpy");
 				jep.eval("import sys");
 				// this is so we do not get a GIL
