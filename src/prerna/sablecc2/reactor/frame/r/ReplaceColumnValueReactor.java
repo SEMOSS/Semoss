@@ -63,7 +63,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 			
 			if(sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {
 				// make sure the new value can be properly casted to a number
-				if(newValue.isEmpty() || newValue.equals("null") || newValue.equals("NA") || newValue.equals("NaN")) {
+				if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
 					newValue = "NaN";
 				} else if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
 					throw new IllegalArgumentException("Cannot update a numeric field with string value = " + newValue);
@@ -72,13 +72,13 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 				// account for nulls
 				// account for NA
 				// account for NaN
-				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
+				if(oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na") || oldValue.equalsIgnoreCase("nan")) {
 					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- " + newValue + ";");
 				} else {
 					script.append(columnSelect + "[" + columnSelect + " == " + oldValue + "] <- " + newValue + ";");
 				}
 			} else if(sType == SemossDataType.DATE) {
-				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
+				if(oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na") || oldValue.equalsIgnoreCase("nan")) {
 					SemossDate newD = SemossDate.genDateObj(newValue);
 					if(newD == null) {
 						throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
@@ -103,7 +103,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 				}
 				
 			} else if(sType == SemossDataType.TIMESTAMP) {
-				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
+				if(oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na") || oldValue.equalsIgnoreCase("nan")) {
 					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- as.POSIXct(\"" + newValue + "\");");
 				} else {
 					script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + oldValue + QUOTE + "] <- as.POSIXct(" + QUOTE + newValue + QUOTE + ");");
