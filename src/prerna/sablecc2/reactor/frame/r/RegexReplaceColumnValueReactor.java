@@ -2,7 +2,9 @@ package prerna.sablecc2.reactor.frame.r;
 
 import java.util.List;
 import java.util.Vector;
+import java.util.regex.Pattern;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -23,6 +25,9 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 	 * 3) value to replace the regex with 
 	 */
 	
+	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
+	private static final String QUOTE = "\"";
+
 	public RegexReplaceColumnValueReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
 	}
@@ -58,25 +63,65 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 		StringBuilder script = new StringBuilder();
 		for (String column : columnNames) {
 			
-			// define r script
-			String colScript = table + "$" + column;
-			script.append(colScript + " = ");
-			String dataType = getColumnType(table, column);
-			String quote = "";
-			if (dataType.contains("character") || dataType.contains("factor")) {
-				quote = "\"";
-			}
+			// use method to retrieve a single column type
+			String columnSelect = table + "$" + column;
+			String colDataType = getColumnType(table, column);
+			SemossDataType sType = SemossDataType.convertStringToDataType(colDataType);
+
 			// script is of the form FRAME$Genre = gsub("-","M", FRAME$Genre)
-			script.append("gsub(" + quote + regex + quote + "," + quote + newValue + quote + ", " + colScript + ");");
+
+			if(sType == SemossDataType.INT) {
+				// make sure the new value can be properly casted to a number
+				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+					throw new IllegalArgumentException("Cannot update a numeric field to non-numeric values");
+				}
 				
-			// doing gsub on a numeric column changes the data type to a string
-			// so change it back to numeric in r
-			if(dataType.contains("numeric")) {
-				script.append(table + "$" + column + " <- as.numeric(" + table + "$" + column + ");");
-			} else if(dataType.contains("integer")) {
-				script.append(table + "$" + column + " <- as.integer(" + table + "$" + column + ");");
+				script.append(columnSelect + "<- gsub(" + QUOTE + regex + QUOTE + "," + QUOTE + newValue + QUOTE + ", " + columnSelect + ");");
+				// turn back to int
+				script.append(columnSelect + "<- as.integer(" + columnSelect + ");");
+				
+			} else if(sType == SemossDataType.DOUBLE) {
+				// make sure the new value can be properly casted to a number
+				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+					throw new IllegalArgumentException("Cannot update a numeric field to non-numeric values");
+				}
+				
+				script.append(columnSelect + "<- gsub(" + QUOTE + regex + QUOTE + "," + QUOTE + newValue + QUOTE + ", " + columnSelect + ");");
+				// turn back to numeric
+				script.append(columnSelect + "<- as.numeric(" + columnSelect + ");");
+
+				
+			} else if(sType == SemossDataType.DATE) {
+				// NOT VALID - WHAT IF I WANT TO UPDATE A MONTH - DAY PORTION ?
+//				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+//					throw new IllegalArgumentException("Cannot update a date field to non-numeric values");
+//				}
+				
+				script.append(columnSelect + "<- gsub(" + QUOTE + regex + QUOTE + "," + QUOTE + newValue + QUOTE + ", " + columnSelect + ");");
+				// turn back to date
+				script.append(columnSelect + "<- as.Date(" + columnSelect + ");");
+				
+			} else if(sType == SemossDataType.TIMESTAMP) {
+				// NOT VALID - WHAT IF I WANT TO UPDATE A MONTH - DAY PORTION ?
+//				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+//					throw new IllegalArgumentException("Cannot update a date field to non-numeric values");
+//				}
+				
+				script.append(columnSelect + "<- gsub(" + QUOTE + regex + QUOTE + "," + QUOTE + newValue + QUOTE + ", " + columnSelect + ");");
+				// turn back to timestamp
+				script.append(columnSelect + "<- as.POSIXct(" + columnSelect + ");");
+				
+			} else if(sType == SemossDataType.STRING) {
+				script.append(columnSelect + "<- gsub(" + QUOTE + regex + QUOTE + "," + QUOTE + newValue + QUOTE + ", " + columnSelect + ");");
+				
+			} else if(sType == SemossDataType.FACTOR) {
+				script.append(columnSelect + "<- gsub(" + QUOTE + regex + QUOTE + "," + QUOTE + newValue + QUOTE + ", " + columnSelect + ");");
+				// turn back to factor
+				script.append(columnSelect + "<- as.factor(" + columnSelect + ");");
+				
+				// TODO: account for ordered factor ...
+				// TODO: account for ordered factor ...
 			}
-			
 		}
 
 		this.rJavaTranslator.runR(script.toString());
