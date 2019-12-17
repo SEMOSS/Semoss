@@ -5,6 +5,7 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.ds.r.RDataTable;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -25,7 +26,8 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 	 */
 	
 	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
-	
+	private static final String QUOTE = "\"";
+
 	public ReplaceColumnValueReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
 	}
@@ -55,6 +57,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 		for (String column : columnNames) {
 		
 			// use method to retrieve a single column type
+			String columnSelect = table + "$" + column;
 			String colDataType = getColumnType(table, column);
 			SemossDataType sType = SemossDataType.convertStringToDataType(colDataType);
 			
@@ -70,39 +73,61 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 				// account for NA
 				// account for NaN
 				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
-					script.append(table + "$" + column + "[is.na(" + table + "$" + column + ")] <- " + newValue + ";");
+					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- " + newValue + ";");
 				} else {
-					script.append(table + "$" + column + "[" + table + "$" + column + " == " + oldValue + "] <- " + newValue + ";");
+					script.append(columnSelect + "[" + columnSelect + " == " + oldValue + "] <- " + newValue + ";");
 				}
 			} else if(sType == SemossDataType.DATE) {
 				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
-					script.append(table + "$" + column + "[is.na(" + table + "$" + column + ")] <- as.Date(\"" + newValue + "\");");
+					SemossDate newD = SemossDate.genDateObj(newValue);
+					if(newD == null) {
+						throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+					}
+					
+					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- as.Date(\"" + newD.getFormatted("yyyy-MM-dd") + "\");");
 				} else {
-					script.append(table + "$" + column + "[" + table + "$" + column + " == \"" + oldValue + "\"] <- as.Date(\"" + newValue + "\");");
+					SemossDate oldD = SemossDate.genDateObj(oldValue);
+					SemossDate newD = SemossDate.genDateObj(newValue);
+					String error = "";
+					if(oldD == null) {
+						error = "Unalbe to parse old date value = " + oldValue;
+					}
+					if(newD == null) {
+						error += "Unable to parse new date value = " + newValue;
+					}
+					if(!error.isEmpty()) {
+						throw new IllegalArgumentException(error);
+					}
+					
+					script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + oldD.getFormatted("yyyy-MM-dd") + QUOTE + "] <- as.Date(" + QUOTE + newD.getFormatted("yyyy-MM-dd") + QUOTE + ");");
 				}
 				
 			} else if(sType == SemossDataType.TIMESTAMP) {
 				if(oldValue.isEmpty() || oldValue.equals("null") || oldValue.equals("NA") || oldValue.equals("NaN")) {
-					script.append(table + "$" + column + "[is.na(" + table + "$" + column + ")] <- as.POSIXct(\"" + newValue + "\");");
+					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- as.POSIXct(\"" + newValue + "\");");
 				} else {
-					script.append(table + "$" + column + "[" + table + "$" + column + " == \"" + oldValue + "\"] <- as.POSIXct(\"" + newValue + "\");");
+					script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + oldValue + QUOTE + "] <- as.POSIXct(" + QUOTE + newValue + QUOTE + ");");
 				}
 				
 			} else if(sType == SemossDataType.STRING) {
 				// escape and update
 				String escapedOldValue = oldValue.replace("\"", "\\\"");
 				String escapedNewValue = newValue.replace("\"", "\\\"");
-				script.append(table + "$" + column + "[" + table + "$" + column + " == \"" + escapedOldValue + "\"] <- \"" + escapedNewValue + "\";");
+				script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + escapedOldValue + QUOTE + "] <- " + QUOTE + escapedNewValue + QUOTE + ";");
 
 			} else if(sType == SemossDataType.FACTOR) {
 				// need to convert factor to string since factor is defined as a predefined list of values
-				changeColumnType(frame, table, column, "string", null);
-				
+				script.append(columnSelect + "<- as.character(" + columnSelect + ")");
 				// this is same as string now
 				// escape and update
 				String escapedOldValue = oldValue.replace("\"", "\\\"");
 				String escapedNewValue = newValue.replace("\"", "\\\"");
-				script.append(table + "$" + column + "[" + table + "$" + column + " == \"" + escapedOldValue + "\"] <- \"" + escapedNewValue + "\";");
+				script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + escapedOldValue + QUOTE + "] <- " + QUOTE + escapedNewValue + QUOTE + ";");
+				// turn back to factor
+				script.append(columnSelect + "<- as.factor(" + columnSelect + ")");
+				
+				// TODO: account for ordered factor ...
+				// TODO: account for ordered factor ...
 			}
 		}
 
