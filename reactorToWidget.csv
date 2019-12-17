@@ -9,10 +9,13 @@ CountIf,clean-count-if
 DateAddValue,clean-date-add
 DateDifference,clean-date-diff
 DateExpander,clean-date-expander
+DecodeURI,clean-decode-uri
+Discretize,clean-discretize
 Division,clean-division
 DropColumn,clean-drop-col
 DropRows,clean-drop-rows
 DuplicateColumn,clean-duplicate-col
+EncodeURI,clean-encode-uri
 ExtractLetters,clean-extract-numbers-letters
 ExtractNumbers,clean-extract-numbers-letters
 Concatenate,clean-join
