@@ -393,9 +393,7 @@ public class PixelUtility {
 	 * 										If no index is found and the size of the list is 1, we will replace the first datasource
 	 * @return
 	 */
-	public static List<String> modifyInsightDatasource(User user, String fullRecipe, List<Map<String, Object>> replacementOptions) {
-		Insight in = new Insight();
-		in.setUser(user);
+	public static List<String> modifyInsightDatasource(Insight in, String fullRecipe, List<Map<String, Object>> replacementOptions) {
 		ReplaceDatasourceTranslation translation = new ReplaceDatasourceTranslation(in);
 		translation.setReplacements(replacementOptions);
 		try {

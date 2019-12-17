@@ -13,6 +13,7 @@ import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.map.AbstractMapReactor;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.reactor.qs.WithReactor;
+import prerna.sablecc2.reactor.qs.source.FileReadReactor;
 import prerna.sablecc2.reactor.qs.source.GoogleFileRetrieverReactor;
 
 public class AbstractDatasourceModificationTranslation extends LazyTranslation {
@@ -32,6 +33,7 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 		super(insight);
 	}
 	
+	@Override
 	protected void deInitReactor()
 	{
 		Object parent = curReactor.Out();
@@ -82,5 +84,15 @@ public class AbstractDatasourceModificationTranslation extends LazyTranslation {
 	    	}
 		}
 	}
+	
+	@Override
+    protected void initReactor(IReactor reactor)
+    {
+		super.initReactor(reactor);
+		// this is so we do not throw an error for the file not existing
+		if(this.curReactor != null && this.curReactor instanceof FileReadReactor) {
+			((FileReadReactor) this.curReactor).setEvaluate(false);
+		}
+    }
 
 }
