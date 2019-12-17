@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.frame.py;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
@@ -64,5 +65,18 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 		// get jep thread and get the names
 		List<String> val = (List<String>) frame.runScript(PandasSyntaxHelper.getTypes(wrapperName + ".cache['data']"));
 		return val.toArray(new String[val.size()]);
+	}
+	
+	/**
+	 * Get the data type of a column by querying the python frame
+	 * @param frame
+	 * @param column
+	 * @return
+	 */
+	public String getColumnType(PandasFrame frame, String column) {
+		String wrapperName = frame.getWrapperName();
+		String pythonDt = (String) frame.runScript(PandasSyntaxHelper.getColumnType(wrapperName + ".cache['data']", column));
+		SemossDataType smssDT = this.insight.getPyTranslator().convertDataType(pythonDt);
+		return smssDT.toString();
 	}
 }
