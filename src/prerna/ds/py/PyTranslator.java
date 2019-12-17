@@ -8,11 +8,13 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
@@ -32,6 +34,25 @@ public class PyTranslator {
 	Logger logger = null;
 
 	PyExecutorThread pt = null;
+	
+	// TODO need to replace this duplicate code from PandasFrame
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
+	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
+	static {
+		pyS.put("object", SemossDataType.STRING);
+		pyS.put("category", SemossDataType.STRING);
+		pyS.put("int64", SemossDataType.INT);
+		pyS.put("float64", SemossDataType.DOUBLE);
+		pyS.put("datetime64", SemossDataType.DATE);
+	}
+
+	public SemossDataType convertDataType(String pDataType) {
+		return pyS.get(pDataType);
+	}
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
 	
 	// sets the insight
 	public void setInsight(Insight insight) {
