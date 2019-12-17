@@ -323,6 +323,11 @@ public class PandasSyntaxHelper {
 		return types;
 	}
 	
+	public static String getColumnType(String tableName, String column) {
+		String types = tableName + "['" + column + "'].dtype.name";
+		return types;
+	}
+	
 	// gets the record
 	public static String getColumnChange(String tableName, String colName, String type)
 	{
