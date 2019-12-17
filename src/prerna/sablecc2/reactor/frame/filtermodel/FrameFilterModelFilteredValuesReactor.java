@@ -107,14 +107,6 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 		if (panel != null) {
 			baseFilters.merge(panel.getPanelFilters().copy());
 		}
-		// add the filter word as a like filter
-		if (filterWord != null && !filterWord.trim().isEmpty()) {
-			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
-			String comparator = "?like";
-			NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
-			SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
-			baseFilters.addFilters(wFilter);
-		}
 		
 		// if the current filters doesn't use the column
 		// there is no values that are unchecked to select
@@ -173,6 +165,16 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 				// to get the filtered values
 				// run with the inverse filters of the current column
 				qs.setExplicitFilters(inverseFilters);
+				
+				// add the filter word as a like filter
+				if (filterWord != null && !filterWord.trim().isEmpty()) {
+					NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
+					String comparator = "?like";
+					NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
+					SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
+					baseFilters.addFilters(wFilter);
+				}
+				
 				
 				// flush out the values
 				Iterator<IHeadersDataRow> filterValuesIt = dataframe.query(qs);
