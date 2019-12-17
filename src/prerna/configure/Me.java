@@ -158,7 +158,10 @@ public class Me {
 			//BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new PrintStream(System.out)));
 			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
 			String prefix = "";
-			if (System.getenv().containsKey("PYTHON_HOME")) {
+			if (System.getenv().containsKey("PYTHONHOME")) {
+				prefix += "\"%PYTHONHOME%/\";\"%PYTHONHOME%/Scripts/\";\"%PYTHONHOME%/Lib/site-packages/jep\";";
+			}
+			else if (System.getenv().containsKey("PYTHON_HOME")) {
 				prefix += "\"%PYTHON_HOME%/\";\"%PYTHON_HOME%/Scripts/\";\"%PYTHON_HOME%/Lib/site-packages/jep\";";
 			}
 			String options = "-Djava.library.path=" + prefix + "\"" + rHome + "\";\"" + jriHome + "\"";
