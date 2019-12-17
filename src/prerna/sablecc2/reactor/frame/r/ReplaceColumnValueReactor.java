@@ -104,9 +104,27 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 				
 			} else if(sType == SemossDataType.TIMESTAMP) {
 				if(oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na") || oldValue.equalsIgnoreCase("nan")) {
-					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- as.POSIXct(\"" + newValue + "\");");
+					SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
+					if(newD == null) {
+						throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+					}
+					
+					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- as.POSIXct(\"" + newD.getFormatted("yyyy-MM-dd HH:mm:ss") + "\");");
 				} else {
-					script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + oldValue + QUOTE + "] <- as.POSIXct(" + QUOTE + newValue + QUOTE + ");");
+					SemossDate oldD = SemossDate.genTimeStampDateObj(oldValue);
+					SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
+					String error = "";
+					if(oldD == null) {
+						error = "Unalbe to parse old date value = " + oldValue;
+					}
+					if(newD == null) {
+						error += "Unable to parse new date value = " + newValue;
+					}
+					if(!error.isEmpty()) {
+						throw new IllegalArgumentException(error);
+					}
+					
+					script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + oldD.getFormatted("yyyy-MM-dd") + QUOTE + "] <- as.POSIXct(" + QUOTE + newD.getFormatted("yyyy-MM-dd HH:mm:ss") + QUOTE + ");");
 				}
 				
 			} else if(sType == SemossDataType.STRING) {
