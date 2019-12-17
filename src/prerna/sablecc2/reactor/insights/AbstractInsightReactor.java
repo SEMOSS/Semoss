@@ -33,6 +33,7 @@ import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.insight.InsightUtility;
 
 public abstract class AbstractInsightReactor extends AbstractReactor {
 
@@ -363,7 +364,12 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		
 		// hey, we found something to change
 		if(!modificationList.isEmpty()) {
-			recipeToSave = PixelUtility.modifyInsightDatasource(this.insight.getUser(), fullRecipe, modificationList).toArray(new String[]{});
+			// make a copy of the insight
+			// so we do not mess up the state of execution
+			Insight cInsight = new Insight();
+			cInsight.setInsightId(this.insight.getInsightId());
+			InsightUtility.transferDefaultVars(this.insight, cInsight);
+			recipeToSave = PixelUtility.modifyInsightDatasource(cInsight, fullRecipe, modificationList).toArray(new String[]{});
 		}
 		
 		return recipeToSave;

@@ -100,13 +100,13 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		try {
 			recipeToSave = saveFilesInInsight(recipeToSave, appId, newInsightId);
 		} catch(Exception e) {
-			throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage());
+			throw new IllegalArgumentException("An error occured trying to identify file based sources to parameterize. The source error message is: " + e.getMessage(), e);
 		}
 		if(params != null && !params.isEmpty()) {
 			try {
 				recipeToSave = getParamRecipe(recipeToSave, params, insightName);
 			} catch(Exception e) {
-				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage());
+				throw new IllegalArgumentException("An error occured trying to parameterize the insight recipe. The source error message is: " + e.getMessage(), e);
 			}
 		}
 
