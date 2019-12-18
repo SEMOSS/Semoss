@@ -128,19 +128,31 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 				}
 				
 			} else if(sType == SemossDataType.STRING) {
-				// escape and update
-				String escapedOldValue = oldValue.replace("\"", "\\\"");
-				String escapedNewValue = newValue.replace("\"", "\\\"");
-				script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + escapedOldValue + QUOTE + "] <- " + QUOTE + escapedNewValue + QUOTE + ";");
+				if(oldValue.equalsIgnoreCase("null")) {
+					String escapedNewValue = newValue.replace("\"", "\\\"");
+					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- " + QUOTE + escapedNewValue + QUOTE + ";");
+				} else {
+					// escape and update
+					String escapedOldValue = oldValue.replace("\"", "\\\"");
+					String escapedNewValue = newValue.replace("\"", "\\\"");
+					script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + escapedOldValue + QUOTE + "] <- " + QUOTE + escapedNewValue + QUOTE + ";");
+					
+				}
 
 			} else if(sType == SemossDataType.FACTOR) {
 				// need to convert factor to string since factor is defined as a predefined list of values
 				script.append(columnSelect + "<- as.character(" + columnSelect + ")");
 				// this is same as string now
 				// escape and update
-				String escapedOldValue = oldValue.replace("\"", "\\\"");
-				String escapedNewValue = newValue.replace("\"", "\\\"");
-				script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + escapedOldValue + QUOTE + "] <- " + QUOTE + escapedNewValue + QUOTE + ";");
+				if(oldValue.equalsIgnoreCase("null")) {
+					String escapedNewValue = newValue.replace("\"", "\\\"");
+					script.append(columnSelect + "[is.na(" + columnSelect + ")] <- " + QUOTE + escapedNewValue + QUOTE + ";");
+				} else {
+					// escape and update
+					String escapedOldValue = oldValue.replace("\"", "\\\"");
+					String escapedNewValue = newValue.replace("\"", "\\\"");
+					script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + escapedOldValue + QUOTE + "] <- " + QUOTE + escapedNewValue + QUOTE + ";");
+				}
 				// turn back to factor
 				script.append(columnSelect + "<- as.factor(" + columnSelect + ")");
 				
