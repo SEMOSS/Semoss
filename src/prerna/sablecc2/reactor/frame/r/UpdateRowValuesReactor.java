@@ -104,7 +104,7 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 				newValue = newD.getFormatted("yyyy-MM-dd");
 			}
 			
-			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- " + QUOTE + newValue + QUOTE + ";";
+			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- as.Date(" + QUOTE + newValue + QUOTE + ", format='%Y-%m-%d');";
 						
 		} else if(sType == SemossDataType.TIMESTAMP) {
 			// make sure the new value can be properly casted to a timestamp
@@ -113,12 +113,15 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 			} else {
 				SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
 				if(newD == null) {
-					throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+					newD = SemossDate.genDateObj(newValue);
+					if(newD == null) {
+						throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+					}
 				}
 				newValue = newD.getFormatted("yyyy-MM-dd HH:mm:ss");
 			}
-			
-			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- " + QUOTE + newValue + QUOTE + ";";
+
+			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- as.POSIXct(" + QUOTE + newValue + QUOTE + ", format='%Y-%m-%d %H:%M:%S');";
 			
 		} else if(sType == SemossDataType.STRING) {
 			// escape and update
