@@ -84,7 +84,7 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 						error = "Unable to parse old date value = " + oldValue;
 					}
 					if(newD == null) {
-						error += "Unable to parse new date value = " + newValue;
+						error += ". Unable to parse new date value = " + newValue;
 					}
 					if(!error.isEmpty()) {
 						throw new IllegalArgumentException(error);
@@ -115,7 +115,7 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 						error = "Unable to parse old date value = " + oldValue;
 					}
 					if(newD == null) {
-						error += "Unable to parse new date value = " + newValue;
+						error += ". Unable to parse new date value = " + newValue;
 					}
 					if(!error.isEmpty()) {
 						throw new IllegalArgumentException(error);

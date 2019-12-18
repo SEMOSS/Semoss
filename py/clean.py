@@ -4,15 +4,18 @@ import pandas as pd
 import random
 import datetime
 import math
-#from annoy import AnnoyIndex
+# from annoy import AnnoyIndex
 import numpy as np
 from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_integer_dtype
+from pandas.api.types import is_datetime64_dtype
 import urllib.parse
 from pyjarowinkler import distance
 
-### UTILITY Methods
+# UTILITY Methods
 # from importutil import reload
 # sys.path.append('c:\\users\\pkapaleeswaran\\workspacej3\\py')
+
 
 class PyFrame:
 
@@ -81,15 +84,15 @@ class PyFrame:
 		return result
 
 	def match(this, actual_col, predicted_col):
-		#cache = this.cache
-		#key_name = actual_col + "_" + predicted_col
-		#if (not (key_name in cache)):
+		# cache = this.cache
+		# key_name = actual_col + "_" + predicted_col
+		# if (not (key_name in cache)):
 		#	print('building cache', key_name)
 		#	daFrame = cache['data']
 		#	var_name = this.calcRatio(daFrame[actual_col].unique(), daFrame[predicted_col].unique())
 		#	var_name.columns = ['col1', 'col2', 'distance']
 		#	cache[key_name] = var_name
-		#var_name = cache[key_name]
+		# var_name = cache[key_name]
 		# print(var_name.head())
 		# seems like we dont need that right now
 		# output = var_name[(var_name[2] > threshold) & (var_name[2] != 100)]
@@ -104,7 +107,7 @@ class PyFrame:
 			for y in predicted_col_values:
 				if y is np.nan:
 					continue
-				#ratio = fuzz.WRatio(x, y)
+				# ratio = fuzz.WRatio(x, y)
 				ratio = distance.get_jaro_distance(x, y, winkler=True, scaling=0.1)
 				# ratio is 1 when values are the same
 				# so we want to do the inverse
@@ -136,14 +139,15 @@ class PyFrame:
 		return result
 
 	def merge_match_results(this, col_name, link_frame):
-		#link_frame contains col1, col2 where col1 contains instances
-		#that need to be changed and col2 contains the new values for
+		# link_frame contains col1, col2 where col1 contains instances
+		# that need to be changed and col2 contains the new values for
 		# those instances
 		frame = this.cache['data']
 		old_values = link_frame['col1']
 		for index, old_value in enumerate(old_values):
 			new_value = link_frame.iloc[index]['col2']
-			frame.replace({col_name: old_value}, {col_name: new_value}, regex=False, inplace=True)
+			frame.replace({col_name: old_value}, {col_name: new_value},
+			              regex=False, inplace=True)
 		return frame
 
 	def drop_col(this, col_name, inplace=True):
@@ -168,7 +172,8 @@ class PyFrame:
 		frame = this.cache['data']
 		if not inplace:
 			this.makeCopy()
-		nf = frame.replace({col_name: old_value}, {col_name: new_value}, regex=regx, inplace=inplace)
+		nf = frame.replace({col_name: old_value}, {
+		                   col_name: new_value}, regex=regx, inplace=inplace)
 		print('replacing inplace')
 
 	# this.cache['data'] = nf
@@ -177,7 +182,8 @@ class PyFrame:
 		frame = this.cache['data']
 		if not inplace:
 			this.makeCopy()
-		nf = frame.replace({col_name: cur_value}, {new_col: new_value}, regex=regx, inplace=inplace)
+		nf = frame.replace({col_name: cur_value}, {
+		                   new_col: new_value}, regex=regx, inplace=inplace)
 		print('replacing inplace')
 
 	def regex_replace_val(this, col_name, old_value, new_value, inplace=True):
@@ -187,14 +193,30 @@ class PyFrame:
 		# if new_value and type of column col_name are both numeric, then convert
 		# the column to str, do replace, and convert back to numeric
 		# (so we have the same functionality of doing regex on nums like there is on R with gsub)
+		is_timestamp = is_datetime64_dtype(frame[col_name])
+
+		is_new_value_a_int = is_integer_dtype(type(new_value))
+		is_col_a_int = is_integer_dtype(frame[col_name])
+		both_integer = True if is_new_value_a_int and is_col_a_int else False
+
 		is_new_value_a_num = is_numeric_dtype(type(new_value))
 		is_col_a_num = is_numeric_dtype(frame[col_name])
 		both_numeric = True if is_new_value_a_num and is_col_a_num else False
-		if both_numeric:
+
+		if is_timestamp:
+			frame[col_name] = frame[col_name].dt.strftime('%Y-%m-%d %H:%M:%s')
+		elif both_integer:
+			frame[col_name] = frame[col_name].astype(str)
+		elif both_numeric:
 			frame[col_name] = frame[col_name].astype(str)
 
-		frame.replace({col_name: old_value}, {col_name: new_value}, regex=True, inplace=inplace)
-		if both_numeric:
+		frame.replace({col_name: str(old_value)}, {col_name: str(new_value)}, regex=True, inplace=inplace)
+
+		if is_timestamp:
+			frame[col_name] = pd.to_datetime(frame[col_name], format=['%Y-%m-%d %H:%M:%S'])
+		elif both_integer:
+			frame[col_name] = frame[col_name].astype('int64')
+		elif both_numeric:
 			frame[col_name] = pd.to_numeric(frame[col_name])
 		this.cache['data'] = frame
 
