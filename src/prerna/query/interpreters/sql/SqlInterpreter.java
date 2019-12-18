@@ -657,9 +657,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// need to account for null inputs
-		boolean addNullCheck = false;
-		if(objects.contains(null)) {
-			addNullCheck = true;
+		boolean addNullCheck = objects.contains(null);
+		if(addNullCheck) {
 			objects.remove(null);
 		}
 		
