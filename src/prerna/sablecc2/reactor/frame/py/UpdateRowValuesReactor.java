@@ -1,6 +1,9 @@
 package prerna.sablecc2.reactor.frame.py;
 
+import java.util.regex.Pattern;
+
 import prerna.algorithm.api.SemossDataType;
+import prerna.date.SemossDate;
 import prerna.ds.py.PandasFrame;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -10,11 +13,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
-public class UpdateRowValuesReactor extends AbstractFrameReactor {
+public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor updates row values to a new value based on a filter condition
@@ -24,6 +26,9 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 	 * 2) the new value
 	 * 3) the filter condition
 	 */
+	
+	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
+	private static final String QUOTE = "\"";
 	
 	public UpdateRowValuesReactor() {
 		this.keysToGet = new String[] { 
@@ -42,28 +47,19 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
-		String updateCol = getUpdateColumn();
+		String column = getUpdateColumn();
 		// separate the column name from the frame name
-		if (updateCol.contains("__")) {
-			updateCol = updateCol.split("__")[1];
+		if (column.contains("__")) {
+			column = column.split("__")[1];
 		}
 
 		// second noun will be the value to update (the new value)
-		String value = getNewValue();
+		String newValue = getNewValue();
 
 		// get data type of column being updated
-		SemossDataType updateDataType = frame.getMetaData().getHeaderTypeAsEnum(frame.getName() + "__" + updateCol);
+		String colDataType = getColumnType(frame, column);
+		SemossDataType sType = SemossDataType.convertStringToDataType(colDataType);
 
-		// account for quotes around the new value if needed
-		if (updateDataType == SemossDataType.STRING || updateDataType == SemossDataType.FACTOR) {
-			value = "\"" + value + "\"";
-		}
-
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		///////////////////// QUERY FILTER//////////////////////////////////
-		///////////////////////////////////////////////////////////////////
-		
 		// the third noun will be a filter; we can get the qs from this
 		SelectQueryStruct qs = getQueryStruct();
 		// get all of the filters from this querystruct
@@ -80,11 +76,56 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		pi.addFilters(grf.getFilters(), wrapperFrameName + ".cache['data']", pyFilterBuilder, true);
 
 		// execute the r scripts
-		if (pyFilterBuilder.length() > 0) {
-			String script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ updateCol +"'] = " + value ;
-			frame.runScript(script);
+		if (pyFilterBuilder.length() <= 0) {
+			throw new IllegalArgumentException("Must define a filter criteria");
 		}
 		
+		String script = null;
+		
+		if(sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {
+			// make sure the new value can be properly casted to a number
+			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+				newValue = "np.NaN";
+			} else if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+				throw new IllegalArgumentException("Cannot update a numeric field with string value = " + newValue);
+			}
+			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ column +"'] = " + newValue ;
+
+		} else if(sType == SemossDataType.DATE) {
+			// make sure the new value can be properly casted to a date
+			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+				newValue = "NaN";
+			} else {
+				SemossDate newD = SemossDate.genDateObj(newValue);
+				if(newD == null) {
+					throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+				}
+				newValue = newD.getFormatted("yyyy-MM-dd");
+			}
+			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ column +"'] = " + QUOTE + newValue + QUOTE;
+
+		} else if(sType == SemossDataType.TIMESTAMP) {
+			// make sure the new value can be properly casted to a timestamp
+			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+				newValue = "NaN";
+			} else {
+				SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
+				if(newD == null) {
+					throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+				}
+				newValue = newD.getFormatted("yyyy-MM-dd HH:mm:ss");
+			}
+			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ column +"'] = " + QUOTE + newValue + QUOTE;
+
+		} else if(sType == SemossDataType.STRING) {
+			// escape and update
+			String escapedNewValue = newValue.replace("\"", "\\\"");
+			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ column +"'] = " + QUOTE + escapedNewValue + QUOTE;
+		}
+		
+		// execute the script
+		frame.runScript(script);
+
 		// NEW TRACKING
 		UserTrackerFactory.getInstance().trackAnalyticsWidget(
 				this.insight, 
