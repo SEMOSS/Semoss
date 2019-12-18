@@ -40,6 +40,7 @@ ToCsv,export-file
 ToTsv,export-file
 ToTxt,export-file
 ToExcel,export-file
+ToPercent,clean-to-percent
 RunSimilarity,analytics-similarity
 RunOutlier,analytics-outliers
 RunNumericalCorrelation,analytics-numerical-correlation
@@ -47,6 +48,7 @@ RunNumericalColumnSimilarity,analytics-column-similarity
 RunMatrixRegression,analytics-matrix-regression
 RunLOF,analytics-lof
 SemanticDescription,analytics-explore-localmaster
+StringExtractor,clean-string-extractor
 MetaSemanticSimilarity,analytics-explore-localmaster
 RunDocSimilarity,analytics-document-similarity
 RunDescriptionGenerator,analytics-description-generator
@@ -54,3 +56,4 @@ RunClassification,analytics-classification
 R,pipeline-codeblock
 Py,pipeline-codeblock
 Java,pipeline-codeblock
+RunDataQuality,quality-report
