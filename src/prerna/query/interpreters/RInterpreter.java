@@ -544,6 +544,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		if(addNullCheck) {
 			objects.remove(null);
 		}
+		if(SemossDataType.isNotString(leftDataType) && !thisComparator.equals(SEARCH_COMPARATOR) && !thisComparator.equals(NOT_SEARCH_COMPARATOR) && objects.contains("")) {
+			addNullCheck = true;
+			objects.remove("");
+		}
 		
 		StringBuilder filterBuilder = new StringBuilder();;
 		// add the null check now
