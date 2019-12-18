@@ -141,7 +141,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 
 			} else if(sType == SemossDataType.FACTOR) {
 				// need to convert factor to string since factor is defined as a predefined list of values
-				script.append(columnSelect + "<- as.character(" + columnSelect + ")");
+				script.append(columnSelect + "<- as.character(" + columnSelect + ");");
 				// this is same as string now
 				// escape and update
 				if(oldValue.equalsIgnoreCase("null")) {
@@ -154,7 +154,7 @@ public class ReplaceColumnValueReactor extends AbstractRFrameReactor{
 					script.append(columnSelect + "[" + columnSelect + " == " + QUOTE + escapedOldValue + QUOTE + "] <- " + QUOTE + escapedNewValue + QUOTE + ";");
 				}
 				// turn back to factor
-				script.append(columnSelect + "<- as.factor(" + columnSelect + ")");
+				script.append(columnSelect + "<- as.factor(" + columnSelect + ");");
 				
 				// TODO: account for ordered factor ...
 				// TODO: account for ordered factor ...
