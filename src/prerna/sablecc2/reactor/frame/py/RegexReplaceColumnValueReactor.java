@@ -60,39 +60,33 @@ public class RegexReplaceColumnValueReactor extends AbstractPyFrameReactor {
 		// iterate through all passed columns
 		for(int i = 0; i < numColumns; i++) {
 			String column = columnNames.get(i);
-		
-			SemossDataType columnDataType = SemossDataType.convertStringToDataType(getColumnType(frame, column));
+			SemossDataType sType = SemossDataType.convertStringToDataType(getColumnType(frame, column));
 
-			if (columnDataType == SemossDataType.INT || columnDataType == SemossDataType.DOUBLE) {
-				if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
-					newValue = "NaN";
-				} else if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
-					throw new IllegalArgumentException("Cannot update a numeric field with string value = " + newValue);
+			if (sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {
+				// make sure the new value can be properly casted to a number
+				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+					throw new IllegalArgumentException("Cannot update a numeric field to non-numeric values");
 				}
 				
 				// TODO: See why this is not executing properly in python!
 				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column + "', " + regex + ", " + newValue + ")";
-			} else if (columnDataType == SemossDataType.DATE) {
-				// what is this doing?
+			} else if(sType == SemossDataType.DATE) {
+				// NOT VALID - WHAT IF I WANT TO UPDATE A MONTH - DAY PORTION ?
+//				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+//					throw new IllegalArgumentException("Cannot update a date field to non-numeric values");
+//				}
 				
-//				// TODO: should grab value of whole column with matched regex, not values past in
-//				SemossDate oldD = SemossDate.genDateObj(regex);
-//				SemossDate newD = SemossDate.genDateObj(newValue);
-//				String error = "";
-//				if(oldD == null) {
-//					error = "Unable to parse old date value = " + regex;
+				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column +"', '" + regex + "' , '" + newValue + "')";
+				
+			} else if(sType == SemossDataType.TIMESTAMP) {
+				// NOT VALID - WHAT IF I WANT TO UPDATE A MONTH - DAY PORTION ?
+//				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+//					throw new IllegalArgumentException("Cannot update a date field to non-numeric values");
 //				}
-//				if(newD == null) {
-//					error += "Unable to parse new date value = " + newValue;
-//				}
-//				if(!error.isEmpty()) {
-//					throw new IllegalArgumentException(error);
-//				}
-//				script.append(wrapperFrameName).append(".regex_replace_val('").append(column).append("',")
-//				.append("pd.to_datetime('").append(oldD).append("')").append(" , ").append("pd.to_datetime('")
-//				.append(newD).append("')").append(")");
-//				frame.runScript(script.toString());
-			} else if (columnDataType == SemossDataType.STRING) {
+				
+				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column +"', '" + regex + "' , '" + newValue + "')";
+				
+			} else if (sType == SemossDataType.STRING) {
 				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column +"', '" + regex + "' , '" + newValue + "')";
 			}
 		}

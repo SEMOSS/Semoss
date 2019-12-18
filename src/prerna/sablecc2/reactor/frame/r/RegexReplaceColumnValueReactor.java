@@ -90,7 +90,6 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 				// turn back to numeric
 				script.append(columnSelect + "<- as.numeric(" + columnSelect + ");");
 
-				
 			} else if(sType == SemossDataType.DATE) {
 				// NOT VALID - WHAT IF I WANT TO UPDATE A MONTH - DAY PORTION ?
 //				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
