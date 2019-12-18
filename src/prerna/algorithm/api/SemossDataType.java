@@ -12,6 +12,13 @@ public enum SemossDataType {
 	TIMESTAMP,
 	FACTOR;
 	
+	public static boolean isNotString(SemossDataType type) {
+		if(type == STRING || type == FACTOR) {
+			return false;
+		}
+		return true;
+	}
+	
 	public static String convertDataTypeToString(SemossDataType type) {
 		if(SemossDataType.BOOLEAN == type) { 
 			return "boolean";
