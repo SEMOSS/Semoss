@@ -92,8 +92,44 @@ public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 					scripts[i] = wrapperFrameName + ".replace_val('" + column + "', pd.to_datetime('" + oldD + "') , "
 						+ "pd.to_datetime('" + newD + "') )";
 				}
+			} else if (columnDataType == SemossDataType.TIMESTAMP) {
+				if(oldValue.isEmpty() || oldValue.equalsIgnoreCase("null") || oldValue.equalsIgnoreCase("na") || oldValue.equalsIgnoreCase("nan") || oldValue.equalsIgnoreCase("nat")) {
+					SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
+					if(newD == null) {
+						// try to cast to date object
+						newD = SemossDate.genDateObj(newValue);
+						if (newD == null) {
+							throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+						}
+					}
+					scripts[i] = frame.getName() + "['" + column + "'].fillna(value=pd.to_datetime('" + newD + "'),inplace=True)";
+				} else {
+					SemossDate oldD = SemossDate.genTimeStampDateObj(oldValue);
+					SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
+					if (newD == null) {
+						// try to cast to date object
+						newD = SemossDate.genDateObj(newValue);
+					}
+					String error = "";
+					if(oldD == null) {
+						error = "Unable to parse old date value = " + oldValue;
+					}
+					if(newD == null) {
+						error += "Unable to parse new date value = " + newValue;
+					}
+					if(!error.isEmpty()) {
+						throw new IllegalArgumentException(error);
+					}
+					scripts[i] = wrapperFrameName + ".replace_val('" + column + "', pd.to_datetime('" + oldD + "') , "
+						+ "pd.to_datetime('" + newD + "') )";
+				}
 			} else if (columnDataType == SemossDataType.STRING) {
-				scripts[i] = wrapperFrameName + ".replace_val('" + column + "', \"" + oldValue + "\", \"" + newValue + "\"" + ", False)";
+				if (oldValue.equalsIgnoreCase("null")) {
+					String escapedNewValue = newValue.replace("\"", "\\\"");
+					scripts[i] = frame.getName() + "['" + column+ "'].fillna(" + escapedNewValue + ", inplace=True)";
+				} else {
+					scripts[i] = wrapperFrameName + ".replace_val('" + column + "', \"" + oldValue + "\", \"" + newValue + "\"" + ", False)";
+				}
 			}
 		}
 		
