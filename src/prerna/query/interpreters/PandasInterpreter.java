@@ -8,7 +8,6 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasSyntaxHelper;
-import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -763,14 +762,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			boolean multi = false;
 			String myFilterFormatted = null;
 			// format the objects based on the type of the column
+			SemossDataType objectsDataType = leftDataType;
+			boolean useStringForType = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.contentEquals(NOT_SEARCH_COMPARATOR);
+			if(useStringForType) {
+				objectsDataType = SemossDataType.STRING;
+			}
+			// format the objects based on the type of the column
 			if(objects.size() > 1) {
 				multi = true;
 				// need a similar one for pandas
-				myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, leftDataType);
+				myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, objectsDataType);
 			} else {
 				// dont bother doing this if we have a date
 				// since we cannot use "in" with dates
-				myFilterFormatted = PandasSyntaxHelper.formatFilterValue(objects.get(0), leftDataType);
+				myFilterFormatted = PandasSyntaxHelper.formatFilterValue(objects.get(0), objectsDataType);
 			}
 			
 			// account for bad input
@@ -791,45 +796,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			}
 			
 			if(multi) {
-				// special processing for date types
-				if(SemossDataType.DATE == leftDataType) {
-					int size = objects.size();
-					if(thisComparator.equals("==")) {
-						filterBuilder.append("(");
-						for (int i = 0; i < size; i++) {
-							filterBuilder.append(leftSelectorExpression).append(" == ")
-									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
-							if ((i+1) < size) {
-								filterBuilder.append(" | ");
-							}
-						}
-						filterBuilder.append(")");
-					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-						filterBuilder.append("(");
-						for (int i = 0; i < size; i++) {
-							filterBuilder.append(leftSelectorExpression).append(" != ")
-									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
-							if ((i+1) < size) {
-								filterBuilder.append(" & ");
-							}
-						}
-						filterBuilder.append(")");
-					} else {
-						// this will probably break...
-						myFilterFormatted = RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE);
-						filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
-					}
-				} 
-				// now all the other types
-				else {
-					if(thisComparator.equals("==")) {
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
-					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
-						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
-					} else {
-						// this will probably break...
-						filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
-					}
+				if(thisComparator.equals("==")) {
+					filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
+				} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
+					filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
+				} else {
+					// this will probably break...
+					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
 				}
 			}
 			else {
@@ -839,15 +812,27 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					if(SemossDataType.STRING == leftDataType) {
 						// t[t['Title'].str.upper().str.contains('ALA')]
 						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
+					} else if(SemossDataType.DATE == leftDataType) {
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].dt.strftime('%Y-%m-%d').str.contains(").append(myFilterFormatted).append(",case=False)");
+					} else if(SemossDataType.TIMESTAMP == leftDataType) {
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].dt.strftime('%Y-%m-%d %H:%M:%s').str.contains(").append(myFilterFormatted).append(",case=False)");
+					} else if(SemossDataType.INT == leftDataType || SemossDataType.DOUBLE == leftDataType) {
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].astype('str').str.contains(").append(myFilterFormatted).append(",case=False)");
 					} else {
 						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
 					}
 				} else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
 					if(SemossDataType.STRING == leftDataType) {
 						// t[t['Title'].str.upper().str.contains('ALA')]
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False) == False");
+						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
+					} else if(SemossDataType.DATE == leftDataType) {
+						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].dt.strftime('%Y-%m-%d').str.contains(").append(myFilterFormatted).append(",case=False)");
+					} else if(SemossDataType.TIMESTAMP == leftDataType) {
+						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].dt.strftime('%Y-%m-%d %H:%M:%s').str.contains(").append(myFilterFormatted).append(",case=False)");
+					} else if(SemossDataType.INT == leftDataType || SemossDataType.DOUBLE == leftDataType) {
+						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].astype('str').str.contains(").append(myFilterFormatted).append(",case=False)");
 					} else {
-						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False) == False");
+						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
 					}
 				} else {
 					filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
