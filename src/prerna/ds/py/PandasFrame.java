@@ -243,13 +243,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 		
 		List<String> headerList = (List) pyt.runScript(colScript);
 		String[] headers = headerList.toArray(new String[headerList.size()]);
-		
-//		SemossDataType [] stypes = new SemossDataType[headers.length];
 		List<String> types = (List<String>) pyt.runScript(typeScript);
 
 		// here we run and see if the types are good
 		// or if we messed up, we perform a switch
-		
 		for(int colIndex = 0; colIndex < headers.length; colIndex++) {
 			String colName = headers[colIndex];
 			String colType = types.get(colIndex);
@@ -260,7 +257,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 			
 			SemossDataType pysColType = (SemossDataType) pyS.get(colType);
 			SemossDataType proposedType = dataTypeMap.get(frameName + "__" + colName);
-			
+			if(proposedType == null) {
+				proposedType = dataTypeMap.get(colName);
+			}
 			String pyproposedType = colType;
 			if(proposedType != null) {
 				pyproposedType = spy.get(proposedType);
@@ -270,15 +269,17 @@ public class PandasFrame extends AbstractTableDataFrame {
 			
 			if(proposedType != null && pysColType != proposedType) {
 				// create and execute the type
-				if(proposedType != SemossDataType.DATE && proposedType != SemossDataType.TIMESTAMP) {
-					String	typeChanger = wrapperTableName + "['" + colName + "'] = " + wrapperTableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
+				if(proposedType == SemossDataType.DATE) {
+					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
+					pyt.runEmptyPy(typeChanger);
+				} else if(proposedType == SemossDataType.TIMESTAMP) {
+					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
 					pyt.runEmptyPy(typeChanger);
 				} else {
-					String	typeChanger = wrapperTableName + "['" + colName + "'] = pd.to_datetime(" + wrapperTableName + "['" + colName + "'], errors='ignore')";
+					String typeChanger = tableName + "['" + colName + "'] = " + tableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
 					pyt.runEmptyPy(typeChanger);
 				}
 			}
-//			stypes[colIndex] = pysColType;
 		}
 	}
 	
