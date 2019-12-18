@@ -742,17 +742,19 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(addNullCheck) {
 			objects.remove(null);
 		}
+		if(SemossDataType.isNotString(leftDataType) && !thisComparator.equals(SEARCH_COMPARATOR) && !thisComparator.equals(NOT_SEARCH_COMPARATOR) && objects.contains("")) {
+			addNullCheck = true;
+			objects.remove("");
+		}
 		
 		StringBuilder filterBuilder = new StringBuilder("(");;
 		// add the null check now
 		if(addNullCheck) {
 			// can only work if comparator is == or !=
 			if(thisComparator.equals("==")) {
-				filterBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" 'null'").append(")");
-				//filterBuilder.append("is.na(").append(leftSelectorExpression).append(") ");
+				filterBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
-				filterBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" 'null'").append(")");
-				//filterBuilder.append("!is.na(").append(leftSelectorExpression).append(") ");
+				filterBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
 			}
 		}
 		
