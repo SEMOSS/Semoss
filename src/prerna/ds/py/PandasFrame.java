@@ -22,6 +22,7 @@ import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.CsvQueryStruct;
 import prerna.query.querystruct.ExcelQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -320,6 +321,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
+		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		PandasInterpreter interp = new PandasInterpreter();
 		interp.setDataTableName(this.frameName, this.wrapperFrameName + ".cache['data']");
 		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
