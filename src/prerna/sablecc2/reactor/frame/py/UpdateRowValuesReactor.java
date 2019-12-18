@@ -94,7 +94,7 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 		} else if(sType == SemossDataType.DATE) {
 			// make sure the new value can be properly casted to a date
 			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
-				newValue = "NaN";
+				newValue = "NaT";
 			} else {
 				SemossDate newD = SemossDate.genDateObj(newValue);
 				if(newD == null) {
@@ -102,20 +102,23 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 				}
 				newValue = newD.getFormatted("yyyy-MM-dd");
 			}
-			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ column +"'] = " + QUOTE + newValue + QUOTE;
+			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ column +"'] = np.datetime64(" + QUOTE + newValue + QUOTE + ", format='%Y-%m-%d')";
 
 		} else if(sType == SemossDataType.TIMESTAMP) {
 			// make sure the new value can be properly casted to a timestamp
 			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
-				newValue = "NaN";
+				newValue = "NaT";
 			} else {
 				SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
 				if(newD == null) {
-					throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+					newD = SemossDate.genDateObj(newValue);
+					if(newD == null) {
+						throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
+					}
 				}
 				newValue = newD.getFormatted("yyyy-MM-dd HH:mm:ss");
 			}
-			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ column +"'] = " + QUOTE + newValue + QUOTE;
+			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '"+ column +"'] = np.datetime64(" + QUOTE + newValue + QUOTE + ", format='%Y-%m-%d %H:%M:%S')";
 
 		} else if(sType == SemossDataType.STRING) {
 			// escape and update
