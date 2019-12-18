@@ -46,6 +46,7 @@ public class PyTranslator {
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
 		pyS.put("datetime64", SemossDataType.DATE);
+		pyS.put("datetime64[ns]", SemossDataType.DATE);
 	}
 
 	public SemossDataType convertDataType(String pDataType) {

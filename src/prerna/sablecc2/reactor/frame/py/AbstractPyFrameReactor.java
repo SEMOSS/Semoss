@@ -75,7 +75,8 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 	 */
 	public String getColumnType(PandasFrame frame, String column) {
 		String wrapperName = frame.getWrapperName();
-		String pythonDt = (String) frame.runScript(PandasSyntaxHelper.getColumnType(wrapperName + ".cache['data']", column));
+		String columnType = PandasSyntaxHelper.getColumnType(wrapperName + ".cache['data']", column);
+		String pythonDt = (String) frame.runScript(columnType);
 		SemossDataType smssDT = this.insight.getPyTranslator().convertDataType(pythonDt);
 		return smssDT.toString();
 	}
