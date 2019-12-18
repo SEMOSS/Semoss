@@ -114,73 +114,63 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 		List<Object> filterValues = new ArrayList<Object>();
 		if (columnFiltered(baseFilters, tableCol)) {
 
-			boolean validExistingFilters = true;
-			// if we did add a word filter, we only want to execute if there is another filter present
-			if (filterWord != null && !filterWord.trim().isEmpty()) {
-				if (baseFilters.size() == 1) {
-					validExistingFilters = false;
-				}
-			}
+			// to get the values that the user has filtered out
+			// we need create the inverse of the filters
+			// if they touch the column we care about
+			GenRowFilters inverseFilters = new GenRowFilters();
+			List<IQueryFilter> baseFiltersList = baseFilters.getFilters();
+			for (IQueryFilter filter : baseFiltersList) {
+				// check if it is a simple or complex filter
+				if (filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+					if (filter.containsColumn(tableCol)) {
+						// reverse the comparator
+						SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
+						fCopy.reverseComparator();
 
-			if(validExistingFilters) {
-				// to get the values that the user has filtered out
-				// we need create the inverse of the filters
-				// if they touch the column we care about
-				GenRowFilters inverseFilters = new GenRowFilters();
-				List<IQueryFilter> baseFiltersList = baseFilters.getFilters();
-				for (IQueryFilter filter : baseFiltersList) {
-					// check if it is a simple or complex filter
-					if (filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
-						if (filter.containsColumn(tableCol)) {
-							// reverse the comparator
-							SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
-							fCopy.reverseComparator();
-
-							if(fCopy.getComparator() == "!=" && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
-								// include a show of null
-								// so we need to add this fCopy with a null find
-								NounMetadata nullLComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
-								List<Object> nullList = new Vector<Object>();
-								nullList.add(null);
-								NounMetadata nullRComparison = new NounMetadata(nullList, PixelDataType.CONST_STRING);
-								SimpleQueryFilter nullFilter = new SimpleQueryFilter(nullLComparison, "==", nullRComparison);
-								
-								OrQueryFilter orFilter = new OrQueryFilter(fCopy, nullFilter);
-								inverseFilters.addFilters(orFilter);
-							} else {
-								inverseFilters.addFilters(fCopy);
-							}
+						if(fCopy.getComparator() == "!=" && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
+							// include a show of null
+							// so we need to add this fCopy with a null find
+							NounMetadata nullLComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
+							List<Object> nullList = new Vector<Object>();
+							nullList.add(null);
+							NounMetadata nullRComparison = new NounMetadata(nullList, PixelDataType.CONST_STRING);
+							SimpleQueryFilter nullFilter = new SimpleQueryFilter(nullLComparison, "==", nullRComparison);
+							
+							OrQueryFilter orFilter = new OrQueryFilter(fCopy, nullFilter);
+							inverseFilters.addFilters(orFilter);
 						} else {
-							// just add it to the filters
-							inverseFilters.addFilters(filter.copy());
+							inverseFilters.addFilters(fCopy);
 						}
-					}
-					// okay, this is hard to figure out if it is not simple
-					// so just add it
-					else {
+					} else {
+						// just add it to the filters
 						inverseFilters.addFilters(filter.copy());
 					}
 				}
+				// okay, this is hard to figure out if it is not simple
+				// so just add it
+				else {
+					inverseFilters.addFilters(filter.copy());
+				}
+			}
 
-				// to get the filtered values
-				// run with the inverse filters of the current column
-				qs.setExplicitFilters(inverseFilters);
-				
-				// add the filter word as a like filter
-				if (filterWord != null && !filterWord.trim().isEmpty()) {
-					NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
-					String comparator = "?like";
-					NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
-					SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
-					baseFilters.addFilters(wFilter);
-				}
-				
-				
-				// flush out the values
-				Iterator<IHeadersDataRow> filterValuesIt = dataframe.query(qs);
-				while (filterValuesIt.hasNext()) {
-					filterValues.add(filterValuesIt.next().getValues()[0]);
-				}
+			// to get the filtered values
+			// run with the inverse filters of the current column
+			qs.setExplicitFilters(inverseFilters);
+			
+			// add the filter word as a like filter
+			if (filterWord != null && !filterWord.trim().isEmpty()) {
+				NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
+				String comparator = "?like";
+				NounMetadata rComparison = new NounMetadata(filterWord, PixelDataType.CONST_STRING);
+				SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
+				qs.addExplicitFilter(wFilter);
+			}
+			
+			
+			// flush out the values
+			Iterator<IHeadersDataRow> filterValuesIt = dataframe.query(qs);
+			while (filterValuesIt.hasNext()) {
+				filterValues.add(filterValuesIt.next().getValues()[0]);
 			}
 		}
 		retMap.put("filterValues", filterValues);
