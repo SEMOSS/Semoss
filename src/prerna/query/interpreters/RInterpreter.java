@@ -562,6 +562,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 			boolean multi = false;
 			String myFilterFormatted = null;
 			// format the objects based on the type of the column
+			boolean useStringForType = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.contentEquals(NOT_SEARCH_COMPARATOR);
+			if(useStringForType) {
+				leftDataType = SemossDataType.STRING;
+			}
 			if(objects.size() > 1) {
 				multi = true;
 				myFilterFormatted = RSyntaxHelper.createRColVec(objects, leftDataType);
@@ -595,8 +599,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					if(thisComparator.equals("==")) {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
-							filterBuilder.append(leftSelectorExpression).append(" == ")
-									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+							filterBuilder.append(leftSelectorExpression).append(" == ").append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 							if ((i+1) < size) {
 								filterBuilder.append(" | ");
 							}
@@ -605,8 +608,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
-							filterBuilder.append(leftSelectorExpression).append(" != ")
-									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+							filterBuilder.append(leftSelectorExpression).append(" != ").append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 							if ((i+1) < size) {
 								filterBuilder.append(" & ");
 							}
