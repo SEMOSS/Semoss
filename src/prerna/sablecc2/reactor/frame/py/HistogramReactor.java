@@ -67,10 +67,13 @@ public class HistogramReactor extends AbstractFrameReactor {
 		StringBuilder formatBins = new StringBuilder();
 		boolean format = false;
 
+		String colSelector = table + "['" + column + "']";
 		if(numBreaks > 1) {
-			script.append("np.histogram(").append(table).append("['").append(column).append("'], bins=").append(numBreaks).append(")");
+//			np.histogram( FRAME940921[~np.isnan(FRAME940921['MovieBudget'])]['MovieBudget'], bins=5)
+			script.append("np.histogram(").append(table).append("[~np.isnan(").append(colSelector).append(")]['").append(column).append("'], bins=").append(numBreaks).append(")");
 		} else {
-			script.append("np.histogram(").append(table).append("['").append(column).append("'], bins='auto')");
+//			np.histogram( FRAME940921[~np.isnan(FRAME940921['MovieBudget'])]['MovieBudget'], bins='auto')
+			script.append("np.histogram(").append(table).append("[~np.isnan(").append(colSelector).append(")]['").append(column).append("'], bins='auto')");
 			formatHist.append("hist = list(map(int, hist))");
 			formatBins.append("bins = list(bins)");
 			format = true;
