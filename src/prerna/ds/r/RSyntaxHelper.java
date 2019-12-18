@@ -97,7 +97,9 @@ public class RSyntaxHelper {
 			} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
 				str.append(row.get(i).toString());
 			} else if(SemossDataType.DATE == dataType) {
-				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d');");
+				str.append("as.Date(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d')");
+			} else if(SemossDataType.TIMESTAMP == dataType) {
+				str.append("as.POSIXct(\"").append(row.get(i).toString()).append("\", format='%Y-%m-%d %H:%M:%S')");
 			} else {
 				// just in case this is not defined yet...
 				// see the type of the value and add it in based on that
@@ -830,6 +832,8 @@ public class RSyntaxHelper {
 			return value.toString();
 		} else if(SemossDataType.DATE == dataType) {
 			return "as.Date(\"" + value.toString() + "\", format='%Y-%m-%d')";
+		} else if(SemossDataType.TIMESTAMP == dataType) {
+			return "as.POSIXct(\"" + value.toString() + "\", format='%Y-%m-%d %H:%M:%S')";
 		} else {
 			// just in case this is not defined yet...
 			// see the type of the value and add it in based on that
