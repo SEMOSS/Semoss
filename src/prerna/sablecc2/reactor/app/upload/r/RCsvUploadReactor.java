@@ -5,12 +5,14 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 
+import net.snowflake.client.jdbc.internal.apache.commons.io.FilenameUtils;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.engine.api.IEngine.ENGINE_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.r.RNativeEngine;
+import prerna.poi.main.RDBMSEngineCreationHelper;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.reactor.app.upload.AbstractUploadFileReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
@@ -36,7 +38,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
 		File uploadFile = new File(filePath);
-		String fileName = uploadFile.getName();
+		String fileName = FilenameUtils.getBaseName(filePath);
 		// TODO do we still need this????
 		if (fileName.contains("_____UNIQUE")) {
 			// ... yeah, this is not intuitive at all,
@@ -67,7 +69,7 @@ public class RCsvUploadReactor extends AbstractUploadFileReactor {
 		logger.info(stepCounter + ". Start generating engine metadata");
 		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.R);
 		// table name is the file name
-		String tableName = fileName.substring(0, fileName.indexOf("."));
+		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
 		// add the table
 		owler.addConcept(tableName, null, null);
 		// add the props
