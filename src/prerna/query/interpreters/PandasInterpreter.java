@@ -160,7 +160,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private String addDistinct(boolean distinct) {
 		if(distinct) {
-			return ".drop_duplicates()";
+			//return ".drop_duplicates()";
 		}
 		return "";
 	}
@@ -450,13 +450,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				else
 					groupCriteria.append(",");
 			
-				groupCriteria.append("'").append(selector.getTable()).append("'");
+				groupCriteria.append("'").append(selector.getColumn()).append("'");
 			}
 			
-			if(actHeaders.contains(selector.getTable()))
+			if(actHeaders.contains(selector.getColumn()))
 			{
-				int index = actHeaders.indexOf(selector.getTable());
-				actHeaders.remove(selector.getTable());
+				int index = actHeaders.indexOf(selector.getColumn());
+				actHeaders.remove(selector.getColumn());
 				//headers.remove(selector.getTable());
 				actHeaders.add(groupIndex, headers.get(index));
 				groupIndex++;
@@ -466,10 +466,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			
 			// we dont know how many groups would it be.. so updating
 
-			if(processedSelector.containsKey(selector.getTable()))
+			if(processedSelector.containsKey(selector.getColumn()))
 			{
-				processedSelector.put(selector.getTable(), Boolean.TRUE);
-				headers.add(selector.getTable());
+				processedSelector.put(selector.getColumn(), Boolean.TRUE);
+				headers.add(selector.getColumn());
 			}
 		}
 	}
