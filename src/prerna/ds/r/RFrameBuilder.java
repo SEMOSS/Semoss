@@ -572,16 +572,30 @@ public class RFrameBuilder {
 		return null;
 	}
 	
-	protected void save(String frameFileName, String frameName){
+	protected void saveRda(String frameFileName, String frameName) {
 		this.evalR("save(" + frameName + ", file=\"" + frameFileName.replace("\\", "/") + "\")");
-
 		if (new File(frameFileName).length() == 0){
 			throw new IllegalArgumentException("Attempting to save an empty R frame");
 		}
 	}
 	
-	protected void open(String frameFileName){
-		frameFileName = frameFileName.replaceAll("-", "_");
+	protected void openRda(String frameFileName){
 		this.evalR("load(\"" + frameFileName.replace("\\", "/") + "\")");
+	}
+	
+	protected void saveFst(String frameFileName, String frameName) {
+		this.evalR("library(\"fst\")");
+		this.evalR("write_fst(" + frameName + ", \"" + frameFileName.replace("\\", "/") + "\")");
+		if (new File(frameFileName).length() == 0){
+			throw new IllegalArgumentException("Attempting to save an empty R frame");
+		}
+	}
+	
+	protected void openFst(String frameFileName, String frameName){
+		this.evalR("library(\"fst\")");
+		// 2020-01-02 
+		// newer version of fst library shouldn't require the additional "as.data.table" syntax
+		// https://github.com/fstpackage/fst/milestone/23
+		this.evalR(frameName + " <- as.data.table(read_fst(\"" + frameFileName.replace("\\", "/") + "\"))");
 	}
 }

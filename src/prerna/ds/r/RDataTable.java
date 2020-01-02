@@ -26,6 +26,7 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.sablecc.PKQLEnum;
 import prerna.sablecc.PKQLEnum.PKQLReactor;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.sablecc2.reactor.imports.ImportUtility;
@@ -260,9 +261,17 @@ public class RDataTable extends AbstractTableDataFrame {
 		cf.setFrameName(frameName);
 		
 		// save frame
-		String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".rda";
-		cf.setFrameCacheLocation(frameFilePath);
-		this.builder.save(frameFilePath, frameName);
+		try {
+			// this throws an exception if the library doesn't exist
+			this.builder.rJavaTranslator.checkPackages("fst");
+			String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".fst";
+			cf.setFrameCacheLocation(frameFilePath);
+			this.builder.saveFst(frameFilePath, frameName);
+		} catch(Exception e) {
+			String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".rda";
+			cf.setFrameCacheLocation(frameFilePath);
+			this.builder.saveRda(frameFilePath, frameName);
+		}
 		
 		// also save the meta details
 		this.saveMeta(cf, folderDir, frameName);
@@ -274,7 +283,14 @@ public class RDataTable extends AbstractTableDataFrame {
 		// set the frame name
 		this.builder.dataTableName = cf.getFrameName();
 		// load the environment
-		this.builder.evalR("load(\"" + cf.getFrameCacheLocation().replace("\\", "/") + "\")");
+		String filePath = cf.getFrameCacheLocation();
+		if(filePath.endsWith(".fst")){
+			this.builder.openFst(cf.getFrameCacheLocation(), cf.getFrameName());
+		} else if(filePath.endsWith(".rda")) {
+			this.builder.openRda(cf.getFrameCacheLocation());
+		} else {
+			throw new SemossPixelException("Unknown R cache format");
+		}
 		// open the meta details
 		this.openCacheMeta(cf);
 	}
