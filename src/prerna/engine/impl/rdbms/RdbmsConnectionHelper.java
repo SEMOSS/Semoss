@@ -377,7 +377,9 @@ public class RdbmsConnectionHelper {
 			tablesRs = con.createStatement().executeQuery(query);
 		} else if (driver == RdbmsTypeEnum.ATHENA){
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "EXTERNAL_TABLE", "VIEW" });
-
+		} else if (driver == RdbmsTypeEnum.SQLSERVER) {
+			// do not pass in the schema...
+			tablesRs = meta.getTables(catalogFilter, null, null, new String[] { "TABLE", "VIEW"});
 		} else {
 			tablesRs = meta.getTables(catalogFilter, schemaFilter, null, new String[] { "TABLE", "VIEW" });
 		}
@@ -420,7 +422,8 @@ public class RdbmsConnectionHelper {
 	 */
 	public static ResultSet getColumns(DatabaseMetaData meta, String tableOrView, String catalogFilter, String schemaFilter, RdbmsTypeEnum driver) throws SQLException {
 		ResultSet columnsRs;
-		if (driver == RdbmsTypeEnum.ORACLE) {
+		if (driver == RdbmsTypeEnum.ORACLE || driver == RdbmsTypeEnum.SQLSERVER) {
+			// do not pass in schema
 			columnsRs = meta.getColumns(catalogFilter, null, tableOrView, null);
 		} else {
 			columnsRs = meta.getColumns(catalogFilter, schemaFilter, tableOrView, null);
