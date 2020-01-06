@@ -18,6 +18,7 @@ import prerna.ds.py.PandasFrame;
 import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.InsightSheet;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -115,6 +116,17 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 				out.endArray();
 				out.endObject();
 			}
+		}
+		out.endArray();
+		
+		// write the sheets
+		out.name("sheets");
+		out.beginArray();
+		Map<String, InsightSheet> sheets = value.getInsightSheets();
+		for(String key : sheets.keySet()) {
+			InsightSheet sheet = sheets.get(key);
+			InsightSheetAdapter sheetAdapter = new InsightSheetAdapter();
+			sheetAdapter.write(out, sheet);
 		}
 		out.endArray();
 		
@@ -272,6 +284,16 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 			}
 			
 			in.endObject();
+		}
+		in.endArray();
+		
+		// this will be the sheets
+		in.nextName();
+		in.beginArray();
+		while(in.hasNext()) {
+			InsightSheetAdapter sheetAdapter = new InsightSheetAdapter();
+			InsightSheet sheet = sheetAdapter.read(in);
+			insight.addNewInsightSheet(sheet);
 		}
 		in.endArray();
 		

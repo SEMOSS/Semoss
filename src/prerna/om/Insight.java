@@ -60,7 +60,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.engine.impl.SmssUtilities;
 import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.SelectQueryStruct.Query_Part;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
@@ -86,9 +85,12 @@ import prerna.util.usertracking.UserTrackerFactory;
 
 public class Insight {
 
+	public static Boolean isjavac = null;
+	public static final String DEFAULT_SHEET = "Sheet1";
+	
 	private static final Logger LOGGER = LogManager.getLogger(Insight.class.getName());
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
+	
 	// need to account for multiple frames to be saved on the insight
 	// we will use a special key 
 	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
@@ -120,6 +122,21 @@ public class Insight {
 	// data frames within this insight
 	private transient TaskStore taskStore;
 
+	// also store insight sheets
+	private transient Map<String, InsightSheet> insightSheets = new LinkedHashMap<String, InsightSheet>();
+	{
+		// add a default insight
+		// this is because old pixels didn't have an insight sheet
+		// and dont want those recipes to break
+		insightSheets.put(DEFAULT_SHEET, new InsightSheet(DEFAULT_SHEET));
+	}
+	// this is the store holding information around the panels associated with this insight
+	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
+	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
+	
+	// insight comments
+	private transient LinkedList<InsightComment> insightCommentList = null;
+	
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
@@ -145,21 +162,6 @@ public class Insight {
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient boolean deleteREnvOnDropInsight = true;
 	
-	// insight comments
-	private transient LinkedList<InsightComment> insightCommentList = null;
-	
-	// also store insight sheets
-	private transient Map<String, InsightSheet> insightSheets = new LinkedHashMap<String, InsightSheet>();
-	{
-		// add a default insight
-		// this is because old pixels didn't have an insight sheet
-		// and dont want those recipes to break
-		insightSheets.put("Sheet1", new InsightSheet("Sheet1"));
-	}
-	// this is the store holding information around the panels associated with this insight
-	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
-	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
-
 	// old - for pkql
 	@Deprecated
 	private transient Map<String, Map<String, Object>> pkqlVarMap = new Hashtable<String, Map<String, Object>>();
@@ -170,14 +172,9 @@ public class Insight {
 	
 	// insight specific reactors
 	private transient Map<String, Class> insightSpecificHash = new HashMap<String, Class>();
-	
-	
-	public static Boolean isjavac = null;
-	
 		
 	// last panel id touched
 	String lastPanelId = "0";
-	
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
 	Map pragmap = null;
 	
