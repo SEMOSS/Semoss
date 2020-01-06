@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.app.upload.gremlin.external;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -13,6 +14,7 @@ import org.apache.tinkerpop.gremlin.structure.io.gryo.GryoIo;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import prerna.poi.main.helper.ImportOptions.TINKER_DRIVER;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -26,7 +28,8 @@ import prerna.util.MyGraphIoMappingBuilder;
 public class GetGraphMetaModelReactor extends AbstractReactor {
 
 	public GetGraphMetaModelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
+				ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
@@ -48,7 +51,7 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 			throw exception;
 		}
 
-		HashMap<String, Object> retMap = new HashMap<String, Object>();
+		Map<String, Object> retMap = new HashMap<String, Object>();
 		TINKER_DRIVER tinkerDriver = TINKER_DRIVER.NEO4J;
 		if (new File(fileName).isFile() && fileName.contains(".")) {
 			String fileExtension = fileName.substring(fileName.indexOf(".") + 1);
@@ -103,9 +106,13 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 		}
-		
+
 		if (g != null) {
-			retMap = GraphUtility.getMetamodel(g.traversal(), graphTypeId);
+			if (useLabel()) {
+				retMap = GraphUtility.getMetamodel(g.traversal());
+			} else {
+				retMap = GraphUtility.getMetamodel(g.traversal(), graphTypeId);
+			}
 			try {
 				g.close();
 			} catch (Exception e) {
@@ -114,6 +121,19 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 		}
 
 		return new NounMetadata(retMap, PixelDataType.MAP);
+	}
+	
+	/**
+	 * Query the external db with a label to get the node
+	 * 
+	 * @return
+	 */
+	private boolean useLabel() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return (boolean) grs.get(0);
+		}
+		return false;
 	}
 
 }

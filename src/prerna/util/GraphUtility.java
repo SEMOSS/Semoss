@@ -24,16 +24,16 @@ import org.neo4j.graphdb.Transaction;
 
 import prerna.algorithm.api.SemossDataType;
 
-
 public class GraphUtility {
 
 	/**
 	 * Get metamodel from a type property
+	 * 
 	 * @param gts
 	 * @param graphTypeId
 	 * @return
 	 */
-	public static HashMap<String, Object> getMetamodel(GraphTraversalSource gts, String graphTypeId) {
+	public static Map<String, Object> getMetamodel(GraphTraversalSource gts, String graphTypeId) {
 		HashMap<String, Object> retMap = new HashMap<String, Object>();
 		Map<String, ArrayList<String>> edges = new HashMap<>();
 		Map<String, Map<String, String>> nodes = new HashMap<>();
@@ -113,14 +113,14 @@ public class GraphUtility {
 				Vertex outV = edge.outVertex();
 				GraphTraversal<Vertex, Vertex> outTraversal = gts.V(outV.id());
 				Set<String> outVKeys = null;
-				while(outTraversal.hasNext()) {
+				while (outTraversal.hasNext()) {
 					outV = outTraversal.next();
 					outVKeys = outV.keys();
 				}
 				Vertex inV = edge.inVertex();
 				GraphTraversal<Vertex, Vertex> inTraversal = gts.V(inV.id());
 				Set<String> inVKeys = null;
-				while(inTraversal.hasNext()) {
+				while (inTraversal.hasNext()) {
 					inV = inTraversal.next();
 					inVKeys = inV.keys();
 				}
@@ -150,7 +150,69 @@ public class GraphUtility {
 		return retMap;
 
 	}
-	
+
+	/**
+	 * Get graph metamodel using the label
+	 * 
+	 * @param gts
+	 * @return
+	 */
+	public static Map<String, Object> getMetamodel(GraphTraversalSource gts) {
+		Map<String, Object> retMap = new HashMap<>();
+		Map<String, ArrayList<String>> edges = new HashMap<>();
+		Map<String, Map<String, String>> nodes = new HashMap<>();
+		// get nodes
+		GraphTraversal<Vertex, Map<Object, Object>> it = gts.V().group().by(__.label())
+				.by(__.properties().label().dedup().fold());
+		while (it.hasNext()) {
+			Map<Object, Object> value = it.next();
+			Map<String, String> propMap = new HashMap<>();
+			for (Object key : value.keySet()) {
+				List props = (List) value.get(key);
+				for (Object property : props) {
+					propMap.put(property + "", SemossDataType.STRING.toString());
+				}
+				nodes.put(key + "", propMap);
+			}
+		}
+
+		Iterator<String> edgeLabels = gts.E().label().dedup();
+		while (edgeLabels.hasNext()) {
+			String edgeLabel = edgeLabels.next();
+			Iterator<Edge> eIt = gts.V().outE(edgeLabel);
+			while (eIt.hasNext()) {
+				Edge edge = eIt.next();
+				Vertex outV = edge.outVertex();
+				GraphTraversal<Vertex, Vertex> outTraversal = gts.V(outV.id());
+				while (outTraversal.hasNext()) {
+					outV = outTraversal.next();
+				}
+				Vertex inV = edge.inVertex();
+				GraphTraversal<Vertex, Vertex> inTraversal = gts.V(inV.id());
+				while (inTraversal.hasNext()) {
+					inV = inTraversal.next();
+				}
+
+				if (!edges.containsKey(edgeLabel)) {
+					ArrayList<String> vertices = new ArrayList<>();
+					vertices.add(outV.label());
+					vertices.add(inV.label());
+					edges.put(edgeLabel, vertices);
+				} else {
+					break;
+				}
+				
+			}
+		}
+		if (!nodes.isEmpty()) {
+			retMap.put("nodes", nodes);
+			if (!edges.isEmpty()) {
+				retMap.put("edges", edges);
+			}
+		}
+		return retMap;
+	}
+
 	/**
 	 * Get all the node properties for a graph
 	 * 
@@ -256,11 +318,11 @@ public class GraphUtility {
 		tx.close();
 		return edgeMap;
 	}
-	
+
 	////////////////////////////////////////////////////////////////////
 	//////////// Graph Utility Methods for Remote Neo4j ////////////////
 	////////////////////////////////////////////////////////////////////
-	
+
 	/**
 	 * Get all the labels for a graph
 	 * 
@@ -289,7 +351,7 @@ public class GraphUtility {
 
 		return labels;
 	}
-	
+
 	public static List<String> getProperties(Connection conn, String label) {
 		String query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
 		List<String> properties = new ArrayList<String>();
@@ -307,24 +369,24 @@ public class GraphUtility {
 		} finally {
 			ConnectionUtils.closeAllConnections(null, resultSet, statement);
 		}
-		
+
 		return properties;
 	}
-	
+
 	public static Map<String, Object> getEdges(Connection conn) {
 		String query = "MATCH (n)-[r]->(p) RETURN DISTINCT labels(n) AS StartNode, TYPE(r) AS RelationshipName , labels(p) as EndNode";
 		Map<String, Object> edgeMap = new HashMap<>();
 		Statement statement = null;
-		ResultSet resultSet  = null;
+		ResultSet resultSet = null;
 		try {
 			statement = conn.createStatement();
 			resultSet = statement.executeQuery(query);
-			while(resultSet.next()) {
-		    	ArrayList<String> startNodeList = (ArrayList<String>) resultSet.getObject(1);
-		    	String startNode = startNodeList.get(0);
-		    	String relationship = resultSet.getString(2);
-		    	ArrayList<String> endNodeList = (ArrayList<String>) resultSet.getObject(3);
-		    	String endNode = endNodeList.get(0);
+			while (resultSet.next()) {
+				ArrayList<String> startNodeList = (ArrayList<String>) resultSet.getObject(1);
+				String startNode = startNodeList.get(0);
+				String relationship = resultSet.getString(2);
+				ArrayList<String> endNodeList = (ArrayList<String>) resultSet.getObject(3);
+				String endNode = endNodeList.get(0);
 				ArrayList<String> nodes = new ArrayList<>();
 				nodes.add(startNode);
 				nodes.add(endNode);
@@ -335,10 +397,10 @@ public class GraphUtility {
 		} finally {
 			ConnectionUtils.closeAllConnections(null, resultSet, statement);
 		}
-		
+
 		return edgeMap;
 	}
-	
+
 	public static Map<String, Object> getMetamodel(Connection conn) {
 		Map<String, Object> metamodel = new HashMap<>();
 		Map<String, Object> nodeMap = new HashMap<>();
@@ -350,7 +412,7 @@ public class GraphUtility {
 			Map<String, String> propMap = new HashMap<>();
 			List<String> properties = GraphUtility.getProperties(conn, s);
 			// neo4j does not enforce types so we will assume strings
-			for(String prop: properties) {
+			for (String prop : properties) {
 				propMap.put(prop, SemossDataType.STRING.toString());
 			}
 			nodeMap.put(s, propMap);

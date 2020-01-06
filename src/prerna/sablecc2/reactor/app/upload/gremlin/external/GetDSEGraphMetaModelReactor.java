@@ -10,6 +10,7 @@ import com.datastax.driver.dse.DseSession;
 import com.datastax.driver.dse.graph.GraphOptions;
 import com.datastax.dse.graph.api.DseGraph;
 
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -23,7 +24,8 @@ public class GetDSEGraphMetaModelReactor extends AbstractReactor {
 	public GetDSEGraphMetaModelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.HOST.getKey(), ReactorKeysEnum.PORT.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey() };
+				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
+				ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
@@ -59,10 +61,10 @@ public class GetDSEGraphMetaModelReactor extends AbstractReactor {
 		Map<String, Object> retMap = new HashMap<>();
 		// dse connection
 		DseCluster dseCluster = null;
-
 		if (username != null && password != null) {
 			dseCluster = DseCluster.builder().addContactPoint(host).withCredentials(username, password)
-					.withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
+					.withPort(Integer.parseInt(port)).withGraphOptions(new GraphOptions().setGraphName(graphName))
+					.build();
 		} else {
 			dseCluster = DseCluster.builder().addContactPoint(host).withPort(Integer.parseInt(port))
 					.withGraphOptions(new GraphOptions().setGraphName(graphName)).build();
@@ -70,13 +72,31 @@ public class GetDSEGraphMetaModelReactor extends AbstractReactor {
 		if (dseCluster != null) {
 			DseSession dseSession = dseCluster.connect();
 			GraphTraversalSource gts = DseGraph.traversal(dseSession);
-			retMap = GraphUtility.getMetamodel(gts, graphTypeId);
+			if (useLabel()) {
+				retMap = GraphUtility.getMetamodel(gts);
+			} else {
+				retMap = GraphUtility.getMetamodel(gts, graphTypeId);
+			}
 			dseSession.close();
 		} else {
-			throw new SemossPixelException(new NounMetadata("Unable to establish connection", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			throw new SemossPixelException(new NounMetadata("Unable to establish connection",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
 		return new NounMetadata(retMap, PixelDataType.MAP);
 
+	}
+	
+	/**
+	 * Query the external db with a label to get the node
+	 * 
+	 * @return
+	 */
+	private boolean useLabel() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return (boolean) grs.get(0);
+		}
+		return false;
 	}
 
 }
