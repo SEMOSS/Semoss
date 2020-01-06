@@ -210,7 +210,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 
 		// to account for legacy
 		if(sheetId == null) {
-			sheetId = Insight.DEFAULT_SHEET;
+			sheetId = Insight.DEFAULT_SHEET_ID;
 		}
 		
 		InsightPanel panel = new InsightPanel(panelId, sheetId);
