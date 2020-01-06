@@ -86,8 +86,9 @@ import prerna.util.usertracking.UserTrackerFactory;
 public class Insight {
 
 	public static Boolean isjavac = null;
-	public static final String DEFAULT_SHEET = "Sheet1";
-	
+	public static final String DEFAULT_SHEET_ID = "0";
+	public static final String DEFAULT_SHEET_LABEL = "Sheet1";
+
 	private static final Logger LOGGER = LogManager.getLogger(Insight.class.getName());
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	
@@ -128,7 +129,7 @@ public class Insight {
 		// add a default insight
 		// this is because old pixels didn't have an insight sheet
 		// and dont want those recipes to break
-		insightSheets.put(DEFAULT_SHEET, new InsightSheet(DEFAULT_SHEET));
+		insightSheets.put(DEFAULT_SHEET_ID, new InsightSheet(DEFAULT_SHEET_ID, DEFAULT_SHEET_LABEL));
 	}
 	// this is the store holding information around the panels associated with this insight
 	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
