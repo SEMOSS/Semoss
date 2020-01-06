@@ -22,7 +22,7 @@ public class AddPanelIfAbsentReactor extends AbstractReactor {
 		if(newPanel == null) {
 			String sheetId = this.keyValue.get(this.keysToGet[1]);
 			if(sheetId == null) {
-				sheetId = Insight.DEFAULT_SHEET;
+				sheetId = Insight.DEFAULT_SHEET_ID;
 			}
 			newPanel = new InsightPanel(panelId, sheetId);
 			this.insight.addNewInsightPanel(newPanel);
