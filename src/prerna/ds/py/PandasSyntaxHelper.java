@@ -359,7 +359,9 @@ public class PandasSyntaxHelper {
 		int size = row.size();
 		for(; i < size; i++) {
 			if(SemossDataType.STRING == dataType) {
-				str.append("'").append(row.get(i)).append("'");
+				String escaper = row.get(i) + "";
+				escaper = escaper.replace("'", "\\'");
+				str.append("'").append(escaper).append("'");
 			} else if(SemossDataType.INT == dataType || SemossDataType.DOUBLE == dataType) {
 				str.append(row.get(i).toString());
 			} else if(SemossDataType.DATE == dataType) {
@@ -371,7 +373,9 @@ public class PandasSyntaxHelper {
 				// see the type of the value and add it in based on that
 				if(dataType == null) {
 					if(row.get(i) instanceof String) {
-						str.append("'").append(row.get(i)).append("'");
+						String escaper = row.get(i) + "";
+						escaper = escaper.replace("'", "\\'");
+						str.append("'").append(escaper).append("'");
 					} else {
 						str.append(row.get(i));
 					}

@@ -197,6 +197,10 @@ public class SelectStatement  implements ISelectStatement {
 		return null;
 	}
 
+	@Override
+	public String getQuery(){
+		return "";
+	}
 //	@Override
 //	public boolean equals(ISelectStatement other){
 //		boolean equal = false;
@@ -216,5 +220,11 @@ public class SelectStatement  implements ISelectStatement {
 //	public int hashCode(){
 //		return 0;
 //	}
+
+	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

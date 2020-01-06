@@ -132,6 +132,15 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			qs.mergeImplicitFilters(frame.getFrameFilters());
 		}
 		
+		// set the pragmap before I can build the task
+		// the idea is this needs to be passed into querystruct and later iterator
+		// unless we start keeping a reference of querystruct in the iterator
+		// adds it to the qs
+		if(qs.getPragmap() != null && insight.getPragmap() != null)
+			qs.getPragmap().putAll(insight.getPragmap());
+		else if(insight.getPragmap() != null)
+			qs.setPragmap(insight.getPragmap());
+		
 		ITask task = new BasicIteratorTask(qs);
 		// add the task to the store
 		this.insight.getTaskStore().addTask(task);

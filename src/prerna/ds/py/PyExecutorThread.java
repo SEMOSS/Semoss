@@ -45,6 +45,7 @@ public class PyExecutorThread extends Thread {
 					ready = true;
 					curState = ThreadState.wait;
 					daLock.wait();
+					response.clear();
 					
 					curState = ThreadState.run;
 					// if someone wakes up
@@ -101,6 +102,7 @@ public class PyExecutorThread extends Thread {
 								e.printStackTrace();
 							}
 						}
+						command = null;
 						
 						// set back the original security manager
 						tempManager.removeClass(CLASS_NAME);

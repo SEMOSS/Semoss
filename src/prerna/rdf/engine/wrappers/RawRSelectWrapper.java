@@ -85,4 +85,9 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 	public RIterator getOutput() {
 		return this.output;
 	}
+	
+	public String getQuery()
+	{
+		return output.getQuery();
+	}
 }

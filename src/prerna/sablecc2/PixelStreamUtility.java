@@ -15,11 +15,12 @@ import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
+import prerna.ds.py.PandasFrame;
+import prerna.ds.r.RDataTable;
+import prerna.ds.shared.CachedIterator;
+import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
@@ -32,11 +33,15 @@ import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.export.GraphFormatter;
 import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.NumberAdapter;
 import prerna.util.gson.SemossDateAdapter;
 import prerna.util.insight.InsightUtility;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class PixelStreamUtility {
 
@@ -325,31 +330,116 @@ public class PixelStreamUtility {
 					String[] rawHeaders = null;
 					int count = 0;
 
+					// try to see if extreme cache is enabled
+					// this can come by the way of pragma as well
+					String X_CACHE = "False";
+					if(DIHelper.getInstance().getCoreProp().containsKey("X_CACHE"))
+						X_CACHE = DIHelper.getInstance().getCoreProp().getProperty("X_CACHE");
+					
+					String qsPragma = task.getPragma("Cache");
+					
+					if(X_CACHE.equalsIgnoreCase("False") && qsPragma != null) // try to see if the query is telling you to - obviously the server setting overrides ?
+						X_CACHE = qsPragma;
+					
 					// we need to use a try catch
 					// in case there is an issue
 					// since we can get to this point 
 					// without trying to execute or anything
 					try {
 						// recall, a task is also an iterator!
-						while(task.hasNext() && (collectAll || count < numCollect)) {
-							IHeadersDataRow row = task.next();
-							// need to set the headers
-							if(headers == null) {
-								headers = row.getHeaders();
-								rawHeaders = row.getRawHeaders();
-								ps.print("\"output\":{");
-								ps.print("\"data\":{" );
-								ps.print("\"values\":[");
+						// I do this  so I dont need to check everytime
+						
+						// need to see how to get to this for R eventually
+						// all processes are done. we need to host it into RInterpreter
+						RawCachedWrapper cw = (RawCachedWrapper)task.createCache();
+						CachedIterator cit = cw.getIterator();
+						if(X_CACHE.equalsIgnoreCase("False") || (!(cit.getFrame() instanceof PandasFrame) && !(cit.getFrame() instanceof RDataTable)))
+						{
+							while(task.hasNext() && (collectAll || count < numCollect)) {
+								IHeadersDataRow row = task.next();
+								// need to set the headers
+								if(headers == null) {
+									headers = row.getHeaders();
+									rawHeaders = row.getRawHeaders();
+									ps.print("\"output\":{");
+									ps.print("\"data\":{" );
+									ps.print("\"values\":[");
+								}
+	
+								if(!first) {
+									ps.print(",");
+								}
+								ps.print(gson.toJson(row.getValues()));
+								ps.flush();
+	
+								first = false;
+								count++;
 							}
+						}
+						else // this needs to be cached for future purposes
+						{
 
-							if(!first) {
-								ps.print(",");
+							// caching for the first time
+							if(cw.first())
+							{
+								// some more processing can be saved by not having setquery everytime and doing it upfront
+								while(task.hasNext() && (collectAll || count < numCollect)) {
+									 IHeadersDataRow row = task.next();
+									 // add it to cit
+									 cit.addNext(row);
+									// need to set the headers
+									if(headers == null) {
+										headers = row.getHeaders();
+										rawHeaders = row.getRawHeaders();
+										ps.print("\"output\":{");
+										ps.print("\"data\":{" );
+										ps.print("\"values\":[");
+									}
+		
+									if(!first) {
+										ps.print(",");
+									}
+									String output = gson.toJson(row.getValues());
+									ps.print(output);
+									cit.addJson(output);
+									ps.flush();
+		
+									first = false;
+									count++;		
+								}
+								// persist it into the cache
 							}
-							ps.print(gson.toJson(row.getValues()));
-							ps.flush();
-
-							first = false;
-							count++;
+							else
+							{
+								while(task.hasNext() && (collectAll || count < numCollect)) {
+									 IHeadersDataRow row = task.next();
+									// need to set the headers
+									if(headers == null) {
+										headers = row.getHeaders();
+										rawHeaders = row.getRawHeaders();
+										ps.print("\"output\":{");
+										ps.print("\"data\":{" );
+										ps.print("\"values\":[");
+									}
+									
+									/*
+									String output = cit.getNextJson();
+									
+									if(!first) {
+										ps.print(",");
+									}
+									ps.print(output);
+									*/
+									ps.print(cit.getAllJson());
+									ps.flush();
+		
+									first = false;
+									count++;		
+									break;
+								}
+								
+							}
+								cit.processCache();
 						}
 					} catch(Exception e) {
 						// on no, this is not good
