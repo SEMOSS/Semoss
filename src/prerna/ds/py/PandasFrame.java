@@ -14,6 +14,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.EmptyIteratorException;
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.ds.shared.CachedIterator;
+import prerna.ds.shared.RawCachedWrapper;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -45,6 +47,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private String wrapperFrameName = null;
 	private PyTranslator pyt = null;
 	
+	// cache for query
+	private transient Map <String, CachedIterator> queryCache = new HashMap<String, CachedIterator>();
+
+	
 	static {
 		pyS.put("object", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
@@ -52,19 +58,19 @@ public class PandasFrame extends AbstractTableDataFrame {
 		pyS.put("float64", SemossDataType.DOUBLE);
 		pyS.put("datetime64", SemossDataType.DATE);
 		
-		spy.put(SemossDataType.STRING, "category");
-		spy.put(SemossDataType.INT, "np.int64");
-		spy.put(SemossDataType.DOUBLE, "np.float64");
-		spy.put(SemossDataType.DATE, "np.datetime64");
-		spy.put(SemossDataType.TIMESTAMP, "np.datetime64");
+		spy.put(SemossDataType.STRING, "'str'");
+		spy.put(SemossDataType.INT, "np.int32");
+		spy.put(SemossDataType.DOUBLE, "np.float32");
+		spy.put(SemossDataType.DATE, "np.datetime32");
+		spy.put(SemossDataType.TIMESTAMP, "np.datetime32");
 		
-		spy.put("float64", "np.float64");
-		spy.put("int64", "np.int64");
-		spy.put("datetime64", "np.datetime64");
+		spy.put("float64", "np.float32");
+		spy.put("int64", "np.int32");
+		spy.put("datetime64", "np.datetime32");
 		
-		spy.put("dtype('O')", "string");
-		spy.put("dtype('int64')", "int64");
-		spy.put("dtype('float64')", "float64");
+		spy.put("dtype('O')", "'str'");
+		spy.put("dtype('int64')", "int32");
+		spy.put("dtype('float64')", "float32");
 	}
 
 	public PandasFrame() {
@@ -268,19 +274,26 @@ public class PandasFrame extends AbstractTableDataFrame {
 				pyproposedType = spy.get(colType);
 			}
 			
-			if(proposedType != null && pysColType != proposedType) {
+			//if(proposedType != null && pysColType != proposedType) {
+			if(proposedType != null && !pyproposedType.equalsIgnoreCase(colType)) {
 				// create and execute the type
 				if(proposedType == SemossDataType.DATE) {
 					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
-					pyt.runEmptyPy(typeChanger);
+					pyt.runScript(typeChanger);
 				} else if(proposedType == SemossDataType.TIMESTAMP) {
 					String typeChanger = tableName + "['" + colName + "'] = pd.to_datetime(" + tableName + "['" + colName + "'], errors='ignore')";
-					pyt.runEmptyPy(typeChanger);
+					pyt.runScript(typeChanger);
 				} else {
 					String typeChanger = tableName + "['" + colName + "'] = " + tableName + "['" + colName + "'].astype(" + pyproposedType + ", errors='ignore')";
-					pyt.runEmptyPy(typeChanger);
+					pyt.runScript(typeChanger);
 				}
 			}
+			
+			//if(colType.equalsIgnoreType)
+			
+			// reduce memory size
+			// convert int32 vs float 32 vs. category
+			
 		}
 	}
 	
@@ -321,12 +334,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
+		// at this point try to see if the cache already has it and if so pass that iterator instead
+		// the cache is sitting in the insight
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		PandasInterpreter interp = new PandasInterpreter();
 		interp.setDataTableName(this.frameName, this.wrapperFrameName + ".cache['data']");
 		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
 		interp.setQueryStruct(qs);
-		return processInterpreter(interp);
+		// I should also possibly set up pytranslator so I can run command for creating filter
+		interp.setPyTranslator(pyt);
+		return processInterpreter(interp, qs);
 	}
 	
 	@Override
@@ -378,47 +395,87 @@ public class PandasFrame extends AbstractTableDataFrame {
 		rpw.setPandasIterator(pi);
 		return rpw	;
 	}
-	
-	private IRawSelectWrapper processInterpreter(PandasInterpreter interp) {
+
+	// cache the iterator
+	public void cacheQuery(CachedIterator it)
+	{
+		if(it.hasNext())
+			queryCache.put(it.getQuery(), it);
+	}
+
+	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
 		String query = interp.composeQuery();
-		Object output = pyt.runScript(query);
-		List<Object> response = null;
+		CachedIterator ci = null;
+		IRawSelectWrapper retWrapper = null;
 		
-		String [] headers = interp.getHeaders();
-		SemossDataType [] types = interp.getTypes();
-		List<String> actHeaders = null;
-		
-		boolean sync = true;	
-		// get the types for headers also
-		if(interp.isScalar()) {
-			List<Object> val = new ArrayList<Object>();
-			val.add(output);
-			response = new ArrayList<Object>();
-			response.add(val);
+		if(!queryCache.containsKey(query))
+		{
 			
-		} else if(output instanceof HashMap) {
-			HashMap map = (HashMap) output;
-			response = (List<Object>)map.get("data");
+			Object output = pyt.runScript(query);
 			
-			// get the columns
-			List<Object> columns = (List<Object>)map.get("columns");
-			actHeaders = mapColumns(interp, columns);
-			sync = sync(headers, actHeaders);
+			// need to see if this is a parquet format as well
+			String format = "grid";
+			if(qs.getPragmap() != null && qs.getPragmap().containsKey("format"))
+				format = (String)qs.getPragmap().get("format");
+
+			String [] headers = interp.getHeaders();
+			SemossDataType [] types = interp.getTypes();
+
+			if(format.equalsIgnoreCase("grid"))
+			{
+				List<Object> response = null;	
+				List<String> actHeaders = null;
+				
+				boolean sync = true;	
+				// get the types for headers also
+				if(interp.isScalar()) {
+					List<Object> val = new ArrayList<Object>();
+					val.add(output);
+					response = new ArrayList<Object>();
+					response.add(val);
+					
+				} else if(output instanceof HashMap) {
+					HashMap map = (HashMap) output;
+					response = (List<Object>)map.get("data");
+					
+					// get the columns
+					List<Object> columns = (List<Object>)map.get("columns");
+					actHeaders = mapColumns(interp, columns);
+					sync = sync(headers, actHeaders);
+				}
+				
+				else if(output instanceof List) {
+					response = (List) output;
+					actHeaders = null;
+					sync = true;
+				}
+				
+				PandasIterator pi = new PandasIterator(headers, response, types);
+				pi.setQuery(query);
+				pi.setTransform(actHeaders, !sync);
+				RawPandasWrapper rpw = new RawPandasWrapper();
+				rpw.setPandasIterator(pi);
+				retWrapper = rpw;
+			}
+			else // handling parquet format here
+			{
+				PandasParquetIterator ppi = new PandasParquetIterator(headers, output, types);
+				ppi.setQuery(query);
+				RawPandasParquetWrapper rpw = new RawPandasParquetWrapper();
+				rpw.setPandasParquetIterator(ppi);
+				retWrapper = rpw;
+			}
 		}
-		
-		else if(output instanceof List) {
-			response = (List) output;
-			actHeaders = null;
-			sync = true;
+		else
+		{
+			ci = queryCache.get(query);
+			RawCachedWrapper rcw = new RawCachedWrapper();
+			rcw.setIterator(ci);
+			retWrapper = rcw;
 		}
-		
-		PandasIterator pi = new PandasIterator(headers, response, types);
 		// set the actual headers so that it can be processed
 		// if not in sync then transform
-		pi.setTransform(actHeaders, !sync);
-		RawPandasWrapper rpw = new RawPandasWrapper();
-		rpw.setPandasIterator(pi);
-		return rpw;
+		return retWrapper;
 	}
 
 	private List<String> mapColumns(PandasInterpreter interp, List<Object> columns) {

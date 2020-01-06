@@ -114,5 +114,7 @@ public interface IHeadersDataRow{
 		return null;
 	}
 	
+	public String getQuery();
 	
+	public void setQuery(String query);
 }

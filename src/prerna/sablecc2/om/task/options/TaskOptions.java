@@ -42,6 +42,7 @@ public class TaskOptions {
 	}
 
 	public String getLayout(String panelId) {
+		// this is what I need to change for layout
 		Object pOptions = this.options.get(panelId);
 		if(pOptions instanceof Map) {
 			Map<String, Object> panelOptions = (Map<String, Object>) pOptions;
