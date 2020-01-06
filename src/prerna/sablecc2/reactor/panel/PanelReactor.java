@@ -15,8 +15,9 @@ public class PanelReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		// first input is the name of the panel
-		String panelId = this.curRow.get(0).toString();
+		String panelId = this.keyValue.get(this.keysToGet[0]);
 		InsightPanel insightPanel = this.insight.getInsightPanel(panelId);
 		if(insightPanel == null) {
 			throw new NullPointerException("Panel Id " + panelId + " does not exist");
