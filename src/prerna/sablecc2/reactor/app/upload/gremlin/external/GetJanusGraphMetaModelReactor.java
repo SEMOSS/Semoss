@@ -36,14 +36,17 @@ public class GetJanusGraphMetaModelReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-
+		
+		boolean useLabel = useLabel();
 		String graphTypeId = this.keyValue.get(this.keysToGet[1]);
-		if (graphTypeId == null) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Requires graphTypeId to get graph metamodel.", PixelDataType.CONST_STRING,
-							PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+		if(!useLabel) {
+			if (graphTypeId == null) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Requires graphTypeId to get graph metamodel.", PixelDataType.CONST_STRING,
+								PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 		}
 
 		Graph g = null;
@@ -62,7 +65,7 @@ public class GetJanusGraphMetaModelReactor extends AbstractReactor {
 
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		if (g != null) {
-			if (useLabel()) {
+			if (useLabel) {
 				retMap = GraphUtility.getMetamodel(g.traversal());
 			} else {
 				retMap = GraphUtility.getMetamodel(g.traversal(), graphTypeId);
