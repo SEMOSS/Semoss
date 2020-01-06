@@ -250,7 +250,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// in the end if we want to wipe it we can
 		//pyt.runScript("del " + frameName + "w.cache[\"" + filterCriteria + "\""]);
 		
-		buildListMap();
+		//buildListMap();
 		return query.toString();
 	}
 	
@@ -767,7 +767,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			aggCriteria2 = new StringBuilder(".agg(").append(aggCriteria2);
 		}
 		// just a way to say the override was added by this guy and not coming from outside
-		if(overrideQuery != null && overrideQuery.length() > 0 && aggHash2.size() > 0) // && !((SelectQueryStruct)qs).getParts().containsKey(SelectQueryStruct.Query_Part.QUERY))
+		if(overrideQuery != null && overrideQuery.length() > 0 && aggHash2.size() > 0  && !((SelectQueryStruct)qs).getParts().containsKey(SelectQueryStruct.Query_Part.QUERY))
 		{
 			overrideQuery.append("]");
 		}
