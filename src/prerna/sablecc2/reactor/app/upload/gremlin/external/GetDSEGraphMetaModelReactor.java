@@ -52,11 +52,14 @@ public class GetDSEGraphMetaModelReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
+		boolean useLabel = useLabel();
 		String graphTypeId = this.keyValue.get(this.keysToGet[5]);
-		if (graphTypeId == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph type id to get graph metamodel.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
+		if(!useLabel) {
+			if (graphTypeId == null) {
+				SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires graph type id to get graph metamodel.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 		}
 		Map<String, Object> retMap = new HashMap<>();
 		// dse connection
@@ -72,7 +75,7 @@ public class GetDSEGraphMetaModelReactor extends AbstractReactor {
 		if (dseCluster != null) {
 			DseSession dseSession = dseCluster.connect();
 			GraphTraversalSource gts = DseGraph.traversal(dseSession);
-			if (useLabel()) {
+			if (useLabel) {
 				retMap = GraphUtility.getMetamodel(gts);
 			} else {
 				retMap = GraphUtility.getMetamodel(gts, graphTypeId);
