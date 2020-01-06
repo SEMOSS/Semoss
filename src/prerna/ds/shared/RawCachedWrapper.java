@@ -1,13 +1,13 @@
-package prerna.ds.py;
+package prerna.ds.shared;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 
-public class RawPandasWrapper implements IRawSelectWrapper {
+public class RawCachedWrapper implements IRawSelectWrapper {
 
-	PandasIterator iterator = null;
+	CachedIterator iterator = null;
 	
 	@Override
 	public void execute() {
@@ -24,7 +24,7 @@ public class RawPandasWrapper implements IRawSelectWrapper {
 	@Override
 	public String getQuery() {
 		// TODO Auto-generated method stub
-		return iterator.getQuery();
+		return null;
 	}
 
 	@Override
@@ -79,7 +79,7 @@ public class RawPandasWrapper implements IRawSelectWrapper {
 
 	}
 
-	public void setPandasIterator(PandasIterator pi) {
+	public void setIterator(CachedIterator pi) {
 		// TODO Auto-generated method stub
 		this.iterator = pi;
 	}
@@ -90,4 +90,17 @@ public class RawPandasWrapper implements IRawSelectWrapper {
 		return null;
 	}
 
+	
+	public boolean first()
+	{
+		return iterator.first;
+	}
+	
+	public CachedIterator getIterator()
+	{
+		if(this.iterator == null)
+			iterator = new CachedIterator();
+		return iterator;
+	}
+	
 }

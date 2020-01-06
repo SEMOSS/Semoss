@@ -33,6 +33,9 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	private int dataPos = 0;
 	private int rowIndex = 1;
 	private int bulkRowSize = 10_000;
+	
+	// main query instead of the whole thing for lookup
+	private String query = null;
 
 	public RIterator(RFrameBuilder builder, String rQuery, SelectQueryStruct qs) {
 		this.builder = builder;
@@ -184,5 +187,15 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 
 	public SelectQueryStruct getQs() {
 		return this.qs;
+	}
+	
+	public String getQuery()
+	{
+		return this.query;
+	}
+	
+	public void setQuery(String query)
+	{
+		this.query = query;
 	}
 }

@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.export.FormatFactory;
@@ -42,6 +43,7 @@ public abstract class AbstractTask implements ITask {
 	protected boolean isOptimize = false;
 	
 	private boolean meta = true;
+	
 	
 	public AbstractTask() {
 		this.sortInfo = new ArrayList<Map<String, Object>>();
@@ -285,4 +287,15 @@ public abstract class AbstractTask implements ITask {
 		this.internalOffset = internalOffset;
 	}
 	
+	// dummy method to avoid errors on creating cache
+	public IRawSelectWrapper createCache()
+	{
+		return null;
+	}
+	
+	// dummy
+	public String getPragma(String key)
+	{
+		return null;
+	}
 }
