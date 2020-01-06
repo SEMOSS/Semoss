@@ -148,6 +148,14 @@ public class Insight {
 	// insight comments
 	private transient LinkedList<InsightComment> insightCommentList = null;
 	
+	// also store insight sheets
+	private transient Map<String, InsightSheet> insightSheets = new LinkedHashMap<String, InsightSheet>();
+	{
+		// add a default insight
+		// this is because old pixels didn't have an insight sheet
+		// and dont want those recipes to break
+		insightSheets.put("Sheet1", new InsightSheet("Sheet1"));
+	}
 	// this is the store holding information around the panels associated with this insight
 	private transient Map<String, InsightPanel> insightPanels = new LinkedHashMap<String, InsightPanel>();
 	private transient Map<String, Object> insightOrnament = new Hashtable<String, Object>();
@@ -327,6 +335,9 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	/////////////////////////////////////////////////////////
+	// insight panels
+	
 	public Map<String, InsightPanel> getInsightPanels() {
 		return this.insightPanels;
 	}
@@ -342,6 +353,28 @@ public class Insight {
 	public void addNewInsightPanel(InsightPanel insightPanel) {
 		this.insightPanels.put(insightPanel.getPanelId(), insightPanel);
 	}
+	
+	/////////////////////////////////////////////////////////
+	// insight sheets
+	
+	public Map<String, InsightSheet> getInsightSheets() {
+		return this.insightSheets;
+	}
+	
+	public void setInsightSheets(Map<String, InsightSheet> insightSheets) {
+		this.insightSheets = insightSheets;
+	}
+	
+	public InsightSheet getInsightSheet(String sheetId) {
+		return this.insightSheets.get(sheetId);
+	}
+	
+	public void addNewInsightSheet(InsightSheet insightSheet) {
+		this.insightSheets.put(insightSheet.getSheetId(), insightSheet);
+	}
+	
+	/////////////////////////////////////////////////////////
+	// insight comments
 	
 	public LinkedList<InsightComment> getInsightComments() {
 		if(this.insightCommentList == null) {
@@ -443,13 +476,10 @@ public class Insight {
 	}
 	
 	// gets the user folder as well
-	public String getUserFolder()
-	{
+	public String getUserFolder() {
 		AuthProvider provider = user.getPrimaryLogin();
 		String appId = user.getAssetEngineId(provider);
-		String appName = "Asset";
-		userFolder = AssetUtility.getAppAssetVersionFolder(appName, appId);
-
+		this.userFolder = AssetUtility.getAppAssetVersionFolder("Asset", appId);
 		return userFolder;
 	}
 	
