@@ -117,6 +117,7 @@ public enum ReactorKeysEnum {
 	SEARCH("search",                                        "The search term."),
 	SESSION_ID("sessionId", 								"Id of the session"),
 	SHEET("sheet",                 	                		"Id for the sheet"),
+	SHEET_CONFIG_KEY("sheetConfig", 						"Configuration map for the sheet"),
 	SHEET_LABEL_KEY("sheetLabel", 							"Label for the sheet"),
 	SHEET_NAME("sheetName",                                 "The name of the excel sheet"),
 	SORT("sort", 											"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
