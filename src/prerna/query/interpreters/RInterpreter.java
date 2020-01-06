@@ -932,7 +932,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		command.append("return (retVal);\n");
 		
 		
-		String output = rfb.getRTranslator().runRAndReturnOutput(command.toString());
+		String output = rfb.getRJavaTranslator().runRAndReturnOutput(command.toString());
 		output = output.replace("[1]", "");
 		output = output.replace("\"", "");
 		output = output.trim();
