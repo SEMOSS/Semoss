@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.panel;
 import java.util.Random;
 import java.util.Set;
 
+import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -15,7 +16,7 @@ public class AddPanelReactor extends AbstractReactor {
 	private static Random rand = new Random();
 	
 	public AddPanelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.SHEET.getKey()};
 	}
 
 	@Override
@@ -33,7 +34,11 @@ public class AddPanelReactor extends AbstractReactor {
 		} else {
 			panelId = this.keyValue.get(this.keysToGet[0]);
 		}
-		InsightPanel newPanel = new InsightPanel(panelId);
+		String sheetId = this.keyValue.get(this.keysToGet[1]);
+		if(sheetId == null) {
+			sheetId = Insight.DEFAULT_SHEET;
+		}
+		InsightPanel newPanel = new InsightPanel(panelId, sheetId);
 		this.insight.addNewInsightPanel(newPanel);
 		NounMetadata noun = new NounMetadata(newPanel, PixelDataType.PANEL, PixelOperationType.PANEL_OPEN);
 		return noun;

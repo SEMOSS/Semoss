@@ -15,6 +15,7 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.date.SemossDate;
 import prerna.om.ColorByValueRule;
+import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -22,7 +23,6 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	
 	private static final Gson GSON = GsonUtility.getDefaultGson();
-//	private static final Gson SIMPLE_GSON = new Gson();
 	private static final Gson SIMPLE_GSON =  new GsonBuilder()
 			.disableHtmlEscaping()
 			.registerTypeAdapter(Double.class, new NumberAdapter())
@@ -49,6 +49,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 
 		out.name("panelId").value(value.getPanelId());
 		out.name("panelLabel").value(value.getPanelLabel());
+		out.name("sheetId").value(value.getSheetId());
 		out.name("view").value(value.getPanelView());
 		out.name("viewOptions").value(value.getPanelActiveViewOptions());
 		out.name("viewOptionsMap");
@@ -104,7 +105,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		out.beginArray();
 		List<ColorByValueRule> cbvList = value.getColorByValue();
 		for(ColorByValueRule rule : cbvList) {
-			ColorByValueRuleAdapter cbvAdapter = new ColorByValueRuleAdapter(simple);
+			ColorByValueRuleAdapter cbvAdapter = new ColorByValueRuleAdapter(this.simple);
 			cbvAdapter.write(out, rule);
 		}
 		out.endArray();
@@ -115,6 +116,7 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 	@Override
 	public InsightPanel read(JsonReader in) throws IOException {
 		String panelId = null;
+		String sheetId = null;
 		String panelLabel = null;
 		String view = null;
 		String viewOptions = null;
@@ -147,6 +149,8 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				panelId = value;
 			} else if(key.equals("panelLabel")) {
 				panelLabel = value;
+			} else if(key.equals("sheetId")) {
+				sheetId = value;
 			} else if(key.equals("view")) {
 				view = value;
 			} else if(key.equals("viewOptions")) {
@@ -204,7 +208,12 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		}
 		in.endObject();
 
-		InsightPanel panel = new InsightPanel(panelId);
+		// to account for legacy
+		if(sheetId == null) {
+			sheetId = Insight.DEFAULT_SHEET;
+		}
+		
+		InsightPanel panel = new InsightPanel(panelId, sheetId);
 		panel.setPanelLabel(panelLabel);
 		panel.setPanelView(view);
 		panel.setPanelActiveViewOptions(viewOptions);
