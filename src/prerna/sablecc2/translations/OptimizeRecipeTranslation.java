@@ -114,6 +114,8 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	// just aggregate all the remove layer indices for now
 	private List<Integer> removeLayerIndices = new Vector<Integer>();
 	
+	private String insightConfig = null;
+	@Deprecated
 	private String insightGoldenLayout = null;
 	
 	/**
@@ -346,6 +348,20 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			try {
 				gson.fromJson(goldenLayoutString, Map.class);
 				this.insightGoldenLayout = goldenLayoutString;
+			} catch (Exception e2) {
+				e2.printStackTrace();
+			}
+		}
+		// is this the config layout
+		else if(reactorId.equals("SetInsightConfig")) {
+			// input is the golden layout config map
+			POpInput input = node.getOpInput();
+			String insightConfigString = input.toString();
+			
+			// just make sure it is valid map
+			try {
+				gson.fromJson(insightConfigString, Map.class);
+				this.insightConfig = insightConfigString;
 			} catch (Exception e2) {
 				e2.printStackTrace();
 			}
@@ -730,6 +746,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		// add the golden layout config at the end
 		if(this.insightGoldenLayout != null) {
 			cacheRecipe.add("SetInsightGoldenLayout(" + this.insightGoldenLayout + ");");
+		}
+		// add the insight config at the end
+		if(this.insightConfig != null) {
+			cacheRecipe.add("SetInsightConfig(" + this.insightConfig + ");");
 		}
 
 		return cacheRecipe;
