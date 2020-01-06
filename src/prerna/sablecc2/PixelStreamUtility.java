@@ -15,6 +15,9 @@ import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
 import prerna.ds.py.PandasFrame;
@@ -24,6 +27,7 @@ import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.InsightSheet;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -36,12 +40,10 @@ import prerna.sablecc2.reactor.frame.FrameFactory;
 import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
+import prerna.util.gson.InsightSheetAdapter;
 import prerna.util.gson.NumberAdapter;
 import prerna.util.gson.SemossDateAdapter;
 import prerna.util.insight.InsightUtility;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public class PixelStreamUtility {
 
@@ -59,6 +61,7 @@ public class PixelStreamUtility {
 			.registerTypeAdapter(Double.class, new NumberAdapter())
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.registerTypeAdapter(InsightPanel.class, new InsightPanelAdapter(true))
+			.registerTypeAdapter(InsightSheet.class, new InsightSheetAdapter())
 			.create();
 	}
 	
