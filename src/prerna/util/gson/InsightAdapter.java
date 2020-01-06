@@ -29,6 +29,7 @@ import prerna.ds.r.RDataTable;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
+import prerna.om.InsightSheet;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
@@ -161,6 +162,17 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			} catch(Exception e) {
 				e.printStackTrace();
 			}
+		}
+		out.endArray();
+		
+		// write the sheets
+		out.name("sheets");
+		out.beginArray();
+		Map<String, InsightSheet> sheets = value.getInsightSheets();
+		for(String key : sheets.keySet()) {
+			InsightSheet sheet = sheets.get(key);
+			InsightSheetAdapter sheetAdapter = new InsightSheetAdapter();
+			sheetAdapter.write(out, sheet);
 		}
 		out.endArray();
 		
@@ -400,16 +412,39 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 			in.endObject();
 		}
 		in.endArray();
-		
-		// this will be the panels
-		in.nextName();
-		in.beginArray();
-		while(in.hasNext()) {
-			InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
-			InsightPanel panel = panelAdapter.read(in);
-			insight.addNewInsightPanel(panel);
+
+		// this will be the sheets
+		// need to account for legacy
+		String sheetKey = in.nextName();
+		if(sheetKey.equals("sheets")) {
+			in.beginArray();
+			while(in.hasNext()) {
+				InsightSheetAdapter sheetAdapter = new InsightSheetAdapter();
+				InsightSheet sheet = sheetAdapter.read(in);
+				insight.addNewInsightSheet(sheet);
+			}
+			in.endArray();
+			
+			// this will be the panels
+			in.nextName();
+			in.beginArray();
+			while(in.hasNext()) {
+				InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
+				InsightPanel panel = panelAdapter.read(in);
+				insight.addNewInsightPanel(panel);
+			}
+			in.endArray();
+		} else {
+			// this is legacy where we only have panels and no sheets
+			// just load the sheets
+			in.beginArray();
+			while(in.hasNext()) {
+				InsightPanelAdapter panelAdapter = new InsightPanelAdapter();
+				InsightPanel panel = panelAdapter.read(in);
+				insight.addNewInsightPanel(panel);
+			}
+			in.endArray();
 		}
-		in.endArray();
 		
 		// this will be the tasks
 		in.nextName();
