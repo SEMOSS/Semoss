@@ -10,6 +10,11 @@ public class InsightSheet {
 		this.sheetId = sheetId;
 	}
 	
+	public InsightSheet(String sheetId, String sheetLabel) {
+		this.sheetId = sheetId;
+		this.sheetLabel = sheetLabel;
+	}
+	
 	public String getSheetId() {
 		return this.sheetId;
 	}
