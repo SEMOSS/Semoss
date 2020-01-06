@@ -1,23 +1,13 @@
 package prerna.sablecc2.reactor.frame.py;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
-import prerna.query.querystruct.transform.QSRenameColumnConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.reactor.frame.AbstractFrameReactor;
-import prerna.util.Utility;
 import prerna.util.usertracking.AnalyticsTrackerHelper;
 import prerna.util.usertracking.UserTrackerFactory;
 
@@ -53,12 +43,12 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 
 		String by100v = by100? "True" : "False";
 		
-		script = wrapperFrameName + ".cache['data']['" + newColName + "'] = " + 
-				wrapperFrameName + ".cache['data'].apply(lambda x: " +
-				"str(round(x['" + srcCol + "'], " + sigDigits + ") * 100) + '%' if " + by100v + 
-				" else " +
-				"str(round(x['" + srcCol + "'], " + sigDigits + ") * 1) + '%' )";
-		
+        script = wrapperFrameName + ".cache['data']['" + newColName + "'] = " + 
+                wrapperFrameName + ".cache['data']['" + srcCol + "'].apply(lambda row: " +
+                "str(round(row, " + sigDigits + ") * 100) + '%' if " + by100v + 
+                " else " +
+                "str(round(row, " + sigDigits + ") * 1) + '%' )";
+
 		// run script
 		// converting to lambda
 		//  mv['add'] = mv.apply(lambda x: clean.PyFrame.to_pct_l(x['MovieBudget'], 2, 1) , axis=1)
