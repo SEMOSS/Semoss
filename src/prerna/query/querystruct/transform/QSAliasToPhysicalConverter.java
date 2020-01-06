@@ -126,6 +126,10 @@ public class QSAliasToPhysicalConverter {
 			convertedQs.setOrderBy(convertedOrderBys);
 		}
 		
+		// also move the pragmap and the querypartmap
+		convertedQs.setPragmap(qs.getPragmap());
+		convertedQs.getParts().putAll(qs.getParts());
+		
 		return convertedQs;
 	}
 

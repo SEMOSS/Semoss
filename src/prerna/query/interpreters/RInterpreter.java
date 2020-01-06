@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.r.RFrameBuilder;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -44,9 +45,14 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	// keep track of order bys
 	private StringBuilder orderBys = new StringBuilder();
 	
+	// keep the main query so we can cache by it
+	private StringBuilder mainQuery = new StringBuilder();
 	// need to keep track of selectors
 	// to make sure the order by's are accurate
 	private List<String> validHeaders = new Vector<String>();
+	
+	// set the RFrameBuilder
+	private RFrameBuilder rfb = null;
 	
 	@Override
 	public String composeQuery() {
@@ -63,6 +69,16 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		// note, that the join info in the QS has no meaning for a R frame as 
 		// we cannot connect across data tables
 		addFilters(qs.getCombinedFilters().getFilters(), this.dataTableName, this.filterCriteria, false);
+		
+		// once the filters have been added, enable 
+		StringBuilder cachedFrame = new StringBuilder(this.dataTableName);
+		/*if(filterCriteria.length() > 0)
+		{
+			String key = createFilterCache(filterCriteria.toString(), this.dataTableName + "[" + filterCriteria + "]");
+			cachedFrame = new StringBuilder("cache$" + key);
+		}*/
+
+		
 		addSelector();
 		addGroupBy();
 
@@ -72,16 +88,30 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		
 		if(isDistinct) {
 			query.append("unique(");
+			mainQuery.append("unique(");
 		}
-		query.append(this.dataTableName)
+		
+		//query.append(this.dataTableName)
+		query.append(cachedFrame)
 			.append("[ ")
 			.append(this.filterCriteria.toString())
 			.append(", ")
 			.append(this.selectorCriteria.toString())
 			.append(this.groupBys)
 			.append("]");
+
+		mainQuery.append(cachedFrame)
+		//mainQuery.append(this.dataTableName)
+		.append("[ ")
+		.append(this.filterCriteria.toString())
+		.append(", ")
+		.append(this.selectorCriteria.toString())
+		.append(this.groupBys)
+		.append("]");
+		
 		if(isDistinct) {
 			query.append(")");
+			mainQuery.append(")");
 		}
 		
 		// add having filters 
@@ -154,6 +184,7 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		return query.toString();
 	}
 	
+
 	///////////////////////// helper functions to parse additional datatypes /////////////////////////
 	/**
 	 * Remove leading zeroes if instructed by the java date/time format and/or 
@@ -859,6 +890,55 @@ public class RInterpreter extends AbstractQueryInterpreter {
         System.out.println(sb.length());
         
 
+	}
+	
+	public String getMainQuery()
+	{
+		return this.mainQuery.toString();
+	}
+	
+	// sets the R Translator to create the secondary cache
+	public void setRFrameBuilder(RFrameBuilder rfb)
+	{
+		this.rfb = rfb;
+	}
+
+	private String createFilterCache(String filterKey, String query) {
+		// TODO Auto-generated method stub
+		// need to normalize string
+		// need convert the string to a key with a paste = paste("__", filterKey)
+		// if (!exists('cache')) { cache = {}}
+		// tempKey 
+		// if (!exists('keys')) { keys = {}}
+		// keys[filterKey] = tempKey
+		// cache$tempKey = result of execution
+		// return the tempKey ?
+		filterKey = filterKey.replace("\"", "-");
+		filterKey = "\"" + filterKey + "\"";
+		
+		String tempKey = "k" + Utility.getRandomString(6);
+		StringBuilder command = new StringBuilder();
+		command.append("retVal <- \"" + tempKey +"\";\n");
+		command.append("if (!exists('keys')) keys = {};keys['a'] = 1;\n");
+		command.append("if (!exists('cache')) {cache = {}; cache['a'] = 1;cache['keys'] = keys};\n");
+		
+		command.append("if (is.na(keys[" + filterKey + "])) {\n");
+		command.append("keys[" + filterKey +"] <- " + "\"" + tempKey + "\";\n");
+		command.append("cache$" + tempKey + " <- " + query + ";\n");
+		command.append("cache$keys = keys;\n");
+		command.append("} else {\n");
+		command.append("retVal <- keys[[" + filterKey + "]] ;\n");
+		command.append("}\n");
+		command.append("return (retVal);\n");
+		
+		
+		String output = rfb.getRTranslator().runRAndReturnOutput(command.toString());
+		output = output.replace("[1]", "");
+		output = output.replace("\"", "");
+		output = output.trim();
+		if(!output.equalsIgnoreCase(tempKey))
+			System.err.println("Getting from Cache !!");
+		return output;
 	}
 
 }
