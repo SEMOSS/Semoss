@@ -23,6 +23,9 @@ public enum PixelDataType {
 	REMOVE_LAYER ("REMOVE_LAYER"),					// task of a layer to remove
 	DROP_INSIGHT ("DROP_INSIGHT"),					// insight to be removed
 
+	// insight sheet
+	SHEET ("SHEET"),
+	
 	// insight panel
 	PANEL ("PANEL"),
 	PANEL_CLONE_MAP ("PANEL_CLONE_MAP"),
