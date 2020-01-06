@@ -5,9 +5,9 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 
-public class RawPandasWrapper implements IRawSelectWrapper {
+public class RawPandasParquetWrapper implements IRawSelectWrapper {
 
-	PandasIterator iterator = null;
+	PandasParquetIterator iterator = null;
 	
 	@Override
 	public void execute() {
@@ -79,7 +79,7 @@ public class RawPandasWrapper implements IRawSelectWrapper {
 
 	}
 
-	public void setPandasIterator(PandasIterator pi) {
+	public void setPandasParquetIterator(PandasParquetIterator pi) {
 		// TODO Auto-generated method stub
 		this.iterator = pi;
 	}

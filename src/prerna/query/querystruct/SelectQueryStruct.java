@@ -23,6 +23,14 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	protected long limit = -1;
 	protected long offset = -1;
 	
+	public enum Query_Part {
+		SELECT, FILTER, SORT, GROUP, AGGREGATE, QUERY;
+	} // query is the complete query overhall
+	
+	protected Map queryPartHash = new HashMap();
+	
+	// need to pass it the pragmap as well
+	protected Map pragmap = new HashMap();
 	////////////////////////////////////////////////////
 	///////////////////// ORDERING /////////////////////
 	////////////////////////////////////////////////////	
@@ -510,5 +518,34 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 		return edgeHash;
 	}
 	
+	public void setPart(Query_Part part, String overrider)
+	{
+		queryPartHash.put(part, overrider);
+	}
+	
+	public Map getParts()
+	{
+		return queryPartHash;
+	}
+	
+	public void clearParts()
+	{
+		queryPartHash.clear();
+	}
+	
+	public void setPragmap(Map map)
+	{
+		this.pragmap = map;
+	}
+	
+	public Map getPragmap()
+	{
+		return this.pragmap;
+	}
+	
+	public void clearPragmap()
+	{
+		pragmap.clear();
+	}
 	
 }

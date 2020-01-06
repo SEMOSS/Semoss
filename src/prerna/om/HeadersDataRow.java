@@ -21,6 +21,7 @@ public class HeadersDataRow implements IHeadersDataRow{
 	
 	private Vector <Object> vecValues = null;
 	private Vector <String> vecHeaders = null;
+	private String query;
 	
 	public HeadersDataRow(String[] headers, Object[] values) {
 		this(headers, headers, values, values);
@@ -211,5 +212,17 @@ public class HeadersDataRow implements IHeadersDataRow{
 	@Override
 	public HEADERS_DATA_ROW_TYPE getHeaderType() {
 		return IHeadersDataRow.HEADERS_DATA_ROW_TYPE.HEADERS_DATA_ROW;
+	}
+
+	@Override
+	public String getQuery() {
+		// TODO Auto-generated method stub
+		return query;
+	}
+
+	@Override
+	public void setQuery(String query) {
+		// TODO Auto-generated method stub
+		this.query = query;
 	}
 }

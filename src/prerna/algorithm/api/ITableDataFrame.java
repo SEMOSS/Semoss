@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
+import prerna.ds.shared.CachedIterator;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -198,6 +199,9 @@ public interface ITableDataFrame extends IDataMaker {
 	 */
 	void clearCachedInfo();
 	
+	// cache the query transiently
+	void cacheQuery(CachedIterator it);
+	
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////
@@ -237,4 +241,5 @@ public interface ITableDataFrame extends IDataMaker {
 //	 */
 //	@Deprecated
 //	void performAnalyticAction(IAnalyticActionRoutine routine) throws RuntimeException;
+	
 }

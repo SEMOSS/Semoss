@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.py.PandasSyntaxHelper;
+import prerna.ds.py.PyTranslator;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -24,11 +25,15 @@ import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class PandasInterpreter extends AbstractQueryInterpreter {
 
 	private String frameName = null;
 	private String wrapperFrameName = null;
+	private String swifter = "";
+	private String exp = ""; // says if this feature is experimental
 	
 	private Map<String, SemossDataType> colDataTypes;
 	
@@ -42,13 +47,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	private StringBuilder orderBy2 = new StringBuilder("");
 	private StringBuilder ascending = new StringBuilder("");
 	private StringBuilder ascending2 = new StringBuilder("");
+	private StringBuilder overrideQuery = null;
 	private StringBuilder index2Drop = new StringBuilder("[");
 	
 	private StringBuilder normalizer = new StringBuilder(".to_dict('split')['data']");
 	
+	
 	private Map <String, StringBuilder>aggHash = null;
 	private Map <String, StringBuilder>aggHash2 = null;
 	private Map <String, StringBuilder>orderHash = null;
+
+	static final String defFilter = "this.cache['data']__f";
 	
 	private Map <String, String> functionMap = null;
 	
@@ -71,8 +80,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	// need to keep the ordinality of the selectors and match that with the aliases
 	ArrayList <String> groupColumns = null;
+	PyTranslator pyt = null;
 		
 	boolean scalar = false;
+	
+	// experimental stuff trying the numpy groupies guy
+	List group_col_list = new ArrayList();
+	Map agg_col_map = new HashMap();
+	List agg_col_list = new ArrayList();
+	List function_list = new ArrayList();
+	List order_list = new ArrayList();
+	Map order_list_map = new HashMap(); // keeps track of what the items are called
+
 	
 	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap)
 	{
@@ -93,6 +112,18 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		// if the filter is empty.. then I can go directly to iloc
 		// normalize everything since we are not creating this everytime.. we might as well but we need it at different points
+		// eventually move this to static
+		if(DIHelper.getInstance().getCoreProp().containsKey("SWIFTER"))
+			swifter = DIHelper.getInstance().getCoreProp().get("SWIFTER")+"";
+		else
+			swifter = "";
+				
+		if(DIHelper.getInstance().getCoreProp().containsKey("EXP"))
+			exp = DIHelper.getInstance().getCoreProp().get("EXP")+"";
+		else
+			exp = "";
+
+		
 		headers = new ArrayList<String>();
 		groupIndex = 0;
 		actHeaders = new ArrayList<String>();
@@ -110,8 +141,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		aggHash2 = new HashMap<String, StringBuilder>();
 		orderHash = new HashMap<String, StringBuilder>();
 		orderBy = new StringBuilder("");
-		normalizer = new StringBuilder(".to_dict('split')");//['data']");
+		normalizer = new StringBuilder(".to_dict('split')");//['data']"); // Ideally I should be able to put drop duplicates here
 		ascending = new StringBuilder("");
+		
 		
 		long limit = 500;
 		start = 0 ;
@@ -125,38 +157,228 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 	
 		// add the filters, it doesn't matter where you add it.
-		// add the selectors - the act headers are no longer required since I look at the columns now to generate the remaining pieces
-		//
+		// add the selectors - the act headers are no longer required since I look at the columns now to generate the remaining pieces		
 		
-		addFilters();
+		// I need to account for close all here
+		/*addFilters();
 		addSelectors();
 		processGroupSelectors();
 		genAggString();
 		processOrderBy();
+		*/
+		fillParts();
+		// since I have accounted for various things do the close all here
 		closeAll();
-		System.out.println("");
 		
+		// experimental part should come here
 		
-		query.append(this.wrapperFrameName)
-			//.append(".cache['data']")
-			//.append(".iloc[")
-			//.append(qs.getOffset() + ":" + (qs.getOffset() + qs.getLimit()) + "]")
-			//.append(0 + ":" + 500+ "]")
-			//.append(this)
-			.append(this.filterCriteria)
-			.append(this.selectorCriteria)
-			.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()))
-			.append(this.groupCriteria)
-			//.append(this.aggCriteria2)
-			.append(this.aggCriteria2)
-			// TODO: need to be more elegant than this
-			.append(scalar ? "" : orderBy)
-			//.append(orderBy2)
-			.append(normalizer);
-			//.append(this.renCriteria);
+		StringBuilder cachedFrame = new StringBuilder(wrapperFrameName);
+		// I need to account for when group is not there and filter is there
+		// as well as when filter is not there and group is there
+		// and when neither
+		if(filterCriteria.length() > 0 && groupCriteria.length() == 0)
+		{
+			//createFilterOnlyCache(filterCriteria.toString(), this.wrapperFrameName + ".loc[" +  filterCriteria + "]");
+			createFilterOnlyCache(filterCriteria.toString(), this.wrapperFrameName + filterCriteria );
+			cachedFrame = new StringBuilder(frameName).append("w.cache[\"").append(filterCriteria).append("\"]");
+		}
 		
+		else if(filterCriteria.length() > 0 && groupCriteria.length() > 0)
+		{
+			// create group here
+			// but take into account the filter key
+			// essentially I dont need to check for the stuff in the end
+			String groupKey = filterCriteria + "__" + groupCriteria;
+			String groupQuery = this.wrapperFrameName + filterCriteria + groupCriteria ;
+			String filterQuery = this.wrapperFrameName + filterCriteria ;
+			createGroupAndFilterCache(filterCriteria.toString(), groupKey, filterQuery, groupCriteria + "");
+			cachedFrame = new StringBuilder(frameName).append("w.cache[\"").append(groupKey).append("\"]");
+			groupCriteria = new StringBuilder("");
+		}
+
+
+		
+		/*
+		 
+		 For some reason this is not yielding the result I thought it would. 
+		 
+		else if(groupCriteria.length() > 0 && filterCriteria.length() == 0)
+		{
+			// groupcache again separately
+			// how is this useful ? given that we already have the other cache ?
+			// we will come back to this
+			String groupKey = groupCriteria.toString();
+			String groupQuery = this.wrapperFrameName +  groupCriteria + "], sort=False)";
+			createGroupOnlyCache(groupKey, groupQuery);
+			cachedFrame = new StringBuilder(frameName).append("w.cache[\"").append(groupKey).append("\"]");
+			groupCriteria = new StringBuilder("");
+		}*/
+		
+		// see if replacements need to be done
+
+		
+		if(overrideQuery == null)
+		{
+			System.out.println("");
+			
+			
+			query.append(cachedFrame)
+				//.append(".cache['data']")
+				//.append(".iloc[")
+				//.append(qs.getOffset() + ":" + (qs.getOffset() + qs.getLimit()) + "]")
+				//.append(0 + ":" + 500+ "]")
+				//.append(this)
+				//.append(this.filterCriteria)
+				.append(this.selectorCriteria)
+				.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()))
+				.append(this.groupCriteria) //<-- trying disabling this now
+				//.append(this.aggCriteria2)
+				.append(this.aggCriteria2)
+				// TODO: need to be more elegant than this
+				.append(scalar ? "" : orderBy)
+				//.append(orderBy2)
+				.append(normalizer);
+						//.append(this.renCriteria);
+		}
+		if(overrideQuery != null)
+		{
+			query = overrideQuery;
+			if(actHeaders != null && actHeaders.size() > 0)
+			headers = actHeaders;
+		}
+		
+		// in the end if we want to wipe it we can
+		//pyt.runScript("del " + frameName + "w.cache[\"" + filterCriteria + "\""]);
+		
+		buildListMap();
 		return query.toString();
 	}
+	
+	private void buildListMap()
+	{
+		// step1 - iterate through order list
+		// for every order try to see if it is a groupby or is it a aggregate
+		// based on either one build that list
+		// as you build the aggregate also build the function list
+		
+		// this ONLY works when there is one groupby
+		// this ONLY works when the groupby is ahead of calculated column.. although I will force it to the first one just now
+		
+		try {
+			if(group_col_list.size() > 0)
+			{
+				String filter = "''";
+				if(filterCriteria.length() > 0)
+					filter =  "\"" + composeFilterString() +"\"";
+				filter = filter.replace("__f", "");
+				filter = filter.replace(frameName, "this.cache['data']");
+				StringBuilder g_list = new StringBuilder("[");
+				StringBuilder agg_list = new StringBuilder("[");
+				StringBuilder f_list = new StringBuilder("[");
+				String groupcol = (String)group_col_list.get(0);
+				for(int selectIndex = 0;selectIndex < order_list.size();selectIndex++)
+				{
+					String thisSelector = (String)order_list.get(selectIndex);
+					if(group_col_list.contains(thisSelector))
+					{
+						// process it as group
+						g_list.append("'").append(thisSelector).append("'");
+						composeGroupCacheString(thisSelector);
+					}
+					else if(agg_col_map.containsKey(thisSelector))
+					{
+						// process this as an aggregate
+						String agg_col = (String)agg_col_map.get(thisSelector); 
+						String agg_func = (String)agg_col_map.get(thisSelector+"__f"); 
+						agg_list.append("'").append(agg_col).append("'");
+						f_list.append("'").append(agg_func).append("'");
+						composeAggCacheString(groupcol, agg_col, thisSelector, agg_func);
+					}
+				}
+				g_list.append("]");
+				agg_list.append("]");
+				f_list.append("]");
+				
+				System.err.println("index  >>" + g_list);
+				System.err.println("agg  >>" + agg_list);
+				System.err.println("Function  >>" + f_list);
+				
+				// order map
+				System.out.println("Order Map" + order_list_map);
+				
+				StringBuilder orderString = new StringBuilder("[");
+				String cacheName = frameName + "w.cache";
+				
+				for(int orderIndex = 0;orderIndex < order_list.size();orderIndex++)
+				{
+					String thisOrder = (String)order_list.get(orderIndex);
+					if(orderIndex != 0)
+						orderString.append(",");
+					
+					// pull the name of selector
+					String orderSelector = (String)order_list_map.get(thisOrder);
+					orderString.append(cacheName).append("[\"").append(orderSelector).append("\"]");
+
+				}
+				
+				String script = frameName + "w.runGroupy(" + filter + ", " + g_list + ", " + agg_list + ", " + f_list + ", '')";
+				Object obj = pyt.runScript(script);
+				
+				// this will ultimately be the query
+				System.err.println("And the order string " + orderString);
+			}
+			else
+			{
+				// nothing to see please move on
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private void fillParts()
+	{
+		SelectQueryStruct sqs = (SelectQueryStruct)qs;
+		Map partMap = sqs.getParts();
+		
+		if(partMap.containsKey(SelectQueryStruct.Query_Part.QUERY))
+			overrideQuery = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.QUERY) + "");
+
+
+		if(partMap.containsKey(SelectQueryStruct.Query_Part.FILTER))
+			filterCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.FILTER) + "");
+		else
+			addFilters();
+
+		// ideally this should not be but.. I need types
+		if(partMap.containsKey(SelectQueryStruct.Query_Part.SELECT))
+			selectorCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.SELECT) + "");
+		else
+			addSelectors();
+
+			//if(overrideQuery == null)
+			{
+
+	
+			if(partMap.containsKey(SelectQueryStruct.Query_Part.SORT))
+				orderBy = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.SORT) + "");
+			else
+				processOrderBy();
+	
+			if(partMap.containsKey(SelectQueryStruct.Query_Part.AGGREGATE))
+				aggCriteria2 = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.AGGREGATE) + "");
+			else
+				genAggString();
+	
+			if(partMap.containsKey(SelectQueryStruct.Query_Part.GROUP))
+				groupCriteria = new StringBuilder(partMap.get(SelectQueryStruct.Query_Part.GROUP) + "");
+			else
+				processGroupSelectors();
+		}
+	}
+	
 	
 	private String addDistinct(boolean distinct) {
 		if(distinct) {
@@ -164,13 +386,27 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		return "";
 	}
-
+	
+	private void closeFilters()
+	{
+		if(filterCriteria.length() > 0 )
+		{
+			filterCriteria = new StringBuilder(".loc[").append(filterCriteria).append("]");
+			
+			// update the selector only if if there is no agg
+			//if(selectorCriteria.length() == 0)
+			//	selectorCriteria.append(".drop_duplicates()");
+		
+		}
+	}
 	public void closeAll()
 	{
 		boolean aggregate = false;
+		SelectQueryStruct sqs = (SelectQueryStruct)qs;
+		Map partMap = sqs.getParts();
 		
 		//t.agg({'Title': 'count'}).rename({'Title': 'count(Title)'}).reset_index().to_dict('split')['data']
-		if(this.aggCriteria.toString().length() > 0)
+		if(this.aggCriteria.toString().length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.AGGREGATE))
 		{
 			if(((SelectQueryStruct) this.qs).getGroupBy().size() != 0)
 			{
@@ -190,30 +426,36 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		// if there is agroup by.. this whole thing should be ignored pretty much
-		if(this.selectorCriteria.toString().length() > 0 && ((SelectQueryStruct) this.qs).getGroupBy().size() == 0)
+		if(this.selectorCriteria.toString().length() > 0 && ((SelectQueryStruct) this.qs).getGroupBy().size() == 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SELECT))
 		{
 			StringBuilder newSelectorCriteria = new StringBuilder(addLimitOffset(start, end) + "[[");
 			this.selectorCriteria = newSelectorCriteria.append(this.selectorCriteria).append("]]");
 		}
-		else
+		else if(!partMap.containsKey(SelectQueryStruct.Query_Part.SELECT))
 			this.selectorCriteria = new StringBuilder("");
 		
-		if(groupCriteria.length() > 0)
-			groupCriteria.append("])");
-		
-		if(filterCriteria.length() > 0)
+		if(groupCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.GROUP))
+			groupCriteria.append("], sort=False)");
+		/*
+		else if(aggregate) // this is the case for greater than less than etc. this means it I need to force a group by - the assumption is there is only one
 		{
-			filterCriteria = new StringBuilder("[").append(filterCriteria).append("]");
+			// and I need to close out aggcriteria 2 as well
+			groupCriteria.append(".groupby('" + aggKeys.get(0) + "')");
+			this.aggCriteria2 = aggCriteria2.append(")").append(addLimitOffset(start, end)).append(".reset_index()");
+		}*/
+		if(filterCriteria.length() > 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.FILTER))
+		{
+			filterCriteria = new StringBuilder(".loc[").append(filterCriteria).append("]");
 			
 			// update the selector only if if there is no agg
 			//if(selectorCriteria.length() == 0)
 			//	selectorCriteria.append(".drop_duplicates()");
 		
 		}
-		if(orderBy.length() != 0)
+		if(orderBy.length() != 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SORT))
 			// combine it
 			orderBy.append("],").append(ascending).append("])");
-		if(orderBy2.length() != 0)
+		if(orderBy2.length() != 0 && !partMap.containsKey(SelectQueryStruct.Query_Part.SORT))
 			// combine it
 			orderBy2.append("],").append(ascending2).append("])");
 		
@@ -323,10 +565,20 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		this.selectorCriteria = new StringBuilder();
 		List<IQuerySelector> selectors = qs.getSelectors();
 		int size = selectors.size();
+		// get the cue from DIHelper
+		int maxColumns = 100;
+		if(DIHelper.getInstance().getCoreProp().containsKey("MAX_COL_ON_GRID"))
+			maxColumns = Integer.parseInt(DIHelper.getInstance().getCoreProp().getProperty("MAX_COL_ON_GRID"));
+		//if(size > maxColumns)
+		//	size = maxColumns;
+		
 		for(int i = 0; i < size; i++) {
 			IQuerySelector selector = selectors.get(i);
 			String newHeader = null;
 			newHeader = processSelector(selector, wrapperFrameName, true, true);
+			
+			//EXPERIMENTAL
+			order_list.add(selector.getAlias());
 			
 			// if this is an aggregator, it needs to accomodated in a different place which is why the processAgg will return an empty string
 			// if it is not, go ahead and add it
@@ -436,6 +688,10 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		{
 			QueryColumnSelector qcs = groupSelectors.get(sIndex);
 			processGroupSelector(qcs);
+
+			String colName = qcs.getColumn();
+			// EXPERIMENTAL BLOCK
+			this.group_col_list.add(colName);
 		}
 	}
 	
@@ -488,20 +744,32 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		for(int cIndex = 0;cIndex < aggKeys.size();cIndex++)
 		{
 			String colKey = aggKeys.get(cIndex);
-			if(cIndex != 0)
-			{
-				aggCriteria.append(",");
-				aggCriteria2.append(",");
-			}
 			// I need to replace this with aggHash2
-			aggCriteria.append(aggHash.get(colKey)).append("]");
+			if(aggHash.containsKey(colKey))
+			{
+				if(aggCriteria.length() != 0)
+					aggCriteria.append(",");
+				aggCriteria.append(aggHash.get(colKey)).append("]");
+			}
 			//aggCriteria.append(aggHash.get(colKey));
-			aggCriteria2.append(aggHash2.get(colKey));
+			if(aggHash2.containsKey(colKey))
+			{
+				if(aggCriteria2.length() != 0)
+					aggCriteria2.append(",");
+				aggCriteria2.append(aggHash2.get(colKey));				
+			}
+			
+
 		}
 		if(aggCriteria.length() > 0)
 		{
 			aggCriteria = new StringBuilder(".agg({").append(aggCriteria);
 			aggCriteria2 = new StringBuilder(".agg(").append(aggCriteria2);
+		}
+		// just a way to say the override was added by this guy and not coming from outside
+		if(overrideQuery != null && overrideQuery.length() > 0 && aggHash2.size() > 0) // && !((SelectQueryStruct)qs).getParts().containsKey(SelectQueryStruct.Query_Part.QUERY))
+		{
+			overrideQuery.append("]");
 		}
 	}
 	
@@ -544,9 +812,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		headers.add(selector.getAlias());
 		aggHash.put(columnName, aggBuilder);
-		aggHash2.put(columnName, aggBuilder2);
+		// adding it through alias
+		aggHash2.put(aggAlias, aggBuilder2);
 		
 		aggKeys.add(columnName);
+		// also add the alias name
+		if(!aggKeys.contains(aggAlias))
+			aggKeys.add(aggAlias);
 		
 		// if it is a group concat.. dont add this to actual headers here.. since it will get added during group by
 		if(function.equalsIgnoreCase(QueryFunctionHelper.UNIQUE_GROUP_CONCAT))
@@ -566,15 +838,41 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		// I can avoid all of this by creating a dataframe and imputing.. but let us see how far we can inline this
 		// I am going to assume that this is the same type as header for most operations
-		SemossDataType curType = colDataTypes.get(columnName);
+		SemossDataType curType = colDataTypes.get(this.frameName + "__" +columnName);
 		
 		// it can also depend on the operation but.. 
+		// I have no idea what I am doing here
 		if(curType == SemossDataType.STRING || curType == SemossDataType.BOOLEAN)
 			types.add(SemossDataType.INT);
 		else
 			types.add(curType);
 		
-
+		// if the groupby is empty then this is just simple min and max
+		// need to revisit min and max
+		// quick fix for min and max
+		// I do need to honor the filter here
+		if(((SelectQueryStruct) this.qs).getGroupBy().size() == 0 && (pandasFunction.contains("min") || pandasFunction.contains("max")))
+		{
+			if(overrideQuery == null || overrideQuery.length() == 0)
+			{
+				overrideQuery = new StringBuilder("[");
+			}
+			else
+			{
+				overrideQuery.append(",");
+			}
+			overrideQuery.append(wrapperFrameName).append("['").append(columnName).append("'].").append(pandasFunction).append("()");
+		}
+		
+		// EXPERIMENTAL BLOCK
+		// I need to add this as well as the alias some place
+		agg_col_map.put(columnName, selector.getAlias());
+		agg_col_map.put(selector.getAlias(), columnName);
+		agg_col_map.put(selector.getAlias()+ "__f", pandasFunction);
+		
+		agg_col_list.add(columnName);
+		// EXPERIMENTAL BLOCK
+		
 		return "";
 	}
 
@@ -659,7 +957,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(fType == FILTER_TYPE.COL_TO_COL) {
 			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, tableName, useAlias);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
-			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, tableName, useAlias);
+			return addSelectorToValuesFilter2(leftComp, rightComp, thisComparator, tableName, useAlias);
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
 			// same logic as above, just switch the order and reverse the comparator if it is numeric
 			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), tableName, useAlias);
@@ -716,6 +1014,9 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		return filterBuilder;
 	}
 	
+	// tx2.loc[tx2['Sales Fact Number'].map(lambda x: x < 10000000) & tx2['Fiscal Year'].map(lambda x: x < 2011)].groupby('Fiscal Year').agg(Max_Sales_Fact= ('Sales Fact Number', 'max'))
+	// this needs to be all map operation to start with
+	
 	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
@@ -757,6 +1058,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				filterBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
 			}
 		}
+		SemossDataType objectsDataType = leftDataType;
 		
 		// if there are other instances as well
 		// also add that
@@ -764,7 +1066,6 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			boolean multi = false;
 			String myFilterFormatted = null;
 			// format the objects based on the type of the column
-			SemossDataType objectsDataType = leftDataType;
 			boolean useStringForType = thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.contentEquals(NOT_SEARCH_COMPARATOR);
 			if(useStringForType) {
 				objectsDataType = SemossDataType.STRING;
@@ -774,11 +1075,13 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				multi = true;
 				// need a similar one for pandas
 				myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, objectsDataType);
-			} else {
+			} else if(objectsDataType == SemossDataType.DATE){
 				// dont bother doing this if we have a date
 				// since we cannot use "in" with dates
 				myFilterFormatted = PandasSyntaxHelper.formatFilterValue(objects.get(0), objectsDataType);
-			}
+			}else
+				myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, objectsDataType);
+				
 			
 			// account for bad input
 			// example - filtering out empty + null when its a number...
@@ -804,14 +1107,21 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
 				} else {
 					// this will probably break...
+					// this is where the like operator is coming through
+					// this needs to be resolved
 					filterBuilder.append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
 				}
 			}
 			else {
 				// need to see this a bit more when we get here
 				// dont know how the other types of comparator are being sent here
+				// this is going to be an interesting pattern
+				// I need to replace the entire command
 				if(thisComparator.equals(SEARCH_COMPARATOR)) {
+					overrideQuery = new StringBuilder(frameName).append("w.").append("column_like('',").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
+					this.headers.add(leftSelectorExpression);
 					if(SemossDataType.STRING == leftDataType) {
+						
 						// t[t['Title'].str.upper().str.contains('ALA')]
 						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
 					} else if(SemossDataType.DATE == leftDataType) {
@@ -836,7 +1146,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					} else {
 						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("].str.contains(").append(myFilterFormatted).append(",case=False)");
 					}
-				} else {
+				} else if(objectsDataType != SemossDataType.DATE){
+					if(thisComparator.equals("==")) {
+						filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
+					} else if(thisComparator.equals("!=") | thisComparator.equals("<>")) {
+						filterBuilder.append("~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isin").append(myFilterFormatted);
+					}
+				}
+				else{
 					filterBuilder.append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
 				}
 			}
@@ -848,6 +1165,292 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		
 		return filterBuilder.append(")");
+	}
+
+	private StringBuilder addSelectorToValuesFilter2(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String tableName, boolean useAlias) {
+		//swifter = "";
+		// get the left side
+		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
+		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias);
+		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
+		
+		// grab the objects we are setting up for the comparison
+		List<Object> objects = new Vector<Object>();
+		// ugh... this is gross
+		if(rightComp.getValue() instanceof List) {
+			objects.addAll( (List) rightComp.getValue());
+		} else {
+			objects.add(rightComp.getValue());
+		}
+		
+		// if the left data type is string
+		// then use the is in operator
+		// if not then pretty much for everything else use the apply like
+		// tx2['Sales Fact Number'].map(lambda x: x < 10000000) 
+		// with swifter it looks like this
+		//  tx2.loc[tx2['Sales Fact Number'].swifter.apply(lambda x: x < 10000000) & tx2['Fiscal Year'].swifter.apply(lambda x: x < 2011)].groupby('Fiscal Year').agg(Max_Sales_Fact= ('Sales Fact Number', 'max'))
+		
+		// see if it is search if so.. move it to string call it a day
+		// this needs to account for filter
+		String finalFilter = filterCriteria + "";
+		if(finalFilter != null && finalFilter.length() > 0)
+			// add the frame name
+			finalFilter = "this.cache['data']" + finalFilter;
+		else
+			finalFilter = "''";
+			
+		if(thisComparator.equals(SEARCH_COMPARATOR)) {
+			overrideQuery = new StringBuilder(frameName).append("w.").append("column_like(").append(finalFilter).append(",").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
+			this.headers.add(leftSelectorExpression);
+			this.types.add(SemossDataType.STRING);
+			return new StringBuilder("");
+		}else if(thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+			overrideQuery = new StringBuilder(frameName).append("w.").append("column_not_like(").append(finalFilter).append(",").append(leftSelectorExpression).append(", '").append(objects.get(0)).append("')");
+			this.headers.add(leftSelectorExpression);
+			this.types.add(SemossDataType.STRING);
+			return new StringBuilder("");
+		}
+
+
+		
+		// if it is null, then we know we have a column
+		// need to account for null inputs
+		boolean addNullCheck = objects.contains(null);
+		if(addNullCheck) {
+			objects.remove(null);
+		}
+		if(SemossDataType.isNotString(leftDataType) && !thisComparator.equals(SEARCH_COMPARATOR) && !thisComparator.equals(NOT_SEARCH_COMPARATOR) && objects.contains("")) {
+			addNullCheck = true;
+			objects.remove("");
+		}
+		
+		StringBuilder filterBuilder = new StringBuilder("(");
+		// add the null check now
+		if(addNullCheck) {
+			// can only work if comparator is == or !=
+			if(thisComparator.equals("==")) {
+				filterBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
+			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+				filterBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
+			}
+		}
+		else
+			filterBuilder = null;
+		
+		
+		// need to grab from metadata
+		if(leftDataType == null) {
+			leftDataType = this.colDataTypes.get(leftSelector.getQueryStructName());
+		}
+		StringBuilder retBuilder = new StringBuilder();
+		
+		// python doesnt recognize <>
+		if(leftSelectorExpression.contains("<>"))
+			leftSelectorExpression = " != ";
+		
+		if(leftDataType == SemossDataType.STRING)
+		{
+			// couple of things to check here
+			// is this a search string
+			String myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, leftDataType);
+			// adding the paranthesis for sanity purposes
+			retBuilder.append("(");
+			if(thisComparator.contains("!="))
+				retBuilder.append("~");
+			retBuilder.append(frameName).append("[").append(leftSelectorExpression).append("].isin").append(myFilterFormatted);
+			retBuilder.append(") ");
+			return retBuilder;
+		}
+		// ok so we we are done with string here
+		// next is number
+		// this can be > <
+		// at this point it is all the same
+		// that does it
+		else
+		{
+			// add one filter for each of it
+			for (int objIndex = 0;objIndex < objects.size();objIndex++)
+			{
+				if(retBuilder.length() > 0)
+					retBuilder.append(" | ");
+				retBuilder.append("(");
+				retBuilder.append(frameName).append("[").append(leftSelectorExpression).append("]")
+						  .append(swifter).append(".apply(lambda x : x ")
+						  .append(thisComparator)
+						  .append(objects.get(objIndex)).append(")");
+				retBuilder.append(")  ");
+			}
+		}
+		
+		// if the null check was valid enable that too
+		if(filterBuilder != null)
+			retBuilder = new StringBuilder(filterBuilder).append(" & ").append(retBuilder);
+		
+		
+		
+		if(addNullCheck && !objects.isEmpty()) {
+			// close due to wrapping
+			filterBuilder.append(") ");
+		}
+		
+		return retBuilder;
+	}
+
+	public void setPyTranslator(PyTranslator pyt) {
+		// TODO Auto-generated method stub
+		this.pyt = pyt;
+		
+	}
+	
+	// create the filter cache
+	// this should also try group by
+	// try the groupby first
+	// if not try the filter
+	
+	// see if the groupby exists
+	// if not see if the filter exists
+	// if not create the filter
+	// then create the group by
+	// stepout
+	
+	private void createFilterOnlyCache(String filter, String query)
+	{
+		// if the filter is not existing then create the cache
+		
+		StringBuilder command = new StringBuilder("");
+		command.append("if \"").append(filter).append("\" not in ").append(frameName).append("w.cache:");
+		command.append("\n");
+		String rand = "r" + Utility.getRandomString(6);
+		command.append("\t").append(rand);
+		command.append(" = ");
+		command.append(query);
+		command.append("\n");
+		command.append("\t").append(frameName).append("w.cache[\"").append(filter).append("\"]");
+		command.append(" = ");
+		command.append(rand);
+		// try to print a else command ? to see if there was use from it ?
+		pyt.runEmptyPy(command.toString());
+	}
+
+	
+	// see if the groupby exists
+	// if not see if the filter exists
+	// if not create the filter
+	// then create the group by
+	// stepout
+	
+	private void createGroupAndFilterCache(String filterKey, String groupKey, String filterQuery, String groupQuery)
+	{
+		// if the filter is not existing then create the cache
+		
+		StringBuilder command = new StringBuilder("");
+		String rand = "r" + Utility.getRandomString(6);
+		String rand2 = "r" + Utility.getRandomString(6);
+		command.append("if \"").append(groupKey).append("\" not in ").append(frameName).append("w.cache:");
+		command.append("\n");
+			// see if the filter exists if not create
+			command.append("\t").append("if \"").append(filterKey).append("\" not in ").append(frameName).append("w.cache:");
+			command.append("\n");
+				command.append("\t\t").append(rand);
+				command.append(" = ");
+				command.append(filterQuery);
+				command.append("\n");
+				command.append("\t\t").append(frameName).append("w.cache[\"").append(filterKey).append("\"]");
+				command.append(" = ");
+				command.append(rand);
+			command.append("\n");
+			command.append("\t").append(rand2);
+			command.append("=");
+			command.append(frameName).append("w.cache[\"").append(filterKey).append("\"]").append(groupQuery);
+			command.append("\n");
+			command.append("\t").append(frameName).append("w.cache[\"").append(groupKey).append("\"]");
+			command.append("=");
+			command.append(rand2);
+			command.append("\n");
+			command.append("\t").append("print('Created new cache')");
+			command.append("\n");
+		command.append("else:");
+			command.append("\n");
+			command.append("\t").append("print('Using Cache')");
+			command.append("\n");
+		// try to print a else command ? to see if there was use from it ?
+		String output = pyt.runPyAndReturnOutput(command.toString());
+		System.err.println("Cache " + output);
+	}
+
+	private void createGroupOnlyCache(String groupKey, String groupQuery)
+	{
+		// if the filter is not existing then create the cache
+		// essentially I can replace this with the idxColFilter
+		StringBuilder command = new StringBuilder("");
+		String rand2 = "r" + Utility.getRandomString(6);
+		command.append("if \"").append(groupKey).append("\" not in ").append(frameName).append("w.cache:");
+			command.append("\n");
+			command.append("\t").append(rand2);
+			command.append(" = ");
+			command.append(groupQuery);
+			command.append("\n");
+			command.append("\t").append(frameName).append("w.cache[\"").append(groupKey).append("\"]");
+			command.append(" = ");
+			command.append(rand2);
+			command.append("\n");
+			command.append("\t").append("print('Created new Group Only cache')");
+			command.append("\n");
+		command.append("else:");
+			command.append("\n");
+			command.append("\t").append("print('Using Group Only Cache')");
+			command.append("\n");
+		// try to print a else command ? to see if there was use from it ?
+		String output = pyt.runPyAndReturnOutput(command.toString());
+		System.err.println("Cache " + output);
+	}
+
+	
+	private void composeGroupCacheString(String col)
+	{
+		/*
+		col_index = ff_key + "__" + col
+		col_index_u = col_index + "__u" # upper case
+		col_key = ff_key + "__" + col + "__cat"
+		col_cat_codes = col_key + "__cat.code"
+		col_cat_names = col_key + "__cat.categories"
+		g_key = ff_key + "__" + g + "__cat"
+		col = g
+		cat_codes = g_key + "__cat.code"
+		cat_names = g_key + "__cat.categories"
+		*/
+		String ff_key = composeFilterString();
+		String g_key = ff_key + col;
+		String cat_codes = g_key+"__cat.code";
+		String cat_names = g_key+"__cat.categories";
+		
+		this.order_list_map.put(col, cat_names);
+
+		
+	}
+	
+	private void composeAggCacheString(String col, String aggColName, String aggColAlias, String func)
+	{
+		//out_key = g_key + "__" + a + "__" + f
+		String ff_key = composeFilterString();
+		String g_key = ff_key + col;
+		String out_key = g_key + "__" + aggColName + "__" + func;
+		this.order_list_map.put(aggColAlias, out_key);
+	}
+	
+	private String composeFilterString()
+	{
+		if(this.filterCriteria.length() > 0)
+		{
+			//String ff_key = frameName + filterCriteria +"__f"; //"w.cache['data']" +
+			String ff_key = "this.cache['data']" + filterCriteria +"__f"; //"w.cache['data']" +
+			return ff_key;
+		}
+		else
+		{
+			String ff_key = frameName + "__f";
+			return ff_key;
+		}
 	}
 	
 	//////////////////////////////////// end adding filters /////////////////////////////////////

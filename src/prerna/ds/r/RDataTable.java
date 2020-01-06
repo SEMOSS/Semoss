@@ -16,6 +16,8 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.ds.shared.CachedIterator;
+import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
@@ -35,6 +37,8 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 public class RDataTable extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "RDataTable";
+	private transient Map <String, CachedIterator> queryCache = new HashMap<String, CachedIterator>();
+
 	
 	private RFrameBuilder builder;
 
@@ -156,16 +160,35 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
+		interp.setRFrameBuilder(builder);
+		
 		logger.info("Generating R Data Table query...");
 		String query = interp.composeQuery();
 		logger.info("Done generating R Data Table query");
 
-		logger.info("Executing query...");
-		RIterator output = new RIterator(this.builder, query, qs);
-		RawRSelectWrapper it = new RawRSelectWrapper();
-		it.directExecution(output);
-		logger.info("Done executing query");
-		return it;
+		RawRSelectWrapper it = null;
+		IRawSelectWrapper retWrapper = null;
+		String looker = interp.getMainQuery();
+		// sets the framebuilder
+		if(!queryCache.containsKey(looker))
+		{
+			logger.info("Executing query...");
+			RIterator output = new RIterator(this.builder, query, qs);
+			output.setQuery(looker);
+			it = new RawRSelectWrapper();
+			it.directExecution(output);
+			logger.info("Done executing query");
+			retWrapper = it;
+		}
+		else
+		{
+			CachedIterator ci = queryCache.get(looker);
+			RawCachedWrapper rcw = new RawCachedWrapper();
+			rcw.setIterator(ci);
+			retWrapper = rcw;
+
+		}
+		return retWrapper;
 	}
 	
 	@Override
@@ -458,5 +481,17 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	// cache the iterator
+	public void cacheQuery(CachedIterator it)
+	{
+		if(it.hasNext())
+		{	
+			String looker = it.getQuery();
+
+			queryCache.put(looker, it);
+		}
+	}
+
 	
 }

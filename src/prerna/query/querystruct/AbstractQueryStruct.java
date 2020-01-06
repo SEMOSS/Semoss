@@ -1,6 +1,7 @@
 package prerna.query.querystruct;
 
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +66,9 @@ public abstract class AbstractQueryStruct {
 	protected String frameName;
 	protected transient IEngine engine;
 	protected String engineId;
+	
+	// map of pragmas
+	Map pragmap = null;
 	
 	//////////////////////////////////////////// SELECTORS /////////////////////////////////////////////////
 	
@@ -333,5 +337,22 @@ public abstract class AbstractQueryStruct {
 	
 	public void mergeRelations(Set<String[]> relationSet) {
 		this.relationsSet.addAll(relationSet);
+	}
+	
+	// sets the pragma map to be used
+	public void setPragmap(Map pragmap)
+	{
+		this.pragmap = pragmap;
+	}
+	
+	// gets the pragma map
+	public Map getPragmap()
+	{
+		return this.pragmap;
+	}
+	
+	public void clearPragmap()
+	{
+		this.pragmap.clear();
 	}
 }

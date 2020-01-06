@@ -59,6 +59,8 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.engine.impl.SmssUtilities;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct.Query_Part;
 import prerna.sablecc.PKQLRunner;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
@@ -67,6 +69,7 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.IReactor;
 import prerna.sablecc2.reactor.ReactorFactory;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -160,7 +163,17 @@ public class Insight {
 	// insight specific reactors
 	private transient Map<String, Class> insightSpecificHash = new HashMap<String, Class>();
 	
+	
 	public static Boolean isjavac = null;
+	
+		
+	// last panel id touched
+	String lastPanelId = "0";
+	
+	// pragamp for all the pragmas like cache / raw / parquet etc. 
+	Map pragmap = null;
+	
+	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////// START CONSTRUCTORS //////////////////////////////////
@@ -1062,4 +1075,79 @@ public class Insight {
         // sys.path.add
         // sys.path.remove - the remove is tricky however
 	}
+	
+
+	public void setLastQS(SelectQueryStruct lastQs)
+	{
+		setLastQS(lastQs, lastPanelId);
+	}
+
+	public void setLastQS(SelectQueryStruct lastQs, String panelId)
+	{
+		this.insightPanels.get(panelId).setLastQS(lastQs);
+	}
+
+	public SelectQueryStruct getLastQS()
+	{
+		// always get the first one
+		return getLastQS(lastPanelId);
+	}
+	
+	public SelectQueryStruct getLastQS(String panelId)
+	{
+		if(insightPanels.containsKey(panelId))
+			return insightPanels.get(panelId).getLastQS();
+		return null;
+	}
+
+	
+	public void setLastTaskOptions(TaskOptions options)
+	{
+		setLastTaskOptions(options, lastPanelId);
+	}
+
+	public void setLastTaskOptions(TaskOptions options, String panelId)
+	{
+		if(insightPanels.containsKey(panelId))
+			this.insightPanels.get(panelId).setOptions(options);
+	}
+
+	public TaskOptions getLastTaskOptions()
+	{
+		return getLastTaskOptions(lastPanelId);
+	}
+	public TaskOptions getLastTaskOptions(String panelId)
+	{
+		if(insightPanels.containsKey(panelId))
+			return this.insightPanels.get(panelId).getOptions();
+		return null;
+	}
+	
+	public void setLastPanelId(String panelId)
+	{
+		this.lastPanelId = panelId;
+	}
+	
+	public String getLastPanelId()
+	{
+		return this.lastPanelId;
+	}
+	
+	// sets the pragma map to be used
+	public void setPragmap(Map pragmap)
+	{
+		this.pragmap = pragmap;
+	}
+	
+	// gets the pragma map
+	public Map getPragmap()
+	{
+		return this.pragmap;
+	}
+	
+	public void clearPragmap()
+	{
+		this.pragmap.clear();
+	}
+
 }
