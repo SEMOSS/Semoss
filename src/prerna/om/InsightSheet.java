@@ -3,27 +3,27 @@ package prerna.om;
 public class InsightSheet {
 
 	private String sheetId;
-	private String sheetName;
+	private String sheetLabel;
 	private String sheetBackground;
 	
 	public InsightSheet(String sheetId) {
 		this.sheetId = sheetId;
 	}
 	
-	public void setSheetName(String sheetName) {
-		this.sheetName = sheetName;
+	public String getSheetId() {
+		return this.sheetId;
+	}
+	
+	public void setSheetLabel(String sheetLabel) {
+		this.sheetLabel = sheetLabel;
 	}
 	
 	public void setSheetBackground(String sheetBackground) {
 		this.sheetBackground = sheetBackground;
 	}
 	
-	public String getSheetId() {
-		return this.sheetId;
-	}
-	
-	public String getSheetName() {
-		return this.sheetName;
+	public String getSheetLabel() {
+		return this.sheetLabel;
 	}
 	
 	public String getSheetBackground() {
