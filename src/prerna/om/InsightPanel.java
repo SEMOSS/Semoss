@@ -6,14 +6,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.gson.ColorByValueRuleAdapter;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.NumberAdapter;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class InsightPanel {
 
@@ -49,7 +51,28 @@ public class InsightPanel {
 	// store the color by value rules for the panel
 	private transient List<ColorByValueRule> colorByValue;
 	
+	// last qs
+	private transient SelectQueryStruct lastQS = null;
 	
+	// last task options
+	private transient TaskOptions options = null;
+	
+	public TaskOptions getOptions() {
+		return options;
+	}
+
+	public void setOptions(TaskOptions options) {
+		this.options = options;
+	}
+
+	public SelectQueryStruct getLastQS() {
+		return lastQS;
+	}
+
+	public void setLastQS(SelectQueryStruct lastQS) {
+		this.lastQS = lastQS;
+	}
+
 	public InsightPanel(String panelId) {
 		this.panelId = panelId;
 		this.viewOptionsMap = new HashMap<String, Map<String, String>>();
@@ -495,11 +518,17 @@ public class InsightPanel {
 		this.comments.putAll(gson.fromJson(gson.toJson(existingPanel.comments), Map.class));
 		this.events.putAll(gson.fromJson(gson.toJson(existingPanel.events), Map.class));
 		this.grf = existingPanel.grf.copy();
-		
 		// also move over the CBV
 		for(ColorByValueRule rule : existingPanel.colorByValue) {
 			this.addColorByValue(gson.fromJson(gson.toJson(rule), ColorByValueRule.class));
 		}
+
+		// copy the options and the qs too
+		Object existingPanelOptions = existingPanel.options.getOptions().get(existingPanel.panelId);
+		Map <String, Object> optionMap = new java.util.HashMap();
+		optionMap.put(panelId, existingPanelOptions);
+		this.options = new TaskOptions(optionMap);
+		this.lastQS = existingPanel.lastQS;
 	}
 
 }

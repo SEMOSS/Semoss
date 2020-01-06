@@ -35,6 +35,8 @@ public class SelectReactor extends AbstractQueryStructReactor {
 			setAlias(selectors, this.selectorAlias, 0);
 			qs.mergeSelectors(selectors);
 		}
+		
+		
 		return qs;
 	}
 	

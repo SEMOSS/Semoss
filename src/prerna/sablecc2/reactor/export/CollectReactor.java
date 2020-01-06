@@ -1,5 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -27,10 +28,24 @@ public class CollectReactor extends TaskBuilderReactor {
 	}
 	
 	public NounMetadata execute() {
-		this.task = getTask();
+		
+		// need to see if the PixelDataType.QUERY_STRUCT.toString() is available in nounstore
+		// if not they came to this through an override so run this
+		// I take care of this in query part this might not be needed anymore
+		
+		/*if(this.store.getNoun(PixelDataType.QUERY_STRUCT.toString()) == null)
+		{
+			GenRowStruct grs = new GenRowStruct();
+			grs.add(insight.getLastQS(), PixelDataType.QUERY_STRUCT);
+			this.store.addNoun(PixelDataType.QUERY_STRUCT.toString(), grs);
+		}*/
+		this.task = getTask();		
+		
 		this.limit = getTotalToCollect();
 		this.task.setNumCollect(this.limit);
 		buildTask();
+		
+		
 		
 		// tracking
 		if (this.task instanceof BasicIteratorTask) {
@@ -44,14 +59,44 @@ public class CollectReactor extends TaskBuilderReactor {
 			} catch(Exception e) {
 				e.printStackTrace();
 			}
+			
+			// keep the query struct
+			prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
+			insight.setLastQS(sqs);
 		}
 		PixelOperationType retOpType = PixelOperationType.TASK_DATA;
 		
+		
+		
+		// this is the second place I need to change
 		TaskOptions ornamnetOptions = genOrnamentTaskOptions();
 		if(ornamnetOptions != null || (task.getTaskOptions() != null && task.getTaskOptions().isOrnament()) ) {
 			task.setTaskOptions(ornamnetOptions);
 			retOpType = PixelOperationType.PANEL_ORNAMENT_DATA;
 		}
+
+		// cache this so that it is good when we do the querypart followed by collect
+		// I assume there is always some task options needed, but I dont know 
+		if(task.getTaskOptions() != null)
+		{
+			// I really hope this is only one
+			Iterator <String> panelIds = task.getTaskOptions().getPanelIds().iterator();
+			while(panelIds.hasNext())
+			{
+				String panelId = panelIds.next();
+				insight.setLastPanelId(panelId);
+				insight.setLastTaskOptions(task.getTaskOptions(), panelId);
+			}
+			//insight.setLastTaskOptions(task.getTaskOptions());
+		}
+		else
+		{
+			// there is no flipping way to get to a proper options here ?
+			// I am setting the panel id on the task options and getting it from here
+			task.setTaskOptions(insight.getLastTaskOptions());
+		}
+		
+		
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, retOpType);
 	}
 	

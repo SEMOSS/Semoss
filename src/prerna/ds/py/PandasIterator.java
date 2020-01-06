@@ -12,6 +12,9 @@ public class PandasIterator implements Iterator<IHeadersDataRow>{
 	private String[] headers = null;
 	private List<String> actHeaders = null;
 	private boolean transform = false;
+	// I will also set the query here
+	// so it can be cached for future
+	private String query = null;
 
 	// Current implementation.. pulls the data into the memory.. we will change it after
 	public List fullData = null;
@@ -39,17 +42,35 @@ public class PandasIterator implements Iterator<IHeadersDataRow>{
 
 	@Override
 	public IHeadersDataRow next() {
-		Object [] values = ((List) fullData.remove(0)).toArray();
-		if(transform) {
-			// this is going to be interesting.. alrite let us see
-			Object [] newValues = new Object[headers.length];
-			for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
-				int index = actHeaders.indexOf(headers[headerIndex]);
-				newValues[headerIndex] = values [index];
+		Object [] values = null;
+		if(fullData.get(0) instanceof List)
+		{
+			values = ((List) fullData.remove(0)).toArray();
+			if(transform) {
+				// this is going to be interesting.. alrite let us see
+				// I wonder if I can even change the headers on the fly too, I dont know
+				Object [] newValues = new Object[headers.length];
+				for(int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+					int index = actHeaders.indexOf(headers[headerIndex]);
+					if(index == -1) // there is a possibility the person is coming in with a different query
+						index = headerIndex;
+					newValues[headerIndex] = values [index];
+				}
+				values = newValues;
 			}
-			values = newValues;
+			
+			// there is possibly another possibility here
+			// it is an array list of arrays
+			// basically it is a list of arrays
 		}
-		return new HeadersDataRow(headers, values);
+		else
+		{
+			values = new Object[1];
+			values[0] = fullData.remove(0);
+		}
+		IHeadersDataRow thisRow = new HeadersDataRow(headers, values);
+		thisRow.setQuery(query);
+		return thisRow;
 	}
 	
 	public String [] getHeaders() {
@@ -58,5 +79,17 @@ public class PandasIterator implements Iterator<IHeadersDataRow>{
 	
 	public int getInitSize() {
 		return initSize;
+	}
+	
+	// sets the query
+	public void setQuery(String query)
+	{
+		this.query = query;
+	}
+	
+	public String getQuery()
+	{
+		return this.query;
+		
 	}
 }

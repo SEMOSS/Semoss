@@ -19,9 +19,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
@@ -42,6 +39,9 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.gson.GenRowFiltersAdapter;
+
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
@@ -656,6 +656,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			return ((Number) numUnique).intValue();
 		}
 		return 0;
+	}
+	
+	// this is just a dummy so R doesnt fail for now
+	@Override
+	public void cacheQuery(CachedIterator it)
+	{
+		
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
