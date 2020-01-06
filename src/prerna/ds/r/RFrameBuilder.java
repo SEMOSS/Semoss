@@ -78,6 +78,14 @@ public class RFrameBuilder {
 		this.logger = logger;
 	}
 	
+	/**
+	 * Getter for the translator
+	 * @return
+	 */
+	public AbstractRJavaTranslator getRJavaTranslator() {
+		return this.rJavaTranslator;
+	}
+	
 	////////////////////////////////////////////////////////////////////
 	///////////////////// Abstract Methods /////////////////////////////
 	
@@ -598,4 +606,5 @@ public class RFrameBuilder {
 		// https://github.com/fstpackage/fst/milestone/23
 		this.evalR(frameName + " <- as.data.table(read_fst(\"" + frameFileName.replace("\\", "/") + "\"))");
 	}
+	
 }
