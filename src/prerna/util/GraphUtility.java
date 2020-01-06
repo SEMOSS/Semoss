@@ -166,9 +166,9 @@ public class GraphUtility {
 				.by(__.properties().label().dedup().fold());
 		while (it.hasNext()) {
 			Map<Object, Object> value = it.next();
-			Map<String, String> propMap = new HashMap<>();
 			for (Object key : value.keySet()) {
 				List props = (List) value.get(key);
+				Map<String, String> propMap = new HashMap<>();
 				for (Object property : props) {
 					propMap.put(property + "", SemossDataType.STRING.toString());
 				}
