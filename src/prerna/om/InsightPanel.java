@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -14,15 +17,14 @@ import prerna.util.gson.ColorByValueRuleAdapter;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.NumberAdapter;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 public class InsightPanel {
 
 	private static Gson GSON = GsonUtility.getDefaultGson();
 	
 	// unique id for the panel
 	private String panelId;
+	// the sheet this panel sits in
+	private String sheetId;
 	// label for the panel
 	private String panelLabel;
 	// current UI view for the panel
@@ -73,8 +75,9 @@ public class InsightPanel {
 		this.lastQS = lastQS;
 	}
 
-	public InsightPanel(String panelId) {
+	public InsightPanel(String panelId, String sheetId) {
 		this.panelId = panelId;
+		this.sheetId = sheetId;
 		this.viewOptionsMap = new HashMap<String, Map<String, String>>();
 		this.config = new HashMap<String, Object>();
 		this.ornaments = new HashMap<String, Object>();
@@ -396,6 +399,14 @@ public class InsightPanel {
 	
 	public String getPanelLabel() {
 		return this.panelLabel;
+	}
+	
+	public String getSheetId() {
+		return this.sheetId;
+	}
+	
+	public void setSheetId(String sheetId) {
+		this.sheetId = sheetId;
 	}
 	
 	public void setPanelView(String view) {

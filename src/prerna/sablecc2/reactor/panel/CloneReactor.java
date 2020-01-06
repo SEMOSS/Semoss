@@ -14,7 +14,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class CloneReactor extends AbstractInsightPanelReactor {
 	
 	public CloneReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.CLONE_PANEL_KEY.getKey()};
+		this.keysToGet = new String[]{ReactorKeysEnum.PANEL.getKey(), ReactorKeysEnum.CLONE_PANEL_KEY.getKey(), ReactorKeysEnum.SHEET.getKey()};
 	}
 
 	@Override
@@ -24,8 +24,13 @@ public class CloneReactor extends AbstractInsightPanelReactor {
 
 		// get the new panel id
 		String newId = getClonePanelId();
+		// am i cloning in the same sheet, or cloning in a new sheet?
+		String sheetId = this.keyValue.get(this.keysToGet[2]);
+		if(sheetId == null) {
+			sheetId = existingPanel.getSheetId();
+		}
 		// make the new panel
-		InsightPanel newClonePanel = new InsightPanel(newId);
+		InsightPanel newClonePanel = new InsightPanel(newId, sheetId);
 		newClonePanel.clone(existingPanel);
 		
 		// remember to add the new panel into the insight
