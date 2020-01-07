@@ -288,14 +288,12 @@ public abstract class AbstractTask implements ITask {
 	}
 	
 	// dummy method to avoid errors on creating cache
-	public IRawSelectWrapper createCache()
-	{
+	public IRawSelectWrapper createCache() {
 		return null;
 	}
 	
 	// dummy
-	public String getPragma(String key)
-	{
+	public String getPragma(String key) {
 		return null;
 	}
 }
