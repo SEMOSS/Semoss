@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -18,7 +18,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		// get table name
 		String table = frame.getName();
 		// get columns to extract numeric characters
