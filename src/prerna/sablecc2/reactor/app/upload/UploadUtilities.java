@@ -895,6 +895,64 @@ public class UploadUtilities {
 	}
 	
 	/**
+	 * Generate a neo4j smss
+	 * 
+	 * @param appId
+	 * @param appName
+	 * @param owlFile
+	 * @param filePath
+	 * @return
+	 * @throws IOException
+	 */
+	public static File generateTemporaryEmbeddedNeo4jSmss(String appId, String appName, File owlFile, String filePath, Map<String, String> nameMap)
+			throws IOException {
+		String appTempNeo4jLoc = getAppTempSmssLoc(appId, appName);
+
+		// i am okay with deleting the .temp if it exists
+		// we dont leave this around
+		// and they should be deleted after loading
+		// so ideally this would never happen...
+		File appTempSmss = new File(appTempNeo4jLoc);
+		if (appTempSmss.exists()) {
+			appTempSmss.delete();
+		}
+
+		final String newLine = "\n";
+		final String tab = "\t";
+
+		// also write the base properties
+		FileWriter writer = null;
+		BufferedWriter bufferedWriter = null;
+		try {
+			File newFile = new File(appTempNeo4jLoc);
+			writer = new FileWriter(newFile);
+			bufferedWriter = new BufferedWriter(writer);
+			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
+			bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
+			// Name map
+			Gson gson = new GsonBuilder().create();
+			String json = gson.toJson(nameMap);
+			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			throw new IOException("Could not generate app smss file");
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+				if (writer != null) {
+					writer.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return appTempSmss;
+	}
+	
+	/**
 	 * Create a temporary smss file for an external rdbms engine
 	 * @param appId
 	 * @param appName
