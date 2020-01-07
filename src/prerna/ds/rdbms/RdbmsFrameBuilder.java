@@ -8,7 +8,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -49,22 +48,6 @@ public class RdbmsFrameBuilder {
 		this.queryUtil = util;
 	}
 	
-	protected Map<String, String> typeConversionMap = new HashMap<String, String>(); {
-		typeConversionMap.clear();
-		
-		typeConversionMap.put("INT", "INT");
-		typeConversionMap.put("LONG", "INT");
-		
-		typeConversionMap.put("NUMBER", "DOUBLE");
-		typeConversionMap.put("FLOAT", "DOUBLE");
-		typeConversionMap.put("DOUBLE", "DOUBLE");
-
-		typeConversionMap.put("DATE", "DATE");
-		typeConversionMap.put("TIMESTAMP", "TIMESTAMP");
-		
-		typeConversionMap.put("STRING", "VARCHAR(800)");
-	}
-	
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
@@ -83,7 +66,7 @@ public class RdbmsFrameBuilder {
 	 */
 	public void addRow(String tableName, String[] columnNames, Object[] values, String[] types) {
 		boolean create = true;
-		types = cleanTypes(types);
+		types = this.queryUtil.cleanTypes(types);
 
 		// create table if it does not already exist
 		try {
@@ -138,7 +121,7 @@ public class RdbmsFrameBuilder {
 					strTypes = new String[headers.length];
 					for (int i = 0; i < types.length; i++) {
 						types[i] = typesMap.get(headers[i]);
-						strTypes[i] = SemossDataType.convertDataTypeToString(types[i] );
+						strTypes[i] = types[i].toString();
 					}
 					// alter the table to have the column information if not
 					// already present
@@ -312,7 +295,7 @@ public class RdbmsFrameBuilder {
 	 * @param types
 	 */
 	public void alterTableNewColumns(String tableName, String[] headers, String[] types) {
-		types = cleanTypes(types);
+		types = this.queryUtil.cleanTypes(types);
 		try {
 			if (this.queryUtil.tableExists(this.conn, tableName, this.schema)) {
 				List<String> newHeaders = new ArrayList<String>();
@@ -586,41 +569,6 @@ public class RdbmsFrameBuilder {
 		}
 
 		return 0;
-	}
-	
-	/**
-	 * Get the clean SQL type based on the string representation
-	 * @param type
-	 * @return
-	 */
-	protected String cleanType(String type) {
-		if (type == null) {
-			type = "VARCHAR(800)";
-		}
-		type = type.toUpperCase();
-		if (typeConversionMap.containsKey(type)) {
-			type = typeConversionMap.get(type);
-		} else {
-			if (typeConversionMap.containsValue(type)) {
-				return type;
-			}
-			type = "VARCHAR(800)";
-		}
-		return type;
-	}
-
-	/**
-	 * Get the clean SQL types based on the string representation
-	 * @param types
-	 * @return
-	 */
-	protected String[] cleanTypes(String[] types) {
-		String[] cleanTypes = new String[types.length];
-		for (int i = 0; i < types.length; i++) {
-			cleanTypes[i] = cleanType(types[i]);
-		}
-
-		return cleanTypes;
 	}
 	
 	/**

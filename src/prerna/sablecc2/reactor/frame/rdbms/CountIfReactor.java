@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -16,7 +16,7 @@ public class CountIfReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		String newColumnName = getNewColumn();
 		String columnToCount = getCountColumn();
 		String regex = getRegexString();
@@ -33,7 +33,7 @@ public class CountIfReactor extends AbstractFrameReactor {
 			throw new IllegalArgumentException("Column: " + columnToCount + " doesn't exist.");
 		}
 		// new column datatype is set to numeric
-		String dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType("NUMBER"));
+		String dataType = frame.getQueryUtil().cleanType(SemossDataType.INT.toString());
 		// clean new column name
 		newColumnName = getCleanNewColName(frame, newColumnName);
 
