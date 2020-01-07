@@ -95,7 +95,7 @@ public class RdbmsImporter extends AbstractImporter {
 			int counter = 0;
 			for(String header : dataTypeMap.keySet()) {
 				newHeaders[counter] = header;
-				newTypes[counter] = SemossDataType.convertDataTypeToString(dataTypeMap.get(header));
+				newTypes[counter] = this.dataframe.getQueryUtil().cleanType(dataTypeMap.get(header).toString());
 				counter++;
 			}
 			try {
@@ -318,7 +318,7 @@ public class RdbmsImporter extends AbstractImporter {
 			// add the columns into the frame
 			if(!joins.get(0).getJoinType().equals("inner.join")) {
 				// add columns onto the frame
-				String alterQuery = RdbmsQueryBuilder.alterMissingColumns(leftTableName, rightTableTypes, joins, rightTableAlias);
+				String alterQuery = RdbmsQueryBuilder.alterMissingColumns(leftTableName, rightTableTypes, joins, rightTableAlias, this.dataframe.getQueryUtil());
 				try {
 					this.dataframe.getBuilder().runQuery(alterQuery);
 				} catch (Exception ex) {

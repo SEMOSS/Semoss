@@ -33,6 +33,21 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		// default do nothing
 	}
 	
+	@Override
+	public void initTypeConverstionMap() {
+		typeConversionMap.put("INT", "INT");
+		typeConversionMap.put("LONG", "BIGINT");
+		
+		typeConversionMap.put("NUMBER", "DOUBLE");
+		typeConversionMap.put("FLOAT", "DOUBLE");
+		typeConversionMap.put("DOUBLE", "DOUBLE");
+
+		typeConversionMap.put("DATE", "DATE");
+		typeConversionMap.put("TIMESTAMP", "TIMESTAMP");
+		
+		typeConversionMap.put("STRING", "VARCHAR(800)");
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 	/*

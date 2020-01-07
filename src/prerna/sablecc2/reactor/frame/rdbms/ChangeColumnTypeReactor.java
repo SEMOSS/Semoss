@@ -3,7 +3,7 @@ package prerna.sablecc2.reactor.frame.rdbms;
 import java.util.Arrays;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -28,10 +28,11 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		// get frame
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		String column = getColumn();
 		String columnType = getColumnType();
-
+		columnType = frame.getQueryUtil().cleanType(columnType);
+		
 		String table = frame.getName();
 		if (column.contains("__")) {
 			String[] split = column.split("__");
@@ -112,8 +113,6 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 		if (dt == null) {
 			dt = SemossDataType.STRING;
 		}
-		// make sql dataType
-		columnType = SemossDataType.convertDataTypeToString(dt);
 		return columnType;
 	}
 

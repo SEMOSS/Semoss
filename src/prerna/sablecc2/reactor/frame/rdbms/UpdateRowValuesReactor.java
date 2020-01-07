@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.poi.main.HeadersException;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -19,7 +19,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		String updateColumnInput = "";
 		String updateTable = "";
 		String updateColumn = "";

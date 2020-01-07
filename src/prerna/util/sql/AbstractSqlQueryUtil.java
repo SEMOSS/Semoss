@@ -67,14 +67,17 @@ public abstract class AbstractSqlQueryUtil {
 
 	protected List<String> reservedWords = null;
 	
+	protected Map<String, String> typeConversionMap = new HashMap<String, String>(); 
+	
 	AbstractSqlQueryUtil() {
-		
+		initTypeConverstionMap();
 	}
 	
 	AbstractSqlQueryUtil(String connectionURL, String username, String password) {
 		this.connectionUrl = connectionURL;
 		this.username = username;
 		this.password = password;
+		initTypeConverstionMap();
 	}
 	
 	AbstractSqlQueryUtil(RdbmsTypeEnum dbType, String hostname, String port, String schema, String username, String password) {
@@ -89,6 +92,7 @@ public abstract class AbstractSqlQueryUtil {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		initTypeConverstionMap();
 	}
 	
 	/**
@@ -98,6 +102,11 @@ public abstract class AbstractSqlQueryUtil {
 	 * @param con
 	 */
 	public abstract void enhanceConnection(Connection con);
+
+	/**
+	 * Initialize the type conversion map to account for sql discrepancies in type names
+	 */
+	public abstract void initTypeConverstionMap();
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -231,6 +240,47 @@ public abstract class AbstractSqlQueryUtil {
 			}
 		}
 		return null;
+	}
+	
+	/////////////////////////////////////////////////////////////////////////////////////
+	
+	/*
+	 * Methods to clean the sql type
+	 */
+	
+	/**
+	 * Clean the types to account for sql naming differences
+	 * @param type
+	 * @return
+	 */
+	public String cleanType(String type) {
+		if (type == null) {
+			type = "VARCHAR(800)";
+		}
+		type = type.toUpperCase();
+		if (typeConversionMap.containsKey(type)) {
+			type = typeConversionMap.get(type);
+		} else {
+			if (typeConversionMap.containsValue(type)) {
+				return type;
+			}
+			type = "VARCHAR(800)";
+		}
+		return type;
+	}
+	
+	/**
+	 * Clean the types to account for sql naming differences
+	 * @param types
+	 * @return
+	 */
+	public String[] cleanTypes(String[] types) {
+		String[] cleanTypes = new String[types.length];
+		for (int i = 0; i < types.length; i++) {
+			cleanTypes[i] = cleanType(types[i]);
+		}
+
+		return cleanTypes;
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////

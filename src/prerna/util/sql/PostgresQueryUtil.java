@@ -46,6 +46,21 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		super(dbType, hostname, port, schema, username, password);
 	}
 	
+	@Override
+	public void initTypeConverstionMap() {
+		typeConversionMap.put("INT", "INT");
+		typeConversionMap.put("LONG", "BIGINT");
+		
+		typeConversionMap.put("NUMBER", "FLOAT");
+		typeConversionMap.put("FLOAT", "FLOAT");
+		typeConversionMap.put("DOUBLE", "FLOAT");
+
+		typeConversionMap.put("DATE", "DATE");
+		typeConversionMap.put("TIMESTAMP", "TIMESTAMP");
+		
+		typeConversionMap.put("STRING", "VARCHAR(800)");
+	}
+	
 	public IQueryInterpreter getInterpreter(IEngine engine) {
 		return new PostgresSqlInterpreter(engine);
 	}
@@ -54,4 +69,8 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		return new PostgresSqlInterpreter(frame);
 	}
 	
+	@Override
+	public String tableExistsQuery(String tableName, String schema) {
+		return "select table_name, table_type from information_schema.tables where table_schema='" + schema + "' and table_name='" + tableName + "'";
+	}
 }

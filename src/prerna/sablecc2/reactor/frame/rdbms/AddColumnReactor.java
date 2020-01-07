@@ -1,6 +1,5 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
-import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.PixelDataType;
@@ -39,7 +38,7 @@ public class AddColumnReactor extends AbstractFrameReactor {
 		colName = getCleanNewColName(frame, colName);
 		// get new column type or set default to string
 		// make sql data type
-		dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(dataType));
+		dataType = frame.getQueryUtil().cleanType(dataType);
 		if (frame != null) {
 			try {
 				frame.getBuilder().runQuery(frame.getQueryUtil().alterTableAddColumn(table, colName, dataType));
