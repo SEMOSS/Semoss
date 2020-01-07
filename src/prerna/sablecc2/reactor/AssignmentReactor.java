@@ -5,6 +5,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -15,9 +18,21 @@ import prerna.sablecc2.om.task.ITask;
  */
 public class AssignmentReactor extends AbstractReactor implements JavaExecutable {
 	
+	private static final Logger LOGGER = LogManager.getLogger(AssignmentReactor.class);
+	
+	private String resultKey = null;
+	
+	public AssignmentReactor() {
+		LOGGER.warn("Need to define the resultKey to grab for the reactor using the setter method");
+	}
+	
+	public AssignmentReactor(String resultKey) {
+		this.resultKey = resultKey;
+	}
+	
 	@Override
 	public NounMetadata execute() {
-		NounMetadata result = planner.getVariable("$RESULT");
+		NounMetadata result = planner.getVariable(this.resultKey);
 		if(result == null) {
 			// if we have a constant value
 			// it is just set within the curRow
@@ -118,6 +133,14 @@ public class AssignmentReactor extends AbstractReactor implements JavaExecutable
 			return ((JavaExecutable)returnObj).getReturnType();
 		}
 		return returnObj.toString();
+	}
+	
+	/**
+	 * Set the result key
+	 * @param resultKey
+	 */
+	public void setResultKey(String resultKey) {
+		this.resultKey = resultKey;
 	}
 	
 	public static boolean isSimpleAssignment(String pksl){

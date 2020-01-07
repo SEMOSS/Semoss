@@ -169,30 +169,6 @@ public class BasicIteratorTask extends AbstractTask {
 		}
 	}
 	
-	@Override
-	public RawCachedWrapper createCache()
-	{
-		// creates a new cache to be used
-		ITableDataFrame frame = qs.getFrame();
-		RawCachedWrapper retWrapper = null;
-		// will copy just for pandas
-		if(!(iterator instanceof RawCachedWrapper))
-		{
-			CachedIterator it = new CachedIterator();
-			it.setHeaders(iterator.getHeaders());
-			it.setColTypes(iterator.getTypes());
-			it.setQuery(iterator.getQuery());
-			it.setFrame(frame);
-			RawCachedWrapper wrapper = new RawCachedWrapper();
-			wrapper.setIterator(it);
-			retWrapper = wrapper;
-		}
-		else
-			retWrapper = (RawCachedWrapper)iterator;
-		return retWrapper;
-		
-	}
-	
 	private void generateIterator(SelectQueryStruct qs, boolean overrideImplicitFilters) {
 		// I need a way here to see if this is already done as a iterator and if so take a copy of it
 		SelectQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
@@ -324,6 +300,42 @@ public class BasicIteratorTask extends AbstractTask {
 		return sources;
 	}
 	
+	@Override
+	public RawCachedWrapper createCache() {
+		// since we lazy execute the iterator
+		// make sure it exists
+		if(this.qs != null && this.iterator == null) {
+			generateIterator(this.qs, false);
+		}
+		// creates a new cache to be used
+		ITableDataFrame frame = this.qs.getFrame();
+		RawCachedWrapper retWrapper = null;
+		// will copy the iterator
+		if(!(iterator instanceof RawCachedWrapper)) {
+			CachedIterator it = new CachedIterator();
+			it.setHeaders(iterator.getHeaders());
+			it.setColTypes(iterator.getTypes());
+			it.setQuery(iterator.getQuery());
+			it.setFrame(frame);
+			RawCachedWrapper wrapper = new RawCachedWrapper();
+			wrapper.setIterator(it);
+			retWrapper = wrapper;
+		} else {
+			retWrapper = (RawCachedWrapper)iterator;
+		}
+		return retWrapper;
+	}
+	
+	// gets a specific pragma value
+	@Override
+	public String getPragma(String pragma) {
+		String retString = null;
+		if(qs.getPragmap() != null && qs.getPragmap().containsKey(pragma)) {
+			retString = (String)qs.getPragmap().get(pragma);
+		}
+		return retString;
+	}
+	
 	public SelectQueryStruct getQueryStruct() {
 		return this.qs;
 	}
@@ -332,13 +344,4 @@ public class BasicIteratorTask extends AbstractTask {
 		return this.iterator;
 	}
 	
-	// gets a specific pragma value
-	public String getPragma(String pragma)
-	{
-		String retString = null;
-		if(qs.getPragmap() != null && qs.getPragmap().containsKey(pragma))
-			retString = (String)qs.getPragmap().get(pragma);
-		
-		return retString;
-	}
 }
