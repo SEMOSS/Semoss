@@ -605,7 +605,7 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryJanusGraphSmss(String appId, String appName, File owlFile, String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap) throws IOException {
+	public static File generateTemporaryJanusGraphSmss(String appId, String appName, File owlFile, String janusConfPath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		// i am okay with deleting the .temp if it exists
@@ -644,10 +644,15 @@ public class UploadUtilities {
 			// tinkerDriverType + newLine);
 			// type map
 			Gson gson = new GsonBuilder().create();
-			String json = gson.toJson(typeMap);
-			bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+			// if we use the label we do not need the type map
+			if (useLabel) {
+				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+			} else {
+				String json = gson.toJson(typeMap);
+				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+			}
 			// name map
-			json = gson.toJson(nameMap);
+			String json = gson.toJson(nameMap);
 			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
 
 		} catch (IOException ex) {
@@ -766,7 +771,7 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryDatastaxSmss(String appId, String appName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap) throws IOException {
+	public static File generateTemporaryDatastaxSmss(String appId, String appName, File owlFile, String host, String port, String username, String password, String graphName, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel) throws IOException {
 		String appTempSmssLoc = getAppTempSmssLoc(appId, appName);
 
 		// i am okay with deleting the .temp if it exists
@@ -806,10 +811,14 @@ public class UploadUtilities {
 			
 			// type map
 			Gson gson = new GsonBuilder().create();
-			String json = gson.toJson(typeMap);
-			bufferedWriter.write("TYPE_MAP" + "\t" + json + "\n");
+			if (useLabel) {
+				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+			} else {
+				String json = gson.toJson(typeMap);
+				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+			}
 			// name map
-			json = gson.toJson(nameMap);
+			String json = gson.toJson(nameMap);
 			bufferedWriter.write("NAME_MAP" + "\t" + json + "\n");
 			
 		} catch (IOException ex) {
