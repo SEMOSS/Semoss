@@ -24,8 +24,9 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 	public CreateExternalDSEGraphDatabaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.HOST.getKey(),
 				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
-				ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
+				ReactorKeysEnum.GRAPH_NAME.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
+				ReactorKeysEnum.GRAPH_NAME_ID.getKey(), ReactorKeysEnum.GRAPH_METAMODEL.getKey(),
+				ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
@@ -50,10 +51,8 @@ public class CreateExternalDSEGraphDatabaseReactor extends AbstractCreateExterna
 
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
-		return UploadUtilities.generateTemporaryDatastaxSmss(this.newAppId, this.newAppName, 
-				owlFile, this.host, this.port,
-				this.username, this.password, 
-				this.graphName, this.typeMap, this.nameMap);
+		return UploadUtilities.generateTemporaryDatastaxSmss(this.newAppId, this.newAppName, owlFile, this.host,
+				this.port, this.username, this.password, this.graphName, this.typeMap, this.nameMap, useLabel());
 	}
 
 	@Override
