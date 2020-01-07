@@ -14,7 +14,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class AddPanelConfigReactor extends AbstractInsightPanelReactor {
 	
 	// input keys for the map
-	private static final String LABEL = "label";
+	@Deprecated
 	private static final String CONFIG = "config";
 
 	public AddPanelConfigReactor() {
@@ -33,17 +33,17 @@ public class AddPanelConfigReactor extends AbstractInsightPanelReactor {
 		if(mapInput == null) {
 			throw new IllegalArgumentException("Need to define the config input");
 		}
-		// config also has a short hand to set the panel label
-		if(mapInput.containsKey(LABEL)) {
-			insightPanel.setPanelLabel(mapInput.get(LABEL).toString());
+		Map<String, Object> config = null;
+		// deprecated logic
+		if(mapInput.containsKey(CONFIG)) {
+			config = (Map<String, Object>) mapInput.get(CONFIG);
+			if (config == null) {
+				config = new HashMap<String, Object>();
+			}
 		}
-		Map<String, Object> config = (Map<String, Object>) mapInput.get(CONFIG);
-		// default config if not passed in
-		if (config == null) {
-			config = new HashMap<String, Object>();
-		}
-		if (!config.containsKey("labelOverride")) {
-			config.put("labelOverride", false);
+		// the input should always be exactly what we want to input
+		else {
+			config = mapInput;
 		}
 		// merge the map options
 		insightPanel.addConfig(config);
