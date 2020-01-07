@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,17 +26,33 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
+import prerna.sablecc2.node.ABooleanScalar;
+import prerna.sablecc2.node.AFractionDecimal;
 import prerna.sablecc2.node.AGeneric;
+import prerna.sablecc2.node.AMap;
+import prerna.sablecc2.node.AMapList;
+import prerna.sablecc2.node.AMapNegNum;
+import prerna.sablecc2.node.AMapVar;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.AScalarRegTerm;
+import prerna.sablecc2.node.AWholeDecimal;
+import prerna.sablecc2.node.AWordMapKey;
+import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.POpInput;
 import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.sablecc2.reactor.IReactor;
+import prerna.sablecc2.reactor.insights.SetInsightGoldenLayoutReactor;
+import prerna.sablecc2.reactor.map.MapListReactor;
+import prerna.sablecc2.reactor.map.MapReactor;
 
 public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
@@ -59,8 +76,12 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		taskOrnamentReactors.add("RetrievePanelColorByValue");
 	}
 
+	// need to keep the reactors for proper parsing of maps
+	private boolean captureMap = false;
+	private IReactor curReactor = null;
+
 	// gson variable
-	private static Gson gson = new Gson();
+	private static Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 	// keep track of the index of expressions
 	private int index = 0;
@@ -70,7 +91,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
 	// list to maintain what sheets exist
 	private List<String> sheetList = new Vector<String>();
-	
+
 	// keep order of panel creation
 	private List<String> panelCreationOrder = new ArrayList<String>();
 
@@ -117,11 +138,11 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
 	// just aggregate all the remove layer indices for now
 	private List<Integer> removeLayerIndices = new Vector<Integer>();
-	
-	private String insightConfig = null;
+
+	private Map insightConfig = null;
 	@Deprecated
-	private String insightGoldenLayout = null;
-	
+	private Map insightGoldenLayout = null;
+
 	/**
 	 * This method overrides caseAConfiguration, adds each expression to the expressionMap, adds expression indexes to the expression map, and updates the index
 	 * 
@@ -304,23 +325,23 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		// remove the layer
 		else if(reactorId.equals("RemoveLayer")) {
 			removeLayerIndices.add(this.index);
-			
-//			String panelStr = node.getOpInput().toString().trim();
-//			String layerStr = node.getOtherOpInput().get(0).toString().trim();
-//			
-//			if(panelStr.contains("panel = ")) {
-//				panelStr = panelStr.replace("panel =", "").trim();
-//				panelStr = trimQuotes(panelStr.replace("[", "").replace("]", "").trim());
-//			}
-//			if(layerStr.contains(", layer = ")) {
-//				layerStr = layerStr.replaceAll(", layer =", "").trim();
-//				layerStr = trimQuotes(layerStr.replace("[", "").replace("]", "").trim());
-//			}
-//			
-//			Map<String, List<Integer>> thisLayer = layerMap.get(panelStr);
-//			if(thisLayer != null) {
-//				thisLayer.remove(layerStr);
-//			}
+
+			//			String panelStr = node.getOpInput().toString().trim();
+			//			String layerStr = node.getOtherOpInput().get(0).toString().trim();
+			//			
+			//			if(panelStr.contains("panel = ")) {
+			//				panelStr = panelStr.replace("panel =", "").trim();
+			//				panelStr = trimQuotes(panelStr.replace("[", "").replace("]", "").trim());
+			//			}
+			//			if(layerStr.contains(", layer = ")) {
+			//				layerStr = layerStr.replaceAll(", layer =", "").trim();
+			//				layerStr = trimQuotes(layerStr.replace("[", "").replace("]", "").trim());
+			//			}
+			//			
+			//			Map<String, List<Integer>> thisLayer = layerMap.get(panelStr);
+			//			if(thisLayer != null) {
+			//				thisLayer.remove(layerStr);
+			//			}
 		}
 		// need to account for auto tasks
 		// need to account for algorithms that just send data to the FE directly
@@ -358,31 +379,31 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		}
 		// is this the config layout
 		else if(reactorId.equals("SetInsightGoldenLayout")) {
-			// input is the golden layout config map
-			POpInput input = node.getOpInput();
-			String goldenLayoutString = input.toString();
-			
-			// just make sure it is valid map
-//			try {
-//				gson.fromJson(goldenLayoutString, Map.class);
-				this.insightGoldenLayout = goldenLayoutString;
-//			} catch (Exception e2) {
-//				e2.printStackTrace();
-//			}
+			captureMap = true;
+			SetInsightGoldenLayoutReactor gLayout = new SetInsightGoldenLayoutReactor();
+			initMapReactor(gLayout);
 		}
 		// is this the config layout
 		else if(reactorId.equals("SetInsightConfig")) {
-			// input is the golden layout config map
-			POpInput input = node.getOpInput();
-			String insightConfigString = input.toString();
-			
-			// just make sure it is valid map
-//			try {
-//				gson.fromJson(insightConfigString, Map.class);
-				this.insightConfig = insightConfigString;
-//			} catch (Exception e2) {
-//				e2.printStackTrace();
-//			}
+			captureMap = true;
+			SetInsightGoldenLayoutReactor iConfig = new SetInsightGoldenLayoutReactor();
+			initMapReactor(iConfig);
+		}
+	}
+
+	@Override
+	public void outAOperation(AOperation node) {
+		String reactorId = node.getId().toString().trim();
+		if(reactorId.equals("SetInsightGoldenLayout")) {
+			NounMetadata goldenLayoutMap = deInitMapReactor();
+			this.insightGoldenLayout = (Map) goldenLayoutMap.getValue();
+			captureMap = false;
+		}
+		// is this the config layout
+		else if(reactorId.equals("SetInsightConfig")) {
+			NounMetadata configMap = deInitMapReactor();
+			this.insightConfig = (Map) configMap.getValue();
+			captureMap = false;
 		}
 	}
 
@@ -695,10 +716,10 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				}
 			}
 		}
-		
+
 		// add the remove layers
 		expressionsToKeep.addAll(this.removeLayerIndices);
-		
+
 		// order the expressions
 		Collections.sort(expressionsToKeep);
 
@@ -772,11 +793,11 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		}
 		// add the golden layout config at the end
 		if(this.insightGoldenLayout != null) {
-			cacheRecipe.add("SetInsightGoldenLayout(" + this.insightGoldenLayout + ");");
+			cacheRecipe.add("SetInsightGoldenLayout(" + gson.toJson(this.insightGoldenLayout) + ");");
 		}
 		// add the insight config at the end
 		if(this.insightConfig != null) {
-			cacheRecipe.add("SetInsightConfig(" + this.insightConfig + ");");
+			cacheRecipe.add("SetInsightConfig(" + gson.toJson(this.insightConfig) + ");");
 		}
 
 		return cacheRecipe;
@@ -817,6 +838,189 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		}
 		return input;
 	}
+
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+
+	/*
+	 * Accounting for maps
+	 */
+
+	private void initMapReactor(IReactor reactor) {
+		IReactor parentReactor = curReactor;
+
+		curReactor = reactor;
+		curReactor.In();
+		curReactor.setParentReactor(parentReactor);
+	}
+
+	private NounMetadata deInitMapReactor() {
+		NounMetadata output = curReactor.execute();
+		Object parent = curReactor.Out();
+		if(parent != null && parent instanceof IReactor) {
+			this.curReactor = (IReactor) parent;
+		} else {
+			this.curReactor = null;
+		}
+
+		if(output != null) {
+			if(this.curReactor != null) {
+				curReactor.getCurRow().add(output);
+			}
+		}
+
+		return output;
+	}
+	
+	@Override
+	public void inAMap(AMap node) {
+		if(captureMap) {
+			defaultIn(node);
+			MapReactor mapR = new MapReactor();
+			initMapReactor(mapR);
+		}
+	}
+
+	@Override
+	public void outAMap(AMap node) {
+		if(captureMap) {
+			defaultOut(node);
+			deInitMapReactor();
+		}
+	}
+
+	@Override
+	public void inAMapList(AMapList node) {
+		if(captureMap) {
+			defaultIn(node);
+			MapListReactor mapListR = new MapListReactor();
+			initMapReactor(mapListR);
+		}
+	}
+
+	@Override
+	public void outAMapList(AMapList node) {
+		if(captureMap) {
+			defaultOut(node);
+			deInitMapReactor();
+		}
+	}
+	
+	@Override
+	public void inAWordMapKey(AWordMapKey node) {
+		if(captureMap) {
+			String mapKey = PixelUtility.removeSurroundingQuotes(node.getWord().getText());
+			this.curReactor.getCurRow().addLiteral(mapKey);
+		}
+	}
+
+	@Override
+	public void inAMapVar(AMapVar node) {
+		if(captureMap) {
+			String variable = node.getVar().toString().trim();
+			NounMetadata value = new NounMetadata("{" + variable + "}", PixelDataType.CONST_STRING);
+			this.curReactor.getCurRow().add(value);
+		}
+	}
+
+	@Override
+	public void outAMapNegNum(AMapNegNum node) {
+		if(captureMap) {
+			/*
+			 * We are out a number
+			 * Which adds to the curRow of the map reactor
+			 * So take it and then multiple by -1 and add back
+			 */
+			GenRowStruct curRow = this.curReactor.getCurRow();
+			NounMetadata numNoun = curRow.remove(curRow.size()-1);
+			PixelDataType type = numNoun.getNounType();
+
+			NounMetadata negNum = null;
+			if(type == PixelDataType.CONST_INT) {
+				negNum = new NounMetadata(-1 * ((Number) numNoun.getValue()).intValue(), PixelDataType.CONST_INT);
+			} else if(type == PixelDataType.CONST_DECIMAL){
+				negNum = new NounMetadata(-1.0 * ((Number) numNoun.getValue()).doubleValue(), PixelDataType.CONST_DECIMAL);
+			} else {
+				// ugh... how did you get here
+				// i'm just gonna add you back...
+				negNum = numNoun;
+			}
+
+			curRow.add(negNum);
+		}
+	}
+
+	@Override
+	public void inAWordWordOrId(AWordWordOrId node) {
+		if(captureMap) {
+			defaultIn(node);
+			String trimmedWord = node.getWord().toString().trim();
+			String word = PixelUtility.removeSurroundingQuotes(trimmedWord);
+			// also replace any escaped quotes
+			word = word.replace("\\\"", "\"");
+			// if its an assignment
+			// just put in results in case we are doing a |
+			curReactor.getCurRow().addLiteral(word);
+		}
+	}
+
+	@Override
+	public void inABooleanScalar(ABooleanScalar node) {
+		if(captureMap) {
+			defaultIn(node);
+			String booleanStr = node.getBoolean().toString().trim();
+			Boolean bool = Boolean.parseBoolean(booleanStr);
+			// if its an assignment
+			// just put in results in case we are doing a |
+			curReactor.getCurRow().addBoolean(bool);
+		}
+	}
+
+	// atomic level stuff goes in here
+	@Override
+	public void inAWholeDecimal(AWholeDecimal node) {
+		if(captureMap) {
+			defaultIn(node);
+			boolean isDouble = false;
+			String whole = "";
+			String fraction = "";
+			// get the whole portion
+			if(node.getWhole() != null) {
+				whole = node.getWhole().toString().trim();
+			}
+			// get the fraction portion
+			if(node.getFraction() != null) {
+				isDouble = true;
+				fraction = (node.getFraction()+"").trim();
+			} else {
+				fraction = "0";
+			}
+			Number retNum = new BigDecimal(whole + "." + fraction);
+			NounMetadata noun = null;
+			if(isDouble) {
+				noun = new NounMetadata(retNum.doubleValue(), PixelDataType.CONST_DECIMAL);
+			} else {
+				noun = new NounMetadata(retNum.intValue(), PixelDataType.CONST_INT);
+			}
+			curReactor.getCurRow().add(noun);
+		}
+	}
+
+	@Override
+	public void inAFractionDecimal(AFractionDecimal node) {
+		if(captureMap) {
+			defaultIn(node);
+			String fraction = (node.getFraction()+"").trim();
+			Number retNum = new BigDecimal("0." + fraction);
+			// add the decimal to the cur row
+			curReactor.getCurRow().addDecimal(retNum.doubleValue());
+		}
+	}
+
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
 
 	public static void main(String[] args) {
 		String[] recipe = new String[]{"AddPanel ( 0 ) ;",
@@ -877,11 +1081,11 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	}
 
 	/////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Deprecated Logic
 	 */
-	
+
 	/**
 	 * Get the last task executed for each panel
 	 * @return
