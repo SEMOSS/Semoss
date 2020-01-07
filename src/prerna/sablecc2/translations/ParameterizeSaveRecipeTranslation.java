@@ -78,8 +78,9 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 		for(PRoutine e : copy) {
 			String expression = e.toString();
 			if(expression.contains("Import") || expression.contains("Merge")) {
-				LOGGER.info("Processing " + expression);
         		this.resultKey = "$RESULT_" + e.hashCode();
+
+				LOGGER.info("Processing " + expression);
 				e.apply(this);
 
 				// check if we have a QS to modify
