@@ -1,10 +1,24 @@
 package prerna.rdf.main;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -19,18 +33,38 @@ import prerna.test.TestUtilityMethods;
 
 public class AnonymizedTapCoreGenerator {
 
-	private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
 	public static void main(String[] args) throws Exception {
-		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
+		// adding all the required paths up front here
+		String rdfMapLocation = "C:\\workspace\\Semoss_Dev\\RDF_Map.prop";
+		String tapCoreSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
+		String tapSiteSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data__eed12b32-bc38-4718-ab73-c0c78480c174.smss";
+		String tapPortfolioSmss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio__4254569c-3e78-4d62-8a07-1f786edf71e6.smss";
+		
+		// write to both json and excel
+		// excel for business users
+		// json for developers
+		String matchingFileJson = "C:\\workspace\\Semoss_Dev\\TAP_ANONYMIZED_MATCHING.json";
+		String matchingFileExcel = "C:\\workspace\\Semoss_Dev\\TAP_ANONYMIZED_MATCHING.xlsx";
+
+		// even if run for TAP CORE is false
+		// it will still query TAP Core to get the ultimate list of systems
+		// so make sure the path for TAP Core is accurate
+		boolean runForTapCore = true;
+		boolean runForTapSite = true;
+		boolean runforTapPortfolio = true;
+		// if this is true, make sure the directory for the json and excel paths is accurate
+		boolean createMatchingFile = true;
+		
+		TestUtilityMethods.loadAll(rdfMapLocation);
 
 		List<String> systemReplacementOrder = new Vector<String>();
 		Map<String, String> systemMapping = new HashMap<String, String>();
 
 		{
-			String smss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Core_Data__133db94b-4371-4763-bff9-edf7e5ed021b.smss";
 			BigDataEngine engine = new BigDataEngine();
-			engine.openDB(smss);
+			engine.openDB(tapCoreSmss);
 
 			// get a list of all the systems
 			SelectQueryStruct qs = new SelectQueryStruct();
@@ -69,21 +103,97 @@ public class AnonymizedTapCoreGenerator {
 
 			//System.out.println(gson.toJson(systemReplacementOrder));
 
+			if(runForTapCore) {
+				runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
+			}
+		}
+		
+		if(runForTapSite) {
+			BigDataEngine engine = new BigDataEngine();
+			engine.openDB(tapSiteSmss);
 			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
 		}
 		
-		{
-			String smss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Site_Data__eed12b32-bc38-4718-ab73-c0c78480c174.smss";
+		if(runforTapPortfolio) {
 			BigDataEngine engine = new BigDataEngine();
-			engine.openDB(smss);
+			engine.openDB(tapPortfolioSmss);
 			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
 		}
-		
-		{
-			String smss = "C:\\workspace\\Semoss_Dev\\db\\TAP_Portfolio__4254569c-3e78-4d62-8a07-1f786edf71e6.smss";
-			BigDataEngine engine = new BigDataEngine();
-			engine.openDB(smss);
-			runReplacementForEngine(engine, systemReplacementOrder, systemMapping);
+
+		if(createMatchingFile) {
+			// we will make both a JSON and an Excel
+			
+			// start with json as it is easy
+			String prettyJson = GSON.toJson(systemMapping);
+			Path path = Paths.get(matchingFileJson);
+			Files.write(path, prettyJson.getBytes());
+
+			// excel, need to loop through
+			
+			SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
+			SXSSFSheet sheet = workbook.createSheet("Mappings");
+			sheet.setRandomAccessWindowSize(100);
+			// freeze the first row
+			sheet.createFreezePane(0, 1);
+			
+			// create the header row
+	        Row headerRow = sheet.createRow(0);
+			// create a Font for styling header cells
+			Font headerFont = workbook.createFont();
+			headerFont.setBold(true);
+			// create a CellStyle with the font
+			CellStyle headerCellStyle = workbook.createCellStyle();
+			headerCellStyle.setFont(headerFont);
+	        headerCellStyle.setAlignment(HorizontalAlignment.CENTER);
+	        headerCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+			// generate the header row
+			// and define constants used throughout like size, and types
+	        Cell origNameCellH = headerRow.createCell(0);
+	        origNameCellH.setCellValue("Original System Name");
+	        origNameCellH.setCellStyle(headerCellStyle);
+			
+	        Cell newNameCellH = headerRow.createCell(1);
+	        newNameCellH.setCellValue("Anonymized System Name");
+	        newNameCellH.setCellStyle(headerCellStyle);
+	        
+	        // row counter
+	        int rowCounter = 1;
+			for(String origSystem : systemMapping.keySet()) {
+				Row dataRow = sheet.createRow(rowCounter);
+				dataRow.createCell(0).setCellValue(origSystem);
+				dataRow.createCell(1).setCellValue(systemMapping.get(origSystem));
+				
+				// update the row
+				rowCounter++;
+			}
+			
+			// Write the output to a file
+			FileOutputStream fileOut = null;
+			try {
+				fileOut = new FileOutputStream(matchingFileExcel);
+				workbook.write(fileOut);
+				workbook.close();
+				workbook.dispose();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (fileOut != null) {
+					try {
+						fileOut.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				if (workbook != null) {
+					try {
+						workbook.close();
+						workbook.dispose();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
 		}
 	}
 
