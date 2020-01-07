@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -16,7 +16,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		// JoinColumns("newColumnName", "separator", Col1, Col2...);
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		GenRowStruct inputsGRS = this.getCurRow();
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
 			// get new column name
@@ -24,8 +24,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 			String colName = colNameNoun.getValue() + "";
 
 			// make sql data type
-			String dataType = "STRING";
-			dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(dataType));
+			String dataType = frame.getQueryUtil().cleanType(SemossDataType.STRING.toString());
 			String table = frame.getName();
 
 			// validate new column name

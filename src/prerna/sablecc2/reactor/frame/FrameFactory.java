@@ -11,6 +11,7 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.postgres.PostgresFrame;
 import prerna.ds.rdbms.sqlite.SQLiteFrame;
 import prerna.om.Insight;
 import prerna.util.Constants;
@@ -124,6 +125,8 @@ public class FrameFactory {
 	private static ITableDataFrame getGrid(String alias) throws Exception {
 		if(RDBMS_TYPE == RdbmsTypeEnum.SQLITE) {
 			return new SQLiteFrame(alias);
+		} else if(RDBMS_TYPE == RdbmsTypeEnum.POSTGRES) {
+			return new PostgresFrame(alias);
 		}
 		
 		return new H2Frame(alias);

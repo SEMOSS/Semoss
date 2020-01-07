@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -18,7 +18,7 @@ public class DropRowsReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		GenRowStruct inputsGRS = this.getCurRow();
 		String sqlStatements = "";
 		NounMetadata filterNoun = inputsGRS.getNoun(0);

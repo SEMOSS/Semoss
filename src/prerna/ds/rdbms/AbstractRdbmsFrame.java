@@ -169,7 +169,6 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		return this.builder.createInsertPreparedStatement(this.frameName, columns);
 	}
 
-	
 	@Override
 	public boolean isEmpty() {
 		return this.builder.isEmpty(this.frameName);

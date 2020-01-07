@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -30,7 +30,7 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		organizeKeys();
 
 		// get frame
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		String table = frame.getName();
 
 		// get source column to duplicate
@@ -56,7 +56,7 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		// get src column data type
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
-		dataType = SemossDataType.convertDataTypeToString(SemossDataType.convertStringToDataType(dataType));
+		dataType = frame.getQueryUtil().cleanType(dataType);
 
 		// use existing column data type to make new column
 		String addNewCol = "ALTER TABLE " + table + " ADD " + newColName + " " + dataType + ";";
