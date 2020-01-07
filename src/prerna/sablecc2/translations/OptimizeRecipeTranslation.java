@@ -19,6 +19,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.om.Insight;
 import prerna.sablecc2.PixelPreProcessor;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.analysis.DepthFirstAdapter;
@@ -67,6 +68,9 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	// map the index to the expressions
 	private HashMap<Integer, String> expressionMap = new HashMap<Integer, String>();
 
+	// list to maintain what sheets exist
+	private List<String> sheetList = new Vector<String>();
+	
 	// keep order of panel creation
 	private List<String> panelCreationOrder = new ArrayList<String>();
 
@@ -337,6 +341,20 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			} else {
 				containsOrnamentTaskOptions = true;
 			}
+		}
+		// add a sheet
+		else if(reactorId.equals("AddSheet")) {
+			POpInput input = node.getOpInput();
+			String sheet = input.toString().trim();
+			sheet = trimQuotes(sheet);
+			sheetList.add(sheet);
+		}
+		// removing a sheet
+		else if(reactorId.equals("CloseSheet")) {
+			POpInput input = node.getOpInput();
+			String sheet = input.toString().trim();
+			sheet = trimQuotes(sheet);
+			sheetList.remove(sheet);
 		}
 		// is this the config layout
 		else if(reactorId.equals("SetInsightGoldenLayout")) {
@@ -686,6 +704,15 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 
 		// store the return cached recipe
 		List<String> cacheRecipe = new ArrayList<String>();
+		if(sheetList.isEmpty()) {
+			// add the default
+			cacheRecipe.add("CachedSheet(\"" + Insight.DEFAULT_SHEET_ID + "\", \"" + Insight.DEFAULT_SHEET_LABEL + "\");");
+		} else {
+			for(int i = 0; i < sheetList.size(); i++) {
+				String sheetId = sheetList.get(i);
+				cacheRecipe.add("CachedSheet(\"" + sheetId + "\");");
+			}
+		}
 		List<String> addedPanels = new ArrayList<String>();
 		// first, add all the cached panel reactors
 		for(int i = 0; i < panelCreationOrder.size(); i++) {

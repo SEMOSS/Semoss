@@ -35,6 +35,7 @@ public enum PixelOperationType {
 	SHEET_LABEL,
 	SHEET_BACKGROUND,
 	SHEET_CONFIG,
+	CACHED_SHEET,
 	
 	// PANEL OPERATIONS
 	PANEL,
