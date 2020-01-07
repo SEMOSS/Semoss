@@ -363,12 +363,12 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			String goldenLayoutString = input.toString();
 			
 			// just make sure it is valid map
-			try {
-				gson.fromJson(goldenLayoutString, Map.class);
+//			try {
+//				gson.fromJson(goldenLayoutString, Map.class);
 				this.insightGoldenLayout = goldenLayoutString;
-			} catch (Exception e2) {
-				e2.printStackTrace();
-			}
+//			} catch (Exception e2) {
+//				e2.printStackTrace();
+//			}
 		}
 		// is this the config layout
 		else if(reactorId.equals("SetInsightConfig")) {
@@ -377,12 +377,12 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			String insightConfigString = input.toString();
 			
 			// just make sure it is valid map
-			try {
-				gson.fromJson(insightConfigString, Map.class);
+//			try {
+//				gson.fromJson(insightConfigString, Map.class);
 				this.insightConfig = insightConfigString;
-			} catch (Exception e2) {
-				e2.printStackTrace();
-			}
+//			} catch (Exception e2) {
+//				e2.printStackTrace();
+//			}
 		}
 	}
 
