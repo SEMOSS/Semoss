@@ -13,6 +13,7 @@ import org.apache.commons.io.FileUtils;
 import prerna.algorithm.api.SemossDataType;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class RdbmsQueryBuilder {
 
@@ -183,7 +184,8 @@ public class RdbmsQueryBuilder {
 	public static String alterMissingColumns(String tableName, 
 			Map<String, SemossDataType> newColumnsToTypeMap, 
 			List<Join> joins,
-			Map<String, String> newColumnAlias) {
+			Map<String, String> newColumnAlias,
+			AbstractSqlQueryUtil util) {
 		
 		List<String> newColumnsToAdd = new Vector<String>();
 		List<String> newColumnsToAddTypes = new Vector<String>();
@@ -218,7 +220,7 @@ public class RdbmsQueryBuilder {
 			}
 			// and store the type at the same index 
 			// in its list
-			newColumnsToAddTypes.add(SemossDataType.convertDataTypeToString(newColumnType));
+			newColumnsToAddTypes.add(util.cleanType(newColumnType.toString()));
 		}
 		
 		return makeAlter(tableName, newColumnsToAdd.toArray(new String[]{}), newColumnsToAddTypes.toArray(new String[]{}));
