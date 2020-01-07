@@ -256,7 +256,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		// add relationships
 		for(String label : edgeLabels) {
 			List<String> rels = (List<String>) edges.get(label);
-			owler.addRelation(rels.get(0), rels.get(1), null);
+			owler.addRelation(rels.get(0), rels.get(1), label);
 		}
 
 		try {
