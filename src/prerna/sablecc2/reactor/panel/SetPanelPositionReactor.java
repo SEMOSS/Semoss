@@ -10,6 +10,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+@Deprecated
 public class SetPanelPositionReactor extends AbstractInsightPanelReactor {
 	
 	public SetPanelPositionReactor() {
@@ -22,13 +23,19 @@ public class SetPanelPositionReactor extends AbstractInsightPanelReactor {
 		InsightPanel insightPanel = getInsightPanel();
 		// get the ornaments that come as a map
 		Map<String, Object> position = getPositionMapInput();
-		// merge the map options
-		insightPanel.setPosition(position);
-		
+		// we are now merging the position map into the config
+		insightPanel.addConfig(position);
+
+		/* 
+		 * Once the FE is done pushing
+		 * We will delete the panel_position op type
+		 * And can return the entire insight panel 
+		 */
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		retMap.put("panelId", insightPanel.getPanelId());
 		retMap.put("positionMap", position);
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_POSITION);
+//		return new NounMetadata(insightPanel, PixelDataType.PANEL, PixelOperationType.PANEL_CONFIG);
 	}
 
 	private Map<String, Object> getPositionMapInput() {

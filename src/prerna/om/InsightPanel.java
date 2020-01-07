@@ -47,8 +47,6 @@ public class InsightPanel {
 	// key is the id pointing to the info on the comment
 	// the info on the comment also contains the id
 	private transient Map<String, Map<String, Object>> comments;
-	// map to store the panel position
-	private transient Map<String, Object> position;
 	
 	// store the color by value rules for the panel
 	private transient List<ColorByValueRule> colorByValue;
@@ -83,7 +81,6 @@ public class InsightPanel {
 		this.ornaments = new HashMap<String, Object>();
 		this.events = new HashMap<String, Object>();
 		this.comments = new HashMap<String, Map<String, Object>>();
-		this.position = new HashMap<String, Object>();
 		
 		this.colorByValue = new ArrayList<ColorByValueRule>();
 		this.grf = new GenRowFilters();
@@ -472,14 +469,6 @@ public class InsightPanel {
 		if(thisViewMap != null) {
 			this.viewOptions = GSON.toJson(thisViewMap);
 		}
-	}
-	
-	public void setPosition(Map<String, Object> position) {
-		this.position = position;
-	}
-	
-	public Map<String, Object> getPosition() {
-		return this.position;
 	}
 	
 	/**

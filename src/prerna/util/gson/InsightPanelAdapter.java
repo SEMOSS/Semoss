@@ -82,12 +82,14 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
 			adapter.write(out, obj);
 		}
-		out.name("position");
-		{
-			Map<String, Object> obj = value.getPosition();
-			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
-			adapter.write(out, obj);
-		}
+		// this no longer exists
+		// it is pushed into the config
+//		out.name("position");
+//		{
+//			Map<String, Object> obj = value.getPosition();
+//			TypeAdapter adapter = SIMPLE_GSON.getAdapter(obj.getClass());
+//			adapter.write(out, obj);
+//		}
 		out.name("filters");
 		// this adapter will write an array
 		GenRowFiltersAdapter grsAdapter = new GenRowFiltersAdapter();
@@ -175,7 +177,12 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
 				comments = (Map<String, Map<String, Object>>) adapter.read(in);
 			
-			} else if(key.equals("position")) {
+			} 
+			
+			// this is for legacy only
+			// back when we had a position map
+			// this is now stored in the config
+			else if(key.equals("position")) {
 				TypeAdapter adapter = SIMPLE_GSON.getAdapter(Map.class);
 				position = (Map<String, Object>) adapter.read(in);
 			} 
@@ -224,7 +231,13 @@ public class InsightPanelAdapter extends TypeAdapter<InsightPanel> {
 		panel.addPanelFilters(grf);
 		panel.setPanelOrderBys(orders);
 		panel.setComments(comments);
-		panel.setPosition(position);
+		
+		// this is for legacy only
+		// back when we had a position map
+		// this is now stored in the config
+		if(position != null && !position.isEmpty()) {
+			panel.addConfig(position);
+		}
 		if(cbvList != null) {
 			panel.getColorByValue().addAll(cbvList);
 		}

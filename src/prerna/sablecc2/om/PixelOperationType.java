@@ -49,10 +49,13 @@ public enum PixelOperationType {
 	PANEL_CLONE,
 	PANEL_COMMENT,
 	PANEL_EVENT,
-	PANEL_POSITION,
 	PANEL_FILTER,
 	PANEL_SORT,
 	CACHED_PANEL,
+	
+	// this is only for legacy insights/dashboards
+	@Deprecated
+	PANEL_POSITION,
 	
 	// PANEL LAYERS
 	PANEL_ORNAMENT_DATA,
