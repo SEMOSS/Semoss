@@ -59,8 +59,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		pyS.put("datetime64", SemossDataType.DATE);
 		
 		spy.put(SemossDataType.STRING, "'str'");
-		spy.put(SemossDataType.INT, "np.int32");
-		spy.put(SemossDataType.DOUBLE, "np.float32");
+		spy.put(SemossDataType.INT, "np.int64");
+		spy.put(SemossDataType.DOUBLE, "np.float64");
 		spy.put(SemossDataType.DATE, "np.datetime32");
 		spy.put(SemossDataType.TIMESTAMP, "np.datetime32");
 		
