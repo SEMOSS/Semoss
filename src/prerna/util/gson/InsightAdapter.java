@@ -219,6 +219,17 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		rerunInsight.setVarStore(value.getVarStore());
 		rerunInsight.setUser(value.getUser());
 		
+		// add a copy of all the insight sheets
+		for(String sheetId : sheets.keySet()) {
+			InsightSheetAdapter adapter = new InsightSheetAdapter();
+			StringWriter writer = new StringWriter();
+			JsonWriter jWriter = new JsonWriter(writer);
+			adapter.write(jWriter, sheets.get(sheetId));
+			String sheetStr = writer.toString();
+			InsightSheet sheetClone = adapter.fromJson(sheetStr);
+			rerunInsight.addNewInsightSheet(sheetClone);
+		}
+		
 		// add a copy of all the insight panels
 		for(String panelId : panels.keySet()) {
 			InsightPanelAdapter adapter = new InsightPanelAdapter();
