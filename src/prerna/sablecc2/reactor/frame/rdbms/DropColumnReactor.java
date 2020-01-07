@@ -2,7 +2,7 @@ package prerna.sablecc2.reactor.frame.rdbms;
 
 import java.util.Arrays;
 
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -13,7 +13,7 @@ public class DropColumnReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		GenRowStruct inputsGRS = this.getCurRow();
 		String update = "";
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {

@@ -1,7 +1,7 @@
 package prerna.sablecc2.reactor.frame.rdbms;
 
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.rdbms.h2.H2Frame;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -12,7 +12,7 @@ public class TrimColumnReactor extends AbstractFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		H2Frame frame = (H2Frame) getFrame();
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
 		GenRowStruct inputsGRS = this.getCurRow();
