@@ -54,6 +54,8 @@ public class DatasourceTranslation extends AbstractDatasourceModificationTransla
 		int currentIndex = 0;
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
 		for(PRoutine e : copy) {
+    		this.resultKey = "$RESULT_" + e.hashCode();
+
 			String expression = e.toString();
 			LOGGER.info("Processing " + expression);
 
