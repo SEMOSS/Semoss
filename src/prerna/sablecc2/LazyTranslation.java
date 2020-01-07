@@ -112,6 +112,8 @@ public class LazyTranslation extends DepthFirstAdapter {
 	protected Insight insight;
 	protected IReactor curReactor = null;
 	protected IReactor prevReactor = null;
+
+	protected String resultKey = null;
 	
 	protected boolean isMeta = false;
 	// if we have META and a variable definition
@@ -126,7 +128,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 	protected ITableDataFrame currentFrame = null;
 	
 	public static String envClassPath = null;
-	
 	
 	public LazyTranslation() {
 		this.planner = new PixelPlanner();
@@ -176,6 +177,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         {
         	PRoutine e = copy.get(pixelstep);
         	try {
+        		this.resultKey = "$RESULT_" + e.hashCode();
         		e.apply(this);
         		// reset the state of the frame
         		this.currentFrame = null;
@@ -186,7 +188,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         		// nothing special
         		// just add the error to the return
         		if(ex.isContinueThreadOfExecution()) {
-        			planner.addVariable("$RESULT", ex.getNoun());
+        			planner.addVariable(this.resultKey, ex.getNoun());
             		postProcess(e.toString().trim());
         		} else {
         			// if we do want to stop
@@ -199,7 +201,7 @@ public class LazyTranslation extends DepthFirstAdapter {
         	} catch(Exception ex) {
         		trackError(e.toString(), this.isMeta, ex);
         		ex.printStackTrace();
-        		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
+        		planner.addVariable(this.resultKey, new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
         		postProcess(e.toString().trim());
         	}
         }
@@ -254,7 +256,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		IReactor reactor = getReactor(reactorId, node.toString());
 		NounMetadata noun = new NounMetadata(reactor.getHelp(), PixelDataType.CONST_STRING, PixelOperationType.HELP);
 		if(curReactor == null) {
-			this.planner.addVariable("$RESULT", noun);
+			this.planner.addVariable(this.resultKey, noun);
 		} else {
 			curReactor.getCurRow().add(noun);
 		}
@@ -319,7 +321,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     		this.metaVariables.add(var);
     	}
     	
-    	IReactor assignmentReactor = new AssignmentReactor();
+    	AssignmentReactor assignmentReactor = new AssignmentReactor(this.resultKey);
         assignmentReactor.setPixel(var, node.toString().trim());
     	initReactor(assignmentReactor);
     	assignmentReactor.getCurRow().addLiteral(var);
@@ -349,7 +351,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	public void inAMainCommentRoutine(AMainCommentRoutine node) {
 		String comment = node.getComment().getText();
 		NounMetadata noun = new NounMetadata(comment, PixelDataType.CONST_STRING, PixelOperationType.RECIPE_COMMENT);
-		this.planner.addVariable("$RESULT", noun);
+		this.planner.addVariable(this.resultKey, noun);
 		postProcess(node.toString().trim());
 	}
 	
@@ -358,7 +360,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 		String comment = node.getComment().getText();
 		NounMetadata noun = new NounMetadata(comment, PixelDataType.CONST_STRING, PixelOperationType.RECIPE_COMMENT);
 		if(curReactor == null) {
-			this.planner.addVariable("$RESULT", noun);
+			this.planner.addVariable(this.resultKey, noun);
 		} else {
 			curReactor.getCurRow().add(noun);
 		}
@@ -431,13 +433,13 @@ public class LazyTranslation extends DepthFirstAdapter {
     	// after we init the new reactor
         // we will add the result of the last reactor 
         // into the noun store of this new reactor
-    	NounMetadata prevResult = this.planner.getVariable("$RESULT");
+    	NounMetadata prevResult = this.planner.getVariable(this.resultKey);
     	if(prevResult != null) {
     		PixelDataType nounName = prevResult.getNounType();
     		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
     		genRow.add(prevResult);
     		// then we will remove the result from the planner
-        	this.planner.removeVariable("$RESULT");
+        	this.planner.removeVariable(this.resultKey);
     	}
     }
 	
@@ -552,7 +554,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	if(curReactor != null) {
     		curReactor.getCurRow().add(noun);
     	} else {
-    		this.planner.addVariable("$RESULT", noun);
+    		this.planner.addVariable(this.resultKey, noun);
     	}
     }
     
@@ -607,7 +609,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     			if(varType == PixelDataType.FRAME) {
     				this.currentFrame = (ITableDataFrame) varValue.getValue();
     			}
-    			this.planner.addVariable("$RESULT", varValue);
+    			this.planner.addVariable(this.resultKey, varValue);
     		}
     	} else {
     		if(curReactor != null) {
@@ -627,7 +629,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     			// TODO: build this out
     			// for now, will just return the column name again... 
     			NounMetadata noun = new NounMetadata(idInput, PixelDataType.CONST_STRING);
-    			this.planner.addVariable("$RESULT", noun);
+    			this.planner.addVariable(this.resultKey, noun);
     		}
     	}
     }
@@ -646,7 +648,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	        curReactor.setProp(node.toString().trim(), word);
         } else {
         	NounMetadata noun = new NounMetadata(word, PixelDataType.CONST_STRING);
-    		this.planner.addVariable("$RESULT", noun);
+    		this.planner.addVariable(this.resultKey, noun);
         }
     }
     
@@ -662,7 +664,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	        curReactor.setProp(node.toString().trim(), booleanStr);
         } else {
         	NounMetadata noun = new NounMetadata(bool, PixelDataType.BOOLEAN);
-    		this.planner.addVariable("$RESULT", noun);
+    		this.planner.addVariable(this.resultKey, noun);
         }
     }
 
@@ -702,7 +704,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     	} else {
     		// looks like you just have a number...
     		// i guess i will return this?
-    		this.planner.addVariable("$RESULT", noun);
+    		this.planner.addVariable(this.resultKey, noun);
     	}
     }
 
@@ -722,7 +724,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	    	curReactor.modifySignature(node.toString().trim(), new BigDecimal(retNum.doubleValue()).toPlainString());
     	} else {
     		NounMetadata noun = new NounMetadata(retNum.doubleValue(), PixelDataType.CONST_DECIMAL);
-    		this.planner.addVariable("$RESULT", noun);
+    		this.planner.addVariable(this.resultKey, noun);
     	}
     }
     
@@ -752,7 +754,7 @@ public class LazyTranslation extends DepthFirstAdapter {
     			IRawSelectWrapper iterator = frame.query(qs);
     			ITask task = new BasicIteratorTask(qs, iterator);
     			this.insight.getTaskStore().addTask(task);
-    			this.planner.addVariable("$RESULT", new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
+    			this.planner.addVariable(this.resultKey, new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA));
     		}
     	}
     }

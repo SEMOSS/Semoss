@@ -336,13 +336,13 @@ public class PixelStreamUtility {
 					// try to see if extreme cache is enabled
 					// this can come by the way of pragma as well
 					String X_CACHE = "False";
-					if(DIHelper.getInstance().getCoreProp().containsKey("X_CACHE"))
+					if(DIHelper.getInstance().getCoreProp().containsKey("X_CACHE")) {
 						X_CACHE = DIHelper.getInstance().getCoreProp().getProperty("X_CACHE");
-					
+					}
 					String qsPragma = task.getPragma("Cache");
-					
-					if(X_CACHE.equalsIgnoreCase("False") && qsPragma != null) // try to see if the query is telling you to - obviously the server setting overrides ?
+					if(X_CACHE.equalsIgnoreCase("False") && qsPragma != null) {// try to see if the query is telling you to - obviously the server setting overrides ?
 						X_CACHE = qsPragma;
+					}
 					
 					// we need to use a try catch
 					// in case there is an issue
