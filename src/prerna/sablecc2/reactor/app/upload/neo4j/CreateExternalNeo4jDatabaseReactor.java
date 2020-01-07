@@ -39,6 +39,7 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 			throw exception;
 		}
 		// Prepend jdbc keyword for neo4j
+		// TODO jdbc::neo4j needs to be a constant
 		connectionStringKey = "jdbc:neo4j:" + connectionStringKey;
 		
 		this.username = this.keyValue.get(this.keysToGet[2]);
