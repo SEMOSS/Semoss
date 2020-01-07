@@ -26,8 +26,8 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 	
 	public CreateExternalGraphDatabaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(), 
-				ReactorKeysEnum.GRAPH_METAMODEL.getKey() };
+				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
+				ReactorKeysEnum.GRAPH_METAMODEL.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
@@ -71,10 +71,8 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 	@Override
 	protected File generateTempSmss(File owlFile) throws IOException {
 		// the file path will become parameterized inside
-		return UploadUtilities.generateTemporaryExternalTinkerSmss(this.newAppId, this.newAppName, 
-				owlFile, this.filePath, 
-				this.typeMap, this.nameMap, 
-				this.tinkerDriver, useLabel());
+		return UploadUtilities.generateTemporaryExternalTinkerSmss(this.newAppId, this.newAppName, owlFile,
+				this.filePath, this.typeMap, this.nameMap, this.tinkerDriver, useLabel());
 	}
 
 	@Override
@@ -83,7 +81,6 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 		tinkerEng.setEngineId(this.newAppId);
 		tinkerEng.setEngineName(this.newAppName);
 		tinkerEng.openDB(this.smssFile.getAbsolutePath());
-		tinkerEng.setUseLabel(useLabel());
 		return tinkerEng;
 	}
 
