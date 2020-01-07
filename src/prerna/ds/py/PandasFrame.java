@@ -397,12 +397,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 
 	// cache the iterator
-	public void cacheQuery(CachedIterator it)
-	{
-		if(it.hasNext())
+	public void cacheQuery(CachedIterator it) {
+		if(it.hasNext()) {	
 			queryCache.put(it.getQuery(), it);
+		}
 	}
-
+	
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
 		String query = interp.composeQuery();
 		CachedIterator ci = null;

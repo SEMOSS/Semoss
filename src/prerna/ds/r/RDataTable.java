@@ -38,7 +38,6 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "RDataTable";
 	private transient Map <String, CachedIterator> queryCache = new HashMap<String, CachedIterator>();
-
 	
 	private RFrameBuilder builder;
 
@@ -186,9 +185,15 @@ public class RDataTable extends AbstractTableDataFrame {
 			RawCachedWrapper rcw = new RawCachedWrapper();
 			rcw.setIterator(ci);
 			retWrapper = rcw;
-
 		}
 		return retWrapper;
+	}
+	
+	// cache the iterator
+	public void cacheQuery(CachedIterator it) {
+		if(it.hasNext()) {	
+			queryCache.put(it.getQuery(), it);
+		}
 	}
 	
 	@Override
@@ -481,17 +486,4 @@ public class RDataTable extends AbstractTableDataFrame {
 		// TODO Auto-generated method stub
 		
 	}
-	
-	// cache the iterator
-	public void cacheQuery(CachedIterator it)
-	{
-		if(it.hasNext())
-		{	
-			String looker = it.getQuery();
-
-			queryCache.put(looker, it);
-		}
-	}
-
-	
 }
