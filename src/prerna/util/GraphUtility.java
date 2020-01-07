@@ -350,6 +350,34 @@ public class GraphUtility {
 	////////////////////////////////////////////////////////////////////
 	
 	/**
+	 * Get all the graph properties for all labels
+	 * 
+	 * @param dbService
+	 * @param label
+	 * @return
+	 */
+	public static List<String> getAllNodeProperties(Connection conn) {
+		String query = "MATCH (n) WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key ORDER BY key";
+		List<String> properties = new ArrayList<String>();
+		Statement statement = null;
+		ResultSet resultSet = null;
+		try {
+			statement = conn.createStatement();
+			resultSet = statement.executeQuery(query);
+			while (resultSet.next()) {
+				String property = resultSet.getString(1);
+				properties.add(property);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			ConnectionUtils.closeAllConnections(null, resultSet, statement);
+		}
+		
+		return properties;
+	}
+	
+	/**
 	 * Get all the labels for a graph
 	 * 
 	 * @param dbService
@@ -379,15 +407,7 @@ public class GraphUtility {
 	}
 	
 	public static List<String> getProperties(Connection conn, String label) {
-		String query;
-		if (label == null) {
-			// Want all properties for all labels
-			query = "MATCH (n) WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key ORDER BY key";
-		}
-		else {
-			// Want properties for only passed label
-			query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
-		}
+		String query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
 		List<String> properties = new ArrayList<String>();
 		Statement statement = null;
 		ResultSet resultSet = null;

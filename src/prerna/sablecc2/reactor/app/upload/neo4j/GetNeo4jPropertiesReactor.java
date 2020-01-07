@@ -1,15 +1,14 @@
 package prerna.sablecc2.reactor.app.upload.neo4j;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -21,9 +20,9 @@ import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.util.ConnectionUtils;
 import prerna.util.GraphUtility;
 
-public class GetNeo4jMetamodelReactor extends AbstractReactor {
+public class GetNeo4jPropertiesReactor extends AbstractReactor {
 
-	public GetNeo4jMetamodelReactor() {
+	public GetNeo4jPropertiesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
 				ReactorKeysEnum.FILE_PATH.getKey() };
@@ -32,12 +31,12 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		Map<String, Object> retMap = new HashMap<String, Object>();
+		List<String> properties = new ArrayList<>();
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (filePath != null) {
 			try {
 				GraphDatabaseService dbService = new GraphDatabaseFactory().newEmbeddedDatabase(new File(filePath));
-				retMap = GraphUtility.getMetamodel(dbService);
+				properties = GraphUtility.getAllNodeProperties(dbService);
 				dbService.shutdown();
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -53,6 +52,7 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 				throw exception;
 			}
 			// Prepend jdbc keyword for neo4j
+			// TODO jdbc::neo4j needs to be a constant
 			connectionStringKey = "jdbc:neo4j:" + connectionStringKey;
 			String username = this.keyValue.get(this.keysToGet[1]);
 			if (username == null) {
@@ -82,7 +82,7 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 				// Create Connection
 				conn = DriverManager.getConnection(connectionStringKey, username, password);
 				// Get Metamodel
-				retMap = GraphUtility.getMetamodel(conn);
+				properties = GraphUtility.getAllNodeProperties(conn);
 
 			} catch (ClassNotFoundException e) {
 				// If org.neo4j.jdbc.bolt.BoltDriver not found
@@ -96,6 +96,6 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 			}
 		}
 
-		return new NounMetadata(retMap, PixelDataType.MAP);
+		return new NounMetadata(properties, PixelDataType.MAP);
 	}
 }
