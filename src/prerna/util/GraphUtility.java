@@ -24,6 +24,7 @@ import org.neo4j.graphdb.Transaction;
 
 import prerna.algorithm.api.SemossDataType;
 
+
 public class GraphUtility {
 
 	/**
@@ -247,8 +248,13 @@ public class GraphUtility {
 		// get nodes and properties
 		List<String> nodes = GraphUtility.getNodes(dbService);
 		for (String s : nodes) {
+			Map<String, String> propMap = new HashMap<>();
 			List<String> properties = GraphUtility.getProperties(dbService, s);
-			nodeMap.put(s, properties);
+			// neo4j does not enforce types so we will assume strings
+			for(String prop: properties) {
+				propMap.put(prop, SemossDataType.STRING.toString());
+			}
+			nodeMap.put(s, propMap);
 		}
 		metamodel.put("nodes", nodeMap);
 		metamodel.put("edges", edges);
@@ -293,6 +299,26 @@ public class GraphUtility {
 		tx.close();
 		return properties;
 	}
+	
+	/**
+	 * Get all the graph properties for all labels
+	 * 
+	 * @param dbService
+	 * @param label
+	 * @return
+	 */
+	public static List<String> getAllNodeProperties(GraphDatabaseService dbService) {
+		List<String> properties = new ArrayList<String>();
+		Transaction tx = dbService.beginTx();
+		String query = "MATCH (a) UNWIND keys(a) AS key RETURN distinct key as property";
+		Result result = dbService.execute(query);
+		while (result.hasNext()) {
+			String prop = (String) result.next().get("property");
+			properties.add(prop);
+		}
+		tx.close();
+		return properties;
+	}
 
 	/**
 	 * Get map of edges: {edgeLabel:[startNode, endNode]}
@@ -302,7 +328,7 @@ public class GraphUtility {
 	 */
 	public static Map<String, Object> getEdges(GraphDatabaseService dbService) {
 		Transaction tx = dbService.beginTx();
-		String query = "MATCH (n)-[r]->(p) RETURN DISTINCT labels(n) AS StartNode, TYPE(r) AS RelationshipName , labels(p) as EndNode";
+		String query = "MATCH (n)-[r]->(p) UNWIND labels(n) as StartNode UNWIND labels(p) as EndNode RETURN StartNode, TYPE(r) AS RelationshipName , EndNode";
 		Result result = dbService.execute(query);
 		Map<String, Object> edgeMap = new HashMap<>();
 		while (result.hasNext()) {
@@ -318,11 +344,11 @@ public class GraphUtility {
 		tx.close();
 		return edgeMap;
 	}
-
+	
 	////////////////////////////////////////////////////////////////////
 	//////////// Graph Utility Methods for Remote Neo4j ////////////////
 	////////////////////////////////////////////////////////////////////
-
+	
 	/**
 	 * Get all the labels for a graph
 	 * 
@@ -351,9 +377,17 @@ public class GraphUtility {
 
 		return labels;
 	}
-
+	
 	public static List<String> getProperties(Connection conn, String label) {
-		String query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
+		String query;
+		if (label == null) {
+			// Want all properties for all labels
+			query = "MATCH (n) WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key ORDER BY key";
+		}
+		else {
+			// Want properties for only passed label
+			query = "MATCH (n:" + label + ") WITH KEYS (n) AS keys UNWIND keys AS key RETURN DISTINCT key";
+		}
 		List<String> properties = new ArrayList<String>();
 		Statement statement = null;
 		ResultSet resultSet = null;
@@ -369,10 +403,10 @@ public class GraphUtility {
 		} finally {
 			ConnectionUtils.closeAllConnections(null, resultSet, statement);
 		}
-
+		
 		return properties;
 	}
-
+	
 	public static Map<String, Object> getEdges(Connection conn) {
 		String query = "MATCH (n)-[r]->(p) RETURN DISTINCT labels(n) AS StartNode, TYPE(r) AS RelationshipName , labels(p) as EndNode";
 		Map<String, Object> edgeMap = new HashMap<>();
