@@ -263,7 +263,6 @@ import prerna.sablecc2.reactor.panel.GetPanelIdReactor;
 import prerna.sablecc2.reactor.panel.InsightPanelIds;
 import prerna.sablecc2.reactor.panel.PanelExistsReactor;
 import prerna.sablecc2.reactor.panel.PanelReactor;
-import prerna.sablecc2.reactor.panel.RetrievePanelPositionReactor;
 import prerna.sablecc2.reactor.panel.SetPanelLabelReactor;
 import prerna.sablecc2.reactor.panel.SetPanelPositionReactor;
 import prerna.sablecc2.reactor.panel.SetPanelViewReactor;
@@ -946,7 +945,6 @@ public class ReactorFactory {
 		reactorHash.put("RetrievePanelEvents", RetrievePanelEventsReactor.class);
 		// panel position
 		reactorHash.put("SetPanelPosition", SetPanelPositionReactor.class);
-		reactorHash.put("RetrievePanelPosition", RetrievePanelPositionReactor.class);
 		// panel color by value
 		reactorHash.put("AddPanelColorByValue", AddPanelColorByValueReactor.class);
 		reactorHash.put("RetrievePanelColorByValue", RetrievePanelColorByValueReactor.class);
