@@ -93,7 +93,7 @@ public class GreedyTranslation extends LazyTranslation {
     			if(varType == PixelDataType.FRAME) {
     				this.currentFrame = (ITableDataFrame) varValue.getValue();
     			}
-    			this.planner.addVariable("$RESULT", varValue);
+    			this.planner.addVariable(this.resultKey, varValue);
     		}
     	} else {
     		if(curReactor != null) {
@@ -113,7 +113,7 @@ public class GreedyTranslation extends LazyTranslation {
     			// TODO: build this out
     			// for now, will just return the column name again... 
     			NounMetadata noun = new NounMetadata(idInput, PixelDataType.CONST_STRING);
-    			this.planner.addVariable("$RESULT", noun);
+    			this.planner.addVariable(this.resultKey, noun);
     		}
     	}
     }
@@ -278,10 +278,10 @@ public class GreedyTranslation extends LazyTranslation {
 	    			curReactor.getCurRow().add(output);
 		    	} else {
 		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
-		    		this.planner.addVariable("$RESULT", output);
+		    		this.planner.addVariable(this.resultKey, output);
 		    	}
 	    	} else {
-	    		this.planner.removeVariable("$RESULT");
+	    		this.planner.removeVariable(this.resultKey);
 	    	}
     	}
     }
@@ -295,13 +295,13 @@ public class GreedyTranslation extends LazyTranslation {
     	// after we init the new reactor
         // we will add the result of the last reactor 
         // into the noun store of this new reactor
-    	NounMetadata prevResult = this.planner.getVariableValue("$RESULT");
+    	NounMetadata prevResult = this.planner.getVariableValue(this.resultKey);
     	if(prevResult != null) {
     		PixelDataType nounName = prevResult.getNounType();
     		GenRowStruct genRow = curReactor.getNounStore().makeNoun(nounName.toString());
     		genRow.add(prevResult);
     		// then we will remove the result from the planner
-        	this.planner.removeVariable("$RESULT");
+        	this.planner.removeVariable(this.resultKey);
     	}
     }
 	
@@ -311,12 +311,12 @@ public class GreedyTranslation extends LazyTranslation {
 		// set that in the runner for later retrieval
 		// if it is a frame
 		// set it as the frame for the runner
-		NounMetadata noun = planner.getVariableValue("$RESULT");
+		NounMetadata noun = planner.getVariableValue(this.resultKey);
 		if(noun != null) {
 			this.runner.addResult(pixelExpression, noun, this.isMeta);
 			// if there was a previous result
 			// remove it
-			this.planner.removeVariable("$RESULT");
+			this.planner.removeVariable(this.resultKey);
 		} 
 		else {
 			this.runner.addResult(pixelExpression, new NounMetadata("no output", PixelDataType.CONST_STRING), this.isMeta);

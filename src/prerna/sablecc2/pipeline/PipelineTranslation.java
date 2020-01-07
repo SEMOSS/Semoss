@@ -127,9 +127,10 @@ public class PipelineTranslation extends LazyTranslation {
         {
         	PRoutine e = copy.get(pixelstep);
         	try {
+        		this.resultKey = "$RESULT_" + e.hashCode();
             	this.curRoutine = new Vector<PipelineOperation>();
         		this.allRoutines.add(this.curRoutine);
-        		
+
         		e.apply(this);
         		// reset the state of the frame
         		this.currentFrame = null;
