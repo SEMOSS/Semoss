@@ -14,6 +14,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.app.upload.UploadUtilities;
 import prerna.sablecc2.reactor.app.upload.gremlin.AbstractCreateExternalGraphReactor;
 
@@ -31,7 +32,7 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 
 	@Override
 	protected void validateUserInput() throws IOException {
-		this.filePath = this.keyValue.get(this.keysToGet[1]);
+		this.filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (this.filePath == null) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires file name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
@@ -82,6 +83,7 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 		tinkerEng.setEngineId(this.newAppId);
 		tinkerEng.setEngineName(this.newAppName);
 		tinkerEng.openDB(this.smssFile.getAbsolutePath());
+		tinkerEng.setUseLabel(useLabel());
 		return tinkerEng;
 	}
 
