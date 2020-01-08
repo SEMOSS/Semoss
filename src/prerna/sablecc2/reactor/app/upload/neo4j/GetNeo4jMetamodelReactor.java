@@ -35,7 +35,7 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		Map<String, Object> retMap = new HashMap<String, Object>();
-		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		String filePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		
 		boolean useLabel = useLabel();
 		String graphTypeId = this.keyValue.get(this.keysToGet[4]);
@@ -48,6 +48,7 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 			}
 		}
 		if (filePath != null) {
+			filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 			try {
 				GraphDatabaseService dbService = new GraphDatabaseFactory().newEmbeddedDatabase(new File(filePath));
 				if (useLabel) {
