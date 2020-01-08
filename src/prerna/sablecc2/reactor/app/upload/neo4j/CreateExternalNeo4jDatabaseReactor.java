@@ -20,12 +20,10 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 	private String password;
 	
 	public CreateExternalNeo4jDatabaseReactor() {
-		this.keysToGet = new String[] { 
-				ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), 
-				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(), 
-				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME.getKey(),
-				ReactorKeysEnum.GRAPH_NAME_ID.getKey(), ReactorKeysEnum.GRAPH_METAMODEL.getKey()
-				};	
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
+				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
+				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.GRAPH_NAME_ID.getKey(),
+				ReactorKeysEnum.GRAPH_METAMODEL.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
@@ -66,7 +64,7 @@ public class CreateExternalNeo4jDatabaseReactor extends AbstractCreateExternalGr
 		// the file path will become parameterized inside
 		return UploadUtilities.generateTemporaryExternalNeo4jSmss(
 				this.newAppId, this.newAppName, owlFile, 
-				this.connectionStringKey, this.username, this.password);
+				this.connectionStringKey, this.username, this.password, this.typeMap, this.nameMap, useLabel());
 	}
 
 	@Override
