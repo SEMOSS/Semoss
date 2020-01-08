@@ -7,6 +7,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.engine.api.IEngine;
@@ -128,6 +129,9 @@ public class ExecQueryReactor extends AbstractReactor {
 
 			}
 		}
+		
+		ClusterUtil.reactorPushApp(engine.getEngineId());
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
 	
