@@ -10,6 +10,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.util.RdbmsQueryBuilder;
@@ -164,6 +165,8 @@ public class InsertReactor extends AbstractReactor {
 			}
 		}
 		
+		ClusterUtil.reactorPushApp(engine.getEngineId());
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.ALTER_DATABASE);
 	}
 	
