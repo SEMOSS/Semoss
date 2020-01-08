@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -26,7 +27,8 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 	public GetNeo4jMetamodelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.FILE_PATH.getKey() };
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
+				ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
@@ -34,10 +36,25 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 		organizeKeys();
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		
+		boolean useLabel = useLabel();
+		String graphTypeId = this.keyValue.get(this.keysToGet[4]);
+		if (!useLabel) {
+			if (graphTypeId == null) {
+				SemossPixelException exception = new SemossPixelException(
+						new NounMetadata("Requires graphTypeId to get graph metamodel.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+		}
 		if (filePath != null) {
 			try {
 				GraphDatabaseService dbService = new GraphDatabaseFactory().newEmbeddedDatabase(new File(filePath));
-				retMap = GraphUtility.getMetamodel(dbService);
+				if (useLabel) {
+					retMap = GraphUtility.getMetamodel(dbService);
+				} else {
+					retMap = GraphUtility.getMetamodel(dbService, graphTypeId);
+				}
 				dbService.shutdown();
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -82,7 +99,11 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 				// Create Connection
 				conn = DriverManager.getConnection(connectionStringKey, username, password);
 				// Get Metamodel
-				retMap = GraphUtility.getMetamodel(conn);
+				if (useLabel) {
+					retMap = GraphUtility.getMetamodel(conn);
+				} else {
+					retMap = GraphUtility.getMetamodel(conn, graphTypeId);
+				}
 
 			} catch (ClassNotFoundException e) {
 				// If org.neo4j.jdbc.bolt.BoltDriver not found
@@ -97,5 +118,18 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 		}
 
 		return new NounMetadata(retMap, PixelDataType.MAP);
+	}
+	
+	/**
+	 * Query the external db with a label to get the node
+	 * 
+	 * @return
+	 */
+	private boolean useLabel() {
+		GenRowStruct grs = this.store.getNoun(ReactorKeysEnum.USE_LABEL.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return (boolean) grs.get(0);
+		}
+		return false;
 	}
 }
