@@ -853,7 +853,8 @@ public class UploadUtilities {
 	 * @throws IOException
 	 */
 	public static File generateTemporaryExternalNeo4jSmss(String appId, String appName, File owlFile,
-			String connectionStringKey, String username, String password) throws IOException {
+			String connectionStringKey, String username, String password, Map<String, String> typeMap,
+			Map<String, String> nameMap, boolean useLabel) throws IOException {
 		String appTempNeo4jLoc = getAppTempSmssLoc(appId, appName);
 
 		File appTempSmss = new File(appTempNeo4jLoc);
@@ -876,6 +877,17 @@ public class UploadUtilities {
 			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionStringKey + newLine);
 			bufferedWriter.write(Constants.USERNAME + tab + username + newLine);
 			bufferedWriter.write(Constants.PASSWORD + tab + password + newLine);
+			// type map
+			Gson gson = new GsonBuilder().create();
+			if (useLabel) {
+				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+			} else {
+				String json = gson.toJson(typeMap);
+				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+			}
+			// name map
+			String json = gson.toJson(nameMap);
+			bufferedWriter.write("NAME_MAP" + "\t" + json + "\n");
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate app smss file");
