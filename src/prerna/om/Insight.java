@@ -175,7 +175,7 @@ public class Insight {
 	private transient Map<String, Class> insightSpecificHash = new HashMap<String, Class>();
 		
 	// last panel id touched
-	String lastPanelId = "0";
+	String lastPanelId = null;
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
 	Map pragmap = null;
 	
@@ -1105,76 +1105,89 @@ public class Insight {
 	}
 	
 
-	public void setLastQS(SelectQueryStruct lastQs)
-	{
-		setLastQS(lastQs, lastPanelId);
+	public void setLastQS(SelectQueryStruct lastQs) {
+		if(lastPanelId != null) {
+			setLastQS(lastQs, lastPanelId);
+		}
 	}
 
-	public void setLastQS(SelectQueryStruct lastQs, String panelId)
-	{
-		this.insightPanels.get(panelId).setLastQS(lastQs);
+	public void setLastQS(SelectQueryStruct lastQs, String panelId) {
+		if(panelId != null) {
+			InsightPanel panel = this.insightPanels.get(panelId);
+			if(panel == null) {
+				throw new IllegalArgumentException("Panel does not exist");
+			}
+			panel.setLastQS(lastQs);
+		}
 	}
 
-	public SelectQueryStruct getLastQS()
-	{
+	public SelectQueryStruct getLastQS() {
 		// always get the first one
 		return getLastQS(lastPanelId);
 	}
 	
-	public SelectQueryStruct getLastQS(String panelId)
-	{
-		if(insightPanels.containsKey(panelId))
-			return insightPanels.get(panelId).getLastQS();
+	public SelectQueryStruct getLastQS(String panelId) {
+		if(panelId != null && insightPanels.containsKey(panelId)) {
+			InsightPanel panel = this.insightPanels.get(panelId);
+			if(panel == null) {
+				throw new IllegalArgumentException("Panel does not exist");
+			}
+			return panel.getLastQS();
+		}
 		return null;
 	}
 
 	
-	public void setLastTaskOptions(TaskOptions options)
-	{
-		setLastTaskOptions(options, lastPanelId);
+	public void setLastTaskOptions(TaskOptions options) {
+		if(lastPanelId != null) {
+			setLastTaskOptions(options, lastPanelId);
+		}
 	}
 
-	public void setLastTaskOptions(TaskOptions options, String panelId)
-	{
-		if(insightPanels.containsKey(panelId))
-			this.insightPanels.get(panelId).setOptions(options);
+	public void setLastTaskOptions(TaskOptions options, String panelId) {
+		if(insightPanels.containsKey(panelId)) {
+			InsightPanel panel = this.insightPanels.get(panelId);
+			if(panel == null) {
+				throw new IllegalArgumentException("Panel does not exist");
+			}
+			panel.setOptions(options);
+		}
 	}
 
-	public TaskOptions getLastTaskOptions()
-	{
+	public TaskOptions getLastTaskOptions() {
 		return getLastTaskOptions(lastPanelId);
 	}
-	public TaskOptions getLastTaskOptions(String panelId)
-	{
-		if(insightPanels.containsKey(panelId))
-			return this.insightPanels.get(panelId).getOptions();
+	
+	public TaskOptions getLastTaskOptions(String panelId) {
+		if(panelId != null && insightPanels.containsKey(panelId)) {
+			InsightPanel panel = this.insightPanels.get(panelId);
+			if(panel == null) {
+				throw new IllegalArgumentException("Panel does not exist");
+			}
+			return panel.getOptions();
+		}
 		return null;
 	}
 	
-	public void setLastPanelId(String panelId)
-	{
+	public void setLastPanelId(String panelId) {
 		this.lastPanelId = panelId;
 	}
 	
-	public String getLastPanelId()
-	{
+	public String getLastPanelId() {
 		return this.lastPanelId;
 	}
 	
 	// sets the pragma map to be used
-	public void setPragmap(Map pragmap)
-	{
+	public void setPragmap(Map pragmap) {
 		this.pragmap = pragmap;
 	}
 	
 	// gets the pragma map
-	public Map getPragmap()
-	{
+	public Map getPragmap() {
 		return this.pragmap;
 	}
 	
-	public void clearPragmap()
-	{
+	public void clearPragmap() {
 		this.pragmap.clear();
 	}
 
