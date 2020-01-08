@@ -524,11 +524,13 @@ public class InsightPanel {
 		}
 
 		// copy the options and the qs too
-		Object existingPanelOptions = existingPanel.options.getOptions().get(existingPanel.panelId);
-		Map <String, Object> optionMap = new java.util.HashMap();
-		optionMap.put(panelId, existingPanelOptions);
-		this.options = new TaskOptions(optionMap);
-		this.lastQS = existingPanel.lastQS;
+		if(existingPanel.options != null) {
+			Object existingPanelOptions = existingPanel.options.getOptions().get(existingPanel.panelId);
+			Map <String, Object> optionMap = new HashMap<String, Object>();
+			optionMap.put(panelId, existingPanelOptions);
+			this.options = new TaskOptions(optionMap);
+			this.lastQS = existingPanel.lastQS;
+		}
 	}
 
 }
