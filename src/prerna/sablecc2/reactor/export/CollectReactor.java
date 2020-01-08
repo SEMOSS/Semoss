@@ -45,8 +45,6 @@ public class CollectReactor extends TaskBuilderReactor {
 		this.task.setNumCollect(this.limit);
 		buildTask();
 		
-		
-		
 		// tracking
 		if (this.task instanceof BasicIteratorTask) {
 			try {
@@ -59,15 +57,9 @@ public class CollectReactor extends TaskBuilderReactor {
 			} catch(Exception e) {
 				e.printStackTrace();
 			}
-			
-			// keep the query struct
-			prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
-			insight.setLastQS(sqs);
 		}
+		
 		PixelOperationType retOpType = PixelOperationType.TASK_DATA;
-		
-		
-		
 		// this is the second place I need to change
 		TaskOptions ornamnetOptions = genOrnamentTaskOptions();
 		if(ornamnetOptions != null || (task.getTaskOptions() != null && task.getTaskOptions().isOrnament()) ) {
@@ -87,7 +79,13 @@ public class CollectReactor extends TaskBuilderReactor {
 				insight.setLastPanelId(panelId);
 				insight.setLastTaskOptions(task.getTaskOptions(), panelId);
 			}
-			//insight.setLastTaskOptions(task.getTaskOptions());
+			
+			// you need to do this after you set the last panel id
+			// keep the query struct
+			if (this.task instanceof BasicIteratorTask) {
+				prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
+				insight.setLastQS(sqs);
+			}
 		}
 		else
 		{
@@ -95,7 +93,6 @@ public class CollectReactor extends TaskBuilderReactor {
 			// I am setting the panel id on the task options and getting it from here
 			task.setTaskOptions(insight.getLastTaskOptions());
 		}
-		
 		
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, retOpType);
 	}
