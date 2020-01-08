@@ -1,5 +1,6 @@
 package prerna.engine.impl.neo4j;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -8,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +25,37 @@ import prerna.util.Constants;
  */
 public class Neo4jEngine extends AbstractEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Neo4jEngine.class);
+	protected Map<String, String> typeMap = new HashMap<String, String>();
+	protected Map<String, String> nameMap = new HashMap<String, String>();
+	protected boolean useLabel = false;
 	private Connection conn;
+
 
 	@Override
 	public void openDB(String propFile) {
 		super.openDB(propFile);
+		// get type map
+		String typeMapStr = this.prop.getProperty("TYPE_MAP");
+		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
+			try {
+				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		// get the name map
+		String nameMapStr = this.prop.getProperty("NAME_MAP");
+		if (nameMapStr != null && !nameMapStr.trim().isEmpty()) {
+			try {
+				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		if (prop.containsKey(Constants.TINKER_USE_LABEL)) {
+			String booleanStr = prop.get(Constants.TINKER_USE_LABEL).toString();
+			useLabel = Boolean.parseBoolean(booleanStr);
+		}
 		try {
 			LOGGER.info("Opening neo4j graph: ");
 			Class.forName("org.neo4j.jdbc.bolt.BoltDriver").newInstance();
@@ -75,8 +103,9 @@ public class Neo4jEngine extends AbstractEngine {
 	
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
-		return new CypherInterpreter();
-	}
+		CypherInterpreter interp = new CypherInterpreter(this.typeMap, this.nameMap);
+		interp.setUseLabel(this.useLabel);
+		return interp;	}
 	
 	public Connection getGraphDatabaseConnection() {
 		return conn;
