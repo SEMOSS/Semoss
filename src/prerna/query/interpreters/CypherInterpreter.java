@@ -13,6 +13,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -38,10 +39,10 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 
 	// keep track of the filters
 	private StringBuilder filterCriteria = new StringBuilder();
-	
+
 	// keep track of order bys
 	private StringBuilder orderBys = new StringBuilder();
-	
+
 	// Start and End
 	long start = 0;
 	long end = 500;
@@ -62,7 +63,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	private static final String ORDER_BY = "ORDER BY";
 	private static final String OFFSET = "SKIP";
 	private static final String LIMIT = "LIMIT";
-	
+
 	protected transient IEngine engine;
 	// identify the name for the type of the name
 	protected Map<String, String> typeMap;
@@ -70,7 +71,6 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	protected Map<String, String> nameMap;
 	protected boolean useLabel = false;
 
-	
 	public CypherInterpreter(Map<String, String> typeMap, Map<String, String> nameMap) {
 		this.typeMap = typeMap;
 		this.nameMap = nameMap;
@@ -81,14 +81,13 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		if (this.qs instanceof HardSelectQueryStruct) {
 			return ((HardSelectQueryStruct) this.qs).getQuery();
 		}
-		System.out.println();
 		engine = this.qs.getEngine();
 
 		StringBuilder query = new StringBuilder();
 		labelMap = new HashMap<String, Map<String, String>>();
 		labelAliasMap = new HashMap<String, String>();
 
-		if(this.colDataTypes == null) {
+		if (this.colDataTypes == null) {
 			this.colDataTypes = new Hashtable<String, SemossDataType>();
 		}
 		boolean isDistinct = ((SelectQueryStruct) this.qs).isDistinct();
@@ -122,7 +121,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		return query.toString();
 	}
 
-	//////////////////////////////////// start adding selectors ////////////////////////////////////
+	//////////////////////////////////// start adding selectors
+	//////////////////////////////////// ////////////////////////////////////
 	public void appendSelectors(StringBuilder query) {
 		Map<String, Set<String>> edgeMap = generateEdgeMap();
 		selectorCriteria = new StringBuilder();
@@ -132,20 +132,19 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		List<String> joinValues = new ArrayList<>();
 		addSelectors(selectorList);
 
-		for(String startNode: edgeMap.keySet()) {
+		for (String startNode : edgeMap.keySet()) {
 			// format start node
 			String startNodeAlias = labelAliasMap.get(startNode);
-			// if alias label name doesn't exist in labelAliasMap, create new intermediateNode() and store
+			// if alias label name doesn't exist in labelAliasMap, create new
+			// intermediateNode() and store
 			if (startNodeAlias == null) {
 				startNodeAlias = generateIntermediateNode(startNode);
 			}
-			// TODO
-			String cq = "(" + startNodeAlias + ":" + startNode + ")";
+			String cq = queryNode(startNodeAlias, startNode);
 			Set<String> visitNodes = edgeMap.get(startNode);
-			for(String endNode : visitNodes) {
+			for (String endNode : visitNodes) {
 				String endNodeAlias = labelAliasMap.get(endNode);
-				// TODO
-				String queryVisit = "(" + endNodeAlias + ":" + endNode + ")";
+				String queryVisit = queryNode(endNodeAlias, endNode);
 				// traversal
 				nodesDefined.add(startNode);
 				nodesDefined.add(endNode);
@@ -157,30 +156,30 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			// if node is not defined from joins add to query
 			String intermediateNode = labelAliasMap.get(node);
 			if (!nodesDefined.contains(node)) {
-				// TODO
-				String queryNode = "(" + intermediateNode + ": " + node + ")";
+				String queryNode = queryNode(intermediateNode, node);
 				joinValues.add(queryNode);
 			}
 		}
 
 		// append joins to query
-		for (int i= 0; i < joinValues.size(); i++) {
+		for (int i = 0; i < joinValues.size(); i++) {
 			query.append(joinValues.get(i));
-			if (i < joinValues.size()-1) {
+			if (i < joinValues.size() - 1) {
 				query.append(", ");
 			}
 		}
 
 		// append Return/Select criteria
-		for (int i= 0; i < selectorList.size(); i++) {
+		for (int i = 0; i < selectorList.size(); i++) {
 			selectorCriteria.append(selectorList.get(i));
-			if (i < selectorList.size()-1) {
+			if (i < selectorList.size() - 1) {
 				selectorCriteria.append(", ");
 			}
 		}
 	}
 
-	// loop through the label map and generate intermediate nodes for all added selectors
+	// loop through the label map and generate intermediate nodes for all added
+	// selectors
 	public String generateIntermediateNode(String labelName) {
 		String intermediateNode = null;
 		// Check if intermediate node already exists in map
@@ -190,7 +189,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			intermediateNode = Utility.getRandomString(5);
 			labelAliasMap.put(labelName, intermediateNode);
 		}
-		
+
 		return intermediateNode;
 	}
 
@@ -200,22 +199,23 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		// group bys to sort selectors by
 		List<QueryColumnSelector> groupByList = ((SelectQueryStruct) this.qs).getGroupBy();
 
-		// if GROUP BY exists, sort selector criteria for implicit Cypher GROUP BY
+		// if GROUP BY exists, sort selector criteria for implicit Cypher GROUP
+		// BY
 		if (groupByList.size() > 0) {
 			List<String> qcsSelectors = new ArrayList<String>();
 			List<String> gbSelectors = new ArrayList<String>();
 
 			// convert to string for comparison/sorting
-			for (IQuerySelector selector: selectors) {
+			for (IQuerySelector selector : selectors) {
 				String selectorString = selector.toString();
 				qcsSelectors.add(selectorString);
 			}
 
-			for (IQuerySelector groupBy: groupByList) {
+			for (IQuerySelector groupBy : groupByList) {
 				String gbString = groupBy.toString();
 				gbSelectors.add(gbString);
 			}
-			
+
 			// sort
 			for (int i = 0; i < gbSelectors.size(); i++) {
 				if (qcsSelectors.equals(gbSelectors)) {
@@ -223,7 +223,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 				}
 				for (int j = 0; j < qcsSelectors.size(); j++) {
 					int c = gbSelectors.get(i).compareTo(qcsSelectors.get(j));
-					if ( c == 0 ) {
+					if (c == 0) {
 						String valueToSwap = qcsSelectors.get(i);
 						qcsSelectors.set(i, gbSelectors.get(i));
 						qcsSelectors.set(j, valueToSwap);
@@ -235,18 +235,18 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 			selectors.clear();
 
 			// convert back to Custom Object for interpretation
-			for (String selector: qcsSelectors) {
+			for (String selector : qcsSelectors) {
 				QueryColumnSelector typeSelector = new QueryColumnSelector(selector);
-				selectors.add((IQuerySelector)typeSelector);
+				selectors.add((IQuerySelector) typeSelector);
 			}
-			
+
 		}
 
 		for (int i = 0; i < selectors.size(); i++) {
 			IQuerySelector selector = selectors.get(i);
 			SELECTOR_TYPE selectorType = selector.getSelectorType();
 			StringBuilder listCriteria = new StringBuilder();
-			
+
 			// depending on selector type parse return input different way
 			if (selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				String[] selectorInfo = processSelector(selector).split(",");
@@ -254,9 +254,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 				String originalPropertyName = selectorInfo[1];
 				String aliasPropertyName = selectorInfo[2];
 				String intermediateNode = generateIntermediateNode(labelName);
-
-				selectorList.add(listCriteria.append(intermediateNode).append(".").append(originalPropertyName).append(" ").append(AS)
-						.append(" ").append(aliasPropertyName).toString());
+				selectorList.add(listCriteria.append(intermediateNode).append(".").append(originalPropertyName)
+						.append(" ").append(AS).append(" ").append(aliasPropertyName).toString());
 			} else if (selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 				// FUNCTION NAME:TABLENAME;PROPERTY NAME, PROPERTY NAME, ...
 				String[] selectorInfo = processSelector(selector).split(";");
@@ -265,12 +264,14 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 				String aliasPropertyName = selectorInfo[2];
 				String propertyName = selectorInfo[3];
 				String intermediateNode = generateIntermediateNode(tableName);
-				
-				// "functionName(intermediateNode.propertyName) AS aliasPropertyName"
-				selectorList.add(listCriteria.append(functionName).append("(").append(intermediateNode)
-						.append(".").append(propertyName).append(")").append(" ").append(AS).append(" ").append(aliasPropertyName).toString());
-			} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
-				
+
+				// "functionName(intermediateNode.propertyName) AS
+				// aliasPropertyName"
+				selectorList.add(listCriteria.append(functionName).append("(").append(intermediateNode).append(".")
+						.append(propertyName).append(")").append(" ").append(AS).append(" ").append(aliasPropertyName)
+						.toString());
+			} else if (selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+
 			}
 		}
 	}
@@ -278,14 +279,15 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 	private String processSelector(IQuerySelector selector) {
 		SELECTOR_TYPE selectorType = selector.getSelectorType();
 
-		/*if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
-			return processConstantSelector((QueryConstantSelector) selector);
-		} else*/
-		if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+		/*
+		 * if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) { return
+		 * processConstantSelector((QueryConstantSelector) selector); } else
+		 */
+		if (selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+		} else if (selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 			return processFunctionSelector((QueryFunctionSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+		} else if (selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
 		}
 
@@ -296,9 +298,13 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		StringBuilder propertyNames = new StringBuilder();
 		String labelName = selector.getTable();
 		String originalPropertyName = selector.getColumn();
+		if (originalPropertyName.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+			// get name for node from name map
+			originalPropertyName = getNodeName(labelName);
+		}
 		String aliasPropertyName = selector.getAlias();
 		Map<String, String> propertyMap = new HashMap<String, String>();
-		
+
 		// append to return value for other selector processors
 		propertyNames.append(labelName).append(",").append(originalPropertyName).append(",").append(aliasPropertyName);
 
@@ -320,37 +326,37 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		String function = selector.getFunction();
 		StringBuilder expression = new StringBuilder();
 
-		switch(function) {
-			case (QueryFunctionHelper.COUNT):
-				expression.append("COUNT;");
-				break;
-			case (QueryFunctionHelper.MAX):
-				expression.append("MAX;");
-				break;
-			case (QueryFunctionHelper.MIN):
-				expression.append("MIN;");
-				break;
-			case (QueryFunctionHelper.SUM):
-				expression.append("SUM;");
-				break;
-			case (QueryFunctionHelper.AVERAGE_1):
-			case (QueryFunctionHelper.AVERAGE_2):
-				expression.append("AVG;");
-				break;
-			default:
-				expression.append(function.toUpperCase()).append(";");
+		switch (function) {
+		case (QueryFunctionHelper.COUNT):
+			expression.append("COUNT;");
+			break;
+		case (QueryFunctionHelper.MAX):
+			expression.append("MAX;");
+			break;
+		case (QueryFunctionHelper.MIN):
+			expression.append("MIN;");
+			break;
+		case (QueryFunctionHelper.SUM):
+			expression.append("SUM;");
+			break;
+		case (QueryFunctionHelper.AVERAGE_1):
+		case (QueryFunctionHelper.AVERAGE_2):
+			expression.append("AVG;");
+			break;
+		default:
+			expression.append(function.toUpperCase()).append(";");
 		}
 
 		int size = innerSelectors.size();
 
-		for(int i = 0; i< size; i++) {
+		for (int i = 0; i < size; i++) {
 			String[] propertyInfo = processSelector(innerSelectors.get(i)).split(",");
 			String labelName = propertyInfo[0];
 			String originalPropertyName = propertyInfo[1];
 			String aliasPropertyName = propertyInfo[2];
 
 			expression.append(labelName).append(";").append(aliasPropertyName).append(";");
-			if(i == 0) {
+			if (i == 0) {
 				expression.append(originalPropertyName);
 			} else {
 				expression.append(",").append(originalPropertyName);
@@ -365,9 +371,11 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		String mathExpr = selector.getMathExpr();
 		return "(" + processSelector(leftSelector) + " " + mathExpr + " " + processSelector(rightSelector) + ")";
 	}
-	//////////////////////////////////// end adding selectors ////////////////////////////////////
+	//////////////////////////////////// end adding selectors
+	//////////////////////////////////// ////////////////////////////////////
 
-	//////////////////////////////////// start adding filters ////////////////////////////////////
+	//////////////////////////////////// start adding filters
+	//////////////////////////////////// ////////////////////////////////////
 	public void addFilters(List<IQueryFilter> filters, StringBuilder builder, boolean useAlias, IEngine engine) {
 		for (IQueryFilter filter : filters) {
 			StringBuilder filterSyntax = processFilter(filter, useAlias, engine);
@@ -435,7 +443,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		} else if (fType == FILTER_TYPE.COL_TO_VALUES) {
 			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, useAlias);
 		} else if (fType == FILTER_TYPE.VALUES_TO_COL) {
-			// same logic as above, just switch the order and reverse the comparator if it is numeric
+			// same logic as above, just switch the order and reverse the
+			// comparator if it is numeric
 			return addSelectorToValuesFilter(rightComp, leftComp,
 					IQueryFilter.getReverseNumericalComparator(thisComparator), useAlias);
 		} else if (fType == FILTER_TYPE.VALUE_TO_VALUE) {
@@ -461,7 +470,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		String lPropertyNames = processSelector(leftSelector);
 		String[] lExtractedPropertyNames = lPropertyNames.trim().split(",");
 		String lSelector = lExtractedPropertyNames[1];
-		
+
 		String rPropertyNames = processSelector(rightSelector);
 		String[] rExtractedPropertyNames = rPropertyNames.trim().split(",");
 		String rSelector = rExtractedPropertyNames[1];
@@ -484,7 +493,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 						.append(" | is.na(").append(lSelector).append(") & is.na(").append(rSelector).append(") )");
 			} else {
 				// other op
-				filterBuilder.append(tempNode + ".").append(lSelector).append(" ").append(thisComparator).append(" ").append(rSelector);
+				filterBuilder.append(tempNode + ".").append(lSelector).append(" ").append(thisComparator).append(" ")
+						.append(rSelector);
 			}
 		}
 
@@ -505,7 +515,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		String[] lExtractedPropertyNames = lPropertyNames.trim().split(",");
 		String leftSelectorExpression = lExtractedPropertyNames[1];
 
-		String columnDataType = this.engine.getDataTypes("http://semoss.org/ontologies/Relation/Contains/" + leftSelectorExpression + "/" +  actualLabelName );
+		String columnDataType = this.engine.getDataTypes(
+				"http://semoss.org/ontologies/Relation/Contains/" + leftSelectorExpression + "/" + actualLabelName);
 		SemossDataType columnType = SemossDataType.convertStringToDataType(columnDataType);
 
 		// grab the objects we are setting up for the comparison
@@ -532,36 +543,37 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 				myFilterFormatted.append("[");
 				for (int i = 0; i < objects.size(); i++) {
 					// if string
-					switch(columnType) {
-						case STRING:
-							myFilterFormatted.append("\"").append(objects.get(i)).append("\"");
-							break;
-						case INT:
-						case DOUBLE:
-							myFilterFormatted.append(objects.get(i).toString());
-							break;
-						case BOOLEAN:
-							myFilterFormatted.append(objects.get(i));
-							break;
+					switch (columnType) {
+					case STRING:
+						myFilterFormatted.append("\"").append(objects.get(i)).append("\"");
+						break;
+					case INT:
+					case DOUBLE:
+						myFilterFormatted.append(objects.get(i).toString());
+						break;
+					case BOOLEAN:
+						myFilterFormatted.append(objects.get(i));
+						break;
 					}
-					if (i < objects.size()-1) {
+					if (i < objects.size() - 1) {
 						myFilterFormatted.append(", ");
 					}
 				}
 				myFilterFormatted.append("]");
 			} else {
-				// dont bother doing this if we have a date since we cannot use "in" with dates
-				switch(columnType) {
-					case STRING:
-						myFilterFormatted.append("\"").append(objects.get(0)).append("\"");
-						break;
-					case INT:
-					case DOUBLE:
-						myFilterFormatted.append(objects.get(0).toString());
-						break;
-					case BOOLEAN:
-						myFilterFormatted.append(objects.get(0));
-						break;
+				// dont bother doing this if we have a date since we cannot use
+				// "in" with dates
+				switch (columnType) {
+				case STRING:
+					myFilterFormatted.append("\"").append(objects.get(0)).append("\"");
+					break;
+				case INT:
+				case DOUBLE:
+					myFilterFormatted.append(objects.get(0).toString());
+					break;
+				case BOOLEAN:
+					myFilterFormatted.append(objects.get(0));
+					break;
 				}
 			}
 
@@ -579,7 +591,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 					if (thisComparator.equals("==")) {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
-							filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" = ").append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+							filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" = ")
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 							if ((i + 1) < size) {
 								filterBuilder.append(" OR ");
 							}
@@ -588,7 +601,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 					} else if (thisComparator.equals("!=") | thisComparator.equals("<>")) {
 						filterBuilder.append("(");
 						for (int i = 0; i < size; i++) {
-							filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" != ").append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
+							filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" != ")
+									.append(RSyntaxHelper.formatFilterValue(objects.get(i), SemossDataType.DATE));
 							if ((i + 1) < size) {
 								filterBuilder.append(" AND ");
 							}
@@ -597,7 +611,8 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 					} else {
 						// this will probably break...
 						myFilterFormatted.append(RSyntaxHelper.formatFilterValue(objects.get(0), SemossDataType.DATE));
-						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" ").append(thisComparator).append(myFilterFormatted);
+						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" ")
+								.append(thisComparator).append(myFilterFormatted);
 					}
 				}
 				// now all the other types
@@ -610,43 +625,51 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 								.append(myFilterFormatted).append(")");
 					} else {
 						// this will probably break...
-						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" ").append(thisComparator)
-								.append(myFilterFormatted);
+						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" ")
+								.append(thisComparator).append(myFilterFormatted);
 					}
 				}
 			} else {
 				if (thisComparator.equals("?like")) {
 					if (SemossDataType.STRING == columnType) {
-						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" =~ ").append(myFilterFormatted);
+						// format value with wild cards to get like
+						// functionality
+						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" =~ ")
+								.append("\".*").append(objects.get(0)).append(".*\"");
 					} else {
-						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" =~ ").append(myFilterFormatted);
+						filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" =~ ")
+								.append(myFilterFormatted);
 					}
 				} else {
 					if (thisComparator.equals("==")) {
 						thisComparator = " = ";
 					}
-					filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" ").append(thisComparator).append(" ").append(myFilterFormatted);
+					filterBuilder.append(tempNode + ".").append(leftSelectorExpression).append(" ")
+							.append(thisComparator).append(" ").append(myFilterFormatted);
 				}
 			}
 		}
 
 		return filterBuilder;
 	}
-	//////////////////////////////////// end adding filters ////////////////////////////////////
-	
-	//////////////////////////////////// start join ////////////////////////////////////
+	//////////////////////////////////// end adding filters
+	//////////////////////////////////// ////////////////////////////////////
+
+	//////////////////////////////////// start join
+	//////////////////////////////////// ////////////////////////////////////
 	public void appendJoin(StringBuilder query) {
 		for (Map.Entry<String, Map<String, String>> mapElement : labelMap.entrySet()) {
 			String intermediateNode = null;
 			String currentLabelName = mapElement.getKey();
 
 			// grab intermediate node from label
-			for (Map.Entry<String, String> labelNames: labelAliasMap.entrySet()) {
+			for (Map.Entry<String, String> labelNames : labelAliasMap.entrySet()) {
 				String key = labelNames.getKey();
 				if (currentLabelName.equals(key)) {
 					intermediateNode = labelNames.getValue();
-					// TODO
-					query.append(" (" + intermediateNode + ":" + mapElement.getKey() + ")");
+					// query.append(" (" + intermediateNode + ":" +
+					// mapElement.getKey() + ")");
+					query.append(" ").append(queryNode(intermediateNode, mapElement.getKey()));
 					// if more values exist in the labelAliasMap
 					if (labelMap.entrySet().iterator().hasNext()) {
 						query.append("-[]-");
@@ -660,12 +683,12 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		Map<String, Set<String>> edgeMap = new Hashtable<String, Set<String>>();
 		// add the relationships into the edge map
 		Set<String[]> relations = qs.getRelations();
-		for(String[] rel : relations) {
+		for (String[] rel : relations) {
 			String startNode = rel[0];
 			String endNode = rel[2];
-			
+
 			Set<String> joinSet = null;
-			if(edgeMap.containsKey(startNode)) {
+			if (edgeMap.containsKey(startNode)) {
 				joinSet = edgeMap.get(startNode);
 			} else {
 				joinSet = new HashSet<String>();
@@ -676,27 +699,34 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 
 		return edgeMap;
 	}
-	//////////////////////////////////// end join ////////////////////////////////////
-		
-	//////////////////////////////////// start order by ////////////////////////////////////
+	//////////////////////////////////// end join
+	//////////////////////////////////// ////////////////////////////////////
+
+	//////////////////////////////////// start order by
+	//////////////////////////////////// ////////////////////////////////////
 	private void addOrderBy() {
-		//grab the order by and get the corresponding display name for that order by column
+		// grab the order by and get the corresponding display name for that
+		// order by column
 		List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
 		if (orderBy == null || orderBy.isEmpty()) {
 			return;
 		}
-		
+
 		boolean initialized = false;
 		StringBuilder builderOrdering = null;
-		for(QueryColumnOrderBySelector orderBySelector : orderBy) {
+		for (QueryColumnOrderBySelector orderBySelector : orderBy) {
 			String tableName = orderBySelector.getTable();
 			String columnName = orderBySelector.getColumn();
+			if (columnName.equals(AbstractQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				// we are querying a node I need to get the property
+				columnName = getNodeName(tableName);
+			}
 			ORDER_BY_DIRECTION orderByDir = orderBySelector.getSortDir();
-			
+
 			// grab temp table name
-			String intermediateNode = labelAliasMap.get(tableName);		
-			
-			if(initialized) {
+			String intermediateNode = labelAliasMap.get(tableName);
+
+			if (initialized) {
 				builderOrdering.append(", ").append(intermediateNode).append(".").append(columnName);
 			} else {
 				builderOrdering = new StringBuilder();
@@ -704,65 +734,68 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 				initialized = true;
 			}
 
-			if(orderByDir == ORDER_BY_DIRECTION.DESC) {
+			if (orderByDir == ORDER_BY_DIRECTION.DESC) {
 				builderOrdering.append(" ").append(ORDER_BY_DIRECTION.DESC);
 			}
 		}
-		
-		if(builderOrdering != null) {
+
+		if (builderOrdering != null) {
 			orderBys.append(ORDER_BY).append(" ").append(builderOrdering.toString());
 		}
 	}
-	//////////////////////////////////// end order by ////////////////////////////////////
-	
+	//////////////////////////////////// end order by
+	//////////////////////////////////// ////////////////////////////////////
+
 	/**
-	 * Set this boolean to true if you want the interpreter to grab nodes using the label
+	 * Set this boolean to true if you want the interpreter to grab nodes using
+	 * the label
+	 * 
 	 * @param useLabel
 	 */
 	public void setUseLabel(boolean useLabel) {
 		this.useLabel = useLabel;
 	}
-	
+
 	/**
-	 * This is the method that will query the node based on how the engine has been defined to query the node
+	 * This is the method that will query the node based on how the engine has
+	 * been defined to query the node
+	 * 
 	 * @param gt
 	 * @param nodeType
 	 * @return
 	 */
-	public String queryNode(String node, String nodeProperty) {
-		//TODO
+	public String queryNode(String nodeAlias, String node) {
 		StringBuilder sb = new StringBuilder();
 		// grab the node by the label
 		if (useLabel) {
-//			gt.hasLabel(nodeType);
+			sb.append("(" + nodeAlias + ":" + node + ")");
 		} else {
 			// grab the node by a specific property
-//			gt.has(getNodeType(nodeType), getPhysicalNodeType(nodeType));
+			sb.append("(" + nodeAlias + " {" + getNodeType(node) + ": '" + node + "'})");
 		}
 		return sb.toString();
 	}
-	
+
 	//////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Getters for the type and name of the node
-	 * Default will be what we create on upload of tinker / frames of tinker
 	 * 
 	 * If engine has defined a specific value, we will use that
 	 */
-	
+
 	protected String getNodeType(String node) {
-		if(this.typeMap != null) {
-			if(this.typeMap.containsKey(node)) {
+		if (this.typeMap != null) {
+			if (this.typeMap.containsKey(node)) {
 				return this.typeMap.get(node);
 			}
 		}
 		return null;
 	}
-	
+
 	protected String getNodeName(String node) {
-		if(this.nameMap != null) {
-			if(this.nameMap.containsKey(node)) {
+		if (this.nameMap != null) {
+			if (this.nameMap.containsKey(node)) {
 				return this.nameMap.get(node);
 			}
 		}
