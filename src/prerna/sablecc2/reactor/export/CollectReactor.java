@@ -82,7 +82,7 @@ public class CollectReactor extends TaskBuilderReactor {
 			
 			// you need to do this after you set the last panel id
 			// keep the query struct
-			if (this.task instanceof BasicIteratorTask) {
+			if (retOpType != PixelOperationType.PANEL_ORNAMENT_DATA && this.task instanceof BasicIteratorTask) {
 				prerna.query.querystruct.SelectQueryStruct sqs = (prerna.query.querystruct.SelectQueryStruct)((BasicIteratorTask)task).getQueryStruct();
 				insight.setLastQS(sqs);
 			}
