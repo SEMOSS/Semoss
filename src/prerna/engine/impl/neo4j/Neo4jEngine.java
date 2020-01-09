@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -80,7 +81,7 @@ public class Neo4jEngine extends AbstractEngine {
 		PreparedStatement stmt = null;
 		ResultSet rs = null;
 		try {
-			stmt = conn.prepareStatement(query);
+			stmt = getGraphDatabaseConnection().prepareStatement(query);
 			Map<String, Object> map = new HashMap();
 			rs = stmt.executeQuery();
 			map.put(RDBMSNativeEngine.RESULTSET_OBJECT, rs);
@@ -108,6 +109,30 @@ public class Neo4jEngine extends AbstractEngine {
 		return interp;	}
 	
 	public Connection getGraphDatabaseConnection() {
+		try {
+			if (conn.isClosed()) {
+				LOGGER.info("Opening neo4j graph: ");
+				Class.forName("org.neo4j.jdbc.bolt.BoltDriver").newInstance();
+				String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
+				String username = prop.getProperty(Constants.USERNAME);
+				String password = prop.getProperty(Constants.PASSWORD);
+				LOGGER.info("Connecting to remote graph: " + connectionURL);
+				conn = DriverManager.getConnection(connectionURL, username, password);
+				LOGGER.info("Done neo4j opening graph: ");
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return conn;
 	}
 
