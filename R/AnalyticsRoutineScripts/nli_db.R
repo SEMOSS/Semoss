@@ -1343,7 +1343,7 @@ get_where<-function(where_df,tbls,joins,cur_values){
 						if(nrow(child)>0){
 							grandchild<-where_df[where_df$head_token_id==child$token_id[1] & where_df$dep_rel %in% c("compound","conj") & where_df$xpos=="CD" & where_df$processed=="no",]
 							if(nrow(grandchild)>0){
-								where_part<-append(where_part,paste0(node$item," between ",child$token[1]," and ",grandchild$token[1]))
+								where_part<-append(where_part,paste0(node$item," between ",grandchild$token[1]," and ",child$token[1]))
 								where_df[where_df$token_id==grandchild$token_id[1],"processed"]<-"yes"
 							}
 							where_df[where_df$token_id==child$token_id[1],"processed"]<-"yes"
