@@ -1,7 +1,6 @@
 package prerna.query.querystruct;
 
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,7 +67,7 @@ public abstract class AbstractQueryStruct {
 	protected String engineId;
 	
 	// map of pragmas
-	Map pragmap = null;
+	protected transient Map pragmap = null;
 	
 	//////////////////////////////////////////// SELECTORS /////////////////////////////////////////////////
 	
