@@ -23,14 +23,13 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	protected long limit = -1;
 	protected long offset = -1;
 	
+	// query is the complete query overhall
 	public enum Query_Part {
 		SELECT, FILTER, SORT, GROUP, AGGREGATE, QUERY;
-	} // query is the complete query overhall
+	} 
 	
-	protected Map queryPartHash = new HashMap();
+	protected transient Map queryPartHash = new HashMap();
 	
-	// need to pass it the pragmap as well
-	protected Map pragmap = new HashMap();
 	////////////////////////////////////////////////////
 	///////////////////// ORDERING /////////////////////
 	////////////////////////////////////////////////////	
