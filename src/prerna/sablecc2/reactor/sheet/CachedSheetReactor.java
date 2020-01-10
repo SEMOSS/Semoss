@@ -26,7 +26,8 @@ public class CachedSheetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		// first input is the name of the sheet
-		String sheetId = this.curRow.get(0).toString();
+		organizeKeys();
+		String sheetId = this.keyValue.get(this.keysToGet[0]);
 		InsightSheet insightSheet = this.insight.getInsightSheet(sheetId);
 		if(insightSheet == null) {
 			throw new NullPointerException("Sheet Id " + sheetId + " does not exist");
