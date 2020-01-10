@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,8 @@ import prerna.sablecc2.node.AMap;
 import prerna.sablecc2.node.AMapList;
 import prerna.sablecc2.node.AMapNegNum;
 import prerna.sablecc2.node.AMapVar;
+import prerna.sablecc2.node.ANounOpInput;
+import prerna.sablecc2.node.ANullScalar;
 import prerna.sablecc2.node.AOperation;
 import prerna.sablecc2.node.ARoutineConfiguration;
 import prerna.sablecc2.node.AScalarRegTerm;
@@ -40,6 +43,7 @@ import prerna.sablecc2.node.AWholeDecimal;
 import prerna.sablecc2.node.AWordMapKey;
 import prerna.sablecc2.node.AWordWordOrId;
 import prerna.sablecc2.node.POpInput;
+import prerna.sablecc2.node.POtherOpInput;
 import prerna.sablecc2.node.PRoutine;
 import prerna.sablecc2.node.Start;
 import prerna.sablecc2.om.GenRowStruct;
@@ -140,8 +144,6 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	private List<Integer> removeLayerIndices = new Vector<Integer>();
 
 	private Map insightConfig = null;
-	@Deprecated
-	private Map insightGoldenLayout = null;
 
 	/**
 	 * This method overrides caseAConfiguration, adds each expression to the expressionMap, adds expression indexes to the expression map, and updates the index
@@ -307,8 +309,29 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 		// account for order of panel creation
 		else if(reactorId.equals("AddPanel")) {
 			// store order of panel creation
+			String panel = null;
 			POpInput input = node.getOpInput();
-			String panel = input.toString().trim();
+			if(input instanceof ANounOpInput) {
+				// see if this starts with panel = [
+				String strI = input.toString();
+				if(strI.startsWith("panel = [")) {
+					strI = strI.substring("panel = [ ".length()).trim();
+					strI = strI.substring(0, strI.length()-1).trim();
+					panel = strI;
+				} else {
+					LinkedList<POtherOpInput> oInputs = node.getOtherOpInput();
+					for(POtherOpInput oInput : oInputs) {
+						if(oInput.toString().startsWith("panel = [")) {
+							strI = strI.substring("panel = [".length()).trim();
+							strI = strI.substring(0, strI.length()-1).trim();
+							panel = strI;
+							break;
+						}
+					}
+				}
+			} else {
+				panel = input.toString().trim();
+			}
 			panel = trimQuotes(panel);
 			panelCreationOrder.add(panel);
 		}
@@ -394,13 +417,7 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 	@Override
 	public void outAOperation(AOperation node) {
 		String reactorId = node.getId().toString().trim();
-		if(reactorId.equals("SetInsightGoldenLayout")) {
-			NounMetadata goldenLayoutMap = deInitMapReactor();
-			this.insightGoldenLayout = (Map) goldenLayoutMap.getValue();
-			captureMap = false;
-		}
-		// is this the config layout
-		else if(reactorId.equals("SetInsightConfig")) {
+		if(reactorId.equals("SetInsightConfig")) {
 			NounMetadata configMap = deInitMapReactor();
 			this.insightConfig = (Map) configMap.getValue();
 			captureMap = false;
@@ -791,10 +808,6 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 				cacheRecipe.add(keepExpression);
 			}
 		}
-		// add the golden layout config at the end
-		if(this.insightGoldenLayout != null) {
-			cacheRecipe.add("SetInsightGoldenLayout(" + gson.toJson(this.insightGoldenLayout) + ");");
-		}
 		// add the insight config at the end
 		if(this.insightConfig != null) {
 			cacheRecipe.add("SetInsightConfig(" + gson.toJson(this.insightConfig) + ");");
@@ -1017,6 +1030,15 @@ public class OptimizeRecipeTranslation extends DepthFirstAdapter {
 			curReactor.getCurRow().addDecimal(retNum.doubleValue());
 		}
 	}
+	
+    @Override
+    public void inANullScalar(ANullScalar node) {
+    	if(captureMap) {
+			defaultIn(node);
+	    	NounMetadata noun = new NounMetadata(null, PixelDataType.NULL_VALUE);
+	    	curReactor.getCurRow().add(noun);
+    	}
+    }
 
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
