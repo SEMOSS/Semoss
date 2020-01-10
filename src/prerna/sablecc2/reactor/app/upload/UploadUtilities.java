@@ -649,11 +649,11 @@ public class UploadUtilities {
 				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
 			} else {
 				String json = gson.toJson(typeMap);
-				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
 			}
 			// name map
 			String json = gson.toJson(nameMap);
-			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
+			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 
 		} catch (IOException ex) {
 			ex.printStackTrace();
@@ -732,11 +732,11 @@ public class UploadUtilities {
 				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
 			} else {
 				String json = gson.toJson(typeMap);
-				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
 			}
 			// name map
 			String json = gson.toJson(nameMap);
-			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
+			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate app smss file");
@@ -815,11 +815,11 @@ public class UploadUtilities {
 				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
 			} else {
 				String json = gson.toJson(typeMap);
-				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
 			}
 			// name map
 			String json = gson.toJson(nameMap);
-			bufferedWriter.write("NAME_MAP" + "\t" + json + "\n");
+			bufferedWriter.write(Constants.NAME_MAP+ "\t" + json + "\n");
 			
 		} catch (IOException ex) {
 			ex.printStackTrace();
@@ -883,11 +883,11 @@ public class UploadUtilities {
 				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
 			} else {
 				String json = gson.toJson(typeMap);
-				bufferedWriter.write("TYPE_MAP" + tab + json + newLine);
+				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
 			}
 			// name map
 			String json = gson.toJson(nameMap);
-			bufferedWriter.write("NAME_MAP" + "\t" + json + "\n");
+			bufferedWriter.write(Constants.NAME_MAP + "\t" + json + "\n");
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate app smss file");
@@ -916,7 +916,7 @@ public class UploadUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static File generateTemporaryEmbeddedNeo4jSmss(String appId, String appName, File owlFile, String filePath, Map<String, String> nameMap)
+	public static File generateTemporaryEmbeddedNeo4jSmss(String appId, String appName, File owlFile, String filePath, Map<String, String> typeMap, Map<String, String> nameMap, boolean useLabel)
 			throws IOException {
 		String appTempNeo4jLoc = getAppTempSmssLoc(appId, appName);
 
@@ -941,10 +941,17 @@ public class UploadUtilities {
 			bufferedWriter = new BufferedWriter(writer);
 			writeDefaultSettings(bufferedWriter, appId, appName, owlFile, Neo4jEngine.class.getName(), newLine, tab);
 			bufferedWriter.write(Constants.NEO4J_FILE + tab + filePath + newLine);
-			// Name map
 			Gson gson = new GsonBuilder().create();
+			if (useLabel) {
+				bufferedWriter.write(Constants.TINKER_USE_LABEL + tab + useLabel + newLine);
+			} else {
+				String json = gson.toJson(typeMap);
+				bufferedWriter.write(Constants.TYPE_MAP + tab + json + newLine);
+			}
+			// name map
+			// Name map
 			String json = gson.toJson(nameMap);
-			bufferedWriter.write("NAME_MAP" + tab + json + newLine);
+			bufferedWriter.write(Constants.NAME_MAP + tab + json + newLine);
 		} catch (IOException ex) {
 			ex.printStackTrace();
 			throw new IOException("Could not generate app smss file");
