@@ -15,7 +15,7 @@ public class ParseMetamodelReactor extends AbstractReactor {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public ParseMetamodelReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER,
+		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE, UploadInputUtility.DELIMITER,
 				UploadInputUtility.ROW_COUNT, UploadInputUtility.PROP_FILE };
 	}
 

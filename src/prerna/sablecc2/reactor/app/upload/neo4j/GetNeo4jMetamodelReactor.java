@@ -1,15 +1,14 @@
 package prerna.sablecc2.reactor.app.upload.neo4j;
 
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-
-import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -27,8 +26,8 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 	public GetNeo4jMetamodelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
-				ReactorKeysEnum.USE_LABEL.getKey() };
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
