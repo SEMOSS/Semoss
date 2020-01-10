@@ -17,7 +17,8 @@ public class PredictDataTypesReactor extends AbstractReactor {
 	private static final String CLASS_NAME = PredictDataTypesReactor.class.getName();
 	
 	public PredictDataTypesReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT };
+		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE, 
+				UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT };
 	}
 
 	@Override

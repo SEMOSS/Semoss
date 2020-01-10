@@ -23,7 +23,7 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 	public static final String SHEET_RANGE = "sheetRange";
 	
 	public PredictExcelRangeMetadataReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(), SHEET_RANGE};
+		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.SHEET_NAME.getKey(), SHEET_RANGE};
 	}
 	
 	@Override

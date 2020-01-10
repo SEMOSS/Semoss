@@ -28,8 +28,8 @@ import prerna.util.MyGraphIoMappingBuilder;
 public class GetGraphMetaModelReactor extends AbstractReactor {
 
 	public GetGraphMetaModelReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.GRAPH_TYPE_ID.getKey(),
-				ReactorKeysEnum.USE_LABEL.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.GRAPH_TYPE_ID.getKey(), ReactorKeysEnum.USE_LABEL.getKey() };
 	}
 
 	@Override
