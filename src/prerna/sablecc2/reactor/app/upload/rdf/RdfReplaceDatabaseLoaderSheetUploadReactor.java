@@ -24,6 +24,7 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 		this.keysToGet = new String[] { 
 				UploadInputUtility.APP, 
 				UploadInputUtility.FILE_PATH,
+				UploadInputUtility.SPACE,
 				UploadInputUtility.CUSTOM_BASE_URI
 		};
 	}

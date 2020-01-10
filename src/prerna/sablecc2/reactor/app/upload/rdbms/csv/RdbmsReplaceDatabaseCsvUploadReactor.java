@@ -24,7 +24,8 @@ public class RdbmsReplaceDatabaseCsvUploadReactor extends RdbmsCsvUploadReactor 
 	public RdbmsReplaceDatabaseCsvUploadReactor() {
 		this.keysToGet = new String[] {
 				UploadInputUtility.APP, 
-				UploadInputUtility.FILE_PATH, 
+				UploadInputUtility.FILE_PATH,
+				UploadInputUtility.SPACE,
 				UploadInputUtility.ADD_TO_EXISTING,
 				UploadInputUtility.DELIMITER, 
 				UploadInputUtility.DATA_TYPE_MAP, 
