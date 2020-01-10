@@ -68,6 +68,8 @@ public class ReplaceDatasourceTranslation extends AbstractDatasourceModification
 	public void caseARoutineConfiguration(ARoutineConfiguration node) {
 		List<PRoutine> copy = new ArrayList<PRoutine>(node.getRoutine());
 		for(PRoutine e : copy) {
+    		this.resultKey = "$RESULT_" + e.hashCode();
+
 			String expression = e.toString();
 			LOGGER.info("Processing " + expression);
 
