@@ -33,12 +33,6 @@ public class CreateExternalGraphDatabaseReactor extends AbstractCreateExternalGr
 	@Override
 	protected void validateUserInput() throws IOException {
 		this.filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		if (this.filePath == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires file name to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-		
 		if (!(this.file = new File(this.filePath)).exists()) {
 			SemossPixelException exception = new SemossPixelException(new NounMetadata("Could not find file to save.", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
