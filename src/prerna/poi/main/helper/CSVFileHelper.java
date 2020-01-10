@@ -16,7 +16,6 @@ import com.univocity.parsers.csv.CsvFormat;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 
-import cern.colt.Arrays;
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.poi.main.HeadersException;
@@ -577,7 +576,7 @@ public class CSVFileHelper {
 		test.getHeaders();
 		Object[][] predictions = test.predictTypes();
 		for(Object[] r : predictions) {
-			System.out.println(Arrays.toString(r));
+			System.out.println(java.util.Arrays.toString(r));
 		}
 	}
 }
