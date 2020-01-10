@@ -537,6 +537,9 @@ public class Constants {
 	
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_HOME = "GOOGLE_CHROME_HOME";
+	//Graph engines
+	public static final String TYPE_MAP = "TYPE_MAP";
+	public static final String NAME_MAP = "NAME_MAP";
 	
 	//Tinker engine
 	public static final String TINKER_FILE = "TINKER_FILE";

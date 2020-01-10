@@ -36,7 +36,7 @@ public class Neo4jEngine extends AbstractEngine {
 	public void openDB(String propFile) {
 		super.openDB(propFile);
 		// get type map
-		String typeMapStr = this.prop.getProperty("TYPE_MAP");
+		String typeMapStr = this.prop.getProperty(Constants.TYPE_MAP);
 		if (typeMapStr != null && !typeMapStr.trim().isEmpty()) {
 			try {
 				this.typeMap = new ObjectMapper().readValue(typeMapStr, Map.class);
@@ -45,7 +45,7 @@ public class Neo4jEngine extends AbstractEngine {
 			}
 		}
 		// get the name map
-		String nameMapStr = this.prop.getProperty("NAME_MAP");
+		String nameMapStr = this.prop.getProperty(Constants.NAME_MAP);
 		if (nameMapStr != null && !nameMapStr.trim().isEmpty()) {
 			try {
 				this.nameMap = new ObjectMapper().readValue(nameMapStr, Map.class);
