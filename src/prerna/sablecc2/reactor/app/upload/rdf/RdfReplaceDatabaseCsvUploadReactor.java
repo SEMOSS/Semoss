@@ -24,6 +24,7 @@ public class RdfReplaceDatabaseCsvUploadReactor extends RdfCsvUploadReactor {
 		this.keysToGet = new String[] {
 				UploadInputUtility.APP, 
 				UploadInputUtility.FILE_PATH,
+				UploadInputUtility.SPACE,
 				UploadInputUtility.DELIMITER, 
 				UploadInputUtility.DATA_TYPE_MAP,
 				UploadInputUtility.NEW_HEADERS,

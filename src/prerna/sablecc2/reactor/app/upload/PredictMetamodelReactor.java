@@ -22,7 +22,7 @@ public class PredictMetamodelReactor extends AbstractReactor {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public PredictMetamodelReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT };
+		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE, UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT };
 	}
 	
 	@Override

@@ -25,6 +25,7 @@ public class RdbmsReplaceDatabaseLoaderSheetUploadReactor extends RdbmsLoaderShe
 		this.keysToGet = new String[] { 
 				UploadInputUtility.APP, 
 				UploadInputUtility.FILE_PATH, 
+				UploadInputUtility.SPACE,
 				UploadInputUtility.ADD_TO_EXISTING,
 				UploadInputUtility.DATA_TYPE_MAP,
 				UploadInputUtility.NEW_HEADERS, 

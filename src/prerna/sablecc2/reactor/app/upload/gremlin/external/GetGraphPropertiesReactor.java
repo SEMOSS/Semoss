@@ -27,7 +27,7 @@ import prerna.util.MyGraphIoMappingBuilder;
 public class GetGraphPropertiesReactor extends AbstractReactor {
 	
 	public GetGraphPropertiesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override

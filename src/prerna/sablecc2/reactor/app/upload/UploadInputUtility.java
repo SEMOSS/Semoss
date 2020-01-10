@@ -17,6 +17,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -25,6 +26,7 @@ public class UploadInputUtility {
 
 	public static final String APP = ReactorKeysEnum.APP.getKey();
 	public static final String FILE_PATH = ReactorKeysEnum.FILE_PATH.getKey();
+	public static final String SPACE = ReactorKeysEnum.SPACE.getKey();
 	public static final String ADD_TO_EXISTING = ReactorKeysEnum.EXISTING.getKey();
 	public static final String CLEAN_STRING_VALUES = ReactorKeysEnum.CLEAN.getKey();
 	public static final String REMOVE_DUPLICATE_ROWS = ReactorKeysEnum.DEDUPLICATE.getKey();
@@ -70,12 +72,33 @@ public class UploadInputUtility {
 
 	public static String getFilePath(NounStore store, Insight in) {
 		GenRowStruct grs = store.getNoun(FILE_PATH);
+		GenRowStruct space = store.getNoun(SPACE);
+		String fileLocation = null;
+		String filePrefix = null;
+		fileLocation = grs.get(0).toString();
+
 		if (grs == null || grs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the file path using key " + FILE_PATH);
 		}
 		
-		String fileLocation = grs.get(0).toString();
-		fileLocation = in.getAbsoluteInsightFolderPath(fileLocation);
+		// grabbing the space
+		// and using the asset utility to get teh location
+		if (space != null && !space.isEmpty()) {
+			String spaceLocation = space.get(0).toString();
+			if (!spaceLocation.equals(" ")) {
+				filePrefix = space.get(0).toString();
+				filePrefix = AssetUtility.getAssetBasePath(in, filePrefix, false);
+			}
+		}
+
+		// this is for legacy recipes
+		if (filePrefix != null) {
+			fileLocation = fileLocation.replace("\\", "/").replace("INSIGHT_FOLDER", "");
+			fileLocation = filePrefix + fileLocation;
+		} else {
+			fileLocation = in.getAbsoluteInsightFolderPath(fileLocation);
+		}
+
 		return fileLocation;
 	}
 
