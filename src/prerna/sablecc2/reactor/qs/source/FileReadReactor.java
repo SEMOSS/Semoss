@@ -10,12 +10,14 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
 
 public class FileReadReactor extends AbstractQueryStructReactor {
 
 	//keys to get inputs from pixel command
 	private static final String FILEPATH = ReactorKeysEnum.FILE_PATH.getKey();
+	private static final String SPACE = ReactorKeysEnum.SPACE.getKey();
 	private static final String SHEET_NAME = "sheetName";
 	private static final String SHEET_RANGE = "sheetRange";
 	private static final String DATA_TYPES = ReactorKeysEnum.DATA_TYPE_MAP.getKey();
@@ -40,7 +42,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 	 */
 	
 	public FileReadReactor() {
-		this.keysToGet = new String[]{FILEPATH, SHEET_NAME, SHEET_RANGE, DATA_TYPES, DELIMITER, HEADER_NAMES, ADDITIONAL_DATA_TYPES};
+		this.keysToGet = new String[]{FILEPATH, SPACE, SHEET_NAME, SHEET_RANGE, DATA_TYPES, DELIMITER, HEADER_NAMES, ADDITIONAL_DATA_TYPES};
 	}
 
 	@Override
@@ -51,7 +53,7 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		Map<String, String> newHeaders = getHeaders(); 
 		Map<String, String> dataTypes = getDataTypes();
 		Map<String, String> additionalDataTypes = getAdditionalDataTypes();
-		String fileLocation = getFileLocation();
+		String fileLocation = UploadInputUtility.getFilePath(this.store, this.insight);
 		if(this.evaluate && !new File(fileLocation).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
@@ -170,21 +172,21 @@ public class FileReadReactor extends AbstractQueryStructReactor {
 		return delim;
 	}
 
-	private String getFileLocation() {
-		GenRowStruct fileGRS = this.store.getNoun(FILEPATH);
-		String fileLocation = "";
-		NounMetadata fileNoun;
-		if (fileGRS != null) {
-			fileNoun = fileGRS.getNoun(0);
-			fileLocation = (String) fileNoun.getValue();
-		} else {
-			throw new IllegalArgumentException("Need to specify " + FILEPATH + "=[filePath] in pixel command");
-		}
-		
-		// we will need to translate the file path from the parameterized insight form
-		fileLocation = this.insight.getAbsoluteInsightFolderPath(fileLocation);
-		return fileLocation;
-	}
+//	private String getFileLocation() {
+//		GenRowStruct fileGRS = this.store.getNoun(FILEPATH);
+//		String fileLocation = "";
+//		NounMetadata fileNoun;
+//		if (fileGRS != null) {
+//			fileNoun = fileGRS.getNoun(0);
+//			fileLocation = (String) fileNoun.getValue();
+//		} else {
+//			throw new IllegalArgumentException("Need to specify " + FILEPATH + "=[filePath] in pixel command");
+//		}
+//		
+//		// we will need to translate the file path from the parameterized insight form
+//		fileLocation = this.insight.getAbsoluteInsightFolderPath(fileLocation);
+//		return fileLocation;
+//	}
 	
 	///////////////////////// KEYS /////////////////////////////////////
 

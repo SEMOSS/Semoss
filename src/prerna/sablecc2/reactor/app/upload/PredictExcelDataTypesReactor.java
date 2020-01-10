@@ -24,7 +24,7 @@ public class PredictExcelDataTypesReactor extends AbstractReactor {
 	private static final String CLASS_NAME = PredictExcelDataTypesReactor.class.getName();
 
 	public PredictExcelDataTypesReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH };
+		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE };
 	}
 
 	@Override

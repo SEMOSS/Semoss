@@ -25,7 +25,7 @@ public class GetNeo4jPropertiesReactor extends AbstractReactor {
 	public GetNeo4jPropertiesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(),
 				ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
-				ReactorKeysEnum.FILE_PATH.getKey() };
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
