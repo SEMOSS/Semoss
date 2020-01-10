@@ -29,11 +29,7 @@ import prerna.util.Utility;
 public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 	
 	public RReplaceDatabaseCsvUploadReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH };
-//				UploadInputUtility.DELIMITER, 
-//				UploadInputUtility.DATA_TYPE_MAP, 
-//				UploadInputUtility.NEW_HEADERS,
-//				UploadInputUtility.ADDITIONAL_DATA_TYPES};
+		this.keysToGet = new String[] { UploadInputUtility.APP, UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE };
 	}
 	
 	@Override

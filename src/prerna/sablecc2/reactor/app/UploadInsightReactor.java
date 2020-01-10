@@ -35,7 +35,7 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 	private static final String CLASS_NAME = UploadInsightReactor.class.getName();
 
 	public UploadInsightReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
