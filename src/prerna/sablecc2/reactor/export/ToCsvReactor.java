@@ -42,6 +42,8 @@ public class ToCsvReactor extends AbstractExportTxtReactor {
 			// only from the given insight
 			this.insight.addExportFile(exportName, this.fileLocation);
 			retNoun = new NounMetadata(exportName, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		} else {
+			retNoun = new NounMetadata(this.fileLocation, PixelDataType.CONST_STRING);
 		}
 		buildTask();
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
