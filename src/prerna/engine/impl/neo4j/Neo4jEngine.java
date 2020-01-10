@@ -5,7 +5,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -19,6 +18,7 @@ import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.CypherInterpreter;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 
 /**
@@ -57,18 +57,7 @@ public class Neo4jEngine extends AbstractEngine {
 			String booleanStr = prop.get(Constants.TINKER_USE_LABEL).toString();
 			useLabel = Boolean.parseBoolean(booleanStr);
 		}
-		try {
-			LOGGER.info("Opening neo4j graph: ");
-			Class.forName("org.neo4j.jdbc.bolt.BoltDriver").newInstance();
-			String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
-			String username = prop.getProperty(Constants.USERNAME);
-			String password = prop.getProperty(Constants.PASSWORD);
-			LOGGER.info("Connecting to remote graph: " + connectionURL);
-			conn = DriverManager.getConnection(connectionURL, username, password);
-			LOGGER.info("Done neo4j opening graph: ");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		this.conn = getGraphDatabaseConnection();
 	}
 	
 	@Override
@@ -95,7 +84,7 @@ public class Neo4jEngine extends AbstractEngine {
 			map.put(RDBMSNativeEngine.STATEMENT_OBJECT, stmt);
 			return map;
 		} catch (Exception e) {
-			LOGGER.error("Error executing SQL query = " + query);
+			LOGGER.error("Error executing cypher query = " + query);
 			LOGGER.error("Error message = " + e.getMessage());
 			e.printStackTrace();
 		}
@@ -106,11 +95,12 @@ public class Neo4jEngine extends AbstractEngine {
 	public IQueryInterpreter getQueryInterpreter() {
 		CypherInterpreter interp = new CypherInterpreter(this.typeMap, this.nameMap);
 		interp.setUseLabel(this.useLabel);
-		return interp;	}
-	
+		return interp;
+	}
+
 	public Connection getGraphDatabaseConnection() {
 		try {
-			if (conn.isClosed()) {
+			if (this.conn == null || this.conn.isClosed()) {
 				LOGGER.info("Opening neo4j graph: ");
 				Class.forName("org.neo4j.jdbc.bolt.BoltDriver").newInstance();
 				String connectionURL = prop.getProperty(Constants.CONNECTION_URL);
@@ -120,45 +110,38 @@ public class Neo4jEngine extends AbstractEngine {
 				conn = DriverManager.getConnection(connectionURL, username, password);
 				LOGGER.info("Done neo4j opening graph: ");
 			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return conn;
+		return this.conn;
 	}
 
 	@Override
 	public void insertData(String query) throws Exception {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void removeData(String query) throws Exception {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void commit() {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public Vector<Object> getEntityOfType(String type) {
-		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	@Override
+	public void closeDB() {
+		super.closeDB();
+		ConnectionUtils.closeConnection(this.conn);
+	}
+	
 	
 }
 
