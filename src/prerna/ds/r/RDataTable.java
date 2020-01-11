@@ -161,6 +161,11 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setLogger(this.logger);
 		interp.setRFrameBuilder(builder);
 		
+		boolean cache = true;
+		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache"))
+			cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true:false;
+
+		
 		logger.info("Generating R Data Table query...");
 		String query = interp.composeQuery();
 		logger.info("Done generating R Data Table query");
@@ -169,7 +174,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		IRawSelectWrapper retWrapper = null;
 		String looker = interp.getMainQuery();
 		// sets the framebuilder
-		if(!queryCache.containsKey(looker))
+		if(!queryCache.containsKey(looker) || !cache)
 		{
 			logger.info("Executing query...");
 			RIterator output = new RIterator(this.builder, query, qs);
@@ -178,6 +183,9 @@ public class RDataTable extends AbstractTableDataFrame {
 			it.directExecution(output);
 			logger.info("Done executing query");
 			retWrapper = it;
+			
+			if(!cache)
+				clearCache();
 		}
 		else
 		{
@@ -187,6 +195,11 @@ public class RDataTable extends AbstractTableDataFrame {
 			retWrapper = rcw;
 		}
 		return retWrapper;
+	}
+	
+	public void clearCache()
+	{
+		this.queryCache.clear();
 	}
 	
 	// cache the iterator

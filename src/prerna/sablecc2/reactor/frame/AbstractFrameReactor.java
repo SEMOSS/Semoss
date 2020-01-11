@@ -3,6 +3,8 @@ package prerna.sablecc2.reactor.frame;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.py.PandasFrame;
+import prerna.ds.r.RDataTable;
 import prerna.poi.main.HeadersException;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -13,30 +15,48 @@ import prerna.sablecc2.reactor.AbstractReactor;
 public abstract class AbstractFrameReactor extends AbstractReactor {
 
 	protected ITableDataFrame getFrame() {
+		ITableDataFrame retFrame = null;
 		GenRowStruct grs = this.store.getNoun(PixelDataType.FRAME.toString());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
-			return (ITableDataFrame) frameInputs.get(0);
+			retFrame = (ITableDataFrame) frameInputs.get(0);
 		}
 		
 		grs = this.store.getNoun(ReactorKeysEnum.FRAME.getKey());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
-			return (ITableDataFrame) frameInputs.get(0);
+			retFrame = (ITableDataFrame) frameInputs.get(0);
 		}
 		
 		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
 		if(curNouns != null && !curNouns.isEmpty()) {
-			return (ITableDataFrame) curNouns.get(0).getValue();
+			retFrame = (ITableDataFrame) curNouns.get(0).getValue();
 		}
 		
 		// else, grab the default frame from the insight
 		if (this.insight.getDataMaker() != null) {
-			return (ITableDataFrame) this.insight.getDataMaker();
+			retFrame = (ITableDataFrame) this.insight.getDataMaker();
 		}
 
+		// wipe the cache
+		// need to be more careful about this
+		
+		if(retFrame != null)
+		{
+			
+			/*if(retFrame instanceof PandasFrame)
+				((PandasFrame)retFrame).clearCache();
+
+			if(retFrame instanceof RDataTable)
+				((RDataTable)retFrame).clearCache();
+			*/
+			
+			return retFrame;
+		}
+		
+		
 		throw new NullPointerException("No frame found");
 	}
 	
