@@ -38,7 +38,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	private Map<String, SemossDataType> colDataTypes;
 	
 	private StringBuilder selectorCriteria;
-	private StringBuilder filterCriteria;
+	private StringBuilder filterCriteria, prevFilter;
 	private StringBuilder groupCriteria = new StringBuilder("");
 	private StringBuilder aggCriteria = new StringBuilder("");
 	private StringBuilder aggCriteria2 = new StringBuilder("");
@@ -92,10 +92,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	List order_list = new ArrayList();
 	Map order_list_map = new HashMap(); // keeps track of what the items are called
 
+	// cache of all the keys
+	List keyCache = new ArrayList();
 	
 	public void setDataTypeMap(Map<String, SemossDataType> dataTypeMap)
 	{
 		this.colDataTypes = dataTypeMap;
+	}
+	
+	public void setKeyCache(List keyCache)
+	{
+		this.keyCache = keyCache;
 	}
 	
 	public boolean isScalar()
@@ -251,6 +258,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		//pyt.runScript("del " + frameName + "w.cache[\"" + filterCriteria + "\""]);
 		
 		//buildListMap();
+		//if(overrideQuery != null)
+		//	query = overrideQuery;
 		return query.toString();
 	}
 	
@@ -283,7 +292,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					{
 						// process it as group
 						g_list.append("'").append(thisSelector).append("'");
-						composeGroupCacheString(thisSelector);
+						composeGroupCacheString(thisSelector, true);
 					}
 					else if(agg_col_map.containsKey(thisSelector))
 					{
@@ -292,7 +301,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 						String agg_func = (String)agg_col_map.get(thisSelector+"__f"); 
 						agg_list.append("'").append(agg_col).append("'");
 						f_list.append("'").append(agg_func).append("'");
-						composeAggCacheString(groupcol, agg_col, thisSelector, agg_func);
+						composeAggCacheString(groupcol, agg_col, thisSelector, agg_func, true);
 					}
 				}
 				g_list.append("]");
@@ -317,15 +326,26 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 					
 					// pull the name of selector
 					String orderSelector = (String)order_list_map.get(thisOrder);
-					orderString.append(cacheName).append("[\"").append(orderSelector).append("\"]");
+					// if this was a group tag a list with it
+					if(!agg_col_map.containsKey(thisOrder))
+						orderString.append("list(").append(cacheName).append("[\"").append(orderSelector).append("\"]").append(")");
+					else
+						orderString.append(cacheName).append("[\"").append(orderSelector).append("\"]");
 
 				}
+				orderString.append("]");
 				
 				String script = frameName + "w.runGroupy(" + filter + ", " + g_list + ", " + agg_list + ", " + f_list + ", '')";
 				Object obj = pyt.runScript(script);
 				
 				// this will ultimately be the query
 				System.err.println("And the order string " + orderString);
+				//obj = pyt.runScript(orderString+"");
+				//System.err.println(">>" + obj);
+				
+				// try replacing the query
+				this.overrideQuery = orderString;
+				qs.getPragmap().put("format", "parquet");
 			}
 			else
 			{
@@ -866,7 +886,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		
 		// EXPERIMENTAL BLOCK
 		// I need to add this as well as the alias some place
-		agg_col_map.put(columnName, selector.getAlias());
+		// I dont think I need the column name at all
+		//agg_col_map.put(columnName, selector.getAlias());
 		agg_col_map.put(selector.getAlias(), columnName);
 		agg_col_map.put(selector.getAlias()+ "__f", pandasFunction);
 		
@@ -1172,8 +1193,16 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String leftSelectorExpression = processSelector(leftSelector, tableName, true, useAlias);
-		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
 		
+		// always index the column if it is string
+		
+		String g_key = leftSelectorExpression;
+		
+		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
+
+		//if(leftDataType == SemossDataType.STRING)
+		//	g_key = indexColumn(leftSelectorExpression);
+			
 		// grab the objects we are setting up for the comparison
 		List<Object> objects = new Vector<Object>();
 		// ugh... this is gross
@@ -1254,9 +1283,17 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			// is this a search string
 			String myFilterFormatted = PandasSyntaxHelper.createPandasColVec(objects, leftDataType);
 			// adding the paranthesis for sanity purposes
+			// i need to replace this with numpy
+			//  tx.loc[np.flatnonzero(np.isin(bnpy, a2))][:200]
+			// bnpy is the numpy representation of the column
+			// I dont know if the extra jep call would kill me
+			
+			
 			retBuilder.append("(");
 			if(thisComparator.contains("!="))
 				retBuilder.append("~");
+			
+			
 			retBuilder.append(frameName).append("[").append(leftSelectorExpression).append("].isin").append(myFilterFormatted);
 			retBuilder.append(") ");
 			return retBuilder;
@@ -1404,9 +1441,29 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		String output = pyt.runPyAndReturnOutput(command.toString());
 		System.err.println("Cache " + output);
 	}
+	
+	private String indexColumn(String col)
+	{
+		String ff_key = "this.cache['data']" + "__f";
+		String g_key = ff_key + "__" + col;
+		if(keyCache.contains(g_key))
+		{
+			// categories and names
+			String cat_codes = g_key+"__cat__cat.code";
+			String cat_names = g_key+"__cat__cat.categories";
+			
+			pyt.runScript(new String [] {frameName + "w.idxColFilter('', " + col + ")"});
+			keyCache.add(g_key); // this is really the numpy key
+			keyCache.add(cat_codes);
+			keyCache.add(cat_names);
+			
+		}
+		return  g_key;
+		
+	}
 
 	
-	private void composeGroupCacheString(String col)
+	private String composeGroupCacheString(String col, boolean add)
 	{
 		/*
 		col_index = ff_key + "__" + col
@@ -1420,21 +1477,22 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		cat_names = g_key + "__cat.categories"
 		*/
 		String ff_key = composeFilterString();
-		String g_key = ff_key + col;
-		String cat_codes = g_key+"__cat.code";
-		String cat_names = g_key+"__cat.categories";
-		
-		this.order_list_map.put(col, cat_names);
-
+		String g_key = ff_key + "__" + col;
+		String cat_codes = g_key+"__cat__cat.code";
+		String cat_names = g_key+"__cat__cat.categories";
+		if(add)
+			this.order_list_map.put(col, cat_names);
+		return g_key;
 		
 	}
 	
-	private void composeAggCacheString(String col, String aggColName, String aggColAlias, String func)
+	private void composeAggCacheString(String col, String aggColName, String aggColAlias, String func, boolean add)
 	{
 		//out_key = g_key + "__" + a + "__" + f
 		String ff_key = composeFilterString();
-		String g_key = ff_key + col;
-		String out_key = g_key + "__" + aggColName + "__" + func;
+		String g_key = ff_key + "__" + col;
+		String out_key = g_key + "__cat__" + aggColName + "__" + func;
+		if(add)
 		this.order_list_map.put(aggColAlias, out_key);
 	}
 	
@@ -1448,7 +1506,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		}
 		else
 		{
-			String ff_key = frameName + "__f";
+			String ff_key = "this.cache['data']" + "__f";
 			return ff_key;
 		}
 	}

@@ -46,10 +46,13 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private PyExecutorThread py = null;
 	private String wrapperFrameName = null;
 	private PyTranslator pyt = null;
+	public boolean cache = true;
 	
 	// cache for query
 	private transient Map <String, CachedIterator> queryCache = new HashMap<String, CachedIterator>();
 
+	// list of caches
+	public List keyCache = new ArrayList();
 	
 	static {
 		pyS.put("object", SemossDataType.STRING);
@@ -92,6 +95,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			this.wrapperFrameName = createFrameWrapperName(name);
 		}
 	}
+	
 	
 	/**
 	 * Get the name of the frame wrapper object
@@ -337,10 +341,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// at this point try to see if the cache already has it and if so pass that iterator instead
 		// the cache is sitting in the insight
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache"))
+			this.cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true:false;
+		
 		PandasInterpreter interp = new PandasInterpreter();
 		interp.setDataTableName(this.frameName, this.wrapperFrameName + ".cache['data']");
 		interp.setDataTypeMap(this.metaData.getHeaderToTypeMap());
 		interp.setQueryStruct(qs);
+		interp.setKeyCache(keyCache);
 		// I should also possibly set up pytranslator so I can run command for creating filter
 		interp.setPyTranslator(pyt);
 		return processInterpreter(interp, qs);
@@ -401,6 +409,22 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(it.hasNext()) {	
 			queryCache.put(it.getQuery(), it);
 		}
+		// this is possibly the last query
+	}
+	
+	// clear the cache
+	public void clearCache()
+	{
+		// this is a huge assumption for now
+		if(this.queryCache.size() > 0)
+			this.queryCache.clear();
+
+		// need to check if the pandas interpreter has it also
+		//if(keyCache.size() > 0)
+		{
+			pyt.runScript(new String[]{frameName + "w.clearCache()"});
+			keyCache.clear();
+		}
 	}
 	
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
@@ -408,7 +432,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		CachedIterator ci = null;
 		IRawSelectWrapper retWrapper = null;
 		
-		if(!queryCache.containsKey(query))
+		
+		if(!queryCache.containsKey(query) || !cache)
 		{
 			
 			Object output = pyt.runScript(query);
@@ -465,14 +490,23 @@ public class PandasFrame extends AbstractTableDataFrame {
 				rpw.setPandasParquetIterator(ppi);
 				retWrapper = rpw;
 			}
+			// clear it if it was !cache
+			if(!cache)
+			{
+				// clean up the cache
+				// I have to do this everytime since I keep the keys at the py level as well
+				clearCache();
+				
+			}
 		}
-		else
+		else if(cache)
 		{
 			ci = queryCache.get(query);
 			RawCachedWrapper rcw = new RawCachedWrapper();
 			rcw.setIterator(ci);
 			retWrapper = rcw;
 		}
+		
 		// set the actual headers so that it can be processed
 		// if not in sync then transform
 		return retWrapper;
