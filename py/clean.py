@@ -11,7 +11,7 @@ from pandas.api.types import is_integer_dtype
 from pandas.api.types import is_datetime64_dtype
 import urllib.parse
 from pyjarowinkler import distance
-
+#import numba as nb
 # UTILITY Methods
 # from importutil import reload
 # sys.path.append('c:\\users\\pkapaleeswaran\\workspacej3\\py')
@@ -553,6 +553,12 @@ class PyFrame:
 		frame[new_col] = (multiplier * rounded).astype(str) + '%'
 		this.cache['data'] = frame
 
+	def to_pct_l(val, sig_figs, by_100):
+		print ('PCT')
+		rounded = round(val, sig_figs)
+		multiplier = 100 if by_100 else 1
+		return str(multiplier * rounded) + '%'
+		
 	def col_division(this, numerator, denominator, new_col):
 		frame = this.cache['data']
 		# Only attempt to divide if both columns are numeric
@@ -562,6 +568,15 @@ class PyFrame:
 			frame[new_col] = frame[numerator] / frame[denominator]
 		this.cache['data'] = frame
 
+	def col_division_l(numerator, denominator):
+		# Only attempt to divide if both columns are numeric
+		is_numerator_numeric = str(numerator).isnumeric()
+		is_denominator_numeric = str(denominator).isnumeric()
+		if is_numerator_numeric and is_denominator_numeric and denominator != 0:
+			return numerator / denominator
+		else:
+			return 0
+		
 	def string_trim_col(this, col, new_col, keep_or_remove, where, num_chars):
 		frame = this.cache['data']
 		if keep_or_remove == 'keep':
@@ -631,3 +646,169 @@ class PyFrame:
 			frame[new_col] = pd.cut(frame[col], breaks, labels=labels, include_lowest=True)
 
 		this.cache['data'] = frame
+		
+	def column_like_old(this, col, searchstr): # this should not be used anymore
+		colindex = col
+		colarr = {}
+		if colindex in this.cache:
+			colarr = this.cache[colindex]
+			colarru = this.cache[colindex + "_u"]
+		else:
+			mainq = this.cache['data'][col]
+			#colarr = mainq.unique().astype('str')
+			# change it to string
+			#colarr = colarr.astype('str')
+			col_cat = mainq.astype('category')
+			colarr = col_cat.cat.categories.to_numpy().astype('str')
+			#colarr = colarr[colarr != None]
+			# remove the none types as well
+			#colarru = mainq.str.upper().unique().astype('str')
+			#colarru = colarr.upper()
+			colarru = np.char.upper(colarr)
+			#colarru = colarru[colarru != None]
+			this.cache[colindex + "_u"] = colarru
+			this.cache[colindex] = colarr
+			col_key = colindex + "__cat";
+			this.cache[col_key] = col_cat 
+			col_cat_codes = col_key + "__cat.code"
+			col_cat_names = col_key + "__cat.categories"
+			this.cache[col_cat_codes] = this.cache[col_key].cat.codes.abs()
+			this.cache[col_cat_names] = this.cache[col_key].cat.categories
+		# now I can search it
+		# need to find a way to handle nulls / nans
+		# right now this matches everywhere
+		# to match to the beginning, this should be equal to 0
+		output = colarr.ravel()[np.flatnonzero(np.char.find(colarru, str(searchstr).upper()) != -1)]
+		return list(output)
+
+	def column_like_old2(this, col, searchstr): # this should not be used anymore
+		this.idxColFilter("", col)
+		output = this.cache[col].ravel()[np.flatnonzero(np.char.find(this.cache[col+"__u"], str(searchstr).upper()) != -1)]
+		return output
+
+	def column_like(this, filterKey, col, searchstr):
+		final_key = this.idxColFilter(filterKey, col)
+		output = this.cache[final_key].ravel()[np.flatnonzero(np.char.find(this.cache[final_key+"__u"], str(searchstr).upper()) != -1)]
+		return list(output)
+
+	def column_not_like(this, filterKey, col, searchstr):
+		final_key = this.idxColFilter(filterKey, col)
+		output = this.cache[final_key].flatten()[np.flatnonzero(np.char.find(this.cache[final_key+"__u"], str(searchstr).upper()) == -1)]
+		return list(output)
+
+
+	def idxColFilter(this, filterKey, col):
+		ff_key = this.idxFilter(filterKey)
+		col_index = ff_key + "__" + col
+		col_index_u = col_index + "__u" # upper case
+		col_key = ff_key + "__" + col + "__cat"
+		col_cat_codes = col_key + "__cat.code"
+		col_cat_names = col_key + "__cat.categories"
+		if col_key not in this.cache:
+			# create this key
+			# g_key is basically the group column as categories
+			cat1 = this.cache[ff_key][col].astype('category')
+			this.cache[col_key] = cat1
+			#print("done cat")
+			this.cache[col_cat_codes] = cat1.cat.codes.abs()
+			#print("done abs")
+			this.cache[col_cat_names] = cat1.cat.categories
+			#print("done category names")
+			this.cache[col_index] = cat1.cat.categories.to_numpy().astype('str')
+			#print("done col index")
+			this.cache[col_index_u] = np.char.upper(this.cache[col_index])
+			#print("done upper")
+		#print("col indexing complete")
+		return col_index
+
+	def idxFilter(this, filterKey):
+		if filterKey != "":
+			id = filterKey+"__f"
+			if id not in this.cache:
+				var1 = eval(filterKey)
+				this.cache[id] = var1
+		else:
+			id = "this.cache['data']__f"
+			if id not in this.cache:
+				this.cache[id] = this.cache['data']
+		#print("filter indexing complete")
+		return id
+		
+	#@nb.njit
+	def runGroupy(this, filterKey, groupby_list, agg_col_list, func_list, order_list):
+		# I need a filter query which will always be the same
+		# I need one query for every groupby - so this be an array
+		# one array for groupby
+		# a parallel array for column
+		# another array for the calculation
+		# I could as well exec the whole thing ?
+		# if the groupby is composite I need to do other operations on top of it - this is going to be tricky - but we will see
+		# See if filter is available in cache .. if not make it cache[Filter value] = filter
+		# if not in cache .. if the groupby is a string column - usually it is - create a category column for it
+		# place it into the cache - with the name filter_columnname_cat <-- not sure that would do because the filter might be playing into it
+		# see if the index exists if not create and place it into cache filter_columnname_cat_idx = cat.codes
+		# see if the cache has value for filter_groupcolumn_cat_idx_column_function if not make it - repeat this for every combination there is
+		# Once all is done
+		# you need [list(filter_groupcolumn_categories.unique()), filter_groupcolumn_cat_idx_column_function]
+		# col__cat - category type column
+		# col - numpy string column
+		# col__cat__cat.code - category code
+		# col__cat__cat.categories - actual actegories
+		# col__u = upper case of the column
+		# filter__f - filter key
+		import numpy_groupies as npg
+		retOutput = 1
+		#ff_key = this.idxFilter(filterKey) # final filter key
+		filtered_data = ""
+		# collocating filter
+		if filterKey != "":
+			ff_key = filterKey+"__f"
+			if ff_key not in this.cache:
+				filtered_data = eval(filterKey)
+				this.cache[ff_key] = filtered_data
+		else:
+			ff_key = "this.cache['data']__f"
+			if ff_key not in this.cache:
+				this.cache[ff_key] = this.cache['data']
+				filtered_data = this.cache['data']
+
+		for g,a,f in zip(groupby_list, agg_col_list, func_list):
+			g_key = ff_key + "__" + g + "__cat"
+			col = g
+			cat_codes = g_key + "__cat.code"
+			cat_names = g_key + "__cat.categories"
+			
+			if g_key not in this.cache:
+				# create this key
+				# g_key is basically the group column as categories
+				# Creating this as a separate function since I will need it for other things as well
+				#this.cache[g_key] = this.cache[filterKey][g].astype('category')
+				#this.cache[cat_codes] = this.cache[g_key].cat.codes.abs()
+				#this.cache[cat_names] = this.cache[g_key].cat.categories
+				this.idxColFilter(filterKey, g)
+
+			a_key = ff_key + "__" + a # this is what we are aggregating i.e. the column. We are indexing, because there could be a filter associated with it
+			a_col = ""
+			if a_key not in this.cache:
+				a_col = this.cache[ff_key][a]
+				this.cache[a_key] = a_col
+			else:
+				a_col = this.cache[a_key]
+			# time to run the npg now
+			out_key = g_key + "__" + a + "__" + f
+			out = npg.aggregate(this.cache[cat_codes], a_col, f)
+			print("final out key", out_key)
+			this.cache[out_key] = out
+			retOutput = [this.cache[cat_names], this.cache[out_key]]
+		return retOutput[:2]
+		# and then I need to do order logic
+
+	def clearCache(this):
+		imm = ['data', 'version', 'low_version', 0]
+		del_keys = list()
+		for key in this.cache.keys():
+			if key not in imm:
+				del_keys.append(key)
+		
+		for del_key in del_keys:
+			del this.cache[del_key]
