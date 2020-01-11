@@ -177,7 +177,9 @@ public class Insight {
 	// last panel id touched
 	String lastPanelId = null;
 	// pragamp for all the pragmas like cache / raw / parquet etc. 
-	Map pragmap = null;
+	Map pragmap = new HashMap();
+	
+	public String xCache = "True";
 	
 	
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -224,6 +226,11 @@ public class Insight {
 		this.pixelList = new Vector<String>();
 		this.taskStore = new TaskStore();
 		this.insightId = UUID.randomUUID().toString();
+		
+		// put the pragmap
+		if(DIHelper.getInstance().getCoreProp().containsKey("X_CACHE")) 
+			this.pragmap.put("xCache", DIHelper.getInstance().getCoreProp().getProperty("X_CACHE"));
+
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
