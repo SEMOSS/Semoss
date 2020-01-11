@@ -67,7 +67,7 @@ public abstract class AbstractQueryStruct {
 	protected String engineId;
 	
 	// map of pragmas
-	protected transient Map pragmap = null;
+	protected transient Map pragmap = new HashMap();
 	
 	//////////////////////////////////////////// SELECTORS /////////////////////////////////////////////////
 	

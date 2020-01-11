@@ -3,6 +3,8 @@ package prerna.sablecc2.reactor.qs.selectors;
 import java.util.List;
 import java.util.Vector;
 
+import com.sun.tools.javac.resources.javac;
+
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -36,6 +38,11 @@ public class SelectReactor extends AbstractQueryStructReactor {
 			qs.mergeSelectors(selectors);
 		}
 		
+		if(qs.getPragmap() == null)
+			qs.setPragmap(new java.util.HashMap());
+		
+		if(insight.getPragmap() != null)
+			qs.getPragmap().putAll(insight.getPragmap());
 		
 		return qs;
 	}
