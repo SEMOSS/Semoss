@@ -19,6 +19,7 @@ public class CloneReactor extends AbstractInsightPanelReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		// get the insight panel
 		InsightPanel existingPanel = getInsightPanel();
 
