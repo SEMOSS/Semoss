@@ -1199,7 +1199,14 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		String g_key = leftSelectorExpression;
 		
 		SemossDataType leftDataType = SemossDataType.convertStringToDataType(leftSelector.getDataType());
-
+		if(leftDataType == null) {
+			String qsName = leftSelector.getQueryStructName();
+			if (!qsName.contains("__")) {
+				qsName = "__" + qsName;
+			}
+			String colDataTypesKey = this.frameName + qsName;
+			leftDataType = this.colDataTypes.get(colDataTypesKey);
+		}
 		//if(leftDataType == SemossDataType.STRING)
 		//	g_key = indexColumn(leftSelectorExpression);
 			
