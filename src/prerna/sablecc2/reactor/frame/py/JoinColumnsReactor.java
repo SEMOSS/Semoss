@@ -49,26 +49,22 @@ public class JoinColumnsReactor extends AbstractPyFrameReactor {
 		if (separator == null) {
 			separator = getSeparator();
 		}
-
-		StringBuilder colList = new StringBuilder("");
-		// the remaining inputs are all of the columns that we want to join
+		
 		List<String> columnList = getColumns();
-		for (int i = 0; i < columnList.size(); i++) {
-			String column = columnList.get(i);
+		StringBuilder pyColumnListSB = new StringBuilder();
+		pyColumnListSB.append("[");
+		for (String column : columnList) {
 			// separate the column name from the frame name
 			if (column.contains("__")) {
 				column = column.split("__")[1];
 			}
-			
-			if(i > 0)
-				colList.append(".str.cat(" + wrapperFrameName + ".cache['data']['").append(column).append("'], sep='" + separator + "')");
-			else
-				colList.append(wrapperFrameName + ".cache['data']['").append(column).append("'").append("]");			
+			pyColumnListSB.append("'" + column + "',");	
 		}
+		pyColumnListSB.append("]");
+		String pyColumnList = pyColumnListSB.toString();
 		
-		// change it
-		frame.runScript(wrapperFrameName + ".cache['data']['" + newColName + "'] = " + colList);
-		//frame.runScript(table + "w.cache['data'] = " + table);
+		String script = wrapperFrameName + ".join('" + newColName + "', " + pyColumnList + ", '" + separator + "')";
+		frame.runScript(script);
 		
 		recreateMetadata(frame, false);
 
