@@ -30,6 +30,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -41,8 +43,10 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 	protected static final String IMAGE_NAME = "image.png";
 	protected static final String HIDDEN_KEY = "hidden";
 	protected static final String CACHEABLE = "cache";
-
 	protected static final String PIPELINE_FILE = "pipeline.json";
+	
+	public static String USER_SPACE_KEY = "USER";
+	public static final String SPACE = ReactorKeysEnum.SPACE.getKey();
 	
 	protected String getApp() {
 		String appId = null;
@@ -329,36 +333,71 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			if(datasourceType.equals("FILEREAD")) {
 				// we have a file we want to shift
 				String filePixelPortion = ((Map<String, List<String>>) datasourceMap.get("params")).get("filePath").get(0);
-				String fileLoc = filePixelPortion;
-				fileLoc = this.insight.getAbsoluteInsightFolderPath(fileLoc);
-				String filename = FilenameUtils.getName(fileLoc);
-				File origF = new File(fileLoc);
-				String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
-										SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + 
-										"version" + DIR_SEPARATOR +
-										newInsightId + DIR_SEPARATOR + 
-										"data";
-				// create parent directory
-				File newF = new File(newFileLoc);
-				newF.mkdirs();
-				newF = new File(newFileLoc + DIR_SEPARATOR + filename);		
-				// copy file over
-				if(!origF.getAbsolutePath().equals(newF.getAbsolutePath())) {
-					try {
-						FileUtils.copyFile(origF, newF);
-						origF.delete();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+				String space = null;
+				if (((Map<String, List<String>>) datasourceMap.get("params")).containsKey("space")) {
+					space = ((Map<String, List<String>>) datasourceMap.get("params")).get("space").get(0);
 				}
 				
-				String newFilePixel = Insight.getAppInsightFolderKey() + DIR_SEPARATOR + "data" + DIR_SEPARATOR + filename;
-				// need to make new pixel
-				String newPixel = datasourceMap.get("expression").toString().replace(filePixelPortion, newFilePixel);
-				Map<String, Object> modificationMap = new HashMap<String, Object>();
-				modificationMap.put("index", datasourceMap.get("pixelStepIndex"));
-				modificationMap.put("pixel", newPixel);
-				modificationList.add(modificationMap);
+				String fileLoc = null;
+				String filePrefix = null;
+				if(space != null) {
+					filePrefix = AssetUtility.getAssetBasePath(this.insight, space, false);
+				}
+				
+				// this is for legacy recipes
+				if (filePrefix != null) {
+					fileLoc = filePixelPortion.replace("\\", "/").replace("INSIGHT_FOLDER", "");
+					if(fileLoc.startsWith("\\") || fileLoc.startsWith("/")) {
+						fileLoc = filePrefix + fileLoc;
+					} else {
+						fileLoc = filePrefix + "/" + fileLoc;
+					}
+				} else {
+					fileLoc = this.insight.getAbsoluteInsightFolderPath(filePixelPortion);
+				}
+				
+				//TODO: make sure file name is unique once we move it to the insight folder
+				String filename = FilenameUtils.getName(fileLoc);
+				
+				// we only want to shift if it is an insight file
+				// or if it is a user file
+				// if app - keep in current app folder
+				boolean isUserSpace = space != null && space.toUpperCase().equals(AssetUtility.USER_SPACE_KEY);
+				if(space == null || space.isEmpty() || isUserSpace) {
+					File origF = new File(fileLoc);
+					String newFileLoc = BASE + DIR_SEPARATOR + "db" + DIR_SEPARATOR + 
+											SmssUtilities.getUniqueName(appName, appId) + DIR_SEPARATOR + 
+											"version" + DIR_SEPARATOR +
+											newInsightId + DIR_SEPARATOR + 
+											"data";
+					// create parent directory
+					File newF = new File(newFileLoc);
+					newF.mkdirs();
+					newF = new File(newFileLoc + DIR_SEPARATOR + filename);		
+					// copy file over
+					if(!origF.getAbsolutePath().equals(newF.getAbsolutePath())) {
+						try {
+							FileUtils.copyFile(origF, newF);
+							if(!isUserSpace) {
+								origF.delete();
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					
+					String newFilePixel = "data" + DIR_SEPARATOR + filename;
+					// need to make new pixel
+					String newPixel = datasourceMap.get("expression").toString().replace(filePixelPortion, newFilePixel);
+					// if user, need to replace the space to be an empty string
+					if(isUserSpace) {
+						newPixel = newPixel.replace("space = [ \"" + space + "\" ]", "space = [\"\"]");
+					}
+					Map<String, Object> modificationMap = new HashMap<String, Object>();
+					modificationMap.put("index", datasourceMap.get("pixelStepIndex"));
+					modificationMap.put("pixel", newPixel);
+					modificationList.add(modificationMap);
+				}
 			}
 		}
 		
