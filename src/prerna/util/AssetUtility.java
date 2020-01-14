@@ -34,7 +34,7 @@ public class AssetUtility {
 	public static String getAssetBasePath(Insight in, String space, boolean editRequired) {
 		String assetFolder = in.getInsightFolder();
 		// find out what space the user wants to use to get the base asset path
-		if (space != null) {
+		if (space != null && !space.isEmpty()) {
 			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
 				if (AbstractSecurityUtils.securityEnabled()) {
 					User user = in.getUser();

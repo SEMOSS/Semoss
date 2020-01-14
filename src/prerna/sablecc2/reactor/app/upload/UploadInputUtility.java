@@ -71,30 +71,30 @@ public class UploadInputUtility {
 	}
 
 	public static String getFilePath(NounStore store, Insight in) {
-		GenRowStruct grs = store.getNoun(FILE_PATH);
-		GenRowStruct space = store.getNoun(SPACE);
-		String fileLocation = null;
-		String filePrefix = null;
-		fileLocation = grs.get(0).toString();
-
-		if (grs == null || grs.isEmpty()) {
+		GenRowStruct fileGrs = store.getNoun(FILE_PATH);
+		GenRowStruct spaceGrs = store.getNoun(SPACE);
+		if (fileGrs == null || fileGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the file path using key " + FILE_PATH);
 		}
 		
+		String fileLocation = fileGrs.get(0).toString();
+		String filePrefix = null;
+		
 		// grabbing the space
-		// and using the asset utility to get teh location
-		if (space != null && !space.isEmpty()) {
-			String spaceLocation = space.get(0).toString();
-			if (!spaceLocation.equals(" ")) {
-				filePrefix = space.get(0).toString();
-				filePrefix = AssetUtility.getAssetBasePath(in, filePrefix, false);
-			}
+		// and using the asset utility to get the location
+		if (spaceGrs != null && !spaceGrs.isEmpty()) {
+			String space = spaceGrs.get(0).toString();
+			filePrefix = AssetUtility.getAssetBasePath(in, space, false);
 		}
 
 		// this is for legacy recipes
 		if (filePrefix != null) {
 			fileLocation = fileLocation.replace("\\", "/").replace("INSIGHT_FOLDER", "");
-			fileLocation = filePrefix + fileLocation;
+			if(fileLocation.startsWith("\\") || fileLocation.startsWith("/")) {
+				fileLocation = filePrefix + fileLocation;
+			} else {
+				fileLocation = filePrefix + "/" + fileLocation;
+			}
 		} else {
 			fileLocation = in.getAbsoluteInsightFolderPath(fileLocation);
 		}
