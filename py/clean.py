@@ -468,11 +468,7 @@ class PyFrame:
 
 	def collapse(this, group_col, agg_col, delim: object = '', other_cols='assign'):
 		frame = this.cache['data']
-		# delim.join(x) line below only works on non-numeric columns
-		# if agg_col is numeric, convert to string
-		if is_numeric_dtype(frame[agg_col].dtype):
-			frame[agg_col] = frame[agg_col].astype(str)
-		res_frame = frame.groupby(group_col)[agg_col].apply(lambda x: delim.join(x)).reset_index()
+		res_frame = frame.groupby(group_col)[agg_col].apply(lambda x: delim.join(x.astype(str))).reset_index()
 		res_frame = res_frame.rename(columns={agg_col: 'Collapsed_' + agg_col})
 		# res_frame = pd.DataFrame(res_frame.index, res_frame.values).reset_index()
 		# res_frame.columns = ['COLLAPSE_' + agg_col, group_col]
@@ -486,9 +482,11 @@ class PyFrame:
 		this.cache['data'] = res_frame
 		return res_frame
 
-	def join(this, input_col, new_col, delim=''):
+	def join(this, new_col, input_cols, delim=''):
+		# Will need to join columns as strings (since you can't join non-str cols and it doesn't make sense)
 		frame = this.cache['data']
-		frame[new_col] = frame[input_col].apply(lambda x: delim.join(x), axis=1)
+		frame[new_col] = frame[input_cols].apply(lambda x: delim.join(x.astype(str)), axis=1)
+		this.cache['data'] = frame
 		return frame
 
 	def date_add_value(this, date_column, output_column, unit_of_measure, value):
