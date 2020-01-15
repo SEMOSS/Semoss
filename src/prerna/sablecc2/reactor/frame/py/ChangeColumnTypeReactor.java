@@ -72,7 +72,7 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 				// columns
 				//if ((boolean)frame.runScript(table + "w.is_numeric('" + column + "')")) 
 				//{
-				frame.runScript(table + "['" + column + "'] = " + table + "['" + column + "'].astype('object')");
+				frame.runScript(table + "['" + column + "'] = " + table + "['" + column + "'].astype('str')");
 				//} 
 			} else if (newType.equalsIgnoreCase("factor")) {
 				// df$column <- as.factor(df$column);
