@@ -31,6 +31,12 @@ public class FrameReactor extends AbstractQueryStructReactor {
 			NounMetadata noun = frameGrs.getNoun(0);
 			if(noun.getNounType() == PixelDataType.FRAME) {
 				return (ITableDataFrame) noun.getValue();
+			} else if(noun.getNounType() == PixelDataType.CONST_STRING) {
+				// is it a variable?
+				NounMetadata possibleFrameNoun = this.insight.getVarStore().get(noun.getValue() + "");
+				if(possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
+					return (ITableDataFrame) possibleFrameNoun.getValue();
+				}
 			}
 		}
 
@@ -39,6 +45,14 @@ public class FrameReactor extends AbstractQueryStructReactor {
 			return (ITableDataFrame) frameCur.get(0).getValue();
 		}
 
+		List<String> frameVariableName = this.curRow.getAllStrValues();
+		if(frameVariableName != null && !frameVariableName.isEmpty()) {
+			NounMetadata possibleFrameNoun = this.insight.getVarStore().get(frameVariableName.get(0));
+			if(possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
+				return (ITableDataFrame) possibleFrameNoun.getValue();
+			}
+		}
+		
 		if(this.insight != null) {
 			return (ITableDataFrame) this.insight.getDataMaker();	
 		}
