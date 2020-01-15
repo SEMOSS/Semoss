@@ -17,7 +17,9 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 		out.beginObject();
 		out.name("sheetId").value(value.getSheetId());
 		out.name("sheetLabel").value(value.getSheetLabel());
-		out.name("sheetBackground").value(value.getSheetBackground());
+		out.name("backgroundColor").value(value.getBackgroundColor());
+		out.name("hideHeaders").value(value.getHideHeaders());
+		out.name("hideBorders").value(value.getHideBorders());
 		out.endObject();
 	}
 
@@ -25,8 +27,10 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 	public InsightSheet read(JsonReader in) throws IOException {
 		String sheetId = null;
 		String sheetLabel = null;
-		String sheetBackground = null;
-		
+		String backgroundColor = null;
+		Boolean hideHeaders = null;
+		Boolean hideBorders = null;
+
 		in.beginObject();
 		while(in.hasNext()) {
 			String key = in.nextName();
@@ -39,15 +43,21 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 				sheetId = in.nextString();
 			} else if(key.equals("sheetLabel")) {
 				sheetLabel = in.nextString();
-			} else if(key.equals("sheetBackground")) {
-				sheetBackground = in.nextString();
+			} else if(key.equals("backgroundColor")) {
+				backgroundColor = in.nextString();
+			} else if(key.equals("hideHeaders")) {
+				hideHeaders = in.nextBoolean();
+			} else if(key.equals("hideBorders")) {
+				hideBorders = in.nextBoolean();
 			}
 		}
 		in.endObject();
 
 		InsightSheet sheet = new InsightSheet(sheetId);
 		sheet.setSheetLabel(sheetLabel);
-		sheet.setSheetBackground(sheetBackground);
+		sheet.setBackgroundColor(backgroundColor);
+		sheet.setHideHeaders(hideHeaders);
+		sheet.setHideBorders(hideBorders);
 		return sheet;
 	}
 
