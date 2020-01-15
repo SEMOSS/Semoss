@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import com.google.gson.TypeAdapter;
@@ -63,28 +62,14 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		out.name("varstore");
 		// output all variables that are not frames or tasks
 		VarStoreAdapter varStoreAdapter = new VarStoreAdapter();
+		varStoreAdapter.setCollectFrames(true);
 		VarStore varStore = value.getVarStore();
 		varStoreAdapter.write(out, varStore);
 		
-		// consolidate frames due to alias
-		// that point to the same frame
-		this.frames = new Vector<FrameCacheHelper>();
-		Set<String> keys = varStore.getKeys();
-		for(String k : keys) {
-			NounMetadata noun = varStore.get(k);
-			PixelDataType type = noun.getNounType();
-			if(type == PixelDataType.FRAME) {
-				ITableDataFrame frame = (ITableDataFrame) noun.getValue();
-				FrameCacheHelper existingFrameObject = findSameFrame(frames, frame);
-				if(existingFrameObject != null) {
-					existingFrameObject.addAlias(k);
-				} else {
-					FrameCacheHelper fObj = new FrameCacheHelper(frame);
-					fObj.addAlias(k);
-					frames.add(fObj);
-				}
-			}
-		}
+		// for optimization
+		// we collected the frames during the above adapter writing
+		// it also ignores the keys based on varsToExclude
+		List<FrameCacheHelper> frames = varStoreAdapter.getFrames();
 		
 		// now that we have consolidated, write the frames
 		out.name("frames");
@@ -163,17 +148,6 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		
 		// end insight object
 		out.endObject();
-	}
-	
-	private FrameCacheHelper findSameFrame(List<FrameCacheHelper> frames, ITableDataFrame frame) {
-		int size = frames.size();
-		for(int i = 0; i < size; i++) {
-			if(frames.get(i).sameFrame(frame)) {
-				return frames.get(i);
-			}
-		}
-		
-		return null;
 	}
 	
 	@Override
