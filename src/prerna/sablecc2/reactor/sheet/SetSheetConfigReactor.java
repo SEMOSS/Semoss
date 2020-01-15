@@ -20,30 +20,36 @@ public class SetSheetConfigReactor extends AbstractSheetReactor {
 	public NounMetadata execute() {
 		InsightSheet insightSheet = getInsightSheet();
 		// get the label
-		Map<String, String> sheetConfig = getSheetConfig();
+		Map<String, Object> sheetConfig = getSheetConfig();
 		// merge the map options
 		if(sheetConfig.containsKey("sheetLabel")) {
-			insightSheet.setSheetLabel(sheetConfig.get("sheetLabel"));
+			insightSheet.setSheetLabel((String) sheetConfig.get("sheetLabel"));
 		}
-		if(sheetConfig.containsKey("sheetBackground")) {
-			insightSheet.setSheetBackground(sheetConfig.get("sheetBackground"));
+		if(sheetConfig.containsKey("backgroundColor")) {
+			insightSheet.setBackgroundColor((String) sheetConfig.get("backgroundColor"));
+		}
+		if(sheetConfig.containsKey("hideHeaders")) {
+			insightSheet.setHideHeaders((Boolean) sheetConfig.get("hideHeaders"));
+		}
+		if(sheetConfig.containsKey("hideBorders")) {
+			insightSheet.setHideBorders((Boolean) sheetConfig.get("hideBorders"));
 		}
 		
 		return new NounMetadata(insightSheet, PixelDataType.SHEET, PixelOperationType.SHEET_CONFIG);
 	}
 
-	private Map<String, String> getSheetConfig() {
+	private Map<String, Object> getSheetConfig() {
 		// see if it was passed directly in with the lower case key ornaments
 		GenRowStruct genericReactorGrs = this.store.getNoun(keysToGet[1]);
 		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
-			return (Map<String, String>) genericReactorGrs.get(0);
+			return (Map<String, Object>) genericReactorGrs.get(0);
 		}
 
 		// see if it is in the curRow
 		// if it was passed directly in as a variable
 		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
 		if(strNouns != null && !strNouns.isEmpty()) {
-			return (Map<String, String>) strNouns.get(0).getValue();
+			return (Map<String, Object>) strNouns.get(0).getValue();
 		}
 		
 		return null;
