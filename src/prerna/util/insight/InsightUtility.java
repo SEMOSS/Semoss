@@ -25,6 +25,7 @@ import prerna.sablecc2.reactor.PixelPlanner;
 import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.imports.FileMeta;
 import prerna.sablecc2.reactor.job.JobReactor;
+import prerna.util.gson.FrameCacheHelper;
 
 public class InsightUtility {
 
@@ -54,6 +55,23 @@ public class InsightUtility {
 		if(origInsight.rInstantiated()) {
 			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(LOGGER));
 		}
+	}
+	
+	/**
+	 * Useful method to determine if the frame is the same using the FrameCacheHelper class
+	 * @param frames
+	 * @param frame
+	 * @return
+	 */
+	public static FrameCacheHelper findSameFrame(List<FrameCacheHelper> frames, ITableDataFrame frame) {
+		int size = frames.size();
+		for(int i = 0; i < size; i++) {
+			if(frames.get(i).sameFrame(frame)) {
+				return frames.get(i);
+			}
+		}
+		
+		return null;
 	}
 	
 	/**

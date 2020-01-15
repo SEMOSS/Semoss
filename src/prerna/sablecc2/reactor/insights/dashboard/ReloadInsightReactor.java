@@ -70,7 +70,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 //			now I want to cache the insight
 			if(cacheable && !isParam && !isDashoard) {
 				try {
-					InsightCacheUtility.cacheInsight(this.insight);
+					InsightCacheUtility.cacheInsight(this.insight, getCachedRecipeVariableExclusion(runner));
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
