@@ -14,6 +14,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -56,7 +57,7 @@ public class InsightCacheUtility {
 	 * @param insight
 	 * @throws IOException 
 	 */
-	public static File cacheInsight(Insight insight) throws IOException {
+	public static File cacheInsight(Insight insight, Set<String> varsToExclude) throws IOException {
 		String rdbmsId = insight.getRdbmsId();
 		String engineId = insight.getEngineId();
 		String engineName = insight.getEngineName();
@@ -80,6 +81,7 @@ public class InsightCacheUtility {
 			zos = new ZipOutputStream(fos);
 			
 			InsightAdapter iAdapter = new InsightAdapter(zos);
+			iAdapter.setVarsToExclude(varsToExclude);
 			StringWriter writer = new StringWriter();
 			JsonWriter jWriter = new JsonWriter(writer);
 			iAdapter.write(jWriter, insight);
