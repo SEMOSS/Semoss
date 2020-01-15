@@ -3,6 +3,7 @@ package prerna.sablecc2.reactor.insights;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -187,7 +188,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 //			now I want to cache the insight
 			if(cacheable && !isParam && !isDashoard) {
 				try {
-					InsightCacheUtility.cacheInsight(newInsight);
+					InsightCacheUtility.cacheInsight(newInsight, getCachedRecipeVariableExclusion(runner));
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -320,5 +321,23 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		insight.setPixelRecipe(origRecipe);
 		return runner;
 	}
+	
+	/**
+	 * Get the variables that the execution would eventually drop to exclude from 
+	 * @return
+	 */
+	protected Set<String> getCachedRecipeVariableExclusion(PixelRunner runner) {
+		Set<String> varsToExclude = new HashSet<String>();
+		
+		List<NounMetadata> results = runner.getResults();
+		for(NounMetadata res : results) {
+			if(res.getNounType() == PixelDataType.REMOVE_VARIABLE) {
+				varsToExclude.add(res.getValue().toString());
+			}
+		}
+		
+		return varsToExclude;
+	}
+	
 	
 }
