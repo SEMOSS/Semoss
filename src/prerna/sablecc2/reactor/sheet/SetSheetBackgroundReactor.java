@@ -21,7 +21,7 @@ public class SetSheetBackgroundReactor extends AbstractSheetReactor {
 		// get the background
 		String sheetBackground = getSheetBackground();
 		// merge the map options
-		insightSheet.setSheetBackground(sheetBackground);
+		insightSheet.setBackgroundColor(sheetBackground);
 		return new NounMetadata(insightSheet, PixelDataType.SHEET, PixelOperationType.SHEET_BACKGROUND);
 	}
 
