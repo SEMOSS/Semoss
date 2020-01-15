@@ -1,8 +1,9 @@
 package prerna.sablecc2.reactor.export;
 
-import org.jclouds.scriptbuilder.functions.InitAdminAccess;
+import java.util.HashMap;
 
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
@@ -20,10 +21,14 @@ public class FrameCacheReactor extends AbstractReactor {
 		// default is R
 		// reset it ?
 		
-		if(insight.getPragmap() == null)
-			insight.setPragmap(new java.util.HashMap());
+		if(insight.getPragmap() == null) {
+			insight.setPragmap(new HashMap());
+		}
 		this.insight.getPragmap().put("xCache", this.curRow.vector.get(0).getValue());
 		
-		return new NounMetadata("Cache is now set to : " + insight.getPragmap().get("xCache") + "", PixelDataType.CONST_STRING);
+		boolean value = Boolean.parseBoolean(insight.getPragmap().get("xCache") + "");
+		NounMetadata noun = new NounMetadata(value, PixelDataType.BOOLEAN, PixelOperationType.FRAME_CACHE);
+		noun.addAdditionalReturn(getSuccess("Cache is now set to " + value));
+		return noun;
 	}
 }
