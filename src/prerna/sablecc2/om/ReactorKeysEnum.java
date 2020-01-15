@@ -51,7 +51,7 @@ public enum ReactorKeysEnum {
 	FILTER_WORD("filterWord", 								"Regex to apply for searches"),
 	FORMAT("format", 										"The format to save the information as Jpeg, Gif, PNG"),
 	FRAME("frame", 											"The frame"),
-	FRAME_CACHE("frame_cache", 											"Enable or disable the frame cache. Boolean (True / False)"),
+	FRAME_CACHE("frameCache", 								"Enable or disable the frame cache. Boolean (True / False)"),
 	FRAME_TYPE("frameType", 								"Type of frame to generate - grid (sql based frame), graph (frame based on tinkerpop), r (data sits within r, must have r installed to use), native (leverages the database to execute queries)"),
 	GGPLOT("ggplot",                             			"The GGPlot expression used to create the graph"),
 	GRAPH_LAYOUT("graphLayout",                             "The layout of the igraph"),
