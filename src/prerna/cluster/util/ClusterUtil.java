@@ -16,6 +16,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.insight.TextToGraphic;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ClusterUtil {
 
@@ -113,7 +114,7 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
 			 CloudClient.getClient().syncInsightsDB(appId);
-			} catch (IOException | InterruptedException e) {
+			} catch (IOException | InterruptedException e1) {
 				NounMetadata noun = new NounMetadata("Failed to check if app has been modified", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
