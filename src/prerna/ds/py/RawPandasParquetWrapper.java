@@ -90,4 +90,13 @@ public class RawPandasParquetWrapper implements IRawSelectWrapper {
 		return null;
 	}
 
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		return null;
+	}
 }

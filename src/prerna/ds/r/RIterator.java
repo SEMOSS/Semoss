@@ -189,13 +189,19 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 		return this.qs;
 	}
 	
-	public String getQuery()
-	{
+	public String getQuery() {
 		return this.query;
 	}
 	
-	public void setQuery(String query)
-	{
+	public void setQuery(String query) {
 		this.query = query;
+	}
+
+	public String getJsonOfResults() {
+		// TODO: writing to file? 
+		// write(toJSON(dt, dataframe=c("values"), pretty=TRUE), "c:/workspace/testing.json")
+		return this.builder.getRJavaTranslator().getString(
+				"jsonlite:::toJSON( " + this.tempVarName  + "[," + RSyntaxHelper.createStringRColVec(headers) + "], "
+						+ "dataframe=c('values'), factor=c('string'), na=c('null') )");
 	}
 }

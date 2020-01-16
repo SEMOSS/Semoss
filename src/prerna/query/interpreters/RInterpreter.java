@@ -10,7 +10,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.r.RFrameBuilder;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -51,9 +50,6 @@ public class RInterpreter extends AbstractQueryInterpreter {
 	// to make sure the order by's are accurate
 	private List<String> validHeaders = new Vector<String>();
 	
-	// set the RFrameBuilder
-	private RFrameBuilder rfb = null;
-	
 	@Override
 	public String composeQuery() {
 		if(this.dataTableName == null) {
@@ -72,13 +68,6 @@ public class RInterpreter extends AbstractQueryInterpreter {
 		
 		// once the filters have been added, enable 
 		StringBuilder cachedFrame = new StringBuilder(this.dataTableName);
-		/*if(filterCriteria.length() > 0)
-		{
-			String key = createFilterCache(filterCriteria.toString(), this.dataTableName + "[" + filterCriteria + "]");
-			cachedFrame = new StringBuilder("cache$" + key);
-		}*/
-
-		
 		addSelector();
 		addGroupBy();
 
@@ -888,58 +877,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
         
         System.out.println(sb.toString()==null);
         System.out.println(sb.length());
-        
-
 	}
 	
-	public String getMainQuery()
-	{
+	public String getMainQuery() {
 		return this.mainQuery.toString();
 	}
-	
-	// sets the R Translator to create the secondary cache
-	public void setRFrameBuilder(RFrameBuilder rfb)
-	{
-		this.rfb = rfb;
-	}
-
-	private String createFilterCache(String filterKey, String query) {
-		// TODO Auto-generated method stub
-		// need to normalize string
-		// need convert the string to a key with a paste = paste("__", filterKey)
-		// if (!exists('cache')) { cache = {}}
-		// tempKey 
-		// if (!exists('keys')) { keys = {}}
-		// keys[filterKey] = tempKey
-		// cache$tempKey = result of execution
-		// return the tempKey ?
-		filterKey = filterKey.replace("\"", "-");
-		filterKey = "\"" + filterKey + "\"";
-		
-		String tempKey = "k" + Utility.getRandomString(6);
-		StringBuilder command = new StringBuilder();
-		command.append("retVal <- \"" + tempKey +"\";\n");
-		command.append("if (!exists('keys')) keys = {};keys['a'] = 1;\n");
-		command.append("if (!exists('cache')) {cache = {}; cache['a'] = 1;cache['keys'] = keys};\n");
-		
-		command.append("if (is.na(keys[" + filterKey + "])) {\n");
-		command.append("keys[" + filterKey +"] <- " + "\"" + tempKey + "\";\n");
-		command.append("cache$" + tempKey + " <- " + query + ";\n");
-		command.append("cache$keys = keys;\n");
-		command.append("} else {\n");
-		command.append("retVal <- keys[[" + filterKey + "]] ;\n");
-		command.append("}\n");
-		command.append("return (retVal);\n");
-		
-		
-		String output = rfb.getRJavaTranslator().runRAndReturnOutput(command.toString());
-		output = output.replace("[1]", "");
-		output = output.replace("\"", "");
-		output = output.trim();
-		if(!output.equalsIgnoreCase(tempKey))
-			System.err.println("Getting from Cache !!");
-		return output;
-	}
-
 }
 
