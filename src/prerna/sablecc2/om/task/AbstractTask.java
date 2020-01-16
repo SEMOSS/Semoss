@@ -7,8 +7,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.export.FormatFactory;
@@ -267,7 +267,7 @@ public abstract class AbstractTask implements ITask {
 	
 	// dummy method to avoid errors on creating cache
 	@Override
-	public IRawSelectWrapper createCache() {
+	public RawCachedWrapper createCache() {
 		return null;
 	}
 	
