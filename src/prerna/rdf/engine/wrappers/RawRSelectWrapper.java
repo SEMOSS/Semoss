@@ -82,6 +82,16 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 		return getNumRows() * this.headers.length;
 	}
 	
+	@Override
+	public boolean flushable() {
+		return true;
+	}
+	
+	@Override
+	public String flush() {
+		return this.output.getJsonOfResults();
+	}
+	
 	public RIterator getOutput() {
 		return this.output;
 	}

@@ -276,4 +276,14 @@ public class RawGemlinSelectWrapper extends AbstractWrapper implements IRawSelec
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		return null;
+	}
 }
