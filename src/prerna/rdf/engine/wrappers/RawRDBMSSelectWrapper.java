@@ -346,4 +346,14 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			throw new IllegalArgumentException(e.getMessage());
 		}
 	}
+	
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		return null;
+	}
 }

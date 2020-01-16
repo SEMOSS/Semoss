@@ -239,7 +239,17 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 		// it uses an existing datsource iterator
 	}
 
+	@Override
+	public boolean flushable() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 	
+	@Override
+	public String flush() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
 	///////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////
@@ -289,5 +299,4 @@ public class QueryStructExpressionIterator extends AbstractWrapper implements IR
 			System.out.println(it.next());
 		}
 	}
-	
 }
