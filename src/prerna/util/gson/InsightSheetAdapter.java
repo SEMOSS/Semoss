@@ -14,12 +14,34 @@ public class InsightSheetAdapter extends TypeAdapter<InsightSheet> {
 	@Override
 	public void write(JsonWriter out, InsightSheet value) throws IOException {
 		// this is just a simple key/value
+		String sheetId = value.getSheetId();
+		String sheetLabel = value.getSheetLabel();
+		String backgroundColor = value.getBackgroundColor();
+		Boolean hideHeaders = value.getHideHeaders();
+		Boolean hideBorders = value.getHideBorders();
+		
 		out.beginObject();
-		out.name("sheetId").value(value.getSheetId());
-		out.name("sheetLabel").value(value.getSheetLabel());
-		out.name("backgroundColor").value(value.getBackgroundColor());
-		out.name("hideHeaders").value(value.getHideHeaders());
-		out.name("hideBorders").value(value.getHideBorders());
+		out.name("sheetId").value(sheetId);
+		if(sheetLabel == null) {
+			out.name("sheetLabel").nullValue();
+		} else {
+			out.name("sheetLabel").value(sheetLabel);
+		}
+		if(backgroundColor == null) {
+			out.name("backgroundColor").nullValue();
+		} else {
+			out.name("backgroundColor").value(backgroundColor);
+		}
+		if(hideHeaders == null) {
+			out.name("hideHeaders").nullValue();
+		} else {
+			out.name("hideHeaders").value(hideHeaders);
+		}
+		if(hideBorders == null) {
+			out.name("hideBorders").nullValue();
+		} else {
+			out.name("hideBorders").value(hideBorders);
+		}
 		out.endObject();
 	}
 
