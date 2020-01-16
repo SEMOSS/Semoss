@@ -100,4 +100,15 @@ public class Neo4jWrapper extends AbstractWrapper implements IRawSelectWrapper{
 		
 	}
 
+	@Override
+	public boolean flushable() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

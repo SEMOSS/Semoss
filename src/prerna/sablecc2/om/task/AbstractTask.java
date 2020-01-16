@@ -44,7 +44,6 @@ public abstract class AbstractTask implements ITask {
 	
 	private boolean meta = true;
 	
-	
 	public AbstractTask() {
 		this.sortInfo = new ArrayList<Map<String, Object>>();
 		this.headerInfo = new ArrayList<Map<String, Object>>();
@@ -266,6 +265,18 @@ public abstract class AbstractTask implements ITask {
 	
 	// JUST TO MAKE IT EASIER TO DEBUG
 	
+	// dummy method to avoid errors on creating cache
+	@Override
+	public IRawSelectWrapper createCache() {
+		return null;
+	}
+	
+	// dummy
+	@Override
+	public String getPragma(String key) {
+		return null;
+	}
+
 	@Override
 	public String toString() {
 		return this.id;
@@ -285,15 +296,5 @@ public abstract class AbstractTask implements ITask {
 	
 	public void setInternalOffset(long internalOffset) {
 		this.internalOffset = internalOffset;
-	}
-	
-	// dummy method to avoid errors on creating cache
-	public IRawSelectWrapper createCache() {
-		return null;
-	}
-	
-	// dummy
-	public String getPragma(String key) {
-		return null;
 	}
 }

@@ -25,6 +25,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
@@ -33,11 +34,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.AbstractTask;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.export.GraphFormatter;
 import prerna.sablecc2.reactor.frame.FrameFactory;
-import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
@@ -329,6 +330,7 @@ public class PixelStreamUtility {
 				} else if(formatType.equals("TABLE")) {
 					// right now, only grid will work
 					boolean first = true;
+					boolean flushable = false;
 					String[] headers = null;
 					String[] rawHeaders = null;
 					int count = 0;
@@ -355,7 +357,22 @@ public class PixelStreamUtility {
 						CachedIterator cit = cw.getIterator();
 						if(X_CACHE.equalsIgnoreCase("False") || (!(cit.getFrame() instanceof PandasFrame) && !(cit.getFrame() instanceof RDataTable)))
 						{
-							while(task.hasNext() && (collectAll || count < numCollect)) {
+							if(task instanceof BasicIteratorTask) {
+								IRawSelectWrapper iterator = ((BasicIteratorTask) task).getIterator();
+								if( (flushable = iterator.flushable()) ) {
+									ps.print("\"output\":{");
+									ps.print("\"data\":{" );
+									ps.print("\"values\":");
+									ps.print(iterator.flush());
+									ps.flush();
+									// logic around sending an empty data map in proper structure
+									first = false;
+									headers = iterator.getHeaders();
+									rawHeaders = headers;
+								}
+							}
+							
+							while(!flushable && task.hasNext() && (collectAll || count < numCollect)) {
 								IHeadersDataRow row = task.next();
 								// need to set the headers
 								if(headers == null) {
@@ -472,8 +489,13 @@ public class PixelStreamUtility {
 							}
 						}
 					}
+					
+					// close the data values
+					if(!flushable) {
+						ps.print("]");
+					}
 					// end the values and add the headers
-					ps.print("],\"headers\":" + gson.toJson(headers));
+					ps.print(",\"headers\":" + gson.toJson(headers));
 					ps.print(",\"rawHeaders\":" + gson.toJson(rawHeaders));
 					ps.print("}" );
 
