@@ -30,6 +30,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class AZClient extends CloudClient {
 
@@ -39,9 +40,9 @@ public class AZClient extends CloudClient {
 	// get the SAS URL for a given container - boolean create or not
 	// Delete the container
 
-	private static final String PROVIDER = "azureblob";
-	private static final String SMSS_POSTFIX = "-smss";
-	private static final String FILE_SEPARATOR = System.getProperty("file.separator");
+	protected static final String PROVIDER = "azureblob";
+	protected static final String SMSS_POSTFIX = "-smss";
+	protected static final String FILE_SEPARATOR = System.getProperty("file.separator");
 
 	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
 	public static final String AZ_NAME = "AZ_NAME";
@@ -294,6 +295,7 @@ public class AZClient extends CloudClient {
 		//			System.out.println(container);
 		//		}
 	}
+	@Override
 	public void syncInsightsDB(String appId) throws IOException, InterruptedException{
 		IEngine engine = Utility.getEngine(appId, false, true);
 		if (engine == null) {
@@ -307,7 +309,9 @@ public class AZClient extends CloudClient {
 			appRcloneConfig = createRcloneConfig(appId);
 			engine.closeDB();
 			System.out.println("Pulling insights database for" + appFolder + " from remote=" + appId);
-			runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/insights_database.mv.db", appFolder);
+			String insightDB = getInsightDB(appFolder);
+			runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/"+ insightDB, appFolder);
+			 
 			//List<String> results = runRcloneProcess(appRcloneConfig, "rclone", "pull", appFolder+FILE_SEPARATOR + "insights_database.mv.db", appRcloneConfig + ":"+appId);
 		}  finally {
 			if (appRcloneConfig != null) {
@@ -315,6 +319,76 @@ public class AZClient extends CloudClient {
 			}
 		}
 	}
+	
+	@Override
+	public void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(appId, false, true);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+		String appRcloneConfig = null;
+		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String aliasAppId = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		try {
+			appRcloneConfig = createRcloneConfig(appId);
+			engine.closeDB();
+			System.out.println("Pulling database for" + appFolder + " from remote=" + appId);
+			if(e == RdbmsTypeEnum.SQLITE){
+				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
+				for(String sqliteFile : sqliteFileNames){
+				runRcloneProcess(appRcloneConfig, "rclone", "sync", appFolder + "/" + sqliteFile, appRcloneConfig + ":"+ appId);
+				}
+			} else if(e == RdbmsTypeEnum.H2_DB){
+				runRcloneProcess(appRcloneConfig, "rclone", "sync", appFolder + "/database.mv.db", appRcloneConfig + ":"+appId);
+			} else{
+				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
+			}
+			
+			//open the engine again
+			DIHelper.getInstance().removeLocalProperty(appId);
+			Utility.getEngine(appId, false, true);
+		} finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+		}		
+	}
+
+	@Override
+	public void pullDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException {
+		IEngine engine = Utility.getEngine(appId, false, true);
+		if (engine == null) {
+			throw new IllegalArgumentException("App not found...");
+		}
+		String appRcloneConfig = null;
+		String alias = SecurityQueryUtils.getEngineAliasForId(appId);
+		String aliasAppId = alias + "__" + appId;
+		String appFolder = dbFolder + FILE_SEPARATOR + aliasAppId;
+		try {
+			appRcloneConfig = createRcloneConfig(appId);
+			engine.closeDB();
+			System.out.println("Pulling database for" + appFolder + " from remote=" + appId);
+			if(e == RdbmsTypeEnum.SQLITE){
+				List<String> sqliteFileNames = getSqlLiteFile(appFolder);
+				for(String sqliteFile : sqliteFileNames){			
+					runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/"+sqliteFile, appFolder);
+				}
+			} else if(e == RdbmsTypeEnum.H2_DB){
+				runRcloneProcess(appRcloneConfig, "rclone", "sync", appRcloneConfig + ":"+appId+"/database.mv.db", appFolder);
+			} else{
+				throw new IllegalArgumentException("Incorrect database type. Must be either sqlite or H2");
+			}
+		} finally {
+			if (appRcloneConfig != null) {
+				deleteRcloneConfig(appRcloneConfig);
+			}
+		}		
+	}
+	
+
+
+	
 
 	// This is the sync the whole app. It shouldn't be used yet. Only the insights DB should be sync actively 
 
@@ -615,6 +689,8 @@ public class AZClient extends CloudClient {
 			runRcloneProcess(rcloneConfig, "rclone", "config", "create", rcloneConfig, PROVIDER, "sas_url", sasUrl);
 			return rcloneConfig;
 		}
+
+
 
 
 		/*

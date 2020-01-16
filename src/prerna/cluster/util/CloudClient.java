@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public abstract class CloudClient {
 
@@ -29,10 +30,9 @@ public abstract class CloudClient {
 		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AZURE")){
 			return AZClient.getInstance();
 		}
-		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS")){
-
+		else if(ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("AWS")||ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("S3")||ClusterUtil.STORAGE_PROVIDER.equalsIgnoreCase("MINIO")){
 			//add in aws 
-			return AWSClient.getInstance();
+			return S3Client.getInstance();
 		}
 		else{
 			throw new IllegalArgumentException("You have specified an incorrect storage provider");
@@ -42,9 +42,14 @@ public abstract class CloudClient {
 	public abstract void init();
 
 	public  abstract void pushApp(String appId) throws IOException, InterruptedException;
+	
+	public  abstract void pushDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
+
 
 	public  abstract void pullApp(String appId) throws IOException, InterruptedException;
 	
+	public  abstract void pullDB(String appId, RdbmsTypeEnum e) throws IOException, InterruptedException;
+
 	protected abstract void pullApp(String appId, boolean newApp) throws IOException, InterruptedException; 
 	
 	public  abstract void pullImageFolder() throws IOException, InterruptedException;
@@ -138,7 +143,33 @@ public abstract class CloudClient {
 			return lines;
 		}
 	}
+	
+	protected List<String> getSqlLiteFile(String appFolder) {
+        File dir = new File(appFolder);
+        List<String> sqlFiles = new ArrayList<String>();
+        //search dir for .sqlite files 
+        for (File file : dir.listFiles()) {
+            if (file.getName().endsWith((".sqlite"))) {
+            	if (!(file.getName().equals("insights_database.sqlite")))
+            	sqlFiles.add(file.getName());
+            }
+          }
+        if (sqlFiles.size() > 1){
+        	System.out.println("More than 1 sqlite file found in app dir. Adding only first");
+        }
+		return sqlFiles;
+	}
 
+	protected String getInsightDB(String appFolder) {
+        File dir = new File(appFolder);
+        for (File file : dir.listFiles()) {
+            if (file.getName().contains("insights_database")) {
+            	return file.getName();
+            }
+          }
+		throw new IllegalArgumentException("There is no insight database");
+	}
+	
 
 }
 
