@@ -102,5 +102,15 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 			iterator = new CachedIterator();
 		return iterator;
 	}
+
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		return null;
+	}
 	
 }

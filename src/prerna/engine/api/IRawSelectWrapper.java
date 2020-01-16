@@ -32,4 +32,16 @@ public interface IRawSelectWrapper extends IEngineWrapper, Iterator<IHeadersData
 	 * Reset the iterator
 	 */
 	void reset();
+	
+	/**
+	 * Can the full result set be flushed directly from the object
+	 * @return
+	 */
+	boolean flushable();
+	
+	/**
+	 * Return data flushed as a string 
+	 * @return
+	 */
+	String flush();
 }
