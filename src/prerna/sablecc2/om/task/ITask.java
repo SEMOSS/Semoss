@@ -6,8 +6,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
-import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.sablecc2.reactor.export.Formatter;
@@ -75,7 +75,7 @@ public interface ITask extends Iterator<IHeadersDataRow> {
 	void reset();
 	
 	// creates a cache object to be utilized
-	IRawSelectWrapper createCache();
+	RawCachedWrapper createCache();
 	
 	// get the pragma being set
 	String getPragma(String key);
