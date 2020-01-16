@@ -9,6 +9,27 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 
 	CachedIterator iterator = null;
 	
+	public boolean first() {
+		return iterator.getFirst();
+	}
+	
+	public CachedIterator getIterator() {
+		if(this.iterator == null) {
+			iterator = new CachedIterator();
+		}
+		return iterator;
+	}
+
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		return null;
+	}
+	
 	@Override
 	public void execute() {
 		// TODO Auto-generated method stub
@@ -60,7 +81,7 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 	@Override
 	public SemossDataType[] getTypes() {
 		// TODO Auto-generated method stub
-		return iterator.colTypes;
+		return iterator.getColTypes();
 	}
 
 	@Override
@@ -89,28 +110,4 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-	
-	public boolean first()
-	{
-		return iterator.first;
-	}
-	
-	public CachedIterator getIterator()
-	{
-		if(this.iterator == null)
-			iterator = new CachedIterator();
-		return iterator;
-	}
-
-	@Override
-	public boolean flushable() {
-		return false;
-	}
-	
-	@Override
-	public String flush() {
-		return null;
-	}
-	
 }
