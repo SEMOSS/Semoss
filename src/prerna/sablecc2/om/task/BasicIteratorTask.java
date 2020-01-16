@@ -311,7 +311,9 @@ public class BasicIteratorTask extends AbstractTask {
 		ITableDataFrame frame = this.qs.getFrame();
 		RawCachedWrapper retWrapper = null;
 		// will copy the iterator
-		if(!(iterator instanceof RawCachedWrapper)) {
+		if(iterator instanceof RawCachedWrapper) {
+			retWrapper = (RawCachedWrapper) iterator;
+		} else {
 			CachedIterator it = new CachedIterator();
 			it.setHeaders(iterator.getHeaders());
 			it.setColTypes(iterator.getTypes());
@@ -320,8 +322,6 @@ public class BasicIteratorTask extends AbstractTask {
 			RawCachedWrapper wrapper = new RawCachedWrapper();
 			wrapper.setIterator(it);
 			retWrapper = wrapper;
-		} else {
-			retWrapper = (RawCachedWrapper)iterator;
 		}
 		return retWrapper;
 	}
