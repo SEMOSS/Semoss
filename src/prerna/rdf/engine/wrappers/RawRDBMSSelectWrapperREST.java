@@ -319,4 +319,14 @@ public class RawRDBMSSelectWrapperREST extends AbstractRESTWrapper implements IR
 			throw new IllegalArgumentException(e.getMessage());
 		}
 	}
+	
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		return null;
+	}
 }

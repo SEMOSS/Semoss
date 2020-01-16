@@ -159,7 +159,6 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
-		interp.setRFrameBuilder(builder);
 		
 		boolean cache = true;
 		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache"))

@@ -162,4 +162,13 @@ public class RawJenaSelectWrapper  extends AbstractWrapper implements IRawSelect
 		execute();
 	}
 
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+
+	@Override
+	public String flush() {
+		return null;
+	}
 }

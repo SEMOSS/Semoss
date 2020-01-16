@@ -248,4 +248,14 @@ public class RawSesameSelectWrapper extends AbstractWrapper implements IRawSelec
 		cleanUp();
 		execute();
 	}
+	
+	@Override
+	public boolean flushable() {
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		return null;
+	}
 }

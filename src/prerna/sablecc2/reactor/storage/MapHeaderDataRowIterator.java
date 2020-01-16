@@ -99,4 +99,16 @@ public class MapHeaderDataRowIterator implements IRawSelectWrapper {
 		// TODO Auto-generated method stub
 		
 	}
+
+	@Override
+	public boolean flushable() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public String flush() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
