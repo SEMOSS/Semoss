@@ -353,7 +353,7 @@ public class PixelStreamUtility {
 						
 						// need to see how to get to this for R eventually
 						// all processes are done. we need to host it into RInterpreter
-						RawCachedWrapper cw = (RawCachedWrapper)task.createCache();
+						RawCachedWrapper cw = task.createCache();
 						CachedIterator cit = cw.getIterator();
 						if(X_CACHE.equalsIgnoreCase("False") || (!(cit.getFrame() instanceof PandasFrame) && !(cit.getFrame() instanceof RDataTable)))
 						{
@@ -395,15 +395,14 @@ public class PixelStreamUtility {
 						}
 						else // this needs to be cached for future purposes
 						{
-
 							// caching for the first time
 							if(cw.first())
 							{
-								// some more processing can be saved by not having setquery everytime and doing it upfront
+								// some more processing can be saved by not having set query every time and doing it up front
 								while(task.hasNext() && (collectAll || count < numCollect)) {
-									 IHeadersDataRow row = task.next();
-									 // add it to cit
-									 cit.addNext(row);
+									IHeadersDataRow row = task.next();
+									// add it to cit
+									cit.addNext(row);
 									// need to set the headers
 									if(headers == null) {
 										headers = row.getHeaders();
@@ -412,7 +411,7 @@ public class PixelStreamUtility {
 										ps.print("\"data\":{" );
 										ps.print("\"values\":[");
 									}
-		
+
 									if(!first) {
 										ps.print(",");
 									}
@@ -420,7 +419,7 @@ public class PixelStreamUtility {
 									ps.print(output);
 									cit.addJson(output);
 									ps.flush();
-		
+
 									first = false;
 									count++;		
 								}
@@ -428,35 +427,20 @@ public class PixelStreamUtility {
 							}
 							else
 							{
-								while(task.hasNext() && (collectAll || count < numCollect)) {
+								if(task.hasNext() && (collectAll || count < numCollect)) {
 									 IHeadersDataRow row = task.next();
 									// need to set the headers
-									if(headers == null) {
-										headers = row.getHeaders();
-										rawHeaders = row.getRawHeaders();
-										ps.print("\"output\":{");
-										ps.print("\"data\":{" );
-										ps.print("\"values\":[");
-									}
-									
-									/*
-									String output = cit.getNextJson();
-									
-									if(!first) {
-										ps.print(",");
-									}
-									ps.print(output);
-									*/
+									headers = row.getHeaders();
+									rawHeaders = row.getRawHeaders();
+									ps.print("\"output\":{");
+									ps.print("\"data\":{" );
+									ps.print("\"values\":[");
 									ps.print(cit.getAllJson());
 									ps.flush();
-		
 									first = false;
-									count++;		
-									break;
 								}
-								
 							}
-								cit.processCache();
+							cit.processCache();
 						}
 					} catch(Exception e) {
 						// on no, this is not good
@@ -489,7 +473,6 @@ public class PixelStreamUtility {
 							}
 						}
 					}
-					
 					// close the data values
 					if(!flushable) {
 						ps.print("]");
