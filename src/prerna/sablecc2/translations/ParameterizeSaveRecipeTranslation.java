@@ -245,10 +245,10 @@ public class ParameterizeSaveRecipeTranslation extends LazyTranslation {
 	    			curReactor.getCurRow().add(output);
 		    	} else {
 		    		//otherwise if we have an assignment reactor or no reactor then add the result to the planner
-		    		this.planner.addVariable("$RESULT", output);
+		    		this.planner.addVariable(this.resultKey, output);
 		    	}
 	    	} else {
-	    		this.planner.removeVariable("$RESULT");
+	    		this.planner.removeVariable(this.resultKey);
 	    	}
 			
 		} else if(isImport) {
