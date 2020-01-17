@@ -69,7 +69,7 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 		// for optimization
 		// we collected the frames during the above adapter writing
 		// it also ignores the keys based on varsToExclude
-		List<FrameCacheHelper> frames = varStoreAdapter.getFrames();
+		this.frames = varStoreAdapter.getFrames();
 		
 		// now that we have consolidated, write the frames
 		out.name("frames");
