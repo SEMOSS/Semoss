@@ -329,7 +329,7 @@ public class RdbmsImporter extends AbstractImporter {
 				// continue the message up
 				// if we have an inner join and no data
 				// result will be null and we dont want that
-				throw new EmptyIteratorException("Query returned no data.  Cannot add new data with existing grid");
+				throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
 			}
 		}
 		catch(Exception e) {
