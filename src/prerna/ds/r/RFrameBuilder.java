@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.EmptyIteratorException;
 import prerna.ds.util.flatfile.CsvFileIterator;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -171,6 +172,11 @@ public class RFrameBuilder {
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(tableName, newFile.getAbsolutePath(), "\\t");
 			evalR(loadFileRScript);
 			newFile.delete();
+			
+			// check that the variable exists
+			if(isEmpty(tableName)) {
+				throw new EmptyIteratorException("No data found to import");
+			}
 			
 			// update the headers to be cleaned
 			if(it instanceof IRawSelectWrapper) {
