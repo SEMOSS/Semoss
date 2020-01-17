@@ -9,6 +9,7 @@ import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.EmptyIteratorException;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RFrameBuilder;
@@ -114,8 +115,16 @@ public class RImporter extends AbstractImporter {
 		// and use fread() into the temp name
 		String tempTableName = Utility.getRandomString(6);
 		Map<String, SemossDataType> newColumnsToTypeMap = ImportUtility.getTypesFromQs(this.qs, it);
-		this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
 		
+		try {
+			this.dataframe.addRowsViaIterator(this.it, tempTableName, newColumnsToTypeMap);
+		} catch(EmptyIteratorException e) {
+			if(!joins.get(0).getJoinType().equals("inner.join")) {
+				throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
+			}
+			// TODO: add alter missing columns logic
+			throw new EmptyIteratorException("Query returned no data. Cannot add new data with existing grid");
+		}
 		// we may need to alias the headers in this new temp table
 		if(!rightTableAlias.isEmpty()) {
 			for(String oldColName : rightTableAlias.keySet()) {
