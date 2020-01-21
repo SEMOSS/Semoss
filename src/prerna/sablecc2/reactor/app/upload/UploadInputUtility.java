@@ -85,20 +85,17 @@ public class UploadInputUtility {
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
 			String space = spaceGrs.get(0).toString();
 			filePrefix = AssetUtility.getAssetBasePath(in, space, false);
+		} else {
+			filePrefix = AssetUtility.getAssetBasePath(in, null, false);
 		}
 
 		// this is for legacy recipes
-		if (filePrefix != null) {
-			fileLocation = fileLocation.replace("\\", "/").replace("INSIGHT_FOLDER", "");
-			if(fileLocation.startsWith("\\") || fileLocation.startsWith("/")) {
-				fileLocation = filePrefix + fileLocation;
-			} else {
-				fileLocation = filePrefix + "/" + fileLocation;
-			}
+		fileLocation = fileLocation.replace("\\", "/").replace("INSIGHT_FOLDER", "");
+		if(fileLocation.startsWith("\\") || fileLocation.startsWith("/")) {
+			fileLocation = filePrefix + fileLocation;
 		} else {
-			fileLocation = in.getAbsoluteInsightFolderPath(fileLocation);
+			fileLocation = filePrefix + "/" + fileLocation;
 		}
-
 		return fileLocation;
 	}
 
