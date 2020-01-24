@@ -42,6 +42,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SnowFlakeQueryUtil();
 		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
 			queryUtil = new PostgresQueryUtil();
+		} else if(dbType == RdbmsTypeEnum.TERADATA) {
+			queryUtil = new TeradataQueryUtil();
 		}
 		// base will work for most situations
 		else {
@@ -75,6 +77,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SnowFlakeQueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
 			queryUtil = new PostgresQueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.TERADATA) {
+			queryUtil = new TeradataQueryUtil(connectionUrl, username, password);
 		}
 		// base will work for most situations
 		else {
@@ -106,6 +110,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new SnowFlakeQueryUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == RdbmsTypeEnum.POSTGRES) {
 			queryUtil = new PostgresQueryUtil(dbType, hostname, port, schema, username, password);
+		} else if(dbType == RdbmsTypeEnum.TERADATA) {
+			queryUtil = new TeradataQueryUtil(dbType, hostname, port, schema, username, password);
 		}
 		// base will work for most situations
 		else {
