@@ -14,11 +14,11 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsConnectionHelper {
-	
+
 	private RdbmsConnectionHelper() {
-		
+
 	}
-	
+
 	/**
 	 * Method to get a connection to an existing RDBMS engine
 	 * If the username or password are null, we will assume the information is already provided within the connectionUrl
@@ -42,7 +42,7 @@ public class RdbmsConnectionHelper {
 			e.printStackTrace();
 			throw new SQLException("Unable to find driver for engine type");
 		}
-		
+
 		// create the iterator
 		Connection conn;
 		try {
@@ -55,10 +55,10 @@ public class RdbmsConnectionHelper {
 			e.printStackTrace();
 			throw new SQLException(e.getMessage());
 		}
-		
+
 		return conn;
 	}
-	
+
 	/**
 	 * Return the connection url string
 	 * @param driverType
@@ -148,20 +148,24 @@ public class RdbmsConnectionHelper {
 			connectionUrl += "://HOST:PORT;databaseName=SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
 		else if (rdbmsType == RdbmsTypeEnum.TERADATA) {
-			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+			connectionUrl += "://HOST/DATABASE=SCHEMA,:PORT".replace("HOST", host).replace("SCHEMA", schema);
 		}		
 		else if (rdbmsType == RdbmsTypeEnum.TIBCO) {
 			connectionUrl += "@HOST:PORT?SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
-		
+
 		// replace the PORT if defined
 		// else it should use the default
 		if (port != null && !port.isEmpty()) {
-			connectionUrl = connectionUrl.replace(":PORT", ":" + port);
+			if (rdbmsType == RdbmsTypeEnum.TERADATA){
+				connectionUrl = connectionUrl.replace(":PORT", "DBS_PORT=" + port);
+			} else {
+				connectionUrl = connectionUrl.replace(":PORT", ":" + port);
+			}
 		} else {
 			connectionUrl = connectionUrl.replace(":PORT", "");
 		}
-		
+
 		// add additional properties that are considered optional
 		if(additonalProperties != null && !additonalProperties.isEmpty()) {
 			if(!additonalProperties.startsWith(";") && !additonalProperties.startsWith("&")) {
@@ -172,7 +176,7 @@ public class RdbmsConnectionHelper {
 		}
 		return connectionUrl;
 	}
-	
+
 	/**
 	 * Get the driver for a specific db type
 	 * @param driver
@@ -188,7 +192,7 @@ public class RdbmsConnectionHelper {
 			return driver;
 		}
 	}
-	
+
 	/**
 	 * Try to construct the connection URL based on inputs
 	 * @param driver
@@ -205,7 +209,7 @@ public class RdbmsConnectionHelper {
 		String connectionUrl = getConnectionUrl(driver, host, port, schema, additonalProperties);
 		return getConnection(connectionUrl, userName, password, driver);
 	}
-	
+
 	/**
 	 * Try to construct the connection URL based on inputs
 	 * @param driver
@@ -221,7 +225,7 @@ public class RdbmsConnectionHelper {
 	public static Connection buildConnection(String connectionUrl, String userName, String password, String driver) throws SQLException {
 		return getConnection(connectionUrl, userName, password, driver);
 	}
-	
+
 	/**
 	 * 
 	 * @param driver
@@ -240,7 +244,7 @@ public class RdbmsConnectionHelper {
 		ds.setDefaultAutoCommit(false);
 		return ds;
 	}
-	
+
 	/**
 	 * Try to predict the current schema for a given database connection
 	 * @param meta
@@ -255,7 +259,7 @@ public class RdbmsConnectionHelper {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 		// in oracle
 		// the datbase/schema/user are all considered the same thing
 		// so here, if we want to filter
@@ -267,11 +271,11 @@ public class RdbmsConnectionHelper {
 				e.printStackTrace();
 			}
 		}
-		
+
 		if(schema != null) {
 			return schema;
 		}
-		
+
 		// THIS IS BECAUSE ONLY JAVA 7 REQUIRES
 		// THIS METHOD OT BE IMPLEMENTED ON THE
 		// DRIVERS
@@ -289,18 +293,18 @@ public class RdbmsConnectionHelper {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 		schema = predictSchemaFromUrl(url);
 		if(schema != null) {
 			return schema;
 		}
 		schema = predictSchemaFromUrl(connectionUrl);
-		
+
 		String truncatedUrl = connectionUrl;
 		if(rdbmsType != null) {
 			truncatedUrl = connectionUrl.substring(rdbmsType.getUrlPrefix().length());
 		}
-		
+
 		if(schema == null) {
 			// try schema...
 			ResultSet schemaRs = null;
@@ -325,7 +329,7 @@ public class RdbmsConnectionHelper {
 				}
 			}
 		}
-		
+
 		// try catalog...
 		if(schema == null) {
 			ResultSet catalogRs = null;
@@ -350,10 +354,10 @@ public class RdbmsConnectionHelper {
 				}
 			}
 		}
-		
+
 		return schema;
 	}
-	
+
 	/**
 	 * Get tables result set for the given connection, metadata parser, and
 	 * catalog / schema filters. Must return a result set containing table_name
@@ -385,7 +389,7 @@ public class RdbmsConnectionHelper {
 		}
 		return tablesRs;
 	}
-	
+
 	/**
 	 * Get the keys to grab from the result set from calling {@link #getTables}
 	 * First key is table name, second key is table type, the third is the table schema
@@ -406,7 +410,7 @@ public class RdbmsConnectionHelper {
 		return arr;
 	}
 
-	
+
 	/**
 	 * Get columns result set for the given metadata parser, table or view name,
 	 * and catalog / schema filters. Must return a result set containing
@@ -430,7 +434,7 @@ public class RdbmsConnectionHelper {
 		}
 		return columnsRs;
 	}
-	
+
 	/**
 	 * Get the keys to grab from the result set from calling {@link #getColumns}
 	 * First key is column name, second key is column type
@@ -448,10 +452,10 @@ public class RdbmsConnectionHelper {
 		}
 		return arr;
 	}
-	
+
 	private static String predictSchemaFromUrl(String url) {
 		String schema = null;
-		
+
 		if(url.contains("?currentSchema=")) {
 			Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
 			Matcher m = p.matcher(url);
@@ -461,7 +465,7 @@ public class RdbmsConnectionHelper {
 				return schema;
 			}
 		}
-		
+
 		if(url.contains(";currentSchema=")) {
 			Pattern p = Pattern.compile("currentSchema=[a-zA-Z0-9_]*");
 			Matcher m = p.matcher(url);
@@ -471,7 +475,7 @@ public class RdbmsConnectionHelper {
 				return schema;
 			}
 		}
-		
+
 		if(url.contains("?schema=")) {
 			Pattern p = Pattern.compile("schema=[a-zA-Z0-9_]*");
 			Matcher m = p.matcher(url);
@@ -491,9 +495,9 @@ public class RdbmsConnectionHelper {
 				return schema;
 			}
 		}
-		
+
 		return schema;
 	}
-	
-	
+
+
 }
