@@ -96,6 +96,8 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 		Map<String, String> dataTypesMap = UploadInputUtility.getCsvDataTypeMap(this.store);
 		Map<String, String> newHeaders = UploadInputUtility.getNewCsvHeaders(this.store);
 		Map<String, String> additionalDataTypeMap = UploadInputUtility.getAdditionalCsvDataTypes(this.store);
+		String tableName = UploadInputUtility.getTableName(this.store, this.insight);
+		String uniqueColumnName = UploadInputUtility.getUniqueColumn(this.store, this.insight);
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		final boolean replace = UploadInputUtility.getReplace(this.store);
 
@@ -137,8 +139,16 @@ public class RdbmsUploadTableReactor extends AbstractUploadFileReactor {
 			fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
 		}
 
-		String tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
-		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
+		// if user doesn't input table name use filename, else use inputted name 
+		if (tableName == null) {
+			tableName = RDBMSEngineCreationHelper.cleanTableName(fileName).toUpperCase();
+		} else {
+			tableName = RDBMSEngineCreationHelper.cleanTableName(tableName).toUpperCase();
+		}
+
+		// if user defines unique column name set that if not generate one
+		// TODO: add change for false values once we want to enable that
+		String uniqueRowId = uniqueColumnName.equalsIgnoreCase("true") ? tableName + "_UNIQUE_ROW_ID": uniqueColumnName;
 
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// parse the information
