@@ -135,6 +135,7 @@ public enum ReactorKeysEnum {
 	TASK("task", 											"Task object (can retrieve the object by using Task(taskId) where taskId is the unique id for the task)"),
 	TASK_ID("taskId", 										"Unique id of the task within the insight"),
 	TRAVERSAL("traversal", 									"The traversal path within the map"),
+	UNIQUE_COLUMN("uniqueColumn", 							"Unique column identifier for csv/excel table uploads"),
 	USE_FRAME_FILTERS("useFrameFilters", 					"A boolean indication (true or false) to use frame filters"), 	
 	USERNAME("username", 									"Unique identifier for the user to access a service"),
 	QUERY_KEY("query", 										"Query string to be executed on the database"),
