@@ -511,8 +511,8 @@ public class PixelUtility {
 			Map<String, String> processedParam = processedParams.get(param);
 			String physicalQs = processedParam.get("qs");
 			String paramQ = "(infinite = " + processedParam.get("source") + " | Select(" + physicalQs 
-					+ ") | Filter(" + physicalQs + " ?like \"<" + param + "_Search>\") | Sort(cols=[" 
-					+ physicalQs + "], direction=[asc]) | Iterate()) | Collect(20);";  
+					+ ") | Filter(" + physicalQs + " ?like \"<" + param + "_Search>\") | Sort(columns=[" 
+					+ physicalQs + "], sort=[asc]) | Iterate()) | Collect(20);";  
 			modelMap.put("query", paramQ);
 			modelMap.put("infiniteQuery", "infinite | Collect(20)");
 			modelMap.put("searchParam", param + "_Search");
