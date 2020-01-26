@@ -2,6 +2,7 @@ package prerna.sablecc2;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,7 @@ public class PixelPreProcessor {
 		int totalEncodeBlocks = encodeBlocks.size();
 		for(int i = 0; i < totalEncodeBlocks; i++) {
 			Integer[] firstEncodeBlock = encodeBlocks.get(i);
+//			System.out.println("first: " + Arrays.toString(firstEncodeBlock));
 			Integer x1 = firstEncodeBlock[0];
 			Integer y1 = firstEncodeBlock[1];
 
@@ -90,11 +92,13 @@ public class PixelPreProcessor {
 					continue;
 				}
 				Integer[] secondEncodeBlock = encodeBlocks.get(j);
+//				System.out.println("\tsecond: " + Arrays.toString(secondEncodeBlock));
 				Integer x2 = secondEncodeBlock[0];
 				Integer y2 = secondEncodeBlock[1];
 				
 				if(x2.intValue() > x1.intValue() && y1.intValue() > y2.intValue()) {
 					// the secondEncodeBlock is completely within the firstEncodeBlock
+//					System.out.println("the secondEncodeBlock is completely within the firstEncodeBlock");
 					indexToRemove.add(new Integer(j));
 				}
 			}
@@ -117,6 +121,22 @@ public class PixelPreProcessor {
 		for(Integer[] range : encodeBlocks) {
 			originalStrings.add( expression.substring(range[0].intValue(), range[1].intValue()+continueSize));
 		}
+		
+		// if some parts of the encode repeat
+		// like <encode>{"type":"echarts"}</encode>
+		// we want to make sure we encode the largest strings first to the smallest
+		// so that way they get replaces properly
+		Collections.sort(originalStrings, new Comparator<String>() {
+			@Override
+			public int compare(String o1, String o2) {
+				if(o1.length() > o2.length()) {
+					return -1;
+				} else if(o1.length() < o2.length()) {
+					return 1;
+				}
+				return 0;
+			}
+		});
 		
 		for(String originalText : originalStrings) {
 			String encodedText = originalText.substring("<encode>".length(), originalText.length() - "</encode>".length());
