@@ -27,6 +27,9 @@ public class UploadInputUtility {
 	public static final String APP = ReactorKeysEnum.APP.getKey();
 	public static final String FILE_PATH = ReactorKeysEnum.FILE_PATH.getKey();
 	public static final String SPACE = ReactorKeysEnum.SPACE.getKey();
+	public static final String TABLE_NAME = ReactorKeysEnum.TABLE.getKey();
+	public static final String TABLE_NAMES = ReactorKeysEnum.TABLES.getKey();
+	public static final String UNIQUE_COLUMN = ReactorKeysEnum.UNIQUE_COLUMN.getKey();
 	public static final String ADD_TO_EXISTING = ReactorKeysEnum.EXISTING.getKey();
 	public static final String CLEAN_STRING_VALUES = ReactorKeysEnum.CLEAN.getKey();
 	public static final String REMOVE_DUPLICATE_ROWS = ReactorKeysEnum.DEDUPLICATE.getKey();
@@ -72,12 +75,16 @@ public class UploadInputUtility {
 
 	public static String getFilePath(NounStore store, Insight in) {
 		GenRowStruct fileGrs = store.getNoun(FILE_PATH);
+		String fileLocation = fileGrs.get(0).toString();
+
+		if(new File(fileLocation).exists()) {
+			return fileLocation;
+		} 
 		GenRowStruct spaceGrs = store.getNoun(SPACE);
 		if (fileGrs == null || fileGrs.isEmpty()) {
 			throw new IllegalArgumentException("Must define the file path using key " + FILE_PATH);
 		}
-		
-		String fileLocation = fileGrs.get(0).toString();
+
 		String filePrefix = null;
 		
 		// grabbing the space
@@ -96,6 +103,7 @@ public class UploadInputUtility {
 		} else {
 			fileLocation = filePrefix + "/" + fileLocation;
 		}
+
 		return fileLocation;
 	}
 
@@ -189,6 +197,24 @@ public class UploadInputUtility {
 			return null;
 		}
 		return (Map<String, List<String>>) grs.get(0);
+	}
+
+	public static String getTableName(NounStore store, Insight in) {
+		GenRowStruct tableName = store.getNoun(TABLE_NAME);
+
+		if (tableName == null || tableName.isEmpty()) {
+			return null;
+		}
+		return tableName.get(0).toString();
+	}
+	
+	public static String getUniqueColumn(NounStore store, Insight in) {
+		GenRowStruct uniqueColumn = store.getNoun(UNIQUE_COLUMN);
+
+		if (uniqueColumn == null || uniqueColumn.isEmpty()) {
+			return "true";
+		}
+		return uniqueColumn.get(0).toString();
 	}
 	
 	/**

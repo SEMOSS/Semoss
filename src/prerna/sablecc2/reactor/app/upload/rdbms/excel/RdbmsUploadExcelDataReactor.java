@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -107,6 +106,8 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
 		Map<String, Map<String, Map<String, String>>> metaDescriptions = getMetaDescriptions();
 		Map<String, Map<String, Map<String, List<String>>>> metaLogicalNames = getMetaLogicalNames();
+		Map<String,Map<String,String>> tableNames = getTableNameMap();
+		Map<String,Map<String,String>> uniqueColumnNames = getUniqueColumnNameMap();
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		final boolean replace = UploadInputUtility.getReplace(this.store);
 
@@ -143,21 +144,27 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		logger.info("Done loading excel file");
 
 		Owler owler = new Owler(owlFile.getAbsolutePath(), ENGINE_TYPE.RDBMS);
-		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, 
-				metaDescriptions, metaLogicalNames, clean, replace);
+		// here is where we actually insert the data
+		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, 
+				additionalDataTypeMap, newHeaders, 
+				metaDescriptions, metaLogicalNames, 
+				tableNames, uniqueColumnNames, 
+				clean, replace);
 		this.helper.clear();
 		owler.export();
 		this.engine.setOWL(owlFile.getPath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
+		// everything below here is for defualt insights
+		// and for automatic forms
 		logger.info(stepCounter + ". Start generating default app insights");
 		RDBMSNativeEngine insightDatabase = UploadUtilities.generateInsightsDatabase(this.appId, newAppName);
 		UploadUtilities.addExploreInstanceInsight(this.appId, newAppName, insightDatabase);
 		UploadUtilities.addGridDeltaInsight(this.appId, newAppName, insightDatabase);
 		UploadUtilities.addAuditModificationView(this.appId, newAppName, insightDatabase);
 		UploadUtilities.addAuditTimelineView(this.appId, newAppName, insightDatabase);
-		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
+//		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
 		// create form insights
 		// user hasn't defined the data types
 		// that means i am going to assume that i should
@@ -295,8 +302,11 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		 */
 
 		Owler owler = new Owler(this.engine);
-		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, additionalDataTypeMap, newHeaders, 
-				metaDescriptions, metaLogicalNames, clean, replace);
+		processExcelSheets(this.engine, owler, this.helper, dataTypesMap, 
+				additionalDataTypeMap, newHeaders, 
+				metaDescriptions, metaLogicalNames, 
+				null, null, 
+				clean, replace);
 		owler.export();
 		this.engine.setOWL(this.engine.getOWL());
 		logger.info(stepCounter + ". Complete");
@@ -350,8 +360,14 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 			Map<String, Map<String, Map<String, String>>> newHeaders,
 			Map<String, Map<String, Map<String, String>>> metaDescriptions,
 			Map<String, Map<String, Map<String, List<String>>>> metaLogicalNames,
+			Map<String,Map<String,String>> tableNames,
+			Map<String,Map<String,String>> uniqueColumnsMap,
 			boolean clean,
 			boolean replace) throws Exception {
+		
+		// 
+		Map<String, String> rangeAndNameMap = null;
+		Map<String, String> rangeAndUniqueColumnMap = null;
 		// user hasn't defined the data types
 		// that means i am going to assume that i should 
 		// load everything
@@ -365,18 +381,44 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 			for (String sheet : sProcessor.keySet()) {
 				ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheet);
 				List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
+				int counterSheetName = 0;
+				
+				if (tableNames != null) {
+					rangeAndNameMap = tableNames.get(sheet);
+				}
+				
+				if (uniqueColumnsMap != null) {
+					rangeAndUniqueColumnMap = uniqueColumnsMap.get(sheet);
+				}
+
 				for (ExcelBlock eBlock : blocks) {
 					List<ExcelRange> ranges = eBlock.getRanges();
 					for (ExcelRange eRange : ranges) {
 						String range = eRange.getRangeSyntax();
 						boolean singleRange = (blocks.size() == 1 && ranges.size() == 1);
-
 						ExcelQueryStruct qs = new ExcelQueryStruct();
+						String tableName = null;
+						String uniqueColumnName = null;
+						
+						if (rangeAndNameMap != null) {
+							tableName = rangeAndNameMap.get(range);
+						}
+
+						if (tableName == null) {
+							tableName = sheet + "_" + counterSheetName;
+							counterSheetName++;
+						}
+						
+						if (rangeAndUniqueColumnMap != null) {
+							uniqueColumnName = rangeAndUniqueColumnMap.get(range);
+						}
+
 						qs.setSheetName(sheet);
 						qs.setSheetRange(range);
 						// sheetIterator will calculate the types if necessary
 						ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-						processSheet(engine, owler, sheetIterator, singleRange, clean, replace, null, null);
+
+						processSheet(engine, owler, sheetIterator, singleRange, null, null, tableName, uniqueColumnName, clean, replace);
 					}
 				}
 			}
@@ -387,27 +429,57 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 				Map<String, Map<String, String>> rangeDescription = metaDescriptions == null ? null : metaDescriptions.get(sheet);
 				Map<String, Map<String, List<String>>> rangeLogicalNames = metaLogicalNames == null ? null : metaLogicalNames.get(sheet);
 				boolean singleRange = (rangeMaps.keySet().size() == 1);
+				int counterSheetName = 0;
+				
+				if (tableNames != null) {
+					rangeAndNameMap = tableNames.get(sheet);
+				}
+				
+				if (uniqueColumnsMap != null) {
+					rangeAndUniqueColumnMap = uniqueColumnsMap.get(sheet);
+				}
+
 				for (String range : rangeMaps.keySet()) {
 					ExcelQueryStruct qs = new ExcelQueryStruct();
+					String tableName = null;
+					String uniqueColumnName = null;
+					
+					if (rangeAndNameMap != null) {
+						tableName = rangeAndNameMap.get(range);
+					}
+
+					if (tableName == null) {
+						tableName = sheet + "_" + counterSheetName;
+						counterSheetName++;
+					}
+					
+					if (rangeAndUniqueColumnMap != null) {
+						uniqueColumnName = rangeAndUniqueColumnMap.get(range);
+					}
+
 					qs.setSheetName(sheet);
 					qs.setSheetRange(range);
 					qs.setColumnTypes(rangeMaps.get(range));
+
 					if (additionalDataTypeMap.containsKey(sheet)) {
 						Map<String, Map<String, String>> aRangeMap = additionalDataTypeMap.get(sheet);
 						if (aRangeMap.containsKey(range)) {
 							qs.setAdditionalTypes(aRangeMap.get(range));
 						}
 					}
+
 					if (newHeaders.containsKey(sheet)) {
 						Map<String, Map<String, String>> aNewHeadersMap = newHeaders.get(sheet);
 						if (aNewHeadersMap.containsKey(range)) {
 							qs.setNewHeaderNames(aNewHeadersMap.get(range));
 						}
 					}
+
 					Map<String, String> descriptions = rangeDescription == null ? null : rangeDescription.get(range);
 					Map<String, List<String>> logicalNames = rangeLogicalNames == null ? null : rangeLogicalNames.get(range);
 					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-					processSheet(engine, owler, sheetIterator, singleRange, clean, replace, descriptions, logicalNames);
+
+					processSheet(engine, owler, sheetIterator, singleRange, descriptions, logicalNames, tableName, uniqueColumnName, clean, replace);
 				}
 			}
 		}
@@ -425,14 +497,16 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 	 * @param logger
 	 * @throws Exception 
 	 */
-	private void processSheet(IEngine engine, Owler owler, ExcelSheetFileIterator helper, 
-			boolean singleRange, boolean clean, boolean replace, 
-			Map<String, String> descriptions, Map<String, List<String>> logicalNames) throws Exception {
+	private void processSheet(IEngine engine, Owler owler, ExcelSheetFileIterator helper, boolean singleRange, 
+			Map<String, String> descriptions, Map<String, List<String>> logicalNames, 
+			String sheet, String uniqueColumnName, 
+			boolean clean, boolean replace) throws Exception {
 		logger.info("Start parsing sheet metadata");
 		// even if types are not defined
 		// the qs will end up calculating everything for unknown types
 		ExcelQueryStruct qs = helper.getQs();
 		String sheetName = qs.getSheetName();
+		String inputtedTableName = sheet;
 
 		Map<String, String> sheetDataTypesMap = qs.getColumnTypes();
 		Map<String, String> sheetAdditionalDataTypesMap = qs.getAdditionalTypes();
@@ -442,13 +516,13 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		logger.info("Done parsing sheet metadata");
-
+ 
 		logger.info("Create table...");
-		String tableName = RDBMSEngineCreationHelper.cleanTableName(sheetName).toUpperCase();
-		if (!singleRange) {
-			tableName += "_" + RDBMSEngineCreationHelper.cleanTableName(qs.getSheetRange()).toUpperCase();
-		}
-		String uniqueRowId = tableName + "_UNIQUE_ROW_ID";
+		String tableName = RDBMSEngineCreationHelper.cleanTableName(inputtedTableName).toUpperCase();
+
+		// if user defines unique column name set that if not generate one
+		// TODO: add change for false values once we want to enable that
+		String uniqueRowId = uniqueColumnName == null ? tableName + "_UNIQUE_ROW_ID": uniqueColumnName;
 
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes = null;
@@ -625,18 +699,6 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 
 	}
 
-//	private XLFileHelper getHelper(final String filePath, Map<String, Map<String, String>> newHeaders) {
-//		XLFileHelper xlHelper = new XLFileHelper();
-//		xlHelper.parse(filePath);
-//
-//		// set the new headers we want
-//		if(newHeaders != null && !newHeaders.isEmpty()) {
-//			xlHelper.modifyCleanedHeaders(newHeaders);
-//		}
-//
-//		return xlHelper;
-//	}
-
 	/**
 	 * Figure out the types and how to use them
 	 * Will return an object[]
@@ -671,43 +733,6 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 		return new Object[] { headers, types, additionalTypes };
 	}
 	
-	/**
-	 * 
-	 * @param owler
-	 * @param tableName
-	 * @param headers
-	 * @param descriptions
-	 * @param logicalNames
-	 */
-	private void insertOwlMetadata(Owler owler, String tableName, String[] headers, Map<String, String> descriptions, Map<String, List<String>> logicalNames) {
-		// NOTE ::: We require the OWL to be loaded with the concepts and properties
-		// to get the proper physical URLs
-		
-		Hashtable<String, String> propHash = owler.getPropHash();
-
-		// we have already loaded everything into a single table
-		// so we will grab all the properties for that table
-		for(int i = 0; i < headers.length; i++) {
-			String property = headers[i];
-			String propertyPhysicaluri = propHash.get(tableName + "%" + property);
-			if(propertyPhysicaluri == null) {
-				System.err.println("Error with adding owl metadata on upload");
-				continue;
-			}
-			
-			// adding metadata to property physical uri
-			if(descriptions != null && descriptions.containsKey(property)) {
-				String desc = descriptions.get(property);
-				owler.addDescription(propertyPhysicaluri, desc);
-			}
-			
-			if(logicalNames != null && logicalNames.containsKey(property)) {
-				owler.addLogicalNames(propertyPhysicaluri, logicalNames.get(property));
-			}
-		}
-	}
-
-
 	///////////////////////////////////////////////////////
 
 	/*
@@ -752,6 +777,22 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 			return null;
 		}
 		return (Map<String, Map<String, Map<String, List<String>>>>) grs.get(0);
+	}
+
+	public Map<String, Map<String, String>> getTableNameMap() {
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.TABLE_NAMES);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, Map<String, String>>) grs.get(0);
+	}
+	
+	public Map<String,Map<String,String>> getUniqueColumnNameMap() {
+		GenRowStruct grs = this.store.getNoun(UploadInputUtility.UNIQUE_COLUMN);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, Map<String, String>>) grs.get(0);
 	}
 
 	///////////////////////////////////////////////////////////////////
