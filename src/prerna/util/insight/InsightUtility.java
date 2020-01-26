@@ -109,7 +109,7 @@ public class InsightUtility {
 			while(curKeys.hasNext()) {
 				String k = curKeys.next();
 				// can use == since i am trying to see if same reference
-				if(varStore.get(k) == noun) {
+				if(varStore.get(k).getValue() == dm) {
 					keysToRemove.add(k);
 				}
 			}
