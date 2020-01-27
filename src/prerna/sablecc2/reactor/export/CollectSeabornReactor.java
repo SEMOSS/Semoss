@@ -2,6 +2,9 @@ package prerna.sablecc2.reactor.export;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.file.Files;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +37,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 	private int limit = 0;
 	
 	public CollectSeabornReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.SPLOT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.SPLOT.getKey(), ReactorKeysEnum.FORMAT.getKey()};
 	}
 	
 	public NounMetadata execute() {
@@ -47,6 +50,11 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String splot = keyValue.get(keysToGet[0]) +"";
 		
 		this.task = getTask();
+		String format = "jpeg";
+		
+		if(keyValue.containsKey(keysToGet[1]))
+			format = keyValue.get(keysToGet[1]);
+
 		
 		// I neeed to get the basic iterator and then get types from there
 		// this is typically what we do on seaborn
@@ -98,7 +106,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String runPlot = "daplot = sns.relplot(" + splot + ")";
 		String seabornFile = Utility.getRandomString(6);
 		String printFile = "print(saveFile)";
-		String saveFileName = "saveFile = ROOT + '/" + seabornFile + ".jpeg'";
+		String saveFileName = "saveFile = ROOT + '/" + seabornFile + "." + format + "'";
 		String savePlot = "daplot.savefig(saveFile)";
 		String removeFrame = "del(" + fileName + ")";
 		String removeSeaborn = "del(sns)";
@@ -106,9 +114,31 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		
 		seabornFile = pyt.runPyAndReturnOutput(loadDT, adjustTypes, importSeaborn, assignPlotter, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, printFile, removeSaveFile);
 
+		// get the insight folder
+		String IF = insight.getInsightFolder();
+		seabornFile = seabornFile.replace("$IF", IF);
 		
-		// remove the csv
+		StringWriter sw = new StringWriter();
+		try
+		{
+			// read the file and populate it
+			byte [] bytes = FileUtils.readFileToByteArray(new File(seabornFile));
+			String encodedString = Base64.getEncoder().encodeToString(bytes);
+			String mimeType = "image/png";
+			mimeType = Files.probeContentType(new File(seabornFile).toPath());
+			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();		
+		//sw.write("<html><body>");
+		}
+
+
+		
+		
+		// remove the csv and the generated jpeg
 		new File(outputFile).delete();
+		new File(seabornFile).delete();
 		
 		// Need to figure out if I am trying to delete the image and URI encode it at some point.. 
 		
@@ -117,16 +147,25 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		cdt.setFormat("TABLE");
 		
 		// I need to create the options here
-		Map optionMap = new HashMap<String, Object>();
-		optionMap.put(keysToGet[0], splot);
+		Map outputMap = new HashMap<String, Object>();
 		
-		TaskOptions options = new TaskOptions(optionMap);
+		TaskOptions options = new TaskOptions(outputMap);
 		cdt.setTaskOptions(options);
 		cdt.setHeaderInfo(task.getHeaderInfo());
 		cdt.setSortInfo(task.getSortInfo());
 		
+		outputMap.put("headers", new String[] {});
+		outputMap.put("rawHeaders", new String[] {});
+		outputMap.put("values", new String[]{sw.toString()});
+		//outputMap.put("values", new String[]{retFile});
+		//outputMap.put("ggplot", "ggplot=[\"" + ggplotCommand + "\"]");	
+		outputMap.put(keysToGet[0], splot);
+
+		
 		// set the output so it can give it
-		cdt.setOutputData(seabornFile);
+		//cdt.setOutputData(seabornFile);
+		cdt.setOutputData(outputMap);
+
 		// I dont think the filter information is required
 		//cdt.setFilterInfo(task.getFilterInfo());
 		// delete the pivot later
