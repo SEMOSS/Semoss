@@ -48,7 +48,7 @@ public class FrameReactor extends AbstractQueryStructReactor {
 		List<String> frameVariableName = this.curRow.getAllStrValues();
 		if(frameVariableName != null && !frameVariableName.isEmpty()) {
 			NounMetadata possibleFrameNoun = this.insight.getVarStore().get(frameVariableName.get(0));
-			if(possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
+			if(possibleFrameNoun != null && possibleFrameNoun.getNounType() == PixelDataType.FRAME) {
 				return (ITableDataFrame) possibleFrameNoun.getValue();
 			}
 		}
