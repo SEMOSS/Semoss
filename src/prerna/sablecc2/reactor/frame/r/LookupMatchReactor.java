@@ -56,7 +56,9 @@ public class LookupMatchReactor extends AbstractRFrameReactor {
 
 		// get the location to save
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		// if security enables, you need proper permissions
+		// this takes in the insight and does a user check that the user has access to perform the operations
+		String assetFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
 		String fileName = this.keyValue.get(keysToGet[0]);
 		String filePath = assetFolder + "/" + fileName;
 
