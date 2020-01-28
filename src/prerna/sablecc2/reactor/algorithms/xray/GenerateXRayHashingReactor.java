@@ -58,7 +58,9 @@ public class GenerateXRayHashingReactor extends AbstractRFrameReactor {
 		
 		// check if user is logged in
 		String space = this.keyValue.get(this.keysToGet[1]);
-		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		// if security enables, you need proper permissions
+		// this takes in the insight and does a user check that the user has access to perform the operations
+		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
 		File baseF = new File(baseFolder);
 		if(!baseF.exists() || !baseF.isDirectory()) {
 			baseF.mkdirs();
