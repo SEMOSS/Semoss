@@ -1,7 +1,6 @@
 package prerna.sablecc2.reactor.export;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Files;
@@ -40,7 +39,6 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 	}
 	
 	public NounMetadata execute() {
-		
 		organizeKeys();
 
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
@@ -69,8 +67,6 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 				animate = true;
 		}
 		
-		
-		
 		ggplotCommand = newCommand.toString();
 		String format = "jpeg";
 		if(animate)
@@ -82,17 +78,16 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		this.task = getTask();
 		
 		// I neeed to get the basic iterator and then get types from there
-		
+
 		task.getMetaMap();
 		SemossDataType[] sTypes = ((IRawSelectWrapper) ((BasicIteratorTask)(task)).getIterator()).getTypes();
 		String[] headers = ((IRawSelectWrapper) ((BasicIteratorTask)(task)).getIterator()).getHeaders();
-		
+
 		Map<String, SemossDataType> typeMap = new HashMap<String, SemossDataType>();
 		for(int i = 0; i < headers.length; i++) {
 			typeMap.put(headers[i],sTypes[i]);
 		}
-		
-		
+
 		// I need to see how to get this to temp
 		String fileName = Utility.getRandomString(6);
 		String dir = insight.getUserFolder() + "/Temp";
@@ -102,7 +97,6 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 			tempDir.mkdir();
 		String outputFile = dir + "/" + fileName + ".csv";
 		Utility.writeResultToFile(outputFile, this.task, typeMap, ",");
-		
 
 		// need something here to adjust the types
 		// need to move this to utilities 
@@ -112,39 +106,32 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		String adjustTypes = Utility.adjustTypeR(fileName, headers, typeMap);
 		// run the job
 		rJavaTranslator.runRAndReturnOutput(loadDT+adjustTypes);
-		
-		
-		
-		
+
 		StringBuilder ggplotter = new StringBuilder("{library(\"ggplot2\");"); // library(\"RCurl\");");
 		if(animate)
 			ggplotter.append("library(\"gganimate\");");
-		// get the frame
-		// get frame name
-		String table = fileName;
-		
+
 		// run the ggplot with this frame as the data
 		// we will refer to it as the plotterframe
 		ggplotter.append("plotterframe <- " + fileName + ";");
-		
+
 		// now it is just running the ggplotter
 		String plotString = Utility.getRandomString(6);
 		ggplotter.append(plotString + " <- " + ggplotCommand + ";");
-		
+
 		// now save it
 		// file name
 		String ggsaveFile = Utility.getRandomString(6);
-		
-		
+
 		ggplotter.append(ggsaveFile + " <- " + "paste(ROOT,\"/" + ggsaveFile + "." +format +"\", sep=\"\"); ");
-		
+
 		if(!animate)
 			ggplotter.append("ggsave(" + ggsaveFile + ");");
 		else
 			ggplotter.append("anim_save(" + ggsaveFile + ", " + plotString + ");");
 
 		ggplotter.append("}");
-		
+
 		// run the ggplotter command
 		rJavaTranslator.runRAndReturnOutput(ggplotter.toString());
 
@@ -153,30 +140,26 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 
 		// also try to encode it
 		/*String encode = "base64Encode(readBin(" + ggsaveFile + " , \"raw\", file.info(" + ggsaveFile + ")[1, \"size\"]), \"txt\")";
-		
+
 		String dataURI = rJavaTranslator.runRAndReturnOutput(encode);
 		System.out.println(dataURI);
 		*/
 		String ggremove = "rm(" + ggsaveFile + ", txt);detach(\"package:ggplot2\", unload=FALSE);"; //detach(\"package:RCurl\", unload=FALSE)";
 		if(animate)
 			ggremove = ggremove + "detach(\"package:gganimate\", unload=FALSE);";
-		
+
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggsaveFile);
 
 		// remove the csv
 		new File(outputFile).delete();
-		
+
 		// Need to figure out if I am trying to delete the image and URI encode it at some point.. 
-		
+
 		ConstantDataTask cdt = new ConstantDataTask();
 		// need to do all the sets
 		cdt.setFormat("TABLE");
-		
-		// I need to create the options here
-		// Map optionMap = new HashMap<String, Object>();
-		// optionMap.put(keysToGet[0], ggplotCommand);
-		
+
 		// TaskOptions options = new TaskOptions(optionMap);
 		// need to do all the sets
 		cdt.setFormat("TABLE");
@@ -184,15 +167,13 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		cdt.setHeaderInfo(task.getHeaderInfo());
 		cdt.setSortInfo(task.getSortInfo());
 		cdt.setId(task.getId());
-		
-		String outFile = retFile;
-		
+
 		Map<String, Object> outputMap = new HashMap<String, Object>();
-		
+
 		// get the insight folder
 		String IF = insight.getInsightFolder();
 		retFile = retFile.split(" ")[1].replace("\"","").replace("$IF", IF);
-		
+
 		StringWriter sw = new StringWriter();
 		try
 		{
@@ -204,14 +185,12 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();		
-		//sw.write("<html><body>");
+			e.printStackTrace();
 		}
-
 
 		if(animate)
 			ggplotCommand = ggplotCommand + " + animate";
-		
+
 		ggplotCommand = ggplotCommand.replaceAll("\"", "\\\\\"");
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggremove);
@@ -219,15 +198,13 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		outputMap.put("headers", new String[] {});
 		outputMap.put("rawHeaders", new String[] {});
 		outputMap.put("values", new String[]{sw.toString()});
-		//outputMap.put("values", new String[]{retFile});
-		//outputMap.put("ggplot", "ggplot=[\"" + ggplotCommand + "\"]");	
 		outputMap.put("ggplot", ggplotCommand);	
+		outputMap.put("format", format);
 
 		// set the output so it can give it
 		cdt.setOutputData(outputMap);
 		new File(retFile).delete();
-		// I dont think the filter information is required
-		//cdt.setFilterInfo(task.getFilterInfo());
+
 		// delete the pivot later
 		return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 	}
