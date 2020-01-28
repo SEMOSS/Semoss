@@ -2,6 +2,8 @@ package prerna.util.git.reactors;
 
 import java.io.File;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -18,12 +20,20 @@ public class MakeDirectoryReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.securityEnabled()) {
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
+		
 		// specify the folder from the base
 		String folderName = keyValue.get(keysToGet[0]);
 		String space = this.keyValue.get(this.keysToGet[1]);
-
+		// if security enables, you need proper permissions
 		// this takes in the insight and does a user check that the user has access to perform the operations
-		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, true);
+		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
 		String folderPath = (baseFolder + "/" + folderName).replace('\\', '/');
 		File folder = new File(folderPath);
 		if(folder.exists() && folder.isDirectory()) {
