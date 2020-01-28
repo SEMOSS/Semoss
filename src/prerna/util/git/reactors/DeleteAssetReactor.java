@@ -56,7 +56,10 @@ public class DeleteAssetReactor extends AbstractReactor {
 
 		List<String> files = new Vector<>();
 		files.add(relativePath + "/" + fileName);
-		FileUtils.delete(AssetUtility.getAssetBasePath(this.insight, space, true) + "/" + fileName);
+		// if security enables, you need proper permissions
+		// this takes in the insight and does a user check that the user has access to perform the operations
+		String baseFolder = AssetUtility.getAssetBasePath(this.insight, space, AbstractSecurityUtils.securityEnabled());
+		FileUtils.delete(baseFolder + "/" + fileName);
 
 		// commit it
 		if (this.insight.isSavedInsight()) {
