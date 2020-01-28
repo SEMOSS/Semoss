@@ -47,7 +47,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String splot = keyValue.get(keysToGet[0]) +"";
 		
 		this.task = getTask();
-		String format = "jpeg";
+		String format = "png";
 		
 		if(keyValue.containsKey(keysToGet[1]))
 			format = keyValue.get(keysToGet[1]);
