@@ -175,6 +175,9 @@ public class PyExecutorThread extends Thread {
 				//jep.eval("from annoy import AnnoyIndex");
 				jep.eval("import numpy");
 				jep.eval("import sys");
+				// workaround for issue with matplotlib.pyplot.plot() not working with python 3.7.3; sys.argv is assumed to have length > 0
+				// see https://github.com/ninia/jep/issues/187 for details
+				jep.eval("sys.argv.append('')");
 				// this is so we do not get a GIL
 				//jep.eval("from java.lang import System");
 				
