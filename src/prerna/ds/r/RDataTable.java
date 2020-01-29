@@ -172,6 +172,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		RawRSelectWrapper it = null;
 		IRawSelectWrapper retWrapper = null;
 		String looker = interp.getMainQuery();
+		looker = looker + qs.getLimit() + qs.getOffset();
 		// sets the framebuilder
 		if(!queryCache.containsKey(looker) || !cache)
 		{
