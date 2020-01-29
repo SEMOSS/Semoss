@@ -29,7 +29,7 @@ public class CachedIterator implements Iterator<IHeadersDataRow> {
 	private int finalSize = 0;
 	private int jsonSize = 0;
 	
-	private boolean first;
+	private boolean first = true;
 	
 	private StringBuilder allJson = new StringBuilder();
 	private List<String> jsonList = new ArrayList<String>();
