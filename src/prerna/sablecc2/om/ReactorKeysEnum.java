@@ -95,6 +95,7 @@ public enum ReactorKeysEnum {
 	PANEL_VIEW_KEY("panelView", 							"Text that specifies what is displayed in the panel (e.g., \"visualization\")"),
 	PANEL_VIEW_OPTIONS_KEY("panelViewOptions", 				"The panel view options"),
 	PARAM_KEY("params", 									"The parameters for the insight map"),
+	PARALLEL_WORKER("parallel_worker", 						"Class that will run as a thread"),
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
 	PIPELINE("pipeline", 									"Pipeline json for the insight"),
 	PORT("port",                                            "The connection port."),
