@@ -98,6 +98,7 @@ public enum ReactorKeysEnum {
 	PARALLEL_WORKER("parallel_worker", 						"Class that will run as a thread"),
 	PASSWORD("password", 									"Password used in conjunction with the username for access to a service"),
 	PIPELINE("pipeline", 									"Pipeline json for the insight"),
+	PIXEL("pixel", 											"Pixel script as string"),
 	PORT("port",                                            "The connection port."),
 	PLANNER("planner", 										"The planner"),
 	PROP_FILE("propFile", 								    "The path to the properties file."),
