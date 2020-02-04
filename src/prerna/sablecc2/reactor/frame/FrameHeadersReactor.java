@@ -69,6 +69,13 @@ public class FrameHeadersReactor extends AbstractFrameReactor {
 			}
 		}
 		
+		// see if the curRow has it
+		List<Object> resetNoun = this.curRow.getValuesOfType(PixelDataType.BOOLEAN);
+		if(resetNoun != null && !resetNoun.isEmpty()) {
+			return (boolean) resetNoun.get(0);
+		}
+		
+		// default is false
 		return false;
 	}
 	
