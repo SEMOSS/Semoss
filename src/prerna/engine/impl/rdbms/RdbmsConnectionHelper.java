@@ -300,6 +300,14 @@ public class RdbmsConnectionHelper {
 		}
 		schema = predictSchemaFromUrl(connectionUrl);
 
+		// add logic for when schema is called database
+		if(driverName.contains("teradata") || (rdbmsType != null && rdbmsType == RdbmsTypeEnum.TERADATA)) {
+			schema = predictSchemaAsDatbaseFromUrl(connectionUrl);
+		}
+		if(schema != null) {
+			return schema;
+		}
+		
 		String truncatedUrl = connectionUrl;
 		if(rdbmsType != null) {
 			truncatedUrl = connectionUrl.substring(rdbmsType.getUrlPrefix().length());
@@ -492,6 +500,22 @@ public class RdbmsConnectionHelper {
 			if(m.find()) {
 				schema = m.group(0);
 				schema = schema.replace("schema=", "");
+				return schema;
+			}
+		}
+
+		return schema;
+	}
+	
+	private static String predictSchemaAsDatbaseFromUrl(String url) {
+		String schema = null;
+
+		if(url.contains("/DATABASE=")) {
+			Pattern p = Pattern.compile("DATABASE=[a-zA-Z0-9_]*");
+			Matcher m = p.matcher(url);
+			if(m.find()) {
+				schema = m.group(0);
+				schema = schema.replace("DATABASE=", "");
 				return schema;
 			}
 		}
