@@ -299,7 +299,10 @@ public class RdbmsConnectionHelper {
 			return schema;
 		}
 		schema = predictSchemaFromUrl(connectionUrl);
-
+		if(schema != null) {
+			return schema;
+		}
+		
 		// add logic for when schema is called database
 		if(driverName.contains("teradata") || (rdbmsType != null && rdbmsType == RdbmsTypeEnum.TERADATA)) {
 			schema = predictSchemaAsDatbaseFromUrl(connectionUrl);
