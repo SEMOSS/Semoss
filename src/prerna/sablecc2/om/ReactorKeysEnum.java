@@ -77,6 +77,7 @@ public enum ReactorKeysEnum {
 	LIMIT("limit", 											"Limit to add for the query results"),
 	LOGICAL_NAME("logicalNames", 							"Column alias to be added to the master database"),
 	MAINTAIN_COLUMNS("maintainCols", 						"Any additional columns to keep in the frame"),
+	MESSAGE("message", 										"Message to display for logging"),									
 	METAMODEL("metamodel", 									"The metamodel map for a database."),
 	NAME("name",											"Unique identifier"), 								
 	NEW_COLUMN("newCol", 									"Name of the new column being created"),
