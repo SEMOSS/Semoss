@@ -246,13 +246,13 @@ public class Insight {
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	public synchronized PixelRunner runPixel(String pixelString) {
+	public PixelRunner runPixel(String pixelString) {
 		List<String> pixelList = new Vector<String>();
 		pixelList.add(pixelString);
 		return runPixel(pixelList);
 	}
 
-	public synchronized PixelRunner runPixel(List<String> pixelList) {
+	public PixelRunner runPixel(List<String> pixelList) {
 		PixelRunner runner = getPixelRunner();
 		int size = pixelList.size();
 		if(size == 0) {
