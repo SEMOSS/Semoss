@@ -116,6 +116,11 @@ public class InsightUtility {
 			for(String k : keysToRemove) {
 				varStore.remove(k);
 			}
+		} else if(nType == PixelDataType.TASK) {
+			// get the task object
+			ITask task = (ITask) noun.getValue();
+			// close it
+			task.cleanUp();
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.REMOVE_VARIABLE);
