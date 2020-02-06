@@ -196,6 +196,10 @@ public class RIterator implements Iterator<IHeadersDataRow>{
 	public void setQuery(String query) {
 		this.query = query;
 	}
+	
+	public String getTempVarName() {
+		return this.tempVarName;
+	}
 
 	public String getJsonOfResults() {
 		// TODO: writing to file? 

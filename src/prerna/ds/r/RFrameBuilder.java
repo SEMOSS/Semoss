@@ -124,9 +124,8 @@ public class RFrameBuilder {
 				// still produces better performance
 				// TODO: determine optimal number for this...
 				if(qs == null || qs.getLimit() == -1 || qs.getLimit() > 10_000) {
-					String query = rIterator.getQuery();
 					RNativeEngine engine = (RNativeEngine) rIterator.getEngine();
-					engine.directLoad(this.rJavaTranslator, tableName, query);
+					engine.directLoad(this.rJavaTranslator, tableName, rIterator.getTempVariableName());
 					loaded = true;
 					if(qs != null && (qs.getLimit() > 0 || qs.getOffset() > 0)) {
 						int numRows = getNumRows(tableName);
