@@ -96,8 +96,11 @@ public class RawRSelectWrapper extends AbstractWrapper implements IRawSelectWrap
 		return this.output;
 	}
 	
-	public String getQuery()
-	{
+	public String getQuery() {
 		return output.getQuery();
+	}
+	
+	public String getTempVariableName() {
+		return output.getTempVarName();
 	}
 }
