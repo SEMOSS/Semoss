@@ -555,10 +555,13 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 				removePathVariables += ", APP_ROOT";
 			}
 			try {
-				userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
-				userRootPath = userRootPath.replace('\\', '/');
-				userRootAssignment = "USER_ROOT <- '" + userRootPath + "';";
-				removePathVariables += ", USER_ROOT";
+				// you only have this if you are logged in
+				if(this.insight.getUser() != null && !this.insight.getUser().isAnonymous()) {
+					userRootPath = AssetUtility.getAssetBasePath(this.insight, AssetUtility.USER_SPACE_KEY, false);
+					userRootPath = userRootPath.replace('\\', '/');
+					userRootAssignment = "USER_ROOT <- '" + userRootPath + "';";
+					removePathVariables += ", USER_ROOT";
+				}
 			} catch(Exception ignore) {
 				// ignore
 			}
