@@ -115,24 +115,26 @@ public class RFrameBuilder {
 		
 		boolean loaded = false;
 		if(it instanceof RawRSelectWrapper) {
-			RawRSelectWrapper rIterator = (RawRSelectWrapper) it;
-			SelectQueryStruct qs = rIterator.getOutput().getQs();
-			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) { 
-				// if we have a small limit
-				// write to new file
-				// in case the variable size is really large and the IO is 
-				// still produces better performance
-				// TODO: determine optimal number for this...
-				if(qs == null || qs.getLimit() == -1 || qs.getLimit() > 10_000) {
-					RNativeEngine engine = (RNativeEngine) rIterator.getEngine();
-					engine.directLoad(this.rJavaTranslator, tableName, rIterator.getTempVariableName());
-					loaded = true;
-					if(qs != null && (qs.getLimit() > 0 || qs.getOffset() > 0)) {
-						int numRows = getNumRows(tableName);
-						evalR(RSyntaxHelper.determineLimitOffsetSyntax(tableName, numRows, qs.getLimit(), qs.getOffset()));
-					}
-				}
-			}
+			// TODO: THIS DOESN'T WORK ON THE SERVER SINCE RSERVE MAYBE RUNNING ON DIFFERENT PORTS
+			// ADD BACK ONCE HAVE THE PROPER CHECKS
+//			RawRSelectWrapper rIterator = (RawRSelectWrapper) it;
+//			SelectQueryStruct qs = rIterator.getOutput().getQs();
+//			if(qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) { 
+//				// if we have a small limit
+//				// write to new file
+//				// in case the variable size is really large and the IO 
+//				// still produces better performance
+//				// TODO: determine optimal number for this...
+//				if(qs == null || qs.getLimit() == -1 || qs.getLimit() > 10_000) {
+//					RNativeEngine engine = (RNativeEngine) rIterator.getEngine();
+//					engine.directLoad(this.rJavaTranslator, tableName, rIterator.getTempVariableName());
+//					loaded = true;
+//					if(qs != null && (qs.getLimit() > 0 || qs.getOffset() > 0)) {
+//						int numRows = getNumRows(tableName);
+//						evalR(RSyntaxHelper.determineLimitOffsetSyntax(tableName, numRows, qs.getLimit(), qs.getOffset()));
+//					}
+//				}
+//			}
 		} else if(it instanceof CsvFileIterator) {
 			CsvQueryStruct csvQs = ((CsvFileIterator) it).getQs();
 			if(csvQs.getLimit() == -1 || csvQs.getLimit() > 10_000) {
