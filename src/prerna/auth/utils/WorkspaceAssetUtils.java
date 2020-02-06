@@ -112,6 +112,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		// Add the app to security db
 		if(!ignoreAsset) {
 			SecurityUpdateUtils.addApp(appId, false);
+			SecurityUpdateUtils.addEngineOwner(appId, token.getId());
 		}
 		
 		// Create the app engine
@@ -144,11 +145,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		appEng.setPropFile(smssFile.getAbsolutePath());
 		DIHelper.getInstance().getCoreProp().setProperty(appId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		DIHelper.getInstance().setLocalProperty(appId, appEng);
-		
-		// Even if no security, just add user as engine owner
-		if(!ignoreAsset) {
-			SecurityUpdateUtils.addEngineOwner(appId, token.getId());
-		}
 		
 		if (ClusterUtil.IS_CLUSTER) {
 			CloudClient.getClient().pushApp(appId);

@@ -4,7 +4,9 @@ import java.security.Permission;
 import java.util.List;
 import java.util.Vector;
 
+import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.ds.py.PyExecutorThread;
+import prerna.engine.impl.r.RSingleton;
 import prerna.sablecc2.reactor.frame.py.PyReactor;
 import prerna.sablecc2.reactor.frame.r.RReactor;
 import prerna.sablecc2.reactor.runtime.AbstractBaseRClass;
@@ -54,16 +56,18 @@ public class ReactorSecurityManager extends SecurityManager {
 	}
 
 	private boolean blockThread() {
-		return true;
-//		for (StackTraceElement elem : Thread.currentThread().getStackTrace()) {
-//			if(elem.getClassName().equals(RSingleton.class.getName())) {
-//				return false;
-//			}
-//			if (classNamesToIgnore.contains(elem.getClassName()) ) {
-//				return true;
-//			}
-//		}
-//		return false;
+		for (StackTraceElement elem : Thread.currentThread().getStackTrace()) {
+			if(elem.getClassName().equals(RSingleton.class.getName())) {
+				return false;
+			}
+			if(elem.getClassName().equals(WorkspaceAssetUtils.class.getName())) {
+				return false;
+			}
+			if (classNamesToIgnore.contains(elem.getClassName()) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }
