@@ -148,7 +148,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 	 */
 	public static void loadDataBetweenEnv(AbstractRJavaTranslator trans1, String assignVar, AbstractRJavaTranslator trans2, String rScript) {
 		String combinedScript = trans1.encapsulateForEnv( assignVar + "<- " + trans2.encapsulateForEnv(rScript) );
-		trans1.runR(combinedScript);
+		trans1.executeEmptyR(combinedScript);
 	}
 	
 	///////////////////////////////////////////////////////////////////

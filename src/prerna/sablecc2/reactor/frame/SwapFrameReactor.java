@@ -15,6 +15,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.insights.copy.CopyFrameUtil;
 
 public class SwapFrameReactor extends AbstractReactor {
 
@@ -64,7 +65,13 @@ public class SwapFrameReactor extends AbstractReactor {
 			// here we put the f1Noun
 			vStore.put(f2, f1Noun);
 		}
-
+		
+		// need to also change the frame names
+		// need to account for R and stuff
+		String frame1Name = frames.get(0).getName();
+		String frame2Name = frames.get(1).getName();
+		CopyFrameUtil.renameFrame(frames.get(0), frame2Name);
+		CopyFrameUtil.renameFrame(frames.get(1), frame1Name);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
