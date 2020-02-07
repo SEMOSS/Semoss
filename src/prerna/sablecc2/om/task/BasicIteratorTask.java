@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
@@ -32,6 +33,7 @@ import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class BasicIteratorTask extends AbstractTask {
@@ -240,8 +242,14 @@ public class BasicIteratorTask extends AbstractTask {
 				}
 				this.qs.setOffSet(offset + this.internalOffset);
 				boolean addedOrder = false;
-				if(this.qs.getOrderBy().isEmpty()) {
+				boolean setImplicitOrderBy = true;
+				Object value = this.qs.getPragmap().get(Constants.IMPLICIT_ORDER);
+				if (value != null) {
+					 setImplicitOrderBy = Boolean.parseBoolean(value.toString());
+				}
+				if(this.qs.getOrderBy().isEmpty() && setImplicitOrderBy) {
 					// need to add an implicit order
+			
 					IQuerySelector firstSelector = this.qs.getSelectors().get(0);
 					if(firstSelector.getSelectorType() == SELECTOR_TYPE.COLUMN) {
 						this.qs.addOrderBy(firstSelector.getQueryStructName(), "ASC");

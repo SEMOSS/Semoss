@@ -2,6 +2,7 @@ package prerna.query.interpreters.sql;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -59,7 +60,16 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		addSelectors();
 		addFilters();
 		addHavingFilters();
-
+		
+//		Boolean useDistinct = true;
+//		Properties engineProps = this.engine.getProp();
+//		if (engineProps.contains("USE_DISTINCT")){
+//			String propVal = engineProps.get("USE_DISTINCT").toString();
+//			if (propVal != null && !(propVal.isEmpty())){
+//				useDistinct = Boolean.parseBoolean(propVal);
+//			}
+//		}
+//		
 		StringBuilder query = new StringBuilder("SELECT ");
 		String distinct = "";
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
@@ -132,23 +142,27 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		long offset = ((SelectQueryStruct) this.qs).getOffset();
 		
 		String tempTable = Utility.getRandomString(6);
-
-		query = ((TeradataQueryUtil) this.queryUtil).addLimitOffsetToQuery(query, limit, offset, tempTable);
+		if(((SelectQueryStruct) this.qs).isDistinct()) {
+			query = ((TeradataQueryUtil) this.queryUtil).addLimitOffsetToQuery(query, limit, offset, tempTable);
+		} else {
+			query = ((TeradataQueryUtil) this.queryUtil).addLimitOffsetToQuery(query, limit, offset);
+		}
 		
 		query = appendOrderBy(query, tempTable);
 
-		if(query.length() > 500) {
+		if(query.length() > 500) {	
 			logger.debug("SQL QUERY....  " + query.substring(0,  500) + "...");
 		} else {
 			logger.debug("SQL QUERY....  " + query);
 		}
-
+		System.out.println("TERAQUERY: " + query);
 		return query.toString();
 	}
 
 	private StringBuilder appendOrderBy(StringBuilder query, String tempTable) {
 		//grab the order by and get the corresponding display name for that order by column
-				List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
+
+			List<QueryColumnOrderBySelector> orderBy = ((SelectQueryStruct) this.qs).getOrderBy();
 				List<StringBuilder> validOrderBys = new Vector<StringBuilder>();
 				for(QueryColumnOrderBySelector orderBySelector : orderBy) {
 					String tableConceptualName = orderBySelector.getTable();
