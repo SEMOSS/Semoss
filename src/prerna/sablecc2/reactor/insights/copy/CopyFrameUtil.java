@@ -8,6 +8,7 @@ import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.r.RDataTable;
+import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -37,18 +38,18 @@ public class CopyFrameUtil {
 
 		// one thing that is consistent across all frames
 		OwlTemporalEngineMeta newMetadata = frameToCopy.getMetaData().copy();
-		
+
 		ITableDataFrame newFrame =  null;
 		try {
 			// we need to set the correct context for the pandas + data.table frames
 			// we will also account for names to be new
-			
+
 			if(frameToCopy instanceof PandasFrame) {
 				newFrame = new PandasFrame();
 				// set the metadata
 				newFrame.setMetaData(newMetadata);
 				PandasFrame dt = (PandasFrame) newFrame;
-				
+
 				dt.setJep( insightContext.getPy() );
 				dt.setTranslator( insightContext.getPyTranslator() );
 				String newName = oldName + "_COPY";
@@ -63,7 +64,7 @@ public class CopyFrameUtil {
 				String newWrapperName = dt.getWrapperName();
 				dt.runScript(PandasSyntaxHelper.makeWrapper(newWrapperName, newName));
 				dt.getMetaData().modifyVertexName(oldName, newName);
-				
+
 			} else if (frameToCopy instanceof RDataTable) {
 				newFrame = new RDataTable( insightContext.getRJavaTranslator(CLASS_NAME) );
 				// set the metadata
@@ -78,7 +79,7 @@ public class CopyFrameUtil {
 				}
 				dt.setName(newName);
 				dt.getMetaData().modifyVertexName(oldName, newName);
-				
+
 			} else if(frameToCopy instanceof NativeFrame) {
 				newFrame = new NativeFrame();
 				// set the name
@@ -87,7 +88,7 @@ public class CopyFrameUtil {
 				newFrame.setName(oldName);
 				((NativeFrame) newFrame).mergeQueryStruct( ((NativeFrame) frameToCopy).getQueryStruct() );
 			}
-			
+
 			else {
 				newFrame = (ITableDataFrame) Class.forName(frameToCopy.getClass().getName()).newInstance();
 				newFrame.setName(oldName);
@@ -107,8 +108,49 @@ public class CopyFrameUtil {
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-		
+
 		return newFrame;
+	}
+
+	public static ITableDataFrame renameFrame(ITableDataFrame frame, String newName) {
+		String oldName = frame.getName();
+
+		// one thing that is consistent across all frames
+		OwlTemporalEngineMeta metadata = frame.getMetaData().copy();
+
+		// we need to set the correct context for the pandas + data.table frames
+		// we will also account for names to be new
+		if(frame instanceof PandasFrame) {
+			((PandasFrame) frame).runScript(newName + " = " + oldName + ".copy(deep=True)");
+			((PandasFrame) frame).runScript("del " + oldName);
+			// set the name first
+			frame.setName(newName);
+			((PandasFrame) frame).runScript(PandasSyntaxHelper.makeWrapper(((PandasFrame) frame).getWrapperName(), newName));
+
+			metadata.modifyVertexName(oldName, newName);
+
+		} else if (frame instanceof RDataTable) {
+			((RDataTable) frame).executeRScript(newName + "<- " + oldName);
+			((RDataTable) frame).executeRScript("rm(" + oldName + ")");
+			frame.setName(newName);
+			
+			metadata.modifyVertexName(oldName, newName);
+
+		} else if (frame instanceof AbstractRdbmsFrame) {
+			
+			// TODO: NEED TO COPY THE TABLE
+			
+			frame.setName(newName);
+			metadata.modifyVertexName(oldName, newName);
+			
+		} else {
+			// set the name
+			// that is it
+			// this is native and graph
+			frame.setName(newName);
+		}
+
+		return frame;
 	}
 
 }
