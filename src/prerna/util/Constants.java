@@ -605,4 +605,8 @@ public class Constants {
 
 	// Workspace
 	public static final String USER_WORKSPACE = "USER_WORKSPACE";
+	
+	//Pragma Options
+	public static final String IMPLICIT_ORDER = "IMPLICIT_ORDER";
+
 }
