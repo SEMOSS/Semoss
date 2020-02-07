@@ -51,6 +51,18 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return this.comparator;
 	}
 	
+	public void setLComparison(NounMetadata lComparison) {
+		this.lComparison = lComparison;
+	}
+	
+	public void setRComparison(NounMetadata rComparison) {
+		this.rComparison = rComparison;
+	}
+	
+	public void setComparator(String comparator) {
+		this.comparator = comparator;
+	}
+	
 	/**
 	 * Looks at the type of the query filter
 	 * To figure out how to merge values such that the filters are consolidated and 
