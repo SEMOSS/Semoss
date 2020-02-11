@@ -37,7 +37,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 		if( column == null || column.isEmpty()) {
 			throw new IllegalArgumentException("Must define the property being added to the app metadata");
 		}
-		// if RDBMS, we need to know the prim key of the column
+		// if RDBMS, we need to know the prime key of the column
 		IEngine engine = Utility.getEngine(appId);
 		RDFFileSesameEngine owlEngine = engine.getBaseDataEngine();
 		String physicalPropUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + column);
@@ -56,12 +56,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 			while(it.hasNext()) {
 				IHeadersDataRow headerRows = it.next();
-				Object[] raw = headerRows.getRawValues();
-				String s = raw[0].toString();
-				String p = raw[1].toString();
-				String o = raw[2].toString();
-				boolean bool = !objectIsLiteral(p);
-				owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, bool});
+				executeRemoveQuery(headerRows, owlEngine);
 			}
 		}
 		
@@ -76,12 +71,7 @@ public class RemoveOwlPropertyReactor extends AbstractMetaEditorReactor {
 			IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 			while(it.hasNext()) {
 				IHeadersDataRow headerRows = it.next();
-				Object[] raw = headerRows.getRawValues();
-				String s = raw[0].toString();
-				String p = raw[1].toString();
-				String o = raw[2].toString();
-				boolean bool = !objectIsLiteral(p);
-				owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, bool});
+				executeRemoveQuery(headerRows, owlEngine);
 			}
 		}
 		
