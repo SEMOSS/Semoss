@@ -3,7 +3,6 @@ package prerna.sablecc2.reactor.app.metaeditor.concepts;
 import java.util.List;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -58,12 +57,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 				while(it.hasNext()) {
 					IHeadersDataRow headerRows = it.next();
-					Object[] raw = headerRows.getRawValues();
-					String s = raw[0].toString();
-					String p = raw[1].toString();
-					String o = raw[2].toString();
-					boolean bool = !objectIsLiteral(p);
-					owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, bool});
+					executeRemoveQuery(headerRows, owlEngine);
 				}
 			}
 			
@@ -77,12 +71,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 				IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(owlEngine, query);
 				while(it.hasNext()) {
 					IHeadersDataRow headerRows = it.next();
-					Object[] raw = headerRows.getRawValues();
-					String s = raw[0].toString();
-					String p = raw[1].toString();
-					String o = raw[2].toString();
-					boolean bool = !objectIsLiteral(p);
-					owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, bool});
+					executeRemoveQuery(headerRows, owlEngine);
 				}
 			}
 		}
@@ -102,12 +91,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 			while(it.hasNext()) {
 				hasTriple = true;
 				IHeadersDataRow headerRows = it.next();
-				Object[] raw = headerRows.getRawValues();
-				String s = raw[0].toString();
-				String p = raw[1].toString();
-				String o = raw[2].toString();
-				boolean bool = !objectIsLiteral(p);
-				owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, bool});
+				executeRemoveQuery(headerRows, owlEngine);
 			}
 		}
 		
@@ -123,12 +107,7 @@ public class RemoveOwlConceptReactor extends AbstractMetaEditorReactor {
 			while(it.hasNext()) {
 				hasTriple = true;
 				IHeadersDataRow headerRows = it.next();
-				Object[] raw = headerRows.getRawValues();
-				String s = raw[0].toString();
-				String p = raw[1].toString();
-				String o = raw[2].toString();
-				boolean bool = !objectIsLiteral(p);
-				owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[]{s, p, o, bool});
+				executeRemoveQuery(headerRows, owlEngine);
 			}
 		}
 		
