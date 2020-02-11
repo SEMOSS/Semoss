@@ -19,6 +19,8 @@ import com.hp.hpl.jena.vocabulary.OWL;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ACTION_TYPE;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
@@ -45,6 +47,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		literalPreds.add(OWL.sameAs.toString());
 		literalPreds.add(RDFS.COMMENT);
 		literalPreds.add(Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_PROP_CLASS + "/UNIQUE");
+		literalPreds.add(Owler.CONCEPTUAL_RELATION_URI);
 	}
 	
 	protected static final String CONCEPTUAL_NAME = "conceptual";
@@ -145,6 +148,24 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 		return baseFolder;
 	}
 
+	/**
+	 * Execute a remove statement based on if the object is a literal or not
+	 * @param headerRows
+	 * @param owlEngine
+	 */
+	protected void executeRemoveQuery(IHeadersDataRow headerRows, RDFFileSesameEngine owlEngine) {
+		Object[] raw = headerRows.getRawValues();
+		String s = raw[0].toString();
+		String p = raw[1].toString();
+		String o = raw[2].toString();
+		boolean isLiteral = objectIsLiteral(p);
+		if(isLiteral) {
+			owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { s, p, headerRows.getValues()[2], !isLiteral });
+		} else {
+			owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { s, p, o, !isLiteral });
+		}
+	}
+	
 	/**
 	 * Get a list of tables to run certain routines
 	 * @return
