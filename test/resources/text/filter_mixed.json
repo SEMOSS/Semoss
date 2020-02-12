@@ -3,6 +3,7 @@
     "pixelExpression": "AddPanel ( 0 ) ;",
     "output": {
       "panelId": "0",
+      "sheetId": "0",
       "view": "visualization",
       "viewOptions": "{\"type\":\"echarts\"}",
       "viewOptionsMap": {
@@ -15,11 +16,9 @@
       },
       "config": {
         "type": "STANDARD",
-        "opacity": 100,
-        "labelOverride": false
+        "opacity": 100
       },
-      "ornaments": {
-      },
+      "ornaments": {},
       "events": {
         "onSingleClick": {
           "Unfilter": [
@@ -30,8 +29,7 @@
               ],
               "default": true,
               "query": "UnfilterFrame(<SelectedColumn>);",
-              "options": {
-              },
+              "options": {},
               "refresh": false,
               "disabled": false,
               "panel": ""
@@ -43,8 +41,7 @@
             {
               "default": true,
               "query": "if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
-              "options": {
-              },
+              "options": {},
               "refresh": false,
               "disabled": false,
               "panel": ""
@@ -52,22 +49,17 @@
           ]
         }
       },
-      "comments": {
-      },
-      "position": {
-      },
-      "filters": [
-      ],
-      "order": [
-      ],
-      "cbv": [
-      ]
+      "comments": {},
+      "filters": [],
+      "order": [],
+      "cbv": []
     }
   },
   {
     "pixelExpression": "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>UnfilterFrame(<SelectedColumn>);</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
     "output": {
       "panelId": "0",
+      "sheetId": "0",
       "view": "visualization",
       "viewOptions": "{\"type\":\"echarts\"}",
       "viewOptionsMap": {
@@ -80,11 +72,9 @@
       },
       "config": {
         "type": "STANDARD",
-        "opacity": 100,
-        "labelOverride": false
+        "opacity": 100
       },
-      "ornaments": {
-      },
+      "ornaments": {},
       "events": {
         "onSingleClick": {
           "Unfilter": [
@@ -95,8 +85,7 @@
               ],
               "default": true,
               "query": "UnfilterFrame(<SelectedColumn>);",
-              "options": {
-              },
+              "options": {},
               "refresh": false,
               "disabled": false,
               "panel": ""
@@ -108,8 +97,7 @@
             {
               "default": true,
               "query": "if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
-              "options": {
-              },
+              "options": {},
               "refresh": false,
               "disabled": false,
               "panel": ""
@@ -117,16 +105,10 @@
           ]
         }
       },
-      "comments": {
-      },
-      "position": {
-      },
-      "filters": [
-      ],
-      "order": [
-      ],
-      "cbv": [
-      ]
+      "comments": {},
+      "filters": [],
+      "order": [],
+      "cbv": []
     }
   },
   {
@@ -143,8 +125,7 @@
               ],
               "default": true,
               "query": "UnfilterFrame(<SelectedColumn>);",
-              "options": {
-              },
+              "options": {},
               "refresh": false,
               "disabled": false,
               "panel": ""
@@ -156,8 +137,7 @@
             {
               "default": true,
               "query": "if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
-              "options": {
-              },
+              "options": {},
               "refresh": false,
               "disabled": false,
               "panel": ""
@@ -187,6 +167,7 @@
     "pixelExpression": "Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;",
     "output": {
       "panelId": "0",
+      "sheetId": "0",
       "view": "visualization",
       "viewOptions": "{\"type\":\"echarts\"}",
       "viewOptionsMap": {
@@ -199,11 +180,9 @@
       },
       "config": {
         "type": "STANDARD",
-        "opacity": 100,
-        "labelOverride": false
+        "opacity": 100
       },
-      "ornaments": {
-      },
+      "ornaments": {},
       "events": {
         "onSingleClick": {
           "Unfilter": [
@@ -214,8 +193,7 @@
               ],
               "default": true,
               "query": "UnfilterFrame(<SelectedColumn>);",
-              "options": {
-              },
+              "options": {},
               "refresh": false,
               "disabled": false,
               "panel": ""
@@ -227,8 +205,7 @@
             {
               "default": true,
               "query": "if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));",
-              "options": {
-              },
+              "options": {},
               "refresh": false,
               "disabled": false,
               "panel": ""
@@ -236,16 +213,10 @@
           ]
         }
       },
-      "comments": {
-      },
-      "position": {
-      },
-      "filters": [
-      ],
-      "order": [
-      ],
-      "cbv": [
-      ]
+      "comments": {},
+      "filters": [],
+      "order": [],
+      "cbv": []
     }
   },
   {
@@ -5655,8 +5626,7 @@
           "derived": false
         }
       ],
-      "sortInfo": [
-      ],
+      "sortInfo": [],
       "numRows": 441,
       "sources": [
         {
@@ -5687,8 +5657,7 @@
       "format": {
         "type": "TABLE"
       },
-      "filterInfo": [
-      ],
+      "filterInfo": [],
       "taskId": "task1"
     }
   },
@@ -6407,8 +6376,7 @@
           "derived": false
         }
       ],
-      "sortInfo": [
-      ],
+      "sortInfo": [],
       "numRows": 46,
       "sources": [
         {
@@ -6439,8 +6407,7 @@
       "format": {
         "type": "TABLE"
       },
-      "filterInfo": [
-      ],
+      "filterInfo": [],
       "taskId": "task3"
     }
   },
@@ -6835,8 +6802,7 @@
           "derived": false
         }
       ],
-      "sortInfo": [
-      ],
+      "sortInfo": [],
       "numRows": 19,
       "sources": [
         {
@@ -6867,8 +6833,7 @@
       "format": {
         "type": "TABLE"
       },
-      "filterInfo": [
-      ],
+      "filterInfo": [],
       "taskId": "task5"
     }
   },
@@ -7047,8 +7012,7 @@
           "derived": false
         }
       ],
-      "sortInfo": [
-      ],
+      "sortInfo": [],
       "numRows": 1,
       "sources": [
         {
@@ -7079,8 +7043,7 @@
       "format": {
         "type": "TABLE"
       },
-      "filterInfo": [
-      ],
+      "filterInfo": [],
       "taskId": "task7"
     }
   },
@@ -7475,8 +7438,7 @@
           "derived": false
         }
       ],
-      "sortInfo": [
-      ],
+      "sortInfo": [],
       "numRows": 19,
       "sources": [
         {
@@ -7507,8 +7469,7 @@
       "format": {
         "type": "TABLE"
       },
-      "filterInfo": [
-      ],
+      "filterInfo": [],
       "taskId": "task9"
     }
   }

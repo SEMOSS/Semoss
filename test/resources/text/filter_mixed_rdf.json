@@ -3,6 +3,7 @@
     "pixelExpression": "AddPanel ( 0 ) ;",
     "output": {
       "panelId": "0",
+      "sheetId": "0",
       "view": "visualization",
       "viewOptions": "{\"type\":\"echarts\"}",
       "viewOptionsMap": {
@@ -15,8 +16,7 @@
       },
       "config": {
         "type": "STANDARD",
-        "opacity": 100,
-        "labelOverride": false
+        "opacity": 100
       },
       "ornaments": {},
       "events": {
@@ -50,7 +50,6 @@
         }
       },
       "comments": {},
-      "position": {},
       "filters": [],
       "order": [],
       "cbv": []
@@ -60,6 +59,7 @@
     "pixelExpression": "Panel ( 0 ) | AddPanelEvents ( { \"onSingleClick\" : { \"Unfilter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>UnfilterFrame(<SelectedColumn>);</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabledVisuals\" : [ \"Grid\" , \"Sunburst\" ] , \"disabled\" : false } ] } , \"onBrush\" : { \"Filter\" : [ { \"panel\" : \"\" , \"query\" : \"<encode>if(IsEmpty(<SelectedValues>), UnfilterFrame(<SelectedColumn>), SetFrameFilter(<SelectedColumn>==<SelectedValues>));</encode>\" , \"options\" : { } , \"refresh\" : false , \"default\" : true , \"disabled\" : false } ] } } ) ;",
     "output": {
       "panelId": "0",
+      "sheetId": "0",
       "view": "visualization",
       "viewOptions": "{\"type\":\"echarts\"}",
       "viewOptionsMap": {
@@ -72,8 +72,7 @@
       },
       "config": {
         "type": "STANDARD",
-        "opacity": 100,
-        "labelOverride": false
+        "opacity": 100
       },
       "ornaments": {},
       "events": {
@@ -107,7 +106,6 @@
         }
       },
       "comments": {},
-      "position": {},
       "filters": [],
       "order": [],
       "cbv": []
@@ -169,6 +167,7 @@
     "pixelExpression": "Panel ( 0 ) | AddPanelConfig ( config = [ { \"config\" : { \"type\" : \"STANDARD\" , \"opacity\" : 100 } } ] ) ;",
     "output": {
       "panelId": "0",
+      "sheetId": "0",
       "view": "visualization",
       "viewOptions": "{\"type\":\"echarts\"}",
       "viewOptionsMap": {
@@ -181,8 +180,7 @@
       },
       "config": {
         "type": "STANDARD",
-        "opacity": 100,
-        "labelOverride": false
+        "opacity": 100
       },
       "ornaments": {},
       "events": {
@@ -216,7 +214,6 @@
         }
       },
       "comments": {},
-      "position": {},
       "filters": [],
       "order": [],
       "cbv": []
