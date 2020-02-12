@@ -34,7 +34,7 @@ public abstract class AbstractExportTxtReactor extends TaskBuilderReactor {
 	 * @param extension
 	 * @return
 	 */
-	protected String getExportFileName(String extension) {
+	public static String getExportFileName(String extension) {
 		// get a random file name
 		Date date = new Date();
 		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
