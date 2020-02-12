@@ -23,6 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import au.com.bytecode.opencsv.CSVReader;
+import prerna.om.InsightStore;
 
 @RunWith(Parameterized.class)
 public class PixelUnitTests extends PixelUnit {
@@ -171,12 +172,13 @@ public class PixelUnitTests extends PixelUnit {
 	@Override
 	@Before
 	public void initializeTest() {
+		initializeJep();
 		if (!skipTest) {
 			if (insightState != null && !(insightState.isEmpty()) && insightState.contains("START")) {
 				initializeTest(true);
 			} else {
 				this.insight = InsightHolder.getInstance().getInsight();
-				this.jep = InsightHolder.getInstance().getPy();
+				//this.jep = InsightHolder.getInstance().getPy();
 			}
 		}
 	}
@@ -184,7 +186,6 @@ public class PixelUnitTests extends PixelUnit {
 	@Override
 	public void initializeTest(boolean checkAssumptions) {
 		initializeInsight();
-		initializeJep();
 		cleanTestDatabases = new ArrayList<>(); // Reset the list of databases to clean
 		if (checkAssumptions) {
 			checkTestAssumptions();
@@ -194,14 +195,16 @@ public class PixelUnitTests extends PixelUnit {
 	@Override
 	@After
 	public void destroyTest() {
+		destroyJep();
 		if(!skipTest) {
 			if(insightState!=null && !(insightState.isEmpty()) && insightState.contains("END")) {
 			destroyInsight();
-			destroyJep();
 			cleanTestDatabases();
+			InsightHolder.getInstance().setInsight(this.insight);
+
 			} else {
 				InsightHolder.getInstance().setInsight(this.insight);
-				InsightHolder.getInstance().setPy(this.jep);;
+				//InsightHolder.getInstance().setPy(this.jep);;
 			}
 		}
 	}

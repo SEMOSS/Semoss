@@ -8,7 +8,7 @@ public class InsightHolder {
 	
 	private static InsightHolder insightHolder = null;
 	private static Insight insight = null;
-	private static PyExecutorThread jep = null;
+	//private static PyExecutorThread jepThread = null;
 
 	
 	
@@ -16,7 +16,7 @@ public class InsightHolder {
 		
 	}
 	
-	public static  InsightHolder getInstance()
+	public synchronized static  InsightHolder getInstance()
 	{
 		if(insightHolder == null)
 		{
@@ -30,16 +30,17 @@ public class InsightHolder {
 		insight = in;
 	}
 	
-	public static void setPy(PyExecutorThread py) {
-		jep=py;
-	}
+//	public static void setPy(PyExecutorThread py) {
+//		//jepThread=py;
+//		insight.setPy(py);
+//	}
 	
 	public Insight getInsight() {
 		return insight;
 	}
 	
-	public PyExecutorThread getPy() {
-		return jep;
-	}
+//	public PyExecutorThread getPy() {
+//		return insight.getPy();
+//	}
 	
 }
