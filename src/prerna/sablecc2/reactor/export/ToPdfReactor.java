@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -37,7 +38,6 @@ public class ToPdfReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		Logger logger = getLogger(CLASS_NAME);
-		logger.info("Starting to pdf...");
 		organizeKeys();
 		// location for pdf resources
 		String insightFolder = this.insight.getInsightFolder();
@@ -49,7 +49,8 @@ public class ToPdfReactor extends AbstractReactor {
 		// Find semoss tags
 		Document doc = Jsoup.parse(htmlToParse);
 		Elements semossElements = doc.select("semoss");
-
+		// keep list of paths to clean up and delete once the pdf is created
+		Vector<String> tempPaths = new Vector<>();
 		// Process all semoss tags
 		int imageNum = 1;
 		for (Element element : semossElements) {
@@ -57,7 +58,11 @@ public class ToPdfReactor extends AbstractReactor {
 
 			// Run headless chrome with semossTagUrl
 			String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
+			logger.info("Generating image for PDF...");
 			ChromeDriverUtility.captureImage(feUrl, url, imagePath, sessionId);
+			tempPaths.add(imagePath);
+			logger.info("Done generating image for PDF...");
+
 			// Replace semoss tag with img tag
 			element.tagName("img");
 			// Replace url attribute with src attribute
@@ -88,15 +93,18 @@ public class ToPdfReactor extends AbstractReactor {
 
 		// Flush xhtml to disk
 		String random = Utility.getRandomString(5);
-		File tempXhtml = new File(insightFolder + DIR_SEPARATOR + random + ".html");
+		String tempXhtmlPath = insightFolder + DIR_SEPARATOR + random + ".html";
+		File tempXhtml = new File(tempXhtmlPath);
 		try {
 			FileUtils.writeStringToFile(tempXhtml, doc.html());
+			tempPaths.add(tempXhtmlPath);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
 
 		// Convert from xhtml to pdf
 		try {
+			logger.info("Converting html to PDF...");
 			OutputStream os = new FileOutputStream(fileLocation);
 			PdfRendererBuilder pdfBuilder = new PdfRendererBuilder();
 			pdfBuilder.useFastMode();
@@ -104,12 +112,24 @@ public class ToPdfReactor extends AbstractReactor {
 			pdfBuilder.withFile(tempXhtml);
 			pdfBuilder.toStream(os);
 			pdfBuilder.run();
+			logger.info("Done converting html to PDF...");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+
+		// delete temp files
+		for (String path : tempPaths) {
+			try {
+				File f = new File(path);
+				if (f.exists()) {
+					FileUtils.forceDelete(f);
+				}
+			} catch (IOException e) {
+			}
 		}
 
 		return retNoun;
