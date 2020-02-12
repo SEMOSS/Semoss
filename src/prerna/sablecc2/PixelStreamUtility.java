@@ -39,6 +39,7 @@ import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.export.GraphFormatter;
 import prerna.sablecc2.reactor.frame.FrameFactory;
+import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
@@ -52,7 +53,7 @@ public class PixelStreamUtility {
 	private static final Logger LOGGER = Logger.getLogger(CLASS_NAME);
 
 	private static Gson getDefaultGson() {
-		return GsonUtility.getDefaultGson();
+		return GsonUtility.getDefaultGson(true);
 	}
 	
 	private static Gson getPanelGson() {
@@ -82,7 +83,7 @@ public class PixelStreamUtility {
 				@Override
 				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
 					try {
-						ps = new PrintStream(outputStream, false, "UTF-8");
+						ps = new PrintStream(outputStream, true, "UTF-8");
 						// we want to ignore the first index since it will be a job
 						processPixelRunner(ps, gson, runner);
 					} catch(Exception e) {
@@ -135,6 +136,45 @@ public class PixelStreamUtility {
 			LOGGER.error("Failed to write object to stream");
 		} finally {
 			try {
+				fos.flush();
+				fos.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return fileToWrite;
+	}
+	
+	/** 
+	 * Made for testing generation purposes, uncomment if you'd like to generate test output
+	 */
+	public static File writePixelDataForTest(PixelRunner runner, File fileToWrite) {
+		Gson gson = getDefaultGson();
+		FileOutputStream fos = null;
+		try {
+			StreamingOutput output = new StreamingOutput() {
+				PrintStream ps = null;
+				@Override
+				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
+					try {
+						ps = new PrintStream(outputStream, true, "UTF-8");
+						processPixelRunnerForTest(ps,gson,runner);
+					} catch(Exception e) {
+						e.printStackTrace();
+					} finally {
+						if(ps != null) {
+							ps.close();
+						}
+					}
+				}};
+			fos = new FileOutputStream(fileToWrite);
+			output.write(fos);
+		} catch (Exception e) {
+			LOGGER.error("Failed to write object to stream");
+		} finally {
+			try {
+				fos.flush();
 				fos.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -165,7 +205,7 @@ public class PixelStreamUtility {
 		// from an insight
 		if(size > 0) {
 			// THIS IS BECAUSE WE APPEND THE JOB PIXEL
-			// BUT FE DOENS'T RESPOND TO IT AND NEED TO REMOVE IT
+			// BUT FE DOESN'T RESPOND TO IT AND NEED TO REMOVE IT
 			// HOWEVER, IF THE SIZE IS JUST 1, IT MEANS THAT THERE WAS
 			// AN ERROR THAT OCCURED
 			// but when we run a saved insight within a pixel
@@ -203,7 +243,32 @@ public class PixelStreamUtility {
 		pixelStrings = null;
 		runner = null;
 	}
+	/** 
+	 * Made for testing generation purposes, uncomment if you'd like to generate test output
+	 */
+	private static void processPixelRunnerForTest(PrintStream ps, Gson gson, PixelRunner runner) {
+		Insight in = runner.getInsight();
+		List<NounMetadata> resultList = runner.getResults();
+		
+		List<String> pixelStrings = runner.getPixelExpressions();
+		List<Boolean> isMeta = runner.isMeta();
 
+		int size = pixelStrings.size();
+		
+		if(size > 0) {
+			int lastItem = size-1;
+			NounMetadata noun = resultList.get(lastItem);
+			String expression = pixelStrings.get(lastItem);
+			boolean meta = isMeta.get(lastItem);
+			processNounMetadata(in, ps, gson, noun, expression, meta);
+		}
+
+		resultList.clear();
+		pixelStrings.clear();
+		resultList = null;
+		pixelStrings = null;
+		runner = null;
+	}
 	/**
 	 * Process the noun metadata for consumption on the FE
 	 * @param noun
