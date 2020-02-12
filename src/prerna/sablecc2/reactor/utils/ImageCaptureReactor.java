@@ -1,16 +1,9 @@
 package prerna.sablecc2.reactor.utils;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
-import org.openqa.selenium.Cookie;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -26,6 +19,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.util.ChromeDriverUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -36,12 +30,8 @@ public class ImageCaptureReactor extends AbstractReactor {
 	// get the directory separator
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	// need to get the context name for the instance
-	// set in the DBLoader on startup
-	protected static String contextPath = null;
-	
 	public ImageCaptureReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_KEY.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.APP.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_KEY.getKey() };
 	}
 
 	@Override
@@ -163,83 +153,16 @@ public class ImageCaptureReactor extends AbstractReactor {
 					DIR_SEPARATOR + params;
 		}
 		
-		String os = System.getProperty("os.name").toUpperCase();
-		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
-		boolean linux = false;
-		if(os.contains("WIN")){
-			sysProp += "chromedriver-win.exe";
-		} else if(os.contains("MAC")) {
-			sysProp += "chromedriver-mac";
-		} else {
-			linux = true;
-			sysProp += "chromedriver-linux";
-		}
-		System.setProperty("webdriver.chrome.driver", sysProp);
-		
-	    ChromeOptions chromeOptions = new ChromeOptions();
-		chromeOptions.addArguments("--headless");
-		chromeOptions.addArguments("--disable-gpu");
-		chromeOptions.addArguments("--window-size=1440,1440");
-		if(linux) {
-			chromeOptions.addArguments("-disable-dev-shm-usage");
-			chromeOptions.addArguments("--no-sandbox");
-		}
-		if(feUrl.contains("localhost") && feUrl.contains("https")) {
-			chromeOptions.addArguments("--allow-insecure-localhost ");
-		}
-		ChromeDriver driver = new ChromeDriver(chromeOptions);
 		String url = null;
 		if(params != null) {
 			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&parameters=" + params +  "&hideMenu=true&drop=5000&animation=false";
 		} else {
 			url = feUrl+ "#!/insight?type=multi&engine=" + engineId + "&id=" + id + "&hideMenu=true&drop=5000&animation=false";
 		}
-		
-		// need to go to the base url first
-		// so that the cookie is applied at root level
-		
-		if(ImageCaptureReactor.contextPath != null) {
-			String startingUrl = feUrl;
-			if(startingUrl.endsWith("/")) {
-				startingUrl = startingUrl.substring(0, startingUrl.length()-1);
-			}
-			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/")+1) + ImageCaptureReactor.contextPath;
-			driver.get(baseUrl);
-		} else {
-			driver.get(url);
-		}
-		if(sessionId != null) {
-			Cookie name = new Cookie(DIHelper.getInstance().getLocalProp(Constants.SESSION_ID_KEY).toString(), sessionId, "/");
-			driver.manage().addCookie(name);
-		}
-		driver.navigate().to(url);
-		
-		// time for FE to render the page before the image is taken
-	    try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		File scrFile = (File)((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
-		try {
-			FileUtils.copyFile(scrFile, new File(imageDirStr + DIR_SEPARATOR + "image.png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-	    driver.quit();
+		ChromeDriverUtility.captureImage(feUrl, url, imageDirStr + DIR_SEPARATOR + "image.png", sessionId);
 	}
 	
-	public static void setContextPath(String contextPath) {
-		if(contextPath.startsWith("/")) {
-			contextPath = contextPath.substring(1);
-		}
-		if(contextPath.endsWith("/")) {
-			contextPath = contextPath.substring(0, contextPath.length()-1);
-		}
-		ImageCaptureReactor.contextPath = contextPath;
-	}
+
 	
 //	private static String[] getCmdArray(String feUrl, Insight in, String params) {
 //		String id = in.getRdbmsId();
