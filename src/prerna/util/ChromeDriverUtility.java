@@ -10,19 +10,21 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
-public class HeadlessChromeUtility {
+public class ChromeDriverUtility {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static String contextPath = null;
 
 	/**
 	 * Capture the image of from a url
-	 * @param url
-	 * @param imagePath
-	 * @param sessionId
+	 * @param feUrl the base semoss url
+	 * @param url the insight embed url
+	 * @param imagePath location to save image
+	 * @param sessionId user session id if logged in
 	 */
-	public static void captureImage(String url, String imagePath, String sessionId, String contextPath) {
+	public static void captureImage(String feUrl, String url, String imagePath, String sessionId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		// get chrome settings
+		// load driver options
 		String os = System.getProperty("os.name").toUpperCase();
 		String sysProp = baseFolder + DIR_SEPARATOR + "config" + DIR_SEPARATOR + "Chromedriver" + DIR_SEPARATOR;
 		boolean linux = false;
@@ -48,16 +50,14 @@ public class HeadlessChromeUtility {
 			chromeOptions.addArguments("--allow-insecure-localhost ");
 		}
 		ChromeDriver driver = new ChromeDriver(chromeOptions);
-
-		
 		// need to go to the base url first
 		// so that the cookie is applied at root level
-		if(contextPath != null) {
-			String startingUrl = url;
+		if(ChromeDriverUtility.contextPath != null) {
+			String startingUrl = feUrl;
 			if(startingUrl.endsWith("/")) {
 				startingUrl = startingUrl.substring(0, startingUrl.length()-1);
 			}
-			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/")+1) + contextPath;
+			String baseUrl = startingUrl.substring(0, startingUrl.lastIndexOf("/")+1) + ChromeDriverUtility.contextPath;
 			driver.get(baseUrl);
 		} else {
 			driver.get(url);
@@ -74,7 +74,7 @@ public class HeadlessChromeUtility {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
+		// take image
 		File scrFile = (File)((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
 		try {
 			FileUtils.copyFile(scrFile, new File(imagePath));
@@ -83,5 +83,15 @@ public class HeadlessChromeUtility {
 		}
 
 	    driver.quit();
+	}
+	
+	public static void setContextPath(String contextPath) {
+		if(contextPath.startsWith("/")) {
+			contextPath = contextPath.substring(1);
+		}
+		if(contextPath.endsWith("/")) {
+			contextPath = contextPath.substring(0, contextPath.length()-1);
+		}
+		ChromeDriverUtility.contextPath = contextPath;
 	}
 }
