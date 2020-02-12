@@ -1,0 +1,68 @@
+{
+   "pixelExpression":"FRAMEUNITTEST | RunClassification ( classify = [ MovieBudget ] , attributes = [ \"Nominated\" , \"Revenue_Domestic\" , \"Revenue_International\" , \"RottenTomatoes_Audience\" , \"RottenTomatoes_Critics\" ] , panel = [ 0 ] ) ;",
+   "isMeta":false,
+   "output":{
+      "layout":"Dendrogram",
+      "panelId":"0",
+      "children":{
+         "Revenue_Domestic > 93617009":{
+            "84728915.663":{
+
+            }
+         },
+         "Revenue_Domestic <= 93617009":{
+            "Revenue_Domestic > 32619671":{
+               "RottenTomatoes_Audience > 0.7":{
+                  "28682692.308":{
+
+                  }
+               },
+               "RottenTomatoes_Audience <= 0.7":{
+                  "Revenue_International > 78123000":{
+                     "68736842.105":{
+
+                     }
+                  },
+                  "Revenue_International <= 78123000":{
+                     "Revenue_Domestic > 52411906":{
+                        "15423076.923":{
+
+                        }
+                     },
+                     "Revenue_Domestic <= 52411906":{
+                        "54370370.370":{
+
+                        }
+                     }
+                  }
+               }
+            },
+            "Revenue_Domestic <= 32619671":{
+               "19377219.512":{
+
+               }
+            }
+         }
+      },
+      "stats":[
+         {
+            "Accuracy":"87.57"
+         },
+         {
+            "Relevant Predictors":"Revenue_Domestic, RottenTomatoes_Audience, Revenue_International"
+         }
+      ],
+      "name":"Decision Tree For MovieBudget"
+   },
+   "operationType":[
+      "VIZ_OUTPUT"
+   ],
+   "additionalOutput":[
+      {
+         "output":"Classification ran successfully!",
+         "operationType":[
+            "SUCCESS"
+         ]
+      }
+   ]
+}
