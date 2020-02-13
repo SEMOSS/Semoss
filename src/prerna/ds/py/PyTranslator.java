@@ -152,7 +152,7 @@ public class PyTranslator {
 		return (String) runScript(script);
 	}
 	
-	protected Hashtable executePyDirect(String...script)
+	protected synchronized Hashtable executePyDirect(String...script)
 	{
 		if(this.pt == null)
 			this.pt = insight.getPy();
@@ -174,7 +174,7 @@ public class PyTranslator {
 	}
 	
 	
-	protected void executeEmptyPyDirect(String script)
+	protected synchronized void executeEmptyPyDirect(String script)
 	{
 		if(this.pt == null)
 			this.pt = insight.getPy();
@@ -196,7 +196,7 @@ public class PyTranslator {
 		
 	}
 
-	protected void executeEmptyPyDirect2(String script, String file)
+	protected synchronized void executeEmptyPyDirect2(String script, String file)
 	{
 		if(this.pt == null)
 			this.pt = insight.getPy();
@@ -283,7 +283,7 @@ public class PyTranslator {
 		}
 		
 	}
-	public void runEmptyPy(String...script)
+	public synchronized void runEmptyPy(String...script)
 	{
 		// get the insight folder 
 		// create a teamp to write the script file
@@ -325,7 +325,7 @@ public class PyTranslator {
 	}
 	
 	
-	public String runPyAndReturnOutput(String...inscript)
+	public synchronized String runPyAndReturnOutput(String...inscript)
 	{
 		// Clean the script
 		String script = convertArrayToString(inscript);
@@ -464,7 +464,7 @@ public class PyTranslator {
 	 * @param script
 	 * @return
 	 */
-	public Object runScript(String... script) {
+	public synchronized Object runScript(String... script) {
 		this.pt.command = script;
 		Object monitor = this.pt.getMonitor();
 		Object response = null;

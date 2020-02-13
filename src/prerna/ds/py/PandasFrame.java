@@ -422,8 +422,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// need to check if the pandas interpreter has it also
 		//if(keyCache.size() > 0)
 		{
-			pyt.runScript(new String[]{frameName + "w.clearCache()"});
-			keyCache.clear();
+			//pyt.runScript(new String[]{frameName + "w.clearCache()"});
+			//keyCache.clear();
 		}
 	}
 	
