@@ -183,6 +183,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		// I need to account for when group is not there and filter is there
 		// as well as when filter is not there and group is there
 		// and when neither
+		/*
 		if(filterCriteria.length() > 0 && groupCriteria.length() == 0)
 		{
 			//createFilterOnlyCache(filterCriteria.toString(), this.wrapperFrameName + ".loc[" +  filterCriteria + "]");
@@ -201,7 +202,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			createGroupAndFilterCache(filterCriteria.toString(), groupKey, filterQuery, groupCriteria + "");
 			cachedFrame = new StringBuilder(frameName).append("w.cache[\"").append(groupKey).append("\"]");
 			groupCriteria = new StringBuilder("");
-		}
+		}*/
 
 
 		
@@ -235,7 +236,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				//.append(qs.getOffset() + ":" + (qs.getOffset() + qs.getLimit()) + "]")
 				//.append(0 + ":" + 500+ "]")
 				//.append(this)
-				//.append(this.filterCriteria)
+				.append(this.filterCriteria)
 				.append(this.selectorCriteria)
 				.append(addDistinct(((SelectQueryStruct) this.qs).isDistinct()))
 				.append(this.groupCriteria) //<-- trying disabling this now
@@ -402,7 +403,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 	
 	private String addDistinct(boolean distinct) {
 		if(distinct) {
-			return ".drop_duplicates()";
+			return ""; //.drop_duplicates()";
 		}
 		return "";
 	}
