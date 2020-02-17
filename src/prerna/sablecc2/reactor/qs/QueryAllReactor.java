@@ -14,7 +14,7 @@ public class QueryAllReactor extends AbstractQueryStructReactor {
 			this.qs.setFrame(frame);
 		}
 		if(frame != null) {
-			SelectQueryStruct frameQs = frame.getMetaData().getFlatTableQs();
+			SelectQueryStruct frameQs = frame.getMetaData().getFlatTableQs(true);
 			if(frameQs.getSelectors().size() == 0) {
 				if(frame.isEmpty()) {
 					throw new IllegalArgumentException("Frame is empty and contains no data");
