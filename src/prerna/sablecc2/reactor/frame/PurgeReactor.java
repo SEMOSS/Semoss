@@ -5,11 +5,8 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.r.RDataTable;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -32,7 +29,7 @@ public class PurgeReactor extends AbstractFrameReactor {
 		// get the frame
 		ITableDataFrame frame = getFrame();
 		GenRowFilters curFilters = frame.getFrameFilters().copy();
-		SelectQueryStruct qs = frame.getMetaData().getFlatTableQs();
+		SelectQueryStruct qs = frame.getMetaData().getFlatTableQs(false);
 		qs.setExplicitFilters(curFilters);
 		qs.setFrame(frame);
 		
