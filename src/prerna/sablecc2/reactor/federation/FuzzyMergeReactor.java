@@ -124,7 +124,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 				rFrameVar = rFrameVar + "_" + (++counter);
 			}
 			RDataTable newFrame = new RDataTable(this.rJavaTranslator, rFrameVar);
-			SelectQueryStruct olfFrameQs = frame.getMetaData().getFlatTableQs();
+			SelectQueryStruct olfFrameQs = frame.getMetaData().getFlatTableQs(false);
 			olfFrameQs.setFrame(frame);
 			RImporter importer = new RImporter(newFrame, olfFrameQs);
 			importer.insertData();
