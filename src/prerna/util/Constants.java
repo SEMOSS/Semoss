@@ -607,7 +607,10 @@ public class Constants {
 	// Workspace
 	public static final String USER_WORKSPACE = "USER_WORKSPACE";
 	
-	//Pragma Options
+	// Pragma Options
 	public static final String IMPLICIT_ORDER = "IMPLICIT_ORDER";
 
+	// embed url
+	public static final String EMBED_URL_LOGO = "EMBED_URL_LOGO";
+	
 }
