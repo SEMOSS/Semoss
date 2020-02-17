@@ -750,7 +750,7 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		// get a flat QS
 		// which contains all the selectors 
 		// and all the joins as inner 
-		SelectQueryStruct qs = this.metaData.getFlatTableQs();
+		SelectQueryStruct qs = this.metaData.getFlatTableQs(false);
 		if(qs.getSelectors().isEmpty()) {
 			return 0;
 		}
