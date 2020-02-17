@@ -19,6 +19,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
@@ -39,9 +42,6 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.gson.GenRowFiltersAdapter;
-
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 
 public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
@@ -585,7 +585,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// get a flat QS
 		// which contains all the selectors 
 		// and all the joins as inner 
-		SelectQueryStruct qs = this.metaData.getFlatTableQs();
+		SelectQueryStruct qs = this.metaData.getFlatTableQs(false);
 		// add the frame filters
 		qs.mergeImplicitFilters(this.grf);
 		
@@ -602,7 +602,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		// get a flat QS
 		// which contains all the selectors 
 		// and all the joins as inner 
-		SelectQueryStruct qs = this.metaData.getFlatTableQs();
+		SelectQueryStruct qs = this.metaData.getFlatTableQs(false);
 		// add the frame filters
 		qs.mergeImplicitFilters(this.grf);
 		

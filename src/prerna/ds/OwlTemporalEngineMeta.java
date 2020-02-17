@@ -1296,7 +1296,7 @@ public class OwlTemporalEngineMeta {
 		return metamodel;
 	}
 	
-	public SelectQueryStruct getFlatTableQs() {
+	public SelectQueryStruct getFlatTableQs(boolean useAlias) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		
 		// query to get all headers + aliases
@@ -1330,20 +1330,21 @@ public class OwlTemporalEngineMeta {
 				if(alias.contains("__")) {
 					alias = alias.split("__")[1];
 				}
-				if(header.contains("__")) {
-					String[] split = header.split("__");
-					QueryColumnSelector qsSelector = new QueryColumnSelector();
-					qsSelector.setTable(split[0]);
-					qsSelector.setColumn(split[1]);
-					qsSelector.setAlias(alias);
-					qs.addSelector(qsSelector);
+				QueryColumnSelector qsSelector = new QueryColumnSelector();
+				if(useAlias) {
+					qsSelector.setTable(alias);
 				} else {
-					QueryColumnSelector qsSelector = new QueryColumnSelector();
-					qsSelector.setTable(header);
-					qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
-					qsSelector.setAlias(alias);
-					qs.addSelector(qsSelector);
+					if(header.contains("__")) {
+						String[] split = header.split("__");
+						qsSelector.setTable(split[0]);
+						qsSelector.setColumn(split[1]);
+					} else {
+						qsSelector.setTable(header);
+						qsSelector.setColumn(SelectQueryStruct.PRIM_KEY_PLACEHOLDER);
+					}
 				}
+				qsSelector.setAlias(alias);
+				qs.addSelector(qsSelector);
 			}
 		}
 		

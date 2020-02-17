@@ -93,7 +93,7 @@ public class CopyFrameUtil {
 				newFrame = (ITableDataFrame) Class.forName(frameToCopy.getClass().getName()).newInstance();
 				newFrame.setName(oldName);
 				// just do a query on the current frame
-				SelectQueryStruct qs = newMetadata.getFlatTableQs();
+				SelectQueryStruct qs = newMetadata.getFlatTableQs(false);
 				// add the limit
 				qs.setLimit(limit);
 				IRawSelectWrapper iterator = frameToCopy.query(qs);

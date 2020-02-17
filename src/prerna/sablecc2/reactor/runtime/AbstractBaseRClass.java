@@ -311,7 +311,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 				throw exception;
 			}
 			
-			SelectQueryStruct qs = dataframe.getMetaData().getFlatTableQs();
+			SelectQueryStruct qs = dataframe.getMetaData().getFlatTableQs(false);
 			qs.setFrame(dataframe);
 			RImporter importer = new RImporter(table, qs, it);
 			importer.insertData();
