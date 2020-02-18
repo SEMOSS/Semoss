@@ -25,16 +25,25 @@ public class UnfilterPanelReactor extends AbstractFilterReactor {
 			colsToUnfilter = this.curRow.getValuesOfType(PixelDataType.CONST_STRING);
 		}
 		
+		boolean hasFilters = false;
 		if(colsToUnfilter == null || colsToUnfilter.isEmpty()) {
-			panel.getPanelFilters().removeAllFilters();
+			GenRowFilters grf = panel.getPanelFilters();
+			if(!grf.isEmpty()) {
+				grf.removeAllFilters();
+				hasFilters = true;
+			}
 		} else {
 			GenRowFilters grf = panel.getPanelFilters();
 			for(Object col : colsToUnfilter) {
-				grf.removeColumnFilter(col + "");
+				String colName = col + "";
+				if(grf.hasFilter(colName)) {
+					grf.removeColumnFilter(colName);
+					hasFilters = true;
+				}
 			}
 		}
 		
-		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.PANEL_FILTER);
+		NounMetadata noun = new NounMetadata(hasFilters, PixelDataType.BOOLEAN, PixelOperationType.PANEL_FILTER);
 		return noun;
 	}
 }
