@@ -66,6 +66,9 @@ public class SwapFrameReactor extends AbstractReactor {
 			vStore.put(f2, f1Noun);
 		}
 		
+		// now set the filters of the current frame to the new frame
+		frames.get(1).setFilter(frames.get(0).getFrameFilters());
+		
 		// need to also change the frame names
 		// need to account for R and stuff
 		String frame1Name = frames.get(0).getName();
