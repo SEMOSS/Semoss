@@ -10,6 +10,7 @@ import java.util.List;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -32,7 +33,12 @@ public class GetNeo4jPropertiesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		List<String> properties = new ArrayList<>();
-		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		// check if user has specified a file path
+		String filePath = null;
+		GenRowStruct fileGrs = store.getNoun(ReactorKeysEnum.FILE_PATH.getKey()); 
+		if (fileGrs != null) {
+			filePath = UploadInputUtility.getFilePath(this.store, this.insight);
+		}
 		if (filePath != null) {
 			try {
 				GraphDatabaseService dbService = new GraphDatabaseFactory().newEmbeddedDatabase(new File(filePath));
