@@ -37,7 +37,7 @@ public class GetNeo4jMetamodelReactor extends AbstractReactor {
 		String filePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		
 		boolean useLabel = useLabel();
-		String graphTypeId = this.keyValue.get(this.keysToGet[4]);
+		String graphTypeId = this.keyValue.get(ReactorKeysEnum.GRAPH_TYPE_ID.getKey());
 		if (!useLabel) {
 			if (graphTypeId == null) {
 				SemossPixelException exception = new SemossPixelException(
