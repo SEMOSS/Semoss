@@ -71,7 +71,7 @@ public class SaveOwlPositions extends AbstractReactor {
 	
 	private String getAppId() {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
-		if(grs != null && grs.isEmpty()) {
+		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> strings = grs.getNounsOfType(PixelDataType.CONST_STRING);
 			if(strings != null && !strings.isEmpty()) {
 				return (String) strings.get(0).getValue();
@@ -89,7 +89,7 @@ public class SaveOwlPositions extends AbstractReactor {
 	
 	private Map<String, Object> getPositionMap() {
 		GenRowStruct grs = this.store.getNoun(this.keysToGet[1]);
-		if(grs != null && grs.isEmpty()) {
+		if(grs != null && !grs.isEmpty()) {
 			List<NounMetadata> maps = grs.getNounsOfType(PixelDataType.MAP);
 			if(maps != null && !maps.isEmpty()) {
 				return (Map<String, Object>) maps.get(0).getValue();
