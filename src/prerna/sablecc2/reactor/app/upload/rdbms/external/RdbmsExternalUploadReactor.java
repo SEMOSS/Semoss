@@ -13,22 +13,28 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
-//import org.python.google.common.io.Files;
+import org.openrdf.model.vocabulary.RDFS;
 
 import com.google.common.io.Files;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IEngine.ACTION_TYPE;
 import prerna.engine.api.impl.util.Owler;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.rdbms.ImpalaEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.impl.rdf.RDFFileSesameEngine;
+import prerna.nameserver.utility.MasterDatabaseUtility;
 import prerna.poi.main.RDBMSEngineCreationHelper;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -44,7 +50,7 @@ import prerna.util.git.GitRepoUtils;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsExternalUploadReactor extends AbstractReactor {
-	
+
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	private static final String CLASS_NAME = RdbmsExternalUploadReactor.class.getName();
 
@@ -57,98 +63,152 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	protected transient File appFolder;
 	protected transient File tempSmss;
 	protected transient File smssFile;
-	
+
 	protected transient boolean error = false;
-	
+
 	public RdbmsExternalUploadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(), ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), 
-				ReactorKeysEnum.HOST.getKey(), ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), 
-				ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
-				UploadInputUtility.APP, UploadInputUtility.METAMODEL };
+		this.keysToGet = new String[] { ReactorKeysEnum.DB_DRIVER_KEY.getKey(),
+				ReactorKeysEnum.CONNECTION_STRING_KEY.getKey(), ReactorKeysEnum.HOST.getKey(),
+				ReactorKeysEnum.PORT.getKey(), ReactorKeysEnum.USERNAME.getKey(), ReactorKeysEnum.PASSWORD.getKey(),
+				ReactorKeysEnum.SCHEMA.getKey(), ReactorKeysEnum.ADDITIONAL_CONNECTION_PARAMS_KEY.getKey(),
+				UploadInputUtility.APP, UploadInputUtility.METAMODEL, ReactorKeysEnum.EXISTING.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.logger = getLogger(this.getClass().getName());
-
 		User user = null;
 		boolean security = AbstractSecurityUtils.securityEnabled();
-		if(security) {
+		if (security) {
 			user = this.insight.getUser();
-			if(user == null) {
-				NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database", PixelDataType.CONST_STRING, 
+			if (user == null) {
+				NounMetadata noun = new NounMetadata(
+						"User must be signed into an account in order to create a database", PixelDataType.CONST_STRING,
 						PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 				SemossPixelException err = new SemossPixelException(noun);
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
-			
-			if(AbstractSecurityUtils.anonymousUsersEnabled()) {
-				if(this.insight.getUser().isAnonymous()) {
+
+			if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+				if (this.insight.getUser().isAnonymous()) {
 					throwAnonymousUserError();
 				}
 			}
-			
+
 			// throw error is user doesn't have rights to publish new apps
-			if(AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
+			if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
 				throwUserNotPublisherError();
 			}
 		}
-		
-		organizeKeys();
-		this.appName = UploadInputUtility.getAppName(this.store);
-		
-		try {
-			// make a new id
-			this.appId = UUID.randomUUID().toString();
-			// validate app
-			this.logger.info("Start validating app");
-			UploadUtilities.validateApp(user, this.appName, this.appId);
-			this.logger.info("Done validating app");
-			// create app folder
-			this.logger.info("Start generating app folder");
-			this.appFolder = UploadUtilities.generateAppFolder(this.appId, this.appName);
-			this.logger.info("Complete");
-			generateNewApp();
-			// and rename .temp to .smss
-			this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-			FileUtils.copyFile(this.tempSmss, this.smssFile);
-			this.tempSmss.delete();
-			this.engine.setPropFile(this.smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(this.appId, this.appName, this.engine, this.smssFile);
-			// sync metadata
-			this.logger.info("Process app metadata to allow for traversing across apps");
-			UploadUtilities.updateMetadata(this.appId);
-			
-			
-			// adding all the git here
-			// make a version folder if one doesn't exist
-			String versionFolder = appFolder.getAbsolutePath() + "/version";
-			File file = new File(versionFolder);
-			if(!file.exists())
-				file.mkdir();
-			// I will assume the directory is there now
-			GitRepoUtils.init(versionFolder);
 
-			
-			this.logger.info("Complete");
-			
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-			this.error = true;
-			if (e instanceof SemossPixelException) {
-				throw (SemossPixelException) e;
+		organizeKeys();
+		String appId = this.keyValue.get(this.keysToGet[8]);
+		String userPassedExisting = this.keyValue.get(this.keysToGet[10]);
+		boolean existingApp = false;
+		RDBMSNativeEngine nativeEngine = null;
+
+		// make sure both fields exist
+		if (appId != null && userPassedExisting != null) {
+			existingApp = Boolean.parseBoolean(userPassedExisting);
+			nativeEngine = (RDBMSNativeEngine) Utility.getEngine(appId);
+		}
+
+		// if user enters existing=true and the app doesn't exist
+		if (existingApp && (appId == null || nativeEngine == null)) {
+			throw new IllegalArgumentException("App " + appId + " does not exist");
+		}
+		this.appName = UploadInputUtility.getAppName(this.store);
+
+		if (existingApp) {
+			if (security) {
+				// check if input is alias since we are adding to existing
+				appId = SecurityQueryUtils.testUserEngineIdForAlias(user, appId);
+				if (!SecurityAppUtils.userCanEditEngine(user, appId)) {
+					NounMetadata noun = new NounMetadata(
+							"User does not have sufficient priviledges to create or update an app",
+							PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+					SemossPixelException err = new SemossPixelException(noun);
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
 			} else {
-				NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
-				SemossPixelException err = new SemossPixelException(noun);
-				err.setContinueThreadOfExecution(false);
-				throw err;
+				// check if input is alias since we are adding to existing
+				appId = MasterDatabaseUtility.testEngineIdIfAlias(appId);
+				if (!MasterDatabaseUtility.getAllEngineIds().contains(appId)) {
+					throw new IllegalArgumentException("Database " + appId + " does not exist");
+				}
 			}
-		} finally {
-			if (this.error) {
-				// need to delete everything...
-				cleanUpCreateNewError();
+
+			this.appId = appId;
+			this.engine = Utility.getEngine(appId);
+			try {
+				this.logger.info("Updating existing app");
+				updateExistingApp();
+				this.logger.info("Done updating existing app");
+			} catch (Exception e) {
+				e.printStackTrace();
+				this.error = true;
+				if (e instanceof SemossPixelException) {
+					throw (SemossPixelException) e;
+				} else {
+					NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING,
+							PixelOperationType.ERROR);
+					SemossPixelException err = new SemossPixelException(noun);
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
+			}
+		} else { // if app doesn't exist create new
+			try {
+				// make a new id
+				this.appId = UUID.randomUUID().toString();
+				// validate app
+				this.logger.info("Start validating app");
+				UploadUtilities.validateApp(user, this.appName, this.appId);
+				this.logger.info("Done validating app");
+				// create app folder
+				this.logger.info("Start generating app folder");
+				this.appFolder = UploadUtilities.generateAppFolder(this.appId, this.appName);
+				this.logger.info("Complete");
+				generateNewApp();
+				// and rename .temp to .smss
+				this.smssFile = new File(this.tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+				FileUtils.copyFile(this.tempSmss, this.smssFile);
+				this.tempSmss.delete();
+				this.engine.setPropFile(this.smssFile.getAbsolutePath());
+				UploadUtilities.updateDIHelper(this.appId, this.appName, this.engine, this.smssFile);
+				// sync metadata
+				this.logger.info("Process app metadata to allow for traversing across apps");
+				UploadUtilities.updateMetadata(this.appId);
+
+				// adding all the git here
+				// make a version folder if one doesn't exist
+				String versionFolder = appFolder.getAbsolutePath() + "/version";
+				File file = new File(versionFolder);
+				if (!file.exists()) {
+					file.mkdir();
+				}
+				// I will assume the directory is there now
+				GitRepoUtils.init(versionFolder);
+				this.logger.info("Complete");
+			} catch (Exception e) {
+				e.printStackTrace();
+				this.error = true;
+				if (e instanceof SemossPixelException) {
+					throw (SemossPixelException) e;
+				} else {
+					NounMetadata noun = new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING,
+							PixelOperationType.ERROR);
+					SemossPixelException err = new SemossPixelException(noun);
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
+			} finally {
+				if (this.error) {
+					// need to delete everything...
+					cleanUpCreateNewError();
+				}
 			}
 		}
 
@@ -159,13 +219,13 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				SecurityUpdateUtils.addEngineOwner(this.appId, user.getAccessToken(ap).getId());
 			}
 		}
-		
-		ClusterUtil.reactorPushApp(appId);
-		
-		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(),appId);
+
+		ClusterUtil.reactorPushApp(this.appId);
+
+		Map<String, Object> retMap = UploadUtilities.getAppReturnData(this.insight.getUser(), this.appId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
-
+	
 	private void generateNewApp() throws Exception {
 		Logger logger = getLogger(CLASS_NAME);
 
@@ -186,20 +246,21 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		String additionalProperties = this.keyValue.get(this.keysToGet[7]);
 
 		// TODO: consolidate with below if statement
-		if(host != null) {
+		if (host != null) {
 			String testUpdatedHost = this.insight.getAbsoluteInsightFolderPath(host);
-			if(new File(testUpdatedHost).exists()) {
+			if (new File(testUpdatedHost).exists()) {
 				host = testUpdatedHost;
 			}
 		}
-		
+
 		// if the host is a file
 		// we should move it into the appFolder directory
 		File f = new File(host);
-		if(f.exists()) {
+		if (f.exists()) {
 			// move the file
 			// and then update the host value
-			String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR + FilenameUtils.getName(f.getAbsolutePath());
+			String newLocation = this.appFolder.getAbsolutePath() + DIR_SEPARATOR
+					+ FilenameUtils.getName(f.getAbsolutePath());
 			try {
 				Files.move(f, new File(newLocation));
 			} catch (IOException e) {
@@ -207,14 +268,14 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			}
 			host = newLocation;
 		}
-		
+
 		// the logical metamodel for the upload
-		Map<String, Object> externalMetamodel = UploadInputUtility.getMetamodel(this.store);
-		if(externalMetamodel == null) {
+		Map<String, Object> newMetamodel = UploadInputUtility.getMetamodel(this.store);
+		if (newMetamodel == null) {
 			throw new IllegalArgumentException("Must define the metamodel portions we are uploading");
 		}
-		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) externalMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
-		List<Map<String, Object>> relationships = (List<Map<String, Object>>) externalMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
+		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) newMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
+		List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
 		logger.info(stepCounter + ". Create properties file for database...");
 		// Create default RDBMS engine or Impala
 		String engineClassName = RDBMSNativeEngine.class.getName();
@@ -223,15 +284,17 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			engineClassName = ImpalaEngine.class.getName();
 			engine = new ImpalaEngine();
 		}
-		if(connectionUrl == null || connectionUrl.trim().isEmpty()) {
-			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile, engineClassName, dbType, host, port, schema, username, password, additionalProperties);
+		if (connectionUrl == null || connectionUrl.trim().isEmpty()) {
+			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile,
+					engineClassName, dbType, host, port, schema, username, password, additionalProperties);
 		} else {
-			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile, engineClassName, dbType, connectionUrl, username, password);
+			this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.appId, this.appName, owlFile,
+					engineClassName, dbType, connectionUrl, username, password);
 		}
 		DIHelper.getInstance().getCoreProp().setProperty(this.appId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Create database store...");
 		engine.setEngineId(this.appId);
 		engine.setEngineName(this.appName);
@@ -241,7 +304,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		prop.put("SCHEMA", schema);
 		((AbstractEngine) engine).setProp(prop);
 		engine.openDB(null);
-		if(!engine.isConnected()) {
+		if (!engine.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");
 		}
 		logger.info(stepCounter + ". Complete");
@@ -252,17 +315,15 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		// get the existing datatypes
 		// table names -> column name, column type
 		Set<String> cleanTables = new HashSet<String>();
-		for(String t : nodesAndProps.keySet()) {
+		for (String t : nodesAndProps.keySet()) {
 			cleanTables.add(t.split("\\.")[0]);
 		}
 		Map<String, Map<String, String>> existingRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(engine, cleanTables);
-		// parse the nodes and get the prim keys
-		// and write to OWL
+		// parse the nodes and get the prime keys and write to OWL
 		Map<String, String> nodesAndPrimKeys = parseNodesAndProps(owler, nodesAndProps, existingRDBMSStructure);
-		// parse the relationships
-		// and write to OWL
+		// parse the relationships and write to OWL
 		parseRelationships(owler, relationships, existingRDBMSStructure, nodesAndPrimKeys);
-		// commit / save the owl
+		// commit and save the owl
 		owler.commit();
 		owler.export();
 		engine.setOWL(owler.getOwlPath());
@@ -286,36 +347,134 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	}
 	
 	/**
-	 * Add the concepts and properties into the OWL
-	 * @param owler
-	 * @param nodesAndProps
-	 * @param dataTypes
-	 * @return
+	 * Update the existing app 
+	 * @throws Exception
 	 */
-	private Map<String, String> parseNodesAndProps(Owler owler, Map<String, List<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) {
-		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(nodesAndProps.size());
-		for (String node : nodesAndProps.keySet()) {
-			String[] tableAndPrimaryKey = node.split("\\.");
-			String nodeName = tableAndPrimaryKey[0];
-			String primaryKey = tableAndPrimaryKey[1];
-			nodesAndPrimKeys.put(nodeName, primaryKey);
-			String cleanConceptTableName = RDBMSEngineCreationHelper.cleanTableName(nodeName);
-			// add concepts
-			owler.addConcept(cleanConceptTableName, null, null);
-			owler.addProp(cleanConceptTableName, primaryKey, dataTypes.get(nodeName).get(primaryKey));
-			// add concept properties
-			for (String prop : nodesAndProps.get(node)) {
-				if (!prop.equals(primaryKey)) {
-					String cleanProp = RDBMSEngineCreationHelper.cleanTableName(prop);
-					owler.addProp(cleanConceptTableName, cleanProp, dataTypes.get(nodeName).get(prop));
+	private void updateExistingApp() throws Exception {
+		this.logger.info("Bringing in metamodel");
+		Owler owler = new Owler(this.engine);
+		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
+		Map<String, Object> newMetamodel = UploadInputUtility.getMetamodel(this.store);
+		if (newMetamodel == null) {
+			throw new IllegalArgumentException("Must define the metamodel portions to change");
+		}
+		
+		Map<String, List<String>> nodesAndProps = (Map<String, List<String>>) newMetamodel.get(ExternalJdbcSchemaReactor.TABLES_KEY);
+		List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
+
+		// separate table names from primary keys
+		Set<String> cleanTables = new HashSet<String>();
+		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>();
+		for (String t : nodesAndProps.keySet()) {
+			cleanTables.add(t.split("\\.")[0]);
+			nodesAndPrimKeys.put(t.split("\\.")[0], t.split("\\.")[1]);
+		}
+
+		Map<String, Map<String, String>> newRDBMSStructure = RDBMSEngineCreationHelper.getExistingRDBMSStructure(this.engine, cleanTables);
+		boolean metamodelsEqual = existingMetamodel.equals(newRDBMSStructure);
+
+		// clean up/remove spaces and dashes in new metamodel
+		newRDBMSStructure.forEach((tName, columnNames) -> {
+			Map<String, String> cleanedColumns = new HashMap<>();
+			columnNames.forEach((newColumnName, newDataType) -> {
+				String cleanedName = RDBMSEngineCreationHelper.cleanTableName(newColumnName);
+				cleanedColumns.put(cleanedName, newDataType);
+			});
+			newRDBMSStructure.replace(tName, cleanedColumns);
+		});
+
+		if (!metamodelsEqual) {
+			this.logger.info("Checking differences in metamodel to add");
+			// loop through new tables and column names and add them in to existing metamodel
+			newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
+				if (!existingMetamodel.containsKey(newTableName)) {
+					owler.addConcept(newTableName, null, null);
+					try {
+						owler.export();
+					} catch (IOException e) {
+						NounMetadata noun = new NounMetadata(
+								"An error occured attempting to remove the desired concept",
+								PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+						SemossPixelException err = new SemossPixelException(noun);
+						err.setContinueThreadOfExecution(false);
+						throw err;
+					}
+				}
+
+				this.logger.info("Adding columns to OWL");
+				columnsFromNew.forEach((newColumnName, newDataType) -> {
+					owler.addProp(newTableName, newColumnName, newDataType, null, null);
+				});
+
+				this.logger.info("Parsing relationships and writing to OWL");
+				parseRelationships(owler, relationships, newRDBMSStructure, nodesAndPrimKeys);
+			});
+
+			this.logger.info("Checking differences in metamodel to remove");
+			Map<String, String> removedProperties = new HashMap<>();
+			RDFFileSesameEngine owlEngine = this.engine.getBaseDataEngine();
+
+			// loop through old tables and column names and remove them from existing metamodel
+			existingMetamodel.forEach((existingTableName, columnsFromOld) -> {
+				boolean tableRemoved = false;
+				if (!newRDBMSStructure.containsKey(existingTableName)) {
+					owler.removeConcept(this.appId, existingTableName, null);
+					tableRemoved = true;
+				}
+				
+				if (!tableRemoved) {
+					Map<String, String> newColumnNames = newRDBMSStructure.get(existingTableName);
+					columnsFromOld.forEach((existingColumnName, existingDataType) -> {
+						if (!newColumnNames.containsKey(existingColumnName)) {
+							// track removed properties
+							removedProperties.put(existingTableName, existingColumnName);
+							this.logger.info("removing relationships from owl");
+							removeRelationships(removedProperties, owlEngine);
+							this.logger.info("removing properties from owl");
+							owler.removeProp(existingTableName, existingColumnName, existingDataType + "", null, null);
+						}
+					});
+				}
+			});
+
+			this.logger.info("committing and saving OWL");
+			owler.commit();
+			this.logger.info("writing changes to OWL");
+			owler.export();
+		}
+	}
+
+	private void removeRelationships(Map<String, String> removedProperties, RDFFileSesameEngine owlEngine) {
+		List<String[]> fkRelationships = getPhysicalRelationships(owlEngine);
+
+		for (String[] relations: fkRelationships) {
+			String instanceName = Utility.getInstanceName(relations[2]);
+			String[] tablesAndPrimaryKeys = instanceName.split("\\.");
+
+			for (int i=0; i < tablesAndPrimaryKeys.length; i+=2) {
+				String key = tablesAndPrimaryKeys[i], value = tablesAndPrimaryKeys[i+1], removedValue = removedProperties.get(key);
+
+				if (removedValue != null && removedValue.equalsIgnoreCase(value)) {
+					owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[0], relations[2], relations[1], true });
+					owlEngine.doAction(ACTION_TYPE.REMOVE_STATEMENT, new Object[] { relations[2], RDFS.SUBPROPERTYOF.toString(), "http://semoss.org/ontologies/Relation", true });
 				}
 			}
 		}
-		return nodesAndPrimKeys;
+	}
+
+	private List<String[]> getPhysicalRelationships(IEngine engine) {
+		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
+				+ "{?start <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ "{?end <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> <http://semoss.org/ontologies/Relation>} " + "{?start ?rel ?end}"
+				+ "Filter(?rel != <" + RDFS.SUBPROPERTYOF + ">)"
+				+ "Filter(?rel != <http://semoss.org/ontologies/Relation>)" + "}";
+		return Utility.getVectorArrayOfReturn(query, engine, true);
 	}
 	
 	/**
-	 * Delete all the corresponding files that are generated from the upload the failed
+	 * Delete all the corresponding files that are generated from the upload the
+	 * failed
 	 */
 	private void cleanUpCreateNewError() {
 		// TODO:clean up DIHelper!
@@ -349,13 +508,45 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	}
 	
 	/**
+	 * Add the concepts and properties into the OWL
+	 * 
+	 * @param owler
+	 * @param nodesAndProps
+	 * @param dataTypes
+	 * @return
+	 */
+	private Map<String, String> parseNodesAndProps(Owler owler, Map<String, List<String>> nodesAndProps, Map<String, Map<String, String>> dataTypes) {
+		Map<String, String> nodesAndPrimKeys = new HashMap<String, String>(nodesAndProps.size());
+		for (String node : nodesAndProps.keySet()) {
+			String[] tableAndPrimaryKey = node.split("\\.");
+			String nodeName = tableAndPrimaryKey[0];
+			String primaryKey = tableAndPrimaryKey[1];
+			nodesAndPrimKeys.put(nodeName, primaryKey);
+			String cleanConceptTableName = RDBMSEngineCreationHelper.cleanTableName(nodeName);
+			// add concepts
+			owler.addConcept(cleanConceptTableName, null, null);
+			owler.addProp(cleanConceptTableName, primaryKey, dataTypes.get(nodeName).get(primaryKey));
+			// add concept properties
+			for (String prop : nodesAndProps.get(node)) {
+				if (!prop.equals(primaryKey)) {
+					String cleanProp = RDBMSEngineCreationHelper.cleanTableName(prop);
+					owler.addProp(cleanConceptTableName, cleanProp, dataTypes.get(nodeName).get(prop));
+				}
+			}
+		}
+		return nodesAndPrimKeys;
+	}
+
+	/**
 	 * Add the relationships into the OWL
+	 * 
 	 * @param owler
 	 * @param relationships
 	 * @param dataTypes
 	 * @param nodesAndPrimKeys
 	 */
-	private void parseRelationships(Owler owler, List<Map<String, Object>> relationships, Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
+	private void parseRelationships(Owler owler, List<Map<String, Object>> relationships,
+			Map<String, Map<String, String>> dataTypes, Map<String, String> nodesAndPrimKeys) {
 		for (Map relation : relationships) {
 			String subject = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.FROM_TABLE).toString());
 			String object = RDBMSEngineCreationHelper.cleanTableName(relation.get(Constants.TO_TABLE).toString());
@@ -367,4 +558,22 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * Simple method to get string input
+	 * 
+	 * @param index
+	 * @return
+	 */
+	public String getStringInput(int index) {
+		GenRowStruct valueGrs = this.store.getNoun(this.keysToGet[index]);
+		if (valueGrs != null) {
+			return valueGrs.get(0).toString();
+		}
+
+		if (this.curRow.size() > index) {
+			return this.curRow.get(index).toString();
+		}
+
+		return null;
+	}
 }
