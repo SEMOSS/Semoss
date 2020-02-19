@@ -90,9 +90,10 @@ import prerna.util.Utility;
  */
 public abstract class AbstractEngine implements IEngine {
 
-	/*
+	/**
 	 * Static members
 	 */
+	
 	public static final String USE_FILE = "USE_FILE";
 	public static final String DATA_FILE = "DATA_FILE";
 	
@@ -107,7 +108,7 @@ public abstract class AbstractEngine implements IEngine {
 	private static final String GET_INSIGHT_INFO_QUERY = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_MAKEUP, QUESTION_PERSPECTIVE, QUESTION_LAYOUT, QUESTION_ORDER, DATA_TABLE_ALIGN, QUESTION_DATA_MAKER, CACHEABLE, QUESTION_PKQL FROM QUESTION_ID WHERE ID IN (" + QUESTION_PARAM_KEY + ") ORDER BY QUESTION_ORDER";
 	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 
-	/*
+	/**
 	 * Class members
 	 */
 	
@@ -121,24 +122,40 @@ public abstract class AbstractEngine implements IEngine {
 	protected Properties generalEngineProp = null;
 	protected Properties ontoProp = null;
 
+	/**
+	 * OWL database
+	 */
 	private MetaHelper owlHelper = null;
 	protected RDFFileSesameEngine baseDataEngine;
+	private String owlFileLocation;
+	private String baseUri;
 	
+	// this is optional owl schemas
+//	List<RDFFileSesameEngine> additionalOwlEngine;
+//	List<String> additionalOwlFiles;
+//	List<String> additionalJsPlumbFiles;
+	
+	/**
+	 * Insight rdbms database
+	 */
 	protected RDBMSNativeEngine insightRdbms;
 	private String insightDatabaseLoc;
 
-	private String owl;
-	private String baseUri;
-
 	private Hashtable<String, String> baseDataHash;
-	
-	private boolean isBasic = false;
 
 	/**
 	 * This is used for tracking audit modifications 
 	 */
 	private AuditDatabase auditDatabase = null;
-	
+
+	/**
+	 * This is if we have a connection but no OWL or INSIGHTS DB
+	 */
+	private boolean isBasic = false;
+
+	/**
+	 * Hash for the specific engine reactors
+	 */
 	private Map <String, Class> dbSpecificHash = null;
 
 	/**
@@ -409,7 +426,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	public void setOWL(String owl) {
-		this.owl = owl;
+		this.owlFileLocation = owl;
 		createBaseRelationEngine();
 		this.owlHelper = new MetaHelper(baseDataEngine, getEngineType(), this.engineId);
 	}
@@ -427,14 +444,14 @@ public abstract class AbstractEngine implements IEngine {
 		// String owlFileName =
 		// (String)DIHelper.getInstance().getCoreProp().get(engine.getEngineName()
 		// + "_" + Constants.OWL);
-		if (owl == null) {
+		if (owlFileLocation == null) {
 			String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-			owl = baseFolder + "/db/" + getEngineId() + "/" + getEngineId()	+ "_OWL.OWL";
+			owlFileLocation = baseFolder + "/db/" + getEngineId() + "/" + getEngineId()	+ "_OWL.OWL";
 		}
-		baseRelEngine.setFileName(owl);
+		baseRelEngine.setFileName(owlFileLocation);
 		baseRelEngine.openDB(null);
 		if(prop != null) {
-			addProperty(Constants.OWL, owl);
+			addProperty(Constants.OWL, owlFileLocation);
 		}
 
 		try {
@@ -471,7 +488,7 @@ public abstract class AbstractEngine implements IEngine {
 	}
 
 	public String getOWL() {
-		return this.owl;
+		return this.owlFileLocation;
 	}
 	
 	public String getPropFile() {
