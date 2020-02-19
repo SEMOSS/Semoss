@@ -103,6 +103,7 @@ public enum ReactorKeysEnum {
 	PIXEL("pixel", 											"Pixel script as string"),
 	PORT("port",                                            "The connection port."),
 	PLANNER("planner", 										"The planner"),
+	POSITION_MAP("positionMap", 							"Map containing positions for elements"),
 	PROP_FILE("propFile", 								    "The path to the properties file."),
 	PRAGMA("pragma", 								        "Directives that can be provided with the query like cache"),
 	RANDOM_VALS("randomVals",                               "The number of random values to use for the routine"),
