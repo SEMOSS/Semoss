@@ -55,6 +55,8 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 		return query;
 	}
 	
+	//this creates the temp table to select top from the entire list of distinct selectors. 
+	//this is only used with distinct
 	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset, String tempTable) {
 
 		if(limit > 0) {
