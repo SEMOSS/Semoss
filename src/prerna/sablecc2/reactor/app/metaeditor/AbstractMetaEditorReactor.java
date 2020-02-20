@@ -44,6 +44,7 @@ public abstract class AbstractMetaEditorReactor extends AbstractReactor {
 	protected static Set<String> literalPreds = new HashSet<String>();
 	static {
 		literalPreds.add(RDFS.LABEL);
+		literalPreds.add(RDFS.DOMAIN);
 		literalPreds.add(OWL.sameAs.toString());
 		literalPreds.add(RDFS.COMMENT);
 		literalPreds.add(Owler.SEMOSS_URI_PREFIX + Owler.DEFAULT_PROP_CLASS + "/UNIQUE");
