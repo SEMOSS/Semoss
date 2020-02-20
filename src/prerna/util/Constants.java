@@ -464,6 +464,7 @@ public class Constants {
 	public static final String ANONYMOUS_USER_ALLOWED = "anonymous-users-allowed";
 	public static final String ANONYMOUS_USER_UPLOAD_DATA = "anonymous-users-upload-data";
 	public static final String USE_LOGOUT_PAGE = "use-logout-page";
+	public static final String CUSTOM_LOGOUT_URL = "custom-logout-url";
 	public static final String SESSION_USER = "semoss_user";
 	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
