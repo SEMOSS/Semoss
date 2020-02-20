@@ -187,6 +187,21 @@ public class BasicIteratorTask extends AbstractTask {
 			}
 			frame.setLogger(this.logger);
 			optimizeFrame(frame, qs.getOrderBy());
+			boolean taskOptionsExists; 
+			if (this.taskOptions != null && !(this.taskOptions.isEmpty())){
+				taskOptionsExists = true;
+			} else{
+				taskOptionsExists = false; 
+			}
+			if(qs.getPragmap() == null){	
+				Map prags=  new java.util.HashMap();
+				prags.put(Constants.TASK_OPTIONS_EXIST, taskOptionsExists);
+				qs.setPragmap(prags);
+			} else{
+				Map prags = qs.getPragmap();
+				prags.put(Constants.TASK_OPTIONS_EXIST, taskOptionsExists);
+				qs.setPragmap(prags);
+			}
 			iterator = frame.query(qs);
 		}
 		setQsMetadata(qs);
