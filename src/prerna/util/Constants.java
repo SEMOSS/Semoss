@@ -529,6 +529,11 @@ public class Constants {
 	// if python is installed
 	public static final String PYTHON = "PYTHON";
 	public static final String USE_PYTHON = "USE_PYTHON";
+	//if spark is enabled
+	public static final String SPARK = "SPARK";
+	public static final String USE_SPARK = "USE_SPARK";
+	public static final String SPARK_DATASTORE = "SPARK_DATASTORE";
+
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";
@@ -609,6 +614,8 @@ public class Constants {
 	
 	// Pragma Options
 	public static final String IMPLICIT_ORDER = "IMPLICIT_ORDER";
+	public static final String TASK_OPTIONS_EXIST = "TASK_OPTIONS_EXIST";
+	public static final String BIG_DATA_ENGINE = "BIG_DATA_ENGINE";
 
 	// embed url
 	public static final String EMBED_URL_LOGO = "EMBED_URL_LOGO";
