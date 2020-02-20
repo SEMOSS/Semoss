@@ -13,8 +13,11 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector.ORDER_BY_DIRECTION;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactor;
@@ -42,6 +45,17 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		if(this.qs instanceof HardSelectQueryStruct) {
 			return ((HardSelectQueryStruct)this.qs).getQuery();
 		}
+		
+		
+		//If the smss says this app is part of a big data engine, then some changes happen.
+		// 1) grid does not display distinct values
+		// 2) anything with no task options 
+		Boolean bigDataEngine = false;
+		Object bigDataProp = this.engine.getProp().get(Constants.BIG_DATA_ENGINE);
+		if(bigDataProp!= null){
+			bigDataEngine = Boolean.parseBoolean(this.engine.getProp().get(Constants.BIG_DATA_ENGINE).toString());
+		}
+
 		/*
 		 * Need to create the query... 
 		 * This to consider:
@@ -61,17 +75,42 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		addFilters();
 		addHavingFilters();
 		
-//		Boolean useDistinct = true;
-//		Properties engineProps = this.engine.getProp();
-//		if (engineProps.contains("USE_DISTINCT")){
-//			String propVal = engineProps.get("USE_DISTINCT").toString();
-//			if (propVal != null && !(propVal.isEmpty())){
-//				useDistinct = Boolean.parseBoolean(propVal);
-//			}
-//		}
-//		
+
+		 
 		StringBuilder query = new StringBuilder("SELECT ");
+		
+		//if there it is a big data engine, dont put distinct onto qs's with task options
+		//other wise us the standard logic
+		if(bigDataEngine){
+			
+			//big data engine is never distinct
+			((SelectQueryStruct) this.qs).setDistinct(false);
+
+			Boolean taskOptionsExist = false;
+			Object isTaskProp = this.qs.getPragmap().get(Constants.TASK_OPTIONS_EXIST);
+			if(isTaskProp != null){
+				taskOptionsExist= Boolean.parseBoolean(isTaskProp.toString());
+			}
+			
+			//if task options exists, it likely a vis
+			if(!taskOptionsExist){
+			// if there is 1 selector, group by it instead
+			 if (((SelectQueryStruct) this.qs).getSelectors().size()==1){
+				  IQuerySelector selector = ((SelectQueryStruct) this.qs).getSelectors().get(0);
+				  if(selector.getSelectorType()==IQuerySelector.SELECTOR_TYPE.COLUMN){
+				  ((SelectQueryStruct) this.qs).addGroupBy((QueryColumnSelector)selector);
+				  }
+				// this.qs.group
+			//	((SelectQueryStruct) this.qs).addGroupBy(selectorList.);
+			}
+			}
+		}
+		
+			
+		
+
 		String distinct = "";
+	
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
 			distinct = "DISTINCT ";
 		}
@@ -97,6 +136,7 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 			// default is to use a distinct
 			query.append(distinct).append(selectors);
 		}
+		
 		
 		// if there is a join
 		// can only have one table in from in general sql case 
@@ -144,11 +184,13 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		String tempTable = Utility.getRandomString(6);
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
 			query = ((TeradataQueryUtil) this.queryUtil).addLimitOffsetToQuery(query, limit, offset, tempTable);
+			query = appendOrderBy(query, tempTable);
+
 		} else {
 			query = ((TeradataQueryUtil) this.queryUtil).addLimitOffsetToQuery(query, limit, offset);
+			query = appendOrderBy(query);
 		}
 		
-		query = appendOrderBy(query, tempTable);
 
 		if(query.length() > 500) {	
 			logger.debug("SQL QUERY....  " + query.substring(0,  500) + "...");
