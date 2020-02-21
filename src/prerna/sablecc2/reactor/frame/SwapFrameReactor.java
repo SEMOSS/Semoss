@@ -52,7 +52,14 @@ public class SwapFrameReactor extends AbstractReactor {
 				}
 			}
 		}
-
+		// now set the filters of the current frame to the new frame
+		frames.get(1).setFilter(frames.get(0).getFrameFilters());
+		
+		// need to also change the frame names
+		// need to account for R and stuff
+		String frame1Name = frames.get(0).getName();
+		String frame2Name = frames.get(1).getName();
+				
 		logger.info("Swapping " + (f1Keys.size() + f2Keys.size()) + " keys");
 		NounMetadata f1Noun = new NounMetadata(frames.get(0), PixelDataType.FRAME);
 		NounMetadata f2Noun = new NounMetadata(frames.get(1), PixelDataType.FRAME);
@@ -61,20 +68,14 @@ public class SwapFrameReactor extends AbstractReactor {
 			// here we put the f2Noun
 			vStore.put(f1, f2Noun);
 		}
+		CopyFrameUtil.renameFrame(frames.get(0), frame2Name);
+
 		for(String f2 : f2Keys) {
 			// here we put the f1Noun
 			vStore.put(f2, f1Noun);
 		}
-		
-		// now set the filters of the current frame to the new frame
-		frames.get(1).setFilter(frames.get(0).getFrameFilters());
-		
-		// need to also change the frame names
-		// need to account for R and stuff
-		String frame1Name = frames.get(0).getName();
-		String frame2Name = frames.get(1).getName();
-		CopyFrameUtil.renameFrame(frames.get(0), frame2Name);
 		CopyFrameUtil.renameFrame(frames.get(1), frame1Name);
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
