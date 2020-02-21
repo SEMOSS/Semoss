@@ -152,6 +152,8 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
+		// TODO::: JUST ADDING FOR NOW
+		qs.getRelations().clear();
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
