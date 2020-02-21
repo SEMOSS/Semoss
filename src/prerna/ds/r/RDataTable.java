@@ -152,8 +152,12 @@ public class RDataTable extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
-		// TODO::: JUST ADDING FOR NOW
+		// R does not support relations in general
+		// so we are going to remove any that may have been added
+		// this is important for when the BE changes the frame without 
+		// the FE knowing and that frame was native and had joins
 		qs.getRelations().clear();
+		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
