@@ -218,7 +218,8 @@ public class MetaHelper implements IExplorable {
 	}
 
 	public Vector<String> getConcepts() {
-		String query = "SELECT ?concept WHERE {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }";
+		String query = "SELECT ?concept WHERE { {?concept <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://semoss.org/ontologies/Concept> }"
+				+ " Filter(?concept != <http://semoss.org/ontologies/Concept>) }";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 	
