@@ -262,7 +262,8 @@ public class BasicIteratorTask extends AbstractTask {
 				if (value != null) {
 					 setImplicitOrderBy = Boolean.parseBoolean(value.toString());
 				}
-				if(this.qs.getOrderBy().isEmpty() && setImplicitOrderBy) {
+				
+				if(this.qs.getOrderBy().isEmpty() && !this.qs.getBigDataEngine() && setImplicitOrderBy) {
 					// need to add an implicit order
 			
 					IQuerySelector firstSelector = this.qs.getSelectors().get(0);
