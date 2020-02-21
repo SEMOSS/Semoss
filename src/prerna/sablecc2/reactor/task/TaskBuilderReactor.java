@@ -7,6 +7,7 @@ import java.util.Vector;
 import org.apache.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.GenRowStruct;
@@ -130,6 +131,12 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			}
 			qs.setFrame(frame);
 			qs.mergeImplicitFilters(frame.getFrameFilters());
+			
+			// if the frame is native and there are other
+			// things to blend - we need to do that
+			if(frame instanceof NativeFrame) {
+				qs.setBigDataEngine( ((NativeFrame) frame).getQueryStruct().getBigDataEngine());
+			}
 		}
 		
 		// set the pragmap before I can build the task
@@ -140,6 +147,7 @@ public abstract class TaskBuilderReactor extends AbstractReactor {
 			qs.getPragmap().putAll(insight.getPragmap());
 		else if(insight.getPragmap() != null)
 			qs.setPragmap(insight.getPragmap());
+		
 		
 		ITask task = new BasicIteratorTask(qs);
 		// add the task to the store

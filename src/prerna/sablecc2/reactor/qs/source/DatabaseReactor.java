@@ -1,5 +1,7 @@
 package prerna.sablecc2.reactor.qs.source;
 
+import java.util.Properties;
+
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAppUtils;
 import prerna.auth.utils.SecurityQueryUtils;
@@ -8,6 +10,9 @@ import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.reactor.qs.AbstractQueryStructReactor;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class DatabaseReactor extends AbstractQueryStructReactor {
 
@@ -35,6 +40,14 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 
 		this.qs.setEngineId(engineId);
 		
+		//checking if it is a big data engine
+		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(engineId + "_" + Constants.STORE);
+		Object bigDataProp = Utility.loadProperties(smssFile).get(Constants.BIG_DATA_ENGINE);
+		if(bigDataProp!= null){
+			 if(Boolean.parseBoolean(bigDataProp.toString())){
+				 this.qs.setBigDataEngine(true);
+			 }
+		}
 		// need to account if this is a hard query struct
 		if(this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY || 
 				this.qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
