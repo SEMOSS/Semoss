@@ -50,11 +50,11 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		//If the smss says this app is part of a big data engine, then some changes happen.
 		// 1) grid does not display distinct values
 		// 2) anything with no task options 
-		Boolean bigDataEngine = false;
-		Object bigDataProp = this.engine.getProp().get(Constants.BIG_DATA_ENGINE);
-		if(bigDataProp!= null){
-			bigDataEngine = Boolean.parseBoolean(this.engine.getProp().get(Constants.BIG_DATA_ENGINE).toString());
-		}
+//		Boolean bigDataEngine = false;
+//		Object bigDataProp = this.engine.getProp().get(Constants.BIG_DATA_ENGINE);
+//		if(bigDataProp!= null){
+//			bigDataEngine = Boolean.parseBoolean(this.engine.getProp().get(Constants.BIG_DATA_ENGINE).toString());
+//		}
 
 		/*
 		 * Need to create the query... 
@@ -81,7 +81,7 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		
 		//if there it is a big data engine, dont put distinct onto qs's with task options
 		//other wise us the standard logic
-		if(bigDataEngine){
+		if(this.qs.getBigDataEngine()){
 			
 			//big data engine is never distinct
 			((SelectQueryStruct) this.qs).setDistinct(false);
