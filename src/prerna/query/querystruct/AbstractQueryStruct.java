@@ -65,7 +65,8 @@ public abstract class AbstractQueryStruct {
 	protected String frameName;
 	protected transient IEngine engine;
 	protected String engineId;
-	
+	protected Boolean bigDataEngine = false;
+
 	// map of pragmas
 	protected transient Map pragmap = new HashMap();
 	
@@ -243,6 +244,14 @@ public abstract class AbstractQueryStruct {
 		return this.overrideImplicit;
 	}
 	
+	public void setBigDataEngine(boolean bigDataEngine) {
+		this.bigDataEngine = bigDataEngine;
+	}
+	
+	public boolean getBigDataEngine() {
+		return this.bigDataEngine;
+	}
+	
 	public void setQsType(QUERY_STRUCT_TYPE qsType) {
 		this.qsType = qsType;
 	}
@@ -286,6 +295,7 @@ public abstract class AbstractQueryStruct {
 		mergeImplicitFilters(incomingQS.implicitFilters);
 		mergeHavingFilters(incomingQS.havingFilters);
 		mergeRelations(incomingQS.relationsSet);
+		setBigDataEngine(incomingQS.bigDataEngine);
 		if(incomingQS.getEngineId() != null) {
 			setEngineId(incomingQS.getEngineId());
 		}
@@ -333,6 +343,16 @@ public abstract class AbstractQueryStruct {
 		//merge the filters
 		this.havingFilters.merge(incomingFilters);		
 	}
+	
+	/**
+	 * 
+	 * @param incomingBigDataEngine
+	 */
+	private void mergeBigEngine(Boolean bigDataEngine) {
+		//merge the filters
+		this.bigDataEngine = bigDataEngine;		
+	}
+	
 	
 	public void mergeRelations(Set<String[]> relationSet) {
 		this.relationsSet.addAll(relationSet);

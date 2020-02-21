@@ -201,7 +201,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());
 		qs.mergeOrderBy(this.qs.getOrderBy());
-		
 		// filters are a bit tricky
 		// if a user is filtering in more on a specific column
 		// we do not want to merge
@@ -222,6 +221,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		}
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		qs.setBigDataEngine(this.qs.getBigDataEngine());
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
 		return it;
 	}
