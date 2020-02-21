@@ -338,6 +338,12 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
+		// R does not support relations in general
+		// so we are going to remove any that may have been added
+		// this is important for when the BE changes the frame without 
+		// the FE knowing and that frame was native and had joins
+		qs.getRelations().clear();
+		
 		// at this point try to see if the cache already has it and if so pass that iterator instead
 		// the cache is sitting in the insight
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
