@@ -46,7 +46,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 		super();
 		this.qs = new SelectQueryStruct();
 		this.qs.setFrame(this);
-//		this.grf = this.qs.getExplicitFilters();
 		setDefaultName();
 	}
 

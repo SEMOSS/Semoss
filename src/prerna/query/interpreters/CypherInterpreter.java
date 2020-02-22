@@ -437,7 +437,7 @@ public class CypherInterpreter extends AbstractQueryInterpreter {
 		NounMetadata rightComp = filter.getRComparison();
 		String thisComparator = filter.getComparator();
 
-		FILTER_TYPE fType = filter.getFilterType();
+		FILTER_TYPE fType = filter.getSimpleFilterType();
 		if (fType == FILTER_TYPE.COL_TO_COL) {
 			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator, useAlias);
 		} else if (fType == FILTER_TYPE.COL_TO_VALUES) {

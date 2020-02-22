@@ -187,7 +187,7 @@ public class GenRowFilters {
 						// if its simple
 						// we will only need to recreate the filtered columns
 						// if it is a col-to-col since the other col may no longer be filtered
-						if( ((SimpleQueryFilter) filter).getFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
+						if( ((SimpleQueryFilter) filter).getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
 							recreateFilterCols = true;
 						}
 					} else {

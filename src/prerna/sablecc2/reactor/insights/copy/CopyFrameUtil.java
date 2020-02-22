@@ -1,6 +1,7 @@
 package prerna.sablecc2.reactor.insights.copy;
 
 import java.io.IOException;
+import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
@@ -12,6 +13,12 @@ import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.IQuerySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.imports.IImporter;
 import prerna.sablecc2.reactor.imports.ImportFactory;
 
@@ -153,4 +160,113 @@ public class CopyFrameUtil {
 		return frame;
 	}
 
+	/**
+	 * Merge the frame filters into the new frame
+	 * @param frame
+	 * @param newFrame
+	 */
+	public static void copyFrameFilters(ITableDataFrame frame, ITableDataFrame newFrame) {
+		List<IQueryFilter> grf = frame.getFrameFilters().getFilters();
+		for(IQueryFilter ifilter : grf) {
+			if(ifilter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+				// basically need to replace any physical column names to the alias
+				SimpleQueryFilter simpleF = (SimpleQueryFilter) ifilter;
+				if(simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_COL) {
+					IQuerySelector lhs = (IQuerySelector) simpleF.getLComparison().getValue();
+					IQuerySelector rhs = (IQuerySelector) simpleF.getRComparison().getValue();
+
+					NounMetadata newLhs = null;
+					NounMetadata newRhs = null;
+					
+					if(lhs instanceof QueryColumnSelector) {
+						String col = ((QueryColumnSelector) lhs).getColumn();
+						if(! (col == null || col.isEmpty() || col.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) ) {
+							// i need to replace you
+							String alias = frame.getMetaData().getAliasFromUniqueName(lhs.getQueryStructName());
+							if(alias != null) {
+								newLhs = new NounMetadata(new QueryColumnSelector(alias), PixelDataType.COLUMN);
+							}
+						}
+					}
+					
+					if(rhs instanceof QueryColumnSelector) {
+						String col = ((QueryColumnSelector) rhs).getColumn();
+						if(! (col == null || col.isEmpty() || col.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) ) {
+							// i need to replace you
+							String alias = frame.getMetaData().getAliasFromUniqueName(rhs.getQueryStructName());
+							if(alias != null) {
+								newRhs = new NounMetadata(new QueryColumnSelector(alias), PixelDataType.COLUMN);
+							}
+						}
+					}
+					
+					if(newLhs != null && newRhs != null) {
+						SimpleQueryFilter newFilter = new SimpleQueryFilter(newLhs, simpleF.getComparator(), newRhs);
+						newFrame.addFilter(newFilter);
+					} else if(newLhs != null) {
+						SimpleQueryFilter newFilter = new SimpleQueryFilter(newLhs, simpleF.getComparator(), simpleF.getRComparison());
+						newFrame.addFilter(newFilter);
+					} else if(newRhs != null) {
+						SimpleQueryFilter newFilter = new SimpleQueryFilter(simpleF.getLComparison(), simpleF.getComparator(), newRhs);
+						newFrame.addFilter(newFilter);
+					} else {
+						newFrame.addFilter(ifilter);
+					}
+					
+				} else if(simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+					IQuerySelector lhs = (IQuerySelector) simpleF.getLComparison().getValue();
+					NounMetadata newLhs = null;
+					if(lhs instanceof QueryColumnSelector) {
+						String col = ((QueryColumnSelector) lhs).getColumn();
+						if(! (col == null || col.isEmpty() || col.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) ) {
+							// i need to replace you
+							String alias = frame.getMetaData().getAliasFromUniqueName(lhs.getQueryStructName());
+							if(alias != null) {
+								newLhs = new NounMetadata(new QueryColumnSelector(alias), PixelDataType.COLUMN);
+							}
+						}
+					}
+					
+					if(newLhs != null) {
+						SimpleQueryFilter newFilter = new SimpleQueryFilter(newLhs, simpleF.getComparator(), simpleF.getRComparison());
+						newFrame.addFilter(newFilter);
+					} else {
+						newFrame.addFilter(ifilter);
+					}
+					
+					
+				} else if(simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+					IQuerySelector rhs = (IQuerySelector) simpleF.getRComparison().getValue();
+					NounMetadata newRhs = null;
+					if(rhs instanceof QueryColumnSelector) {
+						String col = ((QueryColumnSelector) rhs).getColumn();
+						if(! (col == null || col.isEmpty() || col.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) ) {
+							// i need to replace you
+							String alias = frame.getMetaData().getAliasFromUniqueName(rhs.getQueryStructName());
+							if(alias != null) {
+								newRhs = new NounMetadata(new QueryColumnSelector(alias), PixelDataType.COLUMN);
+							}
+						}
+					}
+					
+					if(newRhs != null) {
+						SimpleQueryFilter newFilter = new SimpleQueryFilter(simpleF.getLComparison(), simpleF.getComparator(), newRhs);
+						newFrame.addFilter(newFilter);
+					} else {
+						newFrame.addFilter(ifilter);
+					}
+					
+				} else {
+					// welp, i dont feel like recursively going through this
+					// if you are doing this, i hope you made sure the cache is accurate
+					newFrame.addFilter(ifilter);
+				}
+			} else {
+				// welp, i dont feel like recursively going through this
+				// if you are doing this, i hope you made sure the cache is accurate
+				newFrame.addFilter(ifilter);
+			}
+		}
+	}
+	
 }
