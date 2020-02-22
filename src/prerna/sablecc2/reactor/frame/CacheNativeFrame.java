@@ -135,23 +135,9 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 				}
 			}
 			
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			System.out.println(frame.getFrameFilters().getFormatedFilters().toString());
-			
 			// now set the filters of the current frame to the new frame
 			logger.info("Transfering " + frame.getFrameFilters().size() + " filters to cached frame");
-			newFrame.setFilter(frame.getFrameFilters());
+			CopyFrameUtil.copyFrameFilters(frame, newFrame);
 			
 			// need to also change the frame names
 			// need to account for R and stuff

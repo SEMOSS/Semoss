@@ -146,7 +146,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 					continue;
 				}
 				for(SimpleQueryFilter filter : colFilters) {
-					SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
+					SimpleQueryFilter.FILTER_TYPE filterType = filter.getSimpleFilterType();
 					NounMetadata lComp = filter.getLComparison();
 					NounMetadata rComp = filter.getRComparison();
 					String comp = filter.getComparator();
@@ -260,7 +260,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 
 				// add filters to start
 				for(SimpleQueryFilter filter : startFilters) {
-					SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
+					SimpleQueryFilter.FILTER_TYPE filterType = filter.getSimpleFilterType();
 					NounMetadata lComp = filter.getLComparison();
 					NounMetadata rComp = filter.getRComparison();
 					String comp = filter.getComparator();
@@ -279,7 +279,7 @@ public class TinkerFrameGraphExporter extends AbstractGraphExporter{
 				traversal.as("startV").out(start + "+++" + end).has(TinkerFrame.TINKER_TYPE, getNodePhysicalType(end));
 				// add filters to end
 				for(SimpleQueryFilter filter : endFilters) {
-					SimpleQueryFilter.FILTER_TYPE filterType = filter.getFilterType();
+					SimpleQueryFilter.FILTER_TYPE filterType = filter.getSimpleFilterType();
 					NounMetadata lComp = filter.getLComparison();
 					NounMetadata rComp = filter.getRComparison();
 					String comp = filter.getComparator();
