@@ -535,7 +535,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 		return false;
 	}
 	
-	public FILTER_TYPE getFilterType() {
+	public FILTER_TYPE getSimpleFilterType() {
 		return this.thisFilterType;
 	}
 	
@@ -706,11 +706,11 @@ public class SimpleQueryFilter implements IQueryFilter {
 		
 		// we only care about filters which are col to values or values to col
 		// get the type and see
-		FILTER_TYPE lType = leftFilterObj.getFilterType();
+		FILTER_TYPE lType = leftFilterObj.getSimpleFilterType();
 		if( lType != FILTER_TYPE.COL_TO_VALUES && lType != FILTER_TYPE.VALUES_TO_COL) {
 			return false;
 		}
-		FILTER_TYPE rType = rightFilterObj.getFilterType();
+		FILTER_TYPE rType = rightFilterObj.getSimpleFilterType();
 		if( rType != FILTER_TYPE.COL_TO_VALUES && rType != FILTER_TYPE.VALUES_TO_COL) {
 			return false;
 		}
@@ -853,7 +853,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 	 * @return
 	 */
 	public static boolean colValuesContainsNull(SimpleQueryFilter filter) {
-		if(filter.getFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+		if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 			NounMetadata rComp = filter.getRComparison();
 			Object rVal = rComp.getValue();
 			if(rVal instanceof List) {
@@ -863,7 +863,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			} else if(rVal == null) {
 				return true;
 			}
-		} else if(filter.getFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+		} else if(filter.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 			NounMetadata lComp = filter.getLComparison();
 			Object lVal = lComp.getValue();
 			if(lVal instanceof List) {

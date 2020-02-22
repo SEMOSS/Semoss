@@ -367,10 +367,10 @@ public class AuditDatabase {
 			// grab the values from the filter
 			IQuerySelector col = null;
 			Object colVal = null;
-			if(f.getFilterType() == FILTER_TYPE.COL_TO_VALUES) {
+			if(f.getSimpleFilterType() == FILTER_TYPE.COL_TO_VALUES) {
 				col = (IQuerySelector) f.getLComparison().getValue();
 				colVal = f.getRComparison().getValue();
-			} else if(f.getFilterType() == FILTER_TYPE.VALUES_TO_COL) {
+			} else if(f.getSimpleFilterType() == FILTER_TYPE.VALUES_TO_COL) {
 				col = (IQuerySelector) f.getRComparison().getValue();
 				colVal = f.getLComparison().getValue();
 			}
