@@ -114,18 +114,6 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 			// the state filters at the end
 			SelectQueryStruct qs = frame.getMetaData().getFlatTableQs(true);
 			IRawSelectWrapper it = frame.query(qs);
-
-			System.out.println("BACKGROUND QUERY ");
-			System.out.println("BACKGROUND QUERY ");
-			System.out.println("BACKGROUND QUERY ");
-			System.out.println("BACKGROUND QUERY ");
-			System.out.println(it.getQuery());
-			System.out.println(it.getQuery());
-			System.out.println(it.getQuery());
-			System.out.println(it.getQuery());
-			System.out.println(it.getQuery());
-			System.out.println(it.getQuery());
-
 			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
 			importer.insertData();
 			
