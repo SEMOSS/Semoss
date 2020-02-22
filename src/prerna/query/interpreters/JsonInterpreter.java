@@ -142,7 +142,7 @@ public class JsonInterpreter implements IQueryInterpreter{
 		// big assumption!!!!
 		// only considering a filter for basic columns
 		// not taking into consideration the actual comparator
-		FILTER_TYPE fType = filter.getFilterType();
+		FILTER_TYPE fType = filter.getSimpleFilterType();
 		if(fType == FILTER_TYPE.COL_TO_VALUES) {
 			return processColToValFilter((IQuerySelector) filter.getLComparison().getValue(), filter.getRComparison().getValue());
 		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {

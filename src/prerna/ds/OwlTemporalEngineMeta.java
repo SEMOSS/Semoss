@@ -362,13 +362,13 @@ public class OwlTemporalEngineMeta {
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
 	}
 	
-	public void setAliasToProperty(String oropertyName, String alias) {
+	public void setAliasToProperty(String propertyName, String alias) {
 		String sub = "";
 		String pred = "";
 		String obj = "";
 		
 		// store the unique name as a concept
-		sub = SEMOSS_PROPERTY_PREFIX + "/" + oropertyName;
+		sub = SEMOSS_PROPERTY_PREFIX + "/" + propertyName;
 		pred = ALIAS_PRED;
 		obj = alias;
 		this.myEng.addStatement(new Object[]{sub, pred, obj, false});
@@ -573,6 +573,29 @@ public class OwlTemporalEngineMeta {
 			retMap.put(values[0].toString(), values[1].toString());
 		}
 		return retMap;
+	}
+	
+	public String getAliasFromUniqueName(String uniqueName) {
+		String query = "select distinct ?header ?alias where {"
+				+ "{"
+				+ "bind(<" + SEMOSS_CONCEPT_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDFS.SUBCLASSOF + "> <" + SEMOSS_CONCEPT_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "UNION"
+				+ "{"
+				+ "bind(<" + SEMOSS_PROPERTY_PREFIX + "/" + uniqueName + "> as ?header)"
+				+ "{?header <" + RDF.TYPE + "> <" + SEMOSS_PROPERTY_PREFIX + ">}"
+				+ "{?header <" + ALIAS_PRED + "> ?alias}"
+				+ "}"
+				+ "}";
+		
+		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.myEng, query);
+		if(it.hasNext()) {
+			Object[] values = it.next().getValues();
+			return values[1].toString();
+		}
+		return null;
 	}
 	
 	public Object[] getComplexSelector(String uniqueName) {
