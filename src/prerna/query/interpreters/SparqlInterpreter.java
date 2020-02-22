@@ -463,7 +463,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		NounMetadata rightComp = filter.getRComparison();
 		String thisComparator = filter.getComparator();
 
-		FILTER_TYPE fType = filter.getFilterType();
+		FILTER_TYPE fType = filter.getSimpleFilterType();
 		if(fType == FILTER_TYPE.COL_TO_COL) {
 			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator);
 		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
@@ -800,10 +800,10 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 				
 				IQuerySelector selector = null;
 				Object val = null;
-				if(simpleF.getFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+				if(simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 					selector = (IQuerySelector) simpleF.getLComparison().getValue();
 					val = simpleF.getRComparison().getValue();
-				} else if(simpleF.getFilterType() == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
+				} else if(simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 					val = simpleF.getLComparison().getValue();
 					selector = (IQuerySelector) simpleF.getRComparison().getValue();
 				} else {
