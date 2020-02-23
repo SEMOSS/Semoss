@@ -113,6 +113,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 			// we will not merge the frame filters since we want to add that as 
 			// the state filters at the end
 			SelectQueryStruct qs = frame.getMetaData().getFlatTableQs(true);
+			qs.setFrame(frame);
 			IRawSelectWrapper it = frame.query(qs);
 			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
 			importer.insertData();
