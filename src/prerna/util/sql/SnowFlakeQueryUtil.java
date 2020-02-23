@@ -53,5 +53,9 @@ public class SnowFlakeQueryUtil extends AnsiSqlQueryUtil {
 	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
 		return new SnowFlakeSqlInterpreter(frame);
 	}
-	
+
+	@Override
+	public String escapeReferencedAlias(String alias) {
+		return "\"" + alias + "\"";
+	}
 }
