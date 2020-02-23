@@ -220,7 +220,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		}
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
+		// setters
 		qs.setBigDataEngine(this.qs.getBigDataEngine());
+		qs.setCustomFrom(this.qs.getCustomFrom());
+		qs.setCustomFromAliasName(this.qs.getCustomFromAliasName());
+		// execution
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
 		return it;
 	}

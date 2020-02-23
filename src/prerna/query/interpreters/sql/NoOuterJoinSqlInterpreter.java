@@ -349,26 +349,38 @@ public class NoOuterJoinSqlInterpreter extends SqlInterpreter {
 		String colName = selector.getColumn();
 		String tableAlias = selector.getTableAlias();
 		if(tableAlias == null) {
-			tableAlias = getPhysicalTableNameFromConceptualName(table);
-		}
-		// will be getting the physical column name
-		String physicalColName = colName;
-		// if engine is not null, get the info from the engine
-		if(engine != null && !engine.isBasic()) {
-			// if the colName is the primary key placeholder
-			// we will go ahead and grab the primary key from the table
-			if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-				physicalColName = getPrimKey4Table(table);
-				// the display name is defaulted to the table name
+			if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+				tableAlias = this.customFromAliasName;
 			} else {
-				// default assumption is the info being passed is the conceptual name
-				// get the physical from the conceptual
-				physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+				tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
 			}
 		}
-		
+		// account for keywords
 		if(this.queryUtil.isSelectorKeyword(tableAlias)) {
 			tableAlias = this.queryUtil.getEscapeKeyword(tableAlias);
+		}
+		
+		String physicalColName = null;
+		if(this.customFromAliasName != null) {
+			// the column is not on a table
+			// but on the custom from
+			physicalColName = queryUtil.escapeReferencedAlias(colName);
+		} else {
+			// will be getting the physical column name
+			physicalColName = colName;
+			// if engine is not null, get the info from the engine
+			if(engine != null && !engine.isBasic()) {
+				// if the colName is the primary key placeholder
+				// we will go ahead and grab the primary key from the table
+				if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+					physicalColName = getPrimKey4Table(table);
+					// the display name is defaulted to the table name
+				} else {
+					// default assumption is the info being passed is the conceptual name
+					// get the physical from the conceptual
+					physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+				}
+			}
 		}
 		
 		if(this.queryUtil.isSelectorKeyword(physicalColName)) {

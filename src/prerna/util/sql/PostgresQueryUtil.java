@@ -70,6 +70,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 	
 	@Override
+	public String escapeReferencedAlias(String alias) {
+		return "\"" + alias + "\"";
+	}
+	
+	@Override
 	public String tableExistsQuery(String tableName, String schema) {
 		return "select table_name, table_type from information_schema.tables where table_schema='" + schema + "' and table_name='" + tableName + "'";
 	}
