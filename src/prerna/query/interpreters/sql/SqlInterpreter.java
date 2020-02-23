@@ -119,10 +119,10 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		 * 		the join 
 		 */
 
-		// we do the joins since when we get to adding the from portion of the query
-		// we want to make sure that table is not used within the joins
 		String customFrom = this.qs.getCustomFrom();
 		this.customFromAliasName = this.qs.getCustomFromAliasName();
+		// we do the joins since when we get to adding the from portion of the query
+		// we want to make sure that table is not used within the joins
 		addJoins();
 		addSelectors();
 		addFilters();
