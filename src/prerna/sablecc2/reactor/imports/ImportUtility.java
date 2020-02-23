@@ -959,7 +959,7 @@ public class ImportUtility {
 	 * @param qs
 	 * @param frameTableName
 	 */
-	public static void parseNativeQueryStructIntoMeta(ITableDataFrame dataframe, SelectQueryStruct qs, boolean ignore) {
+	public static void parseNativeQueryStructIntoMeta(ITableDataFrame dataframe, SelectQueryStruct qs, boolean ignore, SemossDataType[] selectorDataTypes) {
 		List<IQuerySelector> selectors = qs.getSelectors();
 		String engineId = qs.getEngineId();
 		
@@ -972,6 +972,10 @@ public class ImportUtility {
 			IQuerySelector selector = selectors.get(i);
 			String alias = selector.getAlias();
 			String qsName = selector.getQueryStructName();
+			SemossDataType sType = null;
+			if(selectorDataTypes != null && selectorDataTypes.length > i) {
+				sType = selectorDataTypes[i];
+			}
 			addedQsNames.add(qsName);
 			if(selector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				QueryColumnSelector cSelect = (QueryColumnSelector) selector;
@@ -981,8 +985,12 @@ public class ImportUtility {
 				if(column.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					metaData.addVertex(table);
 					metaData.setQueryStructNameToVertex(table, engineId, qsName);
-					String type = MasterDatabaseUtility.getBasicDataType(engineId, table, null);
-					metaData.setDataTypeToVertex(table, type);
+					if(sType != null) {
+						metaData.setDataTypeToVertex(table, sType.toString());
+					} else {
+						String type = MasterDatabaseUtility.getBasicDataType(engineId, table, null);
+						metaData.setDataTypeToVertex(table, type);
+					}
 					metaData.setAliasToVertex(table, alias);
 				} else {
 					// need to account for RDBMS vs. RDF
@@ -994,8 +1002,12 @@ public class ImportUtility {
 					String uniqueName = qsName;
 					metaData.addProperty(table, uniqueName);
 					metaData.setQueryStructNameToProperty(uniqueName, engineId, qsName);
-					String type = MasterDatabaseUtility.getBasicDataType(engineId, column, table);
-					metaData.setDataTypeToProperty(uniqueName, type);
+					if(sType != null) {
+						metaData.setDataTypeToProperty(uniqueName, sType.toString());
+					} else {
+						String type = MasterDatabaseUtility.getBasicDataType(engineId, column, table);
+						metaData.setDataTypeToProperty(uniqueName, type);
+					}
 					metaData.setAliasToProperty(uniqueName, alias);
 				}
 			} else {
@@ -1009,7 +1021,11 @@ public class ImportUtility {
 				metaData.addVertex(alias);
 				metaData.setQueryStructNameToVertex(alias, engineId, qsName);
 				metaData.setAliasToVertex(alias, alias);
-				metaData.setDataTypeToVertex(alias, selector.getDataType());
+				if(sType != null) {
+					metaData.setDataTypeToVertex(alias, sType.toString());
+				} else {
+					metaData.setDataTypeToVertex(alias, selector.getDataType());
+				}
 
 				// i will add the selector into the meta
 				// and get it back later
