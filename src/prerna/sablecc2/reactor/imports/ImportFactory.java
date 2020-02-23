@@ -38,7 +38,7 @@ public class ImportFactory {
 		} else if(frame instanceof PandasFrame) {
 			return new PandasImporter((PandasFrame) frame, qs, it);
 		} else if(frame instanceof NativeFrame) {
-			return new NativeImporter((NativeFrame) frame, qs);
+			return new NativeImporter((NativeFrame) frame, qs, it);
 		}
 		return null;
 	}

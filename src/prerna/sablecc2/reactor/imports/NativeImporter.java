@@ -10,14 +10,16 @@ import org.apache.log4j.LogManager;
 
 import net.snowflake.client.jdbc.internal.org.bouncycastle.util.Arrays;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.r.RDataTable;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.query.parsers.OpaqueSqlParser;
+import prerna.query.parsers.ProjectionOnlySqlParser;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -38,38 +40,94 @@ public class NativeImporter extends AbstractImporter {
 	
 	private NativeFrame dataframe;
 	private SelectQueryStruct qs;
-	
+	private Iterator<IHeadersDataRow> it;
+
 	public NativeImporter(NativeFrame dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.qs = qs;
 	}
 	
+	public NativeImporter(NativeFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
+		this.dataframe = dataframe;
+		this.qs = qs;
+		this.it = it;
+	}
+	
 	@Override
 	public void insertData() {
 		// see if we can parse the query into a valid qs object
-		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && 
-				this.qs.retrieveQueryStructEngine() instanceof RDBMSNativeEngine) {
-			// lets see what happens
-			OpaqueSqlParser parser = new OpaqueSqlParser();
-//			SqlParser parser = new SqlParser();
+		SemossDataType[] executedDataTypes = null;
+		if(this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && this.qs.retrieveQueryStructEngine() instanceof RDBMSNativeEngine) {
+			// if you are RDBMS
+			// we will make a new QS
+			// and we will wrap you
 			String query = ((HardSelectQueryStruct) this.qs).getQuery();
+
+			ProjectionOnlySqlParser parser = new ProjectionOnlySqlParser();
 			try {
-				SelectQueryStruct newQs = this.qs.getNewBaseQueryStruct();
-				newQs.merge(parser.processQuery(query));
-				// we were able to parse successfully
-				// override the reference
-				this.qs = newQs;
-				this.qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+				parser.processQuery(query);
+				List<String> projections = parser.getProjections();
 				
-				// we need to figure out the columns if there is a *
-				cleanUpSelectors(this.qs.getEngineId(), this.qs.getSelectors(), this.qs.getRelations());
+				String customFromAlias = "customquery";
+				SelectQueryStruct newQs = new SelectQueryStruct();
+				newQs.setEngineId(this.qs.getEngineId());
+				newQs.setEngine(this.qs.getEngine());
+				newQs.setCustomFrom(query);
+				newQs.setCustomFromAliasName(customFromAlias);
+				for(String p : projections) {
+					QueryColumnSelector selector = new QueryColumnSelector();
+					selector.setTable(customFromAlias);
+					selector.setTableAlias(customFromAlias);
+					selector.setColumn(p);
+					String alias = p;
+					while(alias.contains("__")) {
+						alias = alias.replace("__", "_");
+					}
+					selector.setAlias(alias);
+					newQs.addSelector(selector);
+				}
+				
+				if(this.it == null) {
+					try {
+						this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+					} catch (Exception e) {
+						e.printStackTrace();
+						throw new SemossPixelException(
+								new NounMetadata("Error occured executing query before loading into frame", 
+										PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+					}
+				}
+				if(this.it instanceof IRawSelectWrapper) {
+					executedDataTypes = ((IRawSelectWrapper) this.it).getTypes();
+				}
+				
+				// swap the qs reference
+				this.qs = newQs;
+				this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 			} catch (Exception e) {
-				// we were not successful in parsing :/
 				e.printStackTrace();
 			}
+//			// lets see what happens
+//			OpaqueSqlParser parser = new OpaqueSqlParser();
+////			SqlParser parser = new SqlParser();
+////			String query = ((HardSelectQueryStruct) this.qs).getQuery();
+//			try {
+//				SelectQueryStruct newQs = this.qs.getNewBaseQueryStruct();
+//				newQs.merge(parser.processQuery(query));
+//				// we were able to parse successfully
+//				// override the reference
+//				this.qs = newQs;
+//				this.qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+//				
+//				// we need to figure out the columns if there is a *
+//				cleanUpSelectors(this.qs.getEngineId(), this.qs.getSelectors(), this.qs.getRelations());
+//			} catch (Exception e) {
+//				// we were not successful in parsing :/
+//				e.printStackTrace();
+//			}
 		}
 		boolean ignore = MetadataUtility.ignoreConceptData(this.qs.getEngineId());
-		ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore);
+		ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore, executedDataTypes);
 		this.dataframe.mergeQueryStruct(this.qs);
 	}
 
@@ -83,6 +141,7 @@ public class NativeImporter extends AbstractImporter {
 	public ITableDataFrame mergeData(List<Join> joins) {
 		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
 		String engineId = this.dataframe.getEngineId();
+		
 		if(qsType == QUERY_STRUCT_TYPE.ENGINE && engineId.equals(this.qs.getEngineId())) {
 			boolean ignore = MetadataUtility.ignoreConceptData(engineId);
 			if(ignore) {
@@ -90,7 +149,7 @@ public class NativeImporter extends AbstractImporter {
 				// as we join on all properties
 				appendNecessaryRels(joins);
 			}
-			ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore);
+			ImportUtility.parseNativeQueryStructIntoMeta(this.dataframe, this.qs, ignore, null);
 			this.dataframe.mergeQueryStruct(this.qs);
 			return this.dataframe;
 		} else {
