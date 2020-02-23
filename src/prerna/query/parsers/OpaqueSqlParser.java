@@ -32,6 +32,7 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.OrderByElement;
@@ -99,7 +100,7 @@ public class OpaqueSqlParser {
 		fillFilters(qs, null, sb.getWhere());
 
 		// fill the groups
-		fillGroups(qs, sb.getGroupByColumnReferences());
+		fillGroups(qs, sb.getGroupBy());
 
 		// fill the order by
 		fillOrder(qs, sb.getOrderByElements());
@@ -600,15 +601,19 @@ public class OpaqueSqlParser {
 	/**
 	 * Add in the group bys
 	 * @param qs
-	 * @param groups
+	 * @param groupByElement
 	 */
-	public void fillGroups(SelectQueryStruct qs, List <Expression> groups) {
-		if(groups == null || groups.isEmpty()) {
+	public void fillGroups(SelectQueryStruct qs, GroupByElement groups) {
+		if(groups == null) {
 			return;
 		}
-
-		for(int groupIndex = 0; groupIndex < groups.size(); groupIndex++) {
-			Expression expr = groups.get(groupIndex);
+		List<Expression> groupByElement = groups.getGroupByExpressions();
+		if(groupByElement == null || groupByElement.isEmpty()) {
+			return;
+		}
+		
+		for(int groupIndex = 0; groupIndex < groupByElement.size(); groupIndex++) {
+			Expression expr = groupByElement.get(groupIndex);
 			// this has to be a column
 			// right now this assumption is wrong
 			// it could be an alias of a derived column

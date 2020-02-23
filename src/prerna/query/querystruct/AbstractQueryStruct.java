@@ -47,6 +47,10 @@ public abstract class AbstractQueryStruct {
 	// For selectors
 	protected List<IQuerySelector> selectors = new Vector<IQuerySelector>();
 	
+	// custom from
+	protected String customFrom = null;
+	protected String customFromAliasName = null;
+	
 	// For filters
 	// filters on existing data
 	protected GenRowFilters explicitFilters = new GenRowFilters();
@@ -92,6 +96,24 @@ public abstract class AbstractQueryStruct {
 	
 	public List<IQuerySelector> getSelectors(){
 		return this.selectors;
+	}
+	
+	//////////////////////////////////////////// FROM  /////////////////////////////////////////////////
+
+	public void setCustomFrom(String customFrom) {
+		this.customFrom = customFrom;
+	}
+	
+	public String getCustomFrom() {
+		return this.customFrom;
+	}
+	
+	public void setCustomFromAliasName(String customFromAliasName) {
+		this.customFromAliasName = customFromAliasName;
+	}
+	
+	public String getCustomFromAliasName() {
+		return this.customFromAliasName;
 	}
 	
 	//////////////////////////////////////////// FILTERING /////////////////////////////////////////////////
@@ -295,7 +317,12 @@ public abstract class AbstractQueryStruct {
 		mergeImplicitFilters(incomingQS.implicitFilters);
 		mergeHavingFilters(incomingQS.havingFilters);
 		mergeRelations(incomingQS.relationsSet);
+		
+		// setters
 		setBigDataEngine(incomingQS.bigDataEngine);
+		setCustomFrom(incomingQS.customFrom);
+		setCustomFromAliasName(incomingQS.customFromAliasName);
+		// setters but null check first
 		if(incomingQS.getEngineId() != null) {
 			setEngineId(incomingQS.getEngineId());
 		}

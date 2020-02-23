@@ -80,6 +80,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	// keep list of columns for tables
 	protected Map<String, List<String>> retTableToCols = new HashMap<String, List<String>>();
 	
+	protected String customFromAliasName = null;
 	protected List<String[]> froms = new Vector<String[]>();
 	// store the joins in the object for easy use
 	protected SqlJoinStructList joinStructList = new SqlJoinStructList();
@@ -120,6 +121,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 		// we do the joins since when we get to adding the from portion of the query
 		// we want to make sure that table is not used within the joins
+		String customFrom = this.qs.getCustomFrom();
+		this.customFromAliasName = this.qs.getCustomFromAliasName();
 		addJoins();
 		addSelectors();
 		addFilters();
@@ -130,42 +133,52 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
 			distinct = "DISTINCT ";
 		}
-		if(this.engine != null && !engine.isBasic() && joinStructList.isEmpty()) {
-			// if there are no joins, we know we are querying from a single table
-			// the vast majority of the time, there shouldn't be any duplicates if
-			// we are selecting all the columns
-			String table = froms.get(0)[0];
-			if(engine != null && !engine.isBasic()) {
-				String physicalUri = engine.getPhysicalUriFromPixelSelector(table);
-				if( (engine.getPhysicalConcepts().size() == 1) && (engine.getPropertyUris4PhysicalUri(physicalUri).size() + 1) == selectorList.size()) {
-					// plus one is for the concept itself
-					// no distinct needed
-					query.append(selectors);
+		
+		// do we have a custom from?
+		if(customFrom != null && !customFrom.isEmpty()) {
+			// at the moment
+			// no join logic with custom from
+			query.append(distinct).append(selectors).append(" FROM (").append(customFrom).append(" ) AS " + this.customFromAliasName);
+		} else {
+			// logic for adding the selectors + the from statement + the joins
+			
+			if(this.engine != null && !engine.isBasic() && joinStructList.isEmpty()) {
+				// if there are no joins, we know we are querying from a single table
+				// the vast majority of the time, there shouldn't be any duplicates if
+				// we are selecting all the columns
+				String table = froms.get(0)[0];
+				if(engine != null && !engine.isBasic()) {
+					String physicalUri = engine.getPhysicalUriFromPixelSelector(table);
+					if( (engine.getPhysicalConcepts().size() == 1) && (engine.getPropertyUris4PhysicalUri(physicalUri).size() + 1) == selectorList.size()) {
+						// plus one is for the concept itself
+						// no distinct needed
+						query.append(selectors);
+					} else {
+						query.append(distinct).append(selectors);
+					}
 				} else {
-					query.append(distinct).append(selectors);
+					// need a distinct
+					query.append(distinct).append(selectors).append(" FROM ");
 				}
 			} else {
-				// need a distinct
-				query.append(distinct).append(selectors).append(" FROM ");
+				// default is to use a distinct
+				query.append(distinct).append(selectors);
 			}
-		} else {
-			// default is to use a distinct
-			query.append(distinct).append(selectors);
-		}
-		
-		// if there is a join
-		// can only have one table in from in general sql case 
-		// thus, the order matters 
-		// so get a good starting from table
-		// we can use any of the froms that is not part of the join
-		List<String> startPoints = new Vector<String>();
-		if(joinStructList.isEmpty()) {
-			query.append(" FROM ");
-			String[] startPoint = froms.get(0);
-			query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
-			startPoints.add(startPoint[1]);
-		} else {
-			query.append(" ").append(joinStructList.getJoinSyntax());
+			
+			// if there is a join
+			// can only have one table in from in general sql case 
+			// thus, the order matters 
+			// so get a good starting from table
+			// we can use any of the froms that is not part of the join
+			List<String> startPoints = new Vector<String>();
+			if(joinStructList.isEmpty()) {
+				query.append(" FROM ");
+				String[] startPoint = froms.get(0);
+				query.append(startPoint[0]).append(" ").append(startPoint[1]).append(" ");
+				startPoints.add(startPoint[1]);
+			} else {
+				query.append(" ").append(joinStructList.getJoinSyntax());
+			}
 		}
 		
 		// add where clause filters
@@ -276,26 +289,37 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		String colName = selector.getColumn();
 		String tableAlias = selector.getTableAlias();
 		if(tableAlias == null) {
-			tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
+			if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+				tableAlias = this.customFromAliasName;
+			} else {
+				tableAlias = getAlias(getPhysicalTableNameFromConceptualName(table));
+			}
 		}
 		// account for keywords
 		if(queryUtil.isSelectorKeyword(tableAlias)) {
 			tableAlias = queryUtil.getEscapeKeyword(tableAlias);
 		}
 		
-		// will be getting the physical column name
-		String physicalColName = colName;
-		// if engine is not null, get the info from the engine
-		if(engine != null && !engine.isBasic()) {
-			// if the colName is the primary key placeholder
-			// we will go ahead and grab the primary key from the table
-			if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-				physicalColName = getPrimKey4Table(table);
-				// the display name is defaulted to the table name
-			} else {
-				// default assumption is the info being passed is the conceptual name
-				// get the physical from the conceptual
-				physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+		String physicalColName = null;
+		if(this.customFromAliasName != null) {
+			// the column is not on a table
+			// but on the custom from
+			physicalColName = queryUtil.escapeReferencedAlias(colName);
+		} else {
+			// will be getting the physical column name
+			physicalColName = colName;
+			// if engine is not null, get the info from the engine
+			if(engine != null && !engine.isBasic()) {
+				// if the colName is the primary key placeholder
+				// we will go ahead and grab the primary key from the table
+				if(colName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+					physicalColName = getPrimKey4Table(table);
+					// the display name is defaulted to the table name
+				} else {
+					// default assumption is the info being passed is the conceptual name
+					// get the physical from the conceptual
+					physicalColName = getPhysicalPropertyNameFromConceptualName(table, colName);
+				}
 			}
 		}
 		
@@ -1016,7 +1040,7 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 				if(queryUtil.isSelectorKeyword(tableConceptualName)) {
 					thisOrderBy.append(queryUtil.getEscapeKeyword(tableConceptualName));
 				} else {
-					thisOrderBy.append(tableConceptualName);
+					thisOrderBy.append(queryUtil.escapeReferencedAlias(tableConceptualName));
 				}
 			}
 			// we need to make sure the sort is a valid one!
@@ -1077,10 +1101,14 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String tableConceptualName = groupBySelector.getTable();
 			String columnConceptualName = groupBySelector.getColumn();
 			
-			if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-				columnConceptualName = getPrimKey4Table(tableConceptualName);
+			if(this.customFromAliasName != null && !this.customFromAliasName.isEmpty()) {
+				columnConceptualName = queryUtil.escapeReferencedAlias(columnConceptualName);
 			} else {
-				columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+				if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+					columnConceptualName = getPrimKey4Table(tableConceptualName);
+				} else {
+					columnConceptualName = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
+				}
 			}
 			
 			String groupByTable = getAlias(tableConceptualName);

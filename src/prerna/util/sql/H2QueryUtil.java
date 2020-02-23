@@ -88,6 +88,11 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	public String dropIndexIfExists(String indexName, String tableName) {
 		return "DROP INDEX IF EXISTS " + indexName;
 	}
+	
+	@Override
+	public String escapeReferencedAlias(String alias) {
+		return "\"" + alias + "\"";
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 

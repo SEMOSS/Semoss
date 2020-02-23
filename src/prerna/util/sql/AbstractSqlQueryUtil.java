@@ -198,6 +198,10 @@ public abstract class AbstractSqlQueryUtil {
 		return "\"" + selector + "\"";
 	}
 	
+	public String escapeReferencedAlias(String alias) {
+		return alias;
+	}
+	
 	/**
 	 * Escape sql statement literals
 	 * @param s
