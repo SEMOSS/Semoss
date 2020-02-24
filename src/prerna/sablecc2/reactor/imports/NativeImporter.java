@@ -102,6 +102,9 @@ public class NativeImporter extends AbstractImporter {
 				}
 				
 				// swap the qs reference
+				newQs.setBigDataEngine(this.qs.getBigDataEngine());
+				newQs.setPragmap(this.qs.getPragmap());
+				
 				this.qs = newQs;
 				this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 			} catch (Exception e) {
