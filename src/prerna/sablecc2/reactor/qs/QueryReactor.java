@@ -44,6 +44,8 @@ public class QueryReactor extends AbstractQueryStructReactor {
 		hardQs.setQuery(query);
 		
 		//override it with new query struct
+		hardQs.setBigDataEngine(this.qs.getBigDataEngine());
+		hardQs.setPragmap(this.qs.getPragmap());
 		this.qs = hardQs;
 		return this.qs;
 	}
