@@ -173,8 +173,8 @@ public class TeradataSqlInterpreter  extends SqlInterpreter {
 		long limit = ((SelectQueryStruct) this.qs).getLimit();
 		long offset = ((SelectQueryStruct) this.qs).getOffset();
 
-		String tempTable = Utility.getRandomString(6);
 		if(((SelectQueryStruct) this.qs).isDistinct()) {
+			String tempTable = Utility.getRandomString(6);
 			query = ((TeradataQueryUtil) this.queryUtil).addLimitOffsetToQuery(query, limit, offset, tempTable);
 			query = appendOrderBy(query, tempTable);
 
