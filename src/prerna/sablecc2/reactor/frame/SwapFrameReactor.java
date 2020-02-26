@@ -76,7 +76,7 @@ public class SwapFrameReactor extends AbstractReactor {
 		}
 		CopyFrameUtil.renameFrame(frames.get(1), frame1Name);
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_SWAP);
 	}
 
 	/**
