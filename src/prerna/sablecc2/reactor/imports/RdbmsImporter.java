@@ -35,13 +35,6 @@ public class RdbmsImporter extends AbstractImporter {
 	private SelectQueryStruct qs;
 	private Iterator<IHeadersDataRow> it;
 	
-	public RdbmsImporter(AbstractRdbmsFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
-		this.dataframe = dataframe;
-		this.queryUtil = dataframe.getQueryUtil();
-		this.qs = qs;
-		this.it = it;
-	}
-	
 	public RdbmsImporter(AbstractRdbmsFrame dataframe, SelectQueryStruct qs) {
 		this.dataframe = dataframe;
 		this.queryUtil = dataframe.getQueryUtil();
@@ -53,6 +46,24 @@ public class RdbmsImporter extends AbstractImporter {
 			throw new SemossPixelException(
 					new NounMetadata("Error occured executing query before loading into frame", 
 							PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+		}
+	}
+	
+	public RdbmsImporter(AbstractRdbmsFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it) {
+		this.dataframe = dataframe;
+		this.queryUtil = dataframe.getQueryUtil();
+		this.qs = qs;
+		this.it = it;
+		// generate the iterator
+		if(this.it == null) {
+			try {
+				this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(
+						new NounMetadata("Error occured executing query before loading into frame", 
+								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
 		}
 	}
 
