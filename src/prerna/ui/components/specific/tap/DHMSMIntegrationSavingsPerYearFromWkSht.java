@@ -33,7 +33,6 @@ import java.util.ArrayList;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -62,7 +61,7 @@ public class DHMSMIntegrationSavingsPerYearFromWkSht {
 			try {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
 			} 
-			catch (InvalidFormatException | IOException e) {
+			catch (IOException e) {
 				e.printStackTrace();
 				throw new IOException("Could not find template for report.");
 			} 

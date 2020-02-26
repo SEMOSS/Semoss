@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -61,8 +60,6 @@ public class TaskerGenerationWriter {
 		if(templateFileLoc!=null) {
 			try {
 				wb = (XSSFWorkbook)WorkbookFactory.create(new File(templateFileLoc));
-			} catch (InvalidFormatException e) {
-				wb=new XSSFWorkbook();
 			} catch (IOException e) {
 				wb=new XSSFWorkbook();
 			}

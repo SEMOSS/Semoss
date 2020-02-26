@@ -33,10 +33,12 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 
 import org.apache.poi.hssf.usermodel.DVConstraint;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -116,9 +118,6 @@ public class ReportSheetWriter {
 		if(readFileLoc != null) {
 			try {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(readFileLoc));
-			} catch (InvalidFormatException e) {
-				Utility.showMessage("Warning! Could not find template workbook /n Creating a new workbook");
-				wb = new XSSFWorkbook();
 			} catch (IOException e) {
 				Utility.showMessage("Warning! Could not find template workbook /n Creating a new workbook");
 				wb = new XSSFWorkbook();
@@ -216,13 +215,13 @@ public class ReportSheetWriter {
 	 */
 	private static XSSFCellStyle createBorderedStyle(Workbook wb){
 		XSSFCellStyle style = (XSSFCellStyle)wb.createCellStyle();
-		style.setBorderRight(CellStyle.BORDER_THIN);
+		style.setBorderRight(BorderStyle.THIN);
 		style.setRightBorderColor(IndexedColors.BLACK.getIndex());
-		style.setBorderBottom(CellStyle.BORDER_THIN);
+		style.setBorderBottom(BorderStyle.THIN);
 		style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
-		style.setBorderLeft(CellStyle.BORDER_THIN);
+		style.setBorderLeft(BorderStyle.THIN);
 		style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
-		style.setBorderTop(CellStyle.BORDER_THIN);
+		style.setBorderTop(BorderStyle.THIN);
 		style.setTopBorderColor(IndexedColors.BLACK.getIndex());
 		return style;
 	}
@@ -236,22 +235,22 @@ public class ReportSheetWriter {
 		myStyles = new Hashtable<String,XSSFCellStyle>();
 		XSSFCellStyle headerStyle = createBorderedStyle(workbook);
 		Font boldFont = workbook.createFont();
-		boldFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		boldFont.setBold(true);
 		boldFont.setColor(IndexedColors.WHITE.getIndex());
 		boldFont.setFontHeightInPoints((short) 10);
 		headerStyle.setFont(boldFont);
-		headerStyle.setAlignment(CellStyle.ALIGN_CENTER);
-		headerStyle.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+		headerStyle.setAlignment(HorizontalAlignment.CENTER);
+		headerStyle.setVerticalAlignment(VerticalAlignment.TOP);
 		headerStyle.setFillForegroundColor(new XSSFColor(new java.awt.Color(54, 96, 146)));
-		headerStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		myStyles.put("headerStyle",headerStyle);
 
 		XSSFCellStyle headerStyleVendor = createBorderedStyle(workbook);
 		headerStyleVendor.setFont(boldFont);
-		headerStyleVendor.setAlignment(CellStyle.ALIGN_CENTER);
-		headerStyleVendor.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+		headerStyleVendor.setAlignment(HorizontalAlignment.CENTER);
+		headerStyleVendor.setVerticalAlignment(VerticalAlignment.TOP);
 		headerStyleVendor.setFillForegroundColor(new XSSFColor(new java.awt.Color(0, 112, 192)));
-		headerStyleVendor.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		headerStyleVendor.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		headerStyleVendor.setWrapText(true);
 		myStyles.put("headerStyleVendor",headerStyleVendor);
 
@@ -261,17 +260,17 @@ public class ReportSheetWriter {
 		XSSFCellStyle normalStyle = createBorderedStyle(workbook);
 		normalStyle.setWrapText(true);
 		normalStyle.setFont(normalFont);
-		normalStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		normalStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		myStyles.put("normalStyle",normalStyle);
 
 		Font boldBodyFont = workbook.createFont();
 		boldBodyFont.setFontHeightInPoints((short) 10);
-		boldBodyFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		boldBodyFont.setBold(true);
 
 		XSSFCellStyle boldStyle = createBorderedStyle(workbook);
 		boldStyle.setWrapText(true);
 		boldStyle.setFont(boldBodyFont);
-		boldStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		boldStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		myStyles.put("boldStyle",boldStyle);
 	}
 
@@ -284,14 +283,14 @@ public class ReportSheetWriter {
 		myStyles = new Hashtable<String,XSSFCellStyle>();
 		XSSFCellStyle headerStyle = createBorderedStyle(workbook);
 		Font boldFont = workbook.createFont();
-		boldFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		boldFont.setBold(true);
 		boldFont.setColor(IndexedColors.WHITE.getIndex());
 		boldFont.setFontHeightInPoints((short) 10);
 		headerStyle.setFont(boldFont);
-		headerStyle.setAlignment(CellStyle.ALIGN_CENTER);
-		headerStyle.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+		headerStyle.setAlignment(HorizontalAlignment.CENTER);
+		headerStyle.setVerticalAlignment(VerticalAlignment.TOP);
 		headerStyle.setFillForegroundColor(new XSSFColor(new java.awt.Color(54, 96, 146)));
-		headerStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		myStyles.put("headerDataStyle",headerStyle);
 
 		Font normalFont = workbook.createFont();
@@ -300,7 +299,7 @@ public class ReportSheetWriter {
 		XSSFCellStyle normalStyle = createBorderedStyle(workbook);
 		normalStyle.setWrapText(true);
 		normalStyle.setFont(normalFont);
-		normalStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		normalStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		myStyles.put("normalDataStyle",normalStyle);
 
 	}

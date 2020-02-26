@@ -42,6 +42,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -485,14 +486,14 @@ public class POIReader extends AbstractFileReader {
 		{
 			Cell thisCell = row.getCell(colIndex);
 			// get all of this into a string
-			if(thisCell != null && row.getCell(colIndex).getCellType() != Cell.CELL_TYPE_BLANK)
+			if(thisCell != null && row.getCell(colIndex).getCellType() != CellType.BLANK)
 			{
-				if(thisCell.getCellType() == Cell.CELL_TYPE_STRING)
+				if(thisCell.getCellType() == CellType.STRING)
 				{
 					cols[colIndex] = thisCell.getStringCellValue();
 					cols[colIndex] = Utility.cleanString(cols[colIndex], true);
 				}
-				if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC)
+				if(thisCell.getCellType() == CellType.NUMERIC)
 					cols[colIndex] = "" + thisCell.getNumericCellValue();
 			}
 			else
@@ -505,12 +506,12 @@ public class POIReader extends AbstractFileReader {
 	}
 
 	public String getCell(Cell thisCell) {
-		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK)
+		if(thisCell != null && thisCell.getCellType() != CellType.BLANK)
 		{
-			if(thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
+			if(thisCell.getCellType() == CellType.STRING) {
 				return thisCell.getStringCellValue();
 			}
-			else if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+			else if(thisCell.getCellType() == CellType.NUMERIC) {
 				return thisCell.getNumericCellValue() + "";
 			}
 		}
@@ -1238,14 +1239,14 @@ public class POIReader extends AbstractFileReader {
 			}
 
 			// set the name of the subject instance node to be a string
-			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != Cell.CELL_TYPE_BLANK) {
-				nextRow.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
+			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != CellType.BLANK) {
+				nextRow.getCell(1).setCellType(CellType.STRING);
 			}
 
 			// to prevent errors when java thinks there is a row of data when the row is empty
 			Cell instanceSubjectNodeCell = nextRow.getCell(1);
 			String instanceSubjectNode = "";
-			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != Cell.CELL_TYPE_BLANK
+			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != CellType.BLANK
 					&& !instanceSubjectNodeCell.toString().isEmpty()) {
 				instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
 			} else {
@@ -1259,7 +1260,7 @@ public class POIReader extends AbstractFileReader {
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				if(nextRow.getCell(2) != null) {
 					// make it a string so i can easily parse it
-					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
+					nextRow.getCell(2).setCellType(CellType.STRING);
 					Cell instanceObjectNodeCell = nextRow.getCell(2);
 					// if empty, ignore
 					if(ExcelParsing.isEmptyCell(instanceObjectNodeCell)) {
@@ -1372,7 +1373,7 @@ public class POIReader extends AbstractFileReader {
 					// if any value in cell, there should be a mapping
 					if (matrixContent != null) {
 						if (propExists) {
-							if (matrixContent.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+							if (matrixContent.getCellType() == CellType.NUMERIC) {
 								if (DateUtil.isCellDateFormatted(matrixContent)) {
 									propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
 									mapExists = true;
