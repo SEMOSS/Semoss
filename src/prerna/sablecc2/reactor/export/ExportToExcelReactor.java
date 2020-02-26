@@ -155,13 +155,10 @@ public class ExportToExcelReactor extends AbstractReactor {
 		}
 
 		// rename sheets
-		int sheetCount = 2;
 		for (String sheetId : sheetAlias.keySet()) {
 			String sheetName = sheetAlias.get(sheetId);
-			// TODO this should not be happening
 			if (sheetName == null) {
-				sheetName = "Sheet " + sheetCount;
-				sheetCount++;
+				sheetName = "Sheet " + sheetId;
 			}
 			workbook.setSheetName(workbook.getSheetIndex(sheetId), sheetName);
 		}
