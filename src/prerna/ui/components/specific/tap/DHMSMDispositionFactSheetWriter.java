@@ -39,10 +39,12 @@ import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -84,8 +86,6 @@ public class DHMSMDispositionFactSheetWriter {
 		if(templateFileLoc!=null) {
 			try {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(templateFileLoc));
-			} catch (InvalidFormatException e) {
-				wb = new XSSFWorkbook();
 			} catch (IOException e) {
 				wb = new XSSFWorkbook();
 			} 
@@ -711,13 +711,13 @@ public class DHMSMDispositionFactSheetWriter {
 	 */
 	private static XSSFCellStyle createBorderedStyle(Workbook wb) {
 		XSSFCellStyle style = (XSSFCellStyle)wb.createCellStyle();
-		style.setBorderRight(CellStyle.BORDER_THIN);
+		style.setBorderRight(BorderStyle.THIN);
 		style.setRightBorderColor(IndexedColors.BLACK.getIndex());
-		style.setBorderBottom(CellStyle.BORDER_THIN);
+		style.setBorderBottom(BorderStyle.THIN);
 		style.setBottomBorderColor(IndexedColors.BLACK.getIndex());
-		style.setBorderLeft(CellStyle.BORDER_THIN);
+		style.setBorderLeft(BorderStyle.THIN);
 		style.setLeftBorderColor(IndexedColors.BLACK.getIndex());
-		style.setBorderTop(CellStyle.BORDER_THIN);
+		style.setBorderTop(BorderStyle.THIN);
 		style.setTopBorderColor(IndexedColors.BLACK.getIndex());
 		return style;
 	}
@@ -730,14 +730,14 @@ public class DHMSMDispositionFactSheetWriter {
 		myStyles = new Hashtable<String,XSSFCellStyle>();
 		XSSFCellStyle headerStyle = createBorderedStyle(workbook);
 		Font boldFont = workbook.createFont();
-		boldFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		boldFont.setBold(true);
 		boldFont.setColor(IndexedColors.WHITE.getIndex());
 		boldFont.setFontHeightInPoints((short) 10);
 		headerStyle.setFont(boldFont);
-		headerStyle.setAlignment(CellStyle.ALIGN_CENTER);
-		headerStyle.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+		headerStyle.setAlignment(HorizontalAlignment.CENTER);
+		headerStyle.setVerticalAlignment(VerticalAlignment.TOP);
 		headerStyle.setFillForegroundColor(new XSSFColor(new java.awt.Color(54, 96, 146)));
-		headerStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		myStyles.put("headerStyle",headerStyle);
 
 		Font normalFont = workbook.createFont();
@@ -746,22 +746,22 @@ public class DHMSMDispositionFactSheetWriter {
 		XSSFCellStyle normalStyle = createBorderedStyle(workbook);
 		normalStyle.setWrapText(true);
 		normalStyle.setFont(normalFont);
-		normalStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		normalStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		myStyles.put("normalStyle",normalStyle);
 
 		Font boldBodyFont = workbook.createFont();
 		boldBodyFont.setFontHeightInPoints((short) 10);
-		boldBodyFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		boldBodyFont.setBold(true);
 
 		XSSFCellStyle boldStyle = createBorderedStyle(workbook);
 		boldStyle.setWrapText(true);
 		boldStyle.setFont(boldBodyFont);
-		boldStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		boldStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		myStyles.put("boldStyle",boldStyle);
 		
 		XSSFCellStyle accountStyle = createBorderedStyle(workbook);
 		accountStyle.setFont(boldBodyFont);
-		accountStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		accountStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		XSSFDataFormat df = wb.createDataFormat();
 		accountStyle.setDataFormat(df.getFormat("$* #,##0.00"));
 		myStyles.put("accountStyle", accountStyle);

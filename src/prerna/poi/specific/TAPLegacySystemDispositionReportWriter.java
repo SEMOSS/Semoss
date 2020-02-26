@@ -47,7 +47,6 @@ import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.Picture;
@@ -162,7 +161,7 @@ public class TAPLegacySystemDispositionReportWriter {
 		String templateName = "TAP_Legacy_System_Dispositions_Template.xlsx";
 		try {
 			wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
-		} catch (InvalidFormatException | IOException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 			throw new IOException("Could not find template for report.");
 		}

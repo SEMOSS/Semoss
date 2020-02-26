@@ -38,6 +38,7 @@ import java.util.StringTokenizer;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -637,11 +638,11 @@ public class RdfExcelTableReader extends AbstractFileReader {
 		if(cellLocation != -1){
 			XSSFCell cell = values.getCell(cellLocation);
 			if(cell != null) {
-				int cellType = cell.getCellType();
-				if(cellType == XSSFCell.CELL_TYPE_BLANK) {
+				CellType cellType = cell.getCellType();
+				if(cellType == CellType.BLANK) {
 					//TODO: look at what happens here during testing
 					return "";
-				} else if (cellType == XSSFCell.CELL_TYPE_NUMERIC){
+				} else if (cellType == CellType.NUMERIC){
 					return cell.getNumericCellValue();		
 				} else if ( DateUtil.isCellDateFormatted(cell) ){
 					return cell.getDateCellValue();		

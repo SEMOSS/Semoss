@@ -620,14 +620,14 @@ public class FormulaExtractor extends AbstractFileReader {
 		{
 			XSSFCell thisCell = row.getCell(colIndex);
 			// get all of this into a string
-			if(thisCell != null && row.getCell(colIndex).getCellType() != Cell.CELL_TYPE_BLANK)
+			if(thisCell != null && row.getCell(colIndex).getCellType() != CellType.BLANK)
 			{
-				if(thisCell.getCellType() == Cell.CELL_TYPE_STRING)
+				if(thisCell.getCellType() == CellType.STRING)
 				{
 					cols[colIndex] = thisCell.getStringCellValue();
 					cols[colIndex] = Utility.cleanString(cols[colIndex], true);
 				}
-				if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC)
+				if(thisCell.getCellType() == CellType.NUMERIC)
 					cols[colIndex] = "" + thisCell.getNumericCellValue();
 			}
 			else
@@ -640,12 +640,12 @@ public class FormulaExtractor extends AbstractFileReader {
 	}
 
 	public String getCell(XSSFCell thisCell) {
-		if(thisCell != null && thisCell.getCellType() != Cell.CELL_TYPE_BLANK)
+		if(thisCell != null && thisCell.getCellType() != CellType.BLANK)
 		{
-			if(thisCell.getCellType() == Cell.CELL_TYPE_STRING) {
+			if(thisCell.getCellType() == CellType.BLANK) {
 				return thisCell.getStringCellValue();
 			}
-			else if(thisCell.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+			else if(thisCell.getCellType() == CellType.BLANK) {
 				return thisCell.getNumericCellValue() + "";
 			}
 		}
@@ -1429,14 +1429,14 @@ public class FormulaExtractor extends AbstractFileReader {
 			}
 
 			// set the name of the subject instance node to be a string
-			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != XSSFCell.CELL_TYPE_BLANK) {
-				nextRow.getCell(1).setCellType(XSSFCell.CELL_TYPE_STRING);
+			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != CellType.BLANK) {
+				nextRow.getCell(1).setCellType(CellType.STRING);
 			}
 
 			// to prevent errors when java thinks there is a row of data when the row is empty
 			XSSFCell instanceSubjectNodeCell = nextRow.getCell(1);
 			String instanceSubjectNode = "";
-			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK
+			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != CellType.BLANK
 					&& !instanceSubjectNodeCell.toString().isEmpty()) {
 				instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
 			} else {
@@ -1449,9 +1449,9 @@ public class FormulaExtractor extends AbstractFileReader {
 			int offset = 1;
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				if(nextRow.getCell(2) != null) {
-					nextRow.getCell(2).setCellType(XSSFCell.CELL_TYPE_STRING);
+					nextRow.getCell(2).setCellType(CellType.STRING);
 					XSSFCell instanceObjectNodeCell = nextRow.getCell(2);
-					if (instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != XSSFCell.CELL_TYPE_BLANK
+					if (instanceObjectNodeCell != null && instanceObjectNodeCell.getCellType() != CellType.BLANK
 							&& !instanceObjectNodeCell.toString().isEmpty()) {
 						instanceObjectNode = nextRow.getCell(2).getStringCellValue();
 					} else {
@@ -1470,11 +1470,11 @@ public class FormulaExtractor extends AbstractFileReader {
 				}
 				String propName = propNames.elementAt(colIndex - offset).toString();
 				String propValue = "";
-				if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_BLANK
+				if (nextRow.getCell(colIndex) == null || nextRow.getCell(colIndex).getCellType() == CellType.BLANK
 						|| nextRow.getCell(colIndex).toString().isEmpty()) {
 					continue;
 				}
-				if (nextRow.getCell(colIndex).getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
+				if (nextRow.getCell(colIndex).getCellType() == CellType.NUMERIC) {
 					if (DateUtil.isCellDateFormatted(nextRow.getCell(colIndex))) {
 						Date date = (Date) nextRow.getCell(colIndex).getDateCellValue();
 						propHash.put(propName, date);
@@ -1483,7 +1483,7 @@ public class FormulaExtractor extends AbstractFileReader {
 						propHash.put(propName, dbl);
 					}
 				} else {
-					nextRow.getCell(colIndex).setCellType(XSSFCell.CELL_TYPE_STRING);
+					nextRow.getCell(colIndex).setCellType(CellType.STRING);
 					propValue = nextRow.getCell(colIndex).getStringCellValue();
 					propHash.put(propName, propValue);
 				}
@@ -1571,7 +1571,7 @@ public class FormulaExtractor extends AbstractFileReader {
 					// if any value in cell, there should be a mapping
 					if (matrixContent != null) {
 						if (propExists) {
-							if (matrixContent.getCellType() == XSSFCell.CELL_TYPE_NUMERIC) {
+							if (matrixContent.getCellType() == CellType.NUMERIC) {
 								if (DateUtil.isCellDateFormatted(matrixContent)) {
 									propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
 									mapExists = true;

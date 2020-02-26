@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
-import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -164,7 +164,7 @@ public class POIWriter {
 				XSSFCell cell = row1.createCell(col);
 				String val = sheetVector.get(row)[col];
 				if(val != null && !val.isEmpty() && NUMERIC.matcher(val).find()) {
-					cell.setCellType(Cell.CELL_TYPE_NUMERIC);
+					cell.setCellType(CellType.NUMERIC);
 					cell.setCellValue(Double.parseDouble(val));
 					continue;
 				}
