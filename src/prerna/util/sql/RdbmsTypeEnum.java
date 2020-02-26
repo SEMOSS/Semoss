@@ -9,6 +9,7 @@ public enum RdbmsTypeEnum {
 	DB2("DB2", "com.ibm.db2.jcc.DB2Driver", "jdbc:db2"),
 	DERBY("DERBY", "org.apache.derby.jdbc.EmbeddedDriver", "jdbc:derby"),
 	H2_DB("H2_DB", "org.h2.Driver", "jdbc:h2"),
+	HIVE("HIVE","org.apache.hive.jdbc.HiveDriver","jdbc:hive2"),
 	IMPALA("IMPALA", "com.cloudera.impala.jdbc4.Driver", "jdbc:impala"),
 	REDSHIFT("REDSHIFT", "com.amazon.redshift.jdbc.Driver", "jdbc:redshift"),
 	MARIADB("MARIA_DB", "org.mariadb.jdbc.Driver", "jdbc:mariadb"),
