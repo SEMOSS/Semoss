@@ -114,6 +114,9 @@ public class RdbmsConnectionHelper {
 			// sqlite doesn't really support schemas
 			connectionUrl += ":HOST".replace("HOST", host);
 		}
+		else if (rdbmsType == RdbmsTypeEnum.HIVE) {
+			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
+		}
 		else if (rdbmsType == RdbmsTypeEnum.IMPALA) {
 			connectionUrl += "://HOST:PORT/SCHEMA".replace("HOST", host).replace("SCHEMA", schema);
 		}
@@ -286,17 +289,21 @@ public class RdbmsConnectionHelper {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
+		
+		//hive doesn't support getURL
+		if(!(rdbmsType==RdbmsTypeEnum.HIVE)){
 		String url = null;
 		try {
 			url = meta.getURL();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		
 
 		schema = predictSchemaFromUrl(url);
 		if(schema != null) {
 			return schema;
+		}
 		}
 		schema = predictSchemaFromUrl(connectionUrl);
 		if(schema != null) {
