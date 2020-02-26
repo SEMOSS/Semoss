@@ -32,6 +32,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new MySQLQueryUtil();
 		} else if(dbType == RdbmsTypeEnum.ORACLE) {
 			queryUtil = new OracleQueryUtil();
+		} else if(dbType == RdbmsTypeEnum.HIVE) {
+				queryUtil = new HiveQueryUtil();
 		} else if(dbType == RdbmsTypeEnum.IMPALA) {
 			queryUtil = new ImpalaQueryUtil();
 		} else if(dbType == RdbmsTypeEnum.TIBCO) {
@@ -67,6 +69,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new MariaDbQueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.ORACLE) {
 			queryUtil = new OracleQueryUtil(connectionUrl, username, password);
+		} else if(dbType == RdbmsTypeEnum.HIVE) {
+			queryUtil = new HiveQueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.IMPALA) {
 			queryUtil = new ImpalaQueryUtil(connectionUrl, username, password);
 		} else if(dbType == RdbmsTypeEnum.TIBCO) {
@@ -100,6 +104,8 @@ public class SqlQueryUtilFactor {
 			queryUtil = new MySQLQueryUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == RdbmsTypeEnum.ORACLE) {
 			queryUtil = new OracleQueryUtil(dbType, hostname, port, schema, username, password);
+		} else if(dbType == RdbmsTypeEnum.HIVE) {
+			queryUtil = new HiveQueryUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == RdbmsTypeEnum.IMPALA) {
 			queryUtil = new ImpalaQueryUtil(dbType, hostname, port, schema, username, password);
 		} else if(dbType == RdbmsTypeEnum.TIBCO) {
