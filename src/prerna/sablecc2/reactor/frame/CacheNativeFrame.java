@@ -60,7 +60,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 		} else {
 			java.lang.Thread t = new Thread(cache);
 			t.start();
-			return new NounMetadata("Swapping frame in parallel thread", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+			return new NounMetadata("Swapping frame in parallel thread", PixelDataType.CONST_STRING, PixelOperationType.FRAME_SWAP);
 		}
 	}
 
