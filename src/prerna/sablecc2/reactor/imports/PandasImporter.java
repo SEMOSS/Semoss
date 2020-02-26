@@ -46,6 +46,16 @@ public class PandasImporter extends AbstractImporter {
 		this.qs = qs;
 		// generate the iterator
 		this.it = it;
+		if(this.it == null) {
+			try {
+				this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SemossPixelException(
+						new NounMetadata("Error occured executing query before loading into frame", 
+								PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			}
+		}
 	}
 	
 	@Override
