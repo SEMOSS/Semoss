@@ -33,12 +33,13 @@ import java.util.Map;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -95,7 +96,7 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 			try {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(workingDir + folder + templateName));
 			} 
-			catch (InvalidFormatException| IOException e) {
+			catch (IOException e) {
 				e.printStackTrace();
 				throw new IOException("Could not find template for report.");
 			}
@@ -333,8 +334,8 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 		reportSheet.addMergedRegion(new CellRangeAddress(startRow, endRow, startCol, endCol));
 		XSSFCell cell = reportSheet.getRow(startRow).getCell(startCol);
 		CellStyle style = cell.getCellStyle();
-		style.setAlignment(CellStyle.ALIGN_LEFT);
-		style.setVerticalAlignment(CellStyle.VERTICAL_TOP);
+		style.setAlignment(HorizontalAlignment.LEFT);
+		style.setVerticalAlignment(VerticalAlignment.TOP);
 		cell.setCellStyle(style);
 	}
 
@@ -349,10 +350,10 @@ public class DHMSMIntegrationTransitionBySystemOwnerWriter {
 	
 	public CellStyle outlineCell(XSSFCell cell) {
 		CellStyle style = cell.getCellStyle();
-		style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
-		style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
-		style.setBorderRight(XSSFCellStyle.BORDER_THIN);
-		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+		style.setBorderBottom(BorderStyle.THIN);
+		style.setBorderLeft(BorderStyle.THIN);
+		style.setBorderRight(BorderStyle.THIN);
+		style.setBorderTop(BorderStyle.THIN);
 		return style;
 	}
 	

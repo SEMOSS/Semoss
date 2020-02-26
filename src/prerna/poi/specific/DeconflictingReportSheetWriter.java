@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFFormulaEvaluator;
@@ -62,9 +61,6 @@ public class DeconflictingReportSheetWriter {
 		if(readFileLoc!=null) {
 			try {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(readFileLoc));
-			} catch (InvalidFormatException e) {
-				Utility.showMessage("Warning! Could not find template workbook /n Creating a new workbook");
-				wb = new XSSFWorkbook();
 			} catch (IOException e) {
 				Utility.showMessage("Warning! Could not find template workbook /n Creating a new workbook");
 				wb = new XSSFWorkbook();

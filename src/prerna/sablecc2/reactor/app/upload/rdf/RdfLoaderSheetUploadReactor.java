@@ -12,6 +12,7 @@ import java.util.Vector;
 
 import org.apache.log4j.Level;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -343,15 +344,15 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			}
 
 			// set the name of the subject instance node to be a string
-			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != Cell.CELL_TYPE_BLANK) {
-				nextRow.getCell(1).setCellType(Cell.CELL_TYPE_STRING);
+			if (nextRow.getCell(1) != null && nextRow.getCell(1).getCellType() != CellType.BLANK) {
+				nextRow.getCell(1).setCellType(CellType.STRING);
 			}
 
 			// to prevent errors when java thinks there is a row of data when
 			// the row is empty
 			Cell instanceSubjectNodeCell = nextRow.getCell(1);
 			String instanceSubjectNode = "";
-			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != Cell.CELL_TYPE_BLANK
+			if (instanceSubjectNodeCell != null && instanceSubjectNodeCell.getCellType() != CellType.BLANK
 					&& !instanceSubjectNodeCell.toString().isEmpty()) {
 				instanceSubjectNode = nextRow.getCell(1).getStringCellValue();
 			} else {
@@ -365,7 +366,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 			if (sheetType.equalsIgnoreCase("Relation")) {
 				if (nextRow.getCell(2) != null) {
 					// make it a string so i can easily parse it
-					nextRow.getCell(2).setCellType(Cell.CELL_TYPE_STRING);
+					nextRow.getCell(2).setCellType(CellType.STRING);
 					Cell instanceObjectNodeCell = nextRow.getCell(2);
 					// if empty, ignore
 					if (ExcelParsing.isEmptyCell(instanceObjectNodeCell)) {
@@ -479,7 +480,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractUploadFileReactor {
 				// if any value in cell, there should be a mapping
 				if (matrixContent != null) {
 					if (propExists) {
-						if (matrixContent.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+						if (matrixContent.getCellType() == CellType.NUMERIC) {
 							if (DateUtil.isCellDateFormatted(matrixContent)) {
 								propHash.put(propertyName, (Date) matrixContent.getDateCellValue());
 								mapExists = true;

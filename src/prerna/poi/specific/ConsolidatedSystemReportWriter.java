@@ -35,6 +35,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Hashtable;
 
+import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFFont;
@@ -287,10 +288,10 @@ public class ConsolidatedSystemReportWriter {
 	private XSSFCellStyle formatExcelHeader(XSSFWorkbook wb) 
 	{
 		XSSFCellStyle style = wb.createCellStyle();
-		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
-		style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
-		style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
-		style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+		style.setBorderTop(BorderStyle.THIN);
+		style.setBorderBottom(BorderStyle.THIN);
+		style.setBorderLeft(BorderStyle.THIN);
+		style.setBorderRight(BorderStyle.THIN);
 
 		XSSFFont font = wb.createFont();
 		font.setBold(true);
@@ -302,20 +303,20 @@ public class ConsolidatedSystemReportWriter {
 	private XSSFCellStyle formatExcelStrings(XSSFWorkbook wb)
 	{
 		XSSFCellStyle style = wb.createCellStyle();
-		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
-		style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
-		style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
-		style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+		style.setBorderTop(BorderStyle.THIN);
+		style.setBorderBottom(BorderStyle.THIN);
+		style.setBorderLeft(BorderStyle.THIN);
+		style.setBorderRight(BorderStyle.THIN);
 		return style;
 	}
 	
 	private XSSFCellStyle formatExcelNumbers(XSSFWorkbook wb) 
 	{
 		XSSFCellStyle style = wb.createCellStyle();
-		style.setBorderTop(XSSFCellStyle.BORDER_THIN);
-		style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
-		style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
-		style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+		style.setBorderTop(BorderStyle.THIN);
+		style.setBorderBottom(BorderStyle.THIN);
+		style.setBorderLeft(BorderStyle.THIN);
+		style.setBorderRight(BorderStyle.THIN);
 		style.setDataFormat((short) 8);
 		return style;
 	}
