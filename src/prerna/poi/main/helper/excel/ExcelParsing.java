@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -33,9 +34,10 @@ public class ExcelParsing {
 		return false;
 		
 	}
+
 	public static boolean isEmptyCell(Cell thisCell) {
 		if (thisCell == null 
-				|| thisCell.getCellType() == Cell.CELL_TYPE_BLANK
+				|| thisCell.getCellTypeEnum() == CellType.BLANK 
 				|| thisCell.toString().trim().isEmpty()) {
 			return true;
 		}
@@ -44,40 +46,41 @@ public class ExcelParsing {
 	
 	/**
 	 * Get the cell values
+	 * 
 	 * @param thisCell
 	 * @return
 	 */
 	public static Object getCell(Cell thisCell) {
-		if(thisCell == null) {
+		if (thisCell == null) {
 			return "";
 		}
-		int type = thisCell.getCellType();
-		if(type == Cell.CELL_TYPE_BLANK) {
+		CellType type = thisCell.getCellTypeEnum();
+		if (type == CellType.BLANK) {
 			return "";
 		}
-		if(type == Cell.CELL_TYPE_STRING) {
+		if (type == CellType.STRING) {
 			return thisCell.getStringCellValue();
-		} else if(type == Cell.CELL_TYPE_NUMERIC) {
-			if(DateUtil.isCellDateFormatted(thisCell)) {
+		} else if (type == CellType.NUMERIC) {
+			if (DateUtil.isCellDateFormatted(thisCell)) {
 				return new SemossDate(thisCell.getDateCellValue(), thisCell.getCellStyle().getDataFormatString());
 			}
 			return thisCell.getNumericCellValue();
-		} else if(type == Cell.CELL_TYPE_BOOLEAN) {
+		} else if (type == CellType.BOOLEAN) {
 			return thisCell.getBooleanCellValue() + "";
-		} else if(type == Cell.CELL_TYPE_FORMULA) {
+		} else if (type == CellType.FORMULA) {
 			// do the same for the formula value
-			int formulatype = thisCell.getCachedFormulaResultType();
-			if(formulatype == Cell.CELL_TYPE_BLANK) {
+			CellType formulatype = thisCell.getCachedFormulaResultTypeEnum();
+			if (formulatype == CellType.BLANK) {
 				return "";
 			}
-			if(formulatype == Cell.CELL_TYPE_STRING) {
+			if (formulatype == CellType.STRING) {
 				return thisCell.getStringCellValue();
-			} else if(formulatype == Cell.CELL_TYPE_NUMERIC) {
-				if(DateUtil.isCellDateFormatted(thisCell)) {
+			} else if (formulatype == CellType.NUMERIC) {
+				if (DateUtil.isCellDateFormatted(thisCell)) {
 					return new SemossDate(thisCell.getDateCellValue(), thisCell.getCellStyle().getDataFormatString());
 				}
 				return thisCell.getNumericCellValue();
-			} else if(formulatype == Cell.CELL_TYPE_BOOLEAN) {
+			} else if (formulatype == CellType.BOOLEAN) {
 				return thisCell.getBooleanCellValue();
 			}
 		}
