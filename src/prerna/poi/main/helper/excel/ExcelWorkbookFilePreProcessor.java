@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.poi.EncryptedDocumentException;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
@@ -36,8 +35,6 @@ public class ExcelWorkbookFilePreProcessor {
 			try {
 				workbook = WorkbookFactory.create(sourceFile);
 			} catch (EncryptedDocumentException e) {
-				e.printStackTrace();
-			} catch (InvalidFormatException e) {
 				e.printStackTrace();
 			}
 			sheetProcessor = new HashMap<String, ExcelSheetPreProcessor>();

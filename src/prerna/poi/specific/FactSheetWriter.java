@@ -39,12 +39,14 @@ import java.util.Hashtable;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.ClientAnchor;
 import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Drawing;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Picture;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.util.IOUtils;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -85,8 +87,6 @@ public class FactSheetWriter {
 		if(templateFileLoc!=null) {
 			try {
 				wb = (XSSFWorkbook) WorkbookFactory.create(new File(templateFileLoc));
-			} catch (InvalidFormatException e) {
-				wb = new XSSFWorkbook();
 			} catch (IOException e) {
 				wb = new XSSFWorkbook();
 			} 
@@ -452,35 +452,35 @@ public class FactSheetWriter {
 		font3.setBold(true);
 		font3.setItalic(false);
 		upstreamStyle.setFont(font);
-		upstreamStyle.setBorderRight(CellStyle.BORDER_THIN);
-		upstreamStyle.setBorderLeft(CellStyle.BORDER_THIN);
-		upstreamStyle.setBorderTop(CellStyle.BORDER_THIN);
-		upstreamStyle.setBorderBottom(CellStyle.BORDER_THIN);
-		upstreamStyle.setAlignment(CellStyle.ALIGN_CENTER);
-		upstreamStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		upstreamStyle.setBorderRight(BorderStyle.THIN);
+		upstreamStyle.setBorderLeft(BorderStyle.THIN);
+		upstreamStyle.setBorderTop(BorderStyle.THIN);
+		upstreamStyle.setBorderBottom(BorderStyle.THIN);
+		upstreamStyle.setAlignment(HorizontalAlignment.CENTER);
+		upstreamStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		downstreamStyle.setFont(font);
-		downstreamStyle.setBorderRight(CellStyle.BORDER_THIN);
-		downstreamStyle.setBorderLeft(CellStyle.BORDER_THIN);
-		downstreamStyle.setBorderTop(CellStyle.BORDER_THIN);
-		downstreamStyle.setBorderBottom(CellStyle.BORDER_THIN);
-		downstreamStyle.setAlignment(CellStyle.ALIGN_CENTER);
-		downstreamStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		downstreamStyle.setBorderRight(BorderStyle.THIN);
+		downstreamStyle.setBorderLeft(BorderStyle.THIN);
+		downstreamStyle.setBorderTop(BorderStyle.THIN);
+		downstreamStyle.setBorderBottom(BorderStyle.THIN);
+		downstreamStyle.setAlignment(HorizontalAlignment.CENTER);
+		downstreamStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		migrateStyle.setFont(font);
-		migrateStyle.setBorderRight(CellStyle.BORDER_THIN);
-		migrateStyle.setBorderLeft(CellStyle.BORDER_THIN);
-		migrateStyle.setBorderTop(CellStyle.BORDER_THIN);
-		migrateStyle.setBorderBottom(CellStyle.BORDER_THIN);
-		migrateStyle.setAlignment(CellStyle.ALIGN_CENTER);
-		migrateStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		migrateStyle.setBorderRight(BorderStyle.THIN);
+		migrateStyle.setBorderLeft(BorderStyle.THIN);
+		migrateStyle.setBorderTop(BorderStyle.THIN);
+		migrateStyle.setBorderBottom(BorderStyle.THIN);
+		migrateStyle.setAlignment(HorizontalAlignment.CENTER);
+		migrateStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		replaceStyle.setFont(font);
-		replaceStyle.setBorderRight(CellStyle.BORDER_THIN);
-		replaceStyle.setBorderLeft(CellStyle.BORDER_THIN);
-		replaceStyle.setBorderTop(CellStyle.BORDER_THIN);
-		replaceStyle.setBorderBottom(CellStyle.BORDER_THIN);
-		replaceStyle.setAlignment(CellStyle.ALIGN_CENTER);
-		replaceStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		replaceStyle.setBorderRight(BorderStyle.THIN);
+		replaceStyle.setBorderLeft(BorderStyle.THIN);
+		replaceStyle.setBorderTop(BorderStyle.THIN);
+		replaceStyle.setBorderBottom(BorderStyle.THIN);
+		replaceStyle.setAlignment(HorizontalAlignment.CENTER);
+		replaceStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		defaultStyle.setFont(defaultFont);
-		defaultStyle.setBorderRight(CellStyle.BORDER_THIN);
+		defaultStyle.setBorderRight(BorderStyle.THIN);
 
 		for (int i=0; i<result.size(); i++) {
 			ArrayList row = (ArrayList) result.get(i);
@@ -734,9 +734,9 @@ public class FactSheetWriter {
 		defaultFont.setItalic(false);
 
 		boldStyle.setFont(font);
-		boldStyle.setBorderRight(CellStyle.BORDER_THIN);
+		boldStyle.setBorderRight(BorderStyle.THIN);
 		defaultStyle.setFont(defaultFont);
-		defaultStyle.setBorderRight(CellStyle.BORDER_THIN);
+		defaultStyle.setBorderRight(BorderStyle.THIN);
 
 		font.setFontHeightInPoints((short)10);
 		font.setFontName("Calibri");
@@ -771,7 +771,7 @@ public class FactSheetWriter {
 				{
 					cellToWriteOn = rowToWriteOn.createCell(1);
 					cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
-					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(BorderStyle.NONE);
 				}
 			}
 			if (indexC==1) {cellToWriteOn = rowToWriteOn.getCell(1);
@@ -787,12 +787,12 @@ public class FactSheetWriter {
 
 				cellToWriteOn = rowToWriteOn.createCell(2);
 				cellToWriteOn.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle());
-				sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+				sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle().setBorderBottom(BorderStyle.NONE);
 				if(indexC!=2 && indexM != 2 && indexR != 2)
 				{
 					XSSFCell cellOne = rowToWriteOn.createCell(1);
 					cellOne.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
-					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(BorderStyle.NONE);
 				}
 
 			}
@@ -856,9 +856,9 @@ public class FactSheetWriter {
 		defaultFont.setItalic(false);
 
 		boldStyle.setFont(font);
-		boldStyle.setBorderRight(CellStyle.BORDER_THIN);
+		boldStyle.setBorderRight(BorderStyle.THIN);
 		defaultStyle.setFont(defaultFont);
-		defaultStyle.setBorderRight(CellStyle.BORDER_THIN);
+		defaultStyle.setBorderRight(BorderStyle.THIN);
 
 		cellToWriteOn.setCellValue(systemName);
 		rowToWriteOn = sheetToWriteOver.getRow(5);
@@ -882,10 +882,10 @@ public class FactSheetWriter {
 				{
 					cellToWrite = rowToWriteOn.createCell(2);
 					cellToWrite.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle());
-					sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+					sheetToWriteOver.getRow(i+5).getCell(2).getCellStyle().setBorderBottom(BorderStyle.NONE);
 					XSSFCell cellOne = rowToWriteOn.createCell(1);
 					cellOne.setCellStyle(sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle());
-					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(CellStyle.BORDER_NONE);
+					sheetToWriteOver.getRow(i+5).getCell(1).getCellStyle().setBorderBottom(BorderStyle.NONE);
 
 				}
 				String blu = (String) row.get(j);
@@ -981,10 +981,10 @@ public class FactSheetWriter {
 		font.setColor(white);
 
 		redStyle.setFont(font);
-		redStyle.setAlignment(CellStyle.ALIGN_CENTER);
-		redStyle.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		redStyle.setAlignment(HorizontalAlignment.CENTER);
+		redStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 		redStyle.setFillForegroundColor(red);
-		redStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		redStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
 		int pictureIdx = 0;
 		int pictureIdx2 = 0;
