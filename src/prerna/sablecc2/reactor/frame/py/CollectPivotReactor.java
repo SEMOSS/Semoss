@@ -159,7 +159,7 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		String [] inscript = new String[]{makeFrame, pivot, deleteFrame}; 
 		// now compose the whole thing
-		String htmlOutput = pyt.runPyAndReturnOutput(inscript);
+		String htmlOutput = pyt.runScriptFilePy(makeFrame, pivot, deleteFrame)+"";
 		
 		
 		
