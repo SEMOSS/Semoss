@@ -25,12 +25,12 @@ public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 		String wrapperName = frame.getWrapperName();
 		
 		String matchesTable = Utility.getRandomString(8);
-		frame.runScript(matchesTable + " = " + wrapperName + ".self_match('" + column + "')");
+		insight.getPyTranslator().runScriptFilePy(matchesTable + " = " + wrapperName + ".self_match('" + column + "')");
 
 		PandasFrame returnTable = new PandasFrame(matchesTable);
 		returnTable.setTranslator(this.insight.getPyTranslator());
 		returnTable.setJep(frame.getJep());
-		returnTable.runScript(PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
+		returnTable.getTranslator().runEmptyPy(PandasSyntaxHelper.makeWrapper(returnTable.getWrapperName(), matchesTable));
 		returnTable = (PandasFrame) recreateMetadata(returnTable, false);
 
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);

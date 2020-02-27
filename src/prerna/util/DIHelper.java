@@ -66,6 +66,8 @@ public class DIHelper {
 	// helps with all of the dependency injection
 	public static DIHelper helper = null;
 	
+	String rdfMapFileLocation = null;
+	
 	IEngine rdfEngine = null;
 	Properties rdfMap = null;
 	
@@ -626,6 +628,7 @@ public class DIHelper {
 	   */
 	  public void loadCoreProp(String fileName)
 	  {
+		  this.rdfMapFileLocation = fileName;
 		  FileInputStream fileIn = null;
 			try {
 				coreProp = new Properties();
@@ -663,6 +666,11 @@ public class DIHelper {
 	  public Properties getEngineCoreProp(String engineName)
 	  {
 		  return (Properties) engineQHash.get(engineName + "_CORE_PROP");
+	  }
+	  
+	  public String getRDFMapFile()
+	  {
+		  return this.rdfMapFileLocation;
 	  }
 
 	  /*

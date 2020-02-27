@@ -36,6 +36,9 @@ public class User extends AbstractValueObject {
 	// shared sessions
 	List<String> sharedSessions = new Vector<String>();
 	
+	// gets the tuplespace
+	String tupleSpace = null;
+	
 	private boolean anonymous;
 	private String anonymousId;
 	
@@ -302,6 +305,16 @@ public class User extends AbstractValueObject {
 	public void escapeCopy()
 	{
 		this.cp = null;
+	}
+	
+	public void setTupleSpace(String tupleSpace)
+	{
+		this.tupleSpace = tupleSpace;
+	}
+	
+	public String getTupleSpace()
+	{
+		return this.tupleSpace;
 	}
 	
 }
