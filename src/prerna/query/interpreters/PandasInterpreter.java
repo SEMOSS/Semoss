@@ -124,6 +124,8 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 			swifter = DIHelper.getInstance().getCoreProp().get("SWIFTER")+"";
 		else
 			swifter = "";
+		// force swifter
+		swifter = "";
 				
 		if(DIHelper.getInstance().getCoreProp().containsKey("EXP"))
 			exp = DIHelper.getInstance().getCoreProp().get("EXP")+"";
@@ -1075,7 +1077,7 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 		if(addNullCheck) {
 			// can only work if comparator is == or !=
 			if(thisComparator.equals("==")) {
-				filterBuilder.append("(").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
+				filterBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
 			} else if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
 				filterBuilder.append("(~").append(wrapperFrameName).append("[").append(leftSelectorExpression).append("]").append(".isna())");
 			}

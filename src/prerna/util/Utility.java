@@ -44,6 +44,7 @@ import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -73,6 +74,7 @@ import java.util.TimeZone;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -3183,6 +3185,163 @@ public class Utility {
 		return thisMap;
 		
 	}
+	
+	public  static String getCP()
+	{
+		String envClassPath = null;
+		
+		try {
+			StringBuilder retClassPath = new StringBuilder("");
+			Class utilClass = Class.forName("prerna.util.Utility");
+			ClassLoader cl = utilClass.getClassLoader();
+
+			URL[] urls = ((URLClassLoader)cl).getURLs();
+
+			for(URL url: urls){
+				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+				if(thisURL.endsWith("/"))
+					thisURL = thisURL.substring(0, thisURL.length()-1);
+
+				retClassPath
+					//.append("\"")
+					.append(thisURL)
+					//.append("\"")
+					.append(";");
+				
+			}
+			envClassPath = "\"" + retClassPath.toString() + "\"";
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+        return envClassPath;
+	}
+
+	public  static String getCP(String specificJars)
+	{
+		StringBuffer envClassPath = new StringBuffer();
+		
+		try {
+			StringBuffer retClassPath = new StringBuffer("");
+			Class utilClass = Class.forName("prerna.util.Utility");
+			ClassLoader cl = utilClass.getClassLoader();
+
+			URL[] urls = ((URLClassLoader)cl).getURLs();
+
+			for(URL url: urls){
+				String jarName = Utility.getInstanceName(url+"");
+				//jarName = jarName.replace(".jar", "");
+				
+				if(specificJars.contains(jarName))
+				{
+					String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+					if(thisURL.endsWith("/"))
+						thisURL = thisURL.substring(0, thisURL.length()-1);
+
+					retClassPath
+					//.append("\"")
+						.append(thisURL)
+						//.append("\"")
+						.append(";");
+				}
+				envClassPath = new StringBuffer("\"" + retClassPath.toString() + "\"");
+			}
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+        return envClassPath.toString();
+	}
+
+	
+	public static Process startPyProcess(String cp, String... args)
+	{
+		// this basically starts a java process
+		// the string is an identifier for this process
+		Process thisProcess = null;
+		if(cp == null)
+			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;classes";
+		String specificPath = getCP(cp);
+		try {
+			String java = System.getenv("JAVA_HOME");
+			if(java == null)
+				java = DIHelper.getInstance().getProperty("JAVA_HOME");
+			java = java + "/bin/java";
+			
+			String jep = System.getenv("LD_LIBRARY_PATH");
+			if(jep == null)
+				jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
+				
+			
+			String pyWorker = DIHelper.getInstance().getProperty("PY_WORKER");
+			
+			//java = "c:/zulu/zulu-8/bin/java";
+			java = java.replace("\\", "/");
+			StringBuilder argList = new StringBuilder(args[0]);
+			//for(int argIndex = 0;argIndex < args.length;argList.append(" ").append(args[argIndex]), argIndex++);
+			String rdfFile = DIHelper.getInstance().rdfMapFileLocation;
+			
+			
+			String [] commands = new String[7];
+			String finalDir =  argList.toString().replace("\\", "/");
+			
+			
+			commands[0] = java;
+			commands[1] = "-Djava.library.path=" + jep;
+			//commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
+			commands[2] = "-cp";
+			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
+					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
+					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
+					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
+					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
+			*/
+			commands[3] = specificPath;
+			commands[4] = pyWorker;
+			//commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
+			commands[5] = finalDir;
+			commands[6] = rdfFile;
+			//commands[6] = ">";
+			//commands[7] = finalDir + "/.log";
+			System.out.println("Trying to create file in .. " + finalDir);
+			File file = new File(finalDir + "/init");
+			file.createNewFile();
+			
+			System.out.println(commands[3]);
+					
+			
+			// run it as a process
+
+			ProcessBuilder pb = new ProcessBuilder(commands);
+			//ProcessBuilder pb = new ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
+			//pb.command(commands);
+			pb.redirectError();
+			Process p = pb.start();
+
+			
+			try {
+				//p.waitFor();
+				p.waitFor(3, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			thisProcess = p;
+			//System.out.println("Process started with .. " + p.exitValue());
+			
+			//thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className + " " + argList);
+			//thisProcess = Runtime.getRuntime().exec(java + " " + className + " " + argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
+			//thisProcess = pb.start();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return thisProcess;
+	}
+
 
 	// compiler methods
 	public static int compileJava(String folder, String classpath)
@@ -3388,5 +3547,10 @@ public class Utility {
 //			e.printStackTrace();
 //		}
 //	}
+	
+	public static void main(String [] args)
+	{
+		Utility.startPyProcess("random", "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer");
+	}
 
 }
