@@ -28,6 +28,7 @@
 package prerna.om;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
@@ -111,6 +112,9 @@ public class Insight {
 	protected String engineId;
 	protected String engineName;
 	protected boolean cacheable = true;
+	protected int count = 0;
+	
+	protected String tupleSpace = null;
 	
 	// list to store the pixels that make this insight
 	private List<String> pixelList;
@@ -328,6 +332,16 @@ public class Insight {
 		if(this.workspaceCacheThread != null) {
 			this.workspaceCacheThread.killThread();
 			this.workspaceCacheThread.dropWorkspaceCache();
+		}
+		if(this.tupleSpace != null)
+		{
+			try {
+				File closer = new File(tupleSpace + "/alldone.closeall");
+				closer.createNewFile();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		this.cacheInWorkspace = false;
 	}
@@ -1194,6 +1208,22 @@ public class Insight {
 	
 	public void clearPragmap() {
 		this.pragmap.clear();
+	}
+	
+	public int getCount()
+	{
+		count++;
+		return count;
+	}
+	
+	public String getTupleSpace()
+	{
+		return this.tupleSpace;
+	}
+	
+	public void setTupleSpace(String tupleSpace)
+	{
+		this.tupleSpace = tupleSpace;
 	}
 
 }
