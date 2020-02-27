@@ -169,6 +169,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 			pyt.runEmptyPy(importS, loadS, makeWrapper);
 			// delete the generated file
+			
+			// dont delete.. we probably need to test the file py
 			newFile.delete();
 		}
 		
@@ -252,9 +254,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String colScript = PandasSyntaxHelper.getColumns(wrapperTableName + ".cache['data']");
 		String typeScript = PandasSyntaxHelper.getTypes(wrapperTableName + ".cache['data']");
 		
-		List<String> headerList = (List) pyt.runScript(colScript);
+		List<String> headerList = (List) pyt.runScriptFilePyDirect(colScript);
 		String[] headers = headerList.toArray(new String[headerList.size()]);
-		List<String> types = (List<String>) pyt.runScript(typeScript);
+		List<String> types = (List<String>) pyt.runScriptFilePyDirect(typeScript);
 
 		// here we run and see if the types are good
 		// or if we messed up, we perform a switch
@@ -442,7 +444,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(!queryCache.containsKey(query) || !cache)
 		{
 			
-			Object output = pyt.runScript(query);
+			Object output = pyt.runScriptFilePyDirect(query);
 			
 			// need to see if this is a parquet format as well
 			String format = "grid";
@@ -568,13 +570,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 		commands.add(script[0]);
 		return response;
 		*/
-		return pyt.runScript(script);
+		if(script.length == 1)
+			return pyt.runScriptFilePyDirect(script[0]);
+		else
+			return pyt.runScript(script);
 	}
 	
 	@Override
 	public long size(String tableName) {
 		String command = "len(" + tableName + ")";
-		Number num = (Number) pyt.runScript(command);
+		Number num = (Number) pyt.runScriptFilePyDirect(command);
 		return num.longValue();
 	}
 	
@@ -644,7 +649,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	
 	public boolean isEmpty(String tableName) {
 		String command = "\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0";
-		Boolean notEmpty = (Boolean) pyt.runScript(command);
+		Boolean notEmpty = (Boolean) pyt.runScriptFilePyDirect(command);
 		return !notEmpty;
 	}
 	
@@ -682,6 +687,11 @@ public class PandasFrame extends AbstractTableDataFrame {
 		this.pyt = pyt;
 		pyt.setLogger(logger);
 		
+	}
+	
+	public PyTranslator getTranslator()
+	{
+		return pyt;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////

@@ -30,6 +30,7 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 	public NounMetadata execute() {
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
+		
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
 		// get the wrapper name
