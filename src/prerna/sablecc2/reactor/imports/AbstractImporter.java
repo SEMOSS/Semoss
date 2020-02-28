@@ -52,7 +52,7 @@ public abstract class AbstractImporter implements IImporter {
 		int numJoins = joins.size();
 		for(int jIdx = 0; jIdx < numJoins; jIdx++) {
 			Join j = joins.get(jIdx);
-			String rightTableJoinCol = j.getQualifier();
+			String rightTableJoinCol = j.getRColumn();
 			if(rightTableJoinCol.contains("__")) {
 				rightTableJoinCol = rightTableJoinCol.split("__")[1];
 			}
@@ -103,11 +103,11 @@ public abstract class AbstractImporter implements IImporter {
 			if(!ArrayUtilityMethods.arrayContainsValue(startHeaders, newHeaders[i])) {
 				// need to account for join 
 				for(Join join : joins) {
-					String startNode = join.getSelector();
+					String startNode = join.getLColumn();
 					if(startNode.contains("__")) {
 						startNode = startNode.split("__")[1];
 					}
-					String endNode = join.getQualifier();
+					String endNode = join.getRColumn();
 					if(newHeaders[i].equalsIgnoreCase(endNode)) {
 						continue;
 					} else {

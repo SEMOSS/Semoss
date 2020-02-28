@@ -106,7 +106,7 @@ public class Lambda implements Iterator{
 			for(int joinIndex = 0; joinIndex < joins.size();joinIndex++)
 			{
 				Join join = (Join)joins.elementAt(joinIndex);
-				qs.addRelation(join.getSelector() , join.getQualifier(), join.getJoinType());
+				qs.addRelation(join.getLColumn() , join.getRColumn(), join.getJoinType());
 			}
 		}
 		if(frame != null) {

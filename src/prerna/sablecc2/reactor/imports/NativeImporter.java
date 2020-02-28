@@ -178,7 +178,7 @@ public class NativeImporter extends AbstractImporter {
 		
 		J_LOOP : for(int i = 0; i < numJoins; i++) {
 			Join j = joins.get(i);
-			String[] jRel = new String[] {j.getQualifier(), j.getJoinType(), j.getSelector()};
+			String[] jRel = new String[] {j.getRColumn(), j.getJoinType(), j.getLColumn()};
 			for(String[] rel : relations) {
 				if(Arrays.areEqual(rel, jRel)) {
 					continue J_LOOP;
@@ -191,7 +191,7 @@ public class NativeImporter extends AbstractImporter {
 			// since it is the join column
 			Iterator<IQuerySelector> it = selectors.iterator();
 			while(it.hasNext()) {
-				if(it.next().getQueryStructName().equals(j.getQualifier())) {
+				if(it.next().getQueryStructName().equals(j.getRColumn())) {
 					it.remove();
 					break;
 				}

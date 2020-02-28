@@ -205,8 +205,8 @@ public class TinkerImporter extends AbstractImporter {
 		// if we got to this point
 		// the edge hash needs to be readjsuted
 		for(Join j : joins) {
-			String frameValue = j.getSelector();
-			String newValue = j.getQualifier();
+			String frameValue = j.getLColumn();
+			String newValue = j.getRColumn();
 			if(newValue.contains("__")) {
 				newValue = newValue.split("__")[1];
 			}
@@ -242,7 +242,7 @@ public class TinkerImporter extends AbstractImporter {
 		
 		Set<String> joinCols = new HashSet<String>();
 		for(Join j : joins) {
-			joinCols.add(j.getQualifier());
+			joinCols.add(j.getRColumn());
 		}
 		// update qs selectors with new alias
 		Map<String, String> oldAliasToNew = new HashMap<String, String>();
@@ -363,9 +363,9 @@ public class TinkerImporter extends AbstractImporter {
 		Map<String, String> joinMap = new HashMap<String, String>();
 		for(Join j : joins) {
 			// s is the frame name
-			String s = j.getSelector();
+			String s = j.getLColumn();
 			// q is the query name
-			String q = j.getQualifier();
+			String q = j.getRColumn();
 			// if they are not equal, we need to replace q with s
 			if(!s.equals(q)) {
 				joinMap.put(q, s);
