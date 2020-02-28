@@ -179,7 +179,7 @@ public class RdbmsImporter extends AbstractImporter {
 			Set<String> removeHeaders = new HashSet<String>();
 			MAIN_LOOP : for(String rightTableHeader : rightTableTypes.keySet()) {
 				for(Join join : joins) {
-					if(rightTableHeader.equals(join.getQualifier())) {
+					if(rightTableHeader.equals(join.getRColumn())) {
 						// this is a join column
 						// do not remove it
 						continue MAIN_LOOP;
@@ -416,11 +416,11 @@ public class RdbmsImporter extends AbstractImporter {
 	 */
 	private void generateIndicesOnJoinColumns(String leftTable, String rightTable, List<Join> joins) {
 		for(Join j : joins) {
-			String leftCol = j.getSelector();
+			String leftCol = j.getLColumn();
 			if(leftCol.contains("__")) {
 				leftCol = leftCol.split("__")[1];
 			}
-			String rightCol = j.getQualifier();
+			String rightCol = j.getRColumn();
 			if(rightCol.contains("__")) {
 				rightCol = rightCol.split("__")[1];
 			}

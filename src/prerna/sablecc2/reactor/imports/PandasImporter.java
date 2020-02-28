@@ -154,11 +154,11 @@ public class PandasImporter extends AbstractImporter {
 				// in R, the existing column is referenced as frame__column
 				// but the R syntax only wants the col
 				Map<String, String> joinColMapping = new HashMap<String, String>();
-				String jSelector = joinItem.getSelector();
+				String jSelector = joinItem.getLColumn();
 				if(jSelector.contains("__")) {
 					jSelector = jSelector.split("__")[1];
 				}
-				String jQualifier = joinItem.getQualifier();
+				String jQualifier = joinItem.getRColumn();
 				if(jQualifier.contains("__")) {
 					jQualifier = jQualifier.split("__")[1];
 				}
