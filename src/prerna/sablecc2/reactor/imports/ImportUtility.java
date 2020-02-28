@@ -1335,8 +1335,8 @@ public class ImportUtility {
 				}
 				Join j = joins.get(jIdx);
 				
-				String existingColName = j.getSelector();
-				String newColName = j.getQualifier();
+				String existingColName = j.getLColumn();
+				String newColName = j.getRColumn();
 				
 				// if this is true, it means that the unique name of this selector is part of a join
 				// and we want to replace its name
@@ -1385,7 +1385,7 @@ public class ImportUtility {
 		SELECTOR : for(int i = 0; i < numSelectors; i++) {
 			String alias = columns[i];
 			for(Join j : joins) {
-				String newColName = j.getQualifier();
+				String newColName = j.getRColumn();
 				// if this is true, it means that this column is part of a join
 				// and we do not want to add it as a header
 				if(alias.equals(newColName)) {

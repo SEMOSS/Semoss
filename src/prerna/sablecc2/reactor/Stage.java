@@ -298,7 +298,7 @@ public class Stage extends Hashtable <String, Hashtable> {
 		String 	pad = "\"";
 		StringBuffer relationString = new StringBuffer();
 		relationString.append("strVector = new Vector();\n");
-		relationString.append("qs.addRelation(\"" + filter.getSelector() + "\", \"" +filter.getQualifier() + "\" ,\"" + filter.getJoinType() + "\");\n");
+		relationString.append("qs.addRelation(\"" + filter.getLColumn() + "\", \"" +filter.getRColumn() + "\" ,\"" + filter.getJoinType() + "\");\n");
 		System.out.println("RELATION..... " + relationString);
 		queryStructString.append(relationString);
 	}

@@ -707,7 +707,7 @@ public class RSyntaxHelper {
 		// get all the join columns
 		List<String> joinColumns = new Vector<String>();
 		for(Join j : joins) {
-			String columnName = j.getQualifier();
+			String columnName = j.getRColumn();
 			if(columnName.contains("__")) {
 				columnName = columnName.split("__")[1];
 			}
