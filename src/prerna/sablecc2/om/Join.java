@@ -9,20 +9,20 @@ public class Join {
 	// there is no reason I cannot split this into 2 different classes other than laziness --it has been split
 
 	private String joinType = null;
-	private String selector = null;
-	private String qualifier = null;
+	private String lColumn = null;
+	private String rColumn = null;
 	private String joinRelName = null;
 
 	public Join(String lCol, String joinType, String rCol) {
-		this.selector = lCol;
-		this.qualifier = rCol;
+		this.lColumn = lCol;
+		this.rColumn = rCol;
 		this.joinType = joinType;
 	}
 
 
 	public Join(String lCol, String joinType, String rCol, String joinRelName) {
-		this.selector = lCol;
-		this.qualifier = rCol;
+		this.lColumn = lCol;
+		this.rColumn = rCol;
 		this.joinType = joinType;
 		this.joinRelName = joinRelName;
 	}
@@ -35,20 +35,20 @@ public class Join {
 		this.joinType = joinType;
 	}
 
-	public String getSelector() {
-		return selector;
+	public String getLColumn() {
+		return lColumn;
 	}
 
-	public void setSelector(String selector) {
-		this.selector = selector;
+	public void setLColumn(String lColumn) {
+		this.lColumn = lColumn;
 	}
 
-	public String getQualifier() {
-		return qualifier;
+	public String getRColumn() {
+		return rColumn;
 	}
 
-	public void setQualifier(String qualifier) {
-		this.qualifier = qualifier;
+	public void setRColumn(String rColumn) {
+		this.rColumn = rColumn;
 	}
 
 	public String getJoinRelName() {

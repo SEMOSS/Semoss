@@ -61,9 +61,9 @@ public class FileMeta {
 			int numJoins = tableJoin.size();
 			for(int i = 0; i < numJoins; i++) {
 				Join joinInfo = tableJoin.get(i);
-				String fromCol = (String) joinInfo.getSelector();
+				String fromCol = (String) joinInfo.getLColumn();
 				String relType = (String) joinInfo.getJoinType();
-				String toCol = (String) joinInfo.getQualifier();
+				String toCol = (String) joinInfo.getRColumn();
 
 				pixelString.append("(").append(fromCol).append(", ").append(relType).append(", ").append(toCol).append(")");
 

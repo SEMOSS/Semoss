@@ -213,11 +213,11 @@ public class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 		int numJoins = joins.size();
 		for(int jIdx = 0; jIdx < numJoins; jIdx++) {
 			Join j = joins.get(jIdx);
-			String leftTableJoinCol = j.getSelector();
+			String leftTableJoinCol = j.getLColumn();
 			if(leftTableJoinCol.contains("__")) {
 				leftTableJoinCol = leftTableJoinCol.split("__")[1];
 			}
-			String rightTableJoinCol = j.getQualifier();
+			String rightTableJoinCol = j.getRColumn();
 			if(rightTableJoinCol.contains("__")) {
 				rightTableJoinCol = rightTableJoinCol.split("__")[1];
 			}
