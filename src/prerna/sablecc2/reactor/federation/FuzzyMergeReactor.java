@@ -74,7 +74,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		if(joins.size() > 1) {
 			throw new IllegalArgumentException("Can only support 1 fuzzy join at a time");
 		}
-		String frameCol = joins.get(0).getSelector();
+		String frameCol = joins.get(0).getLColumn();
 		// ignore the table name which is most likely passed
 		// the structure is current frame to new query data
 		if(frameCol.contains("__")) {
@@ -162,7 +162,7 @@ public class FuzzyMergeReactor extends AbstractRFrameReactor {
 		
 		// now we will just use the normal merge logic
 		// just need to update to join on the new fuzzy column
-		joins.get(0).setSelector(rFrameVar + "__" + fuzzyColName);
+		joins.get(0).setLColumn(rFrameVar + "__" + fuzzyColName);
 		logger.info("Running script to merge new fields onto frame");
 		MergeReactor mergeReactor = new MergeReactor();
 		mergeReactor.setInsight(this.insight);

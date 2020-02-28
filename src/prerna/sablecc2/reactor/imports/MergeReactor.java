@@ -128,23 +128,30 @@ public class MergeReactor extends AbstractReactor {
 		try {
 			if(!(qs instanceof HardSelectQueryStruct)) {
 				for(Join j : joins) {
-					// s is the frame name
-					String s = j.getSelector();
-					// q is part of the query we are merging
-					String q = j.getQualifier();
+					// the join format is
+					// LHS = COLUMN NAME OF THE FRAME I AM MERGING INTO 
+					// RHS = COLUMN NAME OF THE NEW DATA WE ARE JOINING TO
+					// LHS IS WHAT IS MAINTAINED AFTER THE JOIN
+					// RHS IS THE NAME IN THE QUERY
+					String leftColumnJoin = j.getLColumn();
+					String rColumnJoin = j.getRColumn();
 					String type = j.getJoinType();
+					
 					if(type.equals("inner.join") || type.equals("left.outer.join")) {
 						// we need to make sure we apply the filter correctly!
-						// remember, q is the alias we provide the selector
+						// remember, RHS is the alias we provide the selector
 						// but might not match the physical
-						if(!qs.hasColumn(q)) {
-							IQuerySelector selector = qs.findSelectorFromAlias(q);
+						if(!qs.hasColumn(rColumnJoin)) {
+							IQuerySelector selector = qs.findSelectorFromAlias(rColumnJoin);
 							// get the correct q
-							q = selector.getQueryStructName();
+							if(selector == null) {
+								throw new IllegalArgumentException("There is an error with the join. Please make sure the columns are matched appropriately based on the frame you want to maintain");
+							}
+							rColumnJoin = selector.getQueryStructName();
 						}
 						// we will add a filter frame existing values in frame
 						// but wait... need to make sure an existing filter isn't there
-						if(qs.hasFiltered(q)) {
+						if(qs.hasFiltered(rColumnJoin)) {
 							continue;
 						}
 						
@@ -158,7 +165,7 @@ public class MergeReactor extends AbstractReactor {
 						}
 						
 						SelectQueryStruct filterQs = new SelectQueryStruct();
-						QueryColumnSelector column = new QueryColumnSelector(s);
+						QueryColumnSelector column = new QueryColumnSelector(leftColumnJoin);
 						filterQs.addSelector(column);
 						try {
 							Iterator<IHeadersDataRow> it = frame.query(filterQs);
@@ -172,14 +179,14 @@ public class MergeReactor extends AbstractReactor {
 							// the frame will auto convert to physical
 							
 							PixelDataType dataType = PixelDataType.CONST_STRING;
-							SemossDataType sDataType = frame.getMetaData().getHeaderTypeAsEnum(s);
+							SemossDataType sDataType = frame.getMetaData().getHeaderTypeAsEnum(leftColumnJoin);
 							if(sDataType == SemossDataType.INT) {
 								dataType = PixelDataType.CONST_INT;
 							} else if(sDataType == SemossDataType.DOUBLE) {
 								dataType = PixelDataType.CONST_DECIMAL;
 							}
 							
-							qs.addImplicitFilter(SimpleQueryFilter.makeColToValFilter(q, "==", values, dataType));
+							qs.addImplicitFilter(SimpleQueryFilter.makeColToValFilter(rColumnJoin, "==", values, dataType));
 						} catch(Exception e) {
 							e.printStackTrace();
 							throw new IllegalArgumentException("Trying to merge on a column that does not exist within the frame!");
@@ -274,7 +281,7 @@ public class MergeReactor extends AbstractReactor {
 	private List<Join> convertJoins(List<Join> joins, OwlTemporalEngineMeta meta) {
 		List<Join> convertedJoins = new Vector<Join>();
 		for(Join j : joins) {
-			String origLCol = j.getSelector();
+			String origLCol = j.getLColumn();
 			String newLCol = meta.getUniqueNameFromAlias(origLCol);
 			if(newLCol == null) {
 				// nothing to do
@@ -284,7 +291,7 @@ public class MergeReactor extends AbstractReactor {
 			}
 			// or an alias was used
 			// so make a new Join and add it to the list
-			Join newJ = new Join(newLCol, j.getJoinType(), j.getQualifier(), j.getJoinRelName());
+			Join newJ = new Join(newLCol, j.getJoinType(), j.getRColumn(), j.getJoinRelName());
 			convertedJoins.add(newJ);
 		}
 		
