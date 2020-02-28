@@ -488,7 +488,7 @@ public class SecurityAppUtils extends AbstractSecurityUtils {
 		Statement stmt = null;
 		try {
 			stmt = securityDb.execUpdateAndRetrieveStatement(query, false);
-			if(stmt.getUpdateCount() == 0) {
+			if(stmt.getUpdateCount() <= 0) {
 				// need to perform an insert
 				query = securityDb.getQueryUtil().insertIntoTable("ENGINEMETA", 
 						new String[]{"ENGINEID", "METAKEY", "METAVALUE", "METAORDER"}, 
