@@ -19,7 +19,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.impl.util.MetadataUtility;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.nameserver.utility.MasterDatabaseUtility;
-import prerna.query.parsers.ProjectionOnlySqlParser;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -27,6 +26,7 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.Join;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -63,53 +63,46 @@ public class NativeImporter extends AbstractImporter {
 			// and we will wrap you
 			String query = ((HardSelectQueryStruct) this.qs).getQuery();
 
-			ProjectionOnlySqlParser parser = new ProjectionOnlySqlParser();
-			try {
-				parser.processQuery(query);
-				List<String> projections = parser.getProjections();
-				
-				String customFromAlias = "customquery";
-				SelectQueryStruct newQs = new SelectQueryStruct();
-				newQs.setEngineId(this.qs.getEngineId());
-				newQs.setEngine(this.qs.getEngine());
-				newQs.setCustomFrom(query);
-				newQs.setCustomFromAliasName(customFromAlias);
-				for(String p : projections) {
-					QueryColumnSelector selector = new QueryColumnSelector();
-					selector.setTable(customFromAlias);
-					selector.setTableAlias(customFromAlias);
-					selector.setColumn(p);
-					String alias = p;
-					while(alias.contains("__")) {
-						alias = alias.replace("__", "_");
-					}
-					selector.setAlias(alias);
-					newQs.addSelector(selector);
+			if(this.it == null) {
+				try {
+					String newQuery = "select * from (" + query + ") as customQuery where 1 = 0";
+					this.it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), newQuery);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new SemossPixelException(
+							new NounMetadata("Error occured executing query before loading into frame", 
+									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
-				
-				if(this.it == null) {
-					try {
-						this.it = ImportUtility.generateIterator(this.qs, this.dataframe);
-					} catch (Exception e) {
-						e.printStackTrace();
-						throw new SemossPixelException(
-								new NounMetadata("Error occured executing query before loading into frame", 
-										PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-					}
-				}
-				if(this.it instanceof IRawSelectWrapper) {
-					executedDataTypes = ((IRawSelectWrapper) this.it).getTypes();
-				}
-				
-				// swap the qs reference
-				newQs.setBigDataEngine(this.qs.getBigDataEngine());
-				newQs.setPragmap(this.qs.getPragmap());
-				
-				this.qs = newQs;
-				this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
-			} catch (Exception e) {
-				e.printStackTrace();
 			}
+			
+			String[] columnNames = ((IRawSelectWrapper) this.it).getHeaders();
+			executedDataTypes = ((IRawSelectWrapper) this.it).getTypes();
+				
+			String customFromAlias = "customquery";
+			SelectQueryStruct newQs = new SelectQueryStruct();
+			newQs.setEngineId(this.qs.getEngineId());
+			newQs.setEngine(this.qs.getEngine());
+			newQs.setCustomFrom(query);
+			newQs.setCustomFromAliasName(customFromAlias);
+			for(String p : columnNames) {
+				QueryColumnSelector selector = new QueryColumnSelector();
+				selector.setTable(customFromAlias);
+				selector.setTableAlias(customFromAlias);
+				selector.setColumn(p);
+				String alias = p;
+				while(alias.contains("__")) {
+					alias = alias.replace("__", "_");
+				}
+				selector.setAlias(alias);
+				newQs.addSelector(selector);
+			}
+			
+			// swap the qs reference
+			newQs.setBigDataEngine(this.qs.getBigDataEngine());
+			newQs.setPragmap(this.qs.getPragmap());
+			
+			this.qs = newQs;
+			this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
 //			// lets see what happens
 //			OpaqueSqlParser parser = new OpaqueSqlParser();
 ////			SqlParser parser = new SqlParser();
