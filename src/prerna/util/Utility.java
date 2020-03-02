@@ -3226,31 +3226,68 @@ public class Utility {
 	{
 		StringBuffer envClassPath = new StringBuffer();
 		
+		String osName = System.getProperty("os.name").toLowerCase();
+
+		boolean win = osName.indexOf("win") >= 0;
+		
 		try {
 			StringBuffer retClassPath = new StringBuffer("");
 			Class utilClass = Class.forName("prerna.util.Utility");
 			ClassLoader cl = utilClass.getClassLoader();
 
 			URL[] urls = ((URLClassLoader)cl).getURLs();
+			
+			String webinfLib = null;
+			boolean webinfTagged = false;
 
-			for(URL url: urls){
+			for(URL url: urls)
+			{
+				
 				String jarName = Utility.getInstanceName(url+"");
 				//jarName = jarName.replace(".jar", "");
-				
-				if(specificJars.contains(jarName))
+				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+
+				String separator = ";";
+				if(!win)
 				{
-					String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
+					thisURL = "/" + thisURL;
+					separator = ":";
+				}
+				
+				if(thisURL.endsWith(".jar") && thisURL.contains("WEB-INF/lib") && webinfLib == null)
+				{
+					String thisJarName = getInstanceName(thisURL);
+					thisURL = thisURL.replace("/" + thisJarName, "");
+					webinfLib = thisURL + "/*";
+					if(!webinfTagged)
+					{
+						retClassPath
+						//.append("\"")
+							.append(webinfLib)
+							//.append("\"")
+							.append(separator);
+						webinfTagged = true;
+					}
+
+				}
+				
+				// add the folder
+				else if(!thisURL.endsWith(".jar") && specificJars.contains(jarName) && !thisURL.contains("WEB-INF/lib"))
+				{
 					if(thisURL.endsWith("/"))
 						thisURL = thisURL.substring(0, thisURL.length()-1);
-
 					retClassPath
 					//.append("\"")
 						.append(thisURL)
 						//.append("\"")
-						.append(";");
+						.append(separator);
 				}
-				envClassPath = new StringBuffer("\"" + retClassPath.toString() + "\"");
+				
 			}
+			// remove the last one
+			String cp = retClassPath.toString();
+			
+			envClassPath = new StringBuffer("\"" + cp.substring(0, cp.length()-1) + "\"");
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
