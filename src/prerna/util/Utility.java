@@ -27,10 +27,16 @@
  *******************************************************************************/
 package prerna.util;
 
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -79,6 +85,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.NotFoundException;
+
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
@@ -101,16 +112,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
-
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.NotFoundException;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.CloudClient;
@@ -134,6 +135,9 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.git.GitAssetUtils;
+
+import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.text.DecimalFormat;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -3314,7 +3318,10 @@ public class Utility {
 			
 			// run it as a process
 
-			ProcessBuilder pb = new ProcessBuilder(commands);
+			String starterFile = writeStarterFile(commands, finalDir);
+			
+			//ProcessBuilder pb = new ProcessBuilder(commands);
+			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			//ProcessBuilder pb = new ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
 			//pb.command(commands);
 			pb.redirectError();
@@ -3340,6 +3347,52 @@ public class Utility {
 		}
 		
 		return thisProcess;
+	}
+	
+	public static String writeStarterFile(String [] commands, String dir)
+	{
+		// check if the os is unix and if so make it .sh
+		String osName = System.getProperty("os.name").toLowerCase();
+		
+		
+		
+		String starter = ""; 
+		if(osName.indexOf("win") >= 0)
+			starter = dir + "/starter.bat";
+		if(osName.indexOf("win") < 0)
+			starter = dir + "/starter.sh";
+		try {
+			File starterFile = new File(starter);
+			
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			for(int cmdIndex = 0;cmdIndex < commands.length;cmdIndex++)
+			{
+				baos.write(commands[cmdIndex].getBytes());
+				baos.write("  ".getBytes());
+			}
+			FileOutputStream fos = new FileOutputStream(starterFile);
+			baos.writeTo(fos);
+			baos.close();
+			fos.close();
+
+			// chmod in case.. who knows
+			if(osName.indexOf("win") < 0)
+			{
+				ProcessBuilder p = new ProcessBuilder("chmod 777 " + starter);
+				p.start();
+			}
+
+		
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+		
+		
+		return starter;
 	}
 
 

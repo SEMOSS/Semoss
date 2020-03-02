@@ -77,6 +77,13 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 		worker.prop = new Properties();
 		try {
 			worker.prop.load(new FileInputStream(args[1]));
+			System.out.println("Loaded the rdf map");
+			
+			// get the library for jep
+			//String jepLib = worker.prop.getProperty("JEP_LIB");
+			
+			//System.loadLibrary(jepLib);
+			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
