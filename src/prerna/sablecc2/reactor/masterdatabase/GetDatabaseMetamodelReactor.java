@@ -26,6 +26,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.metaeditor.SaveOwlPositions;
+import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -78,6 +79,11 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 			String positionJson = baseFolder + DIR_SEPARATOR + SaveOwlPositions.FILE_NAME;
 			File positionFile = new File(positionJson);
 
+			// try to make the file
+			if(!positionFile.exists()) {
+				GenerateMetamodelLayout.generateLayout(engineId);
+			}
+			
 			if(positionFile.exists()) {
 				// load the file
 				Path path = positionFile.toPath();
