@@ -50,6 +50,7 @@ public class InsightUtility {
 				newInsight.getVarStore().put(key, origInsight.getVarStore().get(key));
 			}
 		}
+		newInsight.setTupleSpace(origInsight.getTupleSpace());
 		newInsight.setPy(origInsight.getPy());
 		newInsight.setUser(origInsight.getUser());
 		if(origInsight.rInstantiated()) {
@@ -286,6 +287,11 @@ public class InsightUtility {
 				} catch(Exception e) {
 					e.printStackTrace();
 				}
+			}
+			// if Python is instantiated
+			// remove the watcher
+			if(insight.isDeletePythonTupleOnDropInsight()) {
+				insight.dropPythonTupleSpace();
 			}
 			
 //			NounMetadata sessionNoun = insight.getVarStore().get(JobReactor.SESSION_KEY);
