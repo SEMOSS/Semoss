@@ -21,7 +21,7 @@ public class SetAppDescriptionReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String appId = UploadInputUtility.getAppName(this.store);
+		String appId = UploadInputUtility.getAppNameOrId(this.store);
 		
 		if(AbstractSecurityUtils.securityEnabled()) {
 			appId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), appId);

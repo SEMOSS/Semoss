@@ -118,7 +118,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		if (existingApp && (appId == null || nativeEngine == null)) {
 			throw new IllegalArgumentException("App " + appId + " does not exist");
 		}
-		this.appName = UploadInputUtility.getAppName(this.store);
+		this.appName = UploadInputUtility.getAppNameOrId(this.store);
 
 		if (existingApp) {
 			if (security) {
