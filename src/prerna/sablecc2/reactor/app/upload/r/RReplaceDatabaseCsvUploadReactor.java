@@ -45,7 +45,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 		Logger logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
-		String appId = UploadInputUtility.getAppName(this.store);
+		String appId = UploadInputUtility.getAppNameOrId(this.store);
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		File newFile = new File(filePath);
 		if (!newFile.exists()) {
