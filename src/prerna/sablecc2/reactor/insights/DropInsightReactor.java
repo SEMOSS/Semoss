@@ -15,6 +15,10 @@ public class DropInsightReactor extends AbstractInsightReactor{
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Drop insight with id = " + this.insight.getInsightId());
 		this.insight.dropWorkspaceCache();
+		// this only returns the boolean
+		// called from the PixelStreamUtility, the following method
+		// {@link InsightUtility.dropInsight(Insight insight)}
+		// actually does the cleanup
 		return new NounMetadata(true, PixelDataType.DROP_INSIGHT, PixelOperationType.DROP_INSIGHT);
 	}
 }
