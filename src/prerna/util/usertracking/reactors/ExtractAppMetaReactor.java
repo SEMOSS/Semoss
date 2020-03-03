@@ -37,7 +37,7 @@ public class ExtractAppMetaReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		// get inputs - engine
-		String engineId = UploadInputUtility.getAppName(this.store);
+		String engineId = UploadInputUtility.getAppNameOrId(this.store);
 		// we may have the alias
 		if(AbstractSecurityUtils.securityEnabled()) {
 			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
