@@ -59,10 +59,10 @@ public class UploadInputUtility {
 	// only applies for "csv" uploading - doesn't need to be ","
 	public static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
 
-	public static String getAppName(NounStore store) {
+	public static String getAppNameOrId(NounStore store) {
 		GenRowStruct grs = store.getNoun(APP);
 		if (grs == null || grs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the new app name using key " + APP);
+			throw new IllegalArgumentException("Must define the new app id or name using key " + APP);
 		}
 		
 		NounMetadata noun = grs.getNoun(0);

@@ -47,7 +47,7 @@ public class NLPInstanceCacheReactor extends AbstractRFrameReactor {
 		// initialize inputs
 		init();
 		organizeKeys();
-		String appId = UploadInputUtility.getAppName(this.store);
+		String appId = UploadInputUtility.getAppNameOrId(this.store);
 		String table = this.keyValue.get(this.keysToGet[1]);
 		List<String> columnsToUpdate = getSpecificColumns(appId, table);
 		boolean updateExistingValues = updateExistingValues();

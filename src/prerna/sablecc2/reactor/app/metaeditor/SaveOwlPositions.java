@@ -15,6 +15,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
 import prerna.util.Utility;
 
 public class SaveOwlPositions extends AbstractReactor {
@@ -29,7 +30,7 @@ public class SaveOwlPositions extends AbstractReactor {
 	
 	@Override
 	public NounMetadata execute() {
-		String appId = getAppId();
+		String appId = UploadInputUtility.getAppNameOrId(this.store);
 		if(appId == null) {
 			throw new IllegalArgumentException("Must pass in the app id");
 		}
@@ -67,24 +68,6 @@ public class SaveOwlPositions extends AbstractReactor {
 		}
 		
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
-	}
-	
-	private String getAppId() {
-		GenRowStruct grs = this.store.getNoun(this.keysToGet[0]);
-		if(grs != null && !grs.isEmpty()) {
-			List<NounMetadata> strings = grs.getNounsOfType(PixelDataType.CONST_STRING);
-			if(strings != null && !strings.isEmpty()) {
-				return (String) strings.get(0).getValue();
-			}
-		}
-		
-		// check is passed as direct input
-		List<NounMetadata> strings = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
-		if(strings != null && !strings.isEmpty()) {
-			return (String) strings.get(0).getValue();
-		}
-		
-		return null;
 	}
 	
 	private Map<String, Object> getPositionMap() {
