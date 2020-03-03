@@ -123,7 +123,7 @@ public class CopyFrameUtil {
 		String oldName = frame.getName();
 
 		// one thing that is consistent across all frames
-		OwlTemporalEngineMeta metadata = frame.getMetaData().copy();
+		OwlTemporalEngineMeta metadata = frame.getMetaData();
 
 		// we need to set the correct context for the pandas + data.table frames
 		// we will also account for names to be new
