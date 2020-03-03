@@ -130,7 +130,7 @@ public class PyUtils {
 			// read the file first
 			dir = dir.replace("\\", "/");
 			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-			File logFile = new File(baseFolder + "/Py/log-config/log4j.properties");
+			File logFile = new File(baseFolder + "/py/log-config/log4j.properties");
 			String logConfig = FileUtils.readFileToString(logFile);
 			logConfig = logConfig.replace("FILE_LOCATION", dir + "/output.log");
 			File newLogFile = new File(dir + "/log4j.properties");
