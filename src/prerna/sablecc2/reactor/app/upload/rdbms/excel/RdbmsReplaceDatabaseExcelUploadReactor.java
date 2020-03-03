@@ -48,7 +48,7 @@ public class RdbmsReplaceDatabaseExcelUploadReactor extends RdbmsUploadExcelData
 		this.logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
-		String appId = UploadInputUtility.getAppName(this.store);
+		String appId = UploadInputUtility.getAppNameOrId(this.store);
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
