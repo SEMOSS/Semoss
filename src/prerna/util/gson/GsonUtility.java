@@ -11,8 +11,8 @@ import prerna.om.HeadersDataRow;
 import prerna.om.SEMOSSEdge;
 import prerna.om.SEMOSSVertex;
 import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.TemporalEngineHardQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.FunctionQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -27,6 +27,7 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 
 public class GsonUtility {
 
@@ -68,6 +69,9 @@ public class GsonUtility {
 				.registerTypeAdapter(NounMetadata.class, new NounMetadataAdapter())
 				.registerTypeAdapter(VarStore.class, new VarStoreAdapter())
 
+				// iterators
+				.registerTypeAdapter(BasicIteratorTask.class, new BasicIteratorTaskAdapter())
+				
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
 				.registerTypeAdapter(SEMOSSEdge.class, new SEMOSSEdgeAdapter())
