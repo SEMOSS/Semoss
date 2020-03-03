@@ -3415,7 +3415,7 @@ public class Utility {
 			// chmod in case.. who knows
 			if(osName.indexOf("win") < 0)
 			{
-				ProcessBuilder p = new ProcessBuilder("chmod 777 " + starter);
+				ProcessBuilder p = new ProcessBuilder("/bin/chmod","777", starter);
 				p.start();
 			}
 
@@ -3640,7 +3640,7 @@ public class Utility {
 	
 	public static void main(String [] args)
 	{
-		Utility.startPyProcess("random", "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer");
+		//Utility.startPyProcess("random", "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer");
 	}
 
 }
