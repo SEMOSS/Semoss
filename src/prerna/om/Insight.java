@@ -166,7 +166,8 @@ public class Insight {
 
 	private transient boolean deleteFilesOnDropInsight = true;
 	private transient boolean deleteREnvOnDropInsight = true;
-	
+	private transient boolean deletePythonTupleOnDropInsight = true;
+
 	// old - for pkql
 	@Deprecated
 	private transient Map<String, Map<String, Object>> pkqlVarMap = new Hashtable<String, Map<String, Object>>();
@@ -333,18 +334,20 @@ public class Insight {
 			this.workspaceCacheThread.killThread();
 			this.workspaceCacheThread.dropWorkspaceCache();
 		}
-		if(this.tupleSpace != null)
-		{
+		this.cacheInWorkspace = false;
+	}
+	
+	public void dropPythonTupleSpace() {
+		if(this.tupleSpace != null) {
 			try {
 				File closer = new File(tupleSpace + "/alldone.closeall");
 				closer.createNewFile();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		this.cacheInWorkspace = false;
 	}
+	
 	
 	////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -723,6 +726,14 @@ public class Insight {
 	
 	public void setDeleteREnvOnDropInsight(boolean deleteREnvOnDropInsight) {
 		this.deleteREnvOnDropInsight = deleteREnvOnDropInsight;
+	}
+	
+	public boolean isDeletePythonTupleOnDropInsight() {
+		return this.deletePythonTupleOnDropInsight;
+	}
+	
+	public void setDeletePythonTupleOnDropInsight(boolean deletePythonTupleOnDropInsight) {
+		this.deletePythonTupleOnDropInsight = deletePythonTupleOnDropInsight;
 	}
 	
 	// TODO: methods i have but dont want to keep
