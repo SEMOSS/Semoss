@@ -197,7 +197,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Override
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		// we need to merge everything with the current qs
-		qs.mergeRelations(this.qs.getRelations());
 		qs.mergeGroupBy(this.qs.getGroupBy());
 		qs.mergeOrderBy(this.qs.getOrderBy());
 		// filters are a bit tricky
@@ -221,6 +220,8 @@ public class NativeFrame extends AbstractTableDataFrame {
 		
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		// setters
+		qs.setEngine(this.qs.getEngine());
+		qs.setRelations(this.qs.getRelations());
 		qs.setBigDataEngine(this.qs.getBigDataEngine());
 		qs.setCustomFrom(this.qs.getCustomFrom());
 		qs.setCustomFromAliasName(this.qs.getCustomFromAliasName());
