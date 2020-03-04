@@ -31,7 +31,7 @@ import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GenerateMetamodelLayout {
-
+	
 	public static void generateLayout(String appId) {
 		String smssFile = DIHelper.getInstance().getCoreProp().getProperty(appId + "_" + Constants.STORE);
 		Properties prop = Utility.loadProperties(smssFile);
@@ -43,9 +43,8 @@ public class GenerateMetamodelLayout {
 		rfse.openFile(owlFileLocation, null, null);
 		// we create the meta helper to facilitate querying the engine OWL
 		MetaHelper helper = new MetaHelper(rfse, null, null);
-		
-		// timer
-		long tStart = System.currentTimeMillis();
+
+		long startTimer = System.currentTimeMillis();
 
 		Graph graph = new MultiGraph("embedded");
 		Layout layout = new SpringBox(false);
@@ -74,8 +73,108 @@ public class GenerateMetamodelLayout {
 			layout.compute();
 		}
 
+		Map<String, Rectangle2D> rectangles = GenerateMetamodelLayout.getRectangles(graph, nodeSizes);
+		Rectangles fixRectangles = new Rectangles();
+		// get map of correctly spaced nodes/rectangles for metamodel
+		Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
+		Map<String, Map<String, Double>> positionMap = GenerateMetamodelLayout.generatePositionMap(graph, fixedRectangles);
+
+		long endTimer = System.currentTimeMillis();
+		System.out.println("Compute time = " + (endTimer - startTimer) + " ms");
+
+		// now write the file
+		String baseFolder = owlF.getParent();
+		String positionJson = baseFolder + "/" + SaveOwlPositions.FILE_NAME;
+		FileWriter writer = null;
+		try {
+			writer = new FileWriter(positionJson);
+			writer.write(new GsonBuilder().setPrettyPrinting().create().toJson(positionMap));
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if(writer != null) {
+				try {
+					writer.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	/////////////////////////////////////////// for predict metamodel reactor ///////////////////////////////////////////
+
+	public static Map<String, Map<String, Double>> generateMetamodelPredictionLayout(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
+		Rectangles fixRectangles = new Rectangles();
+		Graph graph = addNodesToGraph(nodePropMap, relationMapList);
+		Map<String, Integer> nodeSizes = getNodeSizes(nodePropMap, relationMapList);
+		Map<String, Rectangle2D> rectangles = getRectangles(graph, nodeSizes);
+		Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
+		Map<String, Map<String, Double>> nodePositionMap = generatePositionMap(graph, fixedRectangles);
+
+		return nodePositionMap;
+	}
+
+	/////////////////////////////////////////// predict metamodel reactor helper functions ///////////////////////////////////////////
+
+	// TODO: fix for loop, and make sure right data is being stored
+	private static Graph addNodesToGraph(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
+		Graph graph = new MultiGraph("embedded");
+		Layout layout = new SpringBox(false);
+		graph.addSink(layout);
+		layout.addAttributeSink(graph);
+
+		for (Map<String, Object> relations : relationMapList) {
+			String nodeToInsert = relations.get("fromTable").toString();
+			Node nodeExists = graph.getNode(nodeToInsert);
+			if (nodeExists == null) {
+				graph.addNode(nodeToInsert);
+			}
+			nodeToInsert = relations.get("toTable").toString();
+			nodeExists = graph.getNode(nodeToInsert);
+			if (nodeExists == null) {
+				graph.addNode(nodeToInsert);
+			}
+		}
+
+		for (Map<String, Object> relations : relationMapList) {
+				String start = relations.get("fromTable").toString();
+				String end = relations.get("toTable").toString();
+				String edge = relations.get("relName").toString() + "-" + start + "-" + end;
+				graph.addEdge(edge, start, end);
+		}
+
+		while (layout.getStabilization() < 0.9) {
+			layout.compute();
+		}
+
+		return graph;
+	}
+
+	private static Map<String, Integer> getNodeSizes(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
+		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
+
+		nodePropMap.forEach((nodeName, properties) -> {
+			nodeSizes.put(nodeName, properties.size());
+		});
+		
+		// go through relations map and any node without properties add to nodeSizes map
+		for (Map<String, Object> relations : relationMapList) {
+			String start = relations.get("fromTable").toString();
+			String end = relations.get("toTable").toString();
+			if (!nodeSizes.containsKey(start)) {
+				nodeSizes.put(start, 0);
+			}
+			if (!nodeSizes.containsKey(end)) {
+				nodeSizes.put(end, 0);
+			}
+		}
+		
+		return nodeSizes;
+	}
+
+	private static Map<String, Rectangle2D> getRectangles(Graph graph, Map<String, Integer> nodeSizes) {
 		Iterator<Node> nodeIt = graph.getNodeSet().iterator();
-		Map<String, Map<String, Double>> positionMap = new HashMap<>();
 		Map<String, Rectangle2D> rectangles = new HashMap<>();
 		nodeIt = graph.getNodeSet().iterator();
 
@@ -94,13 +193,15 @@ public class GenerateMetamodelLayout {
 				heightMultiplier = 5*nodeSize;
 			}
 
-			// (x, y, w, h)
+			// Float(x, y, w, h)
 			rectangles.put(nodeName, new Rectangle2D.Float((float) pos[0], (float) pos[1], 160, 2*heightMultiplier));
 		}
-
-		Rectangles fixRectangles = new Rectangles();
-		// get map of correctly spaced nodes/rectangles for metamodel
-		Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
+		
+		return rectangles;
+	}
+	
+	private static Map<String, Map<String, Double>> generatePositionMap(Graph graph, Map<String, Rectangle2D> fixedRectangles) {
+		Map<String, Map<String, Double>> positionMap = new HashMap<>();
 
 		double minx = 0;
 		double miny = 0;
@@ -113,12 +214,12 @@ public class GenerateMetamodelLayout {
 			if (x < minx) {
 				minx = x;
 			}
-			if (x < miny) {
-				miny = x;
+			if (y < miny) {
+				miny = y;
 			}
 		}
 
-		nodeIt = graph.getNodeSet().iterator();
+		Iterator<Node> nodeIt = graph.getNodeSet().iterator();
 		int numberOfNodes = graph.getNodeCount();
 		double leftM;
 		double topM;
@@ -156,29 +257,13 @@ public class GenerateMetamodelLayout {
 
 			positionMap.put(nodeName, posMap);
 		}
-		
-		long tEnd = System.currentTimeMillis();
-		System.out.println("Compute time = " + (tEnd - tStart) + " ms");
-
-		// now write the file
-		String baseFolder = owlF.getParent();
-		String positionJson = baseFolder + "/" + SaveOwlPositions.FILE_NAME;
-		FileWriter writer = null;
-		try {
-			writer = new FileWriter(positionJson);
-			writer.write(new GsonBuilder().setPrettyPrinting().create().toJson(positionMap));
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if(writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
+		return positionMap;
 	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////
 
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");
