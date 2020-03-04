@@ -175,7 +175,8 @@ public class MergeFramesReactor extends AbstractReactor {
 				mergeFrame = mergeFromQs(targetFrame, qs, joins);
 			}
 			// clear cached info after merge
-			targetFrame.clearCachedInfo();
+			targetFrame.clearCachedMetrics();
+			targetFrame.clearQueryCache();
 			
 			NounMetadata noun = new NounMetadata(mergeFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 			// in case we generated a new frame
@@ -193,7 +194,9 @@ public class MergeFramesReactor extends AbstractReactor {
 		}
 		
 		// clear cached info after merge
-		targetFrame.clearCachedInfo();
+		targetFrame.clearCachedMetrics();
+		targetFrame.clearQueryCache();
+		
 		NounMetadata noun = new NounMetadata(targetFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		return noun;
 	}
