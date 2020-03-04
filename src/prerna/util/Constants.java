@@ -599,6 +599,7 @@ public class Constants {
 	// Metamodel keys
 	public static final String NODE_PROP = "nodeProp";
 	public static final String RELATION_PROP = "relationProp";
+	public static final String POSITION_PROP = "positions";
 	public static final String RELATION = "relation";
 	public static final String FROM_TABLE = "fromTable";
 	public static final String TO_TABLE = "toTable";
