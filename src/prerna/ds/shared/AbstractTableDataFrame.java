@@ -57,6 +57,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// the meta data for the frame
 	protected OwlTemporalEngineMeta metaData;
 
+	protected String frameName;
 	// the header names persisted on the frame
 	// this is taken from the frame
 	// but it doesn't include prim keys
@@ -83,8 +84,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// this is used for correct logging based on the pixel passed
 	protected transient Logger logger;
 	
-	protected String frameName;
-	
+	protected transient Map<String, CachedIterator> queryCache = new HashMap<String, CachedIterator>();
+
 	/**
 	 * Constructor
 	 */
@@ -224,7 +225,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 * Clear caching of any data on the frame
 	 */
 	@Override
-	public void clearCachedInfo() {
+	public void clearCachedMetrics() {
 		this.uniqueColumnCache.clear();
 		this.uniqueColumnMaxCache.clear();
 		this.uniqueColumnMinCache.clear();
@@ -464,13 +465,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public void addFilter(GenRowFilters filter) {
 		this.grf.merge(filter);
 		this.uniqueColumnCache.clear();
-		this.clearCachedInfo();
+		this.clearCachedMetrics();
 	}
 	
 	@Override
 	public void addFilter(IQueryFilter filter) {
 		this.grf.merge(filter);
-		this.clearCachedInfo();
+		this.clearCachedMetrics();
 	}
 
 	@Override
@@ -478,14 +479,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		Set<String> allColsUsed = filter.getAllFilteredColumns();
 		this.grf.removeColumnFilters(allColsUsed);
 		this.grf.merge(filter);
-		this.clearCachedInfo();
+		this.clearCachedMetrics();
 	}
 
 	@Override
 	public boolean unfilter(String columnHeader) {
 		boolean foundFiltersToRemove = this.grf.removeColumnFilter(columnHeader);
 		if(foundFiltersToRemove) {
-			this.clearCachedInfo();
+			this.clearCachedMetrics();
 		}
 		return foundFiltersToRemove;
 	}
@@ -494,7 +495,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public boolean unfilter() {
 		if(!this.grf.isEmpty()) {
 			this.grf.removeAllFilters();
-			this.clearCachedInfo();
+			this.clearCachedMetrics();
 			return true;
 		}
 		return false;
@@ -658,11 +659,22 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		return 0;
 	}
 	
-	// this is just a dummy so R doesnt fail for now
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Cache query methods
+	 */
+	
 	@Override
-	public void cacheQuery(CachedIterator it)
-	{
-		
+	public void clearQueryCache() {
+		this.queryCache.clear();
+	}
+	
+	@Override
+	public void cacheQuery(CachedIterator it) {
+		if(it.hasNext()) {	
+			queryCache.put(it.getQuery(), it);
+		}
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
