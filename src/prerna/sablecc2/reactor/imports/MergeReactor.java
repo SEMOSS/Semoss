@@ -82,7 +82,8 @@ public class MergeReactor extends AbstractReactor {
 		}
 		
 		// clear cached info after merge
-		frame.clearCachedInfo();
+		frame.clearCachedMetrics();
+		frame.clearQueryCache();
 
 		NounMetadata noun = new NounMetadata(mergeFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		// in case we generated a new frame
