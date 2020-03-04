@@ -197,10 +197,18 @@ public interface ITableDataFrame extends IDataMaker {
 	 * Clear any cached information on the frame since it
 	 * is no longer valid
 	 */
-	void clearCachedInfo();
+	void clearCachedMetrics();
 	
-	// cache the query transiently
+	/**
+	 * Cache a query on the frame
+	 * @param it
+	 */
 	void cacheQuery(CachedIterator it);
+	
+	/**
+	 * Clear the cached queries due to modifications to the data
+	 */
+	void clearQueryCache();
 	
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////
