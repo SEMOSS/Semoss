@@ -18,7 +18,7 @@ public class Rectangles {
      * 
      * @param rectanglesToFix the map of rectangles to declutter
      */
-    protected Map<String, Rectangle2D> fix(Map<String, Rectangle2D> rectanglesToFix) {
+    public Map<String, Rectangle2D> fix(Map<String, Rectangle2D> rectanglesToFix) {
         rectanglesToDraw = new HashMap<>();
 
         //make copies to keep original list unaffected
@@ -31,16 +31,12 @@ public class Rectangles {
         // Find the center C of the bounding box of your rectangles.
         Rectangle2D surroundRect = surroundingRect(rectanglesToDraw);
         Point center = new Point((int) surroundRect.getCenterX(), (int) surroundRect.getCenterY());
-
         int numIterations = 0;
-
         int movementFactor = 10; //ideally would be 1
-
         boolean hasIntersections = true;
 
         //keep going until there are no intersections present    
         while (hasIntersections) {
-
             //initialize to false within the loop.  
             hasIntersections = false;
 
@@ -50,23 +46,19 @@ public class Rectangles {
                 List<Rectangle2D> intersectingRects = findIntersections(rectangle, rectanglesToDraw);
 
                 if (intersectingRects.size() > 0) {
-
                     // Define a movement vector v.
                     Point movementVector = new Point(0, 0);
-
                     Point centerR = new Point((int) rectangle.getCenterX(), (int) rectangle.getCenterY());
 
                     // For each rectangle R that overlaps another.
                     for (Rectangle2D rPrime : intersectingRects) {
                         Point centerRPrime = new Point((int) rPrime.getCenterX(), (int) rPrime.getCenterY());
-
                         int xTrans = (int) (centerR.getX() - centerRPrime.getX());
                         int yTrans = (int) (centerR.getY() - centerRPrime.getY());
 
                         // Add a vector to v proportional to the vector between the center of R and R'.
                         movementVector.translate(xTrans < 0 ? -movementFactor : movementFactor,
                                 yTrans < 0 ? -movementFactor : movementFactor);
-
                     }
 
                     int xTrans = (int) (centerR.getX() - center.getX());
@@ -99,9 +91,8 @@ public class Rectangles {
      * @param rectMap a map of all the rectangles in question
      */
     private List<Rectangle2D> findIntersections(Rectangle2D rect, Map<String, Rectangle2D> rectMap) {
-
         ArrayList<Rectangle2D> intersections = new ArrayList<Rectangle2D>();
-        
+
         rectMap.forEach((key, intersectingRect) -> {
         	 if (!rect.equals(intersectingRect) && intersectingRect.intersects(rect)) {
                  intersections.add(intersectingRect);
@@ -118,7 +109,6 @@ public class Rectangles {
      * @param rectangles map of rectangle names and x and y coordinates
      */
     private Rectangle2D surroundingRect(Map<String, Rectangle2D> rectangles) {
-
         Point topLeft = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
         Point bottomRight = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
 
