@@ -4,10 +4,12 @@ import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
+import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -71,9 +73,11 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		}
 
 		// use RInterpreter to create filter syntax
+		OwlTemporalEngineMeta frameMetadata = frame.getMetaData();
+		grf = QSAliasToPhysicalConverter.convertGenRowFilters(grf, frameMetadata);
 		StringBuilder rFilterBuilder = new StringBuilder();
 		RInterpreter ri = new RInterpreter();
-		ri.setColDataTypes(frame.getMetaData().getHeaderToTypeMap());
+		ri.setColDataTypes(frameMetadata.getHeaderToTypeMap());
 		ri.addFilters(grf.getFilters(), table, rFilterBuilder, true);
 
 		if (rFilterBuilder.length() <= 0) {
