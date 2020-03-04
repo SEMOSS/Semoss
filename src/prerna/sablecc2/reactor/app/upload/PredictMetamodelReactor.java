@@ -14,6 +14,7 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Constants;
 
@@ -120,12 +121,11 @@ public class PredictMetamodelReactor extends AbstractReactor {
 		Map<String, Object> propFileData = new HashMap<>();
 		List<Map<String, Object>> relationMapList = new ArrayList<>();
 		Map<String, List<String>> nodePropMap = new HashMap<>();
+
 		for (String subject : matches.keySet()) {
 			Set<String> set = matches.get(subject);
 			for (String object : set) {
 				SemossDataType datatype = dataTypeMap.get(object);
-				String[] subjectArr = { subject };
-				String[] objectArr = { object };
 				if (datatype == SemossDataType.STRING) {
 					Map<String, Object> relMap = new HashMap<>();
 					String relName = subject + "_" + object;
@@ -143,17 +143,21 @@ public class PredictMetamodelReactor extends AbstractReactor {
 				}
 			}
 		}
+
 		propFileData.put(Constants.RELATION, relationMapList);
 		propFileData.put(Constants.NODE_PROP, nodePropMap);
+		// position tables in metamodel to be spaced and not overlap
+		Map<String, Map<String, Double>> nodePositionMap = GenerateMetamodelLayout.generateMetamodelPredictionLayout(nodePropMap, relationMapList);
+		propFileData.put(Constants.POSITION_PROP, nodePositionMap);
+
 		fileMetaModelData.putAll(propFileData);
 		// get file location and file name
 		String filePath = helper.getFileLocation();
-		String file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(),
-				filePath.lastIndexOf("."));
+		String file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(), filePath.lastIndexOf("."));
 		try {
 			file = file.substring(0, file.indexOf("_____UNIQUE"));
 		} catch (Exception e) {
-			// just in case that fails, this shouldnt because if its a filename
+			// just in case that fails, this shouldn't because if its a filename
 			// it should have a "."
 			file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(), filePath.lastIndexOf("."));
 		}
