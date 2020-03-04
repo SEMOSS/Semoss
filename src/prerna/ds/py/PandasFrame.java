@@ -48,9 +48,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	private PyTranslator pyt = null;
 	public boolean cache = true;
 	
-	// cache for query
-	private transient Map <String, CachedIterator> queryCache = new HashMap<String, CachedIterator>();
-
 	// list of caches
 	public List keyCache = new ArrayList();
 	
@@ -412,29 +409,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return rpw	;
 	}
 
-	// cache the iterator
-	public void cacheQuery(CachedIterator it) {
-		if(it.hasNext()) {	
-			queryCache.put(it.getQuery(), it);
-		}
-		// this is possibly the last query
-	}
-	
-	// clear the cache
-	public void clearCache()
-	{
-		// this is a huge assumption for now
-		if(this.queryCache.size() > 0)
-			this.queryCache.clear();
-
-		// need to check if the pandas interpreter has it also
-		//if(keyCache.size() > 0)
-		{
-			//pyt.runScript(new String[]{frameName + "w.clearCache()"});
-			//keyCache.clear();
-		}
-	}
-	
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
 		String query = interp.composeQuery();
 		CachedIterator ci = null;
@@ -499,12 +473,10 @@ public class PandasFrame extends AbstractTableDataFrame {
 				retWrapper = rpw;
 			}
 			// clear it if it was !cache
-			if(!cache)
-			{
+			if(!cache) {
 				// clean up the cache
 				// I have to do this everytime since I keep the keys at the py level as well
-				clearCache();
-				
+				clearQueryCache();
 			}
 		}
 		else if(cache)

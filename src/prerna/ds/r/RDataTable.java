@@ -167,9 +167,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setLogger(this.logger);
 		
 		boolean cache = true;
-		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache"))
+		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {
 			cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true:false;
-
+		}
 		
 		logger.info("Generating R Data Table query...");
 		String query = interp.composeQuery();
@@ -179,9 +179,8 @@ public class RDataTable extends AbstractTableDataFrame {
 		IRawSelectWrapper retWrapper = null;
 		String looker = interp.getMainQuery();
 		looker = looker + qs.getLimit() + qs.getOffset();
-		// sets the framebuilder
-		if(!queryCache.containsKey(looker) || !cache)
-		{
+		// sets the frame builder
+		if(!queryCache.containsKey(looker) || !cache) {
 			logger.info("Executing query...");
 			RIterator output = new RIterator(this.builder, query, qs);
 			output.setQuery(looker);
@@ -190,29 +189,16 @@ public class RDataTable extends AbstractTableDataFrame {
 			logger.info("Done executing query");
 			retWrapper = it;
 			
-			if(!cache)
-				clearCache();
-		}
-		else
-		{
+			if(!cache) {
+				clearQueryCache();
+			}
+		} else {
 			CachedIterator ci = queryCache.get(looker);
 			RawCachedWrapper rcw = new RawCachedWrapper();
 			rcw.setIterator(ci);
 			retWrapper = rcw;
 		}
 		return retWrapper;
-	}
-	
-	public void clearCache()
-	{
-		this.queryCache.clear();
-	}
-	
-	// cache the iterator
-	public void cacheQuery(CachedIterator it) {
-		if(it.hasNext()) {	
-			queryCache.put(it.getQuery(), it);
-		}
 	}
 	
 	@Override
@@ -429,7 +415,8 @@ public class RDataTable extends AbstractTableDataFrame {
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(this.metaData, colNames, colTypes, getName());
 		
 		// clear the cached info
-		this.clearCachedInfo();
+		this.clearCachedMetrics();
+		this.clearQueryCache();
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////

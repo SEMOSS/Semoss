@@ -71,7 +71,8 @@ public class ImportReactor extends AbstractReactor {
 		IImporter importer = ImportFactory.getImporter(frame, qs, it);
 		importer.insertData();
 		// need to clear the unique col count used by FE for determining the need for math
-		frame.clearCachedInfo();
+		frame.clearCachedMetrics();
+		frame.clearQueryCache();
 		
 		if(qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			storeCsvFileMeta((CsvQueryStruct) qs);
