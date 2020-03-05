@@ -19,9 +19,12 @@ import com.google.gson.stream.JsonWriter;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.shared.AbstractTableDataFrame;
+import prerna.ds.shared.CachedIterator;
+import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -40,8 +43,19 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "NativeFrame";
 
+	private static List<IEngine.ENGINE_TYPE> cacheEngines = new Vector<IEngine.ENGINE_TYPE>();
+	static {
+		cacheEngines.add(IEngine.ENGINE_TYPE.SESAME);
+		cacheEngines.add(IEngine.ENGINE_TYPE.JENA);
+		cacheEngines.add(IEngine.ENGINE_TYPE.RDBMS);
+		cacheEngines.add(IEngine.ENGINE_TYPE.IMPALA);
+		cacheEngines.add(IEngine.ENGINE_TYPE.NEO4J_EMBEDDED);
+		cacheEngines.add(IEngine.ENGINE_TYPE.NEO4J);
+	}
+
 	private SelectQueryStruct qs;
-	
+
+
 	public NativeFrame() {
 		super();
 		this.qs = new SelectQueryStruct();
@@ -54,7 +68,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		uuid = uuid.replaceAll("-", "_");
 		setName("NATIVE_" + uuid);
 	}
-	
+
 	public void setConnection(String engineName) {
 		qs.setEngineId(engineName);
 	}
@@ -157,25 +171,25 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public String getDataMakerName() {
 		return DATA_MAKER_NAME;
 	}
-	
+
 	public void mergeQueryStruct(SelectQueryStruct qs) {
 		this.qs.merge(qs);
 	}
-	
+
 	public String getEngineId() {
 		return qs.getEngineId();
 	}
-	
+
 	public SelectQueryStruct getQueryStruct() {
 		return this.qs;
 	}
-	
+
 	@Override
 	public long size(String tableName) {
 		// nothing is held in memory...
 		return 0;
 	}
-	
+
 	@Override
 	public boolean isEmpty() {
 		IEngine engine = this.qs.retrieveQueryStructEngine();
@@ -187,7 +201,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		it.cleanUp();
 		return empty;
 	}
-	
+
 	@Override
 	public IRawSelectWrapper query(String query) {
 		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), query);
@@ -217,7 +231,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 				qs.addImplicitFilter(filter);
 			}
 		}
-		
+
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		// setters
 		qs.setEngine(this.qs.getEngine());
@@ -226,15 +240,47 @@ public class NativeFrame extends AbstractTableDataFrame {
 		qs.setCustomFrom(this.qs.getCustomFrom());
 		qs.setCustomFromAliasName(this.qs.getCustomFromAliasName());
 		// execution
-		IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);
+
+		// we can cache a few different engine types
+		boolean cache = true;
+		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {
+			cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true : false;
+		}
+
+		IRawSelectWrapper it = null;
+		if(cache) {
+			if(NativeFrame.cacheEngines.contains(this.qs.retrieveQueryStructEngine().getEngineType())) {
+				// this is an engine whose results can be cached
+				IQueryInterpreter interpreter = this.qs.retrieveQueryStructEngine().getQueryInterpreter();
+				interpreter.setQueryStruct(qs);
+				String query = interpreter.composeQuery();
+
+				if(this.queryCache.containsKey(query)) {
+					CachedIterator cached = this.queryCache.get(query);
+					RawCachedWrapper rcw = new RawCachedWrapper();
+					rcw.setIterator(cached);
+					it = rcw;
+				}
+			}
+		}
+
+		// if we still dont have an iterator
+		// create it
+		if(it == null) {
+			it = WrapperManager.getInstance().getRawWrapper(this.qs.retrieveQueryStructEngine(), qs);	
+		}
+
 		return it;
 	}
-	
+
+	public boolean engineQueryCacheable() {
+		return NativeFrame.cacheEngines.contains(this.qs.retrieveQueryStructEngine().getEngineType());
+	}
 
 	@Override
 	public CachePropFileFrameObject save(String folderDir) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
-		
+
 		String randFrameName = "Native" + Utility.getRandomString(6);
 		cf.setFrameName(randFrameName);
 		String frameFileName = folderDir + DIR_SEPARATOR + randFrameName + ".json";
@@ -251,12 +297,12 @@ public class NativeFrame extends AbstractTableDataFrame {
 			throw new IOException("Error occured attempting to save native frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
-		
+
 		// also save the meta details
 		this.saveMeta(cf, folderDir, randFrameName);
 		return cf;
 	}
-	
+
 	@Override
 	public void open(CachePropFileFrameObject cf) {
 		// load the frame
@@ -269,13 +315,13 @@ public class NativeFrame extends AbstractTableDataFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		// open the meta details
 		this.openCacheMeta(cf);
 	}
-	
+
 	/******************************* UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE *************************************************/
-	
+
 	@Override
 	@Deprecated
 	public Map<String, String> getScriptReactors() {
@@ -296,11 +342,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
 		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-		
+
 		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.NativeApiReactor");
 		return reactorNames;
 	}
-	
+
 	@Override
 	@Deprecated
 	public void processDataMakerComponent(DataMakerComponent component) {
@@ -310,7 +356,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	@Deprecated
 	public void removeColumn(String columnHeader) {
 	}
-	
+
 	@Override
 	@Deprecated
 	public void addRow(Object[] cleanCells, String[] headers) {
