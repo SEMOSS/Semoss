@@ -20,6 +20,7 @@ import org.graphstream.ui.layout.springbox.implementations.SpringBox;
 
 import com.google.gson.GsonBuilder;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.engine.impl.MetaHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdf.BigDataEngine;
@@ -102,6 +103,109 @@ public class GenerateMetamodelLayout {
 		}
 	}
 
+	/////////////////////////////////////////// for graph metamodel reactors ///////////////////////////////////////////
+
+	public static Map<String, Map<String, Double>> generateMetamodelLayoutForGraphDBs(Map<String, Object> graphMap) {
+		Rectangles fixRectangles = new Rectangles();
+		Map<String, Map<String, SemossDataType>> nodeMap = (Map<String, Map<String, SemossDataType>>) graphMap.get("nodes");
+		Map<String, List<String>> relationshipMap = (Map<String, List<String>>) graphMap.get("edges");
+		Graph graph = addNodesToGraph(nodeMap, relationshipMap);
+		Map<String, Integer> nodeSizes = getNodeSizes(nodeMap);
+		Map<String, Rectangle2D> rectangles = getRectangles(graph, nodeSizes);
+		Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
+		Map<String, Map<String, Double>> nodePositionMap = generatePositionMap(graph, fixedRectangles);
+		
+		return nodePositionMap;
+	}
+
+	/////////////////////////////////////////// graph metamodel reactors helper functions ///////////////////////////////////////////
+
+	private static Graph addNodesToGraph(Map<String, Map<String, SemossDataType>> nodeMap, Map<String, List<String>> relationshipMap) {
+		Graph graph = new MultiGraph("embedded");
+		Layout layout = new SpringBox(false);
+		graph.addSink(layout);
+		layout.addAttributeSink(graph);
+
+		nodeMap.forEach((nodeName, properties) -> {
+			graph.addNode(nodeName);
+		});
+
+		relationshipMap.forEach((edgeName, fromAndToTable) -> {
+			String start = fromAndToTable.get(0);
+			String end = fromAndToTable.get(1);
+			String edge = edgeName + "-" + start + "-" + end;
+			graph.addEdge(edge, start, end);
+		});
+
+		while (layout.getStabilization() < 0.9) {
+			layout.compute();
+		}
+
+		return graph;
+	}
+
+	private static Map<String, Integer> getNodeSizes(Map<String, Map<String, SemossDataType>> nodeMap) {
+		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
+
+		nodeMap.forEach((nodeName, properties) -> {
+			nodeSizes.put(nodeName, properties.size());
+		});
+
+		return nodeSizes;
+	}
+
+	/////////////////////////////////////////// for external jdbc schema reactor ///////////////////////////////////////////
+
+	public static Map<String, Map<String, Double>> generateMetamodelLayoutForExternal(List<Map<String, Object>> databaseTables, List<Map<String, String>> databaseJoins) {
+		Rectangles fixRectangles = new Rectangles();
+		Graph graph = addNodesToGraph(databaseTables, databaseJoins);
+		Map<String, Integer> nodeSizes = getNodeSizes(databaseTables);
+		Map<String, Rectangle2D> rectangles = getRectangles(graph, nodeSizes);
+		Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
+		Map<String, Map<String, Double>> nodePositionMap = generatePositionMap(graph, fixedRectangles);
+
+		return nodePositionMap;
+	}
+
+	/////////////////////////////////////////// external jdbc schema reactor helper functions ///////////////////////////////////////////
+
+	private static Graph addNodesToGraph(List<Map<String, Object>> databaseTables, List<Map<String, String>> databaseJoins) {
+		Graph graph = new MultiGraph("embedded");
+		Layout layout = new SpringBox(false);
+		graph.addSink(layout);
+		layout.addAttributeSink(graph);
+
+		for (Map<String, Object> nodes : databaseTables) {
+			String tableName = (String) nodes.get("table");
+			graph.addNode(tableName);
+		}
+
+		for (Map<String, String> relations : databaseJoins) {
+			String start = relations.get("fromTable");
+			String end = relations.get("toTable");
+			String edge = relations.get("fromCol") + "_" + relations.get("toCol") + "-" + start + "-" + end;
+			graph.addEdge(edge, start, end);
+		}
+
+		while (layout.getStabilization() < 0.9) {
+			layout.compute();
+		}
+
+		return graph;
+	}
+	
+	private static Map<String, Integer> getNodeSizes(List<Map<String, Object>> databaseTables) {
+		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
+
+		for (Map<String, Object> nodes: databaseTables) {
+			List<String> columns = (List) nodes.get("columns");
+			String tableName = (String) nodes.get("table");
+			nodeSizes.put(tableName, columns.size());
+		}
+
+		return nodeSizes;
+	}
+	
 	/////////////////////////////////////////// for predict metamodel reactor ///////////////////////////////////////////
 
 	public static Map<String, Map<String, Double>> generateMetamodelPredictionLayout(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
@@ -117,9 +221,8 @@ public class GenerateMetamodelLayout {
 
 	/////////////////////////////////////////// predict metamodel reactor helper functions ///////////////////////////////////////////
 
-	// TODO: fix for loop, and make sure right data is being stored
 	private static Graph addNodesToGraph(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
-		Graph graph = new MultiGraph("embedded");
+		Graph graph = new MultiGraph("embedded" + Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
 		layout.addAttributeSink(graph);
@@ -202,7 +305,7 @@ public class GenerateMetamodelLayout {
 	
 	private static Map<String, Map<String, Double>> generatePositionMap(Graph graph, Map<String, Rectangle2D> fixedRectangles) {
 		Map<String, Map<String, Double>> positionMap = new HashMap<>();
-
+		
 		double minx = 0;
 		double miny = 0;
 
@@ -223,7 +326,7 @@ public class GenerateMetamodelLayout {
 		int numberOfNodes = graph.getNodeCount();
 		double leftM;
 		double topM;
-		// TODO: adjust these numbers after thorough testing to find sweet spot
+
 		if (numberOfNodes < 10) {
 			leftM = 6;
 			topM = 6;
@@ -260,10 +363,10 @@ public class GenerateMetamodelLayout {
 		return positionMap;
 	}
 	
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	public static void main(String[] args) throws Exception {
 		TestUtilityMethods.loadAll("C:\\workspace\\Semoss_Dev\\RDF_Map.prop");

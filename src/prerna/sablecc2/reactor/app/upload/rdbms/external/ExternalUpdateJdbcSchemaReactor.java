@@ -26,7 +26,6 @@ import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalUpdateJdbcSchemaReactor extends AbstractReactor {
-	
 	private static final String CLASS_NAME = ExternalUpdateJdbcSchemaReactor.class.getName();
 	
 	public static final String TABLES_KEY = "tables";
