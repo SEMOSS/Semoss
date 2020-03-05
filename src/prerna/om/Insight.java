@@ -42,6 +42,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -122,7 +124,9 @@ public class Insight {
 	// keep a map to store various properties
 	// new variable assignments in pixel are also stored here
 	private transient VarStore varStore = new VarStore();
-
+	// separating out delayed messages
+	private transient BlockingQueue<NounMetadata> delayedMessages = new ArrayBlockingQueue<NounMetadata>(1024);
+	
 	// this is the store holding all current tasks (iterators) that are run on the
 	// data frames within this insight
 	private transient TaskStore taskStore;
@@ -231,9 +235,9 @@ public class Insight {
 		this.insightId = UUID.randomUUID().toString();
 		
 		// put the pragmap
-		if(DIHelper.getInstance().getCoreProp().containsKey("X_CACHE")) 
+		if(DIHelper.getInstance().getCoreProp().containsKey("X_CACHE")) {
 			this.pragmap.put("xCache", DIHelper.getInstance().getCoreProp().getProperty("X_CACHE"));
-
+		}
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -619,6 +623,19 @@ public class Insight {
 	
 	public void setVarStore(VarStore varStore) {
 		this.varStore = varStore;
+	}
+	
+	public void addDelayedMessage(NounMetadata noun) {
+		this.delayedMessages.add(noun);
+	}
+	
+	public List<NounMetadata> getDelayedMessages() {
+		List<NounMetadata> messages = new Vector<NounMetadata>();
+		NounMetadata noun = null;
+		while( (noun = delayedMessages.poll()) != null) {
+			messages.add(noun);
+		}
+		return messages;
 	}
 	
 	public void setInsightOrnament(Map<String, Object> insightOrnament) {
