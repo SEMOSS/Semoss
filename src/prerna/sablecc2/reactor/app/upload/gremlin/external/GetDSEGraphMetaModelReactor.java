@@ -17,6 +17,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
+import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
+import prerna.util.Constants;
 import prerna.util.GraphUtility;
 
 public class GetDSEGraphMetaModelReactor extends AbstractReactor {
@@ -85,8 +87,12 @@ public class GetDSEGraphMetaModelReactor extends AbstractReactor {
 			throw new SemossPixelException(new NounMetadata("Unable to establish connection",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
-		return new NounMetadata(retMap, PixelDataType.MAP);
 
+		// position tables in metamodel to be spaced and not overlap
+		Map<String, Map<String, Double>> nodePositionMap = GenerateMetamodelLayout.generateMetamodelLayoutForGraphDBs(retMap);
+		retMap.put(Constants.POSITION_PROP, nodePositionMap);
+
+		return new NounMetadata(retMap, PixelDataType.MAP);
 	}
 	
 	/**

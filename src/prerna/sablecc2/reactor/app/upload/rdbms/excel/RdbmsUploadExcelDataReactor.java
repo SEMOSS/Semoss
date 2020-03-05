@@ -405,8 +405,12 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 						}
 
 						if (tableName == null) {
-							tableName = sheet + "_" + counterSheetName;
-							counterSheetName++;
+							if (ranges.size() > 1) {
+								tableName = sheet + "_" + counterSheetName;
+								counterSheetName++;
+							} else {
+								tableName = sheet;
+							}
 						}
 						
 						if (rangeAndUniqueColumnMap != null) {
@@ -449,8 +453,12 @@ public class RdbmsUploadExcelDataReactor extends AbstractUploadFileReactor {
 					}
 
 					if (tableName == null) {
-						tableName = sheet + "_" + counterSheetName;
-						counterSheetName++;
+						if (rangeMaps.size() > 1) {
+							tableName = sheet + "_" + counterSheetName;
+							counterSheetName++;
+						} else {
+							tableName = sheet;
+						}
 					}
 					
 					if (rangeAndUniqueColumnMap != null) {
