@@ -165,4 +165,20 @@ public class FrameFactory {
 			return null;
 		}
 	}
+	
+	public static boolean canCacheFrameQueries(ITableDataFrame frame) {
+		if(frame == null) {
+			return false;
+		}
+		boolean cache = false;
+		if(frame instanceof RDataTable) {
+			cache = true;
+		} else if(frame instanceof PandasFrame) {
+			cache = true;
+		} else if(frame instanceof NativeFrame) {
+			cache = ((NativeFrame) frame).engineQueryCacheable();
+		}
+		
+		return cache;
+	}
 }

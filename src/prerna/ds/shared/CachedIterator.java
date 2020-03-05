@@ -6,38 +6,32 @@ import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
-import prerna.ds.py.PandasFrame;
-import prerna.ds.r.RDataTable;
 import prerna.engine.api.IHeadersDataRow;
 
 public class CachedIterator implements Iterator<IHeadersDataRow> {
 
-	private String[] headers = null;
-	private List<String> actHeaders = null;
-	private boolean transform = false;
+	private transient ITableDataFrame frame = null;
+
 	// I will also set the query here
 	// so it can be cached for future
 	private String query = null;
+	
+	private String[] headers = null;
+	private SemossDataType[] colTypes = null;
 
 	// Current implementation.. pulls the data into the memory.. we will change it after
-	private SemossDataType[] colTypes = null;
+	private List<IHeadersDataRow> values = new ArrayList<IHeadersDataRow>();
+	
 	private int initSize = 0;
-	private List <IHeadersDataRow> values = new ArrayList<IHeadersDataRow>();
-	private transient ITableDataFrame frame = null;
 	private int counter = 0;
 	private int jcounter = 0;
 	private int finalSize = 0;
 	private int jsonSize = 0;
-	
 	private boolean first = true;
 	
 	private StringBuilder allJson = new StringBuilder();
 	private List<String> jsonList = new ArrayList<String>();
 	
-	public CachedIterator() {
-		
-	}
-			
 	@Override
 	public boolean hasNext() {
 		return counter < finalSize && jcounter < jsonSize;
@@ -50,7 +44,6 @@ public class CachedIterator implements Iterator<IHeadersDataRow> {
 		return retRow;
 	}
 	
-	// set the headers
 	public void setHeaders(String [] headers) {
 		this.headers = headers;
 	}
@@ -89,16 +82,16 @@ public class CachedIterator implements Iterator<IHeadersDataRow> {
 	}
 	
 	public void addJson(String json) {
-		jsonList.add(json);
-		if(allJson.length() > 0) {
-			allJson.append(",");
+		this.jsonList.add(json);
+		if(this.allJson.length() > 0) {
+			this.allJson.append(",");
 		}
-		allJson.append(json);
+		this.allJson.append(json);
 	}
 	
 	public String getNextJson() {
-		String json = jsonList.get(jcounter);
-		jcounter++;
+		String json = this.jsonList.get(this.jcounter);
+		this.jcounter++;
 		return json;
 	}
 	
@@ -107,7 +100,7 @@ public class CachedIterator implements Iterator<IHeadersDataRow> {
 	}
 	
 	public String getAllJson() {
-		return allJson.toString();
+		return this.allJson.toString();
 	}
 	
 	public ITableDataFrame getFrame() {
@@ -116,16 +109,11 @@ public class CachedIterator implements Iterator<IHeadersDataRow> {
 	
 	public void processCache() {
 		// I need to reset some stuff here ?
-		finalSize = values.size();
-		jsonSize = jsonList.size();
-		counter = 0;
-		jcounter = 0;
-		if(frame instanceof PandasFrame) {
-			((PandasFrame)frame).cacheQuery(this);
-		}
-		if(frame instanceof RDataTable) {
-			((RDataTable)frame).cacheQuery(this);
-		}
-		first = false;
+		this.finalSize = this.values.size();
+		this.jsonSize = this.jsonList.size();
+		this.counter = 0;
+		this.jcounter = 0;
+		this.first = false;
+		this.frame.cacheQuery(this);
 	}
 }

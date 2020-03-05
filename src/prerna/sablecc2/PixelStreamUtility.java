@@ -20,8 +20,6 @@ import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.date.SemossDate;
-import prerna.ds.py.PandasFrame;
-import prerna.ds.r.RDataTable;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
@@ -30,6 +28,7 @@ import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.ThreadStore;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -436,7 +435,11 @@ public class PixelStreamUtility {
 						}
 						if(!noCache && task instanceof BasicIteratorTask) {
 							SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
-							if(! (qs.getFrame() instanceof PandasFrame || qs.getFrame() instanceof RDataTable) ) {
+							if(qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+								noCache = !FrameFactory.canCacheFrameQueries(qs.getFrame());
+							} else {
+								// you are not a frame
+								// i cannot cache you
 								noCache = true;
 							}
 						}
