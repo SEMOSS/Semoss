@@ -223,12 +223,21 @@ public class PixelStreamUtility {
 				String expression = pixelStrings.get(i);
 				boolean meta = isMeta.get(i);
 				processNounMetadata(in, ps, gson, noun, expression, meta);
-	
+
 				// add a comma for the next item in the list
 				if( (i+1) != size) {
 					ps.print(",");
 					ps.flush();
 				}
+			}
+			
+			List<NounMetadata> delayedMessages = in.getDelayedMessages();
+			for(int i = 0; i < delayedMessages.size(); i++) {
+				ps.print(",");
+				ps.flush();
+				// we want to display these messages
+				// so meta is always false
+				processNounMetadata(in, ps, gson, delayedMessages.get(i), "delayed message", false);
 			}
 		}
 
