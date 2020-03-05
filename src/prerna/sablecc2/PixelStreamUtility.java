@@ -30,6 +30,7 @@ import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightSheet;
 import prerna.om.ThreadStore;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -39,7 +40,6 @@ import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.reactor.export.GraphFormatter;
 import prerna.sablecc2.reactor.frame.FrameFactory;
-import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
@@ -418,10 +418,21 @@ public class PixelStreamUtility {
 						
 						// need to see how to get to this for R eventually
 						// all processes are done. we need to host it into RInterpreter
-						RawCachedWrapper cw = task.createCache();
-						CachedIterator cit = cw.getIterator();
-						if(X_CACHE.equalsIgnoreCase("False") || (!(cit.getFrame() instanceof PandasFrame) && !(cit.getFrame() instanceof RDataTable)))
-						{
+						
+						// if no xcache
+						// just flush out as normal
+						boolean noCache = false;
+						if(X_CACHE.equalsIgnoreCase("False")) {
+							noCache = true;
+						}
+						if(!noCache && task instanceof BasicIteratorTask) {
+							SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
+							if(! (qs.getFrame() instanceof PandasFrame || qs.getFrame() instanceof RDataTable) ) {
+								noCache = true;
+							}
+						}
+						
+						if(noCache) {
 							if(task instanceof BasicIteratorTask) {
 								IRawSelectWrapper iterator = ((BasicIteratorTask) task).getIterator();
 								if( (flushable = iterator.flushable()) ) {
@@ -457,12 +468,11 @@ public class PixelStreamUtility {
 								first = false;
 								count++;
 							}
-						}
-						else // this needs to be cached for future purposes
-						{
+						} else {
+							RawCachedWrapper cw = task.createCache();
+							CachedIterator cit = cw.getIterator();
 							// caching for the first time
-							if(cw.first())
-							{
+							if(cw.first()) {
 								// some more processing can be saved by not having set query every time and doing it up front
 								while(task.hasNext() && (collectAll || count < numCollect)) {
 									IHeadersDataRow row = task.next();
@@ -488,12 +498,9 @@ public class PixelStreamUtility {
 									first = false;
 									count++;		
 								}
-								// persist it into the cache
-							}
-							else
-							{
+							} else {
 								if(task.hasNext() && (collectAll || count < numCollect)) {
-									 IHeadersDataRow row = task.next();
+									IHeadersDataRow row = task.next();
 									// need to set the headers
 									headers = row.getHeaders();
 									rawHeaders = row.getRawHeaders();
@@ -505,6 +512,7 @@ public class PixelStreamUtility {
 									first = false;
 								}
 							}
+							// persist it into the cache
 							cit.processCache();
 						}
 					} catch(Exception e) {
