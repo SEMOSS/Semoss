@@ -41,7 +41,7 @@ public class ChromeDriverUtility {
 	    ChromeOptions chromeOptions = new ChromeOptions();
 		chromeOptions.addArguments("--headless");
 		chromeOptions.addArguments("--disable-gpu");
-		chromeOptions.addArguments("--window-size=1440,1440");
+		chromeOptions.addArguments("--window-size=1920,1080");
 		if(linux) {
 			chromeOptions.addArguments("-disable-dev-shm-usage");
 			chromeOptions.addArguments("--no-sandbox");
