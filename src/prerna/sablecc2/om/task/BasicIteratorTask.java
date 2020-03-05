@@ -365,6 +365,9 @@ public class BasicIteratorTask extends AbstractTask {
 	}
 	
 	public IRawSelectWrapper getIterator() {
+		if(this.qs != null && this.iterator == null) {
+			generateIterator(this.qs, false);
+		}
 		return this.iterator;
 	}
 	

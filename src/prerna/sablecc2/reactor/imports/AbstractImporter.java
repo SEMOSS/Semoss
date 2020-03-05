@@ -30,7 +30,7 @@ public abstract class AbstractImporter implements IImporter {
 	 * @param ignoreSet
 	 * @return
 	 */
-	protected String setIgnoreCaseMatch(String v, Set<String> set, Set<String> ignoreSet) {
+	protected static String setIgnoreCaseMatch(String v, Set<String> set, Set<String> ignoreSet) {
 		for(String s : set) {
 			if(ignoreSet.contains(s)) {
 				continue;
@@ -47,7 +47,7 @@ public abstract class AbstractImporter implements IImporter {
 	 * @param joins
 	 * @return
 	 */
-	protected Set<String> getRightJoinColumns(List<Join> joins) {
+	protected static Set<String> getRightJoinColumns(List<Join> joins) {
 		Set<String> rightTableJoinCols = new HashSet<String>();
 		int numJoins = joins.size();
 		for(int jIdx = 0; jIdx < numJoins; jIdx++) {
@@ -71,7 +71,7 @@ public abstract class AbstractImporter implements IImporter {
 	 * @param joins
 	 * @param rightTableAlias
 	 */
-	protected void updateMetaWithAlias(ITableDataFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it, List<Join> joins, Map<String, String> rightTableAlias) {
+	protected static void updateMetaWithAlias(ITableDataFrame dataframe, SelectQueryStruct qs, Iterator<IHeadersDataRow> it, List<Join> joins, Map<String, String> rightTableAlias) {
 		for(String rightCol : rightTableAlias.keySet()) {
 			List<IQuerySelector> selectors = qs.getSelectors();
 			int numSelectors = selectors.size();
@@ -96,7 +96,7 @@ public abstract class AbstractImporter implements IImporter {
 	 * 								columns that do not have the same names
 	 * @return
 	 */
-	protected boolean allHeadersAccounted(String[] startHeaders, String[] newHeaders, List<Join> joins) {
+	protected static boolean allHeadersAccounted(String[] startHeaders, String[] newHeaders, List<Join> joins) {
 		int newHeadersSize = newHeaders.length;
 		for(int i = 0; i <  newHeadersSize; i++) {
 			// need each of the new headers to be included in the start headers
