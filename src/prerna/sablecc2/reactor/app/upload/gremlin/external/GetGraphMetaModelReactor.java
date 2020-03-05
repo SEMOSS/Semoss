@@ -22,6 +22,8 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.reactor.AbstractReactor;
 import prerna.sablecc2.reactor.app.upload.UploadInputUtility;
+import prerna.sablecc2.reactor.masterdatabase.util.GenerateMetamodelLayout;
+import prerna.util.Constants;
 import prerna.util.GraphUtility;
 import prerna.util.MyGraphIoMappingBuilder;
 
@@ -124,6 +126,10 @@ public class GetGraphMetaModelReactor extends AbstractReactor {
 				e.printStackTrace();
 			}
 		}
+
+		// position tables in metamodel to be spaced and not overlap
+		Map<String, Map<String, Double>> nodePositionMap = GenerateMetamodelLayout.generateMetamodelLayoutForGraphDBs(retMap);
+		retMap.put(Constants.POSITION_PROP, nodePositionMap);
 
 		return new NounMetadata(retMap, PixelDataType.MAP);
 	}
