@@ -37,7 +37,6 @@ import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 public class RDataTable extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "RDataTable";
-	private transient Map <String, CachedIterator> queryCache = new HashMap<String, CachedIterator>();
 	
 	private RFrameBuilder builder;
 
