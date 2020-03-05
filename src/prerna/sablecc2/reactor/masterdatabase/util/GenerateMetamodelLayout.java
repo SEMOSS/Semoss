@@ -47,7 +47,7 @@ public class GenerateMetamodelLayout {
 
 		long startTimer = System.currentTimeMillis();
 
-		Graph graph = new MultiGraph("embedded");
+		Graph graph = new MultiGraph(Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
 		layout.addAttributeSink(graph);
@@ -121,7 +121,7 @@ public class GenerateMetamodelLayout {
 	/////////////////////////////////////////// graph metamodel reactors helper functions ///////////////////////////////////////////
 
 	private static Graph addNodesToGraph(Map<String, Map<String, SemossDataType>> nodeMap, Map<String, List<String>> relationshipMap) {
-		Graph graph = new MultiGraph("embedded");
+		Graph graph = new MultiGraph(Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
 		layout.addAttributeSink(graph);
@@ -170,7 +170,7 @@ public class GenerateMetamodelLayout {
 	/////////////////////////////////////////// external jdbc schema reactor helper functions ///////////////////////////////////////////
 
 	private static Graph addNodesToGraph(List<Map<String, Object>> databaseTables, List<Map<String, String>> databaseJoins) {
-		Graph graph = new MultiGraph("embedded");
+		Graph graph = new MultiGraph(Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
 		layout.addAttributeSink(graph);
@@ -222,7 +222,7 @@ public class GenerateMetamodelLayout {
 	/////////////////////////////////////////// predict metamodel reactor helper functions ///////////////////////////////////////////
 
 	private static Graph addNodesToGraph(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
-		Graph graph = new MultiGraph("embedded" + Utility.getRandomString(6));
+		Graph graph = new MultiGraph(Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
 		layout.addAttributeSink(graph);
@@ -360,6 +360,11 @@ public class GenerateMetamodelLayout {
 
 			positionMap.put(nodeName, posMap);
 		}
+		
+		// clean up the graph
+		graph.clearSinks();
+		graph.clear();
+		
 		return positionMap;
 	}
 	
