@@ -112,11 +112,16 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 			// query all the data in the qs
 			// we will not merge the frame filters since we want to add that as 
 			// the state filters at the end
+			long start = System.currentTimeMillis();
 			SelectQueryStruct qs = frame.getMetaData().getFlatTableQs(true);
 			qs.setFrame(frame);
 			IRawSelectWrapper it = frame.query(qs);
+			long end = System.currentTimeMillis();
+			
+			long start2 = System.currentTimeMillis();
 			IImporter importer = ImportFactory.getImporter(newFrame, qs, it);
 			importer.insertData();
+			long end2 = System.currentTimeMillis();
 			
 			Set<String> f1Keys = new HashSet<String>();
 			Set<String> f2Keys = new HashSet<String>();
@@ -160,6 +165,9 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 				vStore.put(f1, f2Noun);
 			}
 			CopyFrameUtil.renameFrame(frame, frame2Name);
+			
+			this.insight.addDelayedMessage(NounMetadata.getSuccessNounMessage("Successfully cached data. "
+					+ "Operation took " + (end-start) + "ms to execute the query and " + (end2-start2) + "ms to generate the cache"));
 		}
 	}
 
