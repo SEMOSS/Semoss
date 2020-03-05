@@ -27,10 +27,6 @@
  *******************************************************************************/
 package prerna.util;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -85,11 +81,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.NotFoundException;
-
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
@@ -112,6 +103,17 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.openrdf.model.Value;
 import org.openrdf.query.Binding;
 
+import com.google.gson.GsonBuilder;
+import com.ibm.icu.math.BigDecimal;
+import com.ibm.icu.text.DecimalFormat;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfoList;
+import io.github.classgraph.ScanResult;
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.NotFoundException;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.cluster.util.CloudClient;
@@ -135,9 +137,6 @@ import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.git.GitAssetUtils;
-
-import com.ibm.icu.math.BigDecimal;
-import com.ibm.icu.text.DecimalFormat;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented extensively throughout SEMOSS.
@@ -3297,113 +3296,112 @@ public class Utility {
 	}
 
 	
-	public static Process startPyProcess(String cp, String... args)
-	{
+	public static Process startPyProcess(String cp, String... args) {
 		// this basically starts a java process
 		// the string is an identifier for this process
 		Process thisProcess = null;
-		if(cp == null)
+		if(cp == null) {
 			cp = "fst-2.56.jar;jep-3.9.0.jar;log4j-1.2.17.jar;commons-io-2.4.jar;objenesis-2.5.1.jar;jackson-core-2.9.5.jar;javassist-3.20.0-GA.jar;classes";
+		}
 		String specificPath = getCP(cp);
 		try {
 			String java = System.getenv("JAVA_HOME");
-			if(java == null)
+			if(java == null) {
 				java = DIHelper.getInstance().getProperty("JAVA_HOME");
+			}
 			java = java + "/bin/java";
-			
-			String jep = System.getenv("LD_LIBRARY_PATH");
-			if(jep == null)
-				jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
-				
-			
-			String pyWorker = DIHelper.getInstance().getProperty("PY_WORKER");
-			
-			//java = "c:/zulu/zulu-8/bin/java";
+			// account for spaces in the path to java
+			if(java.contains(" ")) {
+				java = "\"" + java + "\"";
+			}
+			// change the \\
 			java = java.replace("\\", "/");
-			StringBuilder argList = new StringBuilder(args[0]);
-			//for(int argIndex = 0;argIndex < args.length;argList.append(" ").append(args[argIndex]), argIndex++);
-			String rdfFile = DIHelper.getInstance().rdfMapFileLocation;
-			
-			
+						
+			String jep = System.getenv("LD_LIBRARY_PATH");
+			if(jep == null) {
+				jep = DIHelper.getInstance().getProperty("LD_LIBRARY_PATH");
+			}
+			// account for spaces in the path to jep
+			if(jep.contains(" ")) {
+				jep = "\"" + jep + "\"";
+			}
+			jep = jep.replace("\\", "/");
+
+			String pyWorker = DIHelper.getInstance().getProperty("PY_WORKER");
 			String [] commands = new String[7];
-			String finalDir =  argList.toString().replace("\\", "/");
-			
-			
+			String finalDir = args[0].replace("\\", "/");
 			commands[0] = java;
 			commands[1] = "-Djava.library.path=" + jep;
-			//commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
 			commands[2] = "-cp";
+			commands[3] = specificPath;
+			commands[4] = pyWorker;
+			commands[5] = finalDir;
+			commands[6] = DIHelper.getInstance().rdfMapFileLocation;
+			
+			//java = "c:/zulu/zulu-8/bin/java";
+			// StringBuilder argList = new StringBuilder(args[0]);
+			//for(int argIndex = 0;argIndex < args.length;argList.append(" ").append(args[argIndex]), argIndex++);
+			//commands[2] = "-Dlog4j.configuration=" + finalDir + "/log4j.properties";
 			/*commands[3] = "C:/Users/pkapaleeswaran/.m2/repository/de/ruedigermoeller/fst/2.56/fst-2.56.jar;"
 					+ "C:/Python/Python36/Lib/site-packages/jep/jep-3.9.0.jar;"
 					+ "c:/users/pkapaleeswaran/workspacej3/semossdev/target/classes;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar;"
 					+ "C:/Users/pkapaleeswaran/.m2/repository/commons-io/commons-io/2.2/commons-io-2.2.jar;";
 			*/
-			commands[3] = specificPath;
-			commands[4] = pyWorker;
 			//commands[5] = "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer";
-			commands[5] = finalDir;
-			commands[6] = rdfFile;
 			//commands[6] = ">";
 			//commands[7] = finalDir + "/.log";
+			
 			System.out.println("Trying to create file in .. " + finalDir);
 			File file = new File(finalDir + "/init");
 			file.createNewFile();
-			
-			System.out.println(commands[3]);
-					
+			System.out.println("Python start commands ... " );
+			System.out.println(new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create().toJson(commands));
 			
 			// run it as a process
-
-			String starterFile = writeStarterFile(commands, finalDir);
-			
 			//ProcessBuilder pb = new ProcessBuilder(commands);
-			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			//ProcessBuilder pb = new ProcessBuilder("c:/users/pkapaleeswaran/workspacej3/temp/mango.bat");
 			//pb.command(commands);
+			
+			String starterFile = writeStarterFile(commands, finalDir);
+			ProcessBuilder pb = new ProcessBuilder(starterFile);
 			pb.redirectError();
 			Process p = pb.start();
-
 			
 			try {
 				//p.waitFor();
 				p.waitFor(3, TimeUnit.SECONDS);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			thisProcess = p;
-			//System.out.println("Process started with .. " + p.exitValue());
 			
+			//System.out.println("Process started with .. " + p.exitValue());
 			//thisProcess = Runtime.getRuntime().exec(java + " -cp " + cp + " " + className + " " + argList);
 			//thisProcess = Runtime.getRuntime().exec(java + " " + className + " " + argList + " > c:/users/pkapaleeswaran/workspacej3/temp/java.run");
 			//thisProcess = pb.start();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		return thisProcess;
 	}
 	
-	public static String writeStarterFile(String [] commands, String dir)
-	{
+	public static String writeStarterFile(String [] commands, String dir) {
 		// check if the os is unix and if so make it .sh
 		String osName = System.getProperty("os.name").toLowerCase();
 		
-		
-		
 		String starter = ""; 
-		if(osName.indexOf("win") >= 0)
+		if(osName.indexOf("win") >= 0) {
 			starter = dir + "/starter.bat";
-		if(osName.indexOf("win") < 0)
+		}
+		if(osName.indexOf("win") < 0) {
 			starter = dir + "/starter.sh";
+		}
 		try {
 			File starterFile = new File(starter);
-			
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			for(int cmdIndex = 0;cmdIndex < commands.length;cmdIndex++)
-			{
+			for(int cmdIndex = 0;cmdIndex < commands.length;cmdIndex++) {
 				baos.write(commands[cmdIndex].getBytes());
 				baos.write("  ".getBytes());
 			}
@@ -3413,21 +3411,15 @@ public class Utility {
 			fos.close();
 
 			// chmod in case.. who knows
-			if(osName.indexOf("win") < 0)
-			{
+			if(osName.indexOf("win") < 0) {
 				ProcessBuilder p = new ProcessBuilder("/bin/chmod","777", starter);
 				p.start();
 			}
-
-		
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
-		
 		
 		return starter;
 	}
