@@ -287,7 +287,7 @@ public class InsightAdministrator {
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
 				.append(QUESTION_NAME_COL).append(" = '").append(insightName).append("', ")
 				.append(QUESTION_LAYOUT_COL).append(" = '").append(layout).append("', ")
-				.append(HIDDEN_INSIGHT_COL).append(" = '").append(hidden).append("', ")
+				.append(HIDDEN_INSIGHT_COL).append(" = ").append(hidden).append(", ")
 				.append(QUESTION_PKQL_COL).append("=");
 		if(this.allowArrayDatatype) {
 			updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
@@ -314,7 +314,7 @@ public class InsightAdministrator {
 		StringBuilder updateQuery = new StringBuilder("UPDATE ").append(TABLE_NAME).append(" SET ")
 				.append(QUESTION_NAME_COL).append(" = '").append(insightName).append("', ")
 				.append(QUESTION_LAYOUT_COL).append(" = '").append(layout).append("', ")
-				.append(HIDDEN_INSIGHT_COL).append(" = '").append(hidden).append("', ")
+				.append(HIDDEN_INSIGHT_COL).append(" = ").append(hidden).append(", ")
 				.append(QUESTION_PKQL_COL).append("=");
 		if(this.allowArrayDatatype) {
 			updateQuery.append(getArraySqlSyntax(pixelRecipeToSave));
