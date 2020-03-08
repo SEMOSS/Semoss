@@ -25,7 +25,7 @@ public class MatchColumnValuesReactor extends AbstractPyFrameReactor {
 		String wrapperName = frame.getWrapperName();
 		
 		String matchesTable = Utility.getRandomString(8);
-		insight.getPyTranslator().runScriptFilePy(matchesTable + " = " + wrapperName + ".self_match('" + column + "')");
+		insight.getPyTranslator().runEmptyPy(matchesTable + " = " + wrapperName + ".self_match('" + column + "')");
 
 		PandasFrame returnTable = new PandasFrame(matchesTable);
 		returnTable.setTranslator(this.insight.getPyTranslator());

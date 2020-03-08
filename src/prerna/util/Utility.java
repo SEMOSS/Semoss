@@ -3281,6 +3281,17 @@ public class Utility {
 						//.append("\"")
 						.append(separator);
 				}
+				// address the issue when you are running outside of semoss
+				else if(thisURL.endsWith(".jar") && specificJars.contains(jarName) && !thisURL.contains("WEB-INF/lib"))
+				{
+					if(thisURL.endsWith("/"))
+						thisURL = thisURL.substring(0, thisURL.length()-1);
+					retClassPath
+					//.append("\"")
+						.append(thisURL)
+						//.append("\"")
+						.append(separator);					
+				}
 				
 			}
 			// remove the last one
@@ -3632,7 +3643,8 @@ public class Utility {
 	
 	public static void main(String [] args)
 	{
-		//Utility.startPyProcess("random", "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer");
+		DIHelper.getInstance().loadCoreProp("c:/users/pkapaleeswaran/workspacej3/MonolithDev5/RDF_Map_web.prop");
+		Utility.startPyProcess(null, "c:/users/pkapaleeswaran/workspacej3/temp/filebuffer");
 	}
 
 }

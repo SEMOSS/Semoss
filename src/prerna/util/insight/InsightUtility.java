@@ -56,6 +56,7 @@ public class InsightUtility {
 		if(origInsight.rInstantiated()) {
 			newInsight.setRJavaTranslator(origInsight.getRJavaTranslator(LOGGER));
 		}
+		newInsight.setTupleSpace(origInsight.getTupleSpace());
 	}
 	
 	/**
