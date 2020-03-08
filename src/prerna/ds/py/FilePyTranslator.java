@@ -1,29 +1,39 @@
 package prerna.ds.py;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.RandomAccessFile;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.nio.file.WatchEvent.Kind;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.nustaq.serialization.FSTObjectInput;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.Insight;
+import prerna.pyserve.Commandeer;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class PyTranslator 
+public class FilePyTranslator extends PyTranslator 
 {
 	
 	// this will start to become the main interfacing class for everything related to python
@@ -36,10 +46,7 @@ public class PyTranslator
 	
 	Logger logger = null;
 
-	PyExecutorThread pt = null;
 	
-	Map <Object, Object> responseCache = new HashMap<Object, Object>();
-	String internalLock = "something that the translator will wait on and will be informed by event handler";
 	// TODO need to replace this duplicate code from PandasFrame
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
@@ -53,11 +60,6 @@ public class PyTranslator
 		pyS.put("datetime64", SemossDataType.DATE);
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
 	}
-	
-	public PyTranslator()
-	{
-		//startDisruptor();
-	}
 
 	public SemossDataType convertDataType(String pDataType) {
 		return pyS.get(pDataType);
@@ -70,16 +72,7 @@ public class PyTranslator
 		this.insight = insight;
 	}
 
-	public void setPy(PyExecutorThread pt) {
-		this.pt = pt;
-		//this.outBuffer = pt.getBuffer();
-	}
 	
-	public PyExecutorThread getPy() {
-		return this.pt;
-		//this.outBuffer = pt.getBuffer();
-	}
-
 	/**
 	 * Get list of Objects from py script
 	 * 
@@ -170,136 +163,16 @@ public class PyTranslator
 	
 	protected Hashtable executePyDirect(String...script)
 	{
-		if(this.pt == null)
-			this.pt = insight.getPy();
-	
-		Object monitor = pt.getMonitor();
-		synchronized(monitor)
-		{
-			pt.command = script;
-			monitor.notify();
-			try{
-				monitor.wait();
-			}catch(Exception ex)
-			{
-				ex.printStackTrace();
-			}
-			logger.info("Completed processing");
-		}
-		return pt.response;
+		return executePyDirectFile(script);
 	}
 	
 	
-	protected void executeEmptyPyDirect(String script)
+	protected  void executeEmptyPyDirect(String script)
 	{
-		if(this.pt == null)
-			this.pt = insight.getPy();
-	
-		Object monitor = pt.getMonitor();
-		synchronized(monitor)
-		{
-			pt.command = new String[]{script};
-			monitor.notify();
-			try{
-				monitor.wait();
-			}catch(Exception ex)
-			{
-				ex.printStackTrace();
-			}
-			logger.info("Completed processing");
-			
-		}
-		
+		executePyDirectFile(script);
 	}
 
-	protected void executeEmptyPyDirect2(String script, String file)
-	{
-		if(this.pt == null)
-			this.pt = insight.getPy();
-	
-		Object monitor = pt.getMonitor();
-		String driverMonitor = insight.getInsightId();
-		// I need to go into a while true loop here
-		// I need to keep checking to see if the thread is still running
-		// if so loop
-		File daFile = new File(file);
-		int marker = 0;
-		try {
-			synchronized(monitor)
-			{
-					pt.command = new String[]{script};
-					pt.setDriverMonitor(driverMonitor);
-					// keep notifying until the thread has started
-					//while(pt.curState == ThreadState.wait)
-						monitor.notify();
-						//monitor.wait();
-			}
-
-			// wait for the file
-			//waitFileCreate(file);
-			
-			while(!daFile.exists())
-			{
-				try{
-					Thread.sleep(100);
-					//monitor.notifyAll();
-				}catch(Exception ex)
-				{
-					ex.printStackTrace();
-				}
-				daFile = new File(file);
-			}
-			
-			// open the file in read mode
-			RandomAccessFile raf = new RandomAccessFile(file, "r");
-			long offset = raf.getFilePointer();
-			int count = 0;
-			int sleepTime = 200;
-			int sleepMax = 3000;
-			int numLines = 0;
-			do{
-				// release the lock
-				
-				//monitor.wait();
-				long dataAvailable = daFile.length();
-				if(offset < dataAvailable)
-				{
-					raf.seek(offset);
-					String line = raf.readLine();
-		            do
-		            {
-		              line = raf.readLine();
-		              //numLines = numLines + 1;
-		              if(line != null)
-		            	  logger.info(line);
-		            }while( line != null );
-		            // if there were more than 3 lines that assimilated in 200 milliseconds increase sleep time ?
-		            if(count %3 == 0)
-		            	sleepTime = sleepTime + 100;
-		            if(sleepTime > sleepMax)
-		            	sleepTime = sleepMax;
-			        offset = raf.getFilePointer();
-				}
-				// sleep for sleepTime or until he pythread informs us
-				synchronized(driverMonitor)
-				{
-					driverMonitor.wait(sleepTime);
-				}
-			}while(pt.curState != ThreadState.wait);
-			logger.info("Completed processing");
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
-	public void runEmptyPy(String...script)
+	public  void runEmptyPy(String...script)
 	{
 		// get the insight folder 
 		// create a teamp to write the script file
@@ -328,11 +201,14 @@ public class PyTranslator
 			String finalScript = convertArrayToString(script);
 			FileUtils.writeStringToFile(scriptFile, finalScript);
 			
+			// run py direct here
+			runScriptFilePy(script);
+			
 			// the wrapper needs to be run now
 			//executePyDirect("runwrapper(" + scriptPath + "," + outPath + "," + outPath + ")");
 			//executePyDirect("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
 			// changing this to runscript
-			runScript("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
+			//runScript("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
 			
 		} catch (IOException e1) {
 			System.out.println("Error in writing Py script for execution!");
@@ -341,7 +217,7 @@ public class PyTranslator
 	}
 	
 	
-	public String runPyAndReturnOutput(String...inscript)
+	public  String runPyAndReturnOutput(String...inscript)
 	{
 		// Clean the script
 		String script = convertArrayToString(inscript);
@@ -400,6 +276,7 @@ public class PyTranslator
 		
 		// attempt to put it into environment
 		script = insightRootAssignment + "\n" + appRootAssignment + "\n" + userRootAssignment + "\n" + script;
+		Object retObj = null;
 
 		if(multi)
 		{
@@ -414,7 +291,10 @@ public class PyTranslator
 				 // TODO >>>timb: R - we really shouldn't be throwing runtime ex everywhere for R (later)
 				RuntimeException error = null;
 				try {
-					executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
+					// just run the script directly here
+					retObj = runScriptFilePy(script);
+					
+					//executeEmptyPyDirect2("smssutil.runwrapper(\"" + scriptPath + "\", \"" + outputPath + "\", \"" + outputPath + "\", globals())", outputPath);
 				} catch (RuntimeException e) {
 					e.printStackTrace();
 					error = e; // Save the error so we can report it
@@ -422,9 +302,8 @@ public class PyTranslator
 				
 				// Finally, read the output and return, or throw the appropriate error
 				try {
-					String output = FileUtils.readFileToString(outputFile).trim();
 					// Error cases
-					
+					String output = (String)retObj;
 					// clean up the output
 					if(userRootPath != null && output.contains(userRootPath)) {
 						output = output.replace(userRootPath, "$USER_IF");
@@ -438,7 +317,7 @@ public class PyTranslator
 					
 					// Successful case
 					return output;
-				} catch (IOException e) {
+				} catch (Exception e) {
 					// If we have the detailed error, then throw it
 					if (error != null) {
 						throw error;
@@ -467,7 +346,7 @@ public class PyTranslator
 		else
 		{
 			String finalScript = convertArrayToString(inscript);
-			Hashtable response = executePyDirect(finalScript);
+			Hashtable response = executePyDirectFile(finalScript);
 			return response.get(finalScript) + "";
 		}
 		
@@ -480,10 +359,20 @@ public class PyTranslator
 	 * @param script
 	 * @return
 	 */
-	public Object runScript(String... script) {
+	public  Object runScript(String... script) {
+
+		if(script.length == 1)
+			return runScriptFilePyDirect(script[0]);
+		else return runScriptFilePy(script);
+		/*
 		this.pt.command = script;
 		Object monitor = this.pt.getMonitor();
 		Object response = null;
+		
+		// going to track all the options as well here
+		if(!script[0].startsWith("smssutil"))
+			runScriptFilePy(script);
+		
 		synchronized(monitor) {
 			try {
 				monitor.notify();
@@ -498,9 +387,9 @@ public class PyTranslator
 			}
 		}
 		return response;
+		*/
 	}
-
-
+	
 	
 	private String convertArrayToString(String... script) {
 		StringBuilder retString = new StringBuilder("");
@@ -512,7 +401,6 @@ public class PyTranslator
 	public void setLogger(Logger logger) {
 		this.logger = logger;
 	}
-
 	
 	public static void main(String [] args)
 	{
@@ -529,10 +417,7 @@ public class PyTranslator
 		}
 		helper.setCoreProp(prop);
 	
-		PyTranslator py = new PyTranslator();
-		PyExecutorThread pt = new PyExecutorThread();
-		pt.start();
-		py.pt = pt;
+		FilePyTranslator py = new FilePyTranslator();
 		String command = "print('Hello World')" + 
 						  "\n" +
 						  "print('World Hello')" + 
@@ -550,5 +435,197 @@ public class PyTranslator
 		String output = py.runPyAndReturnOutput(command);
 		System.out.println("Output >> " + output);
 	}
+
+	//==================================== All the file based stuff goes here ================================================================
+	public Object runScriptFilePyDirect(String script)
+	{
+		// PY Direct
+		script = "PY_DIRECT@@" + script;
+		Object retObject = runScriptFilePy(script);
+		return retObject;
+	}
 	
+	
+	public Object runScriptFilePy(String... script)
+	{
+		Object output = null;
+		try {
+			String folderToWatch = insight.getTupleSpace();
+			String fileName = this.insight.getInsightId() + "--command--" + this.insight.getCount() + ".py";
+			String scriptFile = folderToWatch + "/" + fileName;
+			StringBuffer cmdBuffer = new StringBuffer();
+			for(int cmdIndex = 0;cmdIndex < script.length; cmdIndex++)
+			{
+				cmdBuffer.append(script[cmdIndex]).append("\n");
+				//if(cmdIndex + 1 > script.length)
+				//	cmdBuffer.append("\n");
+			}
+			File scriptFileF = new File(scriptFile);
+			FileUtils.writeStringToFile(scriptFileF, cmdBuffer.toString());
+
+			WatchService watchService = FileSystems.getDefault().newWatchService();
+			Path path = Paths.get(folderToWatch);
+			WatchKey watchKey = path.register(
+					  watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY);
+			
+			WatchKey key;
+			Commandeer comm = new Commandeer();
+			comm.file = scriptFile;
+			Thread commandThread = new Thread(comm);
+			commandThread.start();
+			
+			//key = watchService.take();
+			while ((key = watchService.take()) != null) 
+			{
+				boolean breakout = false;
+			    for (WatchEvent<?> event : key.pollEvents()) {
+			    		String file = (String)(event.context().toString());
+			    		Kind kind = event.kind();
+			    		//System.out.println("Event kind:" + kind + ". File affected: " + file + ".");
+			    		//if(kind == StandardWatchEventKinds.ENTRY_CREATE)
+						if(kind == StandardWatchEventKinds.OVERFLOW)
+							System.err.println("Interesting.. got here " + file);
+			    		if(file.endsWith(".completed")) // need to also compare that this is the same file
+			    		{
+			    			// do some checks with the file
+			    			// see if the file is the same starting as the input
+			    			// if it is poke - read the input and say it is taking too much time
+			    			if(file.equalsIgnoreCase("poke.completed"))
+			    			{
+			    				// this is we poked externally
+			    				output = printOutput(fileName + ".go");
+			    				output = "Command " + output + "  is taking a long time, aborting...";
+			    			}
+			    			else
+			    			{
+			    				if(file.contains(fileName))
+			    				{
+			    					//System.err.println(">> This is what we should pick.. ");
+			    				
+				    				// see if the object is there
+				    				Object retObject = readObject(folderToWatch + "/" + file);
+				    				if(retObject != null)
+				    				{
+				    					//System.err.println("retObject is " + retObject);
+				    					output = retObject;
+				    				}
+				    				else
+				    					output = printOutput(file);
+				    				breakout = true;
+				    				break;
+			    				}
+			    			}
+			    		}
+			    		//else if()// this is a modify request 
+			    		//	processComplete(file);
+						key.reset();
+			    		//barr.await();
+			    }
+			    if(breakout)
+			    	break;
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return output;
+	}
+
+	
+	public Object readObject(String file)
+	{
+		Object retObject = null;
+		file = file.replace("state.completed", "smss_obj");
+		File outFile = new File(file);
+		if(outFile.exists())
+		{
+			try {
+				FileInputStream fis = new FileInputStream(outFile);
+				
+				ByteArrayInputStream bis = new ByteArrayInputStream(FileUtils.readFileToByteArray(outFile));
+				
+				FSTObjectInput fi = new FSTObjectInput(bis);
+				retObject = fi.readObject();
+
+				//ObjectInputStream ois = new ObjectInputStream(fis);
+				//retObject = ois.readObject();
+				fi.close();
+				fis.close();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return retObject;
+	}
+	
+	public void runScriptFilePyAsync(String... script)
+	{
+		String output = null;
+		try {
+			String folderToWatch = insight.getTupleSpace();
+			String fileName = this.insight.getInsightId() + "--command--" + this.insight.getCount() + ".py";
+			String scriptFile = folderToWatch + "/" + fileName;
+			StringBuffer cmdBuffer = new StringBuffer();
+			for(int cmdIndex = 0;cmdIndex < script.length;cmdBuffer.append(script[cmdIndex]).append("\n"), cmdIndex++);
+			FileUtils.writeStringToFile(new File(scriptFile), cmdBuffer.toString());
+			
+			Commandeer comm = new Commandeer();
+			comm.file = scriptFile;
+			Thread commandThread = new Thread(comm);
+			commandThread.start();
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public String printOutput(String file)
+	{
+		try {
+		file = file.replace(".state.completed", "");
+		String command;
+		System.err.println("Reading from file.. " + file);
+		File outputFile = new File(insight.getTupleSpace() + "/" + file + ".output");
+		if(outputFile.exists())
+		{
+			command = FileUtils.readFileToString(outputFile).trim();
+			//System.out.println("Output >>" + command);
+			return command;
+		}	
+		// create a new file now
+		new File(insight.getTupleSpace() + "/" + file + ".state.delivered").createNewFile();
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+	
+	protected  Hashtable executePyDirectFile(String...script)
+	{
+		Hashtable response = new Hashtable();
+		response.put(script[0], runScriptFilePy(script));
+		return response;
+	}
+
+
+	
+
 }
