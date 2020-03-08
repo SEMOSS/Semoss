@@ -104,7 +104,7 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 		String removeSeaborn = "del(sns)";
 		String removeSaveFile = "del(saveFile)";
 		
-		seabornFile = (String)pyt.runScriptFilePy(loadDT, adjustTypes, importSeaborn, assignPlotter, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, printFile, removeSaveFile);
+		seabornFile = (String)pyt.runPyAndReturnOutput(loadDT, adjustTypes, importSeaborn, assignPlotter, saveFileName, runPlot, savePlot, removeFrame, removeSeaborn, printFile, removeSaveFile);
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();
