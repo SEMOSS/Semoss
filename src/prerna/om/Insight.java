@@ -28,7 +28,6 @@
 package prerna.om;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
@@ -56,6 +55,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.comments.InsightComment;
 import prerna.comments.InsightCommentHelper;
+import prerna.ds.py.FilePyTranslator;
 import prerna.ds.py.PyExecutorThread;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.rdbms.h2.H2Frame;
@@ -346,7 +346,7 @@ public class Insight {
 			try {
 				File closer = new File(tupleSpace + "/alldone.closeall");
 				closer.createNewFile();
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -670,12 +670,19 @@ public class Insight {
 	
 	public void setPy(PyExecutorThread jepThread) {
 		this.jepThread = jepThread;
+		// need to do the check here
 		if(this.pyt == null)
 		{
 			pyt = new PyTranslator();
 			pyt.setInsight(this);
 			pyt.setPy(jepThread);
 		}
+	}
+	
+	public void setPyTranslator(PyTranslator pyt)
+	{
+		this.pyt = pyt;
+		pyt.setInsight(this);
 	}
 	
 	public PyTranslator getPyTranslator() {

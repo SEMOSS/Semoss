@@ -23,6 +23,7 @@ import jep.SharedInterpreter;
 import jep.SubInterpreter;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -251,7 +252,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			{
 				multi = false;
 				retString = retString.replace("PY_DIRECT@@", "");
-				//retString = retString.replace("\\n", "");
+				retString = retString.replace("\\\n", "");
 			}
 			
 			// make another provision for print

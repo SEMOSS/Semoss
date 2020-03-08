@@ -251,9 +251,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String colScript = PandasSyntaxHelper.getColumns(wrapperTableName + ".cache['data']");
 		String typeScript = PandasSyntaxHelper.getTypes(wrapperTableName + ".cache['data']");
 		
-		List<String> headerList = (List) pyt.runScriptFilePyDirect(colScript);
+		List<String> headerList = (List) pyt.runScript(colScript);
 		String[] headers = headerList.toArray(new String[headerList.size()]);
-		List<String> types = (List<String>) pyt.runScriptFilePyDirect(typeScript);
+		List<String> types = (List<String>) pyt.runScript(typeScript);
 
 		// here we run and see if the types are good
 		// or if we messed up, we perform a switch
@@ -418,7 +418,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if(!queryCache.containsKey(query) || !cache)
 		{
 			
-			Object output = pyt.runScriptFilePyDirect(query);
+			Object output = pyt.runScript(query);
 			
 			// need to see if this is a parquet format as well
 			String format = "grid";
@@ -543,7 +543,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return response;
 		*/
 		if(script.length == 1)
-			return pyt.runScriptFilePyDirect(script[0]);
+			return pyt.runScript(script[0]);
 		else
 			return pyt.runScript(script);
 	}
@@ -551,7 +551,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	@Override
 	public long size(String tableName) {
 		String command = "len(" + tableName + ")";
-		Number num = (Number) pyt.runScriptFilePyDirect(command);
+		Number num = (Number) pyt.runScript(command);
 		return num.longValue();
 	}
 	
@@ -620,8 +620,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 	
 	public boolean isEmpty(String tableName) {
-		String command = "\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0";
-		Boolean notEmpty = (Boolean) pyt.runScriptFilePyDirect(command);
+		String command = "(\"" + createFrameWrapperName(tableName) + "\" in vars() and len(" + createFrameWrapperName(tableName) + ".cache['data']) >= 0)";
+		Boolean notEmpty = (Boolean) pyt.runScript(command);
 		return !notEmpty;
 	}
 	
