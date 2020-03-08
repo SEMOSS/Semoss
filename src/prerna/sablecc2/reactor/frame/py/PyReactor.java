@@ -30,7 +30,7 @@ public class PyReactor extends AbstractReactor {
 		PyTranslator pyTranslator = this.insight.getPyTranslator();
 		pyTranslator.setLogger(logger);
 		//String output = pyTranslator.runPyAndReturnOutput(code);
-		String output = pyTranslator.runScriptFilePy(code) + "";
+		String output = pyTranslator.runScript(code) + "";
 		
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));

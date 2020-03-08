@@ -56,14 +56,14 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 	public String[] getColumns(PandasFrame frame) {		
 		String wrapperName = frame.getWrapperName();
 		// get jep thread and get the names
-		List<String> val = (List<String>) insight.getPyTranslator().runScriptFilePyDirect("list(" + wrapperName + ".cache['data'])");
+		List<String> val = (List<String>) insight.getPyTranslator().runScript("list(" + wrapperName + ".cache['data'])");
 		return val.toArray(new String[val.size()]);
 	}
 	
 	public String[] getColumnTypes(PandasFrame frame) {
 		String wrapperName = frame.getWrapperName();
 		// get jep thread and get the names
-		List<String> val = (List<String>) insight.getPyTranslator().runScriptFilePyDirect(PandasSyntaxHelper.getTypes(wrapperName + ".cache['data']"));
+		List<String> val = (List<String>) insight.getPyTranslator().runScript(PandasSyntaxHelper.getTypes(wrapperName + ".cache['data']"));
 		return val.toArray(new String[val.size()]);
 	}
 	
@@ -76,7 +76,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor {
 	public String getColumnType(PandasFrame frame, String column) {
 		String wrapperName = frame.getWrapperName();
 		String columnType = PandasSyntaxHelper.getColumnType(wrapperName + ".cache['data']", column);
-		String pythonDt = (String) insight.getPyTranslator().runScriptFilePyDirect(columnType);
+		String pythonDt = (String) insight.getPyTranslator().runScript(columnType);
 		SemossDataType smssDT = this.insight.getPyTranslator().convertDataType(pythonDt);
 		return smssDT.toString();
 	}
