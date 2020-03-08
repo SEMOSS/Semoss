@@ -7,13 +7,11 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.ds.py.PyTranslator;
-import prerna.ds.r.RSyntaxHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
-import prerna.sablecc2.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 import prerna.util.Utility;
 
@@ -159,7 +157,9 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 		
 		String [] inscript = new String[]{makeFrame, pivot, deleteFrame}; 
 		// now compose the whole thing
-		String htmlOutput = pyt.runScriptFilePy(makeFrame, pivot, deleteFrame)+"";
+		pyt.runEmptyPy(makeFrame);
+		String htmlOutput = pyt.runPyAndReturnOutput(pivot); 
+		pyt.runEmptyPy(deleteFrame);
 		
 		
 		

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.ds.py.FilePyTranslator;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
 import prerna.query.querystruct.SelectQueryStruct;

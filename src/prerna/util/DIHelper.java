@@ -626,7 +626,7 @@ public class DIHelper {
 	   * Creates a new list and loads properties given a certain file name.
 	   * @param String		File name.
 	   */
-	  public void loadCoreProp(String fileName)
+	  public void loadCoreProp(String fileName) 
 	  {
 		  this.rdfMapFileLocation = fileName;
 		  FileInputStream fileIn = null;
@@ -649,6 +649,11 @@ public class DIHelper {
 			}
 			
 			PlaySheetRDFMapBasedEnum.getInstance().setData(((String)coreProp.get(Constants.PLAYSHEETS_DEFINED) + "").split(";"), coreProp);
+	  }
+	  
+	  public void reload()
+	  {
+		  DIHelper.getInstance().loadCoreProp(rdfMapFileLocation);
 	  }
 	  
 	  
