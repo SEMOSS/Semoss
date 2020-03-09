@@ -9,18 +9,23 @@ import prerna.sablecc2.reactor.task.TaskBuilderReactor;
 public class CollectPivotReactor extends AbstractReactor {
 	
 	public CollectPivotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ROW_GROUPS.getKey(), ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.VALUES.getKey(), ReactorKeysEnum.FRAME_TYPE.getKey() };
 	}
 	
 	public NounMetadata execute() {
 		// default this to use Python
 		// if Python not present
 		// try in R
+		// default is R
+		String frameType = "R";
+		if(store.getNoun(keysToGet[3]) != null)
+			frameType = keyValue.get(keysToGet[3]);
+		
 		TaskBuilderReactor reactor = null;
-		if(PyUtils.pyEnabled()) {
-			reactor = new prerna.sablecc2.reactor.frame.py.CollectPivotReactor();
+		if(frameType.equalsIgnoreCase("Py") && PyUtils.pyEnabled()) {
+			reactor = new prerna.sablecc2.reactor.export.CollectPivotPyReactor();
 		} else {
-			reactor = new prerna.sablecc2.reactor.frame.r.CollectPivotReactor();
+			reactor = new prerna.sablecc2.reactor.export.CollectPivotRReactor();
 		}
 		
 		// pass the references/values

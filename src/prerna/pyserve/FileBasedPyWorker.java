@@ -170,7 +170,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 								Object thisResponse = null;
 							    try {
 							    	LOGGER.debug(">>>>>>>>>>>");
-							    	LOGGER.info("Executing Command .. " + execCommand);
+							    	LOGGER.info("Executing Command .. [" + execCommand + "]");
 							    	LOGGER.debug("<<<<<<<<<<<");
 							    	try {
 							    		changeState(thisCommand, ".processing");
@@ -186,17 +186,21 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 							    			LOGGER.info("Response is set to null " + response);
 							    		}
 							    		//response.put(thisCommand, thisResponse);
-							    		LOGGER.info("Get Value Complete");
-							    		changeState(thisCommand, ".completed");
 							    	}catch (Exception ex) {
-							    		processError(thisCommand, ex);
-							    		jep.eval(thisCommand);
-							    		LOGGER.info("Eval Complete");
+							    		try {
+							    			jep.eval(thisCommand);
+							    			LOGGER.info("Eval Complete");
+							    		}catch(Exception ex2)
+							    		{
+							    			processError(thisCommand, ex2);
+							    			LOGGER.info(ex2);
+							    		}
 							    	}
-							    	
+						    		LOGGER.info("Get Value Complete");
+						    		changeState(thisCommand, ".completed");
 									// seems like when there is an exception..I need to restart the thread
 								} catch (Exception e) {
-									LOGGER.error(e);;
+									LOGGER.error(e);
 								}
 							}
 							command = null;
@@ -252,7 +256,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			{
 				multi = false;
 				retString = retString.replace("PY_DIRECT@@", "");
-				retString = retString.replace("\\\n", "");
+				//retString = StringUtils.chomp(retString);
 			}
 			
 			// make another provision for print
@@ -295,7 +299,7 @@ public class FileBasedPyWorker extends Thread implements IWorker{
 			String outputFile = fileName + ".output";
 			StringWriter sw = new StringWriter();
 			ex.printStackTrace(new PrintWriter(sw));
-			FileUtils.writeStringToFile(new File(outputFile), ex.getMessage());
+			FileUtils.writeStringToFile(new File(outputFile), sw.toString());
 			LOGGER.info("Errored with  " + ex.getMessage());
 			changeState(fileName, ".completed");
 			
