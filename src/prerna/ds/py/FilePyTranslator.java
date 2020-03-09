@@ -456,9 +456,9 @@ public class FilePyTranslator extends PyTranslator
 			StringBuffer cmdBuffer = new StringBuffer();
 			for(int cmdIndex = 0;cmdIndex < script.length; cmdIndex++)
 			{
-				cmdBuffer.append(script[cmdIndex]).append("\n");
-				//if(cmdIndex + 1 > script.length)
-				//	cmdBuffer.append("\n");
+				cmdBuffer.append(script[cmdIndex]); //.append("\n");
+				if(cmdIndex + 1 < script.length)
+					cmdBuffer.append("\n");
 			}
 			File scriptFileF = new File(scriptFile);
 			FileUtils.writeStringToFile(scriptFileF, cmdBuffer.toString());
