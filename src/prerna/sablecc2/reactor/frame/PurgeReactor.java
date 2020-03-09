@@ -58,8 +58,10 @@ public class PurgeReactor extends AbstractFrameReactor {
 			// assign newFrame back to frame
 			newFrame = frame;
 			newFrame.getFrameFilters().removeAllFilters();
-		} 
-		
+			// clear the cached queries
+			newFrame.clearCachedMetrics();
+			newFrame.clearQueryCache();
+		}
 		//TODO: test this
 		//TODO: test this
 		//TODO: test this
@@ -85,6 +87,9 @@ public class PurgeReactor extends AbstractFrameReactor {
 //			// assign newFrame back to frame
 //			newFrame = frame;
 //			newFrame.getFrameFilters().removeAllFilters();
+			// clear the cached queries
+//			newFrame.clearCachedMetrics();
+//			newFrame.clearQueryCache();		
 //		} 
 		else {
 			logger.info("Running generic purge logic");
