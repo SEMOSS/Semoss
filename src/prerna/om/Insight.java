@@ -682,7 +682,9 @@ public class Insight {
 	public void setPyTranslator(PyTranslator pyt)
 	{
 		this.pyt = pyt;
-		pyt.setInsight(this);
+		if (pyt != null) {
+			pyt.setInsight(this);
+		}
 	}
 	
 	public PyTranslator getPyTranslator() {
