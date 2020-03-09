@@ -236,7 +236,7 @@ public class PixelStreamUtility {
 				ps.flush();
 				// we want to display these messages
 				// so meta is always false
-				processNounMetadata(in, ps, gson, delayedMessages.get(i), "delayed message", false);
+				processNounMetadata(in, ps, gson, delayedMessages.get(i), "\"delayed message\";", false);
 			}
 		}
 
