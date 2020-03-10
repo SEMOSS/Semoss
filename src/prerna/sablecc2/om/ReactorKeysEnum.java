@@ -4,6 +4,7 @@ public enum ReactorKeysEnum {
 	ACCESS("access",										"Boolean to check if access is required."),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",			"Additional data types defining specific formats - used extensively for dates"),
 	ADDITIONAL_PIXELS("additionalPixels",					"Additional pixels to be executed in addition to the pixel steps saved within the insight"),
+	ALL("all",                                              "Boolean to use all the values"),
 	ALL_NUMERIC_KEY("allNumeric", 							"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 											"An alias to assign for an operation or output"),
 	APP("app", 												"Name of the app on the local SEMOSS instance"),
