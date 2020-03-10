@@ -122,7 +122,7 @@ public class PixelUnit {
 	protected static Map<String, String> aliasToAppId = new HashMap<>();
 
 	private static boolean testDatabasesAreClean = true; // This must be static, as one instance of PixelUnit can dirty
-															// databases for all others
+	// databases for all others
 	private List<String> cleanTestDatabases = new ArrayList<>();
 
 	protected Insight insight = null;
@@ -208,18 +208,17 @@ public class PixelUnit {
 			DIHelper.getInstance().setCoreProp(coreProps);
 		}
 
-		// Just in case, manually override R_CONNECTION_JRI to be true for testing
-		// purposes
-		// Warn if this was not the case to begin with
-		if (!Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI))) {
-			LOGGER.warn("R must be functional for local testing.");
-			Properties coreProps = DIHelper.getInstance().getCoreProp();
-			coreProps.setProperty(Constants.R_CONNECTION_JRI, "false");
-			coreProps.setProperty("IS_USER_RSERVE", "true");
-			coreProps.setProperty("R_USER_CONNECTION_TYPE", "dedicated");
+		//override use r to be true
+		// set jri to false
+		// use user rserve
 
-			DIHelper.getInstance().setCoreProp(coreProps);
-		}
+		Properties corePropsR = DIHelper.getInstance().getCoreProp();
+		corePropsR.setProperty(Constants.USE_R, "true");
+		corePropsR.setProperty(Constants.R_CONNECTION_JRI, "false");
+		corePropsR.setProperty("IS_USER_RSERVE", "true");
+		corePropsR.setProperty("R_USER_CONNECTION_TYPE", "dedicated");
+		DIHelper.getInstance().setCoreProp(corePropsR);
+
 
 		// Turn tracking off while testing
 		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.T_ON))) {
@@ -496,7 +495,7 @@ public class PixelUnit {
 		try {
 			PixelComparison result = compareResult("Version();",
 					"{\"pixelExpression\":\"Version ( ) ;\",\"output\":{\"datetime\":\"1000-01-01 01:01:01\",\"version\":\"1.0.0-SNAPSHOT\"}}")
-							.get(0);
+					.get(0);
 
 			// Assume that we are getting values changed for this example
 			String valuesChangedKey = "values_changed";
@@ -969,15 +968,15 @@ public class PixelUnit {
 			String ignoreOrderString = ignoreOrder ? "True" : "False";
 			String ddiffCommand = (excludePaths.size() > 0)
 					? "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ", exclude_paths={\""
-							+ String.join("\", \"", excludePaths) + "\"})"
+					+ String.join("\", \"", excludePaths) + "\"})"
 					: "DeepDiff(a, b, ignore_order=" + ignoreOrderString + ")";
 
 			String[] script = new String[] { "import json", "from deepdiff import DeepDiff",
 					"with open('" + expectedJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='"
 							+ TEXT_ENCODING.toLowerCase() + "') as f:\n" + "    a = json.load(f)",
-					"with open('" + actualJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='"
-							+ TEXT_ENCODING.toLowerCase() + "') as f:\n" + "    b = json.load(f)",
-					ddiffCommand };
+							"with open('" + actualJsonFile.getAbsolutePath().replace('\\', '/') + "', encoding='"
+									+ TEXT_ENCODING.toLowerCase() + "') as f:\n" + "    b = json.load(f)",
+									ddiffCommand };
 
 			Hashtable<String, Object> results = runPy(script);
 			Object result = results.get(ddiffCommand);
