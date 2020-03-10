@@ -20,12 +20,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+//import com.googlecode.junittoolbox.ParallelParameterized;
+
 import org.junit.runners.Parameterized.Parameters;
 
 import au.com.bytecode.opencsv.CSVReader;
+import prerna.ds.py.PyUtils;
 import prerna.om.InsightStore;
 
+//@RunWith(ParallelParameterized.class)
 @RunWith(Parameterized.class)
+
 public class PixelUnitTests extends PixelUnit {
 
 	protected static final Logger LOGGER = LogManager.getLogger(PixelUnitTests.class.getName());
@@ -45,6 +50,13 @@ public class PixelUnitTests extends PixelUnit {
 	private boolean ignoreFailure;
 	private String insightState;
 	private boolean skipTest;
+	private List<Object[]> workflow; 
+	
+	
+//	public PixelUnitTests(List<Object[]> workflow) {
+//		this.workflow=workflow;
+//	}
+//	
 	
 	public PixelUnitTests(String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases, boolean ignoreFailure, String insightState, boolean skipTest) {
 		this.name = name;
@@ -61,6 +73,11 @@ public class PixelUnitTests extends PixelUnit {
 		this.skipTest = skipTest;
 	}
 		
+//	@Parameters(name = "{index}: test {0}")
+//	public static Collection<List<Object[]>> getTestParams() {
+//		return getTestParamsMultipleParallel(TESTS_CSV);
+//	}
+	
 	@Parameters(name = "{index}: test {0}")
 	public static Collection<Object[]> getTestParams() {
 		return getTestParamsMultiple(TESTS_CSV);
@@ -117,10 +134,89 @@ public class PixelUnitTests extends PixelUnit {
 
 		return testParams;
 	}
+
+	
+	public static Collection<List<Object[]>> getTestParamsMultipleParallel(String csvFile) {
+
+		Collection<Object[]> csvParams = null;
+		Collection<List<Object[]>> testParams = new ArrayList<List<Object[]>>();
+
+		try(CSVReader csv = new CSVReader(new FileReader(new File(csvFile)))) {
+			csv.readNext(); // Discard the header
+			
+			csvParams = csv.readAll().stream().map(row -> new Object[] {
+					row[0], // name
+					row[1], // pixel
+					row[2], // expected json
+					Boolean.parseBoolean(row[3]), // compare all
+					parseListFromString(row[4]), // exclude paths 
+					Boolean.parseBoolean(row[5]), // ignore order
+					Boolean.parseBoolean(row[6]), // ignore added dictionary
+					Boolean.parseBoolean(row[7]), // ignore added iterable
+					parseListFromString(row[8]), // clean testparseListFromString databases
+					Boolean.parseBoolean(row[9]), // ignore failure
+					row[10], //end of insight
+					Boolean.parseBoolean(row[11]) // skip tests
+				}).collect(Collectors.toList());
+		} catch (IOException e) {
+			LOGGER.error("Error: ", e);
+			assumeNoException(e);
+		}
+		
+		List<Object[]> lister = new ArrayList<Object[]>(); 
+
+		for(Object[] csvLine:csvParams){
+			lister.add(csvLine);
+			if(csvLine[10] != null && csvLine[10].toString().toUpperCase().contains("END")){
+				testParams.add(lister);
+				lister = new ArrayList<Object[]>(); 
+			}
+		}
+		LOGGER.info("Params: " + testParams.size());
+
+		return testParams;
+	}
 	
 	private static List<String> parseListFromString(String string) {
 		return string.trim().isEmpty() ? new ArrayList<String>() : Arrays.asList(string.split(","));
 	}
+	
+//	@Test
+//	public void runTest() throws IOException {
+//		
+//		 String name;
+//		 String pixel;
+//		 String expectedJson;
+//		 boolean compareAll;
+//		 List<String> excludePaths;
+//		 boolean ignoreOrder;
+//		 boolean ignoreAddedDictionary;
+//		 boolean ignoreAddedIterable;
+//		 List<String> cleanTestDatabases;
+//		 boolean ignoreFailure;
+//		 String insightState;
+//		 boolean skipTest;
+//		//for each object in workflow, run the test unless skip
+//		for(Object[] row : workflow){
+//			name = row[0].toString(); // name
+//			pixel = row[1].toString(); // pixel
+//			expectedJson = row[2].toString(); // expected json
+//			compareAll = Boolean.parseBoolean(row[3].toString()); // compare all
+//			excludePaths = parseListFromString(row[4].toString());  // exclude paths 
+//			ignoreOrder = Boolean.parseBoolean(row[5].toString());  // ignore order
+//			ignoreAddedDictionary = Boolean.parseBoolean(row[6].toString()); // ignore added dictionary
+//			ignoreAddedIterable = Boolean.parseBoolean(row[7].toString()); // ignore added iterable
+//			cleanTestDatabases = parseListFromString(row[8].toString());  // clean testparseListFromString databases
+//			ignoreFailure = Boolean.parseBoolean(row[9].toString());  // ignore failure
+//			insightState = row[10].toString();  //end of insight
+//			skipTest = Boolean.parseBoolean(row[11].toString()); // skip tests
+//		
+//		if (!skipTest) {
+//			runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases, ignoreFailure, insightState);
+//
+//		}
+//		}
+//	}
 	
 	@Test
 	public void runTest() throws IOException {
@@ -128,6 +224,8 @@ public class PixelUnitTests extends PixelUnit {
 			runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases, ignoreFailure, insightState);
 		}
 	}
+
+
 
 	public static void runTest(PixelUnit testRunner, String name, String pixel, String expectedJson, boolean compareAll, List<String> excludePaths, boolean ignoreOrder, boolean ignoreAddedDictionary, boolean ignoreAddedIterable, List<String> cleanTestDatabases, boolean ignoreFailure) throws IOException {
 		LOGGER.info("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
@@ -172,13 +270,13 @@ public class PixelUnitTests extends PixelUnit {
 	@Override
 	@Before
 	public void initializeTest() {
-		initializeJep();
 		if (!skipTest) {
 			if (insightState != null && !(insightState.isEmpty()) && insightState.contains("START")) {
 				initializeTest(true);
 			} else {
 				this.insight = InsightHolder.getInstance().getInsight();
-				//this.jep = InsightHolder.getInstance().getPy();
+				this.jep = PyUtils.getInstance().getJep();
+//				this.jep = InsightHolder.getInstance()
 			}
 		}
 	}
@@ -186,6 +284,7 @@ public class PixelUnitTests extends PixelUnit {
 	@Override
 	public void initializeTest(boolean checkAssumptions) {
 		initializeInsight();
+		initializeJep();
 		cleanTestDatabases = new ArrayList<>(); // Reset the list of databases to clean
 		if (checkAssumptions) {
 			checkTestAssumptions();

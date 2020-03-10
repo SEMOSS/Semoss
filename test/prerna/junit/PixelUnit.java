@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,6 +60,7 @@ import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityUpdateUtils;
 import prerna.configure.Me;
@@ -212,7 +214,10 @@ public class PixelUnit {
 		if (!Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI))) {
 			LOGGER.warn("R must be functional for local testing.");
 			Properties coreProps = DIHelper.getInstance().getCoreProp();
-			coreProps.setProperty(Constants.R_CONNECTION_JRI, "true");
+			coreProps.setProperty(Constants.R_CONNECTION_JRI, "false");
+			coreProps.setProperty("IS_USER_RSERVE", "true");
+			coreProps.setProperty("R_USER_CONNECTION_TYPE", "dedicated");
+
 			DIHelper.getInstance().setCoreProp(coreProps);
 		}
 
@@ -533,8 +538,8 @@ public class PixelUnit {
 
 	protected void initializeInsight() {
 		insight = new Insight();
-		insight.setPy(PyUtils.getInstance().getJep());
-		InsightStore.getInstance().put(insight);
+		//insight.setPy(PyUtils.getInstance().getJep());
+		//InsightStore.getInstance().put(insight);
 	}
 
 	protected void destroyInsight() {
@@ -549,9 +554,16 @@ public class PixelUnit {
 	//////////////////////////////
 
 	protected void initializeJep() {
-
-		// Initialize jep
+		User user = new User();
+		user.setAnonymous(true);
+		String uId = "UNK_" + UUID.randomUUID().toString();
+		user.setAnonymousId(uId);
+		insight.setUser(user);
+		String tempTupleSpace = PyUtils.getInstance().getTempTupleSpace(user, DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR));
+		insight.setTupleSpace(tempTupleSpace);
 		jep = PyUtils.getInstance().getJep();
+		insight.setPy(jep);
+		InsightStore.getInstance().put(insight);
 
 		// Wait for Python to load
 		LOGGER.info("Waiting for python to initialize...");
