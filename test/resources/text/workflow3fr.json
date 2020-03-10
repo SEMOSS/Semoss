@@ -6,7 +6,7 @@
          "values":[
             [
                "Action-Adventure",
-               2.0E7,
+               20000000,
                "Y",
                "Action-Adventure,N",
                9257103,
@@ -19,7 +19,7 @@
             ],
             [
                "Action-Adventure",
-               3.0E7,
+               30000000,
                "Y",
                "Action-Adventure,N",
                70099045,
@@ -32,7 +32,7 @@
             ],
             [
                "Action-Adventure",
-               7.0E7,
+               70000000,
                "Y",
                "Action-Adventure,N",
                142109382,
@@ -45,7 +45,7 @@
             ],
             [
                "Action-Adventure",
-               1.75E8,
+               175000000,
                "Y",
                "Action-Adventure,N",
                38362000,
@@ -58,7 +58,7 @@
             ],
             [
                "Action-Adventure",
-               1.4E7,
+               14000000,
                "Y",
                "Action-Adventure,Y",
                83043761,
@@ -71,7 +71,7 @@
             ],
             [
                "Action-Adventure",
-               3.8E7,
+               38000000,
                "Y",
                "Action-Adventure,N",
                16928670,
@@ -84,7 +84,7 @@
             ],
             [
                "Action-Adventure",
-               2.5E7,
+               25000000,
                "Y",
                "Action-Adventure,N",
                13657115,
@@ -97,7 +97,7 @@
             ],
             [
                "Action-Adventure",
-               8.0E7,
+               80000000,
                "Y",
                "Action-Adventure,N",
                17480890,
@@ -110,7 +110,7 @@
             ],
             [
                "Action-Adventure",
-               7.0E7,
+               70000000,
                "Y",
                "Action-Adventure,Y",
                120540719,
@@ -123,7 +123,7 @@
             ],
             [
                "Action-Adventure",
-               1.5E8,
+               150000000,
                "Y",
                "Action-Adventure,Y",
                93927920,
@@ -136,7 +136,7 @@
             ],
             [
                "Action-Adventure",
-               3.5E7,
+               35000000,
                "Y",
                "Action-Adventure,N",
                40689393,
@@ -149,7 +149,7 @@
             ],
             [
                "Action-Adventure",
-               2.5E7,
+               25000000,
                "Y",
                "Action-Adventure,N",
                23591432,
@@ -162,7 +162,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,N",
                9362785,
@@ -175,7 +175,7 @@
             ],
             [
                "Action-Adventure",
-               1.2E8,
+               120000000,
                "Y",
                "Action-Adventure,Y",
                124987000,
@@ -188,7 +188,7 @@
             ],
             [
                "Action-Adventure",
-               1.3E8,
+               130000000,
                "Y",
                "Action-Adventure,N",
                171091819,
@@ -201,7 +201,7 @@
             ],
             [
                "Action-Adventure",
-               3000000.0,
+               3000000,
                "Y",
                "Action-Adventure,N",
                4109095,
@@ -214,7 +214,7 @@
             ],
             [
                "Action-Adventure",
-               1.35E8,
+               135000000,
                "Y",
                "Action-Adventure,N",
                63450470,
@@ -227,7 +227,7 @@
             ],
             [
                "Action-Adventure",
-               1.9E7,
+               19000000,
                "Y",
                "Action-Adventure,N",
                10055859,
@@ -240,7 +240,7 @@
             ],
             [
                "Action-Adventure",
-               1.5E7,
+               15000000,
                "Y",
                "Action-Adventure,Y",
                17017811,
@@ -253,7 +253,7 @@
             ],
             [
                "Action-Adventure",
-               1.1E8,
+               110000000,
                "Y",
                "Action-Adventure,N",
                61737000,
@@ -266,7 +266,7 @@
             ],
             [
                "Action-Adventure",
-               1.9E8,
+               190000000,
                "Y",
                "Action-Adventure,N",
                101802000,
@@ -279,7 +279,7 @@
             ],
             [
                "Action-Adventure",
-               1.3E8,
+               130000000,
                "Y",
                "Action-Adventure,N",
                107509799,
@@ -292,7 +292,7 @@
             ],
             [
                "Action-Adventure",
-               1.6E8,
+               160000000,
                "Y",
                "Action-Adventure,Y",
                292576195,
@@ -305,7 +305,7 @@
             ],
             [
                "Action-Adventure",
-               1.9E7,
+               19000000,
                "Y",
                "Action-Adventure,Y",
                13756082,
@@ -318,7 +318,7 @@
             ],
             [
                "Action-Adventure",
-               4.0E7,
+               40000000,
                "Y",
                "Action-Adventure,N",
                119000000,
@@ -331,7 +331,7 @@
             ],
             [
                "Action-Adventure",
-               1.37E8,
+               137000000,
                "Y",
                "Action-Adventure,N",
                132177234,
@@ -344,7 +344,7 @@
             ],
             [
                "Action-Adventure",
-               2.58E8,
+               258000000,
                "Y",
                "Action-Adventure,N",
                336530303,
@@ -357,7 +357,7 @@
             ],
             [
                "Action-Adventure",
-               3.5E7,
+               35000000,
                "Y",
                "Action-Adventure,N",
                16990825,
@@ -370,7 +370,7 @@
             ],
             [
                "Action-Adventure",
-               6.0E7,
+               60000000,
                "Y",
                "Action-Adventure,N",
                75658097,
@@ -383,7 +383,7 @@
             ],
             [
                "Action-Adventure",
-               3.8E7,
+               38000000,
                "Y",
                "Action-Adventure,Y",
                171243005,
@@ -396,7 +396,7 @@
             ],
             [
                "Action-Adventure",
-               2.5E7,
+               25000000,
                "Y",
                "Action-Adventure,N",
                19490041,
@@ -409,7 +409,7 @@
             ],
             [
                "Action-Adventure",
-               6.6E7,
+               66000000,
                "Y",
                "Action-Adventure,Y",
                79884879,
@@ -422,7 +422,7 @@
             ],
             [
                "Action-Adventure",
-               2.15E8,
+               215000000,
                "Y",
                "Action-Adventure,N",
                234911000,
@@ -435,7 +435,7 @@
             ],
             [
                "Action-Adventure",
-               1.3E8,
+               130000000,
                "Y",
                "Action-Adventure,N",
                60522000,
@@ -448,7 +448,7 @@
             ],
             [
                "Action-Adventure",
-               9.0E7,
+               90000000,
                "Y",
                "Action-Adventure,N",
                6719973,
@@ -461,7 +461,7 @@
             ],
             [
                "Action-Adventure",
-               1.4E8,
+               140000000,
                "Y",
                "Action-Adventure,N",
                176654505,
@@ -474,7 +474,7 @@
             ],
             [
                "Action-Adventure",
-               2.5E7,
+               25000000,
                "Y",
                "Action-Adventure,Y",
                71509363,
@@ -487,7 +487,7 @@
             ],
             [
                "Action-Adventure",
-               1.5E7,
+               15000000,
                "Y",
                "Action-Adventure,N",
                15024000,
@@ -500,7 +500,7 @@
             ],
             [
                "Action-Adventure",
-               9.0E7,
+               90000000,
                "Y",
                "Action-Adventure,N",
                33602376,
@@ -513,7 +513,7 @@
             ],
             [
                "Action-Adventure",
-               4.7E7,
+               47000000,
                "Y",
                "Action-Adventure,N",
                10547117,
@@ -526,7 +526,7 @@
             ],
             [
                "Action-Adventure",
-               1.9E7,
+               19000000,
                "Y",
                "Action-Adventure,N",
                157019771,
@@ -539,7 +539,7 @@
             ],
             [
                "Action-Adventure",
-               1.0E8,
+               100000000,
                "Y",
                "Action-Adventure,Y",
                162805000,
@@ -552,7 +552,7 @@
             ],
             [
                "Action-Adventure",
-               9.4E7,
+               94000000,
                "Y",
                "Action-Adventure,Y",
                377027325,
@@ -565,7 +565,7 @@
             ],
             [
                "Action-Adventure",
-               1700000.0,
+               1700000,
                "Y",
                "Action-Adventure,Y",
                35930604,
@@ -578,7 +578,7 @@
             ],
             [
                "Action-Adventure",
-               2.0E7,
+               20000000,
                "Y",
                "Action-Adventure,N",
                20211394,
@@ -591,7 +591,7 @@
             ],
             [
                "Action-Adventure",
-               1.3E8,
+               130000000,
                "Y",
                "Action-Adventure,N",
                126477000,
@@ -604,7 +604,7 @@
             ],
             [
                "Action-Adventure",
-               7.5E7,
+               75000000,
                "Y",
                "Action-Adventure,N",
                46464023,
@@ -617,7 +617,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,N",
                63150991,
@@ -630,7 +630,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,N",
                14772788,
@@ -643,7 +643,7 @@
             ],
             [
                "Action-Adventure",
-               4.0E7,
+               40000000,
                "Y",
                "Action-Adventure,N",
                108766007,
@@ -656,7 +656,7 @@
             ],
             [
                "Action-Adventure",
-               1.63E8,
+               163000000,
                "Y",
                "Action-Adventure,N",
                100240551,
@@ -669,7 +669,7 @@
             ],
             [
                "Action-Adventure",
-               9.2E7,
+               92000000,
                "Y",
                "Action-Adventure,N",
                67349000,
@@ -682,7 +682,7 @@
             ],
             [
                "Action-Adventure",
-               1.9E8,
+               190000000,
                "Y",
                "Action-Adventure,N",
                228778000,
@@ -695,7 +695,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,N",
                16270600,
@@ -708,7 +708,7 @@
             ],
             [
                "Action-Adventure",
-               3.9E7,
+               39000000,
                "Y",
                "Action-Adventure,N",
                25514517,
@@ -721,7 +721,7 @@
             ],
             [
                "Action-Adventure",
-               1.39E8,
+               139000000,
                "Y",
                "Action-Adventure,N",
                403706375,
@@ -734,7 +734,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,N",
                295983305,
@@ -747,7 +747,7 @@
             ],
             [
                "Action-Adventure",
-               1.7E7,
+               17000000,
                "Y",
                "Action-Adventure,N",
                27865571,
@@ -760,7 +760,7 @@
             ],
             [
                "Action-Adventure",
-               6.0E7,
+               60000000,
                "Y",
                "Action-Adventure,N",
                14594226,
@@ -773,7 +773,7 @@
             ],
             [
                "Action-Adventure",
-               2000000.0,
+               2000000,
                "Y",
                "Action-Adventure,N",
                11540607,
@@ -786,7 +786,7 @@
             ],
             [
                "Action-Adventure",
-               6.0E7,
+               60000000,
                "Y",
                "Action-Adventure,N",
                17303424,
@@ -799,7 +799,7 @@
             ],
             [
                "Action-Adventure",
-               2.5E7,
+               25000000,
                "Y",
                "Action-Adventure,Y",
                41675994,
@@ -812,7 +812,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,Y",
                749766139,
@@ -825,7 +825,7 @@
             ],
             [
                "Action-Adventure",
-               7.0E7,
+               70000000,
                "Y",
                "Action-Adventure,Y",
                216540909,
@@ -838,7 +838,7 @@
             ],
             [
                "Action-Adventure",
-               3.0E7,
+               30000000,
                "Y",
                "Action-Adventure,Y",
                115646235,
@@ -851,7 +851,7 @@
             ],
             [
                "Action-Adventure",
-               2.0E8,
+               200000000,
                "Y",
                "Action-Adventure,Y",
                303003000,
@@ -864,7 +864,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,N",
                25605015,
@@ -877,7 +877,7 @@
             ],
             [
                "Action-Adventure",
-               2.5E7,
+               25000000,
                "Y",
                "Action-Adventure,N",
                17294293,
@@ -890,7 +890,7 @@
             ],
             [
                "Action-Adventure",
-               1.5E8,
+               150000000,
                "Y",
                "Action-Adventure,N",
                131772187,
@@ -903,7 +903,7 @@
             ],
             [
                "Action-Adventure",
-               5.2E7,
+               52000000,
                "Y",
                "Action-Adventure,N",
                24077427,
@@ -916,7 +916,7 @@
             ],
             [
                "Action-Adventure",
-               2.2E7,
+               22000000,
                "Y",
                "Action-Adventure,N",
                20158000,
@@ -929,7 +929,7 @@
             ],
             [
                "Action-Adventure",
-               3.7E7,
+               37000000,
                "Y",
                "Action-Adventure,N",
                48006762,
@@ -942,7 +942,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,N",
                82272442,
@@ -955,7 +955,7 @@
             ],
             [
                "Action-Adventure",
-               5.0E7,
+               50000000,
                "Y",
                "Action-Adventure,N",
                127004179,
@@ -968,7 +968,7 @@
             ],
             [
                "Action-Adventure",
-               1.2E7,
+               12000000,
                "Y",
                "Action-Adventure,N",
                8008000,
@@ -981,7 +981,7 @@
             ],
             [
                "Action-Adventure",
-               1.5E7,
+               15000000,
                "Y",
                "Action-Adventure,N",
                15634000,
@@ -994,7 +994,7 @@
             ],
             [
                "Action-Adventure",
-               2.0E8,
+               200000000,
                "Y",
                "Action-Adventure,N",
                116601172,
@@ -1007,7 +1007,7 @@
             ],
             [
                "Action-Adventure",
-               7.0E7,
+               70000000,
                "Y",
                "Action-Adventure,N",
                83552429,
@@ -1020,7 +1020,7 @@
             ],
             [
                "Action-Adventure",
-               1.5E8,
+               150000000,
                "Y",
                "Action-Adventure,N",
                281576461,
@@ -1033,7 +1033,7 @@
             ],
             [
                "Action-Adventure",
-               4.0E7,
+               40000000,
                "Y",
                "Action-Adventure,N",
                81612565,
@@ -1046,7 +1046,7 @@
             ],
             [
                "Action-Adventure",
-               6.1E7,
+               61000000,
                "Y",
                "Action-Adventure,N",
                47003582,
@@ -1059,7 +1059,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,N",
                14818176,
@@ -1072,7 +1072,7 @@
             ],
             [
                "Action-Adventure",
-               1.05E8,
+               105000000,
                "Y",
                "Action-Adventure,N",
                57761012,
@@ -1085,7 +1085,7 @@
             ],
             [
                "Action-Adventure",
-               5.6E7,
+               56000000,
                "Y",
                "Action-Adventure,N",
                12882934,
@@ -1098,7 +1098,7 @@
             ],
             [
                "Action-Adventure",
-               8.0E7,
+               80000000,
                "Y",
                "Action-Adventure,N",
                145794338,
@@ -1111,7 +1111,7 @@
             ],
             [
                "Action-Adventure",
-               1.3E8,
+               130000000,
                "Y",
                "Action-Adventure,N",
                423116000,
@@ -1124,7 +1124,7 @@
             ],
             [
                "Action-Adventure",
-               7.0E7,
+               70000000,
                "Y",
                "Action-Adventure,N",
                23159305,
@@ -1137,7 +1137,7 @@
             ],
             [
                "Action-Adventure",
-               9.4E7,
+               94000000,
                "Y",
                "Action-Adventure,Y",
                339789881,
@@ -1150,7 +1150,7 @@
             ],
             [
                "Action-Adventure",
-               0.0,
+               0,
                "Y",
                "Action-Adventure,Y",
                57247384,
@@ -1163,7 +1163,7 @@
             ],
             [
                "Action-Adventure",
-               5.0E7,
+               50000000,
                "Y",
                "Action-Adventure,N",
                13263993,
@@ -1176,7 +1176,7 @@
             ],
             [
                "Comedy-Musical",
-               1.2E8,
+               120000000,
                "N",
                "Comedy-Musical,N",
                162798565,
@@ -1189,7 +1189,7 @@
             ],
             [
                "Comedy-Musical",
-               4.0E7,
+               40000000,
                "N",
                "Comedy-Musical,N",
                46012734,
@@ -1202,7 +1202,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "Y",
                "Comedy-Musical,Y",
                124115725,
@@ -1215,7 +1215,7 @@
             ],
             [
                "Comedy-Musical",
-               6.1E7,
+               61000000,
                "Y",
                "Comedy-Musical,Y",
                148809000,
@@ -1228,7 +1228,7 @@
             ],
             [
                "Comedy-Musical",
-               3.3E7,
+               33000000,
                "N",
                "Comedy-Musical,N",
                59843754,
@@ -1241,7 +1241,7 @@
             ],
             [
                "Comedy-Musical",
-               1.85E7,
+               18500000,
                "N",
                "Comedy-Musical,N",
                18451251,
@@ -1254,7 +1254,7 @@
             ],
             [
                "Comedy-Musical",
-               6000000.0,
+               6000000,
                "N",
                "Comedy-Musical,N",
                9206000,
@@ -1267,7 +1267,7 @@
             ],
             [
                "Comedy-Musical",
-               9.0E7,
+               90000000,
                "N",
                "Comedy-Musical,N",
                33479698,
@@ -1280,7 +1280,7 @@
             ],
             [
                "Comedy-Musical",
-               3.8E7,
+               38000000,
                "N",
                "Comedy-Musical,N",
                88915214,
@@ -1293,7 +1293,7 @@
             ],
             [
                "Comedy-Musical",
-               3.2E7,
+               32000000,
                "N",
                "Comedy-Musical,N",
                101470000,
@@ -1306,7 +1306,7 @@
             ],
             [
                "Comedy-Musical",
-               1.8E7,
+               18000000,
                "N",
                "Comedy-Musical,N",
                41011711,
@@ -1319,7 +1319,7 @@
             ],
             [
                "Comedy-Musical",
-               2.0E7,
+               20000000,
                "N",
                "Comedy-Musical,N",
                36661504,
@@ -1332,7 +1332,7 @@
             ],
             [
                "Comedy-Musical",
-               1.6E7,
+               16000000,
                "N",
                "Comedy-Musical,N",
                14190750,
@@ -1345,7 +1345,7 @@
             ],
             [
                "Comedy-Musical",
-               2.0E7,
+               20000000,
                "N",
                "Comedy-Musical,N",
                12785432,
@@ -1358,7 +1358,7 @@
             ],
             [
                "Comedy-Musical",
-               2.7E7,
+               27000000,
                "Y",
                "Comedy-Musical,Y",
                78676425,
@@ -1371,7 +1371,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                21569000,
@@ -1384,7 +1384,7 @@
             ],
             [
                "Comedy-Musical",
-               1.6E7,
+               16000000,
                "N",
                "Comedy-Musical,N",
                68540777,
@@ -1397,7 +1397,7 @@
             ],
             [
                "Comedy-Musical",
-               5.3E7,
+               53000000,
                "N",
                "Comedy-Musical,N",
                24174218,
@@ -1410,7 +1410,7 @@
             ],
             [
                "Comedy-Musical",
-               4000000.0,
+               4000000,
                "Y",
                "Comedy-Musical,Y",
                20811365,
@@ -1423,7 +1423,7 @@
             ],
             [
                "Comedy-Musical",
-               1.7E7,
+               17000000,
                "Y",
                "Comedy-Musical,Y",
                56817045,
@@ -1436,7 +1436,7 @@
             ],
             [
                "Comedy-Musical",
-               5.0E7,
+               50000000,
                "N",
                "Comedy-Musical,N",
                125117000,
@@ -1449,7 +1449,7 @@
             ],
             [
                "Comedy-Musical",
-               2.6E7,
+               26000000,
                "N",
                "Comedy-Musical,N",
                36989956,
@@ -1462,7 +1462,7 @@
             ],
             [
                "Comedy-Musical",
-               8.5E7,
+               85000000,
                "N",
                "Comedy-Musical,N",
                34562556,
@@ -1475,7 +1475,7 @@
             ],
             [
                "Comedy-Musical",
-               8.5E7,
+               85000000,
                "N",
                "Comedy-Musical,N",
                40077257,
@@ -1488,7 +1488,7 @@
             ],
             [
                "Comedy-Musical",
-               3.5E7,
+               35000000,
                "N",
                "Comedy-Musical,N",
                16500786,
@@ -1501,7 +1501,7 @@
             ],
             [
                "Comedy-Musical",
-               6000000.0,
+               6000000,
                "N",
                "Comedy-Musical,N",
                24477000,
@@ -1514,7 +1514,7 @@
             ],
             [
                "Comedy-Musical",
-               5.5E7,
+               55000000,
                "N",
                "Comedy-Musical,N",
                166244045,
@@ -1527,7 +1527,7 @@
             ],
             [
                "Comedy-Musical",
-               6000000.0,
+               6000000,
                "N",
                "Comedy-Musical,N",
                32543449,
@@ -1540,7 +1540,7 @@
             ],
             [
                "Comedy-Musical",
-               2.0E7,
+               20000000,
                "N",
                "Comedy-Musical,N",
                100292856,
@@ -1553,7 +1553,7 @@
             ],
             [
                "Comedy-Musical",
-               8000000.0,
+               8000000,
                "N",
                "Comedy-Musical,N",
                10823158,
@@ -1566,7 +1566,7 @@
             ],
             [
                "Comedy-Musical",
-               1.3E7,
+               13000000,
                "N",
                "Comedy-Musical,N",
                5985690,
@@ -1579,7 +1579,7 @@
             ],
             [
                "Comedy-Musical",
-               5000000.0,
+               5000000,
                "N",
                "Comedy-Musical,N",
                21506000,
@@ -1592,7 +1592,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                90508336,
@@ -1605,7 +1605,7 @@
             ],
             [
                "Comedy-Musical",
-               1.15E8,
+               115000000,
                "N",
                "Comedy-Musical,N",
                255873250,
@@ -1618,7 +1618,7 @@
             ],
             [
                "Comedy-Musical",
-               1.4E7,
+               14000000,
                "N",
                "Comedy-Musical,N",
                9409000,
@@ -1631,7 +1631,7 @@
             ],
             [
                "Comedy-Musical",
-               1.35E8,
+               135000000,
                "N",
                "Comedy-Musical,N",
                126943684,
@@ -1644,7 +1644,7 @@
             ],
             [
                "Comedy-Musical",
-               4.0E7,
+               40000000,
                "N",
                "Comedy-Musical,N",
                16328471,
@@ -1657,7 +1657,7 @@
             ],
             [
                "Comedy-Musical",
-               4.0E7,
+               40000000,
                "N",
                "Comedy-Musical,N",
                33035397,
@@ -1670,7 +1670,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                64167069,
@@ -1683,7 +1683,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                28084357,
@@ -1696,7 +1696,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                10224116,
@@ -1709,7 +1709,7 @@
             ],
             [
                "Comedy-Musical",
-               4.0E7,
+               40000000,
                "N",
                "Comedy-Musical,N",
                41152000,
@@ -1722,7 +1722,7 @@
             ],
             [
                "Comedy-Musical",
-               3.5E7,
+               35000000,
                "N",
                "Comedy-Musical,N",
                39046489,
@@ -1735,7 +1735,7 @@
             ],
             [
                "Comedy-Musical",
-               5.0E7,
+               50000000,
                "N",
                "Comedy-Musical,N",
                66023816,
@@ -1748,7 +1748,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                42779261,
@@ -1761,7 +1761,7 @@
             ],
             [
                "Comedy-Musical",
-               2.0E7,
+               20000000,
                "N",
                "Comedy-Musical,N",
                67406573,
@@ -1774,7 +1774,7 @@
             ],
             [
                "Comedy-Musical",
-               7.0E7,
+               70000000,
                "N",
                "Comedy-Musical,N",
                48475290,
@@ -1787,7 +1787,7 @@
             ],
             [
                "Comedy-Musical",
-               3.5E7,
+               35000000,
                "N",
                "Comedy-Musical,N",
                25881068,
@@ -1800,7 +1800,7 @@
             ],
             [
                "Comedy-Musical",
-               6.0E7,
+               60000000,
                "N",
                "Comedy-Musical,N",
                43337279,
@@ -1813,7 +1813,7 @@
             ],
             [
                "Comedy-Musical",
-               6.8E7,
+               68000000,
                "N",
                "Comedy-Musical,N",
                100618344,
@@ -1826,7 +1826,7 @@
             ],
             [
                "Comedy-Musical",
-               4.0E7,
+               40000000,
                "N",
                "Comedy-Musical,N",
                31011732,
@@ -1839,7 +1839,7 @@
             ],
             [
                "Comedy-Musical",
-               5.0E7,
+               50000000,
                "Y",
                "Comedy-Musical,Y",
                148478011,
@@ -1852,7 +1852,7 @@
             ],
             [
                "Comedy-Musical",
-               1.5E7,
+               15000000,
                "N",
                "Comedy-Musical,N",
                10522168,
@@ -1865,7 +1865,7 @@
             ],
             [
                "Comedy-Musical",
-               1.6E7,
+               16000000,
                "Y",
                "Comedy-Musical,Y",
                71503593,
@@ -1878,7 +1878,7 @@
             ],
             [
                "Comedy-Musical",
-               2.5E7,
+               25000000,
                "N",
                "Comedy-Musical,N",
                10727683,
@@ -1891,7 +1891,7 @@
             ],
             [
                "Comedy-Musical",
-               2.5E7,
+               25000000,
                "N",
                "Comedy-Musical,N",
                70662220,
@@ -1904,7 +1904,7 @@
             ],
             [
                "Comedy-Musical",
-               8.0E7,
+               80000000,
                "N",
                "Comedy-Musical,N",
                133668525,
@@ -1917,7 +1917,7 @@
             ],
             [
                "Comedy-Musical",
-               2.8E7,
+               28000000,
                "N",
                "Comedy-Musical,N",
                63890000,
@@ -1930,7 +1930,7 @@
             ],
             [
                "Comedy-Musical",
-               6000000.0,
+               6000000,
                "N",
                "Comedy-Musical,N",
                17781006,
@@ -1943,7 +1943,7 @@
             ],
             [
                "Comedy-Musical",
-               3.25E7,
+               32500000,
                "N",
                "Comedy-Musical,N",
                169106725,
@@ -1956,7 +1956,7 @@
             ],
             [
                "Comedy-Musical",
-               7000000.0,
+               7000000,
                "N",
                "Comedy-Musical,N",
                23249649,
@@ -1969,7 +1969,7 @@
             ],
             [
                "Comedy-Musical",
-               4.2E7,
+               42000000,
                "N",
                "Comedy-Musical,N",
                88097164,
@@ -1982,7 +1982,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                26420672,
@@ -1995,7 +1995,7 @@
             ],
             [
                "Comedy-Musical",
-               2.25E8,
+               225000000,
                "N",
                "Comedy-Musical,N",
                179020000,
@@ -2008,7 +2008,7 @@
             ],
             [
                "Comedy-Musical",
-               3.7E7,
+               37000000,
                "N",
                "Comedy-Musical,N",
                60355347,
@@ -2021,7 +2021,7 @@
             ],
             [
                "Comedy-Musical",
-               9.3E7,
+               93000000,
                "Y",
                "Comedy-Musical,Y",
                313364114,
@@ -2034,7 +2034,7 @@
             ],
             [
                "Comedy-Musical",
-               1.6E7,
+               16000000,
                "N",
                "Comedy-Musical,N",
                16204793,
@@ -2047,7 +2047,7 @@
             ],
             [
                "Comedy-Musical",
-               2.5E7,
+               25000000,
                "N",
                "Comedy-Musical,N",
                30932000,
@@ -2060,20 +2060,20 @@
             ],
             [
                "Comedy-Musical",
-               1.0E7,
+               10000000,
                "N",
                "Comedy-Musical,N",
                8359717,
                0,
-               0.0,
-               0.0,
+               0,
+               0,
                "Miramax",
                "",
                "Twin_Dragons"
             ],
             [
                "Comedy-Musical",
-               4.0E7,
+               40000000,
                "N",
                "Comedy-Musical,N",
                209255921,
@@ -2086,7 +2086,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                20255281,
@@ -2099,7 +2099,7 @@
             ],
             [
                "Comedy-Musical",
-               2.4E7,
+               24000000,
                "N",
                "Comedy-Musical,N",
                11829959,
@@ -2112,7 +2112,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "Y",
                "Comedy-Musical,Y",
                9228768,
@@ -2125,7 +2125,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                5318679,
@@ -2138,7 +2138,7 @@
             ],
             [
                "Comedy-Musical",
-               7.0E7,
+               70000000,
                "N",
                "Comedy-Musical,N",
                11263966,
@@ -2151,7 +2151,7 @@
             ],
             [
                "Comedy-Musical",
-               8000000.0,
+               8000000,
                "Y",
                "Comedy-Musical,Y",
                59891098,
@@ -2164,7 +2164,7 @@
             ],
             [
                "Comedy-Musical",
-               4000000.0,
+               4000000,
                "Y",
                "Comedy-Musical,Y",
                44585453,
@@ -2177,7 +2177,7 @@
             ],
             [
                "Comedy-Musical",
-               8.0E7,
+               80000000,
                "N",
                "Comedy-Musical,N",
                162001186,
@@ -2190,7 +2190,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                9081057,
@@ -2203,7 +2203,7 @@
             ],
             [
                "Comedy-Musical",
-               5.2E7,
+               52000000,
                "Y",
                "Comedy-Musical,Y",
                36400491,
@@ -2216,7 +2216,7 @@
             ],
             [
                "Comedy-Musical",
-               9.5E7,
+               95000000,
                "N",
                "Comedy-Musical,N",
                73209340,
@@ -2229,7 +2229,7 @@
             ],
             [
                "Comedy-Musical",
-               2.4E7,
+               24000000,
                "N",
                "Comedy-Musical,N",
                9662284,
@@ -2242,7 +2242,7 @@
             ],
             [
                "Comedy-Musical",
-               6.5E7,
+               65000000,
                "N",
                "Comedy-Musical,N",
                90464773,
@@ -2255,7 +2255,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                136492681,
@@ -2268,7 +2268,7 @@
             ],
             [
                "Comedy-Musical",
-               1.9E7,
+               19000000,
                "N",
                "Comedy-Musical,N",
                27779426,
@@ -2281,7 +2281,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                13542874,
@@ -2294,7 +2294,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                10027047,
@@ -2307,7 +2307,7 @@
             ],
             [
                "Comedy-Musical",
-               2.0E7,
+               20000000,
                "N",
                "Comedy-Musical,N",
                26004000,
@@ -2320,7 +2320,7 @@
             ],
             [
                "Comedy-Musical",
-               1.7E7,
+               17000000,
                "N",
                "Comedy-Musical,N",
                86058055,
@@ -2333,7 +2333,7 @@
             ],
             [
                "Comedy-Musical",
-               6.3E7,
+               63000000,
                "N",
                "Comedy-Musical,N",
                10042516,
@@ -2346,7 +2346,7 @@
             ],
             [
                "Comedy-Musical",
-               8.1E7,
+               81000000,
                "N",
                "Comedy-Musical,N",
                242829261,
@@ -2359,7 +2359,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                32619671,
@@ -2372,7 +2372,7 @@
             ],
             [
                "Comedy-Musical",
-               1.3E7,
+               13000000,
                "N",
                "Comedy-Musical,N",
                18007000,
@@ -2385,7 +2385,7 @@
             ],
             [
                "Comedy-Musical",
-               2.0E8,
+               200000000,
                "Y",
                "Comedy-Musical,Y",
                600788188,
@@ -2398,7 +2398,7 @@
             ],
             [
                "Comedy-Musical",
-               1.2E7,
+               12000000,
                "N",
                "Comedy-Musical,N",
                91547000,
@@ -2411,7 +2411,7 @@
             ],
             [
                "Comedy-Musical",
-               1.9E7,
+               19000000,
                "N",
                "Comedy-Musical,N",
                8402485,
@@ -2424,7 +2424,7 @@
             ],
             [
                "Comedy-Musical",
-               7.5E7,
+               75000000,
                "N",
                "Comedy-Musical,N",
                38518000,
@@ -2437,7 +2437,7 @@
             ],
             [
                "Comedy-Musical",
-               1.17E8,
+               117000000,
                "N",
                "Comedy-Musical,N",
                76423035,
@@ -2450,7 +2450,7 @@
             ],
             [
                "Comedy-Musical",
-               2.1E7,
+               21000000,
                "Y",
                "Comedy-Musical,Y",
                132092000,
@@ -2463,7 +2463,7 @@
             ],
             [
                "Comedy-Musical",
-               3.5E7,
+               35000000,
                "N",
                "Comedy-Musical,N",
                63856929,
@@ -2476,7 +2476,7 @@
             ],
             [
                "Comedy-Musical",
-               7.0E7,
+               70000000,
                "N",
                "Comedy-Musical,N",
                36931000,
@@ -2489,7 +2489,7 @@
             ],
             [
                "Comedy-Musical",
-               3.0E7,
+               30000000,
                "N",
                "Comedy-Musical,N",
                35608245,
@@ -2502,7 +2502,7 @@
             ],
             [
                "Comedy-Musical",
-               2.0E7,
+               20000000,
                "N",
                "Comedy-Musical,N",
                110230332,
@@ -2515,7 +2515,7 @@
             ],
             [
                "Comedy-Musical",
-               2.1E7,
+               21000000,
                "N",
                "Comedy-Musical,N",
                9208876,
@@ -2528,7 +2528,7 @@
             ],
             [
                "Comedy-Musical",
-               1.5E7,
+               15000000,
                "N",
                "Comedy-Musical,N",
                33772838,
@@ -2541,7 +2541,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                18301610,
@@ -2554,7 +2554,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                5009305,
@@ -2567,7 +2567,7 @@
             ],
             [
                "Comedy-Musical",
-               2.5E7,
+               25000000,
                "N",
                "Comedy-Musical,N",
                36611066,
@@ -2580,7 +2580,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                10010209,
@@ -2593,7 +2593,7 @@
             ],
             [
                "Comedy-Musical",
-               0.0,
+               0,
                "N",
                "Comedy-Musical,N",
                14589444,
@@ -2606,7 +2606,7 @@
             ],
             [
                "Comedy-Musical",
-               2.2E7,
+               22000000,
                "N",
                "Comedy-Musical,N",
                11576464,
@@ -2619,7 +2619,7 @@
             ],
             [
                "Comedy-Musical",
-               7.0E7,
+               70000000,
                "N",
                "Comedy-Musical,N",
                179495555,
@@ -2632,7 +2632,7 @@
             ],
             [
                "Comedy-Musical",
-               3.5E7,
+               35000000,
                "N",
                "Comedy-Musical,N",
                25105255,
@@ -2645,7 +2645,7 @@
             ],
             [
                "Comedy-Musical",
-               1.3E7,
+               13000000,
                "N",
                "Comedy-Musical,N",
                22235901,
@@ -2658,7 +2658,7 @@
             ],
             [
                "Comedy-Musical",
-               6000000.0,
+               6000000,
                "N",
                "Comedy-Musical,N",
                6852450,
@@ -2671,7 +2671,7 @@
             ],
             [
                "Comedy-Musical",
-               1.7E7,
+               17000000,
                "N",
                "Comedy-Musical,N",
                9451946,
@@ -2684,7 +2684,7 @@
             ],
             [
                "Documentary",
-               2.0E7,
+               20000000,
                "N",
                "Documentary,N",
                14363397,
@@ -2697,7 +2697,7 @@
             ],
             [
                "Drama",
-               2.0E7,
+               20000000,
                "N",
                "Drama,N",
                62950384,
@@ -2710,7 +2710,7 @@
             ],
             [
                "Drama",
-               3.5E7,
+               35000000,
                "N",
                "Drama,N",
                82012000,
@@ -2723,7 +2723,7 @@
             ],
             [
                "Drama",
-               5.5E7,
+               55000000,
                "Y",
                "Drama,Y",
                106870000,
@@ -2736,7 +2736,7 @@
             ],
             [
                "Drama",
-               1.5E7,
+               15000000,
                "Y",
                "Drama,Y",
                141319928,
@@ -2749,7 +2749,7 @@
             ],
             [
                "Drama",
-               2.51E7,
+               25100000,
                "N",
                "Drama,N",
                25534493,
@@ -2762,7 +2762,7 @@
             ],
             [
                "Drama",
-               1.0E7,
+               10000000,
                "N",
                "Drama,N",
                28564995,
@@ -2775,7 +2775,7 @@
             ],
             [
                "Drama",
-               1.0E7,
+               10000000,
                "Y",
                "Drama,Y",
                47566524,
@@ -2788,7 +2788,7 @@
             ],
             [
                "Drama",
-               1.5E8,
+               150000000,
                "Y",
                "Drama,Y",
                127509326,
@@ -2801,7 +2801,7 @@
             ],
             [
                "Drama",
-               6000000.0,
+               6000000,
                "N",
                "Drama,N",
                26238243,
@@ -2814,7 +2814,7 @@
             ],
             [
                "Drama",
-               8.0E7,
+               80000000,
                "N",
                "Drama,N",
                128012934,
@@ -2827,7 +2827,7 @@
             ],
             [
                "Drama",
-               5.0E7,
+               50000000,
                "Y",
                "Drama,Y",
                57386607,
@@ -2840,7 +2840,7 @@
             ],
             [
                "Drama",
-               1.8E7,
+               18000000,
                "N",
                "Drama,N",
                22455510,
@@ -2853,7 +2853,7 @@
             ],
             [
                "Drama",
-               4500000.0,
+               4500000,
                "Y",
                "Drama,Y",
                13417292,
@@ -2866,7 +2866,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                83823381,
@@ -2879,7 +2879,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "N",
                "Drama,N",
                14161590,
@@ -2892,7 +2892,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "N",
                "Drama,N",
                11273517,
@@ -2905,7 +2905,7 @@
             ],
             [
                "Drama",
-               1.03E8,
+               103000000,
                "Y",
                "Drama,Y",
                187705427,
@@ -2918,7 +2918,7 @@
             ],
             [
                "Drama",
-               8.0E7,
+               80000000,
                "N",
                "Drama,N",
                17626234,
@@ -2931,7 +2931,7 @@
             ],
             [
                "Drama",
-               2.0E7,
+               20000000,
                "Y",
                "Drama,Y",
                31841299,
@@ -2944,12 +2944,12 @@
             ],
             [
                "Drama",
-               6500000.0,
+               6500000,
                "Y",
                "Drama,Y",
                54580300,
                43829761,
-               0.0,
+               0,
                0.76,
                "Lionsgate",
                "",
@@ -2957,7 +2957,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                66308518,
@@ -2970,7 +2970,7 @@
             ],
             [
                "Drama",
-               4.0E7,
+               40000000,
                "Y",
                "Drama,Y",
                31847881,
@@ -2983,7 +2983,7 @@
             ],
             [
                "Drama",
-               5.7E7,
+               57000000,
                "N",
                "Drama,N",
                66845033,
@@ -2996,7 +2996,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                34302837,
@@ -3009,7 +3009,7 @@
             ],
             [
                "Drama",
-               1.6E7,
+               16000000,
                "N",
                "Drama,N",
                19068240,
@@ -3022,7 +3022,7 @@
             ],
             [
                "Drama",
-               6.0E7,
+               60000000,
                "N",
                "Drama,N",
                77872883,
@@ -3035,7 +3035,7 @@
             ],
             [
                "Drama",
-               4.5E7,
+               45000000,
                "Y",
                "Drama,Y",
                170687518,
@@ -3048,7 +3048,7 @@
             ],
             [
                "Drama",
-               7000000.0,
+               7000000,
                "Y",
                "Drama,Y",
                31558003,
@@ -3061,7 +3061,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                93617009,
@@ -3074,7 +3074,7 @@
             ],
             [
                "Drama",
-               1.2E7,
+               12000000,
                "Y",
                "Drama,Y",
                15895000,
@@ -3087,7 +3087,7 @@
             ],
             [
                "Drama",
-               1.4E8,
+               140000000,
                "N",
                "Drama,N",
                201578182,
@@ -3100,7 +3100,7 @@
             ],
             [
                "Drama",
-               2000000.0,
+               2000000,
                "Y",
                "Drama,Y",
                6531503,
@@ -3113,7 +3113,7 @@
             ],
             [
                "Drama",
-               1.6E8,
+               160000000,
                "N",
                "Drama,N",
                32698899,
@@ -3126,7 +3126,7 @@
             ],
             [
                "Drama",
-               4.4E7,
+               44000000,
                "N",
                "Drama,N",
                31162545,
@@ -3139,7 +3139,7 @@
             ],
             [
                "Drama",
-               1.5E7,
+               15000000,
                "Y",
                "Drama,Y",
                135453143,
@@ -3152,7 +3152,7 @@
             ],
             [
                "Drama",
-               9.0E7,
+               90000000,
                "Y",
                "Drama,Y",
                132384315,
@@ -3165,7 +3165,7 @@
             ],
             [
                "Drama",
-               3.0E7,
+               30000000,
                "Y",
                "Drama,Y",
                100492203,
@@ -3178,7 +3178,7 @@
             ],
             [
                "Drama",
-               1.7E7,
+               17000000,
                "Y",
                "Drama,Y",
                128078872,
@@ -3191,7 +3191,7 @@
             ],
             [
                "Drama",
-               7.5E7,
+               75000000,
                "N",
                "Drama,N",
                43734876,
@@ -3204,7 +3204,7 @@
             ],
             [
                "Drama",
-               1.25E7,
+               12500000,
                "N",
                "Drama,N",
                9046156,
@@ -3217,7 +3217,7 @@
             ],
             [
                "Drama",
-               1.3E7,
+               13000000,
                "Y",
                "Drama,Y",
                106954678,
@@ -3230,7 +3230,7 @@
             ],
             [
                "Drama",
-               8500000.0,
+               8500000,
                "N",
                "Drama,N",
                6255000,
@@ -3243,7 +3243,7 @@
             ],
             [
                "Drama",
-               4.0E7,
+               40000000,
                "N",
                "Drama,N",
                176591618,
@@ -3256,7 +3256,7 @@
             ],
             [
                "Drama",
-               4000000.0,
+               4000000,
                "N",
                "Drama,N",
                15778152,
@@ -3269,7 +3269,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                6008677,
@@ -3282,7 +3282,7 @@
             ],
             [
                "Drama",
-               3.2E7,
+               32000000,
                "Y",
                "Drama,Y",
                13303319,
@@ -3295,7 +3295,7 @@
             ],
             [
                "Drama",
-               2.0E7,
+               20000000,
                "Y",
                "Drama,Y",
                82584160,
@@ -3308,7 +3308,7 @@
             ],
             [
                "Drama",
-               7500000.0,
+               7500000,
                "Y",
                "Drama,Y",
                143495265,
@@ -3321,7 +3321,7 @@
             ],
             [
                "Drama",
-               1.6E7,
+               16000000,
                "N",
                "Drama,N",
                12434000,
@@ -3334,7 +3334,7 @@
             ],
             [
                "Drama",
-               1.4E7,
+               14000000,
                "N",
                "Drama,N",
                35025000,
@@ -3347,7 +3347,7 @@
             ],
             [
                "Drama",
-               6.5E7,
+               65000000,
                "Y",
                "Drama,Y",
                182207000,
@@ -3360,7 +3360,7 @@
             ],
             [
                "Drama",
-               1.5E7,
+               15000000,
                "N",
                "Drama,N",
                30236407,
@@ -3373,7 +3373,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                40222514,
@@ -3386,7 +3386,7 @@
             ],
             [
                "Drama",
-               3.5E7,
+               35000000,
                "Y",
                "Drama,Y",
                32572577,
@@ -3399,7 +3399,7 @@
             ],
             [
                "Drama",
-               3.2E7,
+               32000000,
                "N",
                "Drama,N",
                16377000,
@@ -3412,20 +3412,20 @@
             ],
             [
                "Drama",
-               2.0E7,
+               20000000,
                "N",
                "Drama,N",
                15618626,
                2786080,
-               0.0,
-               0.0,
+               0,
+               0,
                "Sony",
                "",
                "Loser"
             ],
             [
                "Drama",
-               1.5E7,
+               15000000,
                "N",
                "Drama,N",
                20218921,
@@ -3438,7 +3438,7 @@
             ],
             [
                "Drama",
-               1.5564E7,
+               15564000,
                "N",
                "Drama,N",
                11670971,
@@ -3451,7 +3451,7 @@
             ],
             [
                "Drama",
-               3.0E7,
+               30000000,
                "Y",
                "Drama,Y",
                30082699,
@@ -3464,7 +3464,7 @@
             ],
             [
                "Drama",
-               5.0E7,
+               50000000,
                "Y",
                "Drama,Y",
                75605492,
@@ -3477,7 +3477,7 @@
             ],
             [
                "Drama",
-               3.6E7,
+               36000000,
                "N",
                "Drama,N",
                13323144,
@@ -3490,7 +3490,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                90135191,
@@ -3503,7 +3503,7 @@
             ],
             [
                "Drama",
-               4000000.0,
+               4000000,
                "N",
                "Drama,N",
                9427089,
@@ -3516,7 +3516,7 @@
             ],
             [
                "Drama",
-               4.0E7,
+               40000000,
                "Y",
                "Drama,Y",
                75331600,
@@ -3529,7 +3529,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                169708112,
@@ -3542,7 +3542,7 @@
             ],
             [
                "Drama",
-               1.1E8,
+               110000000,
                "Y",
                "Drama,Y",
                102610330,
@@ -3555,7 +3555,7 @@
             ],
             [
                "Drama",
-               4.0E7,
+               40000000,
                "Y",
                "Drama,Y",
                141870000,
@@ -3568,7 +3568,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                18622031,
@@ -3581,7 +3581,7 @@
             ],
             [
                "Drama",
-               2.9E7,
+               29000000,
                "Y",
                "Drama,Y",
                255959475,
@@ -3594,7 +3594,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                31480418,
@@ -3607,7 +3607,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "Y",
                "Drama,Y",
                30396000,
@@ -3620,7 +3620,7 @@
             ],
             [
                "Drama",
-               5.2E7,
+               52000000,
                "Y",
                "Drama,Y",
                125595205,
@@ -3633,7 +3633,7 @@
             ],
             [
                "Drama",
-               3500000.0,
+               3500000,
                "Y",
                "Drama,Y",
                45950122,
@@ -3646,7 +3646,7 @@
             ],
             [
                "Drama",
-               1.9E7,
+               19000000,
                "N",
                "Drama,N",
                20996000,
@@ -3659,7 +3659,7 @@
             ],
             [
                "Drama",
-               8.7E7,
+               87000000,
                "Y",
                "Drama,Y",
                120277854,
@@ -3672,7 +3672,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "Y",
                "Drama,Y",
                23249000,
@@ -3685,7 +3685,7 @@
             ],
             [
                "Drama",
-               1800000.0,
+               1800000,
                "Y",
                "Drama,Y",
                12795000,
@@ -3698,7 +3698,7 @@
             ],
             [
                "Drama",
-               7000000.0,
+               7000000,
                "Y",
                "Drama,Y",
                28750530,
@@ -3711,7 +3711,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                16101000,
@@ -3724,7 +3724,7 @@
             ],
             [
                "Drama",
-               1.35E7,
+               13500000,
                "N",
                "Drama,N",
                15901849,
@@ -3737,7 +3737,7 @@
             ],
             [
                "Drama",
-               2.0E7,
+               20000000,
                "N",
                "Drama,N",
                36843682,
@@ -3750,7 +3750,7 @@
             ],
             [
                "Drama",
-               9.7E7,
+               97000000,
                "Y",
                "Drama,Y",
                77812000,
@@ -3763,7 +3763,7 @@
             ],
             [
                "Drama",
-               6.0E7,
+               60000000,
                "N",
                "Drama,N",
                80574010,
@@ -3776,7 +3776,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                51680613,
@@ -3789,7 +3789,7 @@
             ],
             [
                "Drama",
-               6.0E7,
+               60000000,
                "N",
                "Drama,N",
                35763000,
@@ -3802,7 +3802,7 @@
             ],
             [
                "Drama",
-               1.5E7,
+               15000000,
                "Y",
                "Drama,Y",
                56441711,
@@ -3815,7 +3815,7 @@
             ],
             [
                "Drama",
-               6.36E7,
+               63600000,
                "N",
                "Drama,N",
                14967182,
@@ -3828,7 +3828,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "Y",
                "Drama,Y",
                138433435,
@@ -3841,7 +3841,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                5711695,
@@ -3854,7 +3854,7 @@
             ],
             [
                "Drama",
-               4.0E7,
+               40000000,
                "N",
                "Drama,N",
                57806952,
@@ -3867,7 +3867,7 @@
             ],
             [
                "Drama",
-               3.0E7,
+               30000000,
                "N",
                "Drama,N",
                16316273,
@@ -3880,7 +3880,7 @@
             ],
             [
                "Drama",
-               1000000.0,
+               1000000,
                "N",
                "Drama,N",
                9706328,
@@ -3893,7 +3893,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                12951088,
@@ -3906,7 +3906,7 @@
             ],
             [
                "Drama",
-               6.0E7,
+               60000000,
                "N",
                "Drama,N",
                93354851,
@@ -3919,7 +3919,7 @@
             ],
             [
                "Drama",
-               3.2E7,
+               32000000,
                "Y",
                "Drama,Y",
                34194407,
@@ -3932,7 +3932,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "Y",
                "Drama,Y",
                74283625,
@@ -3945,7 +3945,7 @@
             ],
             [
                "Drama",
-               1.8E7,
+               18000000,
                "Y",
                "Drama,Y",
                18335230,
@@ -3958,7 +3958,7 @@
             ],
             [
                "Drama",
-               2.0E7,
+               20000000,
                "N",
                "Drama,N",
                21170563,
@@ -3971,7 +3971,7 @@
             ],
             [
                "Drama",
-               1.0E8,
+               100000000,
                "Y",
                "Drama,Y",
                111032000,
@@ -3984,7 +3984,7 @@
             ],
             [
                "Drama",
-               5.8E7,
+               58000000,
                "Y",
                "Drama,Y",
                170742341,
@@ -3997,7 +3997,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "Y",
                "Drama,Y",
                50927067,
@@ -4010,20 +4010,20 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                6033999,
                0,
                0.65,
-               0.0,
+               0,
                "Artisan",
                "",
                "Foolish"
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                21250683,
@@ -4036,7 +4036,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                5770254,
@@ -4049,7 +4049,7 @@
             ],
             [
                "Drama",
-               7000000.0,
+               7000000,
                "Y",
                "Drama,Y",
                24611975,
@@ -4062,7 +4062,7 @@
             ],
             [
                "Drama",
-               1.5E7,
+               15000000,
                "Y",
                "Drama,Y",
                44671682,
@@ -4075,7 +4075,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                19440089,
@@ -4088,7 +4088,7 @@
             ],
             [
                "Drama",
-               2.5E7,
+               25000000,
                "Y",
                "Drama,Y",
                100317794,
@@ -4101,7 +4101,7 @@
             ],
             [
                "Drama",
-               7500000.0,
+               7500000,
                "Y",
                "Drama,Y",
                12574914,
@@ -4114,7 +4114,7 @@
             ],
             [
                "Drama",
-               4.0E7,
+               40000000,
                "Y",
                "Drama,Y",
                96962694,
@@ -4127,7 +4127,7 @@
             ],
             [
                "Drama",
-               3.5E7,
+               35000000,
                "N",
                "Drama,N",
                59713955,
@@ -4140,7 +4140,7 @@
             ],
             [
                "Drama",
-               2.0E7,
+               20000000,
                "N",
                "Drama,N",
                6719864,
@@ -4153,7 +4153,7 @@
             ],
             [
                "Drama",
-               1.98E7,
+               19800000,
                "Y",
                "Drama,Y",
                41308615,
@@ -4166,7 +4166,7 @@
             ],
             [
                "Drama",
-               1.65E7,
+               16500000,
                "N",
                "Drama,N",
                18670946,
@@ -4179,7 +4179,7 @@
             ],
             [
                "Drama",
-               1.31E7,
+               13100000,
                "Y",
                "Drama,Y",
                8900000,
@@ -4192,7 +4192,7 @@
             ],
             [
                "Drama",
-               6.8E7,
+               68000000,
                "N",
                "Drama,N",
                300531751,
@@ -4205,7 +4205,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                51733921,
@@ -4218,7 +4218,7 @@
             ],
             [
                "Drama",
-               5000000.0,
+               5000000,
                "Y",
                "Drama,Y",
                24356000,
@@ -4231,7 +4231,7 @@
             ],
             [
                "Drama",
-               800000.0,
+               800000,
                "N",
                "Drama,N",
                7099055,
@@ -4244,7 +4244,7 @@
             ],
             [
                "Drama",
-               1.5E7,
+               15000000,
                "N",
                "Drama,N",
                21403000,
@@ -4257,7 +4257,7 @@
             ],
             [
                "Drama",
-               1.1E7,
+               11000000,
                "N",
                "Drama,N",
                37770162,
@@ -4270,7 +4270,7 @@
             ],
             [
                "Drama",
-               2.0E7,
+               20000000,
                "Y",
                "Drama,Y",
                48352000,
@@ -4283,7 +4283,7 @@
             ],
             [
                "Drama",
-               1.45E7,
+               14500000,
                "N",
                "Drama,N",
                9047000,
@@ -4296,7 +4296,7 @@
             ],
             [
                "Drama",
-               1.5E7,
+               15000000,
                "Y",
                "Drama,Y",
                130096601,
@@ -4309,7 +4309,7 @@
             ],
             [
                "Drama",
-               2.4E7,
+               24000000,
                "N",
                "Drama,N",
                101363301,
@@ -4322,7 +4322,7 @@
             ],
             [
                "Drama",
-               2.4E7,
+               24000000,
                "Y",
                "Drama,Y",
                57545092,
@@ -4335,7 +4335,7 @@
             ],
             [
                "Drama",
-               8000000.0,
+               8000000,
                "N",
                "Drama,N",
                35014192,
@@ -4348,7 +4348,7 @@
             ],
             [
                "Drama",
-               5.0E7,
+               50000000,
                "Y",
                "Drama,Y",
                153952592,
@@ -4361,7 +4361,7 @@
             ],
             [
                "Drama",
-               0.0,
+               0,
                "N",
                "Drama,N",
                6112613,
@@ -4374,7 +4374,7 @@
             ],
             [
                "Drama",
-               8.5E7,
+               85000000,
                "N",
                "Drama,N",
                183417150,
@@ -4387,7 +4387,7 @@
             ],
             [
                "Drama",
-               5.0E7,
+               50000000,
                "N",
                "Drama,N",
                27100031,
@@ -4400,7 +4400,7 @@
             ],
             [
                "Family-Animation",
-               0.0,
+               0,
                "N",
                "Family-Animation,N",
                14842388,
@@ -4413,7 +4413,7 @@
             ],
             [
                "Family-Animation",
-               1.2E7,
+               12000000,
                "N",
                "Family-Animation,N",
                16703799,
@@ -4426,7 +4426,7 @@
             ],
             [
                "Family-Animation",
-               8000000.0,
+               8000000,
                "N",
                "Family-Animation,N",
                7007149,
@@ -4439,7 +4439,7 @@
             ],
             [
                "Family-Animation",
-               9.0E7,
+               90000000,
                "N",
                "Family-Animation,N",
                81526121,
@@ -4452,7 +4452,7 @@
             ],
             [
                "Family-Animation",
-               3.9E7,
+               39000000,
                "N",
                "Family-Animation,N",
                35291000,
@@ -4465,7 +4465,7 @@
             ],
             [
                "Family-Animation",
-               1.7E8,
+               170000000,
                "Y",
                "Family-Animation,Y",
                73864507,
@@ -4478,7 +4478,7 @@
             ],
             [
                "Family-Animation",
-               7.8E7,
+               78000000,
                "N",
                "Family-Animation,N",
                66465204,
@@ -4491,7 +4491,7 @@
             ],
             [
                "Family-Animation",
-               7.5E7,
+               75000000,
                "N",
                "Family-Animation,N",
                160861908,
@@ -4504,7 +4504,7 @@
             ],
             [
                "Family-Animation",
-               3.5E7,
+               35000000,
                "N",
                "Family-Animation,N",
                13342790,
@@ -4517,7 +4517,7 @@
             ],
             [
                "Family-Animation",
-               0.0,
+               0,
                "N",
                "Family-Animation,N",
                8341087,
@@ -4530,7 +4530,7 @@
             ],
             [
                "Family-Animation",
-               4.7E7,
+               47000000,
                "N",
                "Family-Animation,N",
                5707094,
@@ -4543,7 +4543,7 @@
             ],
             [
                "Family-Animation",
-               0.0,
+               0,
                "N",
                "Family-Animation,N",
                13040527,
@@ -4556,7 +4556,7 @@
             ],
             [
                "Family-Animation",
-               3.5E7,
+               35000000,
                "N",
                "Family-Animation,N",
                112719001,
@@ -4569,7 +4569,7 @@
             ],
             [
                "Family-Animation",
-               5.0E7,
+               50000000,
                "N",
                "Family-Animation,N",
                58360760,
@@ -4582,7 +4582,7 @@
             ],
             [
                "Family-Animation",
-               1.1E8,
+               110000000,
                "N",
                "Family-Animation,N",
                142614158,
@@ -4595,7 +4595,7 @@
             ],
             [
                "Family-Animation",
-               2.0E8,
+               200000000,
                "Y",
                "Family-Animation,Y",
                415004880,
@@ -4608,7 +4608,7 @@
             ],
             [
                "Family-Animation",
-               7.0E7,
+               70000000,
                "N",
                "Family-Animation,N",
                19077641,
@@ -4621,7 +4621,7 @@
             ],
             [
                "Family-Animation",
-               6.0E7,
+               60000000,
                "N",
                "Family-Animation,N",
                50877145,
@@ -4634,7 +4634,7 @@
             ],
             [
                "Family-Animation",
-               1.25E7,
+               12500000,
                "N",
                "Family-Animation,N",
                14118751,
@@ -4647,7 +4647,7 @@
             ],
             [
                "Family-Animation",
-               1.65E8,
+               165000000,
                "N",
                "Family-Animation,N",
                189422000,
@@ -4660,7 +4660,7 @@
             ],
             [
                "Family-Animation",
-               1.45E7,
+               14500000,
                "N",
                "Family-Animation,N",
                46351345,
@@ -4673,7 +4673,7 @@
             ],
             [
                "Family-Animation",
-               6.0E7,
+               60000000,
                "N",
                "Family-Animation,N",
                54930280,
@@ -4686,7 +4686,7 @@
             ],
             [
                "Family-Animation",
-               6.5E7,
+               65000000,
                "N",
                "Family-Animation,N",
                19551067,
@@ -4699,7 +4699,7 @@
             ],
             [
                "Family-Animation",
-               1.75E8,
+               175000000,
                "Y",
                "Family-Animation,Y",
                293004164,
@@ -4712,7 +4712,7 @@
             ],
             [
                "Family-Animation",
-               4.0E7,
+               40000000,
                "Y",
                "Family-Animation,Y",
                293506292,
@@ -4725,7 +4725,7 @@
             ],
             [
                "Family-Animation",
-               4.0E7,
+               40000000,
                "N",
                "Family-Animation,N",
                21002919,
@@ -4738,7 +4738,7 @@
             ],
             [
                "Family-Animation",
-               1.85E8,
+               185000000,
                "N",
                "Family-Animation,N",
                237283000,
@@ -4751,7 +4751,7 @@
             ],
             [
                "Family-Animation",
-               2.5E7,
+               25000000,
                "N",
                "Family-Animation,N",
                32383850,
@@ -4764,7 +4764,7 @@
             ],
             [
                "Family-Animation",
-               1.4E8,
+               140000000,
                "N",
                "Family-Animation,N",
                130444603,
@@ -4777,7 +4777,7 @@
             ],
             [
                "Family-Animation",
-               2.6E8,
+               260000000,
                "N",
                "Family-Animation,N",
                200821936,
@@ -4790,7 +4790,7 @@
             ],
             [
                "Family-Animation",
-               0.0,
+               0,
                "N",
                "Family-Animation,N",
                25143818,
@@ -4803,7 +4803,7 @@
             ],
             [
                "Family-Animation",
-               5.5E7,
+               55000000,
                "N",
                "Family-Animation,N",
                16797191,
@@ -4816,7 +4816,7 @@
             ],
             [
                "Family-Animation",
-               3.0E7,
+               30000000,
                "N",
                "Family-Animation,N",
                26692846,
@@ -4829,7 +4829,7 @@
             ],
             [
                "Family-Animation",
-               1.5E8,
+               150000000,
                "N",
                "Family-Animation,N",
                135386665,
@@ -4842,7 +4842,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                9534258,
@@ -4855,7 +4855,7 @@
             ],
             [
                "Thriller-Horror",
-               8000000.0,
+               8000000,
                "N",
                "Thriller-Horror,N",
                14018296,
@@ -4868,7 +4868,7 @@
             ],
             [
                "Thriller-Horror",
-               2.0E7,
+               20000000,
                "N",
                "Thriller-Horror,N",
                28549298,
@@ -4881,7 +4881,7 @@
             ],
             [
                "Thriller-Horror",
-               1.6E7,
+               16000000,
                "N",
                "Thriller-Horror,N",
                39517763,
@@ -4894,7 +4894,7 @@
             ],
             [
                "Thriller-Horror",
-               1.9E7,
+               19000000,
                "N",
                "Thriller-Horror,N",
                65002019,
@@ -4907,7 +4907,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                20534907,
@@ -4920,7 +4920,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                52802140,
@@ -4933,7 +4933,7 @@
             ],
             [
                "Thriller-Horror",
-               4.45E7,
+               44500000,
                "Y",
                "Thriller-Horror,Y",
                136025000,
@@ -4946,7 +4946,7 @@
             ],
             [
                "Thriller-Horror",
-               1.5E7,
+               15000000,
                "N",
                "Thriller-Horror,N",
                20804166,
@@ -4959,7 +4959,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                9255027,
@@ -4972,7 +4972,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "Y",
                "Thriller-Horror,Y",
                64616940,
@@ -4985,7 +4985,7 @@
             ],
             [
                "Thriller-Horror",
-               6.0E7,
+               60000000,
                "N",
                "Thriller-Horror,N",
                60128566,
@@ -4998,7 +4998,7 @@
             ],
             [
                "Thriller-Horror",
-               2.6E7,
+               26000000,
                "N",
                "Thriller-Horror,N",
                16008000,
@@ -5011,7 +5011,7 @@
             ],
             [
                "Thriller-Horror",
-               1.4E7,
+               14000000,
                "N",
                "Thriller-Horror,N",
                15515460,
@@ -5024,7 +5024,7 @@
             ],
             [
                "Thriller-Horror",
-               3.6E7,
+               36000000,
                "N",
                "Thriller-Horror,N",
                50159144,
@@ -5037,7 +5037,7 @@
             ],
             [
                "Thriller-Horror",
-               3.0E7,
+               30000000,
                "N",
                "Thriller-Horror,N",
                21443494,
@@ -5050,7 +5050,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                12844057,
@@ -5063,7 +5063,7 @@
             ],
             [
                "Thriller-Horror",
-               5.5E7,
+               55000000,
                "N",
                "Thriller-Horror,N",
                36895141,
@@ -5076,7 +5076,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "Y",
                "Thriller-Horror,Y",
                35892330,
@@ -5089,7 +5089,7 @@
             ],
             [
                "Thriller-Horror",
-               2.0E7,
+               20000000,
                "N",
                "Thriller-Horror,N",
                16809076,
@@ -5102,7 +5102,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                6678894,
@@ -5115,7 +5115,7 @@
             ],
             [
                "Thriller-Horror",
-               2.5E7,
+               25000000,
                "N",
                "Thriller-Horror,N",
                66528000,
@@ -5128,7 +5128,7 @@
             ],
             [
                "Thriller-Horror",
-               1.0E7,
+               10000000,
                "N",
                "Thriller-Horror,N",
                39143839,
@@ -5141,7 +5141,7 @@
             ],
             [
                "Thriller-Horror",
-               3.5E7,
+               35000000,
                "N",
                "Thriller-Horror,N",
                45802315,
@@ -5154,7 +5154,7 @@
             ],
             [
                "Thriller-Horror",
-               3.0E7,
+               30000000,
                "N",
                "Thriller-Horror,N",
                42073000,
@@ -5167,7 +5167,7 @@
             ],
             [
                "Thriller-Horror",
-               1000000.0,
+               1000000,
                "N",
                "Thriller-Horror,N",
                10047674,
@@ -5180,7 +5180,7 @@
             ],
             [
                "Thriller-Horror",
-               2.6E7,
+               26000000,
                "N",
                "Thriller-Horror,N",
                13261851,
@@ -5193,7 +5193,7 @@
             ],
             [
                "Thriller-Horror",
-               1.2E7,
+               12000000,
                "N",
                "Thriller-Horror,N",
                63118386,
@@ -5206,7 +5206,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                10597734,
@@ -5219,7 +5219,7 @@
             ],
             [
                "Thriller-Horror",
-               3.5E7,
+               35000000,
                "N",
                "Thriller-Horror,N",
                22991379,
@@ -5232,7 +5232,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                32752215,
@@ -5245,7 +5245,7 @@
             ],
             [
                "Thriller-Horror",
-               2.8E7,
+               28000000,
                "N",
                "Thriller-Horror,N",
                8709640,
@@ -5258,7 +5258,7 @@
             ],
             [
                "Thriller-Horror",
-               4.0E7,
+               40000000,
                "N",
                "Thriller-Horror,N",
                23649127,
@@ -5271,7 +5271,7 @@
             ],
             [
                "Thriller-Horror",
-               1.4E7,
+               14000000,
                "N",
                "Thriller-Horror,N",
                16298046,
@@ -5284,7 +5284,7 @@
             ],
             [
                "Thriller-Horror",
-               4.0E7,
+               40000000,
                "Y",
                "Thriller-Horror,Y",
                95720000,
@@ -5297,7 +5297,7 @@
             ],
             [
                "Thriller-Horror",
-               2.5E7,
+               25000000,
                "N",
                "Thriller-Horror,N",
                18877153,
@@ -5310,7 +5310,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                19145198,
@@ -5323,7 +5323,7 @@
             ],
             [
                "Thriller-Horror",
-               5.0E7,
+               50000000,
                "N",
                "Thriller-Horror,N",
                44737059,
@@ -5336,7 +5336,7 @@
             ],
             [
                "Thriller-Horror",
-               1.9E7,
+               19000000,
                "N",
                "Thriller-Horror,N",
                65233369,
@@ -5349,7 +5349,7 @@
             ],
             [
                "Thriller-Horror",
-               8.5E7,
+               85000000,
                "N",
                "Thriller-Horror,N",
                99112101,
@@ -5362,7 +5362,7 @@
             ],
             [
                "Thriller-Horror",
-               1.8E7,
+               18000000,
                "N",
                "Thriller-Horror,N",
                25594957,
@@ -5375,7 +5375,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "Y",
                "Thriller-Horror,Y",
                49033882,
@@ -5388,7 +5388,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                76231249,
@@ -5401,7 +5401,7 @@
             ],
             [
                "Thriller-Horror",
-               7.0E7,
+               70000000,
                "Y",
                "Thriller-Horror,Y",
                47403685,
@@ -5414,7 +5414,7 @@
             ],
             [
                "Thriller-Horror",
-               6.0E7,
+               60000000,
                "Y",
                "Thriller-Horror,Y",
                136801374,
@@ -5427,7 +5427,7 @@
             ],
             [
                "Thriller-Horror",
-               8.5E7,
+               85000000,
                "N",
                "Thriller-Horror,N",
                38082712,
@@ -5440,7 +5440,7 @@
             ],
             [
                "Thriller-Horror",
-               2.6E7,
+               26000000,
                "N",
                "Thriller-Horror,N",
                40168080,
@@ -5453,7 +5453,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                55389516,
@@ -5466,7 +5466,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                28596818,
@@ -5479,7 +5479,7 @@
             ],
             [
                "Thriller-Horror",
-               9.0E7,
+               90000000,
                "Y",
                "Thriller-Horror,Y",
                29089912,
@@ -5492,7 +5492,7 @@
             ],
             [
                "Thriller-Horror",
-               4.0E7,
+               40000000,
                "N",
                "Thriller-Horror,N",
                42587643,
@@ -5505,7 +5505,7 @@
             ],
             [
                "Thriller-Horror",
-               1.0E8,
+               100000000,
                "N",
                "Thriller-Horror,N",
                65452312,
@@ -5518,7 +5518,7 @@
             ],
             [
                "Thriller-Horror",
-               8.0E7,
+               80000000,
                "N",
                "Thriller-Horror,N",
                43313890,
@@ -5531,7 +5531,7 @@
             ],
             [
                "Thriller-Horror",
-               1.6E7,
+               16000000,
                "N",
                "Thriller-Horror,N",
                35374833,
@@ -5544,7 +5544,7 @@
             ],
             [
                "Thriller-Horror",
-               6.5E7,
+               65000000,
                "N",
                "Thriller-Horror,N",
                52411906,
@@ -5557,7 +5557,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                25473352,
@@ -5570,7 +5570,7 @@
             ],
             [
                "Thriller-Horror",
-               500000.0,
+               500000,
                "N",
                "Thriller-Horror,N",
                30610863,
@@ -5583,7 +5583,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                7638241,
@@ -5596,7 +5596,7 @@
             ],
             [
                "Thriller-Horror",
-               2.5E7,
+               25000000,
                "N",
                "Thriller-Horror,N",
                17266359,
@@ -5609,7 +5609,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                11682000,
@@ -5622,7 +5622,7 @@
             ],
             [
                "Thriller-Horror",
-               3.8E7,
+               38000000,
                "N",
                "Thriller-Horror,N",
                31811527,
@@ -5635,7 +5635,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                16188180,
@@ -5648,7 +5648,7 @@
             ],
             [
                "Thriller-Horror",
-               1.0E8,
+               100000000,
                "Y",
                "Thriller-Horror,Y",
                268167000,
@@ -5661,7 +5661,7 @@
             ],
             [
                "Thriller-Horror",
-               3.0E7,
+               30000000,
                "N",
                "Thriller-Horror,N",
                21148651,
@@ -5674,7 +5674,7 @@
             ],
             [
                "Thriller-Horror",
-               5.0E7,
+               50000000,
                "N",
                "Thriller-Horror,N",
                25450527,
@@ -5687,7 +5687,7 @@
             ],
             [
                "Thriller-Horror",
-               0.0,
+               0,
                "N",
                "Thriller-Horror,N",
                41797066,
@@ -5700,7 +5700,7 @@
             ],
             [
                "Thriller-Horror",
-               2.0E7,
+               20000000,
                "N",
                "Thriller-Horror,N",
                39263506,
@@ -5713,7 +5713,7 @@
             ],
             [
                "Thriller-Horror",
-               3.0E7,
+               30000000,
                "N",
                "Thriller-Horror,N",
                18535812,
@@ -5726,7 +5726,7 @@
             ],
             [
                "Thriller-Horror",
-               8.4E7,
+               84000000,
                "N",
                "Thriller-Horror,N",
                123309890,
@@ -5768,67 +5768,67 @@
       "headerInfo":[
          {
             "alias":"Genre",
-            "header":"FRAMEUNITTEST__Genre",
+            "header":"Genre",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"MovieBudget",
-            "header":"FRAMEUNITTEST__MovieBudget",
+            "header":"MovieBudget",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Nominated",
-            "header":"FRAMEUNITTEST__Nominated",
+            "header":"Nominated",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Nominated_Genres",
-            "header":"FRAMEUNITTEST__Nominated_Genres",
+            "header":"Nominated_Genres",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Revenue_Domestic",
-            "header":"FRAMEUNITTEST__Revenue_Domestic",
+            "header":"Revenue_Domestic",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Revenue_International",
-            "header":"FRAMEUNITTEST__Revenue_International",
+            "header":"Revenue_International",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"RottenTomatoes_Audience",
-            "header":"FRAMEUNITTEST__RottenTomatoes_Audience",
+            "header":"RottenTomatoes_Audience",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"RottenTomatoes_Critics",
-            "header":"FRAMEUNITTEST__RottenTomatoes_Critics",
+            "header":"RottenTomatoes_Critics",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Studio",
-            "header":"FRAMEUNITTEST__Studio",
+            "header":"Studio",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"test_column",
-            "header":"FRAMEUNITTEST__test_column",
+            "header":"test_column",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Title",
-            "header":"FRAMEUNITTEST__Title",
+            "header":"Title",
             "type":"STRING",
             "derived":false
          }
