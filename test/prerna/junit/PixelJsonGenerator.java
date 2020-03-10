@@ -56,7 +56,7 @@ public class PixelJsonGenerator extends PixelUnit {
 					PixelRunner returnData = null;
 					
 					if (!skipTest) {
-						if (insightState == "START") {
+						if (insightState.equals("START")) {
 							initializeTest(false);
 						}
 						returnData = runPixel(updatePixel);
@@ -71,7 +71,7 @@ public class PixelJsonGenerator extends PixelUnit {
 							// write data
 							PixelStreamUtility.writePixelDataForTest(returnData, jsonFile); 
 						}
-						if (insightState == "END") {
+						if (insightState.equals("END")) {
 							destroyTest();
 						}
 					}

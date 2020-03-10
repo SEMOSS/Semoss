@@ -1219,19 +1219,19 @@
       "headerInfo":[
          {
             "alias":"Studio",
-            "header":"FRAMEUNITTEST__Studio",
+            "header":"Studio",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"value_1",
-            "header":"FRAMEUNITTEST__value_1",
+            "header":"value_1",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"variable_1",
-            "header":"FRAMEUNITTEST__variable_1",
+            "header":"variable_1",
             "type":"STRING",
             "derived":false
          }

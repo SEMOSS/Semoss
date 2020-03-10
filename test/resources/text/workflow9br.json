@@ -1907,8 +1907,8 @@
                8359717,
                "sub100M",
                0,
-               0.0,
-               0.0,
+               0,
+               0,
                "Miramax",
                "Twin_Dragons"
             ],
@@ -2723,7 +2723,7 @@
                54580300,
                "sub100M",
                43829761,
-               0.0,
+               0,
                0.76,
                "Lionsgate",
                "Crash"
@@ -3155,8 +3155,8 @@
                15618626,
                "sub100M",
                2786080,
-               0.0,
-               0.0,
+               0,
+               0,
                "Sony",
                "Loser"
             ],
@@ -3708,7 +3708,7 @@
                "sub100M",
                0,
                0.65,
-               0.0,
+               0,
                "Artisan",
                "Foolish"
             ],
@@ -5325,61 +5325,61 @@
       "headerInfo":[
          {
             "alias":"Genre",
-            "header":"FRAMEUNITTEST__Genre",
+            "header":"Genre",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"MovieBudget",
-            "header":"FRAMEUNITTEST__MovieBudget",
+            "header":"MovieBudget",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Nominated",
-            "header":"FRAMEUNITTEST__Nominated",
+            "header":"Nominated",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Revenue_Domestic",
-            "header":"FRAMEUNITTEST__Revenue_Domestic",
+            "header":"Revenue_Domestic",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Revenue_Domestic_Discretized",
-            "header":"FRAMEUNITTEST__Revenue_Domestic_Discretized",
+            "header":"Revenue_Domestic_Discretized",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Revenue_International",
-            "header":"FRAMEUNITTEST__Revenue_International",
+            "header":"Revenue_International",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"RottenTomatoes_Audience",
-            "header":"FRAMEUNITTEST__RottenTomatoes_Audience",
+            "header":"RottenTomatoes_Audience",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"RottenTomatoes_Critics",
-            "header":"FRAMEUNITTEST__RottenTomatoes_Critics",
+            "header":"RottenTomatoes_Critics",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Studio",
-            "header":"FRAMEUNITTEST__Studio",
+            "header":"Studio",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Title",
-            "header":"FRAMEUNITTEST__Title",
+            "header":"Title",
             "type":"STRING",
             "derived":false
          }
@@ -5420,7 +5420,7 @@
       "filterInfo":[
 
       ],
-      "taskId":"task11"
+      "taskId":"task7"
    },
    "operationType":[
       "TASK_DATA"

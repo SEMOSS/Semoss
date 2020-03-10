@@ -1,58 +1,82 @@
 {
-  "pixelExpression": "PredictMetamodel ( filePath = [ \"<<<testDir>>>/data/unit_test_movie.csv\" ] , delimiter = [ \",\" ] , rowCount = [ false ] ) ;",
-  "output": {
-    "dataTypes": {
-      "Nominated": "STRING",
-      "Title": "STRING",
-      "Genre": "STRING",
-      "Studio": "STRING",
-      "Director": "STRING",
-      "Revenue_Domestic": "INT",
-      "MovieBudget": "INT",
-      "Revenue_International": "INT",
-      "RottenTomatoes_Critics": "DOUBLE",
-      "RottenTomatoes_Audience": "DOUBLE"
-    },
-    "startCount": 2,
-    "fileName": "(ignored)",
-    "headerModifications": {
-      "Revenue_International": "Original Header Value = Revenue-International",
-      "RottenTomatoes_Critics": "Original Header Value = RottenTomatoes-Critics",
-      "RottenTomatoes_Audience": "Original Header Value = RottenTomatoes-Audience",
-      "Revenue_Domestic": "Original Header Value = Revenue-Domestic"
-    },
-    "nodeProp": {
-      "Title": [
-        "RottenTomatoes_Audience",
-        "RottenTomatoes_Critics",
-        "Revenue_Domestic",
-        "MovieBudget",
-        "Revenue_International"
+   "pixelExpression":"PredictMetamodel ( filePath = [ \"C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie.csv\" ] , delimiter = [ \",\" ] , rowCount = [ false ] ) ;",
+   "output":{
+      "dataTypes":{
+         "Nominated":"STRING",
+         "Title":"STRING",
+         "Genre":"STRING",
+         "Studio":"STRING",
+         "Director":"STRING",
+         "Revenue_Domestic":"INT",
+         "MovieBudget":"INT",
+         "Revenue_International":"INT",
+         "RottenTomatoes_Critics":"DOUBLE",
+         "RottenTomatoes_Audience":"DOUBLE"
+      },
+      "startCount":2,
+      "fileName":"C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie",
+      "headerModifications":{
+         "Revenue_International":"Original Header Value = Revenue-International",
+         "RottenTomatoes_Critics":"Original Header Value = RottenTomatoes-Critics",
+         "RottenTomatoes_Audience":"Original Header Value = RottenTomatoes-Audience",
+         "Revenue_Domestic":"Original Header Value = Revenue-Domestic"
+      },
+      "positions":{
+         "Director":{
+            "top":0.0,
+            "left":725.7636666297913
+         },
+         "Title":{
+            "top":546.3826550245285,
+            "left":666.2706341743469
+         },
+         "Genre":{
+            "top":247.67667603492737,
+            "left":0.0
+         },
+         "Studio":{
+            "top":245.77114355564117,
+            "left":972.6627595424652
+         },
+         "Nominated":{
+            "top":372.69159534573555,
+            "left":607.4666819572449
+         }
+      },
+      "nodeProp":{
+         "Title":[
+            "RottenTomatoes_Audience",
+            "RottenTomatoes_Critics",
+            "Revenue_Domestic",
+            "MovieBudget",
+            "Revenue_International"
+         ]
+      },
+      "fileLocation":"C:/workspace/Semoss_Dev/test/resources/data/unit_test_movie.csv",
+      "additionalDataTypes":{
+
+      },
+      "relation":[
+         {
+            "relName":"Title_Director",
+            "toTable":"Director",
+            "fromTable":"Title"
+         },
+         {
+            "relName":"Title_Genre",
+            "toTable":"Genre",
+            "fromTable":"Title"
+         },
+         {
+            "relName":"Title_Studio",
+            "toTable":"Studio",
+            "fromTable":"Title"
+         },
+         {
+            "relName":"Title_Nominated",
+            "toTable":"Nominated",
+            "fromTable":"Title"
+         }
       ]
-    },
-    "fileLocation": "(ignored)",
-    "additionalDataTypes": {},
-    "relation": [
-      {
-        "relName": "Title_Director",
-        "toTable": "Director",
-        "fromTable": "Title"
-      },
-      {
-        "relName": "Title_Genre",
-        "toTable": "Genre",
-        "fromTable": "Title"
-      },
-      {
-        "relName": "Title_Studio",
-        "toTable": "Studio",
-        "fromTable": "Title"
-      },
-      {
-        "relName": "Title_Nominated",
-        "toTable": "Nominated",
-        "fromTable": "Title"
-      }
-    ]
-  }
+   }
 }
