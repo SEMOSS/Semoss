@@ -1065,7 +1065,7 @@
                54580300,
                "FALSE",
                43829761,
-               0.0,
+               0,
                0.76,
                "Lionsgate",
                "Crash"
@@ -2365,8 +2365,8 @@
                15618626,
                "FALSE",
                2786080,
-               0.0,
-               0.0,
+               0,
+               0,
                "Sony",
                "Loser"
             ],
@@ -3652,8 +3652,8 @@
                8359717,
                "FALSE",
                0,
-               0.0,
-               0.0,
+               0,
+               0,
                "Miramax",
                "Twin_Dragons"
             ],
@@ -4394,7 +4394,7 @@
                "FALSE",
                0,
                0.65,
-               0.0,
+               0,
                "Artisan",
                "Foolish"
             ],
@@ -5768,67 +5768,67 @@
       "headerInfo":[
          {
             "alias":"date_test",
-            "header":"FRAMEUNITTEST__date_test",
+            "header":"date_test",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Genre",
-            "header":"FRAMEUNITTEST__Genre",
+            "header":"Genre",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"MovieBudget",
-            "header":"FRAMEUNITTEST__MovieBudget",
+            "header":"MovieBudget",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Nominated",
-            "header":"FRAMEUNITTEST__Nominated",
+            "header":"Nominated",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Revenue_Domestic",
-            "header":"FRAMEUNITTEST__Revenue_Domestic",
+            "header":"Revenue_Domestic",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Revenue_Domestic_Outlier",
-            "header":"FRAMEUNITTEST__Revenue_Domestic_Outlier",
+            "header":"Revenue_Domestic_Outlier",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Revenue_International",
-            "header":"FRAMEUNITTEST__Revenue_International",
+            "header":"Revenue_International",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"RottenTomatoes_Audience",
-            "header":"FRAMEUNITTEST__RottenTomatoes_Audience",
+            "header":"RottenTomatoes_Audience",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"RottenTomatoes_Critics",
-            "header":"FRAMEUNITTEST__RottenTomatoes_Critics",
+            "header":"RottenTomatoes_Critics",
             "type":"NUMBER",
             "derived":false
          },
          {
             "alias":"Studio",
-            "header":"FRAMEUNITTEST__Studio",
+            "header":"Studio",
             "type":"STRING",
             "derived":false
          },
          {
             "alias":"Title",
-            "header":"FRAMEUNITTEST__Title",
+            "header":"Title",
             "type":"STRING",
             "derived":false
          }

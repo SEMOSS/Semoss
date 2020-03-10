@@ -47,6 +47,7 @@ public class PixelUnitTestsUser extends PixelUnit {
 	
 	@Test
 	public void runTest() throws IOException {
+		
 		PixelUnitTests.runTest(this, name, pixel, expectedJson, compareAll, excludePaths, ignoreOrder, ignoreAddedDictionary, ignoreAddedIterable, cleanTestDatabases, ignoreFailure);
 	}
 
