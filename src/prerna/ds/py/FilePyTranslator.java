@@ -176,30 +176,6 @@ public class FilePyTranslator extends PyTranslator
 	{
 		// get the insight folder 
 		// create a teamp to write the script file
-		String rootPath = null;
-		String pyTemp = null;
-		String addRootVariable = "";
-		if(this.insight != null) {
-			rootPath = this.insight.getInsightFolder().replace('\\', '/');
-			pyTemp = rootPath + "/py/Temp/";
-			addRootVariable = "ROOT <- '" + rootPath + "';";
-			String removeRootVar = "ROOT";
-		} else {
-			pyTemp = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/Py/Temp/").replace('\\', '/');
-		}
-		
-		File pyTempF = new File(pyTemp);
-		if(!pyTempF.exists()) {
-			pyTempF.mkdirs();
-		}
-
-		String scriptFileName = Utility.getRandomString(12);
-		String scriptPath = pyTemp + scriptFileName + ".py";
-		File scriptFile = new File(scriptPath);
-		
-		try {
-			String finalScript = convertArrayToString(script);
-			FileUtils.writeStringToFile(scriptFile, finalScript);
 			
 			// run py direct here
 			runScriptFilePy(script);
@@ -209,11 +185,6 @@ public class FilePyTranslator extends PyTranslator
 			//executePyDirect("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
 			// changing this to runscript
 			//runScript("smssutil.run_empty_wrapper(\"" + scriptPath + "\", globals())");
-			
-		} catch (IOException e1) {
-			System.out.println("Error in writing Py script for execution!");
-			e1.printStackTrace();
-		}
 	}
 	
 	
